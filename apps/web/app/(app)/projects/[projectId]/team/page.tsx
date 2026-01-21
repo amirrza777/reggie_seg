@@ -1,3 +1,5 @@
+import { Placeholder } from "@/shared/ui/Placeholder";
+
 type ProjectPageProps = {
   params: { projectId: string };
 };
@@ -5,10 +7,10 @@ type ProjectPageProps = {
 export default function ProjectTeamPage({ params }: ProjectPageProps) {
   const { projectId } = params;
   return (
-    <section className="placeholder">
-      <p className="eyebrow">/projects/{projectId}/team</p>
-      <h2>Project team</h2>
-      <p className="lede">Manage team members and roles.</p>
-    </section>
+    <Placeholder
+      title="Project team"
+      path={`/projects/${projectId}/team`}
+      description="Manage team members and roles."
+    />
   );
 }

@@ -1,3 +1,5 @@
+import { Placeholder } from "@/shared/ui/Placeholder";
+
 type ProjectPageProps = {
   params: { projectId: string };
 };
@@ -5,10 +7,10 @@ type ProjectPageProps = {
 export default function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = params;
   return (
-    <section className="placeholder">
-      <p className="eyebrow">/projects/{projectId}/peer-feedback</p>
-      <h2>Peer feedback</h2>
-      <p className="lede">Collect and review peer feedback for this project.</p>
-    </section>
+    <Placeholder
+      title="Peer feedback"
+      path={`/projects/${projectId}/peer-feedback`}
+      description="Collect and review peer feedback for this project."
+    />
   );
 }

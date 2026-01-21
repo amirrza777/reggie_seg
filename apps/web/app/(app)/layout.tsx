@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { AppShell } from "@/shared/layout/AppShell";
+import { Sidebar } from "@/shared/layout/Sidebar";
+import { Topbar } from "@/shared/layout/Topbar";
 
 const navLinks = [
   { href: "/modules", label: "Modules" },
@@ -9,35 +11,11 @@ const navLinks = [
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="app-shell">
-      <aside className="app-shell__sidebar">
-        <div className="sidebar">
-          <div className="sidebar__brand">
-            <span className="sidebar__dot" />
-            <div>
-              <p className="eyebrow">Team Feedback</p>
-              <strong>Workspace</strong>
-            </div>
-          </div>
-
-          <nav className="sidebar__nav">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="sidebar__link">
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </aside>
-
-      <div className="app-shell__content">
-        <header className="app-shell__topbar">
-          <div className="topbar">
-            <h1 className="topbar__title">Team Feedback</h1>
-          </div>
-        </header>
-        <div className="app-shell__body">{children}</div>
-      </div>
-    </div>
+    <AppShell
+      sidebar={<Sidebar title="Workspace" links={navLinks} />}
+      topbar={<Topbar title="Team Feedback" />}
+    >
+      {children}
+    </AppShell>
   );
 }
