@@ -67,7 +67,7 @@ Test backend in browser:
 
 ---
 
-## 4) Frontend (Web) setup
+## 4) Frontend (Web) setup (Next.js)
 
 Open a NEW terminal tab/window.
 
@@ -97,7 +97,9 @@ npm run dev
 
 Open the URL printed in terminal (usually):
 
-- http://localhost:5173
+- http://localhost:3001
+
+(Port 3001 is used so it does not conflict with the API on 3000.)
 
 ---
 
@@ -113,7 +115,7 @@ Open the URL printed in terminal (usually):
 Open `apps/web/.env` and confirm:
 
 ```env
-VITE_API_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:3000
 ```
 
 3) Restart frontend after editing `.env`:
