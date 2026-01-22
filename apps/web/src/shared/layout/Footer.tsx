@@ -4,25 +4,43 @@ const columns = [
   {
     title: "Product",
     links: [
-      { href: "#features", label: "Features" },
-      { href: "#how-it-works", label: "How it works" },
-      { href: "#pricing", label: "Pricing" },
+      { href: "#product", label: "Peer assessment" },
+      { href: "#product", label: "Questionnaires" },
+      { href: "#toolkit", label: "Meetings" },
+      { href: "#integrations", label: "Integrations" },
+      { href: "#toolkit", label: "Roles and permissions" },
+      { href: "#health", label: "Analytics" },
     ],
   },
   {
     title: "Resources",
     links: [
+      { href: "#resources", label: "Guides" },
+      { href: "#resources", label: "Templates" },
       { href: "#faq", label: "FAQ" },
-      { href: "#support", label: "Support" },
-      { href: "#blog", label: "Blog" },
     ],
   },
   {
-    title: "Company",
+    title: "Integrations",
     links: [
-      { href: "#about", label: "About" },
-      { href: "#careers", label: "Careers" },
-      { href: "#contact", label: "Contact" },
+      { href: "#integrations", label: "GitHub" },
+      { href: "#integrations", label: "Trello" },
+      { href: "#integrations", label: "VLE (placeholder)" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { href: "#privacy", label: "Privacy" },
+      { href: "#terms", label: "Terms" },
+      { href: "#cookies", label: "Cookies" },
+    ],
+  },
+  {
+    title: "Admin",
+    links: [
+      { href: "/login", label: "Login" },
+      { href: "#status", label: "Status page" },
     ],
   },
 ];
@@ -32,8 +50,8 @@ export function Footer() {
     <footer className="footer">
       <div className="footer__inner">
         <div className="footer__brand">
-          <div className="logo">Reggie</div>
-          <p className="muted">Planning that fits the way you think.</p>
+          <div className="logo">Team Feedback</div>
+          <p className="muted">Run peer assessment cycles, meetings, and monitoring from one place.</p>
         </div>
         <div className="footer__grid">
           {columns.map((col) => (
@@ -51,7 +69,7 @@ export function Footer() {
         </div>
       </div>
       <div className="footer__meta">
-        <span>© {new Date().getFullYear()} Reggie</span>
+        <span>© {new Date().getFullYear()} Team Feedback</span>
         <div className="footer__meta-links">
           <Link href="#privacy">Privacy</Link>
           <Link href="#terms">Terms</Link>
