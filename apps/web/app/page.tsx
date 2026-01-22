@@ -1,80 +1,289 @@
 import { MarketingLayout } from "./layouts/marketing";
 
+const socialProofLogos = ["University crest", "GDPR-ready", "GitHub", "Trello", "VLE compatible"];
+
+const toolkitCards = [
+  {
+    title: "Peer assessment that's fair",
+    body: "Custom questionnaires, flexible scoring, anonymity options, staff visibility.",
+  },
+  {
+    title: "Meetings that don't get lost",
+    body: "Attendance, minutes, actions, and scheduling in one place.",
+  },
+  {
+    title: "Contributions you can evidence",
+    body: "GitHub-linked contribution insights per repo, per student, per sprint.",
+  },
+  {
+    title: "Roles that match your workflow",
+    body: "Custom read-only and read-write permissions by data type.",
+  },
+];
+
+const testimonials = [
+  { quote: "Finally, everyone's contribution is visible.", attribution: "Student" },
+  { quote: "Setup takes minutes, and marking is faster.", attribution: "TA / lecturer" },
+  { quote: "Meeting minutes and actions stopped disappearing.", attribution: "Student" },
+];
+
+const faqItems = [
+  {
+    question: "How does peer assessment work with custom questionnaires?",
+    answer:
+      "Pick a template, adjust scales and anonymity, schedule deadlines, and let students submit once while staff monitor progress.",
+  },
+  {
+    question: "Can we reuse questionnaires across modules and years?",
+    answer:
+      "Yes. Save questionnaires to a shared library, version them, and reuse them across cohorts without rebuilding from scratch.",
+  },
+  {
+    question: "What data do you pull from GitHub, and what do you not pull?",
+    answer:
+      "We ingest contribution metadata (commits, PRs, issues, and timestamps) and never tokens or repository secrets.",
+  },
+  {
+    question: "Can teams self-form or be auto-allocated?",
+    answer:
+      "Both. Let coordinators auto-allocate by module rules or allow students to self-select into teams with approvals.",
+  },
+  {
+    question: "How do roles and permissions work?",
+    answer:
+      "Grant read-only or edit access per data type (questionnaires, submissions, actions, and analytics) so supervisors, TAs, and students only see what they should.",
+  },
+  {
+    question: "How does data archiving and GDPR compliance work?",
+    answer:
+      "Every cycle is archived with audit trails. Data retention rules are configurable, and exports respect GDPR requirements.",
+  },
+];
+
 export default function HomePage() {
   return (
     <MarketingLayout>
-      <section className="section section--padded section--gradient hero" id="hero">
-        <div className="container hero__grid">
-          <div className="stack">
-            <span className="hero__kicker">Team feedback platform</span>
-            <h1 className="hero__title">Structured feedback for every project team.</h1>
-            <p className="lede">
-              Collect reflections, peer reviews, and facilitator notes in one place. Built to
-              mirror King&apos;s College London&apos;s Team Feedback workflow so students and
-              supervisors stay aligned.
-            </p>
-            <div className="hero__actions">
-              <a className="btn btn--primary" href="#cta">
-                Start a team review
-              </a>
-              <a className="link-ghost" href="#how-it-works">
-                See how it works
-              </a>
-            </div>
-            <div className="hero__meta">
-              <span>• Module and cohort level views</span>
-              <span>• Peer + facilitator perspectives</span>
-              <span>• Actionable follow-ups</span>
-            </div>
+      <section className="section section--padded hero hero--gradient" id="hero">
+        <div className="container hero__centerpiece">
+          <p className="eyebrow">Team feedback platform</p>
+          <h1 className="display hero__headline">A team feedback platform built for real university group work.</h1>
+          <p className="hero__lede">
+            Run peer assessment exercises with reusable questionnaires, meeting tracking, code contribution insights, and
+            integrations that reduce admin work for students and staff.
+          </p>
+          <div className="hero__cta-row">
+            <a className="btn btn--primary" href="#cta">
+              Start on web
+            </a>
+            <a className="btn btn--ghost" href="#demo">
+              Request demo
+            </a>
           </div>
-          <div className="hero__visual">
-            <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
-              <p className="eyebrow">Placeholder</p>
-              <h3>Team feedback snapshot</h3>
-              <p className="muted">Drop screenshots of dashboards or forms here later.</p>
-            </div>
-          </div>
+          <p className="hero__availability">Works with GitHub. Optional Trello integration. Built for GDPR.</p>
         </div>
       </section>
 
-      <section className="section" id="awards">
-        <div className="container trust">
-          <p className="eyebrow">Trusted by teaching teams</p>
+      <section className="section section--band" id="announcement">
+        <div className="container band">
+          <div className="band__text">
+            <p className="eyebrow">Pilot proof</p>
+            <h3>Tested with real student teams</h3>
+            <p className="muted">Faster setup, clearer accountability, less admin overhead.</p>
+          </div>
+          <a className="link-ghost" href="#product">
+            See how it works
+          </a>
+        </div>
+      </section>
+
+      <section className="section trust" id="resources">
+        <div className="container stack trust__wrap">
+          <h3 className="trust__title">Trusted by teams, taught by staff</h3>
           <div className="trust__logos">
-            <span>KCL</span>
-            <span>UCL</span>
-            <span>Imperial</span>
-            <span>Queen Mary</span>
-            <span>Warwick</span>
+            {socialProofLogos.map((logo) => (
+              <div key={logo} className="trust__logo-pill">
+                {logo}
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      <section className="section" id="how-it-works">
-        <div className="container split">
-          <div className="split__visual">
-            <div style={{ textAlign: "center" }}>
-              <p className="eyebrow">Placeholder</p>
-              <h3>Feedback cycle</h3>
-              <p className="muted">Drop a visual of the team feedback cycle here.</p>
-            </div>
-          </div>
-          <div className="split__content">
-            <p className="eyebrow">Based on KCL team feedback</p>
-            <h2>A clear path from feedback to action.</h2>
+      <section className="section" id="product">
+        <div className="container split split--center">
+          <div className="split__content split__content--stack">
+            <p className="eyebrow">Automation + structure</p>
+            <h2>The feedback cycle that actually runs itself</h2>
             <p className="lede">
-              Capture individual reflections, peer evaluations, and facilitator assessments.
-              Align on team agreements, highlight strengths, and track agreed actions across
-              milestones.
+              Create an assessment cycle in minutes. Reuse questionnaires, schedule deadlines, collect submissions,
+              generate summaries, and surface risks early, without chasing people.
+            </p>
+            <p className="muted">
+              Includes custom peer assessments, a questionnaire repository, monitoring, marking and formative support,
+              plus archiving to keep every cohort auditable.
             </p>
             <div className="hero__actions">
-              <a className="btn btn--primary" href="#cta">
-                Run a review
-              </a>
-              <a className="link-ghost" href="#faq">
-                View the flow
+              <a className="btn btn--ghost" href="#cta">
+                How automation supports modules
               </a>
             </div>
+          </div>
+          <div className="split__visual split__visual--frame">
+            <div className="visual-placeholder">
+              <p className="eyebrow">Screenshot</p>
+              <p className="muted">Drop your feedback cycle visual or dashboard here.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section--padded" id="toolkit">
+        <div className="container stack">
+          <div className="section__header">
+            <h2>Executive functioning's favorite toolkit</h2>
+            <p className="lede">
+              Benefit-first cards that map to your real workflows: assessment, meetings, contributions, and permissions.
+            </p>
+          </div>
+          <div className="card-grid">
+            {toolkitCards.map((card) => (
+              <article key={card.title} className="feature-card">
+                <div className="feature-card__visual">
+                  <p className="eyebrow">Placeholder</p>
+                  <p className="muted">Swap in the real UI later.</p>
+                </div>
+                <h3>{card.title}</h3>
+                <p className="muted">{card.body}</p>
+                <a className="link-ghost" href="#cta">
+                  Learn more
+                </a>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section section--muted" id="about">
+        <div className="container split split--center">
+          <div className="split__content split__content--stack">
+            <p className="eyebrow">About</p>
+            <h2>Your peer assessment, finally manageable</h2>
+            <p className="lede">
+              Collect meaningful feedback without messy spreadsheets. Students submit once, staff review quickly, and the
+              system highlights outliers, conflicts, and missing submissions.
+            </p>
+            <div className="hero__actions">
+              <a className="btn btn--ghost" href="#product">
+                How peer assessment works
+              </a>
+            </div>
+          </div>
+          <div className="split__visual split__visual--soft">
+            <div className="visual-placeholder">
+              <p className="eyebrow">Flow</p>
+              <p className="muted">Add the peer assessment journey or form UI here.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="integrations">
+        <div className="container split split--center">
+          <div className="split__visual split__visual--frame">
+            <div className="visual-placeholder">
+              <p className="eyebrow">Integrations</p>
+              <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
+            </div>
+          </div>
+          <div className="split__content split__content--stack">
+            <p className="eyebrow">Sync</p>
+            <h2>One platform, synced with the tools you already use</h2>
+            <p className="lede">
+              Connect GitHub for contribution tracking. Optionally link Trello for project progress signals. Keep
+              everything tied to modules, teams, and assessment cycles.
+            </p>
+            <div className="hero__actions">
+              <a className="btn btn--ghost" href="#cta">
+                How integrations work
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section section--muted" id="health">
+        <div className="container split split--center">
+          <div className="split__content split__content--stack">
+            <p className="eyebrow">Monitoring</p>
+            <h2>Track team health and learning over time</h2>
+            <p className="lede">
+              Dashboards show attendance, submissions, contribution signals, peer feedback trends, and flags for teams
+              that need support. Archive every cycle for auditability.
+            </p>
+            <p className="muted">
+              Automated monitoring, data archiving, marking support, and formative feedback summaries sit in one place
+              so staff can intervene early.
+            </p>
+          </div>
+          <div className="split__visual split__visual--soft">
+            <div className="visual-placeholder">
+              <p className="eyebrow">Analytics</p>
+              <p className="muted">Slot in your analytics dashboard or trend lines.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="section trust" id="testimonials">
+        <div className="container stack">
+          <div className="section__header">
+            <h2>The feedback system teams actually complete</h2>
+            <p className="lede">Clear deadlines, fewer arguments, better accountability.</p>
+          </div>
+          <div className="testimonial-grid">
+            {testimonials.map((item) => (
+              <article key={item.quote} className="testimonial-card">
+                <p className="testimonial-card__quote">"{item.quote}"</p>
+                <p className="testimonial-card__attribution">{item.attribution}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section" id="faq">
+        <div className="container stack">
+          <div className="section__header">
+            <h2>FAQ</h2>
+            <p className="lede">Everything about questionnaires, permissions, GitHub data, and compliance.</p>
+          </div>
+          <div className="faq">
+            {faqItems.map((item) => (
+              <details key={item.question} className="faq__item">
+                <summary>{item.question}</summary>
+                <p className="muted">{item.answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="section section--gradient cta-band" id="cta">
+        <div className="container cta-band__inner">
+          <div id="demo" />
+          <div className="cta-band__content">
+            <h2>Run better group projects with less admin</h2>
+            <p className="lede">
+              Launch a peer assessment cycle, track meetings, and monitor progress from one place.
+            </p>
+          </div>
+          <div className="hero__cta-row">
+            <a className="btn btn--primary" href="#cta">
+              Start on web
+            </a>
+            <a className="btn btn--ghost" href="#demo">
+              Request demo
+            </a>
           </div>
         </div>
       </section>
