@@ -4,8 +4,8 @@ import "./globals.css";
 import { AppProviders } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Reggie Web",
-  description: "Next.js frontend for the API health check.",
+  title: "Team Feedback",
+  description: "Team feedback and reflection platform.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
