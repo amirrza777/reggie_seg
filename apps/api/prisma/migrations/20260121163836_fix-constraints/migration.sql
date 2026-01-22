@@ -1,0 +1,1 @@
+-- Empty migration placeholder (auto-generated directory without a script).

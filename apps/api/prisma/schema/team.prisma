@@ -1,0 +1,9 @@
+model Team {
+  id        Int      @id @default(autoincrement())
+  teamName  String
+  allocations TeamAllocation[]
+  peerAssessments PeerAssessment[] @ignore
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([teamName])
+}
