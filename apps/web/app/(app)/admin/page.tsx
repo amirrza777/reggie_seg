@@ -1,11 +1,15 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
+import { FeatureFlagsPanel } from "@/src/features/admin/components/FeatureFlagsPanel";
 
 export default function AdminPage() {
   return (
-    <Placeholder
-      title="Admin"
-      path="/admin"
-      description="Administrative configuration and feature flags."
-    />
+    <div className="stack">
+      <Placeholder
+        title="Admin"
+        path="/admin"
+        description="Administrative configuration and feature flags."
+      />
+      <FeatureFlagsPanel />
+    </div>
   );
 }
