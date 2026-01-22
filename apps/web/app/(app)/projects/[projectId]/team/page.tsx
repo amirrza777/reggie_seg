@@ -1,5 +1,5 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/src/features/projects/components/ProjectNav";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
 
 type ProjectPageProps = {
   params: { projectId: string };

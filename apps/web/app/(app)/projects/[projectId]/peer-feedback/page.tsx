@@ -1,7 +1,7 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/src/features/projects/components/ProjectNav";
-import { QuestionnaireBuilder } from "@/src/features/peerFeedback/components/QuestionnaireBuilder";
-import { FeedbackForm } from "@/src/features/peerFeedback/components/FeedbackForm";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { QuestionnaireBuilder } from "@/features/peerFeedback/components/QuestionnaireBuilder";
+import { FeedbackForm } from "@/features/peerFeedback/components/FeedbackForm";
 
 type ProjectPageProps = {
   params: { projectId: string };

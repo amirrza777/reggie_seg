@@ -1,5 +1,5 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { ModuleList } from "@/src/features/modules/components/ModuleList";
+import { ModuleList } from "@/features/modules/components/ModuleList";
 
 export default function ModulesPage() {
   return (

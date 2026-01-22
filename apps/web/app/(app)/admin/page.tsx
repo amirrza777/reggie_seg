@@ -1,5 +1,5 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { FeatureFlagsPanel } from "@/src/features/admin/components/FeatureFlagsPanel";
+import { FeatureFlagsPanel } from "@/features/admin/components/FeatureFlagsPanel";
 
 export default function AdminPage() {
   return (

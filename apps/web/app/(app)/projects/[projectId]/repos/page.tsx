@@ -1,7 +1,7 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/src/features/projects/components/ProjectNav";
-import { RepoLinkForm } from "@/src/features/repos/components/RepoLinkForm";
-import { CommitList } from "@/src/features/repos/components/CommitList";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { RepoLinkForm } from "@/features/repos/components/RepoLinkForm";
+import { CommitList } from "@/features/repos/components/CommitList";
 
 type ProjectPageProps = {
   params: { projectId: string };
