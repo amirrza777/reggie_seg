@@ -1,0 +1,24 @@
+model PeerAssessment {
+  id               Int      @id @default(autoincrement())
+  moduleId         Int
+  projectId        Int?
+  teamId           Int
+  reviewerUserId   Int
+  revieweeUserId   Int
+  templateId       Int
+  answersJson      Json
+  submittedAt      DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  module   Module @relation(fields: [moduleId], references: [id])
+  team     Team   @relation(fields: [teamId], references: [id])
+  reviewer User   @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
+  reviewee User   @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
+
+  @@unique([moduleId, projectId, teamId, reviewerUserId, revieweeUserId])
+  @@index([moduleId])
+  @@index([projectId])
+  @@index([teamId])
+  @@index([reviewerUserId])
+  @@index([revieweeUserId])
+}

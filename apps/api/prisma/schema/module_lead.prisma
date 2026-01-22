@@ -1,0 +1,8 @@
+model ModuleLead {
+  moduleId Int
+  userId   Int
+  module   Module @relation(fields: [moduleId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@id([moduleId, userId])
+}

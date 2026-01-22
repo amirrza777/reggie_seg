@@ -1,0 +1,9 @@
+model UserModule {
+  userId   Int
+  moduleId Int
+  user     User   @relation(fields: [userId], references: [id])
+  module   Module @relation(fields: [moduleId], references: [id])
+
+  @@id([userId, moduleId])
+  @@index([moduleId])
+}

@@ -1,0 +1,9 @@
+model TeamAllocation {
+  teamId Int
+  userId Int
+  team   Team @relation(fields: [teamId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
+
+  @@id([teamId, userId])
+  @@index([userId])
+}
