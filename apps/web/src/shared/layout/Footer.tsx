@@ -59,7 +59,7 @@ export function Footer() {
               <p className="footer__title">{col.title}</p>
               <div className="footer__links">
                 {col.links.map((link) => (
-                  <Link key={link.href} href={link.href} className="footer__link">
+                  <Link key={`${link.href}-${link.label}`} href={link.href} className="footer__link">
                     {link.label}
                   </Link>
                 ))}
