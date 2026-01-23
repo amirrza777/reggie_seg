@@ -1,8 +1,9 @@
 model questionnaireTemplate {
-  id           Int      @id @default(autoincrement())
-  name         String
-  description  String?
-  questions    Json
+  questionId   Int      @id @default(autoincrement())
+  id           Int
+  templateName String
+  questionText String   @db.VarChar(1000)
+  questionHash String   @db.Char(64)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
