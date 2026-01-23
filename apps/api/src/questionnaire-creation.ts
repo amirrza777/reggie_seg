@@ -37,3 +37,33 @@ router.post('/', async (req, res) => {
 });
 
 export default router;
+
+router.get('/:templateID', async (req, res) => {
+    const templateID = Number(req.params.templateID);
+
+    if(isNaN(templateID)){
+        return res.status(400).json({error: 'Invalid template ID'});
+    }
+
+    try{
+        const questions = await prisma.questionnaireTemplate.findMany({
+            where: {id: templateID},
+            orderBy: {createdAt: 'asc'}
+        });
+
+        if(questions.length === 0){
+            return res.status(404).json({error: 'Template nt found'});
+        }
+
+        const formattedQuestions = questions.map(q => JSON.parse(q.questionText));
+
+        res.json({
+            templateID,
+            templateName: questions[0].templateName,
+            questions: formattedQuestions
+        });
+    }catch(error){
+        console.error('Error fetching questionnaire template:', error);
+        res.status(500).json({error: 'Internal server error'});
+    }
+});
