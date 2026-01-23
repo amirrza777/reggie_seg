@@ -15,10 +15,6 @@ const toolkitCards = [
     title: "Contributions you can evidence",
     body: "GitHub-linked contribution insights per repo, per student, per sprint.",
   },
-  {
-    title: "Roles that match your workflow",
-    body: "Custom read-only and read-write permissions by data type.",
-  },
 ];
 
 const testimonials = [
@@ -66,7 +62,7 @@ export default function HomePage() {
       <section className="section section--padded hero hero--gradient" id="hero">
         <div className="container hero__centerpiece">
           <p className="eyebrow">Team feedback platform</p>
-          <h1 className="display hero__headline">A team feedback platform built for real university group work.</h1>
+          <h1 className="display hero__headline">A platform built for group work.</h1>
           <p className="hero__lede">
             Run peer assessment exercises with reusable questionnaires, meeting tracking, code contribution insights, and
             integrations that reduce admin work for students and staff.
@@ -140,7 +136,7 @@ export default function HomePage() {
       <section className="section section--padded" id="toolkit">
         <div className="container stack">
           <div className="section__header">
-            <h2>Executive functioning's favorite toolkit</h2>
+            <h2>Executive functioning's favourite toolkit</h2>
             <p className="lede">
               Benefit-first cards that map to your real workflows: assessment, meetings, contributions, and permissions.
             </p>
