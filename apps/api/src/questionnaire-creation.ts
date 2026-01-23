@@ -1,8 +1,6 @@
 import {Router} from 'express';
 import {PrismaClient} from '@prisma/client';
 import crypto from 'crypto';
-import assert = require('assert');
-import ok = require('assert');
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -37,3 +35,5 @@ router.post('/', async (req, res) => {
         res.status(500).json({error: 'Internal server error'});
     }
 });
+
+export default router;
