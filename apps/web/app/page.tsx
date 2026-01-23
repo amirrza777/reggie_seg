@@ -59,8 +59,8 @@ const faqItems = [
 export default function HomePage() {
   return (
     <MarketingLayout>
-      <section className="section section--padded hero hero--gradient" id="hero">
-        <div className="container hero__centerpiece">
+      <section className="section hero hero--gradient" id="hero">
+        <div className="container hero__centerpiece" data-reveal>
           <p className="eyebrow">Team feedback platform</p>
           <h1 className="display hero__headline">A platform built for group work.</h1>
           <p className="hero__lede">
@@ -79,35 +79,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section section--band" id="announcement">
-        <div className="container band">
-          <div className="band__text">
-            <p className="eyebrow">Pilot proof</p>
-            <h3>Tested with real student teams</h3>
-            <p className="muted">Faster setup, clearer accountability, less admin overhead.</p>
-          </div>
-          <a className="link-ghost" href="#product">
-            See how it works
-          </a>
-        </div>
-      </section>
-
-      <section className="section trust" id="resources">
-        <div className="container stack trust__wrap">
-          <h3 className="trust__title">Trusted by teams, taught by staff</h3>
-          <div className="trust__logos">
-            {socialProofLogos.map((logo) => (
-              <div key={logo} className="trust__logo-pill">
-                {logo}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <section className="section" id="product">
         <div className="container split split--center">
-          <div className="split__content split__content--stack">
+          <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">Automation + structure</p>
             <h2>The feedback cycle that actually runs itself</h2>
             <p className="lede">
@@ -124,7 +98,7 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="split__visual split__visual--frame">
+          <div className="split__visual split__visual--frame" data-reveal>
             <div className="visual-placeholder">
               <p className="eyebrow">Screenshot</p>
               <p className="muted">Drop your feedback cycle visual or dashboard here.</p>
@@ -133,9 +107,35 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="section section--band" id="announcement">
+        <div className="container band" data-reveal>
+          <div className="band__text">
+            <p className="eyebrow">Pilot proof</p>
+            <h3>Tested with real student teams</h3>
+            <p className="muted">Faster setup, clearer accountability, less admin overhead.</p>
+          </div>
+          <a className="link-ghost" href="#product">
+            See how it works
+          </a>
+        </div>
+      </section>
+
+      <section className="section trust" id="resources">
+        <div className="container stack trust__wrap" data-reveal>
+          <h3 className="trust__title">Trusted by teams, taught by staff</h3>
+          <div className="trust__logos">
+            {socialProofLogos.map((logo) => (
+              <div key={logo} className="trust__logo-pill" data-reveal>
+                {logo}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="section section--padded" id="toolkit">
         <div className="container stack">
-          <div className="section__header">
+          <div className="section__header" data-reveal>
             <h2>Executive functioning's favourite toolkit</h2>
             <p className="lede">
               Benefit-first cards that map to your real workflows: assessment, meetings, contributions, and permissions.
@@ -143,7 +143,7 @@ export default function HomePage() {
           </div>
           <div className="card-grid">
             {toolkitCards.map((card) => (
-              <article key={card.title} className="feature-card">
+              <article key={card.title} className="feature-card" data-reveal>
                 <div className="feature-card__visual">
                   <p className="eyebrow">Placeholder</p>
                   <p className="muted">Swap in the real UI later.</p>
@@ -161,7 +161,7 @@ export default function HomePage() {
 
       <section className="section section--muted" id="about">
         <div className="container split split--center">
-          <div className="split__content split__content--stack">
+          <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">About</p>
             <h2>Your peer assessment, finally manageable</h2>
             <p className="lede">
@@ -174,7 +174,7 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="split__visual split__visual--soft">
+          <div className="split__visual split__visual--soft" data-reveal>
             <div className="visual-placeholder">
               <p className="eyebrow">Flow</p>
               <p className="muted">Add the peer assessment journey or form UI here.</p>
@@ -185,13 +185,13 @@ export default function HomePage() {
 
       <section className="section" id="integrations">
         <div className="container split split--center">
-          <div className="split__visual split__visual--frame">
+          <div className="split__visual split__visual--frame" data-reveal>
             <div className="visual-placeholder">
               <p className="eyebrow">Integrations</p>
               <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
             </div>
           </div>
-          <div className="split__content split__content--stack">
+          <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">Sync</p>
             <h2>One platform, synced with the tools you already use</h2>
             <p className="lede">
@@ -209,7 +209,7 @@ export default function HomePage() {
 
       <section className="section section--muted" id="health">
         <div className="container split split--center">
-          <div className="split__content split__content--stack">
+          <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">Monitoring</p>
             <h2>Track team health and learning over time</h2>
             <p className="lede">
@@ -221,7 +221,7 @@ export default function HomePage() {
               so staff can intervene early.
             </p>
           </div>
-          <div className="split__visual split__visual--soft">
+          <div className="split__visual split__visual--soft" data-reveal>
             <div className="visual-placeholder">
               <p className="eyebrow">Analytics</p>
               <p className="muted">Slot in your analytics dashboard or trend lines.</p>
@@ -232,13 +232,13 @@ export default function HomePage() {
 
       <section className="section trust" id="testimonials">
         <div className="container stack">
-          <div className="section__header">
+          <div className="section__header" data-reveal>
             <h2>The feedback system teams actually complete</h2>
             <p className="lede">Clear deadlines, fewer arguments, better accountability.</p>
           </div>
           <div className="testimonial-grid">
             {testimonials.map((item) => (
-              <article key={item.quote} className="testimonial-card">
+              <article key={item.quote} className="testimonial-card" data-reveal>
                 <p className="testimonial-card__quote">"{item.quote}"</p>
                 <p className="testimonial-card__attribution">{item.attribution}</p>
               </article>
@@ -249,13 +249,13 @@ export default function HomePage() {
 
       <section className="section" id="faq">
         <div className="container stack">
-          <div className="section__header">
+          <div className="section__header" data-reveal>
             <h2>FAQ</h2>
             <p className="lede">Everything about questionnaires, permissions, GitHub data, and compliance.</p>
           </div>
           <div className="faq">
             {faqItems.map((item) => (
-              <details key={item.question} className="faq__item">
+              <details key={item.question} className="faq__item" data-reveal>
                 <summary>{item.question}</summary>
                 <p className="muted">{item.answer}</p>
               </details>
@@ -267,13 +267,13 @@ export default function HomePage() {
       <section className="section section--gradient cta-band" id="cta">
         <div className="container cta-band__inner">
           <div id="demo" />
-          <div className="cta-band__content">
+          <div className="cta-band__content" data-reveal>
             <h2>Run better group projects with less admin</h2>
             <p className="lede">
               Launch a peer assessment cycle, track meetings, and monitor progress from one place.
             </p>
           </div>
-          <div className="hero__cta-row">
+          <div className="hero__cta-row" data-reveal>
             <a className="btn btn--primary" href="#cta">
               Start on web
             </a>
