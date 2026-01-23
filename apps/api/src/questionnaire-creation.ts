@@ -44,7 +44,7 @@ router.get('/:templateID', async (req, res) => {
     if(isNaN(templateID)){
         return res.status(400).json({error: 'Invalid template ID'});
     }
-
+    // inverse of post route: fetch all questions with same templateID and return as array
     try{
         const questions = await prisma.questionnaireTemplate.findMany({
             where: {id: templateID},
