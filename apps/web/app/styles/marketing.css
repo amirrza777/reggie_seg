@@ -2,13 +2,14 @@
   position: relative;
   overflow: hidden;
   padding-top: clamp(72px, 8vw, 132px);
+  padding-bottom: clamp(12px, 2vw, 32px);
 }
 
 .marketing-shell {
-  --landing-body: var(--fs-body-lg, var(--fs-body));
+  --landing-body: var(--fs-marketing-body, var(--fs-body-lg, var(--fs-body)));
 }
 
-[data-reveal] {
+html.reveal-ready [data-reveal] {
   opacity: 0;
   transform: translateY(32px) scale(0.98);
   filter: blur(2px);
@@ -21,7 +22,7 @@
   will-change: opacity, transform;
 }
 
-[data-reveal].is-visible {
+html.reveal-ready [data-reveal].is-visible {
   opacity: 1;
   transform: translateY(0) scale(1);
   filter: blur(0);
@@ -67,6 +68,10 @@
   flex-wrap: wrap;
 }
 
+.hero__cta-row--hero {
+  margin-top: 18px;
+}
+
 .hero__grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -99,6 +104,7 @@
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
+  margin-left: -4px;
 }
 
 .hero__meta {
@@ -122,10 +128,6 @@
   background: none;
 }
 
-.section--band {
-  padding: 20px;
-}
-
 @media (prefers-color-scheme: dark) {
   .section--gradient {
     background:
@@ -144,47 +146,80 @@
   background: none;
 }
 
-.band {
-  background: #0f1012;
-  color: #f8fafc;
-  border-radius: 16px;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.band__text {
-  display: grid;
-  gap: 6px;
-}
-
-.band .link-ghost {
-  border-color: #f8fafc;
-  color: #f8fafc;
-}
-
 .marketing-shell .lede,
 .marketing-shell .muted {
   font-size: var(--landing-body);
 }
 
 .trust {
-  padding: 32px 0 56px;
+  padding: clamp(88px, 9vw, 124px) 0 clamp(88px, 9vw, 124px);
   display: grid;
   gap: 24px;
-  justify-items: center;
+  justify-items: stretch;
 }
 
 .trust__wrap {
   gap: 12px;
+  margin-bottom: 24px;
 }
 
 .trust__title {
   margin: 0;
-  font-size: var(--fs-h3);
   text-align: center;
+}
+
+.logo-marquee {
+  overflow: hidden;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  padding: clamp(36px, 5vw, 64px) 48px clamp(48px, 7vw, 90px);
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 48px,
+    #000 64px,
+    #000 calc(100% - 64px),
+    transparent calc(100% - 48px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 48px,
+    #000 64px,
+    #000 calc(100% - 64px),
+    transparent calc(100% - 48px),
+    transparent 100%
+  );
+}
+
+.logo-marquee__track {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 296px;
+  width: max-content;
+  animation: logo-marquee 196s linear infinite;
+  will-change: transform;
+}
+
+.logo-marquee__logo {
+  height: 110px;
+  width: auto;
+  display: block;
+  opacity: 1;
+  filter: none;
+  flex-shrink: 0;
+}
+
+@keyframes logo-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .trust__logos {
@@ -460,6 +495,7 @@
   border-width: 1.5px;
   align-self: flex-start;
   justify-self: flex-start;
+  margin-left: -4px;
 }
 
 .feature-tile {
