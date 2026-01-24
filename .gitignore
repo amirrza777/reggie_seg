@@ -8,3 +8,5 @@ build/
 .DS_Store
 coverage/
 .vscode/
+.next/
+apps/web/.next/
