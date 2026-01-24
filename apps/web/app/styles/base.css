@@ -72,12 +72,12 @@ h3 {
 }
 
 .section {
-  padding: clamp(64px, 8vw, 96px) 20px;
+  padding: clamp(52px, 6.5vw, 84px) 20px;
   scroll-margin-top: 96px;
 }
 
 .section--padded {
-  padding: clamp(108px, 12vw, 148px) 20px;
+  padding: clamp(88px, 9vw, 124px) 20px;
 }
 
 .container {
