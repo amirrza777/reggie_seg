@@ -1,6 +1,22 @@
 import { MarketingLayout } from "./layouts/marketing";
 
-const socialProofLogos = ["University crest", "GDPR-ready", "GitHub", "Trello", "VLE compatible"];
+const marqueeLogos = [
+  { src: "/marketing-logos/logo-1.png", alt: "Logo 1" },
+  { src: "/marketing-logos/logo-2.png", alt: "Logo 2" },
+  { src: "/marketing-logos/logo-3.png", alt: "Logo 3" },
+];
+const marqueeLoop = (() => {
+  const minCount = 20;
+  if (marqueeLogos.length === 0) {
+    return [];
+  }
+  const repeated: typeof marqueeLogos = [];
+  while (repeated.length < minCount) {
+    repeated.push(...marqueeLogos);
+  }
+  return repeated;
+})();
+const marqueeItems = marqueeLoop.concat(marqueeLoop);
 
 const toolkitCards = [
   {
@@ -67,12 +83,9 @@ export default function HomePage() {
             Run peer assessment exercises with reusable questionnaires, meeting tracking, code contribution insights, and
             integrations that reduce admin work for students and staff.
           </p>
-          <div className="hero__cta-row">
+          <div className="hero__cta-row hero__cta-row--hero">
             <a className="btn btn--primary" href="#cta">
-              Start on web
-            </a>
-            <a className="btn btn--ghost" href="#demo">
-              Request demo
+              Get started today
             </a>
           </div>
           <p className="hero__availability">Works with GitHub. Optional Trello integration. Built for GDPR.</p>
@@ -80,7 +93,7 @@ export default function HomePage() {
       </section>
 
       <section className="section" id="product">
-        <div className="container split split--center">
+        <div className="container split split--center" data-reveal-group>
           <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">Automation + structure</p>
             <h2>The feedback cycle that actually runs itself</h2>
@@ -98,7 +111,7 @@ export default function HomePage() {
               </a>
             </div>
           </div>
-          <div className="split__visual split__visual--frame" data-reveal>
+          <div className="split__visual split__visual--frame" data-reveal data-reveal-offset="-25%">
             <div className="visual-placeholder">
               <p className="eyebrow">Screenshot</p>
               <p className="muted">Drop your feedback cycle visual or dashboard here.</p>
@@ -107,28 +120,25 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section section--band" id="announcement">
-        <div className="container band" data-reveal>
-          <div className="band__text">
-            <p className="eyebrow">Pilot proof</p>
-            <h3>Tested with real student teams</h3>
-            <p className="muted">Faster setup, clearer accountability, less admin overhead.</p>
-          </div>
-          <a className="link-ghost" href="#product">
-            See how it works
-          </a>
-        </div>
-      </section>
-
-      <section className="section trust" id="resources">
+      <section className="section section--padded trust" id="resources">
         <div className="container stack trust__wrap" data-reveal>
-          <h3 className="trust__title">Trusted by teams, taught by staff</h3>
-          <div className="trust__logos">
-            {socialProofLogos.map((logo) => (
-              <div key={logo} className="trust__logo-pill" data-reveal>
-                {logo}
-              </div>
-            ))}
+          <h2 className="trust__title">Trusted by teams, taught by staff</h2>
+        </div>
+        <div className="logo-marquee" aria-label="Partner logos" data-reveal>
+          <div className="logo-marquee__track">
+            {marqueeItems.map((logo, index) => {
+              const isDuplicate = index >= marqueeLoop.length;
+              return (
+                <img
+                  key={`${logo.src}-${index}`}
+                  className="logo-marquee__logo"
+                  src={logo.src}
+                  alt={isDuplicate ? "" : logo.alt}
+                  loading="lazy"
+                  aria-hidden={isDuplicate}
+                />
+              );
+            })}
           </div>
         </div>
       </section>
@@ -160,8 +170,8 @@ export default function HomePage() {
       </section>
 
       <section className="section section--muted" id="about">
-        <div className="container split split--center">
-          <div className="split__content split__content--stack" data-reveal>
+        <div className="container split split--center" data-reveal-group>
+          <div className="split__content split__content--stack" data-reveal data-reveal-offset="-25%">
             <p className="eyebrow">About</p>
             <h2>Your peer assessment, finally manageable</h2>
             <p className="lede">
@@ -184,14 +194,14 @@ export default function HomePage() {
       </section>
 
       <section className="section" id="integrations">
-        <div className="container split split--center">
+        <div className="container split split--center" data-reveal-group>
           <div className="split__visual split__visual--frame" data-reveal>
             <div className="visual-placeholder">
               <p className="eyebrow">Integrations</p>
               <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
             </div>
           </div>
-          <div className="split__content split__content--stack" data-reveal>
+          <div className="split__content split__content--stack" data-reveal data-reveal-offset="-25%">
             <p className="eyebrow">Sync</p>
             <h2>One platform, synced with the tools you already use</h2>
             <p className="lede">
@@ -208,7 +218,7 @@ export default function HomePage() {
       </section>
 
       <section className="section section--muted" id="health">
-        <div className="container split split--center">
+        <div className="container split split--center" data-reveal-group>
           <div className="split__content split__content--stack" data-reveal>
             <p className="eyebrow">Monitoring</p>
             <h2>Track team health and learning over time</h2>
@@ -221,7 +231,7 @@ export default function HomePage() {
               so staff can intervene early.
             </p>
           </div>
-          <div className="split__visual split__visual--soft" data-reveal>
+          <div className="split__visual split__visual--soft" data-reveal data-reveal-offset="-25%">
             <div className="visual-placeholder">
               <p className="eyebrow">Analytics</p>
               <p className="muted">Slot in your analytics dashboard or trend lines.</p>
