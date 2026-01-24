@@ -9,7 +9,23 @@
   --landing-body: var(--fs-marketing-body, var(--fs-body-lg, var(--fs-body)));
   position: relative;
   isolation: isolate;
+  overflow: hidden;
   background: var(--bg);
+}
+
+.marketing-shell::before {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  background:
+    radial-gradient(42% 36% at 8% 8%, rgba(32, 173, 120, 0.52) 0%, rgba(32, 173, 120, 0.22) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
+    radial-gradient(46% 38% at 92% 86%, rgba(32, 173, 120, 0.32) 0%, rgba(32, 173, 120, 0.15) 30%, rgba(32, 173, 120, 0.05) 50%, rgba(32, 173, 120, 0) 68%),
+    radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.22) 0%, rgba(32, 173, 120, 0.08) 32%, rgba(32, 173, 120, 0) 58%);
+  filter: blur(120px);
+  opacity: 0.9;
+  transform: translate3d(0, 0, 0);
+  pointer-events: none;
+  z-index: -2;
 }
 
 .marketing-shell::after {
@@ -17,14 +33,13 @@
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(120% 120% at 0% 0%, rgba(52, 211, 153, 0.28), rgba(52, 211, 153, 0) 48%),
-    radial-gradient(120% 120% at 100% 100%, rgba(52, 211, 153, 0.32), rgba(52, 211, 153, 0) 50%),
     linear-gradient(180deg, #ffffff 0%, #fbfffd 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat;
-  background-size: 120% 120%, 150% 150%, 100% 100%, 200px 200px;
-  background-position: 0% 0%, 100% 100%, center, center;
-  background-blend-mode: normal, normal, normal, soft-light;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  background-repeat: no-repeat, repeat;
+  background-size: 100% 100%, 180px 180px;
+  background-position: center, center;
+  mix-blend-mode: soft-light;
+  opacity: 0.12;
   pointer-events: none;
   z-index: -1;
 }
@@ -158,14 +173,21 @@ html.reveal-ready [data-reveal].is-visible {
 
   .marketing-shell::after {
     background:
-      radial-gradient(120% 120% at 0% 0%, rgba(52, 211, 153, 0.24), rgba(52, 211, 153, 0) 48%),
-      radial-gradient(120% 120% at 100% 100%, rgba(52, 211, 153, 0.28), rgba(52, 211, 153, 0) 50%),
       linear-gradient(180deg, #05070f 0%, #0b1020 100%),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E");
-    background-repeat: no-repeat, no-repeat, no-repeat, repeat;
-    background-size: 120% 120%, 150% 150%, 100% 100%, 200px 200px;
-    background-position: 0% 0%, 100% 100%, center, center;
-    background-blend-mode: normal, normal, normal, soft-light;
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: no-repeat, repeat;
+    background-size: 100% 100%, 180px 180px;
+    background-position: center, center;
+    mix-blend-mode: soft-light;
+    opacity: 0.14;
+  }
+
+  .marketing-shell::before {
+    background:
+      radial-gradient(42% 36% at 8% 8%, rgba(32, 173, 120, 0.48) 0%, rgba(32, 173, 120, 0.2) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
+      radial-gradient(46% 38% at 92% 86%, rgba(32, 173, 120, 0.3) 0%, rgba(32, 173, 120, 0.14) 30%, rgba(32, 173, 120, 0.05) 50%, rgba(32, 173, 120, 0) 68%),
+      radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.2) 0%, rgba(32, 173, 120, 0.08) 32%, rgba(32, 173, 120, 0) 58%);
+    filter: blur(120px);
   }
 
   .header {
