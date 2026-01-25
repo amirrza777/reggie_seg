@@ -36,9 +36,31 @@ const toolkitCards = [
 ];
 
 const testimonials = [
-  { quote: "Finally, everyone's contribution is visible.", attribution: "Student" },
-  { quote: "Setup takes minutes, and marking is faster.", attribution: "TA / lecturer" },
-  { quote: "Meeting minutes and actions stopped disappearing.", attribution: "Student" },
+  {
+    quote: "Finally, everyone's contribution is visible, with evidence tied to every submission and meeting recap.",
+    attribution: "PROJECT COORDINATOR",
+    rating: 5,
+  },
+  {
+    quote: "Setup takes minutes, and marking is faster now that scores, rubrics, and anonymized notes live in one place.",
+    attribution: "TA / LECTURER",
+    rating: 5,
+  },
+  {
+    quote: "Meeting minutes and actions stopped disappearing, so our team actually follows up on what we commit to each week.",
+    attribution: "STUDENT TEAM LEAD",
+    rating: 5,
+  },
+  {
+    quote: "The dashboard gives me confidence we won't miss a deadline and lets me spot struggling teams before they escalate.",
+    attribution: "PROGRAMME LEAD",
+    rating: 5,
+  },
+  {
+    quote: "Peer reviews feel fairer with anonymity, saved templates, and quick exports for moderation when we need to step in.",
+    attribution: "MODULE ADMIN",
+    rating: 5,
+  },
 ];
 
 const faqItems = [
@@ -253,19 +275,42 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="section trust" id="testimonials">
-        <div className="container stack">
-          <div className="section__header" data-reveal>
+      <section className="testimonials" id="testimonials">
+        <div className="testimonials__inner" data-reveal-group>
+          <div className="testimonials__intro" data-reveal>
             <h2>The feedback system teams actually complete</h2>
             <p className="lede">Clear deadlines, fewer arguments, better accountability.</p>
           </div>
-          <div className="testimonial-grid">
+          <div className="testimonials__cards" data-reveal>
             {testimonials.map((item) => (
-              <article key={item.quote} className="testimonial-card" data-reveal>
-                <p className="testimonial-card__quote">&ldquo;{item.quote}&rdquo;</p>
+              <article key={item.quote} className="testimonial-card">
+                <span className="testimonial-card__quote-mark" aria-hidden="true">
+                  &ldquo;
+                </span>
+                <p className="testimonial-card__quote">{item.quote}</p>
+                <div className="testimonial-card__rating" aria-label={`${item.rating} out of 5 stars`}>
+                  {Array.from({ length: item.rating }).map((_, index) => (
+                    <span key={index} aria-hidden="true">
+                      ★
+                    </span>
+                  ))}
+                </div>
                 <p className="testimonial-card__attribution">{item.attribution}</p>
               </article>
             ))}
+          </div>
+          <div className="testimonials__footer" data-reveal>
+            <a className="btn btn--ghost" href="#cta">
+              All reviews
+            </a>
+            <div className="testimonials__nav">
+              <button className="testimonials__arrow" type="button" aria-label="Previous review">
+                ←
+              </button>
+              <button className="testimonials__arrow" type="button" aria-label="Next review">
+                →
+              </button>
+            </div>
           </div>
         </div>
       </section>
