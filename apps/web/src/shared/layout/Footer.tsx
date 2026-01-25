@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AnchorLink } from "@/shared/ui/AnchorLink";
 
 const columns = [
   {
@@ -58,11 +59,21 @@ export function Footer() {
             <div key={col.title} className="footer__col">
               <p className="footer__title">{col.title}</p>
               <div className="footer__links">
-                {col.links.map((link) => (
-                  <Link key={`${link.href}-${link.label}`} href={link.href} className="footer__link">
-                    {link.label}
-                  </Link>
-                ))}
+                {col.links.map((link) => {
+                  const key = `${link.href}-${link.label}`;
+                  if (link.href.startsWith("#")) {
+                    return (
+                      <AnchorLink key={key} href={link.href} className="footer__link">
+                        {link.label}
+                      </AnchorLink>
+                    );
+                  }
+                  return (
+                    <Link key={key} href={link.href} className="footer__link">
+                      {link.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -71,9 +82,9 @@ export function Footer() {
       <div className="footer__meta">
         <span>© {new Date().getFullYear()} Team Feedback</span>
         <div className="footer__meta-links">
-          <Link href="#privacy">Privacy</Link>
-          <Link href="#terms">Terms</Link>
-          <Link href="#cookies">Cookies</Link>
+          <AnchorLink href="#privacy">Privacy</AnchorLink>
+          <AnchorLink href="#terms">Terms</AnchorLink>
+          <AnchorLink href="#cookies">Cookies</AnchorLink>
         </div>
       </div>
     </footer>

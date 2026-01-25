@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { AnchorLink } from "@/shared/ui/AnchorLink";
 
 const navLinks = [
   { href: "#product", label: "Product" },
@@ -55,18 +56,18 @@ export function Header() {
         </Link>
         <nav className="nav">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="nav__link">
+            <AnchorLink key={link.href} href={link.href} className="nav__link">
               {link.label}
-            </Link>
+            </AnchorLink>
           ))}
         </nav>
         <div className="header__cta">
           <Link href="/login" className="link-ghost">
             Log in
           </Link>
-          <Link href="#cta" className="btn btn--primary">
+          <AnchorLink href="#cta" className="btn btn--primary">
             Try free
-          </Link>
+          </AnchorLink>
         </div>
       </div>
     </header>
