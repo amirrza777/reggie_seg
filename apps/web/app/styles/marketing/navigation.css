@@ -1,10 +1,4 @@
 /* Navigation, footer, and supporting sections */
-@media (prefers-color-scheme: dark) {
-  .header {
-    background: rgba(15, 23, 42, 0.2);
-  }
-}
-
 .header {
   position: fixed;
   top: 0;
@@ -297,6 +291,17 @@
 
 .cta-band__title {
   line-height: var(--lh-display);
+}
+
+@media (prefers-color-scheme: dark) {
+  .header {
+    background: rgba(5, 7, 15, 0.12);
+    border-bottom: none;
+  }
+
+  .nav__link:hover {
+    background: rgba(226, 232, 240, 0.04);
+  }
 }
 
 @media (max-width: 640px) {
