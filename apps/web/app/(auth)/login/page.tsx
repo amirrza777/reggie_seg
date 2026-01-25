@@ -76,9 +76,9 @@ export default function LoginPage() {
             Get started
           </Link>
         </p>
-        <div style={{ marginTop: '12px' }}>
-             <a href="#" style={{ fontSize: '0.85rem', color: '#94a3b8', textDecoration: 'none' }}>Forgot password?</a>
-        </div>
+        <a href="#" className="auth-link auth-link--subtle">
+          Forgot password?
+        </a>
       </div>
     </div>
   );
