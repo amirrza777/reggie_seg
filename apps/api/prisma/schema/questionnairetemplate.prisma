@@ -1,10 +1,10 @@
-model questionnaireTemplate {
-  questionId   Int      @id @default(autoincrement())
-  id           Int
+model QuestionnaireTemplate {
+  id   Int      @id @default(autoincrement())
   templateName String
   questions    Question[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  assessments  PeerAssessment[] @relation("TemplateAssessments")
 
   @@index([id])
 }

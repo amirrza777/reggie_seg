@@ -9,11 +9,13 @@ model PeerAssessment {
   answersJson      Json
   submittedAt      DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  questionnaireTemplateId Int
 
   module   Module @relation(fields: [moduleId], references: [id])
   team     Team   @relation(fields: [teamId], references: [id])
   reviewer User   @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
   reviewee User   @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
+  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments",fields: [questionnaireTemplateId], references: [id])
 
   @@unique([moduleId, projectId, teamId, reviewerUserId, revieweeUserId])
   @@index([moduleId])
