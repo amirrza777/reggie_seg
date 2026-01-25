@@ -1,9 +1,11 @@
+import Image from "next/image";
+import { FaqAccordion } from "./components/FaqAccordion";
 import { MarketingLayout } from "./layouts/marketing";
 
 const marqueeLogos = [
-  { src: "/marketing-logos/logo-1.png", alt: "Logo 1" },
-  { src: "/marketing-logos/logo-2.png", alt: "Logo 2" },
-  { src: "/marketing-logos/logo-3.png", alt: "Logo 3" },
+  { src: "/marketing-logos/logo-1.png", alt: "Logo 1", width: 114, height: 110 },
+  { src: "/marketing-logos/logo-2.png", alt: "Logo 2", width: 165, height: 110 },
+  { src: "/marketing-logos/logo-3.png", alt: "Logo 3", width: 320, height: 88 },
 ];
 const marqueeLoop = (() => {
   const minCount = 20;
@@ -122,7 +124,7 @@ export default function HomePage() {
 
       <section className="section section--padded trust" id="resources">
         <div className="container stack trust__wrap" data-reveal>
-          <h2 className="trust__title">Trusted by teams, taught by staff</h2>
+          <h2 className="trust__title">Trusted by teams, backed by moderators</h2>
         </div>
         <div className="logo-marquee" aria-label="Partner logos" data-reveal>
           <div className="logo-marquee__track">
@@ -135,13 +137,16 @@ export default function HomePage() {
                 {set.map((logo, index) => {
                   const isDuplicate = setIndex > 0;
                   return (
-                    <img
+                    <Image
                       key={`${logo.src}-${setIndex}-${index}`}
                       className="logo-marquee__logo"
                       src={logo.src}
                       alt={isDuplicate ? "" : logo.alt}
+                      width={logo.width}
+                      height={logo.height}
                       loading="lazy"
                       aria-hidden={isDuplicate}
+                      sizes="(max-width: 768px) 200px, 320px"
                     />
                   );
                 })}
@@ -154,7 +159,7 @@ export default function HomePage() {
       <section className="section section--padded" id="toolkit">
         <div className="container stack">
           <div className="section__header" data-reveal>
-            <h2>Executive functioning's favourite toolkit</h2>
+            <h2>Executive functioning&apos;s favourite toolkit</h2>
             <p className="lede">
               Benefit-first cards that map to your real workflows: assessment, meetings, contributions, and permissions.
             </p>
@@ -257,7 +262,7 @@ export default function HomePage() {
           <div className="testimonial-grid">
             {testimonials.map((item) => (
               <article key={item.quote} className="testimonial-card" data-reveal>
-                <p className="testimonial-card__quote">"{item.quote}"</p>
+                <p className="testimonial-card__quote">&ldquo;{item.quote}&rdquo;</p>
                 <p className="testimonial-card__attribution">{item.attribution}</p>
               </article>
             ))}
@@ -271,32 +276,23 @@ export default function HomePage() {
             <h2>FAQ</h2>
             <p className="lede">Everything about questionnaires, permissions, GitHub data, and compliance.</p>
           </div>
-          <div className="faq">
-            {faqItems.map((item) => (
-              <details key={item.question} className="faq__item" data-reveal>
-                <summary>{item.question}</summary>
-                <p className="muted">{item.answer}</p>
-              </details>
-            ))}
-          </div>
+          <FaqAccordion items={faqItems} />
         </div>
       </section>
 
       <section className="section section--gradient cta-band" id="cta">
-        <div className="container cta-band__inner">
+        <div className="container cta-band__inner cta-band__inner--centered">
           <div id="demo" />
           <div className="cta-band__content" data-reveal>
-            <h2>Run better group projects with less admin</h2>
+            <h2 className="display hero__headline cta-band__title">Run better group projects</h2>
             <p className="lede">
-              Launch a peer assessment cycle, track meetings, and monitor progress from one place.
+              Launch a peer assessment cycle, track meetings, and monitor progress from one place. Keep every cohort
+              accountable with one shared workflow.
             </p>
           </div>
           <div className="hero__cta-row" data-reveal>
             <a className="btn btn--primary" href="#cta">
               Start on web
-            </a>
-            <a className="btn btn--ghost" href="#demo">
-              Request demo
             </a>
           </div>
         </div>

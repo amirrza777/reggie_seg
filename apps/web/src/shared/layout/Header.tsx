@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 const navLinks = [
   { href: "#product", label: "Product" },
@@ -12,8 +13,19 @@ const navLinks = [
 ];
 
 export function Header() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
+
+  const handleLogoClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    if (pathname === "/") {
+      window.location.href = "/";
+      return;
+    }
+    router.push("/");
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,7 +50,9 @@ export function Header() {
   return (
     <header className={`header${hidden ? " header--hidden" : ""}`}>
       <div className="header__inner">
-        <div className="logo">Team Feedback</div>
+        <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
+          Team Feedback
+        </Link>
         <nav className="nav">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="nav__link">
