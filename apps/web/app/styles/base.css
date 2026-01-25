@@ -124,7 +124,7 @@ h3 {
 
 .placeholder {
   background: var(--surface);
-  border: 1px dashed rgba(15, 23, 42, 0.16);
+  border: 1px dashed var(--border);
   border-radius: 16px;
   padding: 18px 20px;
   display: grid;
@@ -132,7 +132,7 @@ h3 {
 }
 
 .placeholder__hint {
-  background: #f2fff6;
+  background: var(--placeholder-hint);
   border-radius: 12px;
   padding: 10px 12px;
   color: var(--muted);
@@ -148,7 +148,7 @@ h3 {
   padding: 8px 12px;
   border-radius: 999px;
   background: var(--surface);
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--border);
   color: var(--ink-strong);
   font-weight: var(--fw-semibold);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
@@ -163,7 +163,7 @@ h3 {
 input,
 textarea {
   width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
   font-size: var(--fs-body);

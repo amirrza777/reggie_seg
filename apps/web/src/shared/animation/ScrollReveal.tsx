@@ -319,8 +319,8 @@ export function ScrollReveal({
       debugNode.style.zIndex = "9999";
       debugNode.style.padding = "8px 12px";
       debugNode.style.borderRadius = "999px";
-      debugNode.style.background = "rgba(15, 23, 42, 0.9)";
-      debugNode.style.color = "#f8fafc";
+      debugNode.style.background = "var(--backdrop-strong)";
+      debugNode.style.color = "var(--on-surface-strong)";
       debugNode.style.fontSize = "12px";
       debugNode.style.fontFamily = "SF Pro Display, system-ui, sans-serif";
       debugNode.style.letterSpacing = "0.01em";
