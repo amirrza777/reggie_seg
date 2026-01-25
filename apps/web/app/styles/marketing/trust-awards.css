@@ -89,7 +89,7 @@
   width: 100%;
   text-align: center;
   color: var(--ink);
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   opacity: 0.9;
 }
 
@@ -144,7 +144,7 @@
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   font-size: var(--fs-body-xs, var(--fs-body));
 }
 
@@ -166,7 +166,7 @@
   align-items: center;
   justify-content: space-between;
   color: rgba(248, 250, 252, 0.9);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   padding-top: 6px;
   border-top: 1px solid rgba(255, 255, 255, 0.14);
 }

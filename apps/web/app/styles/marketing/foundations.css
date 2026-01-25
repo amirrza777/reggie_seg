@@ -91,7 +91,7 @@ html.reveal-ready [data-reveal].is-visible {
 }
 
 .hero__headline {
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
 }
 
@@ -132,7 +132,7 @@ html.reveal-ready [data-reveal].is-visible {
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   width: fit-content;
 }
 
@@ -156,14 +156,14 @@ html.reveal-ready [data-reveal].is-visible {
   flex-wrap: wrap;
   color: var(--ink);
   opacity: 0.9;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .hero__availability {
   margin: 0 auto;
   max-width: 640px;
   color: #475569;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   font-size: var(--fs-body-sm, var(--fs-body));
 }
 

@@ -129,7 +129,7 @@
 
 .table__head {
   background: #f2fff6;
-  font-weight: 700;
+  font-weight: var(--fw-bold);
   color: #0f172a;
   padding: 10px 12px;
 }
