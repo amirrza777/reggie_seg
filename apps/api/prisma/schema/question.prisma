@@ -4,5 +4,6 @@ model Question {
   label       String  
   type        String   
   order       Int
+  configs     Json?
   template    QuestionnaireTemplate @relation(fields: [templateId], references: [id])
 }
