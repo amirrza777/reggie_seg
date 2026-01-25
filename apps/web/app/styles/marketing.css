@@ -230,11 +230,12 @@ html.reveal-ready [data-reveal].is-visible {
 }
 
 .logo-marquee {
+  --marquee-gap: clamp(96px, 18vw, 296px);
+  --marquee-duration: 196s;
   overflow: hidden;
-  width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
-  padding: clamp(36px, 5vw, 64px) 48px clamp(48px, 7vw, 90px);
+  width: 100%;
+  margin: 0 auto;
+  padding: clamp(36px, 5vw, 64px) clamp(20px, 6vw, 48px) clamp(48px, 7vw, 90px);
   mask-image: linear-gradient(
     90deg,
     transparent 0,
@@ -259,14 +260,24 @@ html.reveal-ready [data-reveal].is-visible {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 296px;
+  gap: 0;
   width: max-content;
-  animation: logo-marquee 196s linear infinite;
+  animation: logo-marquee var(--marquee-duration) linear infinite;
   will-change: transform;
+  backface-visibility: hidden;
+}
+
+.logo-marquee__set {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--marquee-gap);
+  padding-right: var(--marquee-gap);
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 
 .logo-marquee__logo {
-  height: 110px;
+  height: clamp(72px, 10vw, 110px);
   width: auto;
   display: block;
   opacity: 1;
@@ -276,10 +287,10 @@ html.reveal-ready [data-reveal].is-visible {
 
 @keyframes logo-marquee {
   from {
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translateX(-50%);
+    transform: translate3d(-50%, 0, 0);
   }
 }
 

@@ -16,7 +16,7 @@ const marqueeLoop = (() => {
   }
   return repeated;
 })();
-const marqueeItems = marqueeLoop.concat(marqueeLoop);
+const marqueeSets = [marqueeLoop, marqueeLoop];
 
 const toolkitCards = [
   {
@@ -126,19 +126,27 @@ export default function HomePage() {
         </div>
         <div className="logo-marquee" aria-label="Partner logos" data-reveal>
           <div className="logo-marquee__track">
-            {marqueeItems.map((logo, index) => {
-              const isDuplicate = index >= marqueeLoop.length;
-              return (
-                <img
-                  key={`${logo.src}-${index}`}
-                  className="logo-marquee__logo"
-                  src={logo.src}
-                  alt={isDuplicate ? "" : logo.alt}
-                  loading="lazy"
-                  aria-hidden={isDuplicate}
-                />
-              );
-            })}
+            {marqueeSets.map((set, setIndex) => (
+              <div
+                key={`marquee-set-${setIndex}`}
+                className="logo-marquee__set"
+                aria-hidden={setIndex > 0}
+              >
+                {set.map((logo, index) => {
+                  const isDuplicate = setIndex > 0;
+                  return (
+                    <img
+                      key={`${logo.src}-${setIndex}-${index}`}
+                      className="logo-marquee__logo"
+                      src={logo.src}
+                      alt={isDuplicate ? "" : logo.alt}
+                      loading="lazy"
+                      aria-hidden={isDuplicate}
+                    />
+                  );
+                })}
+              </div>
+            ))}
           </div>
         </div>
       </section>
