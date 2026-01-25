@@ -6,6 +6,9 @@ const marqueeLogos = [
   { src: "/marketing-logos/logo-1.png", alt: "Logo 1", width: 114, height: 110 },
   { src: "/marketing-logos/logo-2.png", alt: "Logo 2", width: 165, height: 110 },
   { src: "/marketing-logos/logo-3.png", alt: "Logo 3", width: 320, height: 88 },
+  { src: "/marketing-logos/logo-4.png", alt: "Logo 4", width: 150, height: 110 },
+  { src: "/marketing-logos/logo-5.png", alt: "Logo 5", width: 150, height: 110 },
+  { src: "/marketing-logos/logo-6.png", alt: "Logo 6", width: 150, height: 110 },
 ];
 const marqueeLoop = (() => {
   const minCount = 20;
