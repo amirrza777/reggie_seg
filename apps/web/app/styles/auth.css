@@ -26,7 +26,7 @@
 }
 
 .auth-title {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "SF Pro Display", sans-serif;
   font-size: var(--fs-auth-title);
   font-weight: var(--fw-bold);
   letter-spacing: -0.03em;
@@ -166,24 +166,22 @@
   left: 32px;
   text-decoration: none;
   color: var(--ink);
-  font-family: "Space Grotesk", sans-serif;
   font-weight: var(--fw-bold);
-  font-size: var(--fs-title-sm);
+  font-size: var(--fs-logo);
+  line-height: 1.1;
   letter-spacing: -0.02em;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(10px);
-  opacity: 0.92;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  transition: color 0.2s ease;
   z-index: 10;
 }
 
 .auth-logo-link:hover {
-  opacity: 1;
-  transform: translateY(-1px);
+  color: var(--ink);
 }
 
 @media (max-width: 720px) {
