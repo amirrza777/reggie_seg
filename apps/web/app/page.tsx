@@ -139,8 +139,8 @@ export default function HomePage() {
               </AnchorLink>
             </div>
           </div>
-          <div className="split__visual split__visual--frame" data-reveal data-reveal-offset="-25%">
-            <div className="visual-placeholder">
+          <div className="split__visual split__visual--frame">
+            <div className="visual-placeholder" data-reveal data-reveal-offset="-25%">
               <p className="eyebrow">Screenshot</p>
               <p className="muted">Drop your feedback cycle visual or dashboard here.</p>
             </div>
@@ -223,8 +223,8 @@ export default function HomePage() {
               </AnchorLink>
             </div>
           </div>
-          <div className="split__visual split__visual--soft" data-reveal>
-            <div className="visual-placeholder">
+          <div className="split__visual split__visual--soft">
+            <div className="visual-placeholder" data-reveal>
               <p className="eyebrow">Flow</p>
               <p className="muted">Add the peer assessment journey or form UI here.</p>
             </div>
@@ -234,8 +234,8 @@ export default function HomePage() {
 
       <section className="section" id="integrations">
         <div className="container split split--center" data-reveal-group>
-          <div className="split__visual split__visual--frame" data-reveal>
-            <div className="visual-placeholder">
+          <div className="split__visual split__visual--frame">
+            <div className="visual-placeholder" data-reveal>
               <p className="eyebrow">Integrations</p>
               <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
             </div>
@@ -270,8 +270,8 @@ export default function HomePage() {
               so staff can intervene early.
             </p>
           </div>
-          <div className="split__visual split__visual--soft" data-reveal data-reveal-offset="-25%">
-            <div className="visual-placeholder">
+          <div className="split__visual split__visual--soft">
+            <div className="visual-placeholder" data-reveal data-reveal-offset="-25%">
               <p className="eyebrow">Analytics</p>
               <p className="muted">Slot in your analytics dashboard or trend lines.</p>
             </div>
