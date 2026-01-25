@@ -103,7 +103,7 @@ html.reveal-ready [data-reveal].is-visible {
 .hero__lede {
   margin: 0 auto;
   max-width: 680px;
-  color: #374151;
+  color: var(--ink-lede);
   font-size: var(--landing-body);
 }
 
@@ -167,7 +167,7 @@ html.reveal-ready [data-reveal].is-visible {
 .hero__availability {
   margin: 0 auto;
   max-width: 640px;
-  color: #475569;
+  color: var(--muted);
   font-weight: var(--fw-semibold);
   font-size: var(--fs-body-sm, var(--fs-body));
 }

@@ -101,7 +101,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 12px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .award {
@@ -129,7 +129,7 @@
 
 .award__card {
   background: linear-gradient(135deg, #0c4227, #0b5a36 45%, #0c8d5b);
-  color: #f8fafc;
+  color: var(--on-surface-strong);
   border-radius: 16px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -177,4 +177,11 @@
 
 .award__footer-label {
   opacity: 0.82;
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-marquee__logo {
+    filter: brightness(0) invert(1) opacity(0.92);
+    mix-blend-mode: screen;
+  }
 }
