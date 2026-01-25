@@ -13,6 +13,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-size: var(--fs-body);
+  overflow-x: hidden;
 }
 
 main {
