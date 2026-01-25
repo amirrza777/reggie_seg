@@ -18,8 +18,8 @@
   position: absolute;
   inset: -18%;
   background:
-    radial-gradient(42% 36% at 8% 8%, rgba(32, 173, 120, 0.52) 0%, rgba(32, 173, 120, 0.22) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
-    radial-gradient(46% 38% at 92% 86%, rgba(32, 173, 120, 0.32) 0%, rgba(32, 173, 120, 0.15) 30%, rgba(32, 173, 120, 0.05) 50%, rgba(32, 173, 120, 0) 68%),
+    radial-gradient(42% 36% at 14% 12%, rgba(32, 173, 120, 0.52) 0%, rgba(32, 173, 120, 0.22) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
+    radial-gradient(46% 32% at 88% 92%, rgba(32, 173, 120, 0.82) 0%, rgba(32, 173, 120, 0.38) 28%, rgba(32, 173, 120, 0.16) 52%, rgba(32, 173, 120, 0) 72%),
     radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.22) 0%, rgba(32, 173, 120, 0.08) 32%, rgba(32, 173, 120, 0) 58%);
   filter: blur(120px);
   opacity: 0.9;
@@ -191,15 +191,14 @@ html.reveal-ready [data-reveal].is-visible {
 
   .marketing-shell::before {
     background:
-      radial-gradient(42% 36% at 8% 8%, rgba(32, 173, 120, 0.48) 0%, rgba(32, 173, 120, 0.2) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
-      radial-gradient(46% 38% at 92% 86%, rgba(32, 173, 120, 0.3) 0%, rgba(32, 173, 120, 0.14) 30%, rgba(32, 173, 120, 0.05) 50%, rgba(32, 173, 120, 0) 68%),
+      radial-gradient(42% 36% at 14% 12%, rgba(32, 173, 120, 0.48) 0%, rgba(32, 173, 120, 0.2) 28%, rgba(32, 173, 120, 0.07) 48%, rgba(32, 173, 120, 0) 64%),
+      radial-gradient(46% 32% at 88% 92%, rgba(32, 173, 120, 0.8) 0%, rgba(32, 173, 120, 0.34) 28%, rgba(32, 173, 120, 0.14) 52%, rgba(32, 173, 120, 0) 72%),
       radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.2) 0%, rgba(32, 173, 120, 0.08) 32%, rgba(32, 173, 120, 0) 58%);
     filter: blur(120px);
   }
 
   .header {
     background: rgba(15, 23, 42, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   }
 }
 
@@ -598,10 +597,9 @@ html.reveal-ready [data-reveal].is-visible {
   right: 0;
   width: 100%;
   z-index: 20;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(12px) saturate(140%);
   -webkit-backdrop-filter: blur(12px) saturate(140%);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.01);
   transition: transform 0.24s ease, opacity 0.18s ease;
   will-change: transform, opacity;
   pointer-events: none;
