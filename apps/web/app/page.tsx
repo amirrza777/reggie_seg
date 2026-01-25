@@ -299,19 +299,6 @@ export default function HomePage() {
               </article>
             ))}
           </div>
-          <div className="testimonials__footer" data-reveal>
-            <a className="btn btn--ghost" href="#cta">
-              All reviews
-            </a>
-            <div className="testimonials__nav">
-              <button className="testimonials__arrow" type="button" aria-label="Previous review">
-                ←
-              </button>
-              <button className="testimonials__arrow" type="button" aria-label="Next review">
-                →
-              </button>
-            </div>
-          </div>
         </div>
       </section>
 
