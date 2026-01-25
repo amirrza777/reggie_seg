@@ -14,22 +14,25 @@ router.post('/', async (req, res) => {
     }
 
     try {
-        const templateID = Date.now() // generate a shared template ID based on timestamp
-
-        // loop over the questions of same template and save each question with same templateID
-        for(const question of questions){
-            const questionHash = crypto.createHash('sha256').update(JSON.stringify(question)).digest('hex');
-
-            await prisma.questionnaireTemplate.create({
-                data: {
-                    id: templateID,
-                    templateName,
-                    questionText: JSON.stringify(question),
-                    questionHash
-                }
-            });
-        }
-        res.json({ok:true});
+        const template = await prisma.questionnaireTemplate.create({
+            data: {
+                templateName,
+                questions: {
+                    create: questions.map((q: any, index: number) => ({
+                        label: q.text,
+                        type: q.type,
+                        order: index,
+                        configs: {
+                            options: q.options,
+                            min: q.min,
+                            max: q.max
+                        }
+                    }) )
+                        }
+            }
+        });
+           
+        res.json({ok:true, templateID: template.id});
     }catch(error){
         console.error('Error creating questionnaire template:', error);
         res.status(500).json({error: 'Internal server error'});
@@ -38,32 +41,22 @@ router.post('/', async (req, res) => {
 
 export default router;
 
-router.get('/:templateID', async (req, res) => {
-    const templateID = Number(req.params.templateID);
+router.get('/:id', async (req, res) => {
+    const id = Number(req.params.id);
 
-    if(isNaN(templateID)){
+    if(isNaN(id)){
         return res.status(400).json({error: 'Invalid template ID'});
     }
-    // inverse of post route: fetch all questions with same templateID and return as array
-    try{
-        const questions = await prisma.questionnaireTemplate.findMany({
-            where: {id: templateID},
-            orderBy: {createdAt: 'asc'}
-        });
+    const template = await prisma.questionnaireTemplate.findUnique({
+        where: {id},
+        include: {questions: {orderBy: {order: 'asc'}}}
+    });
 
-        if(questions.length === 0){
-            return res.status(404).json({error: 'Template nt found'});
-        }
-
-        const formattedQuestions = questions.map(q => JSON.parse(q.questionText));
-
-        res.json({
-            templateID,
-            templateName: questions[0].templateName,
-            questions: formattedQuestions
-        });
-    }catch(error){
-        console.error('Error fetching questionnaire template:', error);
-        res.status(500).json({error: 'Internal server error'});
+    if(!template){
+        return res.status(404).json({error: 'Template wasnt found'});
     }
+
+    res.json(
+        template
+    );
 });
