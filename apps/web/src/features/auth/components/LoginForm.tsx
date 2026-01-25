@@ -5,12 +5,35 @@ import { Button } from "@/shared/ui/Button";
 import { login } from "../api/client";
 import type { LoginCredentials } from "../types";
 
-export function LoginForm() {
+const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" }> = [
+  { name: "email", label: "Email", type: "email" },
+  { name: "password", label: "Password", type: "password" },
+];
+
+const FormField = ({
+  field,
+  value,
+  onChange,
+}: {
+  field: (typeof fields)[number];
+  value: string;
+  onChange: (name: keyof LoginCredentials, value: string) => void;
+}) => (
+  <label className="stack" style={{ gap: 6 }}>
+    <span>{field.label}</span>
+    <input type={field.type} name={field.name} value={value} required onChange={(e) => onChange(field.name, e.target.value)} />
+  </label>
+);
+
+const useLoginFormState = () => {
   const [form, setForm] = useState<LoginCredentials>({ email: "", password: "" });
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  const updateField = (name: keyof LoginCredentials, value: string) =>
+    setForm((prev) => ({ ...prev, [name]: value }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
     setMessage(null);
@@ -22,30 +45,19 @@ export function LoginForm() {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Login failed");
     }
-  }
+  };
+
+  return { form, status, message, updateField, handleSubmit };
+};
+
+export function LoginForm() {
+  const { form, status, message, updateField, handleSubmit } = useLoginFormState();
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <label className="stack" style={{ gap: 6 }}>
-        <span>Email</span>
-        <input
-          type="email"
-          name="email"
-          value={form.email}
-          required
-          onChange={(e) => setForm((prev) => ({ ...prev, email: e.target.value }))}
-        />
-      </label>
-      <label className="stack" style={{ gap: 6 }}>
-        <span>Password</span>
-        <input
-          type="password"
-          name="password"
-          value={form.password}
-          required
-          onChange={(e) => setForm((prev) => ({ ...prev, password: e.target.value }))}
-        />
-      </label>
+      {fields.map((field) => (
+        <FormField key={field.name} field={field} value={form[field.name]} onChange={updateField} />
+      ))}
       <Button type="submit" disabled={status === "loading"}>
         {status === "loading" ? "Signing in..." : "Sign in"}
       </Button>
