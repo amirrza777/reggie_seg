@@ -22,11 +22,7 @@ router.post('/', async (req, res) => {
                         label: q.text,
                         type: q.type,
                         order: index,
-                        configs: {
-                            options: q.options,
-                            min: q.min,
-                            max: q.max
-                        }
+                        configs: q.configs ?? null
                     }) )
                         }
             }
@@ -38,8 +34,6 @@ router.post('/', async (req, res) => {
         res.status(500).json({error: 'Internal server error'});
     }
 });
-
-export default router;
 
 router.get('/:id', async (req, res) => {
     const id = Number(req.params.id);
@@ -60,3 +54,5 @@ router.get('/:id', async (req, res) => {
         template
     );
 });
+
+export default router;
