@@ -6,36 +6,37 @@ type AnchorLinkProps = ComponentProps<"a"> & {
   href: string;
 };
 
+const isUnmodifiedLeftClick = (event: MouseEvent<HTMLAnchorElement>) =>
+  event.button === 0 && !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey);
+
+const scrollToHash = (href: string) => {
+  if (!href.startsWith("#")) {
+    return false;
+  }
+  const targetId = href.slice(1);
+  if (!targetId) {
+    return false;
+  }
+  const target = document.getElementById(targetId);
+  if (!target) {
+    return false;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+  const { pathname, search } = window.location;
+  window.history.replaceState(null, "", `${pathname}${search}`);
+  return true;
+};
+
 export function AnchorLink({ href, onClick, ...props }: AnchorLinkProps) {
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     onClick?.(event);
-    if (
-      event.defaultPrevented ||
-      event.button !== 0 ||
-      event.metaKey ||
-      event.ctrlKey ||
-      event.shiftKey ||
-      event.altKey
-    ) {
+    if (event.defaultPrevented || !isUnmodifiedLeftClick(event)) {
       return;
     }
-    if (!href.startsWith("#")) {
-      return;
+    const handled = scrollToHash(href);
+    if (handled) {
+      event.preventDefault();
     }
-    const targetId = href.slice(1);
-    if (!targetId) {
-      return;
-    }
-    const target = document.getElementById(targetId);
-    if (!target) {
-      return;
-    }
-
-    event.preventDefault();
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Clear the hash so dev reloads don't keep snapping back to the anchor.
-    const { pathname, search } = window.location;
-    window.history.replaceState(null, "", `${pathname}${search}`);
   };
 
   return <a {...props} href={href} onClick={handleClick} />;
