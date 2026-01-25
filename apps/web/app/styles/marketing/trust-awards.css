@@ -17,12 +17,13 @@
 }
 
 .logo-marquee {
-  --marquee-gap: clamp(96px, 18vw, 296px);
-  --marquee-duration: 196s;
+  --marquee-gap: clamp(64px, 12vw, 180px);
+  --marquee-duration: 220s;
   overflow: hidden;
   width: 100%;
   margin: 0 auto;
   padding: clamp(36px, 5vw, 64px) clamp(20px, 6vw, 48px) clamp(48px, 7vw, 90px);
+  position: relative;
   mask-image: linear-gradient(
     90deg,
     transparent 0,
@@ -64,8 +65,11 @@
 }
 
 .logo-marquee__logo {
-  height: clamp(72px, 10vw, 110px);
+  height: clamp(68px, 9vw, 96px);
+  max-height: 96px;
   width: auto;
+  max-width: clamp(140px, 18vw, 240px);
+  object-fit: contain;
   display: block;
   opacity: 1;
   filter: none;
