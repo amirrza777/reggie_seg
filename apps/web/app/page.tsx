@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { FaqAccordion } from "./components/FaqAccordion";
 import { MarketingLayout } from "./layouts/marketing";
 
@@ -111,9 +112,9 @@ export default function HomePage() {
             integrations that reduce admin work for students and staff.
           </p>
           <div className="hero__cta-row hero__cta-row--hero">
-            <a className="btn btn--primary" href="#cta">
+            <AnchorLink className="btn btn--primary" href="#cta">
               Get started today
-            </a>
+            </AnchorLink>
           </div>
           <p className="hero__availability">Works with GitHub. Optional Trello integration. Built for GDPR.</p>
         </div>
@@ -133,9 +134,9 @@ export default function HomePage() {
               plus archiving to keep every cohort auditable.
             </p>
             <div className="hero__actions">
-              <a className="btn btn--ghost" href="#cta">
+              <AnchorLink className="btn btn--ghost" href="#cta">
                 How automation supports modules
-              </a>
+              </AnchorLink>
             </div>
           </div>
           <div className="split__visual split__visual--frame" data-reveal data-reveal-offset="-25%">
@@ -198,9 +199,9 @@ export default function HomePage() {
                 </div>
                 <h3>{card.title}</h3>
                 <p className="muted">{card.body}</p>
-                <a className="link-ghost" href="#cta">
+                <AnchorLink className="link-ghost" href="#cta">
                   Learn more
-                </a>
+                </AnchorLink>
               </article>
             ))}
           </div>
@@ -217,9 +218,9 @@ export default function HomePage() {
               system highlights outliers, conflicts, and missing submissions.
             </p>
             <div className="hero__actions">
-              <a className="btn btn--ghost" href="#product">
+              <AnchorLink className="btn btn--ghost" href="#product">
                 How peer assessment works
-              </a>
+              </AnchorLink>
             </div>
           </div>
           <div className="split__visual split__visual--soft" data-reveal>
@@ -247,9 +248,9 @@ export default function HomePage() {
               everything tied to modules, teams, and assessment cycles.
             </p>
             <div className="hero__actions">
-              <a className="btn btn--ghost" href="#cta">
+              <AnchorLink className="btn btn--ghost" href="#cta">
                 How integrations work
-              </a>
+              </AnchorLink>
             </div>
           </div>
         </div>
@@ -308,7 +309,7 @@ export default function HomePage() {
       <section className="section" id="faq">
         <div className="container stack">
           <div className="section__header" data-reveal>
-            <h2>FAQ</h2>
+            <h2>Frequently Asked Questions</h2>
             <p className="lede">Everything about questionnaires, permissions, GitHub data, and compliance.</p>
           </div>
           <FaqAccordion items={faqItems} />
@@ -326,9 +327,9 @@ export default function HomePage() {
             </p>
           </div>
           <div className="hero__cta-row" data-reveal>
-            <a className="btn btn--primary" href="#cta">
+            <AnchorLink className="btn btn--primary" href="#cta">
               Start on web
-            </a>
+            </AnchorLink>
           </div>
         </div>
       </section>
