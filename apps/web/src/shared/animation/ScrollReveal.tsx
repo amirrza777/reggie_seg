@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 
 type ScrollRevealProps = {
   selector?: string;
@@ -15,7 +15,7 @@ export function ScrollReveal({
   threshold = 0.2,
   once = true,
 }: ScrollRevealProps) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const debug = params.has("revealDebug");
     const root = document.documentElement;
@@ -175,61 +175,7 @@ export function ScrollReveal({
       { threshold: number; bottomOffset: { value: number; unit: string } }
     >();
 
-    // Pre-mark above-the-fold elements before enabling reveal-ready to avoid a refresh flash.
-    const revealInitialElements = () => {
-      const initiallyVisible = new Set<HTMLElement>();
-      const viewHeight = window.innerHeight || document.documentElement.clientHeight;
-      const bottomOffsetPx = (config: { value: number; unit: string }) =>
-        config.unit === "%" ? (config.value / 100) * viewHeight : config.value;
-
-      const groupsToReveal = new Set<HTMLElement>();
-      const singlesToReveal = new Set<HTMLElement>();
-
-      elements.forEach((element) => {
-        const rect = element.getBoundingClientRect();
-        const elementThreshold = resolveThreshold(element);
-        const elementOffset = resolveOffsetValue(element);
-        const thresholdPx = rect.height * elementThreshold;
-        const isInView =
-          rect.top < viewHeight + bottomOffsetPx(elementOffset) - thresholdPx && rect.bottom > thresholdPx;
-
-        if (!isInView) {
-          return;
-        }
-
-        const group = elementGroup.get(element);
-        if (group) {
-          groupsToReveal.add(group);
-        } else {
-          singlesToReveal.add(element);
-        }
-      });
-
-      groupsToReveal.forEach((group) => {
-        const members = groupMembers.get(group) ?? [];
-        members.forEach((member) => initiallyVisible.add(member));
-        revealGroup(group);
-      });
-      singlesToReveal.forEach((element) => {
-        initiallyVisible.add(element);
-        revealElement(element);
-      });
-
-      return initiallyVisible;
-    };
-
-    const initiallyVisible = revealInitialElements();
     root.classList.add("reveal-ready");
-
-    if (initiallyVisible.size) {
-      requestAnimationFrame(() => {
-        // Replay above-the-fold items so they animate on load.
-        initiallyVisible.forEach((element) => markHidden(element));
-        // Force a reflow so the transitions can restart.
-        root.getBoundingClientRect();
-        initiallyVisible.forEach((element) => markVisible(element));
-      });
-    }
 
     const checkInView = () => {
       const viewHeight = window.innerHeight || document.documentElement.clientHeight;
