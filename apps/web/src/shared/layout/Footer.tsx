@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { AnchorLink } from "@/shared/ui/AnchorLink";
+
+type FooterLink = { href: string; label: string };
 
 const columns = [
   {
@@ -45,37 +48,58 @@ const columns = [
   },
 ];
 
+const FooterBrand = () => (
+  <div className="footer__brand">
+    <div className="logo">Team Feedback</div>
+    <p className="muted">Run peer assessment cycles, meetings, and monitoring from one place.</p>
+  </div>
+);
+
+const FooterLinkItem = ({ link }: { link: FooterLink }) =>
+  link.href.startsWith("#") ? (
+    <AnchorLink href={link.href} className="footer__link">
+      {link.label}
+    </AnchorLink>
+  ) : (
+    <Link href={link.href} className="footer__link">
+      {link.label}
+    </Link>
+  );
+
+const FooterColumn = ({ title, links }: { title: string; links: FooterLink[] }) => (
+  <div className="footer__col">
+    <p className="footer__title">{title}</p>
+    <div className="footer__links">
+      {links.map((link) => (
+        <FooterLinkItem key={`${link.href}-${link.label}`} link={link} />
+      ))}
+    </div>
+  </div>
+);
+
+const FooterMeta = () => (
+  <div className="footer__meta">
+    <span>© {new Date().getFullYear()} Team Feedback</span>
+    <div className="footer__meta-links">
+      <AnchorLink href="#privacy">Privacy</AnchorLink>
+      <AnchorLink href="#terms">Terms</AnchorLink>
+      <AnchorLink href="#cookies">Cookies</AnchorLink>
+    </div>
+  </div>
+);
+
 export function Footer() {
   return (
     <footer className="footer">
       <div className="footer__inner">
-        <div className="footer__brand">
-          <div className="logo">Team Feedback</div>
-          <p className="muted">Run peer assessment cycles, meetings, and monitoring from one place.</p>
-        </div>
+        <FooterBrand />
         <div className="footer__grid">
           {columns.map((col) => (
-            <div key={col.title} className="footer__col">
-              <p className="footer__title">{col.title}</p>
-              <div className="footer__links">
-                {col.links.map((link) => (
-                  <Link key={`${link.href}-${link.label}`} href={link.href} className="footer__link">
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
+            <FooterColumn key={col.title} title={col.title} links={col.links} />
           ))}
         </div>
       </div>
-      <div className="footer__meta">
-        <span>© {new Date().getFullYear()} Team Feedback</span>
-        <div className="footer__meta-links">
-          <Link href="#privacy">Privacy</Link>
-          <Link href="#terms">Terms</Link>
-          <Link href="#cookies">Cookies</Link>
-        </div>
-      </div>
+      <FooterMeta />
     </footer>
   );
 }

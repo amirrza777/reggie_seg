@@ -1,14 +1,14 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { QuestionnaireBuilder } from "@/features/peerFeedback/components/QuestionnaireBuilder";
 import { FeedbackForm } from "@/features/peerFeedback/components/FeedbackForm";
+import { QuestionnaireBuilder } from "@/features/peerFeedback/components/QuestionnaireBuilder";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 };
 
-export default function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
-  const { projectId } = params;
+export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />

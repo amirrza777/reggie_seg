@@ -1,14 +1,14 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
+import { CommitList } from "@/features/repos/components/CommitList";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { RepoLinkForm } from "@/features/repos/components/RepoLinkForm";
-import { CommitList } from "@/features/repos/components/CommitList";
+import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 };
 
-export default function ProjectReposPage({ params }: ProjectPageProps) {
-  const { projectId } = params;
+export default async function ProjectReposPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />

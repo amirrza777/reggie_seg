@@ -12,6 +12,8 @@ body {
   min-height: 100vh;
   background: var(--bg);
   color: var(--ink);
+  font-size: var(--fs-body);
+  overflow-x: hidden;
 }
 
 main {
@@ -41,16 +43,16 @@ h3 {
 
 .lede {
   margin: 0;
-  color: #475569;
+  color: var(--muted);
 }
 
 .eyebrow {
   margin: 0;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  font-size: 0.75rem;
-  color: #0f8a55;
-  font-weight: 600;
+  font-size: var(--fs-eyebrow);
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
 }
 
 .display {
@@ -67,16 +69,16 @@ h3 {
 
 .muted {
   margin: 0;
-  color: #6b7280;
+  color: var(--muted-subtle);
 }
 
 .section {
-  padding: 48px 20px;
+  padding: clamp(52px, 6.5vw, 84px) 20px;
   scroll-margin-top: 96px;
 }
 
 .section--padded {
-  padding: 96px 20px;
+  padding: clamp(88px, 9vw, 124px) 20px;
 }
 
 .container {
@@ -89,8 +91,8 @@ h3 {
   border: 1px solid transparent;
   border-radius: 999px;
   padding: 12px 18px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
   cursor: pointer;
   transition: transform 0.1s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   display: inline-flex;
@@ -100,19 +102,19 @@ h3 {
 }
 
 .btn--primary {
-  background: #0f1012;
-  color: #ffffff;
-  border-color: #0b0c0e;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border-color: var(--btn-primary-border);
 }
 
 .btn--ghost,
 .link-ghost {
   background: transparent;
-  color: #0f1012;
-  border: 2px solid #0f1012;
+  color: var(--btn-ghost-text);
+  border: 2px solid var(--btn-ghost-border);
   border-radius: 999px;
   padding: 10px 14px;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
 }
 
 .btn:hover,
@@ -121,8 +123,8 @@ h3 {
 }
 
 .placeholder {
-  background: #ffffff;
-  border: 1px dashed rgba(15, 23, 42, 0.16);
+  background: var(--surface);
+  border: 1px dashed var(--border);
   border-radius: 16px;
   padding: 18px 20px;
   display: grid;
@@ -130,10 +132,10 @@ h3 {
 }
 
 .placeholder__hint {
-  background: #f2fff6;
+  background: var(--placeholder-hint);
   border-radius: 12px;
   padding: 10px 12px;
-  color: #475569;
+  color: var(--muted);
 }
 
 .pill-nav {
@@ -145,10 +147,10 @@ h3 {
 .pill-nav__link {
   padding: 8px 12px;
   border-radius: 999px;
-  background: #fff;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  color: #0f172a;
-  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-strong);
+  font-weight: var(--fw-semibold);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
@@ -161,12 +163,12 @@ h3 {
 input,
 textarea {
   width: 100%;
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 1rem;
+  font-size: var(--fs-body);
   font-family: inherit;
-  background: #fff;
+  background: var(--surface);
 }
 
 textarea {

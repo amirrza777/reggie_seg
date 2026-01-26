@@ -9,7 +9,7 @@ export function ProgressBar({ value }: { value: number }) {
         .progress-bar {
           width: 100%;
           height: 8px;
-          background-color: rgba(15, 23, 42, 0.08);
+          background-color: var(--border);
           border-radius: 999px;
           overflow: hidden;
           position: relative;
@@ -18,7 +18,7 @@ export function ProgressBar({ value }: { value: number }) {
         .progress-bar__fill {
           height: 100%;
           width: var(--progress, 0%);
-          background-color: #0f8a55;
+          background-color: var(--accent-strong);
           border-radius: 999px;
           transition: width 0.3s ease;
         }
@@ -30,7 +30,7 @@ export function ProgressBar({ value }: { value: number }) {
           transform: translate(-50%, -50%);
           font-size: 0.75rem;
           font-weight: 600;
-          color: #0f172a;
+          color: var(--ink-strong);
         }
       `}</style>
       <div className="progress-bar">
