@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import questionnaireCreationRouter from "./questionnaire-creation 2";
+import questionnaireCreationRouter from "./questionnaire-creation";
 import questionnaireEditingRouter from "./questionnaire-editing";
 
 dotenv.config();
