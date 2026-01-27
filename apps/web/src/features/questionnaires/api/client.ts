@@ -1,29 +1,26 @@
-import { apiFetch } from "@/shared/api/http"
-import {
-  CreateQuestionnaireInput,
-  UpdateQuestionnaireInput,
-  Questionnaire,
-} from "../types"
+import { apiFetch } from "@/shared/api/http";
+import { Questionnaire, IncomingQuestion } from "../types";
 
-export function createQuestionnaire(data: CreateQuestionnaireInput) {
-  return apiFetch<Questionnaire>("/questionnaires", {
+export async function getAllQuestionnaires(): Promise<Questionnaire[]> {
+  return apiFetch("/questionnaires");
+}
+
+export async function createQuestionnaire(templateName: string, questions: IncomingQuestion[]) {
+  return apiFetch("/questionnaires/new", {
     method: "POST",
-    body: JSON.stringify(data),
-  })
+    body: JSON.stringify({ templateName, questions }),
+  });
 }
 
-export function updateQuestionnaire(
-  id: string,
-  data: UpdateQuestionnaireInput
-) {
-  return apiFetch<Questionnaire>(`/questionnaires/${id}`, {
+export async function updateQuestionnaire(templateId: number, templateName: string, questions: IncomingQuestion[]) {
+  return apiFetch(`/questionnaires/${templateId}`, {
     method: "PUT",
-    body: JSON.stringify(data),
-  })
+    body: JSON.stringify({ templateName, questions }),
+  });
 }
 
-export function deleteQuestionnaire(id: string) {
-  return apiFetch<void>(`/questionnaires/${id}`, {
+export async function deleteQuestionnaire(templateId: number) {
+  return apiFetch(`/questionnaires/${templateId}`, {
     method: "DELETE",
-  })
+  });
 }
