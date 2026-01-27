@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AuthField } from './AuthField';
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -26,45 +27,33 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="name">Full Name</label>
-        <input
-          id="name"
-          className="auth-input"
-          type="text"
-          placeholder="" 
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          required
-        />
-      </div>
+      <AuthField
+        name="name"
+        label="Full Name"
+        type="text"
+        value={formData.name}
+        required
+        onChange={(name, value) => setFormData({ ...formData, [name]: value })}
+      />
 
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="email">Email address</label>
-        <input
-          id="email"
-          className="auth-input"
-          type="email"
-          placeholder="" 
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          required
-        />
-      </div>
+      <AuthField
+        name="email"
+        label="Email address"
+        type="email"
+        value={formData.email}
+        required
+        onChange={(name, value) => setFormData({ ...formData, [name]: value })}
+      />
 
-      <div className="auth-field">
-        <label className="auth-label" htmlFor="password">Password</label>
-        <input
-          id="password"
-          className="auth-input"
-          type="password"
-          placeholder="" 
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          required
-          minLength={8}
-        />
-      </div>
+      <AuthField
+        name="password"
+        label="Password"
+        type="password"
+        value={formData.password}
+        required
+        minLength={8}
+        onChange={(name, value) => setFormData({ ...formData, [name]: value })}
+      />
 
       <button type="submit" className="auth-btn-primary" disabled={isLoading}>
         {isLoading ? 'Creating account...' : 'Create account'}

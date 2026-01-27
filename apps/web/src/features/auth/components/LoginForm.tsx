@@ -4,36 +4,12 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { login } from "../api/client";
 import type { LoginCredentials } from "../types";
+import { AuthField } from "./AuthField";
 
 const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" }> = [
   { name: "email", label: "Email", type: "email" },
   { name: "password", label: "Password", type: "password" },
 ];
-
-const FormField = ({
-  field,
-  value,
-  onChange,
-}: {
-  field: (typeof fields)[number];
-  value: string;
-  onChange: (name: keyof LoginCredentials, value: string) => void;
-}) => (
-  <div className="auth-field">
-    <label className="auth-label" htmlFor={field.name}>
-      {field.label}
-    </label>
-    <input
-      id={field.name}
-      className="auth-input"
-      type={field.type}
-      name={field.name}
-      value={value}
-      required
-      onChange={(e) => onChange(field.name, e.target.value)}
-    />
-  </div>
-);
 
 const useLoginFormState = () => {
   const [form, setForm] = useState<LoginCredentials>({ email: "", password: "" });
@@ -66,7 +42,15 @@ export function LoginForm() {
   return (
     <form style={{ width: "100%" }} onSubmit={handleSubmit}>
       {fields.map((field) => (
-        <FormField key={field.name} field={field} value={form[field.name]} onChange={updateField} />
+        <AuthField
+          key={field.name}
+          name={field.name}
+          label={field.label}
+          type={field.type}
+          value={form[field.name]}
+          required
+          onChange={updateField}
+        />
       ))}
       <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
         {status === "loading" ? "Signing in..." : "Log in"}
