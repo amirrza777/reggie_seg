@@ -64,12 +64,12 @@ export function LoginForm() {
   const { form, status, message, updateField, handleSubmit } = useLoginFormState();
 
   return (
-    <form className="stack" style={{ width: "100%" }} onSubmit={handleSubmit}>
+    <form style={{ width: "100%" }} onSubmit={handleSubmit}>
       {fields.map((field) => (
         <FormField key={field.name} field={field} value={form[field.name]} onChange={updateField} />
       ))}
-      <Button type="submit" disabled={status === "loading"}>
-        {status === "loading" ? "Signing in..." : "Sign in"}
+      <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
+        {status === "loading" ? "Signing in..." : "Log in"}
       </Button>
       {message ? <p className={status === "error" ? "error" : "muted"}>{message}</p> : null}
     </form>

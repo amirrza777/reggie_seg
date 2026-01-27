@@ -26,12 +26,17 @@
   place-items: center;
 }
 
+.auth-header {
+  display: grid;
+  gap: 4px;
+}
+
 .auth-title {
   font-family: "SF Pro Display", sans-serif;
   font-size: var(--fs-auth-title);
   font-weight: var(--fw-bold);
   letter-spacing: -0.03em;
-  margin: 0 0 4px;
+  margin: 0;
   text-align: center;
   color: var(--ink);
 }
@@ -39,7 +44,7 @@
 .auth-subtitle {
   color: var(--muted);
   text-align: center;
-  margin: 0 0 24px;
+  margin: 0 0 12px;
   font-size: var(--fs-body-xs);
   line-height: 1.5;
 }

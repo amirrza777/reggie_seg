@@ -4,12 +4,10 @@ import Link from 'next/link';
 import { RegisterForm } from '@/features/auth/components/RegisterForm';
 
 const AuthHeader = () => (
-  <>
+  <div className="auth-header">
     <h1 className="auth-title">Create an account</h1>
-    <p className="auth-subtitle">
-      Start managing your team feedback today.
-    </p>
-  </>
+    <p className="auth-subtitle">Start managing your team feedback today.</p>
+  </div>
 );
 
 const AuthFooter = () => (
