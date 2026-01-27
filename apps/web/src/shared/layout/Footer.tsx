@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 
 type FooterLink = { href: string; label: string };
 
@@ -7,43 +6,43 @@ const columns = [
   {
     title: "Product",
     links: [
-      { href: "#product", label: "Peer assessment" },
-      { href: "#product", label: "Questionnaires" },
-      { href: "#toolkit", label: "Meetings" },
-      { href: "#integrations", label: "Integrations" },
-      { href: "#toolkit", label: "Roles and permissions" },
-      { href: "#health", label: "Analytics" },
+      { href: "/", label: "Peer assessment" },
+      { href: "/", label: "Questionnaires" },
+      { href: "/?section=meetings", label: "Meetings" },
+      { href: "/?section=integrations", label: "Integrations" },
+      { href: "/?section=roles", label: "Roles and permissions" },
+      { href: "/?section=analytics", label: "Analytics" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { href: "#resources", label: "Guides" },
-      { href: "#resources", label: "Templates" },
-      { href: "#faq", label: "FAQ" },
+      { href: "/?section=resources", label: "Guides" },
+      { href: "/?section=resources", label: "Templates" },
+      { href: "/?section=faq", label: "FAQ" },
     ],
   },
   {
     title: "Integrations",
     links: [
-      { href: "#integrations", label: "GitHub" },
-      { href: "#integrations", label: "Trello" },
-      { href: "#integrations", label: "VLE (placeholder)" },
+      { href: "/?section=integrations", label: "GitHub" },
+      { href: "/?section=integrations", label: "Trello" },
+      { href: "/?section=integrations", label: "VLE (placeholder)" },
     ],
   },
   {
     title: "Legal",
     links: [
-      { href: "#privacy", label: "Privacy" },
-      { href: "#terms", label: "Terms" },
-      { href: "#cookies", label: "Cookies" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
+      { href: "/cookies", label: "Cookies" },
     ],
   },
   {
     title: "Admin",
     links: [
       { href: "/login", label: "Login" },
-      { href: "#status", label: "Status page" },
+      { href: "/status", label: "Status page" },
     ],
   },
 ];
@@ -55,16 +54,11 @@ const FooterBrand = () => (
   </div>
 );
 
-const FooterLinkItem = ({ link }: { link: FooterLink }) =>
-  link.href.startsWith("#") ? (
-    <AnchorLink href={link.href} className="footer__link">
-      {link.label}
-    </AnchorLink>
-  ) : (
-    <Link href={link.href} className="footer__link">
-      {link.label}
-    </Link>
-  );
+const FooterLinkItem = ({ link }: { link: FooterLink }) => (
+  <Link href={link.href} className="footer__link">
+    {link.label}
+  </Link>
+);
 
 const FooterColumn = ({ title, links }: { title: string; links: FooterLink[] }) => (
   <div className="footer__col">
@@ -81,9 +75,9 @@ const FooterMeta = () => (
   <div className="footer__meta">
     <span>© {new Date().getFullYear()} Team Feedback</span>
     <div className="footer__meta-links">
-      <AnchorLink href="#privacy">Privacy</AnchorLink>
-      <AnchorLink href="#terms">Terms</AnchorLink>
-      <AnchorLink href="#cookies">Cookies</AnchorLink>
+      <Link href="/privacy">Privacy</Link>
+      <Link href="/terms">Terms</Link>
+      <Link href="/cookies">Cookies</Link>
     </div>
   </div>
 );
