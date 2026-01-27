@@ -20,9 +20,9 @@ const AuthFooter = () => (
         Get started
       </Link>
     </p>
-    <a href="#" className="auth-link auth-link--subtle">
+    <Link href="/forgot-password" className="auth-link auth-link--subtle">
       Forgot password?
-    </a>
+    </Link>
   </div>
 );
 
