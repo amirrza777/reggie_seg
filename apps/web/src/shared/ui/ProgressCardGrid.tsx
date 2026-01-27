@@ -1,26 +1,24 @@
-/* Displays multiple progress cards in a responsive grid */
-
-import { ProgressCard, type ProgressCardData } from "./ProgressCard";
+import type { ProgressCardData } from "./ProgressCard";
+import { ProgressCard } from "./ProgressCard";
 
 type ProgressCardGridProps = {
   items: ProgressCardData[];
   getHref?: (item: ProgressCardData) => string;
-  showLabel?: boolean;
 };
 
-export function ProgressCardGrid({ items, getHref, showLabel = true }: ProgressCardGridProps) {
+export function ProgressCardGrid({ items, getHref }: ProgressCardGridProps) {
   return (
-    <div className="card-grid">
+    <div
+      style={{
+        display: "grid",
+        gap: "12px",
+        gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+        width: "100%",
+      }}
+    >
       {items.map((item) => (
-        <ProgressCard
-          key={item.id}
-          data={item}
-          href={getHref?.(item)}
-          showLabel={showLabel}
-        />
+        <ProgressCard key={item.id} {...item} href={getHref ? getHref(item) : undefined} />
       ))}
     </div>
   );
 }
-
-export type { ProgressCardData };

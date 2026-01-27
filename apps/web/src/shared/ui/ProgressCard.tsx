@@ -1,34 +1,72 @@
-/* Card Component that shows a title & progress bar. Can link to another page */
-
 import Link from "next/link";
-import { Card } from "@/shared/ui/Card";
-import { ProgressBar } from "@/shared/ui/ProgressBar";
+import type { ReactNode } from "react";
 
 export type ProgressCardData = {
   id: string;
   title: string;
-  progress: number; // 0-100
+  progress: number;
+  subtitle?: string;
 };
 
-type ProgressCardProps = {
-  data: ProgressCardData;
+type ProgressCardProps = ProgressCardData & {
   href?: string;
-  showLabel?: boolean;
+  action?: ReactNode;
 };
 
-export function ProgressCard({ data, href, showLabel = true }: ProgressCardProps) {
+const clamp = (value: number) => Math.min(100, Math.max(0, value));
+
+export function ProgressCard({ title, progress, subtitle, href, action }: ProgressCardProps) {
+  const pct = clamp(progress);
   const content = (
-    <Card title={data.title}>
-      <div className="module-card__progress">
-        <ProgressBar value={data.progress} />
-        {showLabel && <span className="muted">{data.progress}% complete</span>}
+    <div className="card" style={{ height: "100%" }}>
+      <div className="card__header">
+        <div>
+          <div className="eyebrow" style={{ marginBottom: 6 }}>
+            Progress
+          </div>
+          <h3 style={{ margin: 0 }}>{title}</h3>
+          {subtitle ? <p className="muted" style={{ margin: "6px 0 0" }}>{subtitle}</p> : null}
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <strong>{pct}%</strong>
+        </div>
       </div>
-    </Card>
+      <div className="card__body" style={{ display: "grid", gap: 10 }}>
+        <div
+          style={{
+            width: "100%",
+            height: 10,
+            borderRadius: 999,
+            background: "var(--accent-soft)",
+            overflow: "hidden",
+            border: "1px solid var(--accent-border)",
+          }}
+        >
+          <div
+            style={{
+              width: `${pct}%`,
+              height: "100%",
+              background: "var(--accent)",
+              transition: "width 0.2s ease",
+            }}
+          />
+        </div>
+        {action}
+      </div>
+    </div>
   );
 
   if (href) {
     return (
-      <Link href={href}>
+      <Link
+        href={href}
+        style={{
+          textDecoration: "none",
+          color: "inherit",
+          display: "block",
+          height: "100%",
+        }}
+      >
         {content}
       </Link>
     );

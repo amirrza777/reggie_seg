@@ -1,12 +1,17 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
+import "../globals.css";
+import "../styles/auth.css";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <main className="auth-shell">
-      <section className="auth-panel">
-        <p className="eyebrow">Authentication</p>
-        {children}
-      </section>
+    <main className="auth-container marketing-shell">
+      {/* Logo Link - Top Left */}
+      <Link href="/" className="auth-logo-link">
+        Team Feedback
+      </Link>
+      
+      {children}
     </main>
   );
 }

@@ -1,14 +1,16 @@
-'use client';
-
 import type { ButtonHTMLAttributes } from "react";
 
-type ButtonVariant = "primary" | "ghost";
-
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant;
+  variant?: "primary" | "ghost";
 };
 
-export function Button({ variant = "primary", className = "", ...props }: ButtonProps) {
-  const classes = ["btn", `btn--${variant}`, className].filter(Boolean).join(" ");
-  return <button className={classes} {...props} />;
+export function Button({ variant = "primary", className, children, ...rest }: ButtonProps) {
+  const classes = ["btn", variant === "primary" ? "btn--primary" : "btn--ghost", className]
+    .filter(Boolean)
+    .join(" ");
+  return (
+    <button className={classes} {...rest}>
+      {children}
+    </button>
+  );
 }

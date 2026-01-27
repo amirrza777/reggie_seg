@@ -3,13 +3,12 @@ export type LoginCredentials = {
   password: string;
 };
 
-export type AuthUser = {
-  id: string;
-  name: string;
-  email: string;
-};
-
 export type AuthResponse = {
-  token: string;
-  user: AuthUser;
+  token?: string;
+  user?: {
+    id: string;
+    name?: string;
+    email: string;
+  };
+  message?: string;
 };

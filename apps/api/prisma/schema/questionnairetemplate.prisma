@@ -1,12 +1,10 @@
-model questionnaireTemplate {
-  questionId   Int      @id @default(autoincrement())
-  id           Int
+model QuestionnaireTemplate {
+  id   Int      @id @default(autoincrement())
   templateName String
-  questionText String   @db.VarChar(1000)
-  questionHash String   @db.Char(64)
+  questions    Question[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  assessments  PeerAssessment[] @relation("TemplateAssessments")
 
   @@index([id])
-  @@unique([id, questionHash])
 }

@@ -1,15 +1,18 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { FeatureFlagsPanel } from "@/features/admin/components/FeatureFlagsPanel";
+"use client";
 
-export default function AdminPage() {
-  return (
-    <div className="stack">
-      <Placeholder
-        title="Admin"
-        path="/admin"
-        description="Administrative configuration and feature flags."
-      />
-      <FeatureFlagsPanel />
-    </div>
-  );
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
+/**
+ * Admin landing page: immediately send users to the peer assessments dashboard.
+ * Prevents 404 when visiting /admin directly.
+ */
+export default function AdminIndexPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace("/admin/peerAssessments");
+  }, [router]);
+
+  return null;
 }

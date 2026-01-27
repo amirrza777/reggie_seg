@@ -1,19 +1,30 @@
-import type { ReactNode } from "react";
+import Link from "next/link";
 
 type PlaceholderProps = {
   title: string;
   description?: string;
   path?: string;
-  hint?: ReactNode;
+  actionLabel?: string;
 };
 
-export function Placeholder({ title, description, path, hint }: PlaceholderProps) {
+export function Placeholder({
+  title,
+  description,
+  path,
+  actionLabel = "Go to page",
+}: PlaceholderProps) {
   return (
-    <section className="placeholder">
-      <p className="eyebrow">{path ?? "Placeholder"}</p>
-      <h2>{title}</h2>
-      {description ? <p className="lede">{description}</p> : null}
-      {hint ? <div className="placeholder__hint">{hint}</div> : null}
-    </section>
+    <div className="placeholder">
+      <div className="placeholder__hint">Coming soon</div>
+      <div className="stack">
+        <h2>{title}</h2>
+        {description && <p className="muted">{description}</p>}
+        {path && (
+          <Link href={path} className="btn btn--ghost">
+            {actionLabel}
+          </Link>
+        )}
+      </div>
+    </div>
   );
 }

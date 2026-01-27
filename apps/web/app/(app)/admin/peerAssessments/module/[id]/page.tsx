@@ -3,9 +3,9 @@ import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
 import type { ProgressCardData } from "@/shared/ui/ProgressCard";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 };
 
 // TODO: replace with actual db call
@@ -43,9 +43,10 @@ const demoModules: Record<string, { title: string; teams: ProgressCardData[] }> 
   },
 };
 
-export default function ModulePage({ params }: PageProps) {
-  const moduleData = demoModules[params.id] ?? {
-    title: `Module ${params.id}`,
+export default async function ModulePage({ params }: PageProps) {
+  const { id } = await params;
+  const moduleData = demoModules[id] ?? {
+    title: `Module ${id}`,
     teams: [],
   };
 
@@ -53,12 +54,12 @@ export default function ModulePage({ params }: PageProps) {
     <div className="stack">
       <Placeholder
         title={moduleData.title}
-        path={`/admin/peerAssessments/module/${params.id}`}
+        path={`/admin/peerAssessments/module/${id}`}
         description="Progress overview of a given module's peer assessments."
       />
       <ProgressCardGrid
         items={moduleData.teams}
-        getHref={(item) => `/admin/peerAssessments/module/${params.id}/team/${item.id}`}
+        getHref={(item) => `/admin/peerAssessments/module/${id}/team/${item.id}`}
       />
     </div>
   );
