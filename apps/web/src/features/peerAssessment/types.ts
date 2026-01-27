@@ -1,5 +1,3 @@
-// Types for peer assesment
-
 export type Teammate = {
   id: number;
   firstName: string;
@@ -16,4 +14,14 @@ export type Question = {
     min?: number;
     max?: number;
   };
+};
+
+export type PeerAssessmentData = {
+  moduleId: number;
+  projectId?: number;
+  teamId: number;
+  reviewerUserId: number;
+  revieweeUserId: number;
+  templateId: number;
+  answersJson: Record<string, any>;
 };
