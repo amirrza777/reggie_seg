@@ -1,5 +1,5 @@
 import { prisma } from "../../shared/db"
-import { IncomingQuestion } from "./types";
+import { Question } from "./types";
 
 export function createQuestionnaireTemplate(
   templateName: string,

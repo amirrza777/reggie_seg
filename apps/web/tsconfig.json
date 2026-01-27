@@ -16,7 +16,8 @@
     "incremental": true,
     "types": ["@types/node"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../packages/shared/src/*"]
     },
     "plugins": [
       {

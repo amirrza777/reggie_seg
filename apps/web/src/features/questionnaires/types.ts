@@ -4,9 +4,15 @@ export type Questionnaire = {
   createdAt: string;
 };
 
-export type IncomingQuestion = {
-  id?: number;
+export type QuestionType = "text" | "multiple-choice" | "rating";
+
+export type Question = {
+  id: number;
   text: string;
-  type: string;
-  configs?: unknown;
+  type: QuestionType;
+  configs?: {
+    options?: string[];
+    min?: number;
+    max?: number;
+  };
 };
