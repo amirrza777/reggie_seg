@@ -10,9 +10,8 @@ import nodeHttp = require("node:http");
 
 const router = Router()
 
-//returns all existing templates with questions
 router.get("/", getAllTemplatesHandler);
-router.post("/", createTemplateHandler);
+router.post("/new", createTemplateHandler);
 router.get("/:id", getTemplateHandler);
 router.put("/:id", updateTemplateHandler);
 router.delete("/:id", deleteTemplateHandler);

@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { createTemplate, getTemplate, getAllTemplates } from "./service"
+import { createTemplate, getTemplate, getAllTemplates, deleteTemplate,updateTemplate } from "./service"
 import { IncomingQuestion } from "./types";
 
 export async function createTemplateHandler(req: Request, res: Response) {
@@ -34,7 +34,7 @@ export async function getTemplateHandler(req: Request, res: Response) {
   res.json(template)
 }
 
-export const getAllTemplatesHandler = async (req: Request, res: Response) => {
+export async function getAllTemplatesHandler(req: Request, res: Response){
   try {
     const templates = await getAllTemplates();
     res.json(templates);

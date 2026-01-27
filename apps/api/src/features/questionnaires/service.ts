@@ -7,24 +7,22 @@ import {
 } from "./repo"
 import { IncomingQuestion } from "./types";
 
-export async function createTemplate(
+export function createTemplate(
   templateName: string,
   questions: any[]
 ) {
   return createQuestionnaireTemplate(templateName, questions)
 }
 
-export async function getTemplate(id: number) {
+export function getTemplate(id: number) {
   return getQuestionnaireTemplateById(id)
 }
 
-export const getAllTemplates = async () => {
-  return prisma.questionnaireTemplate.findMany({
-    include: { questions: true },
-  });
-};
+export function getAllTemplates() {
+    return getAllQuestionnaireTemplates();
+}
 
-export async function updateTemplate(
+export function updateTemplate(
   templateId: number,
   templateName: string,
   questions: IncomingQuestion[]
@@ -32,7 +30,7 @@ export async function updateTemplate(
   return updateQuestionnaireTemplate(templateId, templateName, questions);
 }
 
-export async function deleteTemplate(templateId: number) {
+export function deleteTemplate(templateId: number) {
   return deleteQuestionnaireTemplate(templateId);
 }
 
