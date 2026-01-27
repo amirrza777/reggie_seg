@@ -4,12 +4,12 @@ import Link from 'next/link';
 import { LoginForm } from '@/features/auth/components/LoginForm';
 
 const AuthHeader = () => (
-  <>
+  <div className="auth-header">
     <h1 className="auth-title">Team Feedback</h1>
     <p className="auth-subtitle">
       Sign in to access your peer assessments <br /> and meeting minutes.
     </p>
-  </>
+  </div>
 );
 
 const AuthFooter = () => (
@@ -20,9 +20,9 @@ const AuthFooter = () => (
         Get started
       </Link>
     </p>
-    <a href="#" className="auth-link auth-link--subtle">
+    <Link href="/forgot-password" className="auth-link auth-link--subtle">
       Forgot password?
-    </a>
+    </Link>
   </div>
 );
 

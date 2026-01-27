@@ -1,10 +1,12 @@
 export type Question = {
   id: string;
   prompt: string;
-  type: "text" | "scale";
+  type: "text" | "scale" | string;
+  options?: string[];
 };
 
 export type FeedbackSubmission = {
   projectId: string;
   answers: Record<string, string>;
+  anonymous?: boolean;
 };

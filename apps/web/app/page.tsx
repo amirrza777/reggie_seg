@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { FaqAccordion } from "./components/FaqAccordion";
 import { MarketingLayout } from "./layouts/marketing";
 
@@ -109,9 +110,9 @@ const HeroSection = () => (
         integrations that reduce admin work for students and staff.
       </p>
       <div className="hero__cta-row hero__cta-row--hero">
-        <a className="btn btn--primary" href="#cta">
+        <Link className="btn btn--primary" href="/register">
           Get started today
-        </a>
+        </Link>
       </div>
       <p className="hero__availability">Works with GitHub. Optional Trello integration. Built for GDPR.</p>
     </div>
@@ -133,9 +134,9 @@ const ProductSection = () => (
           archiving to keep every cohort auditable.
         </p>
         <div className="hero__actions">
-          <a className="btn btn--ghost" href="#cta">
+          <Link className="btn btn--ghost" href="/register">
             How automation supports modules
-          </a>
+          </Link>
         </div>
       </div>
       <div className="split__visual split__visual--frame" data-reveal data-reveal-offset="-25%">
@@ -196,9 +197,9 @@ const ToolkitCard = ({ card }: { card: (typeof toolkitCards)[number] }) => (
     </div>
     <h3>{card.title}</h3>
     <p className="muted">{card.body}</p>
-    <a className="link-ghost" href="#cta">
+    <Link className="link-ghost" href="/register">
       Learn more
-    </a>
+    </Link>
   </article>
 );
 
@@ -231,9 +232,9 @@ const AboutSection = () => (
           system highlights outliers, conflicts, and missing submissions.
         </p>
         <div className="hero__actions">
-          <a className="btn btn--ghost" href="#product">
+          <Link className="btn btn--ghost" href="/?section=product">
             How peer assessment works
-          </a>
+          </Link>
         </div>
       </div>
       <div className="split__visual split__visual--soft" data-reveal>
@@ -263,9 +264,9 @@ const IntegrationsSection = () => (
           tied to modules, teams, and assessment cycles.
         </p>
         <div className="hero__actions">
-          <a className="btn btn--ghost" href="#cta">
+          <Link className="btn btn--ghost" href="/register">
             How integrations work
-          </a>
+          </Link>
         </div>
       </div>
     </div>
@@ -354,9 +355,9 @@ const CtaSection = () => (
         </p>
       </div>
       <div className="hero__cta-row" data-reveal>
-        <a className="btn btn--primary" href="#cta">
+        <Link className="btn btn--primary" href="/register">
           Start on web
-        </a>
+        </Link>
       </div>
     </div>
   </section>

@@ -22,8 +22,6 @@ const scrollToHash = (href: string) => {
     return false;
   }
   target.scrollIntoView({ behavior: "smooth", block: "start" });
-  const { pathname, search } = window.location;
-  window.history.replaceState(null, "", `${pathname}${search}`);
   return true;
 };
 

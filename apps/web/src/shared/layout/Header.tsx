@@ -3,14 +3,13 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 
 const navLinks = [
-  { href: "#product", label: "Product" },
-  { href: "#toolkit", label: "Features" },
-  { href: "#resources", label: "Resources" },
-  { href: "#about", label: "About" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/", label: "Product" },
+  { href: "/?section=features", label: "Features" },
+  { href: "/?section=resources", label: "Resources" },
+  { href: "/?section=about", label: "About" },
+  { href: "/?section=faq", label: "FAQ" },
 ];
 
 const useHeaderVisibility = () => {
@@ -54,9 +53,9 @@ const useHomeNavigation = () => {
 const HeaderNav = () => (
   <nav className="nav">
     {navLinks.map((link) => (
-      <AnchorLink key={link.href} href={link.href} className="nav__link">
+      <Link key={link.href} href={link.href} className="nav__link">
         {link.label}
-      </AnchorLink>
+      </Link>
     ))}
   </nav>
 );
@@ -66,9 +65,9 @@ const HeaderActions = () => (
     <Link href="/login" className="link-ghost">
       Log in
     </Link>
-    <AnchorLink href="#cta" className="btn btn--primary">
+    <Link href="/register" className="btn btn--primary">
       Try free
-    </AnchorLink>
+    </Link>
   </div>
 );
 
