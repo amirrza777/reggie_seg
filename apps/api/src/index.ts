@@ -1,8 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import questionnaireCreationRouter from "./questionnaire-creation 2";
-import questionnaireEditingRouter from "./questionnaire-editing";
+import questionnairesRouter from "./features/questionnaires/router"
 
 dotenv.config();
 
@@ -13,9 +12,7 @@ app.get("/health", (req, res) => {
   res.json({ ok: true, message: "API is running" });
 });
 
-app.use("/questionnaire-creation", questionnaireCreationRouter);
-
-app.use("/questionnaire-editing", questionnaireEditingRouter);
+app.use("/questionnaires", questionnairesRouter)
 
 const port = Number(process.env.PORT) || 3000;
 
