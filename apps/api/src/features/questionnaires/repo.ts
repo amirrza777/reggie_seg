@@ -27,6 +27,12 @@ export function getQuestionnaireTemplateById(id: number) {
   })
 }
 
+export async function getAllQuestionnaireTemplates() {
+  return prisma.questionnaireTemplate.findMany({
+    include: { questions: true },
+  });
+};
+
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,

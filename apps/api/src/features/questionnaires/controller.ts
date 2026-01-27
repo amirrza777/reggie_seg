@@ -1,5 +1,5 @@
 import { Request, Response } from "express"
-import { createTemplate, getTemplate } from "./service"
+import { createTemplate, getTemplate, getAllTemplates } from "./service"
 import { IncomingQuestion } from "./types";
 
 export async function createTemplateHandler(req: Request, res: Response) {
@@ -33,6 +33,16 @@ export async function getTemplateHandler(req: Request, res: Response) {
 
   res.json(template)
 }
+
+export const getAllTemplatesHandler = async (req: Request, res: Response) => {
+  try {
+    const templates = await getAllTemplates();
+    res.json(templates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
 
 export async function updateTemplateHandler(req: Request, res: Response) {
   const templateId = Number(req.params.id);
