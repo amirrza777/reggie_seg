@@ -2,18 +2,18 @@ import type { ReactNode } from "react";
 
 type CardProps = {
   title?: string;
-  actions?: ReactNode;
+  action?: ReactNode;
   children: ReactNode;
 };
 
-export function Card({ title, actions, children }: CardProps) {
+export function Card({ title, action, children }: CardProps) {
   return (
     <div className="card">
-      {(title || actions) && (
-        <header className="card__header">
-          {title ? <h3>{title}</h3> : null}
-          {actions ? <div className="card__actions">{actions}</div> : null}
-        </header>
+      {(title || action) && (
+        <div className="card__header">
+          {title ? <h3 style={{ margin: 0 }}>{title}</h3> : <span />}
+          {action ? action : null}
+        </div>
       )}
       <div className="card__body">{children}</div>
     </div>
