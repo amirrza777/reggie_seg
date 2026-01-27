@@ -19,10 +19,20 @@ const FormField = ({
   value: string;
   onChange: (name: keyof LoginCredentials, value: string) => void;
 }) => (
-  <label className="stack" style={{ gap: 6 }}>
-    <span>{field.label}</span>
-    <input type={field.type} name={field.name} value={value} required onChange={(e) => onChange(field.name, e.target.value)} />
-  </label>
+  <div className="auth-field">
+    <label className="auth-label" htmlFor={field.name}>
+      {field.label}
+    </label>
+    <input
+      id={field.name}
+      className="auth-input"
+      type={field.type}
+      name={field.name}
+      value={value}
+      required
+      onChange={(e) => onChange(field.name, e.target.value)}
+    />
+  </div>
 );
 
 const useLoginFormState = () => {
@@ -54,7 +64,7 @@ export function LoginForm() {
   const { form, status, message, updateField, handleSubmit } = useLoginFormState();
 
   return (
-    <form className="stack" onSubmit={handleSubmit}>
+    <form className="stack" style={{ width: "100%" }} onSubmit={handleSubmit}>
       {fields.map((field) => (
         <FormField key={field.name} field={field} value={form[field.name]} onChange={updateField} />
       ))}

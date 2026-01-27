@@ -17,7 +17,7 @@ const AuthFooter = () => (
     <p>
       Already have an account?{" "}
       <Link href="/login" className="auth-link">
-        Sign in
+        Log in
       </Link>
     </p>
   </div>
