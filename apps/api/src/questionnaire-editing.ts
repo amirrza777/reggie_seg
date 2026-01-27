@@ -4,6 +4,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 const router = Router();
 
+//TODO edit so that if there's a db entry for a question, it creates new instead of updating
+
 type IncomingQuestion = {
   id?: number;       //edits if existing, or creates new
   text: string;
