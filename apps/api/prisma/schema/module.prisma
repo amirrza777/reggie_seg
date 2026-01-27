@@ -3,6 +3,7 @@ model Module {
   name         String
   moduleLeads  ModuleLead[]
   userModules  UserModule[]
+  teams        Team[]
   peerAssessments PeerAssessment[] @ignore
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt

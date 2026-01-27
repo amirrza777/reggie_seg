@@ -1,9 +1,12 @@
 model Team {
   id        Int      @id @default(autoincrement())
+  moduleId  Int
   teamName  String
   allocations TeamAllocation[]
+  module    Module @relation(fields: [moduleId], references: [id])
   peerAssessments PeerAssessment[] @ignore
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@unique([teamName])
+  @@index([moduleId])
 }
