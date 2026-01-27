@@ -1,3 +1,7 @@
+console.log("API URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
+
+
+
 type Questionnaire = {
   id: number;
   templateName: string;
