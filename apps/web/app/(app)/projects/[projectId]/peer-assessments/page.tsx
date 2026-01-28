@@ -33,6 +33,12 @@ export default async function ProjectPeerAssessmentsPage({
         teamName="TeamA"
         teammateName="Colton"
         questions={mockQuestions}
+        moduleId={1}
+        projectId={Number(projectId)}
+        teamId={1}
+        reviewerId={1}
+        revieweeId={2}
+        templateId={1}
       />
     </div>
   );

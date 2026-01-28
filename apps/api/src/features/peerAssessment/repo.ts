@@ -38,10 +38,6 @@ export function createPeerAssessment(data: {
       questionnaireTemplateId: data.templateId,
       templateId: data.templateId,
       answersJson: data.answersJson,
-      module: { connect: { id: data.moduleId } },
-      team: { connect: { id: data.teamId } },
-      reviewer: { connect: { id: data.reviewerUserId } },
-      reviewee: { connect: { id: data.revieweeUserId } },
     },
   });
 }
