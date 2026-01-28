@@ -344,12 +344,10 @@ export function ScrollReveal({
   threshold = 0.2,
   once = true,
 }: ScrollRevealProps) {
-  useLayoutEffect(() => setupScrollReveal({ selector, rootMargin, threshold, once }), [
-    once,
-    rootMargin,
-    selector,
-    threshold,
-  ]);
+  useLayoutEffect(() => {
+    const cleanup = setupScrollReveal({ selector, rootMargin, threshold, once });
+    return cleanup ?? undefined;
+  }, [once, rootMargin, selector, threshold]);
 
   return null;
 }
