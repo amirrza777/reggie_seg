@@ -1,7 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import questionnairesRouter from "./features/questionnaires/router"
+import questionnairesRouter from "./features/questionnaires/router.js"
+import peerAssessmentsRouter from "./features/peerAssessment/router.js"
 
 dotenv.config();
 
@@ -13,6 +14,7 @@ app.get("/health", (req, res) => {
 });
 
 app.use("/questionnaires", questionnairesRouter)
+app.use("/peer-assessments", peerAssessmentsRouter);
 
 const port = Number(process.env.PORT) || 3000;
 

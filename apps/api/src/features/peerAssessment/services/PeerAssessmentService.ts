@@ -41,4 +41,12 @@ export class PeerAssessmentService {
       } as any, 
     });
   }
+
+  async getAssessmentById(feedbackId: number): Promise<PeerAssessment | null> {
+    return await prisma.peerAssessment.findUnique({
+      where: {
+        id: feedbackId,
+      },
+    });
+  }
 }

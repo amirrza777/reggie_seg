@@ -16,3 +16,9 @@ export type Question = {
     max?: number;
   };
 };
+
+export type Answer = {
+  id: string;
+  question: string;
+  awnser: string | number;
+};

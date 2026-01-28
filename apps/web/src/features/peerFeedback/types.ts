@@ -10,3 +10,9 @@ export type FeedbackSubmission = {
   answers: Record<string, string>;
   anonymous?: boolean;
 };
+
+export type Answer = {
+  id: string;
+  question: string;
+  awnser: string | number;
+};
