@@ -69,6 +69,8 @@ Test backend in browser:
 
 ## 4) Frontend (Web) setup (Next.js)
 
+More web-specific commands and env notes: see `apps/web/README.md`.
+
 Open a NEW terminal tab/window.
 
 Go to frontend:
