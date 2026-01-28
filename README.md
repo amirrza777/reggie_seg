@@ -142,6 +142,14 @@ Run everything at once from repo root:
 ./scripts/test-all.sh --runInBand   # pass flags through to Vitest
 ```
 
+Before running tests the first time, install deps in each package (once):
+
+```bash
+npm install --prefix apps/api
+npm install --prefix apps/web
+npm install --prefix packages/shared
+```
+
 ---
 
 ## 6) Common Issues

@@ -12,6 +12,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "@jridgewell/sourcemap-codec": "1.4.15"
+  },
   "type": "commonjs",
   "dependencies": {
     "@prisma/client": "^6.19.2",

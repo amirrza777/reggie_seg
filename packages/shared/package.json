@@ -12,6 +12,9 @@
   "files": [
     "dist"
   ],
+  "overrides": {
+    "@jridgewell/sourcemap-codec": "1.4.15"
+  },
   "scripts": {
     "build": "tsc -b",
     "clean": "rimraf dist tsconfig.tsbuildinfo",

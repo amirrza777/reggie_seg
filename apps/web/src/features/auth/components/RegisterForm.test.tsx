@@ -1,12 +1,20 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import React, { act } from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import { RegisterForm } from "./RegisterForm";
-
-vi.useFakeTimers();
 
 describe("RegisterForm", () => {
   it("submits and shows loading state", async () => {
     const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const pendingTimers: Array<() => void> = [];
+    const timeoutSpy = vi
+      .spyOn(global, "setTimeout")
+      .mockImplementation((cb: TimerHandler, _ms?: number) => {
+        if (typeof cb === "function") {
+          pendingTimers.push(cb);
+        }
+        return 0 as any;
+      });
 
     render(<RegisterForm />);
 
@@ -25,20 +33,22 @@ describe("RegisterForm", () => {
       screen.getByRole("button", { name: /creating account/i })
     ).toBeDisabled();
 
-    vi.runAllTimers();
-
-    await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith(
-        "Registering:",
-        expect.objectContaining({
-          name: "Ada Lovelace",
-          email: "ada@example.com",
-          password: "supersecure",
-        })
-      );
+    // Run queued timeout callbacks to finish submission
+    await act(async () => {
+      pendingTimers.forEach((fn) => fn());
     });
 
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Registering:",
+      expect.objectContaining({
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        password: "supersecure",
+      })
+    );
+
     consoleSpy.mockRestore();
+    timeoutSpy.mockRestore();
   });
 
   it("supports Google register action", () => {
