@@ -133,6 +133,13 @@ Run tests per package:
 
 Coverage thresholds are set to 100% lines/functions/branches/statements in each package to keep quality high. If you add new code, add or update tests accordingly.
 
+Run everything at once from repo root:
+
+```bash
+./scripts/test-all.sh         # run all packages
+./scripts/test-all.sh --runInBand   # pass flags through to Vitest
+```
+
 ---
 
 ## 6) Common Issues
