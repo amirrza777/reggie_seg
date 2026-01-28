@@ -14,5 +14,13 @@ export type FeedbackSubmission = {
 export type Answer = {
   id: string;
   question: string;
-  answer: string | number;
+  answer: string;
 };
+
+export type PeerFeedback = {
+  id: string;
+  reviewerId: string;
+  revieweeId: string;
+  submittedAt: string;
+  answers: Answer[];
+}

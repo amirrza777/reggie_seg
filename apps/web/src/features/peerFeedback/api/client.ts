@@ -8,6 +8,10 @@ export async function submitFeedback(payload: FeedbackSubmission) {
   });
 }
 
-export async function getPeerFeedback(feedbackId: string) {
-  return apiFetch<FeedbackSubmission>(`/peer-feedback/${feedbackId}`);
+export async function getPeerFeedbackById(feedbackId: string) {
+  return apiFetch<FeedbackSubmission>(`/peer-assessments/feedback/${feedbackId}`);
+} 
+
+export async function getPeerFeedbacksForUser(userId: string) {
+  return apiFetch<FeedbackSubmission>(`/peer-assessments/user/${userId}`);
 } 

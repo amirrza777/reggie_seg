@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import questionnairesRouter from "./features/questionnaires/router.js"
-import peerAssessmentsRouter from "./features/peerAssessment/router.js"
+import questionnairesRouter from "./features/questionnaires/router";
+import peerAssessmentsRouter from "./features/peerAssessment/router";
 
 dotenv.config();
 
@@ -21,4 +21,3 @@ const port = Number(process.env.PORT) || 3000;
 app.listen(port, () => {
   console.log(`API listening on http://localhost:${port}`);
 });
-
