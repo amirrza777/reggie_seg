@@ -14,5 +14,5 @@ export type FeedbackSubmission = {
 export type Answer = {
   id: string;
   question: string;
-  awnser: string | number;
+  answer: string | number;
 };

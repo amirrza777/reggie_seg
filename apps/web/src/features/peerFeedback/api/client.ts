@@ -7,3 +7,7 @@ export async function submitFeedback(payload: FeedbackSubmission) {
     body: JSON.stringify(payload),
   });
 }
+
+export async function getPeerFeedback(feedbackId: string) {
+  return apiFetch<FeedbackSubmission>(`/peer-feedback/${feedbackId}`);
+} 
