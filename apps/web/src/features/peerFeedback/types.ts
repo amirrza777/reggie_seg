@@ -13,12 +13,14 @@ export type FeedbackSubmission = {
 
 export type Answer = {
   id: string;
+  order: Number;
   question: string;
   answer: string;
 };
 
 export type PeerFeedback = {
   id: string;
+  projectId?: string;
   reviewerId: string;
   revieweeId: string;
   submittedAt: string;

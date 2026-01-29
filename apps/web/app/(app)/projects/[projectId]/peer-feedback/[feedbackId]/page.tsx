@@ -1,8 +1,6 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import type { PeerFeedback , Answer} from "@/features/peerFeedback/types";
 import { FeedbackView } from "@/features/peerFeedback/components/FeedbackView";
-import type { Answer } from "@/features/peerFeedback/types";
-import { apiFetch } from "@/shared/api/http";
+import { getPeerFeedbackById } from "@/features/peerFeedback/api/client";
 
 type ProjectPageProps = {
   params: Promise<{
@@ -11,18 +9,13 @@ type ProjectPageProps = {
   }>;
 };
 
-async function getPeerFeedback(feedbackId: string): Promise<Questionnaire> {
-  return apiFetch(`/peer-assessments/${feedbackId}`);
-}
-
 export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
   const { feedbackId, projectId } = await params;
-  const feedback = await getPeerFeedback(feedbackId);
-  const feedbackData = await feedback.json();
-  const awnsers = feedbackData.awnsers as Answer[];
+  const feedback : PeerFeedback = await getPeerFeedbackById(feedbackId);
+  const awnsers = feedback.answers as Answer[];
   return (
     <div> 
-      <FeedbackView awnsers={awnsers}/>
+      <FeedbackView answers={awnsers}/>
     </div>
   );
 }

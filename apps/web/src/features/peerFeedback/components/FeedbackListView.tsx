@@ -5,6 +5,7 @@ type FeedbackListViewProps = {
 };
 
 export function FeedbackListView({ feedbacks }: FeedbackListViewProps) {
+  
     return (
     <div>
       <h2>Feedback from your peers</h2>
