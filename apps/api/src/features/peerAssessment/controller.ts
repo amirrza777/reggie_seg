@@ -102,7 +102,7 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function getAssessmentsHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+  const userId = Number(req.params.userId);
 
   if (isNaN(userId)) {
     return res.status(400).json({ error: "Invalid user ID" });

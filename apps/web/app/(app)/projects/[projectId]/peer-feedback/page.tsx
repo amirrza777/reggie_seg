@@ -9,7 +9,7 @@ type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
-const temporaryUserId = "current";
+const temporaryUserId = "1";
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;

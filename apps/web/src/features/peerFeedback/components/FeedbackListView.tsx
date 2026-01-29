@@ -9,6 +9,7 @@ export function FeedbackListView({ feedbacks }: FeedbackListViewProps) {
     return (
     <div>
       <h2>Feedback from your peers</h2>
+      {feedbacks && feedbacks.length === 0 && <p>No feedbacks submitted yet.</p>}
         <ul style={{ paddingLeft: 18, margin: 0, display: "grid", gap: 8 }}>
         {feedbacks?.map((f) => (
           <li key={f.id}>
