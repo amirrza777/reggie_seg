@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../../shared/db.js';
-import type { PeerAssessment , User} from '@prisma/client';
+import type { PeerAssessment } from '@prisma/client';
 
 
 export class PeerAssessmentService {
@@ -26,7 +26,7 @@ export class PeerAssessmentService {
     });
   }
 
-  async getFeedbackForStudent(revieweeId: number): Promise<PeerAssessment[]> {
+  async getFeedbackForStudent(revieweeId: number){
     return await prisma.peerAssessment.findMany({
       where: {
         revieweeUserId: revieweeId,
@@ -44,6 +44,12 @@ export class PeerAssessmentService {
         questionnaireTemplateId: true,
         templateId: true,
         updatedAt: true,
+        reviewee : {
+          select: {
+            firstName: true,
+            lastName: true,
+          } 
+        }
       },
     });
   }
@@ -52,6 +58,14 @@ export class PeerAssessmentService {
     return await prisma.peerAssessment.findUnique({
       where: {
         id: feedbackId,
+      },
+      include: { 
+        reviewee: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
+        },
       },
     });
   }

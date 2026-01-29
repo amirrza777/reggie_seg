@@ -12,7 +12,7 @@ export function FeedbackListView({ feedbacks }: FeedbackListViewProps) {
         <ul style={{ paddingLeft: 18, margin: 0, display: "grid", gap: 8 }}>
         {feedbacks?.map((f) => (
           <li key={f.id}>
-            <strong>Reviewer : {f.reviewerId}</strong>
+            <strong>Reviewer : {f.firstName} {f.lastName} </strong>
             <p>Submitted At: {new Date(f.submittedAt).toLocaleString()}</p>
         </li>
         ))}

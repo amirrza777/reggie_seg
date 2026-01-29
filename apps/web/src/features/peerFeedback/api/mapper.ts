@@ -55,6 +55,8 @@ export function mapApiAssessmentToPeerFeedback(raw: any): PeerFeedback {
 		revieweeId: String(raw.revieweeUserId ?? ""),
 		submittedAt: raw.submittedAt ? String(raw.submittedAt) : raw.updatedAt ? String(raw.updatedAt) : "",
 		answers,
+		firstName: raw.reviewee?.firstName ?? "",
+		lastName: raw.reviewee?.lastName ?? "",
 	};
 }
 
