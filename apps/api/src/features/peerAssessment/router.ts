@@ -7,15 +7,16 @@ import {
   createAssessmentHandler,
   getAssessmentHandler,
   updateAssessmentHandler,
-  getPeerFeedbacksHandler,
-  getPeerFeedbackHandler,
-} from "./controller"
+  getAssessmentsHandler,
+  getAssessmentByIdHandler,
+} from "./controller.js"
 
-router.get("/teams/:teamId/teammates", getTeammatesHandler)
-router.post("/", createAssessmentHandler)
-router.get("/", getAssessmentHandler)
-router.put("/:id", updateAssessmentHandler)
-router.get("/", getPeerFeedbacksHandler); // Get all peer feedbacks for a student
-router.get("/:id", getPeerFeedbackHandler); // Get a specific peer feedback by ID
+router.get("/teams/:teamId/teammates", getTeammatesHandler) // Get teammates in a team
+router.post("/", createAssessmentHandler) // Create new assessment
+router.get("/", getAssessmentHandler) // Get existing assessment
+router.put("/:id", updateAssessmentHandler) // Update assessment answers
+
+router.get("/user/:userId", getAssessmentsHandler); // Get all peer assessments for a user
+router.get("/feedback/:feedbackId", getAssessmentByIdHandler); // Get a specific peer feedback by ID
 
 export default router

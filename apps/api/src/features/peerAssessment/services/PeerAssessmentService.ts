@@ -1,5 +1,7 @@
-import { PrismaClient, PeerAssessment, Prisma } from '@prisma/client';
-const prisma = new PrismaClient();
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../../shared/db.js';
+import type { PeerAssessment , User} from '@prisma/client';
+
 
 export class PeerAssessmentService {
   async createAssessment(data: Prisma.PeerAssessmentCreateInput): Promise<PeerAssessment> {
@@ -8,14 +10,17 @@ export class PeerAssessmentService {
     });
   }
 
-  async getAssessmentsByStudent(reviewerId: number): Promise<PeerAssessment[]> {
+  async getAssessmentsByStudent(reviewerId: number){
     return await prisma.peerAssessment.findMany({
       where: {
         reviewerUserId: reviewerId,
       },
-      include: {
+      include: { 
         reviewee: {
-          select: { firstName: true, lastName: true }, 
+          select: {
+            firstName: true,
+            lastName: true,
+          },
         },
       },
     });
@@ -36,9 +41,10 @@ export class PeerAssessmentService {
         teamId: true,
         reviewerUserId: true, 
         revieweeUserId: true,
+        questionnaireTemplateId: true,
         templateId: true,
         updatedAt: true,
-      } as any, 
+      },
     });
   }
 

@@ -1,6 +1,7 @@
-import { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers } from "./service"
-import { getFeedbackById, getFeedbackForStudent } from "./PeerAssessmentService"
+import type { Request, Response } from "express"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers } from "./service.js"
+import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
+const peerService = new PeerAssessmentService();
 
 export async function getTeammatesHandler(req: Request, res: Response) {
   const userId = Number(req.query.userId)
@@ -108,7 +109,7 @@ export async function getAssessmentsHandler(req: Request, res: Response) {
   }
 
   try {
-    const feedbacks = await getFeedbackForStudent(userId);
+    const feedbacks = await peerService.getFeedbackForStudent(userId);
     res.json(feedbacks);
   } catch (error) {
     console.error("Error fetching peer feedbacks:", error);
@@ -124,7 +125,7 @@ export async function getAssessmentByIdHandler(req: Request, res: Response) {
   }
   
   try {
-    const feedback = await getFeedbackById(feedbackId);
+    const feedback = await peerService.getFeedbackById(feedbackId);
     if (!feedback) {
       return res.status(404).json({ error: "Feedback not found" });
     }

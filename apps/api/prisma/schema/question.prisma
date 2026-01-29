@@ -1,9 +1,11 @@
 model Question {
-  id          Int    @id @default(autoincrement())
-  templateId  Int
-  label       String  
-  type        String   
-  order       Int
-  configs     Json?
-  template    QuestionnaireTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  id         Int                   @id @default(autoincrement())
+  templateId Int
+  label      String
+  type       String
+  order      Int
+  configs    Json?
+  template   QuestionnaireTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@index([templateId], map: "Question_templateId_fkey")
 }

@@ -3,7 +3,7 @@ import {
   createPeerAssessment,
   getPeerAssessment,
   updatePeerAssessment
-} from "./repo"
+} from "./repo.js"
 
 export function fetchTeammates(userId: number, teamId: number) {
   return getTeammates(userId, teamId)

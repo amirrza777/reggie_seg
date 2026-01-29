@@ -1,8 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import questionnairesRouter from "./features/questionnaires/router";
-import peerAssessmentsRouter from "./features/peerAssessment/router";
+import questionnairesRouter from "./features/questionnaires/router.js";
+import peerAssessmentsRouter from "./features/peerAssessment/router.js";
 
 dotenv.config();
 

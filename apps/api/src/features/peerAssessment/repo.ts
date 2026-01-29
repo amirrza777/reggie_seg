@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db";
+import { prisma } from "../../shared/db.js";
 
 export function getTeammates(userId: number, teamId: number) {
   return prisma.teamAllocation.findMany({
