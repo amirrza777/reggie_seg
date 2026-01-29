@@ -4,8 +4,8 @@ import {
   getAllQuestionnaireTemplates,
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate
-} from "./repo"
-import { Question } from "./types";
+} from "./repo.js"
+import type { IncomingQuestion, Question } from "./types.js";
 
 export function createTemplate(
   templateName: string,
@@ -25,7 +25,7 @@ export function getAllTemplates() {
 export function updateTemplate(
   templateId: number,
   templateName: string,
-  questions: Question[]
+  questions: IncomingQuestion[]
 ) {
   return updateQuestionnaireTemplate(templateId, templateName, questions);
 }

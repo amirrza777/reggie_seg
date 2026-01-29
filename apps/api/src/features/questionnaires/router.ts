@@ -5,8 +5,7 @@ import {
   getAllTemplatesHandler,
   updateTemplateHandler,
   deleteTemplateHandler,
-} from "./controller"
-import nodeHttp = require("node:http");
+} from "./controller.js"
 
 const router = Router()
 
