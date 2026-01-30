@@ -3,6 +3,10 @@ import type { PeerFeedback, Answer } from "../types";
 function mapAnswersJsonToArray(answersJson: any): Answer[] {
 	if (!answersJson) return [];
 
+	if (answersJson.answers && Array.isArray(answersJson.answers)) {
+    	answersJson = answersJson.answers;
+  		}
+
 	if (Array.isArray(answersJson)) {
 		return answersJson.map((a, idx) => ({
 			id: String(a.id ?? a.question ?? idx),

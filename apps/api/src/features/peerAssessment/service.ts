@@ -2,7 +2,9 @@ import {
   getTeammates,
   createPeerAssessment,
   getPeerAssessment,
-  updatePeerAssessment
+  updatePeerAssessment,
+  createPeerAssessmentReview,
+  getPeerAssessmentReviewByAssessmentId,
 } from "./repo.js"
 
 export function fetchTeammates(userId: number, teamId: number) {
@@ -11,7 +13,7 @@ export function fetchTeammates(userId: number, teamId: number) {
 
 export function saveAssessment(data: {
   moduleId: number
-  projectId: number | null
+  projectId: number
   teamId: number
   reviewerUserId: number
   revieweeUserId: number
@@ -23,7 +25,7 @@ export function saveAssessment(data: {
 
 export function fetchAssessment(
   moduleId: number,
-  projectId: number | null,
+  projectId: number,
   teamId: number,
   reviewerId: number,
   revieweeId: number
@@ -33,4 +35,17 @@ export function fetchAssessment(
 
 export function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
   return updatePeerAssessment(assessmentId, answersJson)
+}
+
+export async function saveFeedbackReview(assessmentId: number, payload: { reviewText: string; agreements: any }) {
+  const created = await createPeerAssessmentReview({
+    peerAssessmentId: assessmentId,
+    reviewText: payload.reviewText,
+    agreementsJson: payload.agreements,
+  });
+  return created;
+}
+
+export function getFeedbackReview(assessmentId: number) {
+  return getPeerAssessmentReviewByAssessmentId(assessmentId);
 }

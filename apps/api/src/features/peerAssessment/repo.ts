@@ -21,7 +21,7 @@ export function getTeammates(userId: number, teamId: number) {
 
 export function createPeerAssessment(data: {
   moduleId: number;
-  projectId: number | null;
+  projectId: number;
   teamId: number;
   reviewerUserId: number;
   revieweeUserId: number;
@@ -44,7 +44,7 @@ export function createPeerAssessment(data: {
 
 export function getPeerAssessment(
   moduleId: number,
-  projectId: number | null,
+  projectId: number,
   teamId: number,
   reviewerId: number,
   revieweeId: number,
@@ -85,5 +85,27 @@ export function updatePeerAssessment(assessmentId: number, answersJson: any) {
       answersJson: answersJson,
       updatedAt: new Date(),
     },
+  });
+}
+
+export function createPeerAssessmentReview(data: {
+  peerAssessmentId: number;
+  reviewerUserId?: number | null;
+  reviewText?: string | null;
+  agreementsJson: any;
+}) {
+  return prisma.peerAssessmentReview.create({
+    data: {
+      peerAssessmentId: data.peerAssessmentId,
+      reviewerUserId: data.reviewerUserId ?? null,
+      reviewText: data.reviewText ?? null,
+      agreementsJson: data.agreementsJson,
+    },
+  });
+}
+
+export function getPeerAssessmentReviewByAssessmentId(peerAssessmentId: number) {
+  return prisma.peerAssessmentReview.findUnique({
+    where: { peerAssessmentId },
   });
 }

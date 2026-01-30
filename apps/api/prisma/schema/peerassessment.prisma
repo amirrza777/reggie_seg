@@ -1,12 +1,13 @@
 model PeerAssessment {
   id                      Int                   @id @default(autoincrement())
   moduleId                Int
-  projectId               Int?
+  projectId               Int
   teamId                  Int
   reviewerUserId          Int
   revieweeUserId          Int
   templateId              Int
   answersJson             Json
+  review    PeerAssessmentReview?
   submittedAt             DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
   questionnaireTemplateId Int

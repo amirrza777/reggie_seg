@@ -13,7 +13,7 @@ const temporaryUserId = "1";
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const feedbacks = await getPeerFeedbacksForUser(temporaryUserId);
+  const feedbacks = await getPeerFeedbacksForUser("3");
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />
@@ -25,7 +25,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
       <QuestionnaireBuilder />
       <FeedbackForm projectId={projectId} />
       <h2> Feedbacks </h2>
-      <FeedbackListView feedbacks={feedbacks} />
+      <FeedbackListView feedbacks={feedbacks} projectId={projectId} />
 
     </div>
   );

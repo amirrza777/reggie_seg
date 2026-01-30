@@ -1,5 +1,6 @@
 import type { PeerFeedback , Answer} from "@/features/peerFeedback/types";
 import { FeedbackView } from "@/features/peerFeedback/components/FeedbackView";
+import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
 import { getPeerFeedbackById } from "@/features/peerFeedback/api/client";
 
 type ProjectPageProps = {
@@ -15,7 +16,7 @@ export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
   const awnsers = feedback.answers as Answer[];
   return (
     <div> 
-      <FeedbackView answers={awnsers}/>
+      <FeedbackReviewForm feedback={feedback} />
     </div>
   );
 }
