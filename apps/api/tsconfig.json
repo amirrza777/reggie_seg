@@ -8,9 +8,9 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
-    "moduleResolution": "nodenext", 
+    "moduleResolution": "nodenext",
     "target": "es2022",
-    "types": [],
+    "types": ["vitest/globals"],
     "esModuleInterop": true,
     // For nodejs:
     // "lib": ["esnext"],
