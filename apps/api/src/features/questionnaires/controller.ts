@@ -1,6 +1,6 @@
-import { Request, Response } from "express"
-import { createTemplate, getTemplate, getAllTemplates, deleteTemplate,updateTemplate } from "./service"
-import { Question } from "./types";
+import type { Request, Response } from "express"
+import { createTemplate, getTemplate, getAllTemplates, deleteTemplate,updateTemplate } from "./service.js"
+import type { Question , IncomingQuestion} from "./types.js";
 
 export async function createTemplateHandler(req: Request, res: Response) {
   const { templateName, questions } = req.body
