@@ -48,7 +48,7 @@ export default async function TeamPage({ params }: PageProps) {
       />
       <ProgressCardGrid
         items={demoStudents}
-        getHref={(item) => `/admin/peerAssessments/module/${moduleId}/team/${teamId}/student/${item.id}`}
+        getHref={(item) => `/staff/peer-assessments/module/${moduleId}/team/${teamId}/student/${item.id}`}
       />
     </div>
   );

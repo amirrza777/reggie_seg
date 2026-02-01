@@ -53,12 +53,12 @@ export default function ModulePage({ params }: PageProps) {
     <div className="stack">
       <Placeholder
         title={moduleData.title}
-        path={`/admin/peerAssessments/module/${params.id}`}
+        path={`/staff/peer-assessments/module/${params.id}`}
         description="Progress overview of a given module's peer assessments."
       />
       <ProgressCardGrid
         items={moduleData.teams}
-        getHref={(item) => `/admin/peerAssessments/module/${params.id}/team/${item.id}`}
+        getHref={(item) => `/staff/peer-assessments/module/${params.id}/team/${item.id}`}
       />
     </div>
   );
