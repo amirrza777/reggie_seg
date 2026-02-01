@@ -5,7 +5,7 @@ import { useState } from "react";
 type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
 
 type Question = {
-  id: number;
+  uiId: number;      // UI-only identifier
   text: string;
   type: QuestionType;
   configs: any;
@@ -30,7 +30,7 @@ export default function NewQuestionnairePage() {
 
   const addQuestion = (type: QuestionType) => {
     const q: Question = {
-      id: Date.now(),
+      uiId: Date.now() + Math.random(),
       text: "",
       type,
       configs: {},
@@ -39,14 +39,20 @@ export default function NewQuestionnairePage() {
     if (type === "multiple-choice") q.configs = { options: ["Yes", "No"] };
     if (type === "rating") q.configs = { min: 1, max: 10 };
     if (type === "slider")
-      q.configs = { min: 0, max: 100, step: 1, left: "Disagree", right: "Agree" };
+      q.configs = {
+        min: 0,
+        max: 100,
+        step: 1,
+        left: "Strongly disagree",
+        right: "Strongly agree",
+      };
 
-    setQuestions((qns) => [...qns, q]);
+    setQuestions(qs => [...qs, q]);
   };
 
   const saveTemplate = async () => {
     if (!templateName || questions.length === 0) {
-      alert("Missing name or questions");
+      alert("Add a name and at least one question");
       return;
     }
 
@@ -54,16 +60,15 @@ export default function NewQuestionnairePage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/new`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             templateName,
-            questions: questions.map((q, i) => ({
+            questions: questions.map(q => ({
               text: q.text,
               type: q.type,
-              order: i,
               configs: q.configs,
             })),
           }),
@@ -71,16 +76,16 @@ export default function NewQuestionnairePage() {
       );
 
       if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t);
+        throw new Error(await res.text());
       }
 
-      alert("Saved successfully");
+      alert("Questionnaire saved");
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
-    } catch (e) {
-      console.error(e);
+      setAnswers({});
+    } catch (err) {
+      console.error(err);
       alert("Save failed — check console");
     } finally {
       setSaving(false);
@@ -104,11 +109,15 @@ export default function NewQuestionnairePage() {
       )}
 
       <div style={{ marginTop: 16 }}>
-        <button onClick={() => setPreview((p) => !p)}>
+        <button onClick={() => setPreview(p => !p)}>
           {preview ? "Back to editor" : "Student preview"}
         </button>
         {!preview && (
-          <button onClick={saveTemplate} disabled={saving} style={{ marginLeft: 8 }}>
+          <button
+            onClick={saveTemplate}
+            disabled={saving}
+            style={{ marginLeft: 8 }}
+          >
             {saving ? "Saving..." : "Save"}
           </button>
         )}
@@ -116,7 +125,7 @@ export default function NewQuestionnairePage() {
 
       {questions.map((q, i) => (
         <div
-          key={q.id}
+          key={q.uiId}
           style={{
             marginTop: 20,
             padding: 16,
@@ -131,9 +140,9 @@ export default function NewQuestionnairePage() {
               {q.type === "text" && (
                 <input
                   style={{ ...inputStyle, marginTop: 8 }}
-                  value={answers[q.id] || ""}
+                  value={answers[q.uiId] || ""}
                   onChange={(e) =>
-                    setAnswers({ ...answers, [q.id]: e.target.value })
+                    setAnswers(a => ({ ...a, [q.uiId]: e.target.value }))
                   }
                 />
               )}
@@ -143,9 +152,9 @@ export default function NewQuestionnairePage() {
                   <label key={o} style={{ display: "block", marginTop: 6 }}>
                     <input
                       type="radio"
-                      checked={answers[q.id] === o}
+                      checked={answers[q.uiId] === o}
                       onChange={() =>
-                        setAnswers({ ...answers, [q.id]: o })
+                        setAnswers(a => ({ ...a, [q.uiId]: o }))
                       }
                     />{" "}
                     {o}
@@ -153,20 +162,28 @@ export default function NewQuestionnairePage() {
                 ))}
 
               {q.type === "rating" && (
-                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
                   {Array.from(
                     { length: q.configs.max - q.configs.min + 1 },
                     (_, n) => n + q.configs.min
-                  ).map((n) => (
-                    <label key={n} style={{ textAlign: "center" }}>
+                  ).map(n => (
+                    <label
+                      key={n}
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        fontSize: 12,
+                      }}
+                    >
                       <input
                         type="radio"
-                        checked={answers[q.id] === n}
+                        checked={answers[q.uiId] === n}
                         onChange={() =>
-                          setAnswers({ ...answers, [q.id]: n })
+                          setAnswers(a => ({ ...a, [q.uiId]: n }))
                         }
                       />
-                      <div>{n}</div>
+                      {n}
                     </label>
                   ))}
                 </div>
@@ -179,6 +196,7 @@ export default function NewQuestionnairePage() {
                       display: "flex",
                       justifyContent: "space-between",
                       fontSize: 12,
+                      marginTop: 8,
                     }}
                   >
                     <span>{q.configs.left}</span>
@@ -189,12 +207,12 @@ export default function NewQuestionnairePage() {
                     min={q.configs.min}
                     max={q.configs.max}
                     step={q.configs.step}
-                    value={answers[q.id] ?? q.configs.min}
+                    value={answers[q.uiId] ?? q.configs.min}
                     onChange={(e) =>
-                      setAnswers({
-                        ...answers,
-                        [q.id]: Number(e.target.value),
-                      })
+                      setAnswers(a => ({
+                        ...a,
+                        [q.uiId]: Number(e.target.value),
+                      }))
                     }
                     style={{ width: "100%" }}
                   />
@@ -209,7 +227,7 @@ export default function NewQuestionnairePage() {
                 </strong>
                 <button
                   onClick={() =>
-                    setQuestions((qs) => qs.filter((x) => x.id !== q.id))
+                    setQuestions(qs => qs.filter(x => x.uiId !== q.uiId))
                   }
                 >
                   Remove
@@ -220,9 +238,9 @@ export default function NewQuestionnairePage() {
                 placeholder="Question text"
                 value={q.text}
                 onChange={(e) =>
-                  setQuestions((qs) =>
-                    qs.map((x) =>
-                      x.id === q.id ? { ...x, text: e.target.value } : x
+                  setQuestions(qs =>
+                    qs.map(x =>
+                      x.uiId === q.uiId ? { ...x, text: e.target.value } : x
                     )
                   )
                 }
@@ -231,22 +249,50 @@ export default function NewQuestionnairePage() {
 
               {q.type === "multiple-choice" &&
                 q.configs.options.map((o: string, idx: number) => (
-                  <div key={idx} style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                  <div
+                    key={idx}
+                    style={{ display: "flex", gap: 6, marginTop: 6 }}
+                  >
                     <input
                       value={o}
-                      onChange={(e) => {
-                        const opts = [...q.configs.options];
-                        opts[idx] = e.target.value;
-                        q.configs.options = opts;
-                        setQuestions([...questions]);
-                      }}
+                      onChange={(e) =>
+                        setQuestions(qs =>
+                          qs.map(x =>
+                            x.uiId === q.uiId
+                              ? {
+                                  ...x,
+                                  configs: {
+                                    ...x.configs,
+                                    options: x.configs.options.map(
+                                      (opt: string, i: number) =>
+                                        i === idx ? e.target.value : opt
+                                    ),
+                                  },
+                                }
+                              : x
+                          )
+                        )
+                      }
                       style={{ ...inputStyle, flex: 1 }}
                     />
                     <button
-                      onClick={() => {
-                        q.configs.options.splice(idx, 1);
-                        setQuestions([...questions]);
-                      }}
+                      onClick={() =>
+                        setQuestions(qs =>
+                          qs.map(x =>
+                            x.uiId === q.uiId
+                              ? {
+                                  ...x,
+                                  configs: {
+                                    ...x.configs,
+                                    options: x.configs.options.filter(
+                                      (_: string, i: number) => i !== idx
+                                    ),
+                                  },
+                                }
+                              : x
+                          )
+                        )
+                      }
                     >
                       ✕
                     </button>
@@ -255,10 +301,21 @@ export default function NewQuestionnairePage() {
 
               {q.type === "multiple-choice" && (
                 <button
-                  onClick={() => {
-                    q.configs.options.push("New option");
-                    setQuestions([...questions]);
-                  }}
+                  onClick={() =>
+                    setQuestions(qs =>
+                      qs.map(x =>
+                        x.uiId === q.uiId
+                          ? {
+                              ...x,
+                              configs: {
+                                ...x.configs,
+                                options: [...x.configs.options, "New option"],
+                              },
+                            }
+                          : x
+                      )
+                    )
+                  }
                   style={{ marginTop: 6 }}
                 >
                   Add option
