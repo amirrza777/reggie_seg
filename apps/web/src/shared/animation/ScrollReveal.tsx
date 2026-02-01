@@ -211,6 +211,25 @@ const setupObservers = (
 const toPixels = (offset: Offset, viewHeight: number) =>
   offset.unit === "%" ? (offset.value / 100) * viewHeight : offset.value;
 
+const primeVisibility = (
+  elements: HTMLElement[],
+  settings: Map<HTMLElement, ElementSettings>,
+  handleVisibility: (element: HTMLElement, isVisible: boolean) => void
+) => {
+  const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+  elements.forEach((element) => {
+    const config = settings.get(element);
+    if (!config) return;
+    const rect = element.getBoundingClientRect();
+    const thresholdPx = rect.height * config.threshold;
+    const offsetPx = toPixels(config.offset, viewHeight);
+    const isVisible = rect.top < viewHeight + offsetPx - thresholdPx && rect.bottom > thresholdPx;
+    if (isVisible) {
+      handleVisibility(element, true);
+    }
+  });
+};
+
 const setupFallback = (
   supportsObserver: boolean,
   elements: HTMLElement[],
@@ -299,6 +318,7 @@ const setupScrollReveal = (options: Required<ScrollRevealProps>) => {
   if (!baseState) return;
   const { root, elements, settings, elementGroup, groupMembers } = baseState;
   const visibility = createVisibility(options, elements, elementGroup, groupMembers);
+  primeVisibility(elements, settings, visibility.handleVisibility);
   root.classList.add("reveal-ready");
   const cleanupObserver = visibility.supportsObserver
     ? setupObservers(elements, settings, visibility.handleVisibility, visibility.elementObservers)
@@ -324,12 +344,10 @@ export function ScrollReveal({
   threshold = 0.2,
   once = true,
 }: ScrollRevealProps) {
-  useLayoutEffect(() => setupScrollReveal({ selector, rootMargin, threshold, once }), [
-    once,
-    rootMargin,
-    selector,
-    threshold,
-  ]);
+  useLayoutEffect(() => {
+    const cleanup = setupScrollReveal({ selector, rootMargin, threshold, once });
+    return cleanup ?? undefined;
+  }, [once, rootMargin, selector, threshold]);
 
   return null;
 }
