@@ -1,6 +1,12 @@
-export type IncomingQuestion = {
-  id?: number;
+type QuestionType = "text" | "multiple-choice" | "rating";
+
+type Question = {
+  id: number;
   text: string;
-  type: string;
-  configs?: unknown;
+  type: QuestionType;
+  configs?: {
+    options?: string[];
+    min?: number;
+    max?: number;
+  };
 };
