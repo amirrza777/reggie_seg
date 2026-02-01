@@ -11,22 +11,22 @@ type Question = {
   configs: any;
 };
 
+const inputStyle = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 8,
+  border: "1px solid rgba(255,255,255,0.25)",
+  background: "rgba(0,0,0,0.25)",
+  color: "#fff",
+  WebkitTextFillColor: "#fff",
+};
+
 export default function NewQuestionnairePage() {
   const [templateName, setTemplateName] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [preview, setPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [answers, setAnswers] = useState<Record<number, any>>({});
-
-  const inputStyle = {
-    width: "100%",
-    padding: 8,
-    marginTop: 8,
-    color: "#fff",
-    background: "rgba(0,0,0,0.35)",
-    border: "1px solid #cbd5e1",
-    borderRadius: 6,
-    WebkitTextFillColor: "#fff",
-  };
 
   const addQuestion = (type: QuestionType) => {
     const q: Question = {
@@ -36,122 +36,138 @@ export default function NewQuestionnairePage() {
       configs: {},
     };
 
-    if (type === "multiple-choice") {
-      q.configs = { options: ["Option 1", "Option 2"] };
-    }
+    if (type === "multiple-choice") q.configs = { options: ["Yes", "No"] };
+    if (type === "rating") q.configs = { min: 1, max: 10 };
+    if (type === "slider")
+      q.configs = { min: 0, max: 100, step: 1, left: "Disagree", right: "Agree" };
 
-    if (type === "rating") {
-      q.configs = { min: 1, max: 10 };
-    }
-
-    if (type === "slider") {
-      q.configs = {
-        min: 0,
-        max: 100,
-        step: 1,
-        leftLabel: "Strongly disagree",
-        rightLabel: "Strongly agree",
-      };
-    }
-
-    setQuestions([...questions, q]);
+    setQuestions((qns) => [...qns, q]);
   };
 
-  const updateQuestion = (id: number, updates: Partial<Question>) => {
-    setQuestions(questions.map(q => q.id === id ? { ...q, ...updates } : q));
-  };
+  const saveTemplate = async () => {
+    if (!templateName || questions.length === 0) {
+      alert("Missing name or questions");
+      return;
+    }
 
-  const updateConfigs = (id: number, updates: any) => {
-    setQuestions(questions.map(q =>
-      q.id === id ? { ...q, configs: { ...q.configs, ...updates } } : q
-    ));
-  };
+    setSaving(true);
 
-  const removeQuestion = (id: number) => {
-    setQuestions(questions.filter(q => q.id !== id));
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            templateName,
+            questions: questions.map((q, i) => ({
+              text: q.text,
+              type: q.type,
+              order: i,
+              configs: q.configs,
+            })),
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t);
+      }
+
+      alert("Saved successfully");
+      setTemplateName("");
+      setQuestions([]);
+      setPreview(false);
+    } catch (e) {
+      console.error(e);
+      alert("Save failed — check console");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div style={{ padding: 32 }}>
+    <div style={{ padding: 32, maxWidth: 900 }}>
       <h1>Create questionnaire</h1>
+      <p style={{ opacity: 0.7 }}>
+        {preview ? "Student preview (not saved)" : "Editor mode"}
+      </p>
 
       {!preview && (
         <input
           placeholder="Questionnaire name"
           value={templateName}
-          onChange={e => setTemplateName(e.target.value)}
+          onChange={(e) => setTemplateName(e.target.value)}
           style={inputStyle}
         />
       )}
 
       <div style={{ marginTop: 16 }}>
-        <button onClick={() => setPreview(!preview)}>
-          {preview ? "Back to editor" : "Preview as student"}
+        <button onClick={() => setPreview((p) => !p)}>
+          {preview ? "Back to editor" : "Student preview"}
         </button>
+        {!preview && (
+          <button onClick={saveTemplate} disabled={saving} style={{ marginLeft: 8 }}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        )}
       </div>
 
-      {questions.map((q, index) => (
+      {questions.map((q, i) => (
         <div
           key={q.id}
           style={{
-            marginTop: 24,
+            marginTop: 20,
             padding: 16,
             border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: 8,
+            borderRadius: 10,
           }}
         >
-          {/* STUDENT VIEW */}
           {preview ? (
             <>
-              <div style={{ fontWeight: 600, marginBottom: 6 }}>
-                {q.text || "Untitled question"}
-              </div>
-
-              {q.configs?.helpText && (
-                <div style={{ fontSize: 13, opacity: 0.75, marginBottom: 8 }}>
-                  {q.configs.helpText}
-                </div>
-              )}
+              <strong>{q.text || "Untitled question"}</strong>
 
               {q.type === "text" && (
                 <input
-                  style={inputStyle}
+                  style={{ ...inputStyle, marginTop: 8 }}
                   value={answers[q.id] || ""}
-                  onChange={e =>
+                  onChange={(e) =>
                     setAnswers({ ...answers, [q.id]: e.target.value })
                   }
                 />
               )}
 
               {q.type === "multiple-choice" &&
-                q.configs.options.map((opt: string) => (
-                  <label key={opt} style={{ display: "block", marginTop: 6 }}>
+                q.configs.options.map((o: string) => (
+                  <label key={o} style={{ display: "block", marginTop: 6 }}>
                     <input
                       type="radio"
-                      checked={answers[q.id] === opt}
+                      checked={answers[q.id] === o}
                       onChange={() =>
-                        setAnswers({ ...answers, [q.id]: opt })
+                        setAnswers({ ...answers, [q.id]: o })
                       }
                     />{" "}
-                    {opt}
+                    {o}
                   </label>
                 ))}
 
               {q.type === "rating" && (
-                <div style={{ marginTop: 8 }}>
+                <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
                   {Array.from(
                     { length: q.configs.max - q.configs.min + 1 },
-                    (_, i) => i + q.configs.min
-                  ).map(n => (
-                    <button
-                      key={n}
-                      style={{ marginRight: 6 }}
-                      onClick={() =>
-                        setAnswers({ ...answers, [q.id]: n })
-                      }
-                    >
-                      {n}
-                    </button>
+                    (_, n) => n + q.configs.min
+                  ).map((n) => (
+                    <label key={n} style={{ textAlign: "center" }}>
+                      <input
+                        type="radio"
+                        checked={answers[q.id] === n}
+                        onChange={() =>
+                          setAnswers({ ...answers, [q.id]: n })
+                        }
+                      />
+                      <div>{n}</div>
+                    </label>
                   ))}
                 </div>
               )}
@@ -165,8 +181,8 @@ export default function NewQuestionnairePage() {
                       fontSize: 12,
                     }}
                   >
-                    <span>{q.configs.leftLabel}</span>
-                    <span>{q.configs.rightLabel}</span>
+                    <span>{q.configs.left}</span>
+                    <span>{q.configs.right}</span>
                   </div>
                   <input
                     type="range"
@@ -174,7 +190,7 @@ export default function NewQuestionnairePage() {
                     max={q.configs.max}
                     step={q.configs.step}
                     value={answers[q.id] ?? q.configs.min}
-                    onChange={e =>
+                    onChange={(e) =>
                       setAnswers({
                         ...answers,
                         [q.id]: Number(e.target.value),
@@ -186,54 +202,64 @@ export default function NewQuestionnairePage() {
               )}
             </>
           ) : (
-            /* EDITOR VIEW */
             <>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <strong>
-                  {index + 1}. {q.type}
+                  {i + 1}. {q.type}
                 </strong>
-                <button onClick={() => removeQuestion(q.id)}>Remove</button>
+                <button
+                  onClick={() =>
+                    setQuestions((qs) => qs.filter((x) => x.id !== q.id))
+                  }
+                >
+                  Remove
+                </button>
               </div>
 
               <input
                 placeholder="Question text"
                 value={q.text}
-                onChange={e =>
-                  updateQuestion(q.id, { text: e.target.value })
+                onChange={(e) =>
+                  setQuestions((qs) =>
+                    qs.map((x) =>
+                      x.id === q.id ? { ...x, text: e.target.value } : x
+                    )
+                  )
                 }
-                style={inputStyle}
-              />
-
-              <input
-                placeholder="Help text (optional)"
-                value={q.configs.helpText || ""}
-                onChange={e =>
-                  updateConfigs(q.id, { helpText: e.target.value })
-                }
-                style={inputStyle}
+                style={{ ...inputStyle, marginTop: 8 }}
               />
 
               {q.type === "multiple-choice" &&
-                q.configs.options.map((opt: string, i: number) => (
-                  <input
-                    key={i}
-                    value={opt}
-                    onChange={e => {
-                      const opts = [...q.configs.options];
-                      opts[i] = e.target.value;
-                      updateConfigs(q.id, { options: opts });
-                    }}
-                    style={inputStyle}
-                  />
+                q.configs.options.map((o: string, idx: number) => (
+                  <div key={idx} style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                    <input
+                      value={o}
+                      onChange={(e) => {
+                        const opts = [...q.configs.options];
+                        opts[idx] = e.target.value;
+                        q.configs.options = opts;
+                        setQuestions([...questions]);
+                      }}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button
+                      onClick={() => {
+                        q.configs.options.splice(idx, 1);
+                        setQuestions([...questions]);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 ))}
 
               {q.type === "multiple-choice" && (
                 <button
-                  onClick={() =>
-                    updateConfigs(q.id, {
-                      options: [...q.configs.options, "New option"],
-                    })
-                  }
+                  onClick={() => {
+                    q.configs.options.push("New option");
+                    setQuestions([...questions]);
+                  }}
+                  style={{ marginTop: 6 }}
                 >
                   Add option
                 </button>
@@ -244,7 +270,7 @@ export default function NewQuestionnairePage() {
       ))}
 
       {!preview && (
-        <div style={{ marginTop: 24 }}>
+        <div style={{ marginTop: 20 }}>
           <button onClick={() => addQuestion("text")}>Add text</button>
           <button onClick={() => addQuestion("multiple-choice")}>
             Add multiple choice
