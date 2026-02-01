@@ -1,5 +1,5 @@
-import { PrismaClient, PeerAssessment, Module, Team, Prisma } from '@prisma/client';
-import { ModuleSummary } from "../types";
+import { PrismaClient, Prisma } from '@prisma/client';
+import type { ModuleSummary } from "../staff/types.js";
 
 const prisma = new PrismaClient();
 
@@ -116,27 +116,4 @@ export class StaffPeerAssessmentService {
     return summaries;
   }
 
-  /*
-
-  async getMyModuleProgress(staffId: number): Promise<Modules[Id, name, numSubmitted, totalNumExpected]> {
-    return await prisma.peerAssessment.findMany({
-      where: {
-        revieweeUserId: revieweeId,
-      },
-      select: {
-        id: true,
-        answersJson: true,
-        submittedAt: true,
-
-        moduleId: true,
-        projectId: true,
-        teamId: true,
-        reviewerUserId: true, 
-        revieweeUserId: true,
-        templateId: true,
-        updatedAt: true,
-      } as any, 
-    });
-  }
-    */
 }
