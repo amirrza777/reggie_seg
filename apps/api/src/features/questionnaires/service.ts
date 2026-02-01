@@ -4,12 +4,12 @@ import {
   getAllQuestionnaireTemplates,
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate
-} from "./repo"
-import { IncomingQuestion } from "./types";
+} from "./repo.js"
+import type { IncomingQuestion, Question } from "./types.js";
 
 export function createTemplate(
   templateName: string,
-  questions: any[]
+  questions: Question[]
 ) {
   return createQuestionnaireTemplate(templateName, questions)
 }

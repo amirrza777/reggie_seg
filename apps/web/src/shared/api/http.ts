@@ -5,6 +5,8 @@ type FetchOptions = RequestInit & { parse?: "json" | "text" };
 
 export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {}): Promise<T> {
   const { parse = "json", headers, ...rest } = init;
+  console.log("API_BASE_URL:", API_BASE_URL);
+  console.log("PATH:", path);
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
     headers: {

@@ -1,29 +1,5 @@
-@font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFProDisplay/SF-Pro-Display-Regular.otf") format("opentype");
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFProDisplay/SF-Pro-Display-Medium.otf") format("opentype");
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "SF Pro Display";
-  src: url("/fonts/SFProDisplay/SF-Pro-Display-Semibold.otf") format("opentype");
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
-
 :root {
-  font-family: "SF Pro Display", sans-serif;
+  font-family: var(--font-sf), "SF Pro Display", system-ui, -apple-system, sans-serif;
   line-height: var(--lh-body, 1.6);
   font-weight: 400;
   text-rendering: optimizeLegibility;

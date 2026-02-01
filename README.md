@@ -69,6 +69,8 @@ Test backend in browser:
 
 ## 4) Frontend (Web) setup (Next.js)
 
+More web-specific commands and env notes: see `apps/web/README.md`.
+
 Open a NEW terminal tab/window.
 
 Go to frontend:
@@ -103,7 +105,54 @@ Open the URL printed in terminal (usually):
 
 ---
 
-## 5) Common Issues
+## 5) Testing & Coverage
+
+Run tests per package:
+
+- API (Express):  
+  ```bash
+  cd apps/api
+  npm test            # run once  
+  npm run test:watch  # watch mode  
+  npm run test:coverage
+  ```
+
+- Web (Next.js):  
+  ```bash
+  cd apps/web
+  npm test
+  npm run test:watch
+  npm run test:coverage
+  ```
+
+- Shared package:  
+  ```bash
+  cd packages/shared
+  npm test
+  npm run test:watch
+  npm run test:coverage
+  ```
+
+Coverage thresholds are set to 100% lines/functions/branches/statements in each package to keep quality high. If you add new code, add or update tests accordingly.
+
+Run everything at once from repo root:
+
+```bash
+./scripts/test-all.sh         # run all packages
+./scripts/test-all.sh --runInBand   # pass flags through to Vitest
+```
+
+Before running tests the first time, install deps in each package (once):
+
+```bash
+npm install --prefix apps/api
+npm install --prefix apps/web
+npm install --prefix packages/shared
+```
+
+---
+
+## 6) Common Issues
 
 ### A) Frontend shows: `Failed to fetch`
 
@@ -191,7 +240,7 @@ docker compose up -d
 
 ---
 
-## 6) Daily Commands (quick)
+## 7) Daily Commands (quick)
 
 From repo root:
 

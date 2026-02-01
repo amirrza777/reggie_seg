@@ -7,7 +7,7 @@ const navLinks = [
   { href: "/admin", label: "Admin" },
   { href: "/modules", label: "Modules" },
   { href: "/projects/123", label: "Projects" },
-  { href : "/questionnaires", label: "Questionnaires" },
+  { href : "/staff/questionnaires", label: "Questionnaires"},
   { href: "/staff/peer-assessments", label: "Staff Peer Assessments" }
 ];
 

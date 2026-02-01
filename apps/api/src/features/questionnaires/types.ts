@@ -4,3 +4,11 @@ export type IncomingQuestion = {
   type: string;
   configs?: unknown;
 };
+
+export type Question = {
+  id: number;
+  label: string;
+  type: string;
+  order: number;
+  configs?: unknown;
+};

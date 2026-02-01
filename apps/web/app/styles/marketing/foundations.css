@@ -22,7 +22,6 @@
     var(--marketing-glow-1),
     var(--marketing-glow-2),
     var(--marketing-glow-3);
-  filter: blur(120px);
   opacity: 0.9;
   transform: translate3d(0, 0, 0);
   pointer-events: none;
@@ -39,7 +38,6 @@
   background-repeat: no-repeat, repeat;
   background-size: 100% 100%, 90px 90px;
   background-position: center, center;
-  mix-blend-mode: overlay;
   opacity: var(--marketing-noise-opacity);
   pointer-events: none;
   z-index: 0;
@@ -51,6 +49,14 @@
 }
 
 [data-reveal] {
+  opacity: 0;
+  transform: translateY(32px) scale(0.98);
+  filter: blur(2px);
+  visibility: hidden;
+}
+
+/* Keep elements hidden until reveal-ready so the first animation plays fully */
+html:not(.reveal-ready) [data-reveal] {
   opacity: 0;
   transform: translateY(32px) scale(0.98);
   filter: blur(2px);

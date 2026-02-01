@@ -1,24 +1,26 @@
 import { Router } from "express";
-import { StaffPeerAssessmentService } from "./services/StaffPeerAssessmentService";
 
 const router = Router();
-const service = new StaffPeerAssessmentService();
 
-router.get("/modules", async (req, res) => {
-  try {
-    const staffId = parseInt(req.query.staffId as string);
+import {
+  getTeammatesHandler,
+  createAssessmentHandler,
+  getAssessmentHandler,
+  updateAssessmentHandler,
+  getAssessmentsHandler,
+  getAssessmentByIdHandler,
+  createFeedbackReviewHandler,
+  getFeedbackReviewHandler,
+} from "./controller.js"
 
-    if (!staffId || isNaN(staffId)) {
-      return res.status(400).json({ error: "staffId is required" });
-    }
+router.get("/teams/:teamId/teammates", getTeammatesHandler) // Get teammates in a team
+router.post("/", createAssessmentHandler) // Create new assessment
+router.get("/", getAssessmentHandler) // Get existing assessment
+router.put("/:id", updateAssessmentHandler) // Update assessment answers
 
-    const modules = await service.getProgressForMyModules(staffId);
-    res.json(modules);
-    
-  } catch (error) {
-    console.error("Error:", error);
-    res.status(500).json({ error: "Failed to fetch modules" });
-  }
-});
+router.get("/user/:userId", getAssessmentsHandler); // Get all peer assessments for a user
+router.get("/feedback/:feedbackId", getAssessmentByIdHandler); // Get a specific peer feedback by ID
+router.post("/feedback/:feedbackId/review", createFeedbackReviewHandler); // Submit a review/response to a feedback
+router.get("/feedback/:feedbackId/review", getFeedbackReviewHandler); // Get stored review (dev)
 
-export default router;
+export default router

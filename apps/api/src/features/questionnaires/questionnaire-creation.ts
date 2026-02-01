@@ -1,8 +1,7 @@
 import {Router} from 'express';
-import {PrismaClient} from '@prisma/client';
 import crypto from 'crypto';
+import { prisma } from '../../shared/db.js';
 
-const prisma = new PrismaClient();
 const router = Router();
 
 
