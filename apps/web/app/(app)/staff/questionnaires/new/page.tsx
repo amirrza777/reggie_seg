@@ -1,16 +1,13 @@
 "use client";
-
 import { useMemo, useState } from "react";
 
 type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
-
 type Question = {
   uiId: number;
   text: string;
   type: QuestionType;
   configs: any;
 };
-
 const inputStyle = {
   width: "100%",
   padding: "10px 12px",
@@ -46,24 +43,19 @@ export default function NewQuestionnairePage() {
         step: 1,
         left: "Strongly disagree",
         right: "Strongly agree",
+        helperText: "To what extent do you agree with the above statement? (helper text shown to students)",
       };
-
+      // give students some needed context
     setQuestions(qs => [...qs, q]);
   };
 
-  /* validation checks */
+  // validation checks
 
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
 
-    if (!templateName.trim()) {
-      errors.push("Questionnaire name is required.");
-    }
-
-    if (questions.length === 0) {
-      errors.push("At least one question is required.");
-    }
-
+    if (!templateName.trim()) errors.push("Questionnaire name is required.");
+    if (questions.length === 0) errors.push("At least one question is required.");
     questions.forEach((q, idx) => {
       if (!q.text.trim()) {
         errors.push(`Question ${idx + 1} must have text.`);
@@ -78,34 +70,25 @@ export default function NewQuestionnairePage() {
           errors.push(`Question ${idx + 1} has empty multiple-choice options.`);
         }
       }
-
       if (q.type === "slider") {
         const { min, max, step, left, right } = q.configs;
-        if (min >= max) {
-          errors.push(`Question ${idx + 1} slider min must be less than max.`);
-        }
-        if (step <= 0) {
-          errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
-        }
-        if (!left || !right) {
+        if (min >= max) errors.push(`Question ${idx + 1} slider min must be less than max.`);
+        if (step <= 0) errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
+        if (!left || !right)
           errors.push(`Question ${idx + 1} slider must have left and right labels.`);
-        }
       }
     });
 
     return errors;
   }, [templateName, questions]);
-
   const isValid = validationErrors.length === 0;
 
-  /* Save template */
+  // save logic
 
   const saveTemplate = async () => {
     if (!isValid) return;
-
     setSaving(true);
     setSaved(false);
-
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/new`,
@@ -123,10 +106,7 @@ export default function NewQuestionnairePage() {
         }
       );
 
-      if (!res.ok) {
-        throw new Error(await res.text());
-      }
-
+      if (!res.ok) throw new Error(await res.text());
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
@@ -139,7 +119,6 @@ export default function NewQuestionnairePage() {
       setSaving(false);
     }
   };
-
   return (
     <div style={{ padding: 32, maxWidth: 900 }}>
       <h1>Create questionnaire</h1>
@@ -196,116 +175,95 @@ export default function NewQuestionnairePage() {
           }}
         >
           <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <strong>
-              {i + 1}. {q.type}
-            </strong>
+            <strong>{i + 1}. {q.type}</strong>
             {!preview && (
-              <button
-                onClick={() =>
-                  setQuestions(qs => qs.filter(x => x.uiId !== q.uiId))
-                }
-              >
+              <button onClick={() =>
+                setQuestions(qs => qs.filter(x => x.uiId !== q.uiId))
+              }>
                 Remove
               </button>
             )}
           </div>
-
-          {/* -------- STUDENT PREVIEW UI (ONLY WHEN preview=true) -------- */}
           {preview && (
             <>
-              <div style={{ marginTop: 8 }}>
-                <strong style={{ display: "block" }}>
-                  {q.text || "Untitled question"}
-                </strong>
+              <strong style={{ display: "block", marginTop: 8 }}>
+                {q.text || "Untitled question"}
+              </strong>
 
-                {q.type === "text" && (
-                  <input
-                    style={{ ...inputStyle, marginTop: 8 }}
-                    value={answers[q.uiId] || ""}
-                    onChange={(e) =>
-                      setAnswers(a => ({ ...a, [q.uiId]: e.target.value }))
-                    }
-                  />
-                )}
+              {q.type === "slider" && q.configs.helperText && (
+                <p style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
+                  {q.configs.helperText}
+                </p>
+              )}
 
-                {q.type === "multiple-choice" &&
-                  (q.configs.options ?? []).map((o: string) => (
-                    <label key={o} style={{ display: "block", marginTop: 6 }}>
+              {q.type === "text" && (
+                <input
+                  style={{ ...inputStyle, marginTop: 8 }}
+                  value={answers[q.uiId] || ""}
+                  onChange={(e) =>
+                    setAnswers(a => ({ ...a, [q.uiId]: e.target.value }))
+                  }
+                />
+              )}
+
+              {q.type === "multiple-choice" &&
+                q.configs.options.map((o: string) => (
+                  <label key={o} style={{ display: "block", marginTop: 6 }}>
+                    <input
+                      type="radio"
+                      checked={answers[q.uiId] === o}
+                      onChange={() =>
+                        setAnswers(a => ({ ...a, [q.uiId]: o }))
+                      }
+                    />{" "}
+                    {o}
+                  </label>
+                ))}
+
+              {q.type === "rating" && (
+                <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
+                  {Array.from({ length: 10 }, (_, n) => n + 1).map(n => (
+                    <label key={n} style={{ fontSize: 12 }}>
                       <input
                         type="radio"
-                        checked={answers[q.uiId] === o}
+                        checked={answers[q.uiId] === n}
                         onChange={() =>
-                          setAnswers(a => ({ ...a, [q.uiId]: o }))
+                          setAnswers(a => ({ ...a, [q.uiId]: n }))
                         }
                       />{" "}
-                      {o}
+                      {n}
                     </label>
                   ))}
+                </div>
+              )}
 
-                {q.type === "rating" && (
-                  <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
-                    {Array.from({ length: 10 }, (_, n) => n + 1).map(n => (
-                      <label
-                        key={n}
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          fontSize: 12,
-                        }}
-                      >
-                        <input
-                          type="radio"
-                          checked={answers[q.uiId] === n}
-                          onChange={() =>
-                            setAnswers(a => ({ ...a, [q.uiId]: n }))
-                          }
-                        />
-                        {n}
-                      </label>
-                    ))}
+              {q.type === "slider" && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 8 }}>
+                    <span>{q.configs.left}</span>
+                    <span>{q.configs.right}</span>
                   </div>
-                )}
-
-                {q.type === "slider" && (
-                  <>
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        fontSize: 12,
-                        marginTop: 8,
-                      }}
-                    >
-                      <span>{q.configs.left}</span>
-                      <span>{q.configs.right}</span>
-                    </div>
-
-                    <input
-                      type="range"
-                      min={q.configs.min}
-                      max={q.configs.max}
-                      step={q.configs.step}
-                      value={answers[q.uiId] ?? q.configs.min}
-                      onChange={(e) =>
-                        setAnswers(a => ({
-                          ...a,
-                          [q.uiId]: Number(e.target.value),
-                        }))
-                      }
-                      style={{ width: "100%" }}
-                    />
-
-                    <div style={{ fontSize: 12, marginTop: 4, opacity: 0.7 }}>
-                      Selected: {answers[q.uiId] ?? q.configs.min}
-                    </div>
-                  </>
-                )}
-              </div>
+                  <input
+                    type="range"
+                    min={q.configs.min}
+                    max={q.configs.max}
+                    step={q.configs.step}
+                    value={answers[q.uiId] ?? q.configs.min}
+                    onChange={(e) =>
+                      setAnswers(a => ({
+                        ...a,
+                        [q.uiId]: Number(e.target.value),
+                      }))
+                    }
+                    style={{ width: "100%" }}
+                  />
+                  <div style={{ fontSize: 12, opacity: 0.7 }}>
+                    Selected: {answers[q.uiId] ?? q.configs.min}
+                  </div>
+                </>
+              )}
             </>
           )}
-
-          {/* -------- EDITOR UI (ONLY WHEN preview=false) -------- */}
           {!preview && (
             <>
               <input
@@ -321,12 +279,32 @@ export default function NewQuestionnairePage() {
                 style={{ ...inputStyle, marginTop: 8 }}
               />
 
+              {q.type === "slider" && (
+                <input
+                  placeholder="Helper text shown to students"
+                  value={q.configs.helperText}
+                  onChange={(e) =>
+                    setQuestions(qs =>
+                      qs.map(x =>
+                        x.uiId === q.uiId
+                          ? {
+                              ...x,
+                              configs: {
+                                ...x.configs,
+                                helperText: e.target.value,
+                              },
+                            }
+                          : x
+                      )
+                    )
+                  }
+                  style={{ ...inputStyle, marginTop: 6, opacity: 0.85 }}
+                />
+              )}
+
               {q.type === "multiple-choice" &&
                 q.configs.options.map((o: string, idx: number) => (
-                  <div
-                    key={idx}
-                    style={{ display: "flex", gap: 6, marginTop: 6 }}
-                  >
+                  <div key={idx} style={{ display: "flex", gap: 6, marginTop: 6 }}>
                     <input
                       value={o}
                       onChange={(e) =>
@@ -403,9 +381,7 @@ export default function NewQuestionnairePage() {
       {!preview && (
         <div style={{ marginTop: 20 }}>
           <button onClick={() => addQuestion("text")}>Add text</button>
-          <button onClick={() => addQuestion("multiple-choice")}>
-            Add multiple choice
-          </button>
+          <button onClick={() => addQuestion("multiple-choice")}>Add multiple choice</button>
           <button onClick={() => addQuestion("rating")}>Add rating</button>
           <button onClick={() => addQuestion("slider")}>Add slider</button>
         </div>
