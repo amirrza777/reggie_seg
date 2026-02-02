@@ -93,23 +93,10 @@ export function LoginForm() {
       <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
         {status === "loading" ? "Signing in..." : "Log in"}
       </Button>
-      <Button
+      <button
         type="button"
-        variant="secondary"
-        style={{
-          width: "100%",
-          marginTop: 8,
-          display: "flex",
-          gap: 8,
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "12px 16px",
-          borderRadius: 9999,
-          border: "1px solid rgba(255, 255, 255, 0.12)",
-          background: "transparent",
-          color: "#fff",
-          boxShadow: "none",
-        }}
+        className="auth-btn-google"
+        style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}
         onClick={handleGoogleLogin}
       >
         <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
@@ -120,7 +107,7 @@ export function LoginForm() {
           <path fill="none" d="M0 0h48v48H0z"></path>
         </svg>
         Continue with Google
-      </Button>
+      </button>
     </form>
   );
 }
