@@ -1,8 +1,13 @@
 model UserModule {
   userId   Int
   moduleId Int
+<<<<<<< HEAD
+  user     User   @relation(fields: [userId], references: [id]) @ignore
+  module   Module @relation(fields: [moduleId], references: [id]) @ignore
+=======
   module   Module @relation(fields: [moduleId], references: [id])
   user     User   @relation(fields: [userId], references: [id])
+>>>>>>> origin/main
 
   @@id([userId, moduleId])
   @@index([moduleId])
