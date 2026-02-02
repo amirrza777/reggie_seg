@@ -16,4 +16,5 @@ model User {
   meetingAttendances  MeetingAttendance[] @relation("MeetingAttendance")
   meetingMinutes      MeetingMinutes[]    @relation("MeetingMinutesWriter")
   meetingComments     MeetingComment[]    @relation("MeetingComment")
+  refreshTokens       RefreshToken[]
 }
