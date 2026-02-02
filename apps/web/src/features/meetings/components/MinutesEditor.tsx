@@ -4,16 +4,12 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 
 type MinutesEditorProps = {
-  meetingId?: string;
+  initialContent: string;
+  onSave: (content: string) => void;
 };
 
-export function MinutesEditor({ meetingId = "mtg-1" }: MinutesEditorProps) {
-  const [minutes, setMinutes] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-
-  function handleSave() {
-    setMessage(`Saved minutes for ${meetingId} (stub).`);
-  }
+export function MinutesEditor({ initialContent, onSave }: MinutesEditorProps) {
+  const [minutes, setMinutes] = useState(initialContent);
 
   return (
     <div className="stack">
@@ -27,11 +23,10 @@ export function MinutesEditor({ meetingId = "mtg-1" }: MinutesEditorProps) {
         />
       </label>
       <div>
-        <Button type="button" onClick={handleSave}>
+        <Button type="button" onClick={() => onSave(minutes)}>
           Save minutes
         </Button>
       </div>
-      {message ? <p className="muted">{message}</p> : null}
     </div>
   );
 }
