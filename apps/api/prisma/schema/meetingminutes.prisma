@@ -1,0 +1,10 @@
+model MeetingMinutes {
+  id        Int      @id @default(autoincrement())
+  meetingId Int      @unique
+  writerId  Int
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  writer    User     @relation("MeetingMinutesWriter", fields: [writerId], references: [id])
+}

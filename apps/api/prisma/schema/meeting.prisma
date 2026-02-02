@@ -1,0 +1,17 @@
+model Meeting {
+  id          Int                 @id @default(autoincrement())
+  teamId      Int
+  organiserId Int
+  title       String
+  subject     String?
+  location    String?
+  agenda      String?             @db.Text
+  date        DateTime
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  team        Team                @relation(fields: [teamId], references: [id])
+  organiser   User                @relation("MeetingOrganiser", fields: [organiserId], references: [id])
+  attendances MeetingAttendance[]
+  minutes     MeetingMinutes?
+  comments    MeetingComment[]
+}
