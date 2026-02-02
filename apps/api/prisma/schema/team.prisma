@@ -5,4 +5,5 @@ model Team {
   updatedAt       DateTime         @updatedAt
   peerAssessments PeerAssessment[]
   allocations     TeamAllocation[]
+  meetings        Meeting[]
 }

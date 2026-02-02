@@ -7,3 +7,10 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
     body: JSON.stringify(credentials),
   });
 }
+
+export async function signup(payload: { email: string; password: string; firstName?: string; lastName?: string }) {
+  return apiFetch<AuthResponse>("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
