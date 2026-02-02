@@ -1,4 +1,5 @@
 model Module {
+<<<<<<< HEAD
   id           Int          @id @default(autoincrement())
   name         String
   moduleLeads  ModuleLead[] @ignore
@@ -7,4 +8,13 @@ model Module {
   peerAssessments PeerAssessment[] @ignore
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+=======
+  id              Int              @id @default(autoincrement())
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  moduleLeads     ModuleLead[]
+  peerAssessments PeerAssessment[]
+  userModules     UserModule[]
+>>>>>>> origin/main
 }

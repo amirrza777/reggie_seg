@@ -7,6 +7,7 @@ export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {
   const { parse = "json", headers, ...rest } = init;
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...headers,
@@ -14,8 +15,15 @@ export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new ApiError(`Request failed with ${res.status}`, { status: res.status, details: body });
+    const text = await res.text();
+    let friendly = text;
+    try {
+      const parsed = JSON.parse(text);
+      friendly = parsed.error || parsed.message || text;
+    } catch (_) {
+      // keep text
+    }
+    throw new ApiError(friendly || `Request failed with ${res.status}`, { status: res.status, details: text });
   }
 
   if (parse === "text") return (await res.text()) as T;

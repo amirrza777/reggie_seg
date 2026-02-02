@@ -7,6 +7,7 @@ const navLinks = [
   { href: "/modules", label: "Modules" },
   { href: "/projects/123", label: "Projects" },
   { href: "/admin", label: "Admin" },
+  {href : "/staff/questionnaires", label: "Questionnaires"}
 ];
 
 export default function AppLayout({ children }: { children: ReactNode }) {

@@ -2,30 +2,24 @@ import type { ReactNode } from "react";
 
 type TableProps = {
   headers: string[];
-  rows: ReactNode[][];
-  emptyState?: ReactNode;
+  rows: Array<Array<ReactNode>>;
 };
 
-export function Table({ headers, rows, emptyState }: TableProps) {
-  const hasRows = rows.length > 0;
+export function Table({ headers, rows }: TableProps) {
   return (
     <div className="table">
       <div className="table__head">
-        {headers.map((header) => (
-          <span key={header}>{header}</span>
+        {headers.map((header, idx) => (
+          <div key={idx}>{header}</div>
         ))}
       </div>
-      <div className="table__body">
-        {hasRows
-          ? rows.map((row, idx) => (
-              <div key={idx} className="table__row">
-                {row.map((cell, cellIdx) => (
-                  <span key={cellIdx}>{cell}</span>
-                ))}
-              </div>
-            ))
-          : emptyState ?? <p className="muted">No data yet.</p>}
-      </div>
+      {rows.map((row, rowIdx) => (
+        <div className="table__row" key={rowIdx}>
+          {row.map((cell, cellIdx) => (
+            <div key={cellIdx}>{cell}</div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }

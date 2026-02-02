@@ -1,15 +1,15 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { AttendanceTable } from "@/features/meetings/components/AttendanceTable";
 import { MeetingList } from "@/features/meetings/components/MeetingList";
 import { MinutesEditor } from "@/features/meetings/components/MinutesEditor";
-import { AttendanceTable } from "@/features/meetings/components/AttendanceTable";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 };
 
-export default function ProjectMeetingsPage({ params }: ProjectPageProps) {
-  const { projectId } = params;
+export default async function ProjectMeetingsPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />

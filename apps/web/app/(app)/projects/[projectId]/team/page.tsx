@@ -1,12 +1,12 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 };
 
-export default function ProjectTeamPage({ params }: ProjectPageProps) {
-  const { projectId } = params;
+export default async function ProjectTeamPage({ params }: ProjectPageProps) {
+  const { projectId } = await params;
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />

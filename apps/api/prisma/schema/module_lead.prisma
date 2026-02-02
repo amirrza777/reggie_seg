@@ -5,4 +5,5 @@ model ModuleLead {
   user     User   @relation(fields: [userId], references: [id])
 
   @@id([moduleId, userId])
+  @@index([userId], map: "ModuleLead_userId_fkey")
 }

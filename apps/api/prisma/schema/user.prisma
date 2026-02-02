@@ -1,15 +1,20 @@
 model User {
-  id           Int      @id @default(autoincrement())
-  firstName    String
-  lastName     String
-  email        String   @unique
-  passwordHash String
-  isStaff      Boolean  @default(false)
-  moduleLeads  ModuleLead[]      @ignore
-  userModules  UserModule[]      @ignore
-  teamAllocations TeamAllocation[] @ignore
-  reviewerAssessments PeerAssessment[] @relation("PeerAssessmentReviewer") @ignore
-  revieweeAssessments PeerAssessment[] @relation("PeerAssessmentReviewee") @ignore
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                  Int                 @id @default(autoincrement())
+  email               String              @unique
+  createdAt           DateTime            @default(now())
+  firstName           String
+  isStaff             Boolean             @default(false)
+  lastName            String
+  passwordHash        String
+  updatedAt           DateTime            @updatedAt
+  moduleLeads         ModuleLead[]
+  revieweeAssessments PeerAssessment[]    @relation("PeerAssessmentReviewee")
+  reviewerAssessments PeerAssessment[]    @relation("PeerAssessmentReviewer")
+  teamAllocations     TeamAllocation[]
+  userModules         UserModule[]
+  meetingOrganisers   Meeting[]           @relation("MeetingOrganiser")
+  meetingAttendances  MeetingAttendance[] @relation("MeetingAttendance")
+  meetingMinutes      MeetingMinutes[]    @relation("MeetingMinutesWriter")
+  meetingComments     MeetingComment[]    @relation("MeetingComment")
+  refreshTokens       RefreshToken[]
 }
