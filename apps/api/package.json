@@ -37,16 +37,9 @@
     "prisma": "^6.19.2",
     "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",
-<<<<<<< HEAD
-    "typescript": "^5.9.3"
-  },
-  "prisma": {
-  "seed": "ts-node prisma/seed/seed.ts"
-=======
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^2.1.2"
->>>>>>> origin/main
   }
 
 }
