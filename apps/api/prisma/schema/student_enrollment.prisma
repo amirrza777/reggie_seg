@@ -1,8 +1,8 @@
 model UserModule {
   userId   Int
   moduleId Int
-  user     User   @relation(fields: [userId], references: [id])
-  module   Module @relation(fields: [moduleId], references: [id])
+  user     User   @relation(fields: [userId], references: [id]) @ignore
+  module   Module @relation(fields: [moduleId], references: [id]) @ignore
 
   @@id([userId, moduleId])
   @@index([moduleId])
