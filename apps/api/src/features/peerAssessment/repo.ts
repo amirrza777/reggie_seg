@@ -1,0 +1,111 @@
+import { prisma } from "../../shared/db.js";
+
+export function getTeammates(userId: number, teamId: number) {
+  return prisma.teamAllocation.findMany({
+    where: {
+      teamId: teamId,
+      userId: { not: userId },
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+
+export function createPeerAssessment(data: {
+  moduleId: number;
+  projectId: number;
+  teamId: number;
+  reviewerUserId: number;
+  revieweeUserId: number;
+  templateId: number;
+  answersJson: any;
+}) {
+  return prisma.peerAssessment.create({
+    data: {
+      moduleId: data.moduleId,
+      projectId: data.projectId,
+      teamId: data.teamId,
+      reviewerUserId: data.reviewerUserId,
+      revieweeUserId: data.revieweeUserId,
+      questionnaireTemplateId: data.templateId,
+      templateId: data.templateId,
+      answersJson: data.answersJson,
+    },
+  });
+}
+
+export function getPeerAssessment(
+  moduleId: number,
+  projectId: number,
+  teamId: number,
+  reviewerId: number,
+  revieweeId: number,
+) {
+  return prisma.peerAssessment.findUnique({
+    where: {
+      moduleId_projectId_teamId_reviewerUserId_revieweeUserId: {
+        moduleId,
+        projectId,
+        teamId,
+        reviewerUserId: reviewerId,
+        revieweeUserId: revieweeId,
+      },
+    },
+    include: {
+      reviewee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+    },
+  });
+}
+
+export function updatePeerAssessment(assessmentId: number, answersJson: any) {
+  return prisma.peerAssessment.update({
+    where: { id: assessmentId },
+    data: {
+      answersJson: answersJson,
+      updatedAt: new Date(),
+    },
+  });
+}
+
+export function createPeerAssessmentReview(data: {
+  peerAssessmentId: number;
+  reviewerUserId?: number | null;
+  reviewText?: string | null;
+  agreementsJson: any;
+}) {
+  return prisma.peerAssessmentReview.create({
+    data: {
+      peerAssessmentId: data.peerAssessmentId,
+      reviewerUserId: data.reviewerUserId ?? null,
+      reviewText: data.reviewText ?? null,
+      agreementsJson: data.agreementsJson,
+    },
+  });
+}
+
+export function getPeerAssessmentReviewByAssessmentId(peerAssessmentId: number) {
+  return prisma.peerAssessmentReview.findUnique({
+    where: { peerAssessmentId },
+  });
+}

@@ -51,3 +51,9 @@ export type Question = {
   type: QuestionType;
   configs?: QuestionConfigs;
 };
+
+export type Answer = {
+  id: string;
+  question: string;
+  awnser: string | number;
+};

@@ -6,8 +6,15 @@ export function ProgressBar({ value }: { value: number }) {
   return (
     <>
       <style>{`
+        .progress-bar-container {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex: 1;
+        }
+
         .progress-bar {
-          width: 100%;
+          flex: 1;
           height: 8px;
           background-color: var(--border);
           border-radius: 999px;
@@ -24,20 +31,19 @@ export function ProgressBar({ value }: { value: number }) {
         }
 
         .progress-bar__label {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          font-size: 0.75rem;
+          min-width: fit-content;
+          font-size: 0.875rem;
           font-weight: 600;
           color: var(--ink-strong);
         }
       `}</style>
-      <div className="progress-bar">
-        <div
-          className="progress-bar__fill"
-          style={{ "--progress": `${clampedValue}%` } as React.CSSProperties}
-        />
+      <div className="progress-bar-container">
+        <div className="progress-bar">
+          <div
+            className="progress-bar__fill"
+            style={{ "--progress": `${clampedValue}%` } as React.CSSProperties}
+          />
+        </div>
       </div>
     </>
   );

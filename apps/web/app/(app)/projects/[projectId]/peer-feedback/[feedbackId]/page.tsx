@@ -1,5 +1,7 @@
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import type { PeerFeedback , Answer} from "@/features/peerFeedback/types";
+import { FeedbackView } from "@/features/peerFeedback/components/FeedbackView";
+import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
+import { getPeerFeedbackById } from "@/features/peerFeedback/api/client";
 
 type ProjectPageProps = {
   params: Promise<{
@@ -10,14 +12,11 @@ type ProjectPageProps = {
 
 export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
   const { feedbackId, projectId } = await params;
+  const feedback : PeerFeedback = await getPeerFeedbackById(feedbackId);
+  const awnsers = feedback.answers as Answer[];
   return (
-    <div className="stack">
-        <ProjectNav projectId={projectId} />
-        <Placeholder
-        title="Feedback review"
-        path={`/projects/${projectId}/peer-feedback/${feedbackId}/review`}
-        description="View and review a peer feedback for this project."
-      />
+    <div> 
+      <FeedbackReviewForm feedback={feedback} />
     </div>
   );
 }

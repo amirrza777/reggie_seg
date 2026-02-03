@@ -1,0 +1,13 @@
+model MeetingComment {
+  id        Int      @id @default(autoincrement())
+  meetingId Int
+  userId    Int
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  meeting   Meeting  @relation(fields: [meetingId], references: [id])
+  user      User     @relation("MeetingComment", fields: [userId], references: [id])
+
+  @@index([meetingId])
+  @@index([userId])
+}

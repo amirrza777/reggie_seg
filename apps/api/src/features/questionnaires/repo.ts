@@ -1,5 +1,6 @@
-import { prisma } from "../../shared/db"
-import { Question } from "./types";
+import { prisma } from "../../shared/db.js";
+import { Prisma } from "@prisma/client";
+import type { Question ,  IncomingQuestion } from "./types.js";
 
 export function createQuestionnaireTemplate(
   templateName: string,
@@ -68,7 +69,7 @@ export async function updateQuestionnaireTemplate(
         data: {
           label: q.text,
           type: q.type,
-          configs: q.configs ?? null,
+          configs: q.configs ?? Prisma.JsonNull,
           order: questions.indexOf(q),
         },
       });
@@ -82,7 +83,7 @@ export async function updateQuestionnaireTemplate(
           label: q.text,
           type: q.type,
           order: questions.indexOf(q),
-          configs: q.configs ?? null,
+          configs: q.configs ?? Prisma.JsonNull,
         })),
       });
     }

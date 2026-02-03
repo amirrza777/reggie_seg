@@ -1,6 +1,6 @@
 /* Trust and award sections */
 .trust {
-  padding: clamp(88px, 9vw, 124px) 0 clamp(88px, 9vw, 124px);
+  padding: clamp(88px, 9vw, 124px) 0 clamp(52px, 6vw, 84px);
   display: grid;
   gap: 24px;
   justify-items: stretch;
@@ -22,7 +22,7 @@
   overflow: hidden;
   width: 100%;
   margin: 0 auto;
-  padding: clamp(36px, 5vw, 64px) clamp(20px, 6vw, 48px) clamp(48px, 7vw, 90px);
+  padding: clamp(28px, 4vw, 52px) clamp(20px, 6vw, 48px) clamp(24px, 4vw, 44px);
   position: relative;
   mask-image: linear-gradient(
     90deg,

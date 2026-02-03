@@ -1,21 +1,21 @@
 model PeerAssessment {
-  id               Int      @id @default(autoincrement())
-  moduleId         Int
-  projectId        Int?
-  teamId           Int
-  reviewerUserId   Int
-  revieweeUserId   Int
-  templateId       Int
-  answersJson      Json
-  submittedAt      DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id                      Int                   @id @default(autoincrement())
+  moduleId                Int
+  projectId               Int
+  teamId                  Int
+  reviewerUserId          Int
+  revieweeUserId          Int
+  templateId              Int
+  answersJson             Json
+  review                  PeerAssessmentReview?
+  submittedAt             DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
   questionnaireTemplateId Int
-
-  module   Module @relation(fields: [moduleId], references: [id])
-  team     Team   @relation(fields: [teamId], references: [id])
-  reviewer User   @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
-  reviewee User   @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
-  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments",fields: [questionnaireTemplateId], references: [id])
+  module                  Module                @relation(fields: [moduleId], references: [id])
+  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments", fields: [questionnaireTemplateId], references: [id])
+  reviewee                User                  @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
+  reviewer                User                  @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
+  team                    Team                  @relation(fields: [teamId], references: [id])
 
   @@unique([moduleId, projectId, teamId, reviewerUserId, revieweeUserId])
   @@index([moduleId])
@@ -23,4 +23,5 @@ model PeerAssessment {
   @@index([teamId])
   @@index([reviewerUserId])
   @@index([revieweeUserId])
+  @@index([questionnaireTemplateId], map: "PeerAssessment_questionnaireTemplateId_fkey")
 }

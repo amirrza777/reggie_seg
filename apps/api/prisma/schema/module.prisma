@@ -1,9 +1,20 @@
 model Module {
+<<<<<<< HEAD
   id           Int          @id @default(autoincrement())
   name         String
-  moduleLeads  ModuleLead[]
-  userModules  UserModule[]
+  moduleLeads  ModuleLead[] @ignore
+  userModules  UserModule[] @ignore
+  teams        Team[]       @ignore
   peerAssessments PeerAssessment[] @ignore
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+=======
+  id              Int              @id @default(autoincrement())
+  name            String
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  moduleLeads     ModuleLead[]
+  peerAssessments PeerAssessment[]
+  userModules     UserModule[]
+>>>>>>> origin/main
 }
