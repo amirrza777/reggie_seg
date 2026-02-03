@@ -14,7 +14,6 @@ type Question = {
 const styles = {
   page: { padding: 32, maxWidth: 900 },
   hint: { opacity: 0.75 },
-
   input: {
     width: "100%",
     padding: "10px 12px",
@@ -25,7 +24,6 @@ const styles = {
     WebkitTextFillColor: "var(--ink)",
     outline: "none",
   } as React.CSSProperties,
-
   card: {
     marginTop: 20,
     padding: 16,
@@ -34,10 +32,8 @@ const styles = {
     background: "var(--surface)",
     boxShadow: "var(--shadow-sm)",
   } as React.CSSProperties,
-
   row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" } as React.CSSProperties,
   btnRow: { marginTop: 16, display: "flex", gap: 8, alignItems: "center" } as React.CSSProperties,
-
   btn: {
     padding: "10px 12px",
     borderRadius: 12,
@@ -46,7 +42,6 @@ const styles = {
     color: "var(--ink)",
     cursor: "pointer",
   } as React.CSSProperties,
-
   btnPrimary: {
     padding: "10px 12px",
     borderRadius: 12,
@@ -58,7 +53,6 @@ const styles = {
 
   errors: { marginTop: 12, color: "var(--accent-warm)", fontSize: 14 } as React.CSSProperties,
   success: { marginTop: 12, color: "var(--accent)", fontSize: 14 } as React.CSSProperties,
-
   small: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
 };
 
