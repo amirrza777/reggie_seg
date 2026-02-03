@@ -14,3 +14,10 @@ export async function signup(payload: { email: string; password: string; firstNa
     body: JSON.stringify(payload),
   });
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  return apiFetch<void>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
