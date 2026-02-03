@@ -1,21 +1,65 @@
 "use client";
+
 import { useMemo, useState } from "react";
 
 type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
+
 type Question = {
   uiId: number;
   text: string;
   type: QuestionType;
   configs: any;
 };
-const inputStyle = {
-  width: "100%",
-  padding: "10px 12px",
-  borderRadius: 8,
-  border: "1px solid rgba(255,255,255,0.25)",
-  background: "rgba(0,0,0,0.25)",
-  color: "#fff",
-  WebkitTextFillColor: "#fff",
+
+const styles = {
+  page: { padding: 32, maxWidth: 900 },
+  hint: { opacity: 0.75 },
+
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-surface)",
+    color: "var(--ink)",
+    WebkitTextFillColor: "var(--ink)",
+    outline: "none",
+  } as React.CSSProperties,
+
+  card: {
+    marginTop: 20,
+    padding: 16,
+    border: "1px solid var(--border)",
+    borderRadius: 14,
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-sm)",
+  } as React.CSSProperties,
+
+  row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" } as React.CSSProperties,
+  btnRow: { marginTop: 16, display: "flex", gap: 8, alignItems: "center" } as React.CSSProperties,
+
+  btn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-hover)",
+    color: "var(--ink)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  btnPrimary: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--btn-primary-border)",
+    background: "var(--btn-primary-bg)",
+    color: "var(--btn-primary-text)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+
+  errors: { marginTop: 12, color: "var(--accent-warm)", fontSize: 14 } as React.CSSProperties,
+  success: { marginTop: 12, color: "var(--accent)", fontSize: 14 } as React.CSSProperties,
+
+  small: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
 };
 
 export default function NewQuestionnairePage() {
@@ -23,8 +67,8 @@ export default function NewQuestionnairePage() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
   const [saved, setSaved] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, any>>({});
 
   const addQuestion = (type: QuestionType) => {
     const q: Question = {
@@ -36,77 +80,80 @@ export default function NewQuestionnairePage() {
 
     if (type === "multiple-choice") q.configs = { options: ["Yes", "No"] };
     if (type === "rating") q.configs = { min: 1, max: 10 };
-    if (type === "slider")
+    if (type === "slider") {
       q.configs = {
         min: 0,
         max: 100,
         step: 1,
         left: "Strongly disagree",
         right: "Strongly agree",
-        helperText: "To what extent do you agree with the above statement? (helper text shown to students)",
+        helperText:
+          "To what extent do you agree with the above statement? (helper text shown to students)",
       };
-      // give students some needed context
-    setQuestions(qs => [...qs, q]);
-  };
+    }
 
-  // validation checks
+    setQuestions((qs) => [...qs, q]);
+    setSaved(false);
+  };
 
   const validationErrors = useMemo(() => {
     const errors: string[] = [];
 
     if (!templateName.trim()) errors.push("Questionnaire name is required.");
     if (questions.length === 0) errors.push("At least one question is required.");
+
     questions.forEach((q, idx) => {
-      if (!q.text.trim()) {
-        errors.push(`Question ${idx + 1} must have text.`);
-      }
+      if (!q.text.trim()) errors.push(`Question ${idx + 1} must have text.`);
 
       if (q.type === "multiple-choice") {
-        const opts = q.configs.options ?? [];
-        if (opts.length < 2) {
-          errors.push(`Question ${idx + 1} must have at least two options.`);
-        }
-        if (opts.some((o: string) => !o.trim())) {
+        const opts = Array.isArray(q.configs?.options) ? q.configs.options : [];
+        if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
+        if (opts.some((o: string) => !String(o ?? "").trim())) {
           errors.push(`Question ${idx + 1} has empty multiple-choice options.`);
         }
       }
+
       if (q.type === "slider") {
-        const { min, max, step, left, right } = q.configs;
-        if (min >= max) errors.push(`Question ${idx + 1} slider min must be less than max.`);
-        if (step <= 0) errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
-        if (!left || !right)
-          errors.push(`Question ${idx + 1} slider must have left and right labels.`);
+        const { min, max, step, left, right } = q.configs ?? {};
+        if (typeof min !== "number" || typeof max !== "number") {
+          errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
+        } else if (min >= max) {
+          errors.push(`Question ${idx + 1} slider min must be less than max.`);
+        }
+        if (typeof step !== "number" || step <= 0) {
+          errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
+        }
+        if (!left || !right) errors.push(`Question ${idx + 1} slider must have left and right labels.`);
       }
     });
 
     return errors;
   }, [templateName, questions]);
-  const isValid = validationErrors.length === 0;
 
-  // save logic
+  const isValid = validationErrors.length === 0;
 
   const saveTemplate = async () => {
     if (!isValid) return;
+
     setSaving(true);
     setSaved(false);
+
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/new`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            templateName,
-            questions: questions.map(q => ({
-              text: q.text,
-              type: q.type,
-              configs: q.configs,
-            })),
-          }),
-        }
-      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/new`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          templateName,
+          questions: questions.map((q) => ({
+            text: q.text,
+            type: q.type,
+            configs: q.configs,
+          })),
+        }),
+      });
 
       if (!res.ok) throw new Error(await res.text());
+
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
@@ -119,117 +166,107 @@ export default function NewQuestionnairePage() {
       setSaving(false);
     }
   };
+
   return (
-    <div style={{ padding: 32, maxWidth: 900 }}>
-      <h1>Create questionnaire</h1>
-      <p style={{ opacity: 0.7 }}>
-        {preview ? "Student preview (not saved)" : "Editor mode"}
-      </p>
+    <div style={styles.page}>
+      <h1 style={{ marginBottom: 6 }}>Create questionnaire</h1>
+      <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
       {!preview && (
         <input
           placeholder="Questionnaire name"
           value={templateName}
           onChange={(e) => setTemplateName(e.target.value)}
-          style={inputStyle}
+          style={styles.input}
         />
       )}
 
-      <div style={{ marginTop: 16 }}>
-        <button onClick={() => setPreview(p => !p)}>
+      <div style={styles.btnRow}>
+        <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
           {preview ? "Back to editor" : "Student preview"}
         </button>
+
         {!preview && (
           <button
+            style={{
+              ...styles.btnPrimary,
+              opacity: !isValid || saving ? 0.6 : 1,
+              cursor: !isValid || saving ? "not-allowed" : "pointer",
+            }}
             onClick={saveTemplate}
             disabled={!isValid || saving}
-            style={{ marginLeft: 8, opacity: !isValid ? 0.5 : 1 }}
           >
             {saving ? "Saving..." : "Save"}
           </button>
         )}
       </div>
 
-      {!isValid && !preview && (
-        <ul style={{ marginTop: 12, color: "#ffb3b3", fontSize: 14 }}>
+      {!preview && !isValid && (
+        <ul style={styles.errors}>
           {validationErrors.map((e, i) => (
             <li key={i}>{e}</li>
           ))}
         </ul>
       )}
 
-      {saved && (
-        <p style={{ marginTop: 12, color: "#8fff8f" }}>
-          Questionnaire saved successfully.
-        </p>
-      )}
+      {saved && <p style={styles.success}>Questionnaire saved successfully.</p>}
 
       {questions.map((q, i) => (
-        <div
-          key={q.uiId}
-          style={{
-            marginTop: 20,
-            padding: 16,
-            border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: 10,
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <strong>{i + 1}. {q.type}</strong>
+        <div key={q.uiId} style={styles.card}>
+          <div style={styles.row}>
+            <strong>
+              {i + 1}.
+               {!preview && ` ${q.type}`}
+            </strong>
+
             {!preview && (
-              <button onClick={() =>
-                setQuestions(qs => qs.filter(x => x.uiId !== q.uiId))
-              }>
+              <button
+                style={styles.btn}
+                onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
+              >
                 Remove
               </button>
             )}
           </div>
-          {preview && (
+
+          {preview ? (
             <>
-              <strong style={{ display: "block", marginTop: 8 }}>
+              <strong style={{ display: "block", marginTop: 10 }}>
                 {q.text || "Untitled question"}
               </strong>
 
-              {q.type === "slider" && q.configs.helperText && (
-                <p style={{ fontSize: 13, opacity: 0.75, marginTop: 4 }}>
-                  {q.configs.helperText}
-                </p>
+              {q.type === "slider" && q.configs?.helperText && (
+                <p style={{ marginTop: 6, ...styles.small }}>{q.configs.helperText}</p>
               )}
 
               {q.type === "text" && (
                 <input
-                  style={{ ...inputStyle, marginTop: 8 }}
+                  style={{ ...styles.input, marginTop: 10 }}
                   value={answers[q.uiId] || ""}
-                  onChange={(e) =>
-                    setAnswers(a => ({ ...a, [q.uiId]: e.target.value }))
-                  }
+                  onChange={(e) => setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }))}
                 />
               )}
 
               {q.type === "multiple-choice" &&
-                q.configs.options.map((o: string) => (
-                  <label key={o} style={{ display: "block", marginTop: 6 }}>
+                (q.configs?.options ?? []).map((o: string) => (
+                  <label key={o} style={{ display: "block", marginTop: 8 }}>
                     <input
                       type="radio"
                       checked={answers[q.uiId] === o}
-                      onChange={() =>
-                        setAnswers(a => ({ ...a, [q.uiId]: o }))
-                      }
+                      onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: o }))}
                     />{" "}
                     {o}
                   </label>
                 ))}
 
               {q.type === "rating" && (
-                <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
-                  {Array.from({ length: 10 }, (_, n) => n + 1).map(n => (
+                <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+                  {Array.from({ length: 10 }, (_, n) => n + 1).map((n) => (
                     <label key={n} style={{ fontSize: 12 }}>
                       <input
                         type="radio"
                         checked={answers[q.uiId] === n}
-                        onChange={() =>
-                          setAnswers(a => ({ ...a, [q.uiId]: n }))
-                        }
+                        onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: n }))}
                       />{" "}
                       {n}
                     </label>
@@ -239,85 +276,74 @@ export default function NewQuestionnairePage() {
 
               {q.type === "slider" && (
                 <>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginTop: 8 }}>
-                    <span>{q.configs.left}</span>
-                    <span>{q.configs.right}</span>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
+                    <span>{q.configs?.left}</span>
+                    <span>{q.configs?.right}</span>
                   </div>
+
                   <input
                     type="range"
-                    min={q.configs.min}
-                    max={q.configs.max}
-                    step={q.configs.step}
-                    value={answers[q.uiId] ?? q.configs.min}
+                    min={q.configs?.min}
+                    max={q.configs?.max}
+                    step={q.configs?.step}
+                    value={answers[q.uiId] ?? q.configs?.min ?? 0}
                     onChange={(e) =>
-                      setAnswers(a => ({
-                        ...a,
-                        [q.uiId]: Number(e.target.value),
-                      }))
+                      setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }))
                     }
-                    style={{ width: "100%" }}
+                    style={{ width: "100%", marginTop: 8 }}
                   />
-                  <div style={{ fontSize: 12, opacity: 0.7 }}>
-                    Selected: {answers[q.uiId] ?? q.configs.min}
+
+                  <div style={styles.small}>
+                    Selected: {answers[q.uiId] ?? q.configs?.min ?? 0}
                   </div>
                 </>
               )}
             </>
-          )}
-          {!preview && (
+          ) : (
             <>
               <input
                 placeholder="Question text"
                 value={q.text}
                 onChange={(e) =>
-                  setQuestions(qs =>
-                    qs.map(x =>
-                      x.uiId === q.uiId ? { ...x, text: e.target.value } : x
-                    )
+                  setQuestions((qs) =>
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, text: e.target.value } : x))
                   )
                 }
-                style={{ ...inputStyle, marginTop: 8 }}
+                style={{ ...styles.input, marginTop: 10 }}
               />
 
               {q.type === "slider" && (
                 <input
                   placeholder="Helper text shown to students"
-                  value={q.configs.helperText}
+                  value={q.configs?.helperText ?? ""}
                   onChange={(e) =>
-                    setQuestions(qs =>
-                      qs.map(x =>
+                    setQuestions((qs) =>
+                      qs.map((x) =>
                         x.uiId === q.uiId
-                          ? {
-                              ...x,
-                              configs: {
-                                ...x.configs,
-                                helperText: e.target.value,
-                              },
-                            }
+                          ? { ...x, configs: { ...x.configs, helperText: e.target.value } }
                           : x
                       )
                     )
                   }
-                  style={{ ...inputStyle, marginTop: 6, opacity: 0.85 }}
+                  style={{ ...styles.input, marginTop: 8, opacity: 0.9 }}
                 />
               )}
 
               {q.type === "multiple-choice" &&
-                q.configs.options.map((o: string, idx: number) => (
-                  <div key={idx} style={{ display: "flex", gap: 6, marginTop: 6 }}>
+                (q.configs?.options ?? []).map((o: string, idx: number) => (
+                  <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <input
                       value={o}
                       onChange={(e) =>
-                        setQuestions(qs =>
-                          qs.map(x =>
+                        setQuestions((qs) =>
+                          qs.map((x) =>
                             x.uiId === q.uiId
                               ? {
                                   ...x,
                                   configs: {
                                     ...x.configs,
-                                    options: x.configs.options.map(
-                                      (opt: string, i: number) =>
-                                        i === idx ? e.target.value : opt
+                                    options: x.configs.options.map((opt: string, i: number) =>
+                                      i === idx ? e.target.value : opt
                                     ),
                                   },
                                 }
@@ -325,20 +351,20 @@ export default function NewQuestionnairePage() {
                           )
                         )
                       }
-                      style={{ ...inputStyle, flex: 1 }}
+                      style={{ ...styles.input, flex: 1 }}
                     />
+
                     <button
+                      style={styles.btn}
                       onClick={() =>
-                        setQuestions(qs =>
-                          qs.map(x =>
+                        setQuestions((qs) =>
+                          qs.map((x) =>
                             x.uiId === q.uiId
                               ? {
                                   ...x,
                                   configs: {
                                     ...x.configs,
-                                    options: x.configs.options.filter(
-                                      (_: string, i: number) => i !== idx
-                                    ),
+                                    options: x.configs.options.filter((_: string, i: number) => i !== idx),
                                   },
                                 }
                               : x
@@ -353,9 +379,10 @@ export default function NewQuestionnairePage() {
 
               {q.type === "multiple-choice" && (
                 <button
+                  style={{ ...styles.btn, marginTop: 10 }}
                   onClick={() =>
-                    setQuestions(qs =>
-                      qs.map(x =>
+                    setQuestions((qs) =>
+                      qs.map((x) =>
                         x.uiId === q.uiId
                           ? {
                               ...x,
@@ -368,7 +395,6 @@ export default function NewQuestionnairePage() {
                       )
                     )
                   }
-                  style={{ marginTop: 6 }}
                 >
                   Add option
                 </button>
@@ -379,11 +405,19 @@ export default function NewQuestionnairePage() {
       ))}
 
       {!preview && (
-        <div style={{ marginTop: 20 }}>
-          <button onClick={() => addQuestion("text")}>Add text</button>
-          <button onClick={() => addQuestion("multiple-choice")}>Add multiple choice</button>
-          <button onClick={() => addQuestion("rating")}>Add rating</button>
-          <button onClick={() => addQuestion("slider")}>Add slider</button>
+        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button style={styles.btn} onClick={() => addQuestion("text")}>
+            Add text
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("multiple-choice")}>
+            Add multiple choice
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("rating")}>
+            Add rating
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("slider")}>
+            Add slider
+          </button>
         </div>
       )}
     </div>
