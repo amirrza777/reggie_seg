@@ -3,8 +3,6 @@ import {
   createPeerAssessment,
   getPeerAssessment,
   updatePeerAssessment,
-  createPeerAssessmentReview,
-  getPeerAssessmentReviewByAssessmentId,
 } from "./repo.js"
 
 export function fetchTeammates(userId: number, teamId: number) {
@@ -35,17 +33,4 @@ export function fetchAssessment(
 
 export function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
   return updatePeerAssessment(assessmentId, answersJson)
-}
-
-export async function saveFeedbackReview(assessmentId: number, payload: { reviewText: string; agreements: any }) {
-  const created = await createPeerAssessmentReview({
-    peerAssessmentId: assessmentId,
-    reviewText: payload.reviewText,
-    agreementsJson: payload.agreements,
-  });
-  return created;
-}
-
-export function getFeedbackReview(assessmentId: number) {
-  return getPeerAssessmentReviewByAssessmentId(assessmentId);
 }

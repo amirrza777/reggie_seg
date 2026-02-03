@@ -87,25 +87,3 @@ export function updatePeerAssessment(assessmentId: number, answersJson: any) {
     },
   });
 }
-
-export function createPeerAssessmentReview(data: {
-  peerAssessmentId: number;
-  reviewerUserId?: number | null;
-  reviewText?: string | null;
-  agreementsJson: any;
-}) {
-  return prisma.peerAssessmentReview.create({
-    data: {
-      peerAssessmentId: data.peerAssessmentId,
-      reviewerUserId: data.reviewerUserId ?? null,
-      reviewText: data.reviewText ?? null,
-      agreementsJson: data.agreementsJson,
-    },
-  });
-}
-
-export function getPeerAssessmentReviewByAssessmentId(peerAssessmentId: number) {
-  return prisma.peerAssessmentReview.findUnique({
-    where: { peerAssessmentId },
-  });
-}

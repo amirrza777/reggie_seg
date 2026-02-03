@@ -1,7 +1,6 @@
 import type { PeerFeedback , Answer} from "@/features/peerFeedback/types";
-import { FeedbackView } from "@/features/peerFeedback/components/FeedbackView";
 import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
-import { getPeerFeedbackById } from "@/features/peerFeedback/api/client";
+import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
 
 type ProjectPageProps = {
   params: Promise<{
@@ -12,11 +11,26 @@ type ProjectPageProps = {
 
 export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
   const { feedbackId, projectId } = await params;
-  const feedback : PeerFeedback = await getPeerFeedbackById(feedbackId);
-  const awnsers = feedback.answers as Answer[];
+  const feedback: PeerFeedback = await getPeerFeedbackById(feedbackId);
+  let existingReview: any = null;
+  try {
+    existingReview = await getFeedbackReview(feedbackId);
+  } catch (err) {
+    existingReview = null;
+  }
+
   return (
-    <div> 
-      <FeedbackReviewForm feedback={feedback} />
+    <div>
+      {existingReview ? (
+        <FeedbackReviewForm
+          feedback={feedback}
+          initialReview={existingReview.reviewText ?? ""}
+          initialAgreements={existingReview.agreementsJson ?? null}
+          currentUserId="3"
+        />
+      ) : (
+        <FeedbackReviewForm feedback={feedback} currentUserId="3" />
+      )}
     </div>
   );
 }

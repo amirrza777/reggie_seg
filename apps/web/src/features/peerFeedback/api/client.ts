@@ -3,25 +3,34 @@ import type { FeedbackSubmission, PeerAssessmentReviewPayload } from "../types";
 import { mapApiAssessmentToPeerFeedback, mapApiAssessmentsToPeerFeedbacks } from "./mapper";
 
 export async function submitFeedback(payload: FeedbackSubmission) {
-  return apiFetch("/peer-feedback", {
+  // creating an assessment still goes to the peer-assessments endpoint
+  return apiFetch("/peer-assessments", {
     method: "POST",
     body: JSON.stringify(payload),
   });
 }
 
 export async function getPeerFeedbackById(feedbackId: string) {
-  const raw = await apiFetch(`/peer-assessments/feedback/${feedbackId}`);
+  // fetch the underlying peer-assessment/feedback record
+  const raw = await apiFetch(`/peer-feedback/feedback/${feedbackId}`);
   return mapApiAssessmentToPeerFeedback(raw);
-} 
+}
 
-export async function getPeerFeedbacksForUser(userId: string) {
+export async function getPeerAssessmentsForUser(userId: string) {
   const raw = await apiFetch<FeedbackSubmission>(`/peer-assessments/user/${userId}`);
   return mapApiAssessmentsToPeerFeedbacks(raw);
-} 
+}
 
-export async function submitFeedbackReview(feedbackId: string, payload: PeerAssessmentReviewPayload) {
-  return apiFetch(`/peer-assessments/feedback/${feedbackId}/review`, {
+export async function getFeedbackReview(feedbackId: string) {
+  // fetch stored review (if any)
+  return apiFetch(`/peer-feedback/feedback/${feedbackId}/review`);
+}
+
+export async function submitPeerFeedback(feedbackId: string, payload: PeerAssessmentReviewPayload, reviewerUserId: string, revieweeUserId: string) {
+  // submit (create/update) a review for a peer-assessment
+  const body = { ...payload, reviewerUserId, revieweeUserId};
+  return apiFetch(`/peer-feedback/feedback/${feedbackId}/review`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 }

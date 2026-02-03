@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import questionnairesRouter from "./features/questionnaires/router.js";
 import peerAssessmentsRouter from "./features/peerAssessment/router.js";
+import peerFeedbackRouter from "./features/peerFeedback/router.js";
 import { healthHandler } from "./health.js";
 
 const app = express();
@@ -13,5 +14,6 @@ app.get("/health", healthHandler);
 
 app.use("/questionnaires", questionnairesRouter);
 app.use("/peer-assessments", peerAssessmentsRouter);
+app.use("/peer-feedback", peerFeedbackRouter);
 
 export { app };
