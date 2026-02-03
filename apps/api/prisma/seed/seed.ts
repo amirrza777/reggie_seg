@@ -1,57 +1,22 @@
 import { PrismaClient } from '@prisma/client';
+import { randFirstName, randLastName, randWord } from '@ngneat/falso';
 
 const prisma = new PrismaClient();
 
+const seedUserCount = 50;
+
 async function main() {
-  const users = await seedUsers();
+  const users = await seedUsers(seedUserCount);
   const modules = await seedModules();
-  const teams = await seedTeams(modules);
+  const teams = await seedTeams(modules, users);
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
-  await seedTeamAllocations(users, teams);
+  await seedTeamAllocations(users, modules, teams);
 }
 
 type SeedUser = { id: number; isStaff: boolean };
 type SeedModule = { id: number };
 type SeedTeam = { id: number; moduleId: number };
-
-const userData = [
-  {
-    firstName: 'Alice',
-    lastName: 'Lecturer',
-    email: 'alice.lecturer@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Ben',
-    lastName: 'Tutor',
-    email: 'ben.tutor@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Cara',
-    lastName: 'Student',
-    email: 'cara.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Dan',
-    lastName: 'Student',
-    email: 'dan.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Eve',
-    lastName: 'Student',
-    email: 'eve.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-];
 
 const moduleData = [{ name: 'Software Engineering Group Project' }, 
                     { name: 'Database Systems' }, 
@@ -61,14 +26,40 @@ const moduleData = [{ name: 'Software Engineering Group Project' },
                     { name: 'Internet Systems'}
                    ];
 
-const teamData = [
-  { teamName: 'Team Alpha', moduleIndex: 0 },
-  { teamName: 'Team Beta', moduleIndex: 0 },
-  { teamName: 'Team Gamma', moduleIndex: 1 },
-];
+async function seedUsers(count: number): Promise<SeedUser[]> {
+  // Create staff users plus a generated set of student users.
+  const staffCount = Math.max(1, Math.floor(count / 50));
+  const studentCount = Math.max(0, count - staffCount);
 
-async function seedUsers(): Promise<SeedUser[]> {
-  // Create a small set of staff and student users with a placeholder password hash.
+  const staffData = Array.from({ length: staffCount }, (_, index) => {
+    const firstName = randFirstName();
+    const lastName = randLastName();
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${index + 1}@staff.example.com`;
+
+    return {
+      firstName,
+      lastName,
+      email,
+      passwordHash: 'dev-hash',
+      isStaff: true,
+    };
+  });
+
+  const studentData = Array.from({ length: studentCount }, (_, index) => {
+    const firstName = randFirstName();
+    const lastName = randLastName();
+    const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${index + 1}@example.com`;
+
+    return {
+      firstName,
+      lastName,
+      email,
+      passwordHash: 'dev-hash',
+      isStaff: false,
+    };
+  });
+
+  const userData = [...staffData, ...studentData];
   await prisma.user.createMany({
     data: userData,
     skipDuplicates: true,
@@ -104,19 +95,22 @@ async function seedModules(): Promise<SeedModule[]> {
   return modules.map((m: { id: number }) => ({ id: m.id }));
 }
 
-async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
+async function seedTeams(modules: SeedModule[], users: SeedUser[]): Promise<SeedTeam[]> {
   // Create teams tied to modules (moduleId is required on Team).
   if (modules.length === 0) return [];
   const fallbackModule = modules[0];
   if (!fallbackModule) return [];
 
-  const data = teamData.map((team) => {
-    const module = modules[team.moduleIndex] ?? fallbackModule;
-    return {
-      teamName: team.teamName,
+  const studentCount = users.filter((u) => !u.isStaff).length;
+  if (studentCount === 0) return [];
+
+  const teamsPerModule = Math.ceil(studentCount / 5);
+  const data = modules.flatMap((module) =>
+    Array.from({ length: teamsPerModule }, () => ({
+      teamName: `Team-${randWord()}`,
       moduleId: module.id,
-    };
-  });
+    }))
+  );
 
   await prisma.team.createMany({
     data,
@@ -125,7 +119,8 @@ async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
 
   const teams = await prisma.team.findMany({
     select: { id: true, moduleId: true, teamName: true },
-    where: { teamName: { in: teamData.map((t) => t.teamName) } },
+    where: { teamName: { in: data.map((t) => t.teamName) } },
+    orderBy: { id: 'asc' },
   });
 
   return teams.map((t: { id: number; moduleId: number }) => ({
@@ -151,31 +146,46 @@ async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
 }
 
 async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) {
-  // Enroll all students into all modules.
+  // Enroll each student into 3 random modules.
   const students = users.filter((u) => !u.isStaff);
   if (students.length === 0 || modules.length === 0) return;
 
-  const data = students.flatMap((s) =>
-    modules.map((m) => ({
-      userId: s.id,
-      moduleId: m.id,
-    }))
-  );
+  const moduleIds = modules.map((m) => m.id);
+  const maxPerStudent = Math.min(3, moduleIds.length);
+  const data: { userId: number; moduleId: number }[] = [];
+
+  for (const student of students) {
+    const shuffled = [...moduleIds].sort(() => Math.random() - 0.5);
+    for (let index = 0; index < maxPerStudent; index += 1) {
+      const moduleId = shuffled[index];
+      if (!moduleId) continue;
+      data.push({ userId: student.id, moduleId });
+    }
+  }
 
   await prisma.userModule.createMany({ data, skipDuplicates: true });
 }
 
-async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
-  // Assign students to teams that match their module.
+async function seedTeamAllocations(
+  users: SeedUser[],
+  modules: SeedModule[],
+  teams: SeedTeam[]
+) {
+  // Assign students to teams grouped by module (5 students per team per module).
   const students = users.filter((u) => !u.isStaff);
-  if (students.length === 0 || teams.length === 0) return;
+  if (students.length === 0 || teams.length === 0 || modules.length === 0) return;
 
   const data: { userId: number; teamId: number }[] = [];
-  for (let index = 0; index < students.length; index += 1) {
-    const student = students[index];
-    const team = teams[index % teams.length];
-    if (!student || !team) continue;
-    data.push({ userId: student.id, teamId: team.id });
+  for (const module of modules) {
+    const moduleTeams = teams.filter((team) => team.moduleId === module.id);
+    if (moduleTeams.length === 0) continue;
+
+    for (let index = 0; index < students.length; index += 1) {
+      const student = students[index];
+      const team = moduleTeams[Math.floor(index / 5)];
+      if (!student || !team) continue;
+      data.push({ userId: student.id, teamId: team.id });
+    }
   }
 
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });

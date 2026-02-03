@@ -30,6 +30,7 @@
     "passport-google-oauth20": "^2.0.0"
   },
   "devDependencies": {
+    "@ngneat/falso": "^8.0.2",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
