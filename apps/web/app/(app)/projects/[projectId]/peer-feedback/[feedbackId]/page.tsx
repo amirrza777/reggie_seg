@@ -1,4 +1,4 @@
-import type { PeerFeedback , Answer} from "@/features/peerFeedback/types";
+import type { PeerFeedback } from "@/features/peerFeedback/types";
 import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
 import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
 
@@ -29,7 +29,7 @@ export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
           currentUserId="3"
         />
       ) : (
-        <FeedbackReviewForm feedback={feedback} currentUserId="3" />
+        <FeedbackReviewForm feedback={feedback} currentUserId="2" />
       )}
     </div>
   );
