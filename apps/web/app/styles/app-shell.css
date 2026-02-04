@@ -1,6 +1,6 @@
 .app-shell {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: clamp(220px, 24vw, 260px) minmax(0, 1fr);
   min-height: 100vh;
 }
 
@@ -16,6 +16,7 @@
     radial-gradient(120% 120% at 20% 20%, var(--panel-gradient-1) 0%, transparent 55%),
     radial-gradient(120% 120% at 80% 0%, var(--panel-gradient-2) 0%, transparent 50%),
     linear-gradient(180deg, var(--panel-gradient-3-start) 0%, var(--panel-gradient-3-mid) 45%, var(--panel-gradient-3-end) 100%);
+  min-width: 0;
 }
 
 .app-shell__topbar {
@@ -29,6 +30,7 @@
   padding: 24px;
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .sidebar {
@@ -173,4 +175,41 @@
 
 .modal__body {
   padding: 16px;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell__sidebar {
+    width: 100%;
+    position: relative;
+  }
+
+  .app-shell__content {
+    min-height: auto;
+  }
+
+  .app-shell__topbar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .app-shell__body {
+    padding: 20px 16px;
+  }
 }

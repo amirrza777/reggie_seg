@@ -28,12 +28,16 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: nowrap;
   pointer-events: auto;
 }
 
 .logo {
   font-weight: var(--fw-bold);
   letter-spacing: -0.02em;
+  flex-shrink: 0;
+  white-space: nowrap;
+  display: block;
 }
 
 .header .logo {
@@ -45,6 +49,8 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .nav__link {
@@ -58,18 +64,187 @@
   background: var(--glass-hover);
 }
 
-@media (max-width: 1024px) {
-  .header {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.9);
-  }
-}
-
 .header__cta {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header__cta .btn,
+.header__cta .link-ghost {
+  padding: 9px 14px;
+  line-height: 1.1;
+}
+
+.header__burger {
+  display: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  margin-left: auto;
+  cursor: pointer;
+}
+
+.header__burger span {
+  display: block;
+  width: 26px;
+  height: 4px;
+  background: var(--ink-strong);
+  border-radius: 999px;
+}
+
+.mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: none;
+  pointer-events: none;
+}
+
+.mobile-menu.is-open {
+  display: block;
+  pointer-events: auto;
+}
+
+.mobile-menu__scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.mobile-menu__panel {
+  position: relative;
+  margin: 0;
+  border-radius: 0;
+  background: #050505;
+  color: #f6f6f6;
+  min-height: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+  border: none;
+  overflow: hidden;
+  overflow-y: auto;
+  font-family: inherit;
+}
+
+.mobile-menu__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-menu__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #f6f6f6;
+  cursor: pointer;
+}
+
+.mobile-menu__close-icon {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+}
+
+.mobile-menu__sections {
+  display: grid;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mobile-menu__item {
+  padding: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: #f6f6f6;
+  font-size: 1.08rem;
+  letter-spacing: 0.01em;
+}
+
+.mobile-menu__item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.mobile-menu__cta {
+  margin-top: auto;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+}
+
+.mobile-menu__cta .btn,
+.mobile-menu__cta .link-ghost {
+  width: 100%;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .header {
+    backdrop-filter: blur(10px) saturate(130%);
+    -webkit-backdrop-filter: blur(10px) saturate(130%);
+    background: color-mix(in srgb, var(--glass-surface) 85%, var(--bg) 15%);
+    /* Fallback when color-mix unsupported */
+    background: var(--glass-surface);
+  }
+
+  .header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    flex-wrap: nowrap;
+    width: 100%;
+    max-width: 100%;
+    padding: 14px 18px;
+    padding-right: 78px; /* room for absolute hamburger */
+    min-width: 0;
+    min-height: 64px;
+    position: relative;
+  }
+
+  .nav {
+    display: none;
+  }
+
+  .header__cta {
+    display: none;
+  }
+
+  .header__burger {
+    display: inline-flex;
+    flex-shrink: 0;
+    position: absolute;
+    right: 18px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+  }
+
+  .header .logo {
+    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    line-height: 1.1;
+  }
 }
 
 .footer {
