@@ -4,16 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/shared/api/http";
 import { API_BASE_URL } from "@/shared/api/env";
-
-type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
-
-type Question = {
-  uiId: number;
-  dbId?: number;
-  text: string;
-  type: QuestionType;
-  configs: any;
-};
+import type { Question, QuestionType } from "@/features/questionnaires/types";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -91,8 +82,8 @@ export default function EditQuestionnairePage() {
         setQuestions(
           template.questions.map((q: any) => ({
             uiId: Date.now() + Math.random(),
-            dbId: q.id,
-            text: q.label ?? "",
+            id: q.id,
+            label: q.label ?? "",
             type: q.type,
             configs: q.configs ?? {},
           }))
@@ -110,7 +101,7 @@ export default function EditQuestionnairePage() {
   const addQuestion = (type: QuestionType) => {
     const q: Question = {
       uiId: Date.now() + Math.random(),
-      text: "",
+      label: "",
       type,
       configs: {},
     };
@@ -140,7 +131,7 @@ export default function EditQuestionnairePage() {
     if (questions.length === 0) errors.push("At least one question is required.");
 
     questions.forEach((q, idx) => {
-      if (!q.text.trim()) errors.push(`Question ${idx + 1} must have text.`);
+      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have text.`);
 
       if (q.type === "multiple-choice") {
         const opts = Array.isArray(q.configs?.options) ? q.configs.options : [];
@@ -181,7 +172,7 @@ export default function EditQuestionnairePage() {
           templateName,
           questions: questions.map((q) => ({
             id: q.dbId,
-            text: q.text,
+            label: q.label,
             type: q.type,
             configs: q.configs,
           })),
@@ -287,7 +278,7 @@ export default function EditQuestionnairePage() {
           {preview ? (
             <>
               <strong style={{ display: "block", marginTop: 10 }}>
-                {q.text || "Untitled question"}
+                {q.label || "Untitled question"}
               </strong>
 
               {q.type === "slider" && q.configs?.helperText && (
@@ -367,11 +358,11 @@ export default function EditQuestionnairePage() {
           ) : (
             <>
               <input
-                placeholder="Question text"
-                value={q.text}
+                placeholder="Enter your question"
+                value={q.label}
                 onChange={(e) => {
                   setQuestions((qs) =>
-                    qs.map((x) => (x.uiId === q.uiId ? { ...x, text: e.target.value } : x))
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
                   );
                   setHasUnsavedChanges(true);
                 }

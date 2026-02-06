@@ -47,10 +47,13 @@ export type QuestionConfigs =
 
 export type Question = {
   id: number;
-  text: string;
+  dbId?: number;
+  label: string;
   type: QuestionType;
   configs?: QuestionConfigs;
 };
+
+TODO rename text to label and figure out what dbID is
 
 export type Answer = {
   id: string;
