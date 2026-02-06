@@ -12,7 +12,7 @@ async function getQuestionnaire(id: string): Promise<Questionnaire> {
 }
 
 export default async function QuestionnairePage({ params }: PageProps) {
-  const { id } = params;
+  const { id } = await params;
   const questionnaire: Questionnaire = await getQuestionnaire(id);
 
   return (
