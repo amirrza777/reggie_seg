@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { UserProvider } from "@/features/auth/context";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -18,5 +19,5 @@ export function AppProviders({ children }: { children: ReactNode }) {
   }, []);
 
   // Add things like QueryClientProvider/ThemeProvider here later.
-  return <>{children}</>;
+  return <UserProvider>{children}</UserProvider>;
 }

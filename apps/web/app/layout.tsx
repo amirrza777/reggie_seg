@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import { AppProviders } from "./providers";
@@ -18,6 +18,11 @@ const sfPro = localFont({
 export const metadata: Metadata = {
   title: "Team Feedback",
   description: "Team feedback and reflection platform.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

@@ -1,23 +1,32 @@
 import { API_BASE_URL } from "./env";
+import { getAccessToken } from "@/features/auth/api/session";
 import { ApiError } from "./errors";
 
-type FetchOptions = RequestInit & { parse?: "json" | "text" };
+type FetchOptions = RequestInit & { parse?: "json" | "text"; auth?: boolean };
 
 export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {}): Promise<T> {
-  const { parse = "json", headers, ...rest } = init;
-  console.log("API_BASE_URL:", API_BASE_URL);
-  console.log("PATH:", path);
+  const { parse = "json", headers, auth = true, ...rest } = init;
+  const token = auth ? getAccessToken() : null;
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...rest,
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
   });
 
   if (!res.ok) {
-    const body = await res.text();
-    throw new ApiError(`Request failed with ${res.status}`, { status: res.status, details: body });
+    const text = await res.text();
+    let friendly = text;
+    try {
+      const parsed = JSON.parse(text);
+      friendly = parsed.error || parsed.message || text;
+    } catch (_) {
+      // keep text
+    }
+    throw new ApiError(friendly || `Request failed with ${res.status}`, { status: res.status, details: text });
   }
 
   if (parse === "text") return (await res.text()) as T;

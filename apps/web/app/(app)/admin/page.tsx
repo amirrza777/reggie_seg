@@ -1,18 +1,18 @@
-"use client";
-
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-
 /**
- * Admin landing page: immediately send users to the peer assessments dashboard.
- * Prevents 404 when visiting /admin directly.
+ * TODO: Admin landing page: placeholder, showing services status
  */
-export default function AdminIndexPage() {
-  const router = useRouter();
+import { Placeholder } from "@/shared/ui/Placeholder";
+import { FeatureFlagsPanel } from "@/features/admin/components/FeatureFlagsPanel";
 
-  useEffect(() => {
-    router.replace("/admin/peerAssessments");
-  }, [router]);
-
-  return null;
+export default function AdminPage() {
+  return (
+    <div className="stack">
+      <Placeholder
+        title="Admin"
+        path="/admin"
+        description="Administrative configuration and feature flags."
+      />
+      <FeatureFlagsPanel />
+    </div>
+  );
 }
