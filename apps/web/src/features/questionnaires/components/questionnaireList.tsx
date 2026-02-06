@@ -42,13 +42,6 @@ export function QuestionnaireList() {
           <div style={{ display: "flex", gap: 8 }}>
             <button
               className="btn"
-              onClick={() => router.push(`/staff/questionnaires/${q.id}/edit`)}
-            >
-              Edit
-            </button>
-
-            <button
-              className="btn"
               onClick={() => router.push(`/staff/questionnaires/${q.id}`)}
             >
               Preview

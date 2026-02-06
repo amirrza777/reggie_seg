@@ -26,21 +26,51 @@ export default async function QuestionnairePage({ params }: PageProps) {
       />
       <QuestionnaireView questionnaire={questionnaire} />
 
+      <div
+        style={{
+          display: "grid",
+          gap: "12px",
+          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          width: "100%",
+        }}
+      >
 
-      <Link href="/staff/questionnaires">
-        <button
-          style={{
-            padding: "10px 12px",
-            borderRadius: 12,
-            border: "1px solid var(--btn-primary-border)",
-            background: "var(--btn-primary-bg)",
-            color: "var(--btn-primary-text)",
-            cursor: "pointer",
-          }}
-        >
-          Back to all questionnaires
-        </button>
-      </Link>
+        //TODO now make edit button shared back in questionnaire list and here
+
+        <Link href={`/staff/questionnaires/${id}/edit`}>
+          <button
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid var(--btn-primary-border)",
+              background: "var(--btn-primary-bg)",
+              color: "var(--btn-primary-text)",
+              cursor: "pointer",
+            }}
+          >
+            Edit
+          </button>
+        </Link>
+
+        // TODO add delete functionality here too
+
+
+        <Link href="/staff/questionnaires">
+          <button
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid var(--btn-primary-border)",
+              background: "var(--btn-primary-bg)",
+              color: "var(--btn-primary-text)",
+              cursor: "pointer",
+            }}
+          >
+            Back to all questionnaires
+          </button>
+        </Link>
+
+      </div>
     </div>
   );
 }
