@@ -7,6 +7,8 @@ import type {
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
+import { apiFetch } from "@/shared/api/http";
+import { useRouter } from "next/navigation";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -54,6 +56,7 @@ const styles = {
 };
 
 export default function NewQuestionnairePage() {
+  const router = useRouter();
   const [templateName, setTemplateName] = useState("");
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
@@ -150,11 +153,13 @@ export default function NewQuestionnairePage() {
       setPreview(false);
       setAnswers({});
       setSaved(true);
+      router.push("/staff/questionnaires");
     } catch (err) {
       console.error(err);
       alert("Save failed — check console");
     } finally {
       setSaving(false);
+      
     }
   };
 
