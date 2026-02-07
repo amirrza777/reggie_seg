@@ -1,8 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+import argon2 from 'argon2';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  await seedAdminUser();
   const users = await seedUsers();
   const modules = await seedModules();
   const teams = await seedTeams(modules);
@@ -14,6 +16,27 @@ async function main() {
 type SeedUser = { id: number; isStaff: boolean };
 type SeedModule = { id: number };
 type SeedTeam = { id: number; moduleId: number };
+
+async function seedAdminUser() {
+  const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
+  const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+  if (!email || !password) return;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return;
+
+  const passwordHash = await argon2.hash(password);
+  await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      firstName: 'Admin',
+      lastName: 'User',
+      isStaff: true,
+      isAdmin: true,
+    },
+  });
+}
 
 const userData = [
   {
