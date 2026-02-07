@@ -10,8 +10,9 @@ export async function createTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    const template = await createTemplate(templateName, questions)
-    res.json({ ok: true, templateID: template.id })
+    const userId = req.user?.id || 1; // TODO needs to be replaced with actual user ID from auth
+    const template = await createTemplate(templateName, questions,  userId)
+    res.json({ ok: true, templateID: template.id , userId: userId})
   } catch (error) {
     console.error("Error creating questionnaire template:", error)
     res.status(500).json({ error: "Internal server error" })

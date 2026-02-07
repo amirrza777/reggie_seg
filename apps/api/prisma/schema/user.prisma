@@ -21,4 +21,6 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
+
+  questionnaires  QuestionnaireTemplate[]
 }

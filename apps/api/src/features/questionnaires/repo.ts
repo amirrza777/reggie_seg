@@ -1,10 +1,11 @@
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
-import type { Question ,  IncomingQuestion } from "./types.js";
+import type { Question, IncomingQuestion } from "./types.js";
 
 export function createQuestionnaireTemplate(
   templateName: string,
-  questions: any[]
+  questions: any[],
+  userId: number
 ) {
   return prisma.questionnaireTemplate.create({
     data: {
@@ -17,6 +18,7 @@ export function createQuestionnaireTemplate(
           configs: q.configs ?? null,
         })),
       },
+      ownerId: userId,
     },
   })
 }
@@ -39,7 +41,7 @@ export async function updateQuestionnaireTemplate(
   templateName: string,
   questions: IncomingQuestion[]
 ) {
-    //update in transaction so no data is lost if error occurs
+  //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
