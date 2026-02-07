@@ -1,6 +1,6 @@
 import { Router } from "express";
 import passport from "passport";
-import { signupHandler, loginHandler, refreshHandler, logoutHandler } from "./controller.js";
+import { signupHandler, loginHandler, refreshHandler, logoutHandler, meHandler } from "./controller.js";
 import { configureGoogle } from "./google.js";
 import { issueTokensForUser } from "./service.js";
 
@@ -11,7 +11,7 @@ router.post("/signup", signupHandler);
 router.post("/login", loginHandler);
 router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
-
+router.get("/me", meHandler);
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 router.get(
@@ -24,7 +24,7 @@ router.get(
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      path: "/auth/refresh",
+      path: "/",
       maxAge: 1000 * 60 * 60 * 24 * 30,
     });
     res.redirect("http://localhost:3001/modules");

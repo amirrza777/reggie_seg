@@ -3,6 +3,7 @@ model User {
   email               String              @unique
   createdAt           DateTime            @default(now())
   firstName           String
+  isAdmin             Boolean             @default(false)
   isStaff             Boolean             @default(false)
   lastName            String
   passwordHash        String

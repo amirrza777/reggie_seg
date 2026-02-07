@@ -9,30 +9,79 @@ const accessTtl = process.env.JWT_ACCESS_TTL || "900s";
 const refreshTtl = process.env.JWT_REFRESH_TTL || "30d";
 
 type User = { id: number; email: string };
+type TokenPayload = { sub: number; email: string; admin?: boolean };
+const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
+const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
 export async function signUp(data: { email: string; password: string; firstName?: string; lastName?: string }) {
-  const existing = await prisma.user.findUnique({ where: { email: data.email } });
+  const email = data.email.toLowerCase();
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) throw { code: "EMAIL_TAKEN" };
   const passwordHash = await argon2.hash(data.password);
   const user = await prisma.user.create({
-    data: { email: data.email, passwordHash, firstName: data.firstName ?? "", lastName: data.lastName ?? "" },
+    data: { email, passwordHash, firstName: data.firstName ?? "", lastName: data.lastName ?? "" },
   });
-  return issueTokens(user);
+  return issueTokens(user, Boolean(user.isAdmin));
 }
 
 export async function login(data: { email: string; password: string }) {
-  const user = await prisma.user.findUnique({ where: { email: data.email } });
+  const emailInput = (data.email ?? "").toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email: emailInput } });
+
+  if (!user && bootstrapAdminEmail && bootstrapAdminPassword) {
+    if (emailInput === bootstrapAdminEmail && data.password === bootstrapAdminPassword) {
+      const passwordHash = await argon2.hash(data.password);
+      const created = await prisma.user.create({
+        data: {
+          email: emailInput,
+          passwordHash,
+          firstName: "Admin",
+          lastName: "User",
+          isStaff: true,
+          isAdmin: true,
+        },
+      });
+      return issueTokens(created, true);
+    }
+  }
+
   if (!user || !user.passwordHash) throw { code: "INVALID_CREDENTIALS" };
+
   const ok = await argon2.verify(user.passwordHash, data.password);
+  if (!ok && bootstrapAdminEmail && bootstrapAdminPassword && emailInput === bootstrapAdminEmail) {
+    if (data.password === bootstrapAdminPassword) {
+      const newHash = await argon2.hash(data.password);
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash, isAdmin: true, isStaff: true },
+      });
+      return issueTokens(updated, true);
+    }
+  }
+
   if (!ok) throw { code: "INVALID_CREDENTIALS" };
-  return issueTokens(user);
+
+  if (bootstrapAdminEmail && emailInput === bootstrapAdminEmail) {
+    if (!user.isAdmin || !user.isStaff) {
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: { isAdmin: true, isStaff: true },
+      });
+      return issueTokens(updated, true);
+    }
+    return issueTokens(user, true);
+  }
+
+  return issueTokens(user, user.isAdmin);
 }
 
 export async function refreshTokens(refreshToken: string) {
   const payload = verifyRefresh(refreshToken);
   const valid = await validateRefreshToken(payload.sub, refreshToken);
   if (!valid) throw new Error("invalid");
-  return issueTokens({ id: payload.sub, email: payload.email });
+  const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+  if (!user) throw new Error("invalid");
+  return issueTokens({ id: user.id, email: user.email }, Boolean(user.isAdmin));
 }
 
 export async function logout(refreshToken: string) {
@@ -44,31 +93,33 @@ export async function logout(refreshToken: string) {
 }
 
 export async function signUpWithProvider(params: { email: string; firstName?: string; lastName?: string; provider: string }) {
-  let user = await prisma.user.findUnique({ where: { email: params.email } });
+  const email = params.email.toLowerCase();
+  let user = await prisma.user.findUnique({ where: { email } });
   if (!user) {
     const randomPwd = randomBytes(32).toString("hex");
     const passwordHash = await argon2.hash(randomPwd);
     user = await prisma.user.create({
       data: {
-        email: params.email,
+        email,
         passwordHash,
         firstName: params.firstName ?? "",
         lastName: params.lastName ?? "",
+        isAdmin: false,
       },
     });
   }
   return user;
 }
 
-export function issueTokensForUser(userId: number, email: string) {
-  const accessToken = jwt.sign({ sub: userId, email }, accessSecret, { expiresIn: accessTtl });
-  const refreshToken = jwt.sign({ sub: userId, email }, refreshSecret, { expiresIn: refreshTtl });
-  return saveRefresh(userId, refreshToken, accessToken);
+export async function issueTokensForUser(userId: number, email: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  return issueTokens({ id: userId, email: email.toLowerCase() }, Boolean(user?.isAdmin));
 }
 
-function issueTokens(user: User) {
-  const accessToken = jwt.sign({ sub: user.id, email: user.email }, accessSecret, { expiresIn: accessTtl });
-  const refreshToken = jwt.sign({ sub: user.id, email: user.email }, refreshSecret, { expiresIn: refreshTtl });
+function issueTokens(user: User, adminSession: boolean) {
+  const payload: TokenPayload = { sub: user.id, email: user.email, admin: adminSession };
+  const accessToken = jwt.sign(payload, accessSecret, { expiresIn: accessTtl });
+  const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshTtl });
   return saveRefresh(user.id, refreshToken, accessToken);
 }
 
@@ -90,7 +141,11 @@ async function validateRefreshToken(userId: number, token: string) {
 }
 
 function verifyRefresh(token: string) {
-  return jwt.verify(token, refreshSecret) as { sub: number; email: string };
+  return jwt.verify(token, refreshSecret) as TokenPayload;
+}
+
+export function verifyRefreshToken(token: string) {
+  return verifyRefresh(token);
 }
 
 function addDurationToNow(expr: string) {

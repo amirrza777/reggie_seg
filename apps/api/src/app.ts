@@ -8,6 +8,7 @@ import staffPeerAssessmentsRouter from "./features/peerAssessment/staff/router.j
 import meetingsRouter from "./features/meetings/router.js";
 import authRouter from "./auth/router.js";
 import { healthHandler } from "./health.js";
+import adminRouter from "./features/admin/router.js";
 
 const app = express();
 
@@ -28,5 +29,6 @@ app.use("/questionnaires", questionnairesRouter);
 app.use("/peer-assessments", peerAssessmentsRouter);
 app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
+app.use("/admin", adminRouter);
 
 export { app };

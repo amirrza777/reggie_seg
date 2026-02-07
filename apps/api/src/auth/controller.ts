@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
-import { signUp, login, refreshTokens, logout } from "./service.js";
+import { signUp, login, refreshTokens, logout, verifyRefreshToken } from "./service.js";
+import { prisma } from "../shared/db.js";
 
 export async function signupHandler(req: Request, res: Response) {
   const { email, password, firstName, lastName } = req.body ?? {};
@@ -54,7 +55,35 @@ function setRefreshCookie(res: Response, token: string) {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
-    path: "/auth/refresh",
+    path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
+}
+
+export async function meHandler(req: Request, res: Response) {
+  const token = req.cookies?.refresh_token;
+  if (!token) return res.status(401).json({ error: "Not authenticated" });
+
+  try {
+    const payload = verifyRefreshToken(token);
+    const user = await prisma.user.findUnique({ where: { id: payload.sub } });
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+    const isAdminSession = Boolean(payload.admin) && user.isAdmin;
+    const role = isAdminSession ? "ADMIN" : user.isStaff ? "STAFF" : "STUDENT";
+
+    return res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      isStaff: user.isStaff,
+      isAdmin: user.isAdmin,
+      role,
+      active: true,
+    });
+  } catch (err) {
+    console.error("meHandler error", err);
+    return res.status(401).json({ error: "Not authenticated" });
+  }
 }
