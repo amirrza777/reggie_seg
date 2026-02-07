@@ -122,7 +122,6 @@ export default function EditQuestionnairePage() {
         step: 1,
         left: "Strongly disagree",
         right: "Strongly agree",
-        helperText: "To what extent do you agree with the above statement?",
       };
     }
 
@@ -205,7 +204,8 @@ export default function EditQuestionnairePage() {
       <h1 style={{ marginBottom: 6 }}>Edit questionnaire</h1>
       <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
-      {!preview && (
+
+      {!preview ? (
         <input
           placeholder="Questionnaire name"
           value={templateName}
@@ -216,7 +216,8 @@ export default function EditQuestionnairePage() {
 
           style={styles.input}
         />
-      )}
+      )
+        : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
 
       <div style={styles.btnRow}>
         <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
@@ -268,25 +269,29 @@ export default function EditQuestionnairePage() {
 
       {questions.map((q, i) => (
         <div key={q.uiId} style={styles.card}>
-          {!preview && ` ${q.type}`}
+          {!preview && (
+            <div style={{ marginBottom: 12, opacity: 0.6 }}>
+              {q.type}
+            </div>
+          )}
           <div style={styles.row}>
             <strong>
               {i + 1}.
             </strong>
 
             {!preview && (
-            <input
-              placeholder="Enter your question"
-              value={q.label}
-              onChange={(e) => {
-                setQuestions((qs) =>
-                  qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
-                );
-                setHasUnsavedChanges(true);
-              }
-              }
-              style={{ ...styles.input, marginTop: 10 }}
-            />)}
+              <input
+                placeholder="Enter your question"
+                value={q.label}
+                onChange={(e) => {
+                  setQuestions((qs) =>
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
+                  );
+                  setHasUnsavedChanges(true);
+                }
+                }
+                style={{ ...styles.input }}
+              />)}
 
 
             {!preview ? (
@@ -296,20 +301,21 @@ export default function EditQuestionnairePage() {
               >
                 Remove
               </button>
-            ): (<p></p>)
-          
-          }
+            ) : (<div style={{ flex: 1 }}>
+              <strong>
+                {q.label || "Untitled question"}
+              </strong>
+            </div>)
+
+            }
           </div>
 
           {preview ? (
             <>
-            <strong style={{ display: "block", marginTop: 10 }}>
-                {q.label || "Untitled question"}
-              </strong>
-              
+
 
               {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
-                <p style={{ marginTop: 6, ...styles.small }}>
+                <p style={{ marginTop: 6 }}>
                   {(q.configs as SliderConfigs).helperText}
                 </p>
               )}
