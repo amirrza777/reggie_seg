@@ -11,7 +11,7 @@ export function createQuestionnaireTemplate(
       templateName,
       questions: {
         create: questions.map((q, index) => ({
-          label: q.text,
+          label: q.label,
           type: q.type,
           order: index,
           configs: q.configs ?? null,
@@ -67,7 +67,7 @@ export async function updateQuestionnaireTemplate(
       await tx.question.update({
         where: { id: q.id! },
         data: {
-          label: q.text,
+          label: q.label,
           type: q.type,
           configs: q.configs ?? Prisma.JsonNull,
           order: questions.indexOf(q),
@@ -80,7 +80,7 @@ export async function updateQuestionnaireTemplate(
       await tx.question.createMany({
         data: toCreate.map((q) => ({
           templateId,
-          label: q.text,
+          label: q.label,
           type: q.type,
           order: questions.indexOf(q),
           configs: q.configs ?? Prisma.JsonNull,

@@ -53,10 +53,14 @@ export type Question = {
   configs?: QuestionConfigs;
 };
 
-TODO rename text to label and figure out what dbID is
+export type EditableQuestion = Omit<Question, "id"> & {
+  id?: number;
+  uiId: number;
+};
+
 
 export type Answer = {
   id: string;
   question: string;
-  awnser: string | number;
+  answer: string | number;
 };

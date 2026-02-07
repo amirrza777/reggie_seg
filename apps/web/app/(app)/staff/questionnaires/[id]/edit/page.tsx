@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/shared/api/http";
 import { API_BASE_URL } from "@/shared/api/env";
-import type { Question, QuestionType } from "@/features/questionnaires/types";
+import type {
+  EditableQuestion,
+  MultipleChoiceConfigs,
+  QuestionType,
+  RatingConfigs,
+  SliderConfigs,
+} from "@/features/questionnaires/types";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -54,7 +60,7 @@ export default function EditQuestionnairePage() {
   const templateId = Number(id);
   const router = useRouter();
   const [templateName, setTemplateName] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [answers, setAnswers] = useState<Record<number, any>>({});
@@ -83,6 +89,7 @@ export default function EditQuestionnairePage() {
           template.questions.map((q: any) => ({
             uiId: Date.now() + Math.random(),
             id: q.id,
+            dbId: q.id,
             label: q.label ?? "",
             type: q.type,
             configs: q.configs ?? {},
@@ -99,7 +106,7 @@ export default function EditQuestionnairePage() {
   }, [templateId]);
 
   const addQuestion = (type: QuestionType) => {
-    const q: Question = {
+    const q: EditableQuestion = {
       uiId: Date.now() + Math.random(),
       label: "",
       type,
@@ -131,10 +138,10 @@ export default function EditQuestionnairePage() {
     if (questions.length === 0) errors.push("At least one question is required.");
 
     questions.forEach((q, idx) => {
-      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have text.`);
+      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
 
       if (q.type === "multiple-choice") {
-        const opts = Array.isArray(q.configs?.options) ? q.configs.options : [];
+        const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
         if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
         if (opts.some((o: string) => !String(o ?? "").trim())) {
           errors.push(`Question ${idx + 1} has empty options.`);
@@ -142,7 +149,7 @@ export default function EditQuestionnairePage() {
       }
 
       if (q.type === "slider") {
-        const { min, max, step, left, right } = q.configs ?? {};
+        const { min, max, step, left, right } = (q.configs as SliderConfigs | undefined) ?? {};
         if (typeof min !== "number" || typeof max !== "number") {
           errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
         } else if (min >= max) {
@@ -281,8 +288,10 @@ export default function EditQuestionnairePage() {
                 {q.label || "Untitled question"}
               </strong>
 
-              {q.type === "slider" && q.configs?.helperText && (
-                <p style={{ marginTop: 6, ...styles.small }}>{q.configs.helperText}</p>
+              {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
+                <p style={{ marginTop: 6, ...styles.small }}>
+                  {(q.configs as SliderConfigs).helperText}
+                </p>
               )}
 
               {q.type === "text" && (
@@ -297,7 +306,7 @@ export default function EditQuestionnairePage() {
               )}
 
               {q.type === "multiple-choice" &&
-                (q.configs?.options ?? []).map((o: string) => (
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
                   <label key={o} style={{ display: "block", marginTop: 8 }}>
                     <input
                       type="radio"
@@ -332,16 +341,16 @@ export default function EditQuestionnairePage() {
               {q.type === "slider" && (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
-                    <span>{q.configs?.left}</span>
-                    <span>{q.configs?.right}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.left}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.right}</span>
                   </div>
 
                   <input
                     type="range"
-                    min={q.configs?.min}
-                    max={q.configs?.max}
-                    step={q.configs?.step}
-                    value={answers[q.uiId] ?? q.configs?.min ?? 0}
+                    min={(q.configs as SliderConfigs | undefined)?.min}
+                    max={(q.configs as SliderConfigs | undefined)?.max}
+                    step={(q.configs as SliderConfigs | undefined)?.step}
+                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
                     onChange={(e) => {
                       setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }));
                       setHasUnsavedChanges(true);
@@ -350,7 +359,7 @@ export default function EditQuestionnairePage() {
                   />
 
                   <div style={styles.small}>
-                    Selected: {answers[q.uiId] ?? q.configs?.min ?? 0}
+                    Selected: {answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
                   </div>
                 </>
               )}
@@ -373,7 +382,7 @@ export default function EditQuestionnairePage() {
               {q.type === "slider" && (
                 <input
                   placeholder="Helper text shown to students"
-                  value={q.configs?.helperText ?? ""}
+                  value={(q.configs as SliderConfigs | undefined)?.helperText ?? ""}
                   onChange={(e) => {
                     setQuestions((qs) =>
                       qs.map((x) =>
@@ -391,7 +400,7 @@ export default function EditQuestionnairePage() {
               )}
 
               {q.type === "multiple-choice" &&
-                (q.configs?.options ?? []).map((o: string, idx: number) => (
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
                   <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <input
                       value={o}
@@ -403,7 +412,7 @@ export default function EditQuestionnairePage() {
                                 ...x,
                                 configs: {
                                   ...x.configs,
-                                  options: x.configs.options.map((opt: string, i: number) =>
+                                  options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
                                     i === idx ? e.target.value : opt
                                   ),
                                 },
@@ -427,7 +436,9 @@ export default function EditQuestionnairePage() {
                                 ...x,
                                 configs: {
                                   ...x.configs,
-                                  options: x.configs.options.filter((_: string, i: number) => i !== idx),
+                                  options: (x.configs as MultipleChoiceConfigs).options.filter(
+                                    (_: string, i: number) => i !== idx
+                                  ),
                                 },
                               }
                               : x
@@ -448,12 +459,15 @@ export default function EditQuestionnairePage() {
                       qs.map((x) =>
                         x.uiId === q.uiId
                           ? {
-                            ...x,
-                            configs: {
-                              ...x.configs,
-                              options: [...x.configs.options, "New option"],
-                            },
-                          }
+                              ...x,
+                              configs: {
+                                ...x.configs,
+                                options: [
+                                  ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                  "New option",
+                                ],
+                              },
+                            }
                           : x
                       )
                     )

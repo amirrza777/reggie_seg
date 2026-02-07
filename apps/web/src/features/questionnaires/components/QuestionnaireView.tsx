@@ -23,8 +23,7 @@ export function QuestionnaireView({ questionnaire }: Props) {
     <div style={{ maxWidth: 720 }}>
       {questionnaire.questions.map((q: Question, idx) => (
         <div key={q.id} style={{ marginBottom: 24 }}>
-          <strong>{idx + 1}.</strong>
-          <p style={{ marginTop: 8 }}>{q.label}</p>
+          <strong>{idx + 1}. {q.label}</strong>
 
           {q.type === "text" && (
             <input
