@@ -2,6 +2,7 @@ import Link from "next/link";
 import { apiFetch } from "@/shared/api/http";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
+import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
 import { Questionnaire, Question } from "@/features/questionnaires/types";
 
 type PageProps = {
@@ -17,7 +18,7 @@ export default async function QuestionnairePage({ params }: PageProps) {
   const questionnaire: Questionnaire = await getQuestionnaire(id);
 
   return (
-    <div className="stack" style={{ padding: 32, gap: 24 }}>
+    <div className="stack" style={{ padding: 32, gap: 40 }}>
 
       <Placeholder
         title={`Questionnaire: ${questionnaire.templateName}`}
@@ -28,43 +29,28 @@ export default async function QuestionnairePage({ params }: PageProps) {
 
       <div
         style={{
-          display: "grid",
-          gap: "12px",
+          display: "flex",
+          gap: "20px",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           width: "100%",
         }}
       >
 
-        //TODO now make edit button shared back in questionnaire list and here
+        <EditQuestionnaireButton questionnaireId={id} />
+        <DeleteQuestionnaireButton questionnaireId={id} />
 
-        <Link href={`/staff/questionnaires/${id}/edit`}>
+
+        <Link href="/staff/questionnaires" style={{ marginLeft: 100 }}>
           <button
             style={{
-              padding: "10px 12px",
-              borderRadius: 12,
+              
+              padding: "10px 20px",
               border: "1px solid var(--btn-primary-border)",
               background: "var(--btn-primary-bg)",
               color: "var(--btn-primary-text)",
               cursor: "pointer",
             }}
-          >
-            Edit
-          </button>
-        </Link>
-
-        // TODO add delete functionality here too
-
-
-        <Link href="/staff/questionnaires">
-          <button
-            style={{
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: "1px solid var(--btn-primary-border)",
-              background: "var(--btn-primary-bg)",
-              color: "var(--btn-primary-text)",
-              cursor: "pointer",
-            }}
+            className="btn"
           >
             Back to all questionnaires
           </button>

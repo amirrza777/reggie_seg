@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAllQuestionnaires } from "../api/client";
 import { Questionnaire } from "../types";
+import { EditQuestionnaireButton, DeleteQuestionnaireButton } from "./SharedQuestionnaireButtons";
 
 export function QuestionnaireList() {
   const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
@@ -40,12 +41,18 @@ export function QuestionnaireList() {
           </div>
 
           <div style={{ display: "flex", gap: 8 }}>
+
             <button
               className="btn"
               onClick={() => router.push(`/staff/questionnaires/${q.id}`)}
             >
               Preview
             </button>
+
+            <EditQuestionnaireButton questionnaireId={q.id} />
+
+            <DeleteQuestionnaireButton questionnaireId={q.id} />
+            
           </div>
         </div>
       ))}

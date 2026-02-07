@@ -66,7 +66,7 @@ export default function EditQuestionnairePage() {
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
 
   useEffect(() => {
     if (Number.isNaN(templateId)) return;
@@ -187,6 +187,8 @@ export default function EditQuestionnairePage() {
       });
 
       setHasUnsavedChanges(false);
+
+      router.back();
     } catch (err) {
       console.error(err);
       alert("Save failed — check console");
@@ -246,7 +248,7 @@ export default function EditQuestionnairePage() {
                   if (!confirmed) return;
                 }
 
-                router.push("/staff/questionnaires");
+                router.back();
               }}
             >
               Cancel
@@ -266,27 +268,45 @@ export default function EditQuestionnairePage() {
 
       {questions.map((q, i) => (
         <div key={q.uiId} style={styles.card}>
+          {!preview && ` ${q.type}`}
           <div style={styles.row}>
             <strong>
               {i + 1}.
-              {!preview && ` ${q.type}`}
             </strong>
 
             {!preview && (
+            <input
+              placeholder="Enter your question"
+              value={q.label}
+              onChange={(e) => {
+                setQuestions((qs) =>
+                  qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
+                );
+                setHasUnsavedChanges(true);
+              }
+              }
+              style={{ ...styles.input, marginTop: 10 }}
+            />)}
+
+
+            {!preview ? (
               <button
                 style={styles.btn}
                 onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
               >
                 Remove
               </button>
-            )}
+            ): (<p></p>)
+          
+          }
           </div>
 
           {preview ? (
             <>
-              <strong style={{ display: "block", marginTop: 10 }}>
+            <strong style={{ display: "block", marginTop: 10 }}>
                 {q.label || "Untitled question"}
               </strong>
+              
 
               {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
                 <p style={{ marginTop: 6, ...styles.small }}>
@@ -366,18 +386,7 @@ export default function EditQuestionnairePage() {
             </>
           ) : (
             <>
-              <input
-                placeholder="Enter your question"
-                value={q.label}
-                onChange={(e) => {
-                  setQuestions((qs) =>
-                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
-                  );
-                  setHasUnsavedChanges(true);
-                }
-                }
-                style={{ ...styles.input, marginTop: 10 }}
-              />
+
 
               {q.type === "slider" && (
                 <input
@@ -459,15 +468,15 @@ export default function EditQuestionnairePage() {
                       qs.map((x) =>
                         x.uiId === q.uiId
                           ? {
-                              ...x,
-                              configs: {
-                                ...x.configs,
-                                options: [
-                                  ...((x.configs as MultipleChoiceConfigs).options ?? []),
-                                  "New option",
-                                ],
-                              },
-                            }
+                            ...x,
+                            configs: {
+                              ...x.configs,
+                              options: [
+                                ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                "New option",
+                              ],
+                            },
+                          }
                           : x
                       )
                     )
