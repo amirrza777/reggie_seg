@@ -1,0 +1,12 @@
+model MeetingAttendance {
+  id        Int     @id @default(autoincrement())
+  meetingId Int
+  userId    Int
+  status    String  @default("Absent")
+  meeting   Meeting @relation(fields: [meetingId], references: [id])
+  user      User    @relation("MeetingAttendance", fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+}

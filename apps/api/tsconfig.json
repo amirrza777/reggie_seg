@@ -10,7 +10,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "target": "es2022",
-    "types": ["vitest/globals"],
+    "types": ["node", "vitest/globals"],
     "esModuleInterop": true,
     // For nodejs:
     // "lib": ["esnext"],

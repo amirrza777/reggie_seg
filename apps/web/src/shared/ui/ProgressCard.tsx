@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ProgressBar } from "./ProgressBar";
 
 export type ProgressCardData = {
   id: string;
@@ -26,31 +27,16 @@ export function ProgressCard({ title, progress, subtitle, href, action }: Progre
           </div>
           <h3 style={{ margin: 0 }}>{title}</h3>
           {subtitle ? <p className="muted" style={{ margin: "6px 0 0" }}>{subtitle}</p> : null}
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <strong>{pct}%</strong>
+          <p> 14/60 assessments submitted </p>
+          <p> 12D:4H to deadline</p>
         </div>
       </div>
       <div className="card__body" style={{ display: "grid", gap: 10 }}>
-        <div
-          style={{
-            width: "100%",
-            height: 10,
-            borderRadius: 999,
-            background: "var(--accent-soft)",
-            overflow: "hidden",
-            border: "1px solid var(--accent-border)",
-          }}
-        >
-          <div
-            style={{
-              width: `${pct}%`,
-              height: "100%",
-              background: "var(--accent)",
-              transition: "width 0.2s ease",
-            }}
-          />
+        <ProgressBar value={pct} />
+        <div className="progress-bar__label">
+          <strong>{Math.round(pct)}%</strong>
         </div>
+        
         {action}
       </div>
     </div>

@@ -6,4 +6,5 @@ model Module {
   moduleLeads     ModuleLead[]
   peerAssessments PeerAssessment[]
   userModules     UserModule[]
+  teams           Team[]
 }
