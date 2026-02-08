@@ -9,35 +9,20 @@ type ProjectPageProps = {
 const tempId = 1;
 const tempTeamId = 1;
 
-export default async function ProjectPeerAssessmentsPage({
-  params,
-}: ProjectPageProps) {
+export default async function ProjectPeerAssessmentsPage({params,}: ProjectPageProps) {
   const { projectId } = await params;
-
-  try {
-    const peers = await getTeammates(tempId, tempTeamId);
-
-    return (
-      <div className="stack">
-        <ProjectNav projectId={projectId} />
-        <div style={{ padding: "20px" }}>
-          <PeerListView
-            peers={peers}
-            projectId={projectId}
-            teamId={tempId}
-            currentUserId={tempTeamId}
-          />
-        </div>
+  const peers = await getTeammates(tempId, tempTeamId);
+  return (
+    <div className="stack">
+      <ProjectNav projectId={projectId} />
+      <div style={{ padding: "20px" }}>
+        <PeerListView
+          peers={peers}
+          projectId={projectId}
+          teamId={tempId}
+          currentUserId={tempTeamId}
+        />
       </div>
-    );
-  } catch (error) {
-    return (
-      <div className="stack">
-        <ProjectNav projectId={projectId} />
-        <div style={{ padding: "20px", color: "var(--error)" }}>
-          <p>Failed to load peers. Please try again later.</p>
-        </div>
-      </div>
-    );
-  }
+    </div>
+  );   
 }

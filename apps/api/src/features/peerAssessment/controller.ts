@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 const peerService = new PeerAssessmentService();
 
@@ -103,16 +103,17 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 
 export async function getAssessmentsHandler(req: Request, res: Response) {
   const userId = Number(req.params.userId);
+  const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
   }
 
   try {
-    const feedbacks = await peerService.getFeedbackForStudent(userId);
-    res.json(feedbacks);
+    const assessments = await fetchTeammateAssessments(userId, projectId);
+    res.json(assessments);
   } catch (error) {
-    console.error("Error fetching peer feedbacks:", error);
+    console.error("Error fetching peer assessments:", error);
     res.status(500).json({ error: "Internal server error" });
   }   
 }
@@ -134,4 +135,23 @@ export async function getAssessmentByIdHandler(req: Request, res: Response) {
     console.error("Error fetching peer feedback:", error);
     res.status(500).json({ error: "Internal server error" });   
   }   
+}
+
+export async function getQuestionsForProjectHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const template = await fetchQuestionsForProject(projectId);
+    if (!template) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(template);
+  } catch (error) {
+    console.error("Error fetching questionnaire template:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 }

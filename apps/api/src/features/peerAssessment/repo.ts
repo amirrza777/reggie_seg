@@ -87,3 +87,40 @@ export function updatePeerAssessment(assessmentId: number, answersJson: any) {
     },
   });
 }
+
+export function getTeammateAssessments(userId: number, projectId: number) {
+  return prisma.peerAssessment.findMany({
+    where: {
+      reviewerUserId: userId,
+      projectId: projectId,
+    },
+    include: {
+      reviewee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+
+export function getQuestionsForProject(projectId: number) {
+  return prisma.peerAssessment.findFirst({
+    where: {
+      projectId: projectId,
+    },
+    include: {
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+    },
+  });
+}
+

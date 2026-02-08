@@ -39,3 +39,7 @@ export async function updatePeerAssessment(assessmentId: number, answersJson: Re
     body: JSON.stringify({ answersJson }),
   });
 }
+
+export async function getQuestionsForProject(projectId: string) {
+  return apiFetch(`/peer-assessments/projects/${projectId}/questions`);
+}

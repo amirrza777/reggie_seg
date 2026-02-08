@@ -1,5 +1,7 @@
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getQuestionsForProject } from "@/features/peerAssessment/api/client";
+import { aw } from "vitest/dist/chunks/reporters.nr4dxCkA";
 
 const mockQuestions = [
   { id: 1, text: "Confidence:", type: "text" as const, order: 1 },
@@ -25,6 +27,7 @@ export default async function ProjectPeerAssessmentsPage({
   params,
 }: ProjectPageProps) {
   const { projectId } = await params;
+  const new_questions = getQuestionsForProject(projectId);
 
   return (
     <div className="stack">
@@ -32,7 +35,7 @@ export default async function ProjectPeerAssessmentsPage({
       <PeerAssessmentForm
         teamName="TeamA"
         teammateName="Colton"
-        questions={mockQuestions}
+        questions={new_questions}
         moduleId={1}
         projectId={Number(projectId)}
         teamId={1}

@@ -16,8 +16,8 @@ export async function getPeerFeedbackById(feedbackId: string) {
   return mapApiAssessmentToPeerFeedback(raw);
 }
 
-export async function getPeerAssessmentsForUser(userId: string) {
-  const raw = await apiFetch<FeedbackSubmission>(`/peer-assessments/user/${userId}`);
+export async function getPeerAssessmentsForUser(userId: string, projectId: string) {
+  const raw = await apiFetch<FeedbackSubmission>(`/peer-assessments/projects/${projectId}/user/${userId}`);
   return mapApiAssessmentsToPeerFeedbacks(raw);
 }
 

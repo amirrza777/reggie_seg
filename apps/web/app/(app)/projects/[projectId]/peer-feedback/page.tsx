@@ -9,7 +9,7 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const feedbacks = await getPeerAssessmentsForUser("3"); //hardcoded user id for demo
+  const feedbacks = await getPeerAssessmentsForUser("3", projectId); //hardcoded user id for now
   return (
     <div>
       <ProjectNav projectId={projectId} />
