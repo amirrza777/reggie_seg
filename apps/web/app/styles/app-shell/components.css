@@ -1,0 +1,81 @@
+/* Shared app components */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.card__body {
+  color: var(--muted);
+}
+
+.table {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.table__head,
+.table__row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.table__head {
+  background: var(--table-head-bg);
+  font-weight: var(--fw-bold);
+  color: var(--table-head-text);
+  padding: 10px 12px;
+}
+
+.table__row {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px;
+}
+
+.table__row:nth-child(even) {
+  background: var(--table-row-alt);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: var(--backdrop-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal__dialog {
+  background: var(--surface);
+  border-radius: 14px;
+  width: min(620px, 100%);
+  overflow: hidden;
+}
+
+.modal__header,
+.modal__footer {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal__footer {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+}
+
+.modal__body {
+  padding: 16px;
+}
