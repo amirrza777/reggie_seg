@@ -1,7 +1,7 @@
 import { apiFetch } from "@/shared/api/http";
-import { PeerAssessmentData } from "../types";
+import { PeerAssessmentData, TeamAllocation } from "../types";
 
-export async function getTeammates(userId: number, teamId: number) {
+export async function getTeammates(userId: number, teamId: number): Promise<TeamAllocation[]> {
   return apiFetch(`/peer-assessments/teams/${teamId}/teammates?userId=${userId}`);
 }
 

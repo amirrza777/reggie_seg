@@ -4,6 +4,18 @@ export type Teammate = {
   lastName: string;
 };
 
+export type TeamAllocation = {
+  id: number;
+  userId: number;
+  teamId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+};
+
 export type Question = {
   id: number;
   text: string;
