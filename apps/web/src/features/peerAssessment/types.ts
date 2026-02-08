@@ -37,3 +37,22 @@ export type PeerAssessmentData = {
   templateId: number;
   answersJson: Record<string, any>;
 };
+
+export type PeerAssessment = {
+  id: string;
+  moduleId: number;
+  projectId?: number;
+  teamId: number;
+  reviewerUserId: number;
+  revieweeUserId: number;
+  submittedAt: string;
+  templateId: number;
+  answers: {
+    id: string;
+    order: number;
+    question: string;
+    answer: string;
+  }[];
+  firstName: string; 
+  lastName: string; 
+}

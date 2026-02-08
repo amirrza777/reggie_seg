@@ -37,7 +37,7 @@ export function PeerListView({
       >
         {peers.map((allocation) => (
           <div
-            key={allocation.id}
+            key={allocation.user.id}
             onClick={() => handlePeerClick(allocation.user.id)}
             style={{
               cursor: "pointer",

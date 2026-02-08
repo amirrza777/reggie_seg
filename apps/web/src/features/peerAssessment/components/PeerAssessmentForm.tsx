@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/shared/ui/Button";
 import type { Question } from "../types";
-import { createPeerAssessment } from "../api/client";
+import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 
 type PeerAssessmentFormProps = {
   teammateName: string;
@@ -15,6 +15,8 @@ type PeerAssessmentFormProps = {
   reviewerId: number;
   revieweeId: number;
   templateId: number;
+  initialAnswers?: Record<string, any>;
+  assessmentId?: number;
 };
 
 export function PeerAssessmentForm({
@@ -27,12 +29,27 @@ export function PeerAssessmentForm({
   reviewerId,
   revieweeId,
   templateId,
+  initialAnswers,
+  assessmentId,
 }: PeerAssessmentFormProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const isEditMode = !!assessmentId;
+
+  useEffect(() => {
+    if (initialAnswers) {
+      const normalized: Record<string, string> = {};
+      if (typeof initialAnswers === "object") {
+        Object.entries(initialAnswers).forEach(([k, v]) => {
+          normalized[k] = String(v ?? "");
+        });
+      }
+      setAnswers(normalized);
+    }
+  }, [initialAnswers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,53 +57,63 @@ export function PeerAssessmentForm({
     setMessage(null);
 
     try {
-      await createPeerAssessment({
-        moduleId,
-        projectId,
-        teamId,
-        reviewerUserId: reviewerId,
-        revieweeUserId: revieweeId,
-        templateId,
-        answersJson: answers,
-      });
+      if (isEditMode && assessmentId) {
+        await updatePeerAssessment(assessmentId, answers);
+      } else {
+        await createPeerAssessment({
+          moduleId,
+          projectId,
+          teamId,
+          reviewerUserId: reviewerId,
+          revieweeUserId: revieweeId,
+          templateId,
+          answersJson: answers,
+        });
+      }
       setStatus("success");
-      setMessage("Assessment saved successfully!");
+      setMessage(
+        isEditMode ? "Assessment updated successfully!" : "Assessment saved successfully!"
+      );
     } catch (error) {
       setStatus("error");
       setMessage(
-        error instanceof Error ? error.message : "Failed to save assessment",
+        error instanceof Error ? error.message : "Failed to save assessment"
       );
     }
   };
 
   const handleDiscard = () => {
-    setAnswers({});
+    setAnswers(initialAnswers ? { ...initialAnswers } : {});
     setMessage(null);
   };
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <h1>
+      <h2>
         {teamName} | You're reviewing {teammateName}
-      </h1>
+      </h2>
       {questions.map((question) => (
         <div key={question.id}>
           <label>{question.text}</label>
           <input
             type="text"
-            value={answers[question.id] || ""}
+            value={answers[String(question.id)] || ""}
             onChange={(e) =>
-              setAnswers({ ...answers, [question.id]: e.target.value })
+              setAnswers({ ...answers, [String(question.id)]: e.target.value })
             }
           />
         </div>
       ))}
       <div>
         <Button type="button" onClick={handleDiscard}>
-          Discard changes
+          {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
         <Button type="submit" disabled={status === "loading"}>
-          {status === "loading" ? "Saving..." : "Save"}
+          {status === "loading"
+            ? "Saving..."
+            : isEditMode
+              ? "Update Assessment"
+              : "Save Assessment"}
         </Button>
       </div>
       {message ? (
