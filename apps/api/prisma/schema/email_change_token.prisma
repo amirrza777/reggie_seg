@@ -1,0 +1,13 @@
+model EmailChangeToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  newEmail  String
+  codeHash  String
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  usedAt    DateTime?
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

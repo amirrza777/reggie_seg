@@ -8,13 +8,16 @@ import staffPeerAssessmentsRouter from "./features/peerAssessment/staff/router.j
 import meetingsRouter from "./features/meetings/router.js";
 import authRouter from "./auth/router.js";
 import { healthHandler } from "./health.js";
+import adminRouter from "./features/admin/router.js";
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3001", "http://localhost:5173"],
+    origin: ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"],
     credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 app.use(cookieParser());
@@ -28,5 +31,6 @@ app.use("/questionnaires", questionnairesRouter);
 app.use("/peer-assessments", peerAssessmentsRouter);
 app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
+app.use("/admin", adminRouter);
 
 export { app };
