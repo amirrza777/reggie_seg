@@ -1,4 +1,5 @@
 @import "./marketing/foundations.css";
 @import "./marketing/trust-awards.css";
 @import "./marketing/sections.css";
-@import "./marketing/navigation.css";
+@import "./marketing/header-footer.css";
+@import "./marketing/components.css";

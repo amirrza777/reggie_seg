@@ -114,6 +114,10 @@
   max-width: 760px;
 }
 
+.section--muted {
+  background: none;
+}
+
 #faq .section__header {
   margin-bottom: 12px;
 }
