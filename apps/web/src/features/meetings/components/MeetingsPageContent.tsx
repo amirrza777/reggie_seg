@@ -37,7 +37,7 @@ export function MeetingsPageContent({ teamId }: MeetingsPageContentProps) {
         onCreateNew={() => setShowCreateForm(true)}
       />
       {showCreateForm && (
-        <CreateMeetingForm teamId={teamId} onCreated={refreshList} />
+        <CreateMeetingForm teamId={teamId} onCreated={refreshList} onCancel={() => setShowCreateForm(false)} />
       )}
       {selectedMeeting && <MeetingDetail meeting={selectedMeeting} />}
     </div>

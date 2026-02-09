@@ -9,9 +9,10 @@ import { createMeeting } from "../api/client";
 type CreateMeetingFormProps = {
   teamId: number;
   onCreated: () => void;
+  onCancel: () => void;
 };
 
-export function CreateMeetingForm({ teamId, onCreated }: CreateMeetingFormProps) {
+export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeetingFormProps) {
   const { user } = useUser();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
@@ -75,6 +76,9 @@ export function CreateMeetingForm({ teamId, onCreated }: CreateMeetingFormProps)
           <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
         <div>
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
           <Button type="submit" disabled={status === "loading" || !user}>
             {status === "loading" ? "Creating..." : "Create Meeting"}
           </Button>
