@@ -5,6 +5,7 @@ import {
   updatePeerAssessment,
   getTeammateAssessments,
   getQuestionsForProject,
+  getPeerAssessmentById,
 } from "./repo.js"
 
 export function fetchTeammates(userId: number, teamId: number) {
@@ -13,7 +14,7 @@ export function fetchTeammates(userId: number, teamId: number) {
 
 export function saveAssessment(data: {
   moduleId: number
-  projectId: number
+  projectId: number 
   teamId: number
   reviewerUserId: number
   revieweeUserId: number
@@ -43,4 +44,8 @@ export function fetchTeammateAssessments(userId: number, projectId: number) {
 
 export function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
-} 
+}
+
+export function fetchAssessmentById(assessmentId: number) {
+  return getPeerAssessmentById(assessmentId);
+}

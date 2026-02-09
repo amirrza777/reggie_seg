@@ -15,7 +15,7 @@ export default async function AssessmentPage({params,}: AssessmentPageProps) {
     <div className="stack">
       <ProjectNav projectId={projectId} />
       <div style={{ padding: "20px" }}>
-        <h1>Edit Peer Assessment {assessment.firstName} {assessment.lastName}</h1>
+        <h2>Edit Peer Assessment {assessment.firstName} {assessment.lastName}</h2>
         {questions.length > 0 && (
           <PeerAssessmentForm
             teamName="Team"

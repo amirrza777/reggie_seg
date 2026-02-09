@@ -124,3 +124,26 @@ export function getQuestionsForProject(projectId: number) {
   });
 }
 
+export function getPeerAssessmentById(assessmentId: number) {
+  return prisma.peerAssessment.findUnique({
+    where: { id: assessmentId },
+    include: {
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+      reviewee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+

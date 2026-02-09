@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 const peerService = new PeerAssessmentService();
 
@@ -78,8 +78,15 @@ export async function getAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function updateAssessmentHandler(req: Request, res: Response) {
+  
   const assessmentId = Number(req.params.id)
   const { answersJson } = req.body
+  console.log("---- UPDATE ASSESSMENT ----");
+  console.log("params.id:", req.params.id);
+  console.log("parsed id:", assessmentId);
+  console.log("body:", req.body);
+  console.log("answersJson:", answersJson);
+  console.log("---------------------------");
 
   if (isNaN(assessmentId)) {
     return res.status(400).json({ error: "Invalid assessment ID" })
@@ -119,20 +126,20 @@ export async function getAssessmentsHandler(req: Request, res: Response) {
 }
 
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
+  const assessmentId = Number(req.params.id);
 
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
+  if (isNaN(assessmentId)) {
+    return res.status(400).json({ error: "Invalid assessment ID" });
   }
   
   try {
-    const feedback = await peerService.getFeedbackById(feedbackId);
-    if (!feedback) {
-      return res.status(404).json({ error: "Feedback not found" });
+    const assessment = await fetchAssessmentById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ error: "Assessment not found" });
     }
-    res.json(feedback);
+    res.json(assessment);
   } catch (error) {
-    console.error("Error fetching peer feedback:", error);
+    console.error("Error fetching peer assessment:", error);
     res.status(500).json({ error: "Internal server error" });   
   }   
 }

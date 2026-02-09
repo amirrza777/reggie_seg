@@ -5,38 +5,35 @@ import { getQuestionsForProject, getPeerAssessmentData } from "@/features/peerAs
 import type { PeerAssessment } from "@/features/peerAssessment/types";
 
 type CreatePageProps = {
-  params: Promise<{ projectId: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  params: { projectId: string };
+  searchParams: { [key: string]: string | string[] | undefined };
 };
- //`/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}`
-export default async function CreateAssessmentPage({
-  params,
-  searchParams,
-}: CreatePageProps) {
-  const { projectId: pId } = await params;
-  const sp = await searchParams;
-  const projectIdNum = parseInt(pId);
-  const teamId = parseInt(sp.teamId as string);
-  const revieweeId = parseInt(sp.revieweeId as string);
-  const reviewerId = parseInt(sp.reviewerId as string);
 
-    try {
-      const existingAssessment = await getPeerAssessmentData(
-        1, // moduleId - placeholder, adjust if needed
-        projectIdNum,
-        teamId,
-        reviewerId,
-        revieweeId
-      );
-      if (existingAssessment) {
-        redirect(`/projects/${pId}/peer-assessments/${existingAssessment.id}`);
-      }
-    } catch (error) {
-    const questions = await getQuestionsForProject(pId);
+export default async function CreateAssessmentPage(props : CreatePageProps) {
+    const resolvedParams = await props.params;
+    const resolvedSearchParams = await props.searchParams;
+    const projectId = Number(resolvedParams.projectId);
+    const teamId = Number(resolvedSearchParams.teamId);
+    const revieweeId = Number(resolvedSearchParams.revieweeId);
+    const reviewerId = Number(resolvedSearchParams.reviewerId);
 
+    const existingAssessment = await getPeerAssessmentData(
+      1, // moduleId - placeholder
+      projectId,
+      teamId,
+      reviewerId,
+      revieweeId
+    );
+    if (existingAssessment) {
+      console.log("Existing assessment found, redirecting to edit page");
+      console.log(existingAssessment.id);
+      redirect(`/projects/${projectId}/peer-assessments/${existingAssessment.id}`);
+    }
+
+    const questions = await getQuestionsForProject(String(projectId));
     return (
       <div className="stack">
-        <ProjectNav projectId={pId} />
+        <ProjectNav projectId={String(projectId)} />
         <div style={{ padding: "20px" }}>
           <h1>Create Peer Assessment</h1>
           {questions.length > 0 && (
@@ -45,7 +42,7 @@ export default async function CreateAssessmentPage({
               teammateName="Peer"
               questions={questions}
               moduleId={1}
-              projectId={projectIdNum}
+              projectId={projectId}
               teamId={teamId}
               reviewerId={reviewerId}
               revieweeId={revieweeId}
@@ -56,4 +53,3 @@ export default async function CreateAssessmentPage({
       </div>
     );
   }
-}

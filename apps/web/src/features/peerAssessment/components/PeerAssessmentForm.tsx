@@ -5,6 +5,12 @@ import { Button } from "@/shared/ui/Button";
 import type { Question } from "../types";
 import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 
+const toAnswersArray = (answers: Record<string, string>) =>
+  Object.entries(answers).map(([id, answer]) => ({
+    id,
+    answer,
+  }));
+
 type PeerAssessmentFormProps = {
   teammateName: string;
   teamName: string;
@@ -58,16 +64,16 @@ export function PeerAssessmentForm({
 
     try {
       if (isEditMode && assessmentId) {
-        await updatePeerAssessment(assessmentId, answers);
+        await updatePeerAssessment(assessmentId, toAnswersArray(answers));
       } else {
         await createPeerAssessment({
           moduleId,
-          projectId,
+          projectId: projectId || 1,
           teamId,
           reviewerUserId: reviewerId,
           revieweeUserId: revieweeId,
           templateId,
-          answersJson: answers,
+          answersJson: toAnswersArray(answers),
         });
       }
       setStatus("success");
@@ -89,9 +95,9 @@ export function PeerAssessmentForm({
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <h2>
+      <h3>
         {teamName} | You're reviewing {teammateName}
-      </h2>
+      </h3>
       {questions.map((question) => (
         <div key={question.id}>
           <label>{question.text}</label>
