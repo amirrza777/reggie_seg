@@ -1,13 +1,17 @@
 model Team {
   id              Int              @id @default(autoincrement())
+  enterpriseId    String
   moduleId        Int
-  teamName        String           @unique
+  teamName        String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   allocations     TeamAllocation[]
   module          Module           @relation(fields: [moduleId], references: [id])
+  enterprise      Enterprise       @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   peerAssessments PeerAssessment[]
   meetings        Meeting[]
 
   @@index([moduleId])
+  @@index([enterpriseId])
+  @@unique([enterpriseId, teamName])
 }

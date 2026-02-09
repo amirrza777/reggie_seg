@@ -4,10 +4,11 @@ import argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
-  await seedAdminUser();
-  const users = await seedUsers();
-  const modules = await seedModules();
-  const teams = await seedTeams(modules);
+  const enterpriseId = await getDefaultEnterpriseId();
+  await seedAdminUser(enterpriseId);
+  const users = await seedUsers(enterpriseId);
+  const modules = await seedModules(enterpriseId);
+  const teams = await seedTeams(enterpriseId, modules);
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
@@ -17,12 +18,30 @@ type SeedUser = { id: number; isStaff: boolean };
 type SeedModule = { id: number };
 type SeedTeam = { id: number; moduleId: number };
 
-async function seedAdminUser() {
+async function getDefaultEnterpriseId(): Promise<string> {
+  const enterprise = await prisma.enterprise.findUnique({
+    where: { code: 'DEFAULT' },
+    select: { id: true },
+  });
+
+  if (enterprise) return enterprise.id;
+
+  const created = await prisma.enterprise.create({
+    data: { code: 'DEFAULT', name: 'Default Enterprise' },
+    select: { id: true },
+  });
+
+  return created.id;
+}
+
+async function seedAdminUser(enterpriseId: string) {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) return;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+  });
   if (existing) return;
 
   const passwordHash = await argon2.hash(password);
@@ -34,6 +53,7 @@ async function seedAdminUser() {
       lastName: 'User',
       isStaff: true,
       isAdmin: true,
+      enterpriseId,
     },
   });
 }
@@ -90,10 +110,10 @@ const teamData = [
   { teamName: 'Team Gamma', moduleIndex: 1 },
 ];
 
-async function seedUsers(): Promise<SeedUser[]> {
+async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
   // Create a small set of staff and student users with a placeholder password hash.
   await prisma.user.createMany({
-    data: userData,
+    data: userData.map((user) => ({ ...user, enterpriseId })),
     skipDuplicates: true,
   });
 
@@ -112,10 +132,10 @@ async function seedUsers(): Promise<SeedUser[]> {
   }));
 }
 
-async function seedModules(): Promise<SeedModule[]> {
+async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
   // Create a couple of modules for students to enroll in and for teams to belong to.
   await prisma.module.createMany({
-    data: moduleData,
+    data: moduleData.map((module) => ({ ...module, enterpriseId })),
     skipDuplicates: true,
   });
 
@@ -127,7 +147,10 @@ async function seedModules(): Promise<SeedModule[]> {
   return modules.map((m: { id: number }) => ({ id: m.id }));
 }
 
-async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
+async function seedTeams(
+  enterpriseId: string,
+  modules: SeedModule[]
+): Promise<SeedTeam[]> {
   // Create teams tied to modules (moduleId is required on Team).
   if (modules.length === 0) return [];
   const fallbackModule = modules[0];
@@ -138,6 +161,7 @@ async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
     return {
       teamName: team.teamName,
       moduleId: module.id,
+      enterpriseId,
     };
   });
 
