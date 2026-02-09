@@ -47,13 +47,20 @@ export type QuestionConfigs =
 
 export type Question = {
   id: number;
-  text: string;
+  dbId?: number;
+  label: string;
   type: QuestionType;
   configs?: QuestionConfigs;
 };
 
+export type EditableQuestion = Omit<Question, "id"> & {
+  id?: number;
+  uiId: number;
+};
+
+
 export type Answer = {
   id: string;
   question: string;
-  awnser: string | number;
+  answer: string | number;
 };

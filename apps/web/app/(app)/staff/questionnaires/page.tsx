@@ -37,15 +37,13 @@ export default function QuestionnairesPage() {
           <button
             style={{
               padding: "14px 18px",
-              borderRadius: "var(--radius-md)",
               background: "var(--btn-primary-bg)",
               color: "var(--btn-primary-text)",
               border: "1px solid var(--btn-primary-border)",
-              fontSize: "var(--fs-body-lg)",
-              fontWeight: "var(--fw-medium)",
               cursor: "pointer",
               boxShadow: "var(--shadow-sm)",
             }}
+            className="btn"
           >
             + Create questionnaire
           </button>

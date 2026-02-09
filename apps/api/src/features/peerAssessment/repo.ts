@@ -88,24 +88,62 @@ export function updatePeerAssessment(assessmentId: number, answersJson: any) {
   });
 }
 
-export function createPeerAssessmentReview(data: {
-  peerAssessmentId: number;
-  reviewerUserId?: number | null;
-  reviewText?: string | null;
-  agreementsJson: any;
-}) {
-  return prisma.peerAssessmentReview.create({
-    data: {
-      peerAssessmentId: data.peerAssessmentId,
-      reviewerUserId: data.reviewerUserId ?? null,
-      reviewText: data.reviewText ?? null,
-      agreementsJson: data.agreementsJson,
+export function getTeammateAssessments(userId: number, projectId: number) {
+  return prisma.peerAssessment.findMany({
+    where: {
+      reviewerUserId: userId,
+      projectId: projectId,
+    },
+    include: {
+      reviewee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
     },
   });
 }
 
-export function getPeerAssessmentReviewByAssessmentId(peerAssessmentId: number) {
-  return prisma.peerAssessmentReview.findUnique({
-    where: { peerAssessmentId },
+export function getQuestionsForProject(projectId: number) {
+  return prisma.peerAssessment.findFirst({
+    where: {
+      projectId: projectId,
+    },
+    include: {
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+    },
   });
 }
+
+export function getPeerAssessmentById(assessmentId: number) {
+  return prisma.peerAssessment.findUnique({
+    where: { id: assessmentId },
+    include: {
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
+      reviewee: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+

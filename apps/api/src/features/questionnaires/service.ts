@@ -9,9 +9,10 @@ import type { IncomingQuestion, Question } from "./types.js";
 
 export function createTemplate(
   templateName: string,
-  questions: Question[]
+  questions: Question[],
+  userId: number
 ) {
-  return createQuestionnaireTemplate(templateName, questions)
+  return createQuestionnaireTemplate(templateName, questions, userId)
 }
 
 export function getTemplate(id: number) {

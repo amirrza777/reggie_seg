@@ -15,7 +15,7 @@ export type Answer = {
   id: string;
   order: Number;
   question: string;
-  answer: string;
+  answer: string | number;
 };
 
 export type PeerFeedback = {

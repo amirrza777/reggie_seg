@@ -10,6 +10,7 @@ export function ProjectNav({ projectId }: ProjectNavProps) {
     { href: base, label: "Overview" },
     { href: `${base}/team`, label: "Team" },
     { href: `${base}/meetings`, label: "Meetings" },
+    { href: `${base}/peer-assessments`, label: "Peer assessment" },
     { href: `${base}/peer-feedback`, label: "Peer feedback" },
     { href: `${base}/repos`, label: "Repos" },
   ];

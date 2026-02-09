@@ -1,14 +1,23 @@
-export type IncomingQuestion = {
-  id?: number;
-  text: string;
-  type: string;
-  configs?: unknown;
+type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
+
+type SliderConfigs = {
+  min: number;
+  max: number;
+  step: number;
+  left: string;
+  right: string;
+  helperText?: string;
 };
 
-export type Question = {
+type QuestionConfigs =
+  | { options: string[] }              // multiple-choice
+  | { min: number; max: number }        // rating
+  | SliderConfigs                       // slider
+  | {};                                 // text
+
+type Question = {
   id: number;
   label: string;
-  type: string;
-  order: number;
-  configs?: unknown;
+  type: QuestionType;
+  configs?: QuestionConfigs;
 };

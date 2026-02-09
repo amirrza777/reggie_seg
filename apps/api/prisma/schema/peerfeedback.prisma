@@ -1,0 +1,11 @@
+model PeerFeedback {
+  id              Int      @id @default(autoincrement())
+  peerAssessment  PeerAssessment @relation(fields: [peerAssessmentId], references: [id])
+  peerAssessmentId Int     @unique  
+  reviewerUserId  Int       
+  revieweeUserId  Int       
+  reviewText      String?
+  agreementsJson  Json      
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

@@ -6,5 +6,8 @@ model QuestionnaireTemplate {
   assessments  PeerAssessment[] @relation("TemplateAssessments")
   questions    Question[]
 
+  ownerId Int
+  owner   User @relation(fields: [ownerId], references: [id])
+
   @@index([id])
 }
