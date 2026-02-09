@@ -10,15 +10,11 @@ type AssessmentPageProps = {
 
 export default async function AssessmentPage({params,}: AssessmentPageProps) {
   const { projectId , assessmentId } = await params;
-  console.log("AssessmentPage - assessmentId from params:", assessmentId);
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
   const questions = await getQuestionsForProject(String(projectId));
 
   const assessmentIdNum = Number(assessmentId);
-  console.log("AssessmentPage - converted assessmentId:", assessmentIdNum);
-  console.log("AssessmentPage - questions length:", questions.length);
-  console.log("AssessmentPage - questions:", questions);
 
   return (
     <div className="stack">

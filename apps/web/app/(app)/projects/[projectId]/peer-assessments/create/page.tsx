@@ -25,8 +25,6 @@ export default async function CreateAssessmentPage(props : CreatePageProps) {
       revieweeId
     );
     if (existingAssessment) {
-      console.log("Existing assessment found, redirecting to edit page");
-      console.log(existingAssessment.id);
       redirect(`/projects/${projectId}/peer-assessments/${existingAssessment.id}`);
     }
 

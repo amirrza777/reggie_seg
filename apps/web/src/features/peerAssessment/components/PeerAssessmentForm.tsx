@@ -45,8 +45,6 @@ export function PeerAssessmentForm({
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
   
-  console.log("PeerAssessmentForm - assessmentId prop:", assessmentId);
-  console.log("PeerAssessmentForm - isEditMode:", isEditMode);
 
   useEffect(() => {
     if (initialAnswers) {

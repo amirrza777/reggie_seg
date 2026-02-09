@@ -81,12 +81,6 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
   
   const assessmentId = Number(req.params.id)
   const { answersJson } = req.body
-  console.log("---- UPDATE ASSESSMENT ----");
-  console.log("params.id:", req.params.id);
-  console.log("parsed id:", assessmentId);
-  console.log("body:", req.body);
-  console.log("answersJson:", answersJson);
-  console.log("---------------------------");
 
   if (isNaN(assessmentId)) {
     return res.status(400).json({ error: "Invalid assessment ID" })
