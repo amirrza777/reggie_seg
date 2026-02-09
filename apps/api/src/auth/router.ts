@@ -25,7 +25,7 @@ router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
 router.post("/forgot-password", forgotPasswordHandler);
 router.post("/reset-password", resetPasswordHandler);
-router.get("/me", requireAuth, meHandler);
+router.get("/me", meHandler);
 router.patch("/profile", requireAuth, updateProfileHandler);
 router.post("/email-change/request", requireAuth, requestEmailChangeHandler);
 router.post("/email-change/confirm", requireAuth, confirmEmailChangeHandler);
@@ -42,7 +42,7 @@ router.get(
       httpOnly: true,
       secure: false,
       sameSite: "lax",
-      path: "/auth/refresh",
+      path: "/",
       maxAge: 1000 * 60 * 60 * 24 * 30,
     });
     const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");

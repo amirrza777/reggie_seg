@@ -10,8 +10,10 @@ import {
   updateProfile,
   requestEmailChange,
   confirmEmailChange,
+  verifyRefreshToken
 } from "./service.js";
 import type { AuthRequest } from "./middleware.js";
+import { prisma } from "../shared/db.js";
 
 export async function signupHandler(req: Request, res: Response) {
   const { email, password, firstName, lastName } = req.body ?? {};
@@ -88,13 +90,6 @@ export async function resetPasswordHandler(req: Request, res: Response) {
   }
 }
 
-export async function meHandler(req: AuthRequest, res: Response) {
-  const userId = req.user?.sub;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  const profile = await getProfile(userId);
-  return res.json(profile);
-}
-
 export async function updateProfileHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -143,7 +138,39 @@ function setRefreshCookie(res: Response, token: string) {
     httpOnly: true,
     secure: false,
     sameSite: "lax",
-    path: "/auth/refresh",
+    path: "/",
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
+}
+
+export async function meHandler(req: AuthRequest, res: Response) {
+  try {
+    let userId = req.user?.sub ?? null;
+    let refreshPayload: { sub: number; admin?: boolean } | null = null;
+
+    if (!userId) {
+      const token = req.cookies?.refresh_token;
+      if (!token) return res.status(401).json({ error: "Not authenticated" });
+      refreshPayload = verifyRefreshToken(token);
+      userId = refreshPayload.sub;
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+    const role = user.isAdmin ? "ADMIN" : user.isStaff ? "STAFF" : "STUDENT";
+
+    const profile = await getProfile(user.id); // includes avatar fields
+
+    return res.json({
+      ...profile,
+      isStaff: user.isStaff,
+      isAdmin: user.isAdmin,
+      role,
+      active: true,
+    });
+  } catch (err) {
+    console.error("meHandler error", err);
+    return res.status(401).json({ error: "Not authenticated" });
+  }
 }
