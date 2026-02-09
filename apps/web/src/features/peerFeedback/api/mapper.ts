@@ -13,11 +13,11 @@ function mapAnswersJsonToArray(answersJson: any): Answer[] {
 			order: a.order ?? idx,
 			question: a.question ?? a.prompt ?? String(a.id ?? a.question ?? idx),
 			answer:
-				typeof a.answer === "string"
-					? a.answer
-					: typeof a === "string"
-					? a
-					: a.value ?? JSON.stringify(a),
+				a.answer !== undefined
+				? a.answer
+				: typeof a === "string"
+				? a
+				: a.value ?? ""
 		}));
 	}
 

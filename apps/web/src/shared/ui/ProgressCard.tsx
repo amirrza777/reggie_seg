@@ -3,10 +3,11 @@ import type { ReactNode } from "react";
 import { ProgressBar } from "./ProgressBar";
 
 export type ProgressCardData = {
-  id: string;
+  id?: number;
   title: string;
-  progress: number;
-  subtitle?: string;
+  submitted: number;
+  expected: number;
+  deadline?: string;
 };
 
 type ProgressCardProps = ProgressCardData & {
@@ -16,7 +17,8 @@ type ProgressCardProps = ProgressCardData & {
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
 
-export function ProgressCard({ title, progress, subtitle, href, action }: ProgressCardProps) {
+export function ProgressCard({ title, submitted, expected, deadline, href, action }: ProgressCardProps) {
+  const progress = expected > 0 ? (submitted / expected) * 100 : 0;
   const pct = clamp(progress);
   const content = (
     <div className="card" style={{ height: "100%" }}>
@@ -26,9 +28,8 @@ export function ProgressCard({ title, progress, subtitle, href, action }: Progre
             Progress
           </div>
           <h3 style={{ margin: 0 }}>{title}</h3>
-          {subtitle ? <p className="muted" style={{ margin: "6px 0 0" }}>{subtitle}</p> : null}
-          <p> 14/60 assessments submitted </p>
-          <p> 12D:4H to deadline</p>
+          <p className="muted" style={{ margin: "6px 0 0" }}>{deadline ?? "12D:4H to deadline"}</p>
+          <p> {submitted}/{expected} assessments submitted </p>
         </div>
       </div>
       <div className="card__body" style={{ display: "grid", gap: 10 }}>

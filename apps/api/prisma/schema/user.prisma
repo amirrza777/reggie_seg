@@ -5,6 +5,7 @@ model User {
   avatarData          Bytes?
   avatarMime          String?
   firstName           String
+  isAdmin             Boolean             @default(false)
   isStaff             Boolean             @default(false)
   lastName            String
   passwordHash        String
@@ -21,4 +22,6 @@ model User {
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
+
+  questionnaires  QuestionnaireTemplate[]
 }

@@ -3,19 +3,25 @@ import { AppShell } from "@/shared/layout/AppShell";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { UserMenu } from "@/features/auth/components/UserMenu";
+import { getCurrentUser, isAdmin } from "@/shared/auth/session";
+export const dynamic = "force-dynamic";
 
 const navLinks = [
-  { href: "/admin", label: "Admin" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/modules", label: "Modules" },
   { href: "/projects/123", label: "Projects" },
-  { href : "/staff/questionnaires", label: "Questionnaires"},
-  { href: "/staff/peer-assessments", label: "Staff Peer Assessments" }
+  { href: "/staff/questionnaires", label: "Questionnaires" },
+  { href: "/staff/peer-assessments", label: "Staff Peer Assessments" },
+  { href: "/admin", label: "Admin" },
 ];
 
-export default function AppLayout({ children }: { children: ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const user = await getCurrentUser();
+  const filteredLinks = navLinks.filter((link) => (link.href === "/admin" ? isAdmin(user) : true));
+
   return (
     <AppShell
-      sidebar={<Sidebar title="Workspace" links={navLinks} />}
+      sidebar={<Sidebar title="Workspace" links={filteredLinks} />}
       topbar={<Topbar title="Team Feedback" actions={<UserMenu />} />}
     >
       {children}

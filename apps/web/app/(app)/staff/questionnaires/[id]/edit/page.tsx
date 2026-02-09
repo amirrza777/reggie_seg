@@ -1,198 +1,517 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/http";
+import { API_BASE_URL } from "@/shared/api/env";
+import type {
+  EditableQuestion,
+  MultipleChoiceConfigs,
+  QuestionType,
+  RatingConfigs,
+  SliderConfigs,
+} from "@/features/questionnaires/types";
 
-type QuestionType = "text" | "multiple-choice" | "rating";
-
-type Question = {
-  id: number;
-  text: string;
-  type: QuestionType;
-  configs?: {
-    options?: string[];
-    min?: number;
-    max?: number;
-  };
+const styles = {
+  page: { padding: 32, maxWidth: 900 },
+  hint: { opacity: 0.75 },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-surface)",
+    color: "var(--ink)",
+    WebkitTextFillColor: "var(--ink)",
+    outline: "none",
+  } as React.CSSProperties,
+  card: {
+    marginTop: 20,
+    padding: 16,
+    border: "1px solid var(--border)",
+    borderRadius: 14,
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-sm)",
+  } as React.CSSProperties,
+  row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" } as React.CSSProperties,
+  btnRow: { marginTop: 16, display: "flex", gap: 8, alignItems: "center" } as React.CSSProperties,
+  btn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-hover)",
+    color: "var(--ink)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  btnPrimary: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--btn-primary-border)",
+    background: "var(--btn-primary-bg)",
+    color: "var(--btn-primary-text)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  errors: { marginTop: 12, color: "var(--accent-warm)", fontSize: 14 } as React.CSSProperties,
+  small: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
 };
 
-export default function QuestionnaireBuilder() {
+export default function EditQuestionnairePage() {
+  const { id } = useParams<{ id: string }>();
+  const templateId = Number(id);
+  const router = useRouter();
   const [templateName, setTemplateName] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
+  const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-  const addQuestion = (type: QuestionType) => {
-    const base: Question = {
-      id: Date.now(),
-      text: "",
-      type
+
+  useEffect(() => {
+    if (Number.isNaN(templateId)) return;
+
+
+    const load = async () => {
+      try {
+        const template = await apiFetch<{ templateName: string; questions: any[] }>(
+          `/questionnaires/${templateId}`
+        );
+
+        if (!template || !Array.isArray(template.questions)) {
+          console.error("Invalid questionnaire payload", template);
+          return;
+        }
+
+        setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
+
+        setQuestions(
+          template.questions.map((q: any) => ({
+            uiId: Date.now() + Math.random(),
+            id: q.id,
+            dbId: q.id,
+            label: q.label ?? "",
+            type: q.type,
+            configs: q.configs ?? {},
+          }))
+        );
+
+        setLoaded(true);
+      } catch (e) {
+        console.error(e);
+      }
     };
 
-    if (type === "multiple-choice") {
-      base.configs = { options: ["Option 1", "Option 2"] };
+    load();
+  }, [templateId]);
+
+  const addQuestion = (type: QuestionType) => {
+    const q: EditableQuestion = {
+      uiId: Date.now() + Math.random(),
+      label: "",
+      type,
+      configs: {},
+    };
+
+    if (type === "multiple-choice") q.configs = { options: ["Yes", "No"] };
+    if (type === "rating") q.configs = { min: 1, max: 10 };
+    if (type === "slider") {
+      q.configs = {
+        min: 0,
+        max: 100,
+        step: 1,
+        left: "Strongly disagree",
+        right: "Strongly agree",
+      };
     }
 
-    if (type === "rating") {
-      base.configs = { min: 1, max: 5 };
-    }
-
-    setQuestions([...questions, base]);
+    setQuestions((qs) => [...qs, q]);
   };
 
-  const updateQuestion = (id: number, updates: Partial<Question>) => {
-    setQuestions(
-      questions.map((q) => (q.id === id ? { ...q, ...updates } : q))
-    );
-  };
+  const validationErrors = useMemo(() => {
+    if (preview) return [];
 
-  const updateOption = (qid: number, index: number, value: string) => {
-    setQuestions(
-      questions.map((q) => {
-        if (q.id !== qid || !q.configs?.options) return q;
-        const options = [...q.configs.options];
-        options[index] = value;
-        return { ...q, configs: { ...q.configs, options } };
-      })
-    );
-  };
+    const errors: string[] = [];
 
-  const addOption = (qid: number) => {
-    setQuestions(
-      questions.map((q) => {
-        if (q.id !== qid || !q.configs?.options) return q;
-        return {
-          ...q,
-          configs: { ...q.configs, options: [...q.configs.options, "New option"] }
-        };
-      })
-    );
-  };
+    if (!templateName.trim()) errors.push("Questionnaire name is required.");
+    if (questions.length === 0) errors.push("At least one question is required.");
+
+    questions.forEach((q, idx) => {
+      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
+
+      if (q.type === "multiple-choice") {
+        const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
+        if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
+        if (opts.some((o: string) => !String(o ?? "").trim())) {
+          errors.push(`Question ${idx + 1} has empty options.`);
+        }
+      }
+
+      if (q.type === "slider") {
+        const { min, max, step, left, right } = (q.configs as SliderConfigs | undefined) ?? {};
+        if (typeof min !== "number" || typeof max !== "number") {
+          errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
+        } else if (min >= max) {
+          errors.push(`Question ${idx + 1} slider min must be less than max.`);
+        }
+        if (typeof step !== "number" || step <= 0) {
+          errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
+        }
+        if (!left || !right) errors.push(`Question ${idx + 1} slider labels are required.`);
+      }
+    });
+
+    return errors;
+  }, [templateName, questions, preview]);
+
+  const isValid = validationErrors.length === 0;
 
   const saveTemplate = async () => {
-    if (!templateName || questions.length === 0) return;
+    if (!isValid) return;
 
     setSaving(true);
-    await fetch("/questionnaires", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateName, questions })
-    });
-    setSaving(false);
+
+    try {
+      await apiFetch(`/questionnaires/${templateId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          templateName,
+          questions: questions.map((q) => ({
+            id: q.dbId,
+            label: q.label,
+            type: q.type,
+            configs: q.configs,
+          })),
+        }),
+      });
+
+      setHasUnsavedChanges(false);
+
+      router.back();
+    } catch (err) {
+      console.error(err);
+      alert("Save failed — check console");
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
+  if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
+
   return (
-    <div style={{ padding: 32, background: "#f5f5f5", color: "#111 ",  colorScheme: "light" }}>
-      <h1>Create Questionnaire Template</h1>
+    <div style={styles.page}>
+      <h1 style={{ marginBottom: 6 }}>Edit questionnaire</h1>
+      <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
-      <input
-        placeholder="Template name"
-        value={templateName}
-        onChange={(e) => setTemplateName(e.target.value)}
-        style={{ width: "100%", padding: 8, marginBottom: 20, backgroundColor: "#ffffff", color: "#111111", border: "1px solid #cbd5e1",WebkitTextFillColor: "#111111" }}
-      />
 
-      {questions.map((q, idx) => (
-        <div
-          key={q.id}
-          style={{
-            padding: 16,
-            marginBottom: 12,
-            background: "#fff",
-            borderRadius: 6
+      {!preview ? (
+        <input
+          placeholder="Questionnaire name"
+          value={templateName}
+          onChange={(e) => {
+            setTemplateName(e.target.value);
+            setHasUnsavedChanges(true);
           }}
-        >
-          <strong>
-            {idx + 1}. {q.type}
-          </strong>
 
-          <input
-            placeholder="Question text"
-            value={q.text}
-            onChange={(e) =>
-              updateQuestion(q.id, { text: e.target.value })
-            }
-            style={{ width: "100%", marginTop: 8, backgroundColor: "#ffffff", color: "#111111", border: "1px solid #cbd5e1",WebkitTextFillColor: "#111111" }}
-          />
+          style={styles.input}
+        />
+      )
+        : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
 
-          {q.type === "multiple-choice" &&
-            q.configs?.options?.map((opt, i) => (
-              <input
-                key={i}
-                value={opt}
-                onChange={(e) =>
-                  updateOption(q.id, i, e.target.value)
+      <div style={styles.btnRow}>
+        <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
+          {preview ? "Back to editor" : "Student preview"}
+        </button>
+
+        {!preview && (
+          <>
+            <button
+              style={{
+                ...styles.btnPrimary,
+                opacity: !isValid || saving ? 0.6 : 1,
+                cursor: !isValid || saving ? "not-allowed" : "pointer",
+              }}
+              onClick={saveTemplate}
+              disabled={!isValid || saving}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+
+            <button
+              style={styles.btn}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  const confirmed = window.confirm(
+                    "You have unsaved changes. Are you sure you want to exit without saving?"
+                  );
+
+                  if (!confirmed) return;
                 }
-                style={{ display: "block", marginTop: 6, backgroundColor: "#ffffff", color: "#111111", border: "1px solid #cbd5e1",WebkitTextFillColor: "#111111" }}
-              />
-            ))}
 
-          {q.type === "multiple-choice" && (
-            <button onClick={() => addOption(q.id)}>Add option</button>
-          )}
+                router.back();
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
 
-          {q.type === "rating" && (
-            <div style={{ marginTop: 8 }}>
-              <label>
-                Min:
-                <input
-                  type="number"
-                  value={q.configs?.min}
-                  onChange={(e) =>
-                    updateQuestion(q.id, {
-                      configs: { ...q.configs, min: Number(e.target.value) }
-                    })
-                  }
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111111",
-                    border: "1px solid #cbd5e1",
-                    padding: "6px 8px",
-                    borderRadius: 4,
-                    WebkitTextFillColor: "#111111",
-                    appearance: "textfield"
-                }}
-                />
-              </label>
-              <label style={{ marginLeft: 12 }}>
-                Max:
-                <input
-                  type="number"
-                  value={q.configs?.max}
-                  onChange={(e) =>
-                    updateQuestion(q.id, {
-                      configs: { ...q.configs, max: Number(e.target.value) }
-                    })
-                  }
-                  style={{
-                    backgroundColor: "#ffffff",
-                    color: "#111111",
-                    border: "1px solid #cbd5e1",
-                    padding: "6px 8px",
-                    borderRadius: 4,
-                    WebkitTextFillColor: "#111111",
-                    appearance: "textfield"
-                }}
-                />
-              </label>
+
+      {!preview && !isValid && (
+        <ul style={styles.errors}>
+          {validationErrors.map((e, i) => (
+            <li key={i}>{e}</li>
+          ))}
+        </ul>
+      )}
+
+      {questions.map((q, i) => (
+        <div key={q.uiId} style={styles.card}>
+          {!preview && (
+            <div style={{ marginBottom: 12, opacity: 0.6 }}>
+              {q.type}
             </div>
+          )}
+          <div style={styles.row}>
+            <strong>
+              {i + 1}.
+            </strong>
+
+            {!preview && (
+              <input
+                placeholder="Enter your question"
+                value={q.label}
+                onChange={(e) => {
+                  setQuestions((qs) =>
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
+                  );
+                  setHasUnsavedChanges(true);
+                }
+                }
+                style={{ ...styles.input }}
+              />)}
+
+
+            {!preview ? (
+              <button
+                style={styles.btn}
+                onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
+              >
+                Remove
+              </button>
+            ) : (<div style={{ flex: 1 }}>
+              <strong>
+                {q.label || "Untitled question"}
+              </strong>
+            </div>)
+
+            }
+          </div>
+
+          {preview ? (
+            <>
+
+
+              {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
+                <p style={{ marginTop: 6 }}>
+                  {(q.configs as SliderConfigs).helperText}
+                </p>
+              )}
+
+              {q.type === "text" && (
+                <input
+                  style={{ ...styles.input, marginTop: 10 }}
+                  value={answers[q.uiId] || ""}
+                  onChange={(e) => {
+                    setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }));
+                    setHasUnsavedChanges(true);
+                  }}
+                />
+              )}
+
+              {q.type === "multiple-choice" &&
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
+                  <label key={o} style={{ display: "block", marginTop: 8 }}>
+                    <input
+                      type="radio"
+                      checked={answers[q.uiId] === o}
+                      onChange={() => {
+                        setAnswers((a) => ({ ...a, [q.uiId]: o }));
+                        setHasUnsavedChanges(true);
+                      }}
+                    />{" "}
+                    {o}
+                  </label>
+                ))}
+
+              {q.type === "rating" && (
+                <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+                  {Array.from({ length: 10 }, (_, n) => n + 1).map((n) => (
+                    <label key={n} style={{ fontSize: 12 }}>
+                      <input
+                        type="radio"
+                        checked={answers[q.uiId] === n}
+                        onChange={() => {
+                          setAnswers((a) => ({ ...a, [q.uiId]: n }));
+                          setHasUnsavedChanges(true);
+                        }}
+                      />{" "}
+                      {n}
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {q.type === "slider" && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
+                    <span>{(q.configs as SliderConfigs | undefined)?.left}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.right}</span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={(q.configs as SliderConfigs | undefined)?.min}
+                    max={(q.configs as SliderConfigs | undefined)?.max}
+                    step={(q.configs as SliderConfigs | undefined)?.step}
+                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                    onChange={(e) => {
+                      setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }));
+                      setHasUnsavedChanges(true);
+                    }}
+                    style={{ width: "100%", marginTop: 8 }}
+                  />
+
+                  <div style={styles.small}>
+                    Selected: {answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+
+
+              {q.type === "slider" && (
+                <input
+                  placeholder="Helper text shown to students"
+                  value={(q.configs as SliderConfigs | undefined)?.helperText ?? ""}
+                  onChange={(e) => {
+                    setQuestions((qs) =>
+                      qs.map((x) =>
+                        x.uiId === q.uiId
+                          ? { ...x, configs: { ...x.configs, helperText: e.target.value } }
+                          : x
+                      )
+
+                    );
+                    setHasUnsavedChanges(true);
+                  }
+                  }
+                  style={{ ...styles.input, marginTop: 8, opacity: 0.9 }}
+                />
+              )}
+
+              {q.type === "multiple-choice" &&
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
+                  <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <input
+                      value={o}
+                      onChange={(e) => {
+                        setQuestions((qs) =>
+                          qs.map((x) =>
+                            x.uiId === q.uiId
+                              ? {
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
+                                    i === idx ? e.target.value : opt
+                                  ),
+                                },
+                              }
+                              : x
+                          )
+                        );
+                        setHasUnsavedChanges(true);
+                      }
+                      }
+                      style={{ ...styles.input, flex: 1 }}
+                    />
+
+                    <button
+                      style={styles.btn}
+                      onClick={() =>
+                        setQuestions((qs) =>
+                          qs.map((x) =>
+                            x.uiId === q.uiId
+                              ? {
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.filter(
+                                    (_: string, i: number) => i !== idx
+                                  ),
+                                },
+                              }
+                              : x
+                          )
+                        )
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+              {q.type === "multiple-choice" && (
+                <button
+                  style={{ ...styles.btn, marginTop: 10 }}
+                  onClick={() =>
+                    setQuestions((qs) =>
+                      qs.map((x) =>
+                        x.uiId === q.uiId
+                          ? {
+                            ...x,
+                            configs: {
+                              ...x.configs,
+                              options: [
+                                ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                "New option",
+                              ],
+                            },
+                          }
+                          : x
+                      )
+                    )
+                  }
+                >
+                  Add option
+                </button>
+              )}
+            </>
           )}
         </div>
       ))}
 
-      <div style={{ marginTop: 20 }}>
-        <button onClick={() => addQuestion("text")}>Add Text</button>
-        <button onClick={() => addQuestion("multiple-choice")}>
-          Add Multiple Choice
-        </button>
-        <button onClick={() => addQuestion("rating")}>Add Rating</button>
-      </div>
-
-      <button
-        onClick={saveTemplate}
-        disabled={saving}
-        style={{ marginTop: 24 }}
-      >
-        {saving ? "Saving..." : "Save template"}
-      </button>
+      {!preview && (
+        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button style={styles.btn} onClick={() => addQuestion("text")}>
+            Add text
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("multiple-choice")}>
+            Add multiple choice
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("rating")}>
+            Add rating
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("slider")}>
+            Add slider
+          </button>
+        </div>
+      )}
     </div>
   );
 }
