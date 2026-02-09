@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation"
-
-type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
-
-type Question = {
-  uiId: number;
-  dbId?: number;
-  text: string;
-  type: QuestionType;
-  configs: any;
-};
+import { useParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/http";
+import { API_BASE_URL } from "@/shared/api/env";
+import type {
+  EditableQuestion,
+  MultipleChoiceConfigs,
+  QuestionType,
+  RatingConfigs,
+  SliderConfigs,
+} from "@/features/questionnaires/types";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -59,26 +58,28 @@ const styles = {
 export default function EditQuestionnairePage() {
   const { id } = useParams<{ id: string }>();
   const templateId = Number(id);
+  const router = useRouter();
   const [templateName, setTemplateName] = useState("");
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [answers, setAnswers] = useState<Record<number, any>>({});
   const [loaded, setLoaded] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
 
   useEffect(() => {
     if (Number.isNaN(templateId)) return;
 
+
     const load = async () => {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/${templateId}`);
-        if (!res.ok) throw new Error(await res.text());
-
-        const data = await res.json();
-        const template = data?.template ?? data;
+        const template = await apiFetch<{ templateName: string; questions: any[] }>(
+          `/questionnaires/${templateId}`
+        );
 
         if (!template || !Array.isArray(template.questions)) {
-          console.error("Invalid questionnaire payload", data);
+          console.error("Invalid questionnaire payload", template);
           return;
         }
 
@@ -87,8 +88,9 @@ export default function EditQuestionnairePage() {
         setQuestions(
           template.questions.map((q: any) => ({
             uiId: Date.now() + Math.random(),
+            id: q.id,
             dbId: q.id,
-            text: q.label ?? "",
+            label: q.label ?? "",
             type: q.type,
             configs: q.configs ?? {},
           }))
@@ -104,9 +106,9 @@ export default function EditQuestionnairePage() {
   }, [templateId]);
 
   const addQuestion = (type: QuestionType) => {
-    const q: Question = {
+    const q: EditableQuestion = {
       uiId: Date.now() + Math.random(),
-      text: "",
+      label: "",
       type,
       configs: {},
     };
@@ -120,7 +122,6 @@ export default function EditQuestionnairePage() {
         step: 1,
         left: "Strongly disagree",
         right: "Strongly agree",
-        helperText: "To what extent do you agree with the above statement?",
       };
     }
 
@@ -136,10 +137,10 @@ export default function EditQuestionnairePage() {
     if (questions.length === 0) errors.push("At least one question is required.");
 
     questions.forEach((q, idx) => {
-      if (!q.text.trim()) errors.push(`Question ${idx + 1} must have text.`);
+      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
 
       if (q.type === "multiple-choice") {
-        const opts = Array.isArray(q.configs?.options) ? q.configs.options : [];
+        const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
         if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
         if (opts.some((o: string) => !String(o ?? "").trim())) {
           errors.push(`Question ${idx + 1} has empty options.`);
@@ -147,7 +148,7 @@ export default function EditQuestionnairePage() {
       }
 
       if (q.type === "slider") {
-        const { min, max, step, left, right } = q.configs ?? {};
+        const { min, max, step, left, right } = (q.configs as SliderConfigs | undefined) ?? {};
         if (typeof min !== "number" || typeof max !== "number") {
           errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
         } else if (min >= max) {
@@ -171,21 +172,22 @@ export default function EditQuestionnairePage() {
     setSaving(true);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/${templateId}`, {
+      await apiFetch(`/questionnaires/${templateId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateName,
           questions: questions.map((q) => ({
             id: q.dbId,
-            text: q.text,
+            label: q.label,
             type: q.type,
             configs: q.configs,
           })),
         }),
       });
 
-      if (!res.ok) throw new Error(await res.text());
+      setHasUnsavedChanges(false);
+
+      router.back();
     } catch (err) {
       console.error(err);
       alert("Save failed — check console");
@@ -202,14 +204,20 @@ export default function EditQuestionnairePage() {
       <h1 style={{ marginBottom: 6 }}>Edit questionnaire</h1>
       <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
-      {!preview && (
+
+      {!preview ? (
         <input
           placeholder="Questionnaire name"
           value={templateName}
-          onChange={(e) => setTemplateName(e.target.value)}
+          onChange={(e) => {
+            setTemplateName(e.target.value);
+            setHasUnsavedChanges(true);
+          }}
+
           style={styles.input}
         />
-      )}
+      )
+        : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
 
       <div style={styles.btnRow}>
         <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
@@ -217,19 +225,39 @@ export default function EditQuestionnairePage() {
         </button>
 
         {!preview && (
-          <button
-            style={{
-              ...styles.btnPrimary,
-              opacity: !isValid || saving ? 0.6 : 1,
-              cursor: !isValid || saving ? "not-allowed" : "pointer",
-            }}
-            onClick={saveTemplate}
-            disabled={!isValid || saving}
-          >
-            {saving ? "Saving..." : "Save changes"}
-          </button>
+          <>
+            <button
+              style={{
+                ...styles.btnPrimary,
+                opacity: !isValid || saving ? 0.6 : 1,
+                cursor: !isValid || saving ? "not-allowed" : "pointer",
+              }}
+              onClick={saveTemplate}
+              disabled={!isValid || saving}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+
+            <button
+              style={styles.btn}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  const confirmed = window.confirm(
+                    "You have unsaved changes. Are you sure you want to exit without saving?"
+                  );
+
+                  if (!confirmed) return;
+                }
+
+                router.back();
+              }}
+            >
+              Cancel
+            </button>
+          </>
         )}
       </div>
+
 
       {!preview && !isValid && (
         <ul style={styles.errors}>
@@ -241,47 +269,78 @@ export default function EditQuestionnairePage() {
 
       {questions.map((q, i) => (
         <div key={q.uiId} style={styles.card}>
+          {!preview && (
+            <div style={{ marginBottom: 12, opacity: 0.6 }}>
+              {q.type}
+            </div>
+          )}
           <div style={styles.row}>
             <strong>
               {i + 1}.
-               {!preview && ` ${q.type}`}
             </strong>
 
             {!preview && (
+              <input
+                placeholder="Enter your question"
+                value={q.label}
+                onChange={(e) => {
+                  setQuestions((qs) =>
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
+                  );
+                  setHasUnsavedChanges(true);
+                }
+                }
+                style={{ ...styles.input }}
+              />)}
+
+
+            {!preview ? (
               <button
                 style={styles.btn}
                 onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
               >
                 Remove
               </button>
-            )}
+            ) : (<div style={{ flex: 1 }}>
+              <strong>
+                {q.label || "Untitled question"}
+              </strong>
+            </div>)
+
+            }
           </div>
 
           {preview ? (
             <>
-              <strong style={{ display: "block", marginTop: 10 }}>
-                {q.text || "Untitled question"}
-              </strong>
 
-              {q.type === "slider" && q.configs?.helperText && (
-                <p style={{ marginTop: 6, ...styles.small }}>{q.configs.helperText}</p>
+
+              {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
+                <p style={{ marginTop: 6 }}>
+                  {(q.configs as SliderConfigs).helperText}
+                </p>
               )}
 
               {q.type === "text" && (
                 <input
                   style={{ ...styles.input, marginTop: 10 }}
                   value={answers[q.uiId] || ""}
-                  onChange={(e) => setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }))}
+                  onChange={(e) => {
+                    setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }));
+                    setHasUnsavedChanges(true);
+                  }}
                 />
               )}
 
               {q.type === "multiple-choice" &&
-                (q.configs?.options ?? []).map((o: string) => (
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
                   <label key={o} style={{ display: "block", marginTop: 8 }}>
                     <input
                       type="radio"
                       checked={answers[q.uiId] === o}
-                      onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: o }))}
+                      onChange={() => {
+                        setAnswers((a) => ({ ...a, [q.uiId]: o }));
+                        setHasUnsavedChanges(true);
+                      }}
                     />{" "}
                     {o}
                   </label>
@@ -294,7 +353,10 @@ export default function EditQuestionnairePage() {
                       <input
                         type="radio"
                         checked={answers[q.uiId] === n}
-                        onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: n }))}
+                        onChange={() => {
+                          setAnswers((a) => ({ ...a, [q.uiId]: n }));
+                          setHasUnsavedChanges(true);
+                        }}
                       />{" "}
                       {n}
                     </label>
@@ -305,79 +367,76 @@ export default function EditQuestionnairePage() {
               {q.type === "slider" && (
                 <>
                   <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
-                    <span>{q.configs?.left}</span>
-                    <span>{q.configs?.right}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.left}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.right}</span>
                   </div>
 
                   <input
                     type="range"
-                    min={q.configs?.min}
-                    max={q.configs?.max}
-                    step={q.configs?.step}
-                    value={answers[q.uiId] ?? q.configs?.min ?? 0}
-                    onChange={(e) =>
-                      setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }))
-                    }
+                    min={(q.configs as SliderConfigs | undefined)?.min}
+                    max={(q.configs as SliderConfigs | undefined)?.max}
+                    step={(q.configs as SliderConfigs | undefined)?.step}
+                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                    onChange={(e) => {
+                      setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }));
+                      setHasUnsavedChanges(true);
+                    }}
                     style={{ width: "100%", marginTop: 8 }}
                   />
 
                   <div style={styles.small}>
-                    Selected: {answers[q.uiId] ?? q.configs?.min ?? 0}
+                    Selected: {answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
                   </div>
                 </>
               )}
             </>
           ) : (
             <>
-              <input
-                placeholder="Question text"
-                value={q.text}
-                onChange={(e) =>
-                  setQuestions((qs) =>
-                    qs.map((x) => (x.uiId === q.uiId ? { ...x, text: e.target.value } : x))
-                  )
-                }
-                style={{ ...styles.input, marginTop: 10 }}
-              />
+
 
               {q.type === "slider" && (
                 <input
                   placeholder="Helper text shown to students"
-                  value={q.configs?.helperText ?? ""}
-                  onChange={(e) =>
+                  value={(q.configs as SliderConfigs | undefined)?.helperText ?? ""}
+                  onChange={(e) => {
                     setQuestions((qs) =>
                       qs.map((x) =>
                         x.uiId === q.uiId
                           ? { ...x, configs: { ...x.configs, helperText: e.target.value } }
                           : x
                       )
-                    )
+
+                    );
+                    setHasUnsavedChanges(true);
+                  }
                   }
                   style={{ ...styles.input, marginTop: 8, opacity: 0.9 }}
                 />
               )}
 
               {q.type === "multiple-choice" &&
-                (q.configs?.options ?? []).map((o: string, idx: number) => (
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
                   <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
                     <input
                       value={o}
-                      onChange={(e) =>
+                      onChange={(e) => {
                         setQuestions((qs) =>
                           qs.map((x) =>
                             x.uiId === q.uiId
                               ? {
-                                  ...x,
-                                  configs: {
-                                    ...x.configs,
-                                    options: x.configs.options.map((opt: string, i: number) =>
-                                      i === idx ? e.target.value : opt
-                                    ),
-                                  },
-                                }
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
+                                    i === idx ? e.target.value : opt
+                                  ),
+                                },
+                              }
                               : x
                           )
-                        )
+                        );
+                        setHasUnsavedChanges(true);
+                      }
                       }
                       style={{ ...styles.input, flex: 1 }}
                     />
@@ -389,12 +448,14 @@ export default function EditQuestionnairePage() {
                           qs.map((x) =>
                             x.uiId === q.uiId
                               ? {
-                                  ...x,
-                                  configs: {
-                                    ...x.configs,
-                                    options: x.configs.options.filter((_: string, i: number) => i !== idx),
-                                  },
-                                }
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.filter(
+                                    (_: string, i: number) => i !== idx
+                                  ),
+                                },
+                              }
                               : x
                           )
                         )
@@ -413,12 +474,15 @@ export default function EditQuestionnairePage() {
                       qs.map((x) =>
                         x.uiId === q.uiId
                           ? {
-                              ...x,
-                              configs: {
-                                ...x.configs,
-                                options: [...x.configs.options, "New option"],
-                              },
-                            }
+                            ...x,
+                            configs: {
+                              ...x.configs,
+                              options: [
+                                ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                "New option",
+                              ],
+                            },
+                          }
                           : x
                       )
                     )

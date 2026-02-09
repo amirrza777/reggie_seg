@@ -1,22 +1,24 @@
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
-import type { Question ,  IncomingQuestion } from "./types.js";
+import type { Question, IncomingQuestion } from "./types.js";
 
 export function createQuestionnaireTemplate(
   templateName: string,
-  questions: any[]
+  questions: any[],
+  userId: number
 ) {
   return prisma.questionnaireTemplate.create({
     data: {
       templateName,
       questions: {
         create: questions.map((q, index) => ({
-          label: q.text,
+          label: q.label,
           type: q.type,
           order: index,
           configs: q.configs ?? null,
         })),
       },
+      ownerId: userId,
     },
   })
 }
@@ -39,7 +41,7 @@ export async function updateQuestionnaireTemplate(
   templateName: string,
   questions: IncomingQuestion[]
 ) {
-    //update in transaction so no data is lost if error occurs
+  //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
@@ -67,7 +69,7 @@ export async function updateQuestionnaireTemplate(
       await tx.question.update({
         where: { id: q.id! },
         data: {
-          label: q.text,
+          label: q.label,
           type: q.type,
           configs: q.configs ?? Prisma.JsonNull,
           order: questions.indexOf(q),
@@ -80,7 +82,7 @@ export async function updateQuestionnaireTemplate(
       await tx.question.createMany({
         data: toCreate.map((q) => ({
           templateId,
-          label: q.text,
+          label: q.label,
           type: q.type,
           order: questions.indexOf(q),
           configs: q.configs ?? Prisma.JsonNull,

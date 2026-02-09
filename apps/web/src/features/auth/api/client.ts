@@ -67,10 +67,22 @@ export async function updateProfile(payload: {
   avatarBase64?: string | null;
   avatarMime?: string | null;
 }): Promise<UserProfile> {
-  return apiFetch<UserProfile>("/auth/profile", {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  try {
+    return await apiFetch<UserProfile>("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
+  } catch (err: any) {
+    if (err?.status === 401) {
+      const token = await refreshAccessToken();
+      if (!token) throw err;
+      return await apiFetch<UserProfile>("/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+    }
+    throw err;
+  }
 }
 
 export async function requestEmailChange(newEmail: string): Promise<void> {
