@@ -20,6 +20,11 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
   const [comments, setComments] = useState(meeting.comments);
   const [newComment, setNewComment] = useState("");
   const [commentStatus, setCommentStatus] = useState<"idle" | "loading">("idle");
+  const [attendanceStatus, setAttendanceStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [attendanceMsg, setAttendanceMsg] = useState<string | null>(null);
+  const [minutesStatus, setMinutesStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [minutesMsg, setMinutesMsg] = useState<string | null>(null);
+  const [commentMsg, setCommentMsg] = useState<string | null>(null);
 
   function handleStatusChange(userId: number, status: string) {
     setAttendances((prev) =>
@@ -28,19 +33,38 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
   }
 
   async function handleSaveAttendance() {
-    await markAttendance(
-      meeting.id,
-      attendances.map((a) => ({ userId: a.userId, status: a.status }))
-    );
+    setAttendanceStatus("loading");
+    setAttendanceMsg(null);
+    try {
+      await markAttendance(
+        meeting.id,
+        attendances.map((a) => ({ userId: a.userId, status: a.status }))
+      );
+      setAttendanceStatus("success");
+      setAttendanceMsg("Attendance saved!");
+    } catch (error) {
+      setAttendanceStatus("error");
+      setAttendanceMsg(error instanceof Error ? error.message : "Failed to save attendance");
+    }
   }
 
   async function handleSaveMinutes(content: string) {
-    await saveMinutes(meeting.id, user!.id, content);
+    setMinutesStatus("loading");
+    setMinutesMsg(null);
+    try {
+      await saveMinutes(meeting.id, user!.id, content);
+      setMinutesStatus("success");
+      setMinutesMsg("Minutes saved!");
+    } catch (error) {
+      setMinutesStatus("error");
+      setMinutesMsg(error instanceof Error ? error.message : "Failed to save minutes");
+    }
   }
 
   async function handleAddComment() {
     if (!newComment.trim() || !user) return;
     setCommentStatus("loading");
+    setCommentMsg(null);
     try {
       await addComment(meeting.id, user.id, newComment.trim());
       setComments((prev) => [
@@ -56,14 +80,20 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
         },
       ]);
       setNewComment("");
+    } catch (error) {
+      setCommentMsg(error instanceof Error ? error.message : "Failed to post comment");
     } finally {
       setCommentStatus("idle");
     }
   }
 
   async function handleDeleteComment(commentId: number) {
-    await deleteComment(commentId);
-    setComments((prev) => prev.filter((c) => c.id !== commentId));
+    try {
+      await deleteComment(commentId);
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+    } catch (error) {
+      setCommentMsg(error instanceof Error ? error.message : "Failed to delete comment");
+    }
   }
 
   return (
@@ -86,6 +116,7 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
           onStatusChange={handleStatusChange}
           onSave={handleSaveAttendance}
         />
+        {attendanceMsg && <p className={attendanceStatus === "error" ? "error" : "muted"}>{attendanceMsg}</p>}
       </Card>
 
       <Card title="Minutes">
@@ -93,6 +124,7 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
           initialContent={meeting.minutes?.content ?? ""}
           onSave={handleSaveMinutes}
         />
+        {minutesMsg && <p className={minutesStatus === "error" ? "error" : "muted"}>{minutesMsg}</p>}
       </Card>
 
       <Card title="Comments">
@@ -132,6 +164,7 @@ export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
               </div>
             </div>
           )}
+          {commentMsg && <p className="error">{commentMsg}</p>}
         </div>
       </Card>
     </div>
