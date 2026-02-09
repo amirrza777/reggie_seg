@@ -1,0 +1,517 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/shared/api/http";
+import { API_BASE_URL } from "@/shared/api/env";
+import type {
+  EditableQuestion,
+  MultipleChoiceConfigs,
+  QuestionType,
+  RatingConfigs,
+  SliderConfigs,
+} from "@/features/questionnaires/types";
+
+const styles = {
+  page: { padding: 32, maxWidth: 900 },
+  hint: { opacity: 0.75 },
+  input: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-surface)",
+    color: "var(--ink)",
+    WebkitTextFillColor: "var(--ink)",
+    outline: "none",
+  } as React.CSSProperties,
+  card: {
+    marginTop: 20,
+    padding: 16,
+    border: "1px solid var(--border)",
+    borderRadius: 14,
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-sm)",
+  } as React.CSSProperties,
+  row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" } as React.CSSProperties,
+  btnRow: { marginTop: 16, display: "flex", gap: 8, alignItems: "center" } as React.CSSProperties,
+  btn: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    background: "var(--glass-hover)",
+    color: "var(--ink)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  btnPrimary: {
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: "1px solid var(--btn-primary-border)",
+    background: "var(--btn-primary-bg)",
+    color: "var(--btn-primary-text)",
+    cursor: "pointer",
+  } as React.CSSProperties,
+  errors: { marginTop: 12, color: "var(--accent-warm)", fontSize: 14 } as React.CSSProperties,
+  small: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
+};
+
+export default function EditQuestionnairePage() {
+  const { id } = useParams<{ id: string }>();
+  const templateId = Number(id);
+  const router = useRouter();
+  const [templateName, setTemplateName] = useState("");
+  const [questions, setQuestions] = useState<EditableQuestion[]>([]);
+  const [preview, setPreview] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [loaded, setLoaded] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+
+  useEffect(() => {
+    if (Number.isNaN(templateId)) return;
+
+
+    const load = async () => {
+      try {
+        const template = await apiFetch<{ templateName: string; questions: any[] }>(
+          `/questionnaires/${templateId}`
+        );
+
+        if (!template || !Array.isArray(template.questions)) {
+          console.error("Invalid questionnaire payload", template);
+          return;
+        }
+
+        setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
+
+        setQuestions(
+          template.questions.map((q: any) => ({
+            uiId: Date.now() + Math.random(),
+            id: q.id,
+            dbId: q.id,
+            label: q.label ?? "",
+            type: q.type,
+            configs: q.configs ?? {},
+          }))
+        );
+
+        setLoaded(true);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    load();
+  }, [templateId]);
+
+  const addQuestion = (type: QuestionType) => {
+    const q: EditableQuestion = {
+      uiId: Date.now() + Math.random(),
+      label: "",
+      type,
+      configs: {},
+    };
+
+    if (type === "multiple-choice") q.configs = { options: ["Yes", "No"] };
+    if (type === "rating") q.configs = { min: 1, max: 10 };
+    if (type === "slider") {
+      q.configs = {
+        min: 0,
+        max: 100,
+        step: 1,
+        left: "Strongly disagree",
+        right: "Strongly agree",
+      };
+    }
+
+    setQuestions((qs) => [...qs, q]);
+  };
+
+  const validationErrors = useMemo(() => {
+    if (preview) return [];
+
+    const errors: string[] = [];
+
+    if (!templateName.trim()) errors.push("Questionnaire name is required.");
+    if (questions.length === 0) errors.push("At least one question is required.");
+
+    questions.forEach((q, idx) => {
+      if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
+
+      if (q.type === "multiple-choice") {
+        const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
+        if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
+        if (opts.some((o: string) => !String(o ?? "").trim())) {
+          errors.push(`Question ${idx + 1} has empty options.`);
+        }
+      }
+
+      if (q.type === "slider") {
+        const { min, max, step, left, right } = (q.configs as SliderConfigs | undefined) ?? {};
+        if (typeof min !== "number" || typeof max !== "number") {
+          errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
+        } else if (min >= max) {
+          errors.push(`Question ${idx + 1} slider min must be less than max.`);
+        }
+        if (typeof step !== "number" || step <= 0) {
+          errors.push(`Question ${idx + 1} slider step must be greater than zero.`);
+        }
+        if (!left || !right) errors.push(`Question ${idx + 1} slider labels are required.`);
+      }
+    });
+
+    return errors;
+  }, [templateName, questions, preview]);
+
+  const isValid = validationErrors.length === 0;
+
+  const saveTemplate = async () => {
+    if (!isValid) return;
+
+    setSaving(true);
+
+    try {
+      await apiFetch(`/questionnaires/${templateId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          templateName,
+          questions: questions.map((q) => ({
+            id: q.dbId,
+            label: q.label,
+            type: q.type,
+            configs: q.configs,
+          })),
+        }),
+      });
+
+      setHasUnsavedChanges(false);
+
+      router.back();
+    } catch (err) {
+      console.error(err);
+      alert("Save failed — check console");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
+  if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
+
+  return (
+    <div style={styles.page}>
+      <h1 style={{ marginBottom: 6 }}>Edit questionnaire</h1>
+      <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
+
+
+      {!preview ? (
+        <input
+          placeholder="Questionnaire name"
+          value={templateName}
+          onChange={(e) => {
+            setTemplateName(e.target.value);
+            setHasUnsavedChanges(true);
+          }}
+
+          style={styles.input}
+        />
+      )
+        : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
+
+      <div style={styles.btnRow}>
+        <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
+          {preview ? "Back to editor" : "Student preview"}
+        </button>
+
+        {!preview && (
+          <>
+            <button
+              style={{
+                ...styles.btnPrimary,
+                opacity: !isValid || saving ? 0.6 : 1,
+                cursor: !isValid || saving ? "not-allowed" : "pointer",
+              }}
+              onClick={saveTemplate}
+              disabled={!isValid || saving}
+            >
+              {saving ? "Saving..." : "Save changes"}
+            </button>
+
+            <button
+              style={styles.btn}
+              onClick={() => {
+                if (hasUnsavedChanges) {
+                  const confirmed = window.confirm(
+                    "You have unsaved changes. Are you sure you want to exit without saving?"
+                  );
+
+                  if (!confirmed) return;
+                }
+
+                router.back();
+              }}
+            >
+              Cancel
+            </button>
+          </>
+        )}
+      </div>
+
+
+      {!preview && !isValid && (
+        <ul style={styles.errors}>
+          {validationErrors.map((e, i) => (
+            <li key={i}>{e}</li>
+          ))}
+        </ul>
+      )}
+
+      {questions.map((q, i) => (
+        <div key={q.uiId} style={styles.card}>
+          {!preview && (
+            <div style={{ marginBottom: 12, opacity: 0.6 }}>
+              {q.type}
+            </div>
+          )}
+          <div style={styles.row}>
+            <strong>
+              {i + 1}.
+            </strong>
+
+            {!preview && (
+              <input
+                placeholder="Enter your question"
+                value={q.label}
+                onChange={(e) => {
+                  setQuestions((qs) =>
+                    qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
+                  );
+                  setHasUnsavedChanges(true);
+                }
+                }
+                style={{ ...styles.input }}
+              />)}
+
+
+            {!preview ? (
+              <button
+                style={styles.btn}
+                onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
+              >
+                Remove
+              </button>
+            ) : (<div style={{ flex: 1 }}>
+              <strong>
+                {q.label || "Untitled question"}
+              </strong>
+            </div>)
+
+            }
+          </div>
+
+          {preview ? (
+            <>
+
+
+              {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
+                <p style={{ marginTop: 6 }}>
+                  {(q.configs as SliderConfigs).helperText}
+                </p>
+              )}
+
+              {q.type === "text" && (
+                <input
+                  style={{ ...styles.input, marginTop: 10 }}
+                  value={answers[q.uiId] || ""}
+                  onChange={(e) => {
+                    setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }));
+                    setHasUnsavedChanges(true);
+                  }}
+                />
+              )}
+
+              {q.type === "multiple-choice" &&
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
+                  <label key={o} style={{ display: "block", marginTop: 8 }}>
+                    <input
+                      type="radio"
+                      checked={answers[q.uiId] === o}
+                      onChange={() => {
+                        setAnswers((a) => ({ ...a, [q.uiId]: o }));
+                        setHasUnsavedChanges(true);
+                      }}
+                    />{" "}
+                    {o}
+                  </label>
+                ))}
+
+              {q.type === "rating" && (
+                <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+                  {Array.from({ length: 10 }, (_, n) => n + 1).map((n) => (
+                    <label key={n} style={{ fontSize: 12 }}>
+                      <input
+                        type="radio"
+                        checked={answers[q.uiId] === n}
+                        onChange={() => {
+                          setAnswers((a) => ({ ...a, [q.uiId]: n }));
+                          setHasUnsavedChanges(true);
+                        }}
+                      />{" "}
+                      {n}
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {q.type === "slider" && (
+                <>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
+                    <span>{(q.configs as SliderConfigs | undefined)?.left}</span>
+                    <span>{(q.configs as SliderConfigs | undefined)?.right}</span>
+                  </div>
+
+                  <input
+                    type="range"
+                    min={(q.configs as SliderConfigs | undefined)?.min}
+                    max={(q.configs as SliderConfigs | undefined)?.max}
+                    step={(q.configs as SliderConfigs | undefined)?.step}
+                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                    onChange={(e) => {
+                      setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }));
+                      setHasUnsavedChanges(true);
+                    }}
+                    style={{ width: "100%", marginTop: 8 }}
+                  />
+
+                  <div style={styles.small}>
+                    Selected: {answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                  </div>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+
+
+              {q.type === "slider" && (
+                <input
+                  placeholder="Helper text shown to students"
+                  value={(q.configs as SliderConfigs | undefined)?.helperText ?? ""}
+                  onChange={(e) => {
+                    setQuestions((qs) =>
+                      qs.map((x) =>
+                        x.uiId === q.uiId
+                          ? { ...x, configs: { ...x.configs, helperText: e.target.value } }
+                          : x
+                      )
+
+                    );
+                    setHasUnsavedChanges(true);
+                  }
+                  }
+                  style={{ ...styles.input, marginTop: 8, opacity: 0.9 }}
+                />
+              )}
+
+              {q.type === "multiple-choice" &&
+                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
+                  <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                    <input
+                      value={o}
+                      onChange={(e) => {
+                        setQuestions((qs) =>
+                          qs.map((x) =>
+                            x.uiId === q.uiId
+                              ? {
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
+                                    i === idx ? e.target.value : opt
+                                  ),
+                                },
+                              }
+                              : x
+                          )
+                        );
+                        setHasUnsavedChanges(true);
+                      }
+                      }
+                      style={{ ...styles.input, flex: 1 }}
+                    />
+
+                    <button
+                      style={styles.btn}
+                      onClick={() =>
+                        setQuestions((qs) =>
+                          qs.map((x) =>
+                            x.uiId === q.uiId
+                              ? {
+                                ...x,
+                                configs: {
+                                  ...x.configs,
+                                  options: (x.configs as MultipleChoiceConfigs).options.filter(
+                                    (_: string, i: number) => i !== idx
+                                  ),
+                                },
+                              }
+                              : x
+                          )
+                        )
+                      }
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+
+              {q.type === "multiple-choice" && (
+                <button
+                  style={{ ...styles.btn, marginTop: 10 }}
+                  onClick={() =>
+                    setQuestions((qs) =>
+                      qs.map((x) =>
+                        x.uiId === q.uiId
+                          ? {
+                            ...x,
+                            configs: {
+                              ...x.configs,
+                              options: [
+                                ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                "New option",
+                              ],
+                            },
+                          }
+                          : x
+                      )
+                    )
+                  }
+                >
+                  Add option
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      ))}
+
+      {!preview && (
+        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button style={styles.btn} onClick={() => addQuestion("text")}>
+            Add text
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("multiple-choice")}>
+            Add multiple choice
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("rating")}>
+            Add rating
+          </button>
+          <button style={styles.btn} onClick={() => addQuestion("slider")}>
+            Add slider
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
