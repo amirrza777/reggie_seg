@@ -43,12 +43,7 @@ export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
     revieweeUserId: raw.revieweeUserId,
     submittedAt: raw.submittedAt,
     templateId: raw.templateId,
-    answers: mapApiQuestionsToQuestions(raw).map((q) => ({
-        id: String(q.id),
-        order: q.order,
-        question: q.text,
-        answer: String(raw.answersJson?.[q.id] ?? "")
-    })),
+    answers: raw.answersJson ?? {},
     firstName: raw.reviewee?.firstName ?? "",
     lastName: raw.reviewee?.lastName ?? "",
   }

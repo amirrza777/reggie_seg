@@ -6,8 +6,8 @@ import type { Question } from "../types";
 import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 
 const toAnswersArray = (answers: Record<string, string>) =>
-  Object.entries(answers).map(([id, answer]) => ({
-    id,
+  Object.entries(answers).map(([question, answer]) => ({
+    question,
     answer,
   }));
 
@@ -44,6 +44,9 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  
+  console.log("PeerAssessmentForm - assessmentId prop:", assessmentId);
+  console.log("PeerAssessmentForm - isEditMode:", isEditMode);
 
   useEffect(() => {
     if (initialAnswers) {
@@ -64,7 +67,7 @@ export function PeerAssessmentForm({
 
     try {
       if (isEditMode && assessmentId) {
-        await updatePeerAssessment(assessmentId, toAnswersArray(answers));
+        await updatePeerAssessment(assessmentId, answers);
       } else {
         await createPeerAssessment({
           moduleId,

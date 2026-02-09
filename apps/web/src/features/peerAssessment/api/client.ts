@@ -35,6 +35,7 @@ export async function getPeerAssessment(
 }
 
 export async function updatePeerAssessment(assessmentId: number, answersJson: Record<string, any>) {
+  console.log("Updating assessment", assessmentId, "with answers:", answersJson);
   return apiFetch(`/peer-assessments/${assessmentId}`, {
     method: "PUT",
     body: JSON.stringify({ answersJson }),
