@@ -6,7 +6,7 @@ type FeedbackListViewProps = {
   projectId?: string;
 };
 
-export function FeedbackListView({ feedbacks, projectId }: FeedbackListViewProps) {
+export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListViewProps) {
   if (!feedbacks || feedbacks.length === 0) {
     return <p>No feedbacks submitted yet.</p>;
   }

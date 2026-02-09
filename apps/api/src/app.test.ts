@@ -1,6 +1,6 @@
 import express from "express";
 import { vi } from "vitest";
-import { healthHandler } from "./health";
+import { healthHandler } from "./health.js";
 
 // Mock questionnaires router to avoid hitting Prisma during health check
 vi.mock("./features/questionnaires/router", () => {
@@ -8,7 +8,7 @@ vi.mock("./features/questionnaires/router", () => {
   return { default: router };
 });
 
-import { app } from "./app";
+import { app } from "./app.js";
 
 describe("API health", () => {
   it("returns ok", async () => {

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, saveFeedbackReview } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 const peerService = new PeerAssessmentService();
 
@@ -78,6 +78,7 @@ export async function getAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function updateAssessmentHandler(req: Request, res: Response) {
+  
   const assessmentId = Number(req.params.id)
   const { answersJson } = req.body
 
@@ -103,82 +104,55 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 
 export async function getAssessmentsHandler(req: Request, res: Response) {
   const userId = Number(req.params.userId);
+  const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
   }
 
   try {
-    const feedbacks = await peerService.getFeedbackForStudent(userId);
-    res.json(feedbacks);
+    const assessments = await fetchTeammateAssessments(userId, projectId);
+    res.json(assessments);
   } catch (error) {
-    console.error("Error fetching peer feedbacks:", error);
+    console.error("Error fetching peer assessments:", error);
     res.status(500).json({ error: "Internal server error" });
   }   
 }
 
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
+  const assessmentId = Number(req.params.id);
 
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
+  if (isNaN(assessmentId)) {
+    return res.status(400).json({ error: "Invalid assessment ID" });
   }
   
   try {
-    const feedback = await peerService.getFeedbackById(feedbackId);
-    if (!feedback) {
-      return res.status(404).json({ error: "Feedback not found" });
+    const assessment = await fetchAssessmentById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ error: "Assessment not found" });
     }
-    res.json(feedback);
+    res.json(assessment);
   } catch (error) {
-    console.error("Error fetching peer feedback:", error);
+    console.error("Error fetching peer assessment:", error);
     res.status(500).json({ error: "Internal server error" });   
   }   
 }
 
-export async function createFeedbackReviewHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  const { reviewText, agreements } = req.body;
+export async function getQuestionsForProjectHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
 
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
-  }
-
-  if (typeof agreements !== 'object' || !agreements) {
-    return res.status(400).json({ error: "Invalid agreements object" });
-  }
-
-  const validOptions = ['Strongly Disagree', 'Disagree', 'Reasonable', 'Agree', 'Strongly Agree'];
-  for (const [answerId, value] of Object.entries(agreements)) {
-    if (typeof value !== 'object' || !value) {
-      return res.status(400).json({ error: `Invalid agreement value for ${answerId}` });
-    }
-    const { selected, score } = value as any;
-    if (!validOptions.includes(selected) || typeof score !== 'number' || score < 1 || score > 5) {
-      return res.status(400).json({ error: `Invalid agreement option or score for ${answerId}` });
-    }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
-    const saved = saveFeedbackReview(feedbackId, { reviewText: reviewText || '', agreements });
-    res.json({ ok: true, saved });
+    const template = await fetchQuestionsForProject(projectId);
+    if (!template) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(template);
   } catch (error) {
-    console.error("Error saving feedback review:", error);
-    res.status(500).json({ error: "Internal server error" });
-  }
-}
-
-export async function getFeedbackReviewHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
-  }
-  try {
-    const review = await (await import("./service.js")).getFeedbackReview(feedbackId);
-    if (!review) return res.status(404).json({ error: "Review not found" });
-    res.json(review);
-  } catch (error) {
-    console.error("Error retrieving feedback review:", error);
+    console.error("Error fetching questionnaire template:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

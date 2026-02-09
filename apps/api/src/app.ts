@@ -7,6 +7,7 @@ import peerAssessmentsRouter from "./features/peerAssessment/router.js";
 import staffPeerAssessmentsRouter from "./features/peerAssessment/staff/router.js";
 import meetingsRouter from "./features/meetings/router.js";
 import authRouter from "./auth/router.js";
+import peerFeedbackRouter from "./features/peerFeedback/router.js";
 import { healthHandler } from "./health.js";
 import adminRouter from "./features/admin/router.js";
 
@@ -16,7 +17,7 @@ app.use(
   cors({
     origin: ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"],
     credentials: true,
-    methods: ["GET", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
@@ -29,6 +30,7 @@ app.get("/health", healthHandler);
 app.use("/auth", authRouter);
 app.use("/questionnaires", questionnairesRouter);
 app.use("/peer-assessments", peerAssessmentsRouter);
+app.use("/peer-feedback", peerFeedbackRouter);
 app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
 app.use("/admin", adminRouter);
