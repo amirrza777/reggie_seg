@@ -14,7 +14,7 @@ type MeetingListProps = {
 export function MeetingList({ meetings, onSelect, onCreateNew }: MeetingListProps) {
   return (
     <Card title="Meetings">
-      <div style={{ marginBottom: 12 }}>
+      <div>
         <Button type="button" onClick={onCreateNew}>
           New Meeting
         </Button>

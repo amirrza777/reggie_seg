@@ -34,7 +34,7 @@ export function AttendanceTable({ attendances, onStatusChange, onSave }: Attenda
           </div>
         ))}
       </div>
-      <div style={{ marginTop: 12 }}>
+      <div>
         <Button type="button" onClick={onSave}>
           Save Attendance
         </Button>

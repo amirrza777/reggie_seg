@@ -13,7 +13,7 @@ export function MinutesEditor({ initialContent, onSave }: MinutesEditorProps) {
 
   return (
     <div className="stack">
-      <label className="stack" style={{ gap: 6 }}>
+      <label className="stack">
         <span>Minutes</span>
         <textarea
           rows={6}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { useUser } from "@/features/auth/context";
 import { createMeeting } from "../api/client";
 
 type CreateMeetingFormProps = {
@@ -11,6 +12,7 @@ type CreateMeetingFormProps = {
 };
 
 export function CreateMeetingForm({ teamId, onCreated }: CreateMeetingFormProps) {
+  const { user } = useUser();
   const [title, setTitle] = useState("");
   const [date, setDate] = useState("");
   const [subject, setSubject] = useState("");
@@ -28,7 +30,7 @@ export function CreateMeetingForm({ teamId, onCreated }: CreateMeetingFormProps)
     try {
       await createMeeting({
         teamId,
-        organiserId: 1, // TODO: replace with logged-in user ID
+        organiserId: user!.id,
         title,
         date,
         subject: subject || undefined,
@@ -52,28 +54,28 @@ export function CreateMeetingForm({ teamId, onCreated }: CreateMeetingFormProps)
   return (
     <Card title="New Meeting">
       <form className="stack" onSubmit={handleSubmit}>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack">
           <span>Title *</span>
           <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
         </label>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack">
           <span>Date *</span>
           <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack">
           <span>Subject</span>
           <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} />
         </label>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack">
           <span>Location</span>
           <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
         </label>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack">
           <span>Agenda</span>
           <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
         <div>
-          <Button type="submit" disabled={status === "loading"}>
+          <Button type="submit" disabled={status === "loading" || !user}>
             {status === "loading" ? "Creating..." : "Create Meeting"}
           </Button>
         </div>
