@@ -30,12 +30,10 @@ export function createPeerAssessment(data: {
 }) {
   return prisma.peerAssessment.create({
     data: {
-      moduleId: data.moduleId,
       projectId: data.projectId,
       teamId: data.teamId,
       reviewerUserId: data.reviewerUserId,
       revieweeUserId: data.revieweeUserId,
-      questionnaireTemplateId: data.templateId,
       templateId: data.templateId,
       answersJson: data.answersJson,
     },
@@ -51,8 +49,7 @@ export function getPeerAssessment(
 ) {
   return prisma.peerAssessment.findUnique({
     where: {
-      moduleId_projectId_teamId_reviewerUserId_revieweeUserId: {
-        moduleId,
+      projectId_teamId_reviewerUserId_revieweeUserId: {
         projectId,
         teamId,
         reviewerUserId: reviewerId,

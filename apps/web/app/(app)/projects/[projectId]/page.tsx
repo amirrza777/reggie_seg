@@ -1,22 +1,25 @@
-import { ProjectOverview } from "@/features/projects/components/ProjectOverview";
+import { getProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
-export default async function ProjectOverviewPage({ params }: ProjectPageProps) {
+export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
+  
+  
+  const project = await getProject(projectId);
+  
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />
-      <Placeholder
-        title="Project overview"
-        path={`/projects/${projectId}`}
-        description={`Landing view for project ${projectId}.`}
-      />
-      <ProjectOverview />
+      <div style={{ padding: "20px" }}>
+        <h1>{project?.name || "Project"}</h1>
+        <p style={{ color: "#666", marginTop: "8px" }}>
+          Project ID: {projectId}
+        </p>
+      </div>
     </div>
   );
 }

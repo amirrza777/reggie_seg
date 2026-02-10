@@ -5,6 +5,7 @@ model QuestionnaireTemplate {
   updatedAt    DateTime         @updatedAt
   assessments  PeerAssessment[] @relation("TemplateAssessments")
   questions    Question[]
+  projects     Project[]        @relation("ProjectTemplate")
 
   ownerId Int
   owner   User @relation(fields: [ownerId], references: [id])

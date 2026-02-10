@@ -11,7 +11,7 @@ function mapAnswersJsonToArray(answersJson: any): Answer[] {
 		return answersJson.map((a, idx) => ({
 			id: String(a.id ?? a.question ?? idx),
 			order: a.order ?? idx,
-			question: a.question ?? a.prompt ?? String(a.id ?? a.question ?? idx),
+			question: a.question ?? String(a.id ?? a.question ?? idx),
 			answer:
 				a.answer !== undefined
 				? a.answer

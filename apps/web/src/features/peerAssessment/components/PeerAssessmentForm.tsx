@@ -15,8 +15,7 @@ type PeerAssessmentFormProps = {
   teammateName: string;
   teamName: string;
   questions: Question[];
-  moduleId: number;
-  projectId?: number;
+  projectId: number;
   teamId: number;
   reviewerId: number;
   revieweeId: number;
@@ -29,7 +28,6 @@ export function PeerAssessmentForm({
   teammateName,
   teamName,
   questions,
-  moduleId,
   projectId,
   teamId,
   reviewerId,
@@ -44,7 +42,7 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
-  
+
 
   useEffect(() => {
     if (initialAnswers) {
@@ -68,8 +66,7 @@ export function PeerAssessmentForm({
         await updatePeerAssessment(assessmentId, answers);
       } else {
         await createPeerAssessment({
-          moduleId,
-          projectId: projectId || 1,
+          projectId,
           teamId,
           reviewerUserId: reviewerId,
           revieweeUserId: revieweeId,

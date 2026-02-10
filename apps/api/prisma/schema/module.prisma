@@ -1,10 +1,10 @@
 model Module {
   id              Int              @id @default(autoincrement())
-  name            String
+  name            String           @unique
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  projects        Project[]
   moduleLeads     ModuleLead[]
-  peerAssessments PeerAssessment[]
   userModules     UserModule[]
-  teams           Team[]
 }

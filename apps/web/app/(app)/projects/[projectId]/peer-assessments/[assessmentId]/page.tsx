@@ -26,7 +26,6 @@ export default async function AssessmentPage({params,}: AssessmentPageProps) {
             teamName="Team"
             teammateName="Peer"
             questions={questions}
-            moduleId={assessment.moduleId} 
             projectId={Number(projectId)}
             teamId={assessment.teamId}
             templateId={assessment.templateId}

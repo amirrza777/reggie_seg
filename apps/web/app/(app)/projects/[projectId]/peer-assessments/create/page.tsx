@@ -17,18 +17,21 @@ export default async function CreateAssessmentPage(props : CreatePageProps) {
     const revieweeId = Number(resolvedSearchParams.revieweeId);
     const reviewerId = Number(resolvedSearchParams.reviewerId);
 
-    const existingAssessment = await getPeerAssessmentData(
-      1, // moduleId - placeholder
-      projectId,
-      teamId,
-      reviewerId,
-      revieweeId
-    );
-    if (existingAssessment) {
-      redirect(`/projects/${projectId}/peer-assessments/${existingAssessment.id}`);
+    try{
+      const existingAssessment = await getPeerAssessmentData(
+        projectId,
+        teamId,
+        reviewerId,
+        revieweeId
+      );
+      if (existingAssessment) {
+        redirect(`/projects/${projectId}/peer-assessments/${existingAssessment.id}`);
+      }
     }
-
+    catch{}
+    
     const questions = await getQuestionsForProject(String(projectId));
+    
     return (
       <div className="stack">
         <ProjectNav projectId={String(projectId)} />
@@ -39,7 +42,6 @@ export default async function CreateAssessmentPage(props : CreatePageProps) {
               teamName="Team"
               teammateName="Peer"
               questions={questions}
-              moduleId={1}
               projectId={projectId}
               teamId={teamId}
               reviewerId={reviewerId}

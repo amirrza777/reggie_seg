@@ -14,22 +14,17 @@ export async function createPeerAssessment(data: PeerAssessmentData) {
 }
 
 export async function getPeerAssessment(
-  moduleId: number,
-  projectId: number | undefined,
+  projectId: number,
   teamId: number,
   reviewerId: number,
   revieweeId: number
 ) {
   const params = new URLSearchParams({
-    moduleId: String(moduleId),
+    projectId: String(projectId),
     teamId: String(teamId),
     reviewerId: String(reviewerId),
     revieweeId: String(revieweeId),
   });
-
-  if (projectId !== undefined) {
-    params.append("projectId", String(projectId));
-  }
 
   return apiFetch(`/peer-assessments?${params.toString()}`);
 }
@@ -42,13 +37,12 @@ export async function updatePeerAssessment(assessmentId: number, answersJson: Re
 }
 
 export async function getPeerAssessmentData(
-  moduleId: number,
   projectId: number,
   teamId: number,
   reviewerId: number,
   revieweeId: number
 ) {
-  const raw = await getPeerAssessment(moduleId, projectId, teamId, reviewerId, revieweeId);
+  const raw = await getPeerAssessment(projectId, teamId, reviewerId, revieweeId);
   return mapApiAssessmentToPeerAssessment(raw);
 }
 

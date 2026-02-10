@@ -1,27 +1,25 @@
 model PeerAssessment {
   id                      Int                   @id @default(autoincrement())
-  moduleId                Int
   projectId               Int
   teamId                  Int
   reviewerUserId          Int
   revieweeUserId          Int
   templateId              Int
   answersJson             Json
-  review    PeerFeedback?
+  review                  PeerFeedback?
   submittedAt             DateTime              @default(now())
   updatedAt               DateTime              @updatedAt
-  questionnaireTemplateId Int
-  module                  Module                @relation(fields: [moduleId], references: [id])
-  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments", fields: [questionnaireTemplateId], references: [id])
+  
+  project                 Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team                    Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments", fields: [templateId], references: [id])
   reviewee                User                  @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
   reviewer                User                  @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
-  team                    Team                  @relation(fields: [teamId], references: [id])
 
-  @@unique([moduleId, projectId, teamId, reviewerUserId, revieweeUserId])
-  @@index([moduleId])
+  @@unique([projectId, teamId, reviewerUserId, revieweeUserId])
   @@index([projectId])
   @@index([teamId])
+  @@index([templateId])
   @@index([reviewerUserId])
   @@index([revieweeUserId])
-  @@index([questionnaireTemplateId], map: "PeerAssessment_questionnaireTemplateId_fkey")
 }

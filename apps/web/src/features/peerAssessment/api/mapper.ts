@@ -36,7 +36,6 @@ export function mapApiQuestionsToQuestions(raw: any): Question[] {
 export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
     return {   
     id: String(raw.id),
-    moduleId: raw.moduleId,
     projectId: raw.projectId,
     teamId: raw.teamId,
     reviewerUserId: raw.reviewerUserId,
