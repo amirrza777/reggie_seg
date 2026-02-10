@@ -1,6 +1,6 @@
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getQuestionsByAssessment, getPeerAssessmentById, getQuestionsByProject } from "@/features/peerAssessment/api/client";
+import { getPeerAssessmentById, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 
 type AssessmentPageProps = {
   params: Promise<{ projectId: string; assessmentId: string }>;
@@ -14,7 +14,6 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const assessment = await getPeerAssessmentById(Number(assessmentId));
   const questions = await getQuestionsByProject(String(assessmentId));
 
-  console.log(questions);
   const assessmentIdNum = Number(assessmentId);
   const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
 

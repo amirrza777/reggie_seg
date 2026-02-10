@@ -39,8 +39,6 @@ export default async function CreateAssessmentPage(props : CreatePageProps) {
     
     const project = await getProject(String(projectId));
     const questions = await getQuestionsByProject(String(projectId));
-    console.log(questions);
-    console.log("Project data:", project);
     
     return (
       <div className="stack">
