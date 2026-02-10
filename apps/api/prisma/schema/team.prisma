@@ -10,6 +10,7 @@ model Team {
   enterprise      Enterprise       @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   peerAssessments PeerAssessment[]
   meetings        Meeting[]
+  invites         TeamInvite[]
 
   @@index([moduleId])
   @@index([enterpriseId])

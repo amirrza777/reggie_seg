@@ -26,6 +26,8 @@ model User {
   emailChangeTokens   EmailChangeToken[]
 
   questionnaires  QuestionnaireTemplate[]
+  teamInvitesSent     TeamInvite[] @relation("TeamInvitesSent")
+  teamInvitesReceived TeamInvite[] @relation("TeamInvitesReceived")
 
   @@index([enterpriseId])
   @@unique([enterpriseId, email])
