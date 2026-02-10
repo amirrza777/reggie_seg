@@ -3,7 +3,9 @@ import { createProjectHandler,
          getProjectByIdHandler,
          getUserProjectsHandler,
          getProjectDeadlineHandler,
-         getTeammatesForProjectHandler} 
+         getTeammatesForProjectHandler,
+         getTeamByIdHandler,
+         getTeamByUserAndProjectHandler} 
 from "./controller.js";
 
 const router = Router();
@@ -12,5 +14,7 @@ router.get("/:projectId", getProjectByIdHandler);
 router.get("/", getUserProjectsHandler);
 router.get("/:projectId/teammates", getTeammatesForProjectHandler);
 router.get("/:projectId/deadline", getProjectDeadlineHandler);
+router.get("/:projectId/team", getTeamByUserAndProjectHandler);
+router.get("/teams/:teamId", getTeamByIdHandler);
 
 export default router;

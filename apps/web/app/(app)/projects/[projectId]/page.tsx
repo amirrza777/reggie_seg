@@ -1,4 +1,4 @@
-import { getProject, getProjectDeadline } from "@/features/projects/api/client";
+import { getProject, getProjectDeadline , getTeamByUserAndProject} from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 
@@ -13,6 +13,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   
   const project = await getProject(projectId);
   const deadline = await getProjectDeadline(4, Number(projectId));
+  const team = await getTeamByUserAndProject(4, Number(projectId)); 
   
   return (
     <div className="stack">
@@ -20,7 +21,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       <div style={{ padding: "20px" }}>
         <h1>{project?.name || "Project"}</h1>
         <p style={{ color: "#666", marginTop: "8px" }}>
-          Project ID: {projectId}
+          Team Name : {team.teamName}
           <br />
           Project deadline: {formatDateTime(deadline.taskDueDate)}
           <br />

@@ -14,6 +14,24 @@ export type ProjectDeadline = {
   isOverridden: boolean;
 };
 
+export type User = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type Team = {
+  id: number;
+  teamName: string;
+  projectId: number;
+  createdAt: string;
+  allocations: Array<{
+    userId: number;
+    user: User;
+  }>;
+};
+
 export type TeamMember = {
   id: string;
   name: string;

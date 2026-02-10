@@ -90,6 +90,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
           id: true,
           deadlineOverride: {
             select: {
+              taskOpenDate: true,
+              taskDueDate: true,
               assessmentOpenDate: true,
               assessmentDueDate: true,
               feedbackOpenDate: true,
@@ -100,6 +102,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
             select: {
               deadline: {
                 select: {
+                  taskOpenDate: true,
+                  taskDueDate: true,
                   assessmentOpenDate: true,
                   assessmentDueDate: true,
                   feedbackOpenDate: true,
@@ -120,10 +124,69 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
   const teamOverride = userTeam.team.deadlineOverride;
 
   return {
+    taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline?.taskOpenDate,
+    taskDueDate: teamOverride?.taskDueDate ?? projectDeadline?.taskDueDate,
     assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline?.assessmentOpenDate,
     assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline?.assessmentDueDate,
     feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
     feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline?.feedbackDueDate,
     isOverridden: !!teamOverride,
   };
+}
+
+export async function getTeamById(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      id: true,
+      teamName: true,
+      projectId: true,
+      createdAt: true,
+      allocations: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getTeamByUserAndProject(userId: number, projectId: number) {
+  return prisma.team.findFirst({
+    where: {
+      projectId,
+      allocations: {
+        some: {
+          userId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      teamName: true,
+      projectId: true,
+      createdAt: true,
+      allocations: {
+        select: {
+          userId: true,
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
 }
