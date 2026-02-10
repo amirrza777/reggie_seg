@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { createProject, fetchProjectById, fetchProjectsForUser } from "./service.js"
+import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject} from "./service.js"
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -57,3 +57,37 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
     res.status(500).json({ error: "Failed to fetch projects" });
   }
 }               
+
+export async function getProjectDeadlineHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  const projectId = Number(req.params.projectId);
+  
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const deadline = await fetchProjectDeadline(userId, projectId);
+    res.json({ deadline });
+  } catch (error) {
+    console.error("Error fetching project deadline:", error);
+    res.status(500).json({ error: "Failed to fetch project deadline" });
+  }
+}
+
+export async function getTeammatesForProjectHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const teammates = await fetchTeammatesForProject(userId, projectId);
+    res.json({ teammates });
+  } catch (error) {
+    console.error("Error fetching teammates for project:", error);
+    res.status(500).json({ error: "Failed to fetch teammates" });
+  }
+} 

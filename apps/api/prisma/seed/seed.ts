@@ -13,6 +13,7 @@ async function main() {
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
+  await seedProjectDeadlines();
 }
 
 type SeedUser = { id: number; isStaff: boolean };
@@ -286,6 +287,31 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   }
 
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
+}
+
+async function seedProjectDeadlines() {
+  // Create deadlines for project 1
+  const now = new Date();
+  const taskOpen = new Date(now);
+  const taskDue = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const assessmentOpen = new Date(taskDue.getTime() + 1 * 24 * 60 * 60 * 1000); // 1 day after task due
+  const assessmentDue = new Date(assessmentOpen.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
+  const feedbackOpen = new Date(assessmentDue.getTime() + 1 * 24 * 60 * 60 * 1000); // 1 day after
+  const feedbackDue = new Date(feedbackOpen.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
+
+  await prisma.projectDeadline.upsert({
+    where: { projectId: 1 },
+    update: {},
+    create: {
+      projectId: 1,
+      taskOpenDate: taskOpen,
+      taskDueDate: taskDue,
+      assessmentOpenDate: assessmentOpen,
+      assessmentDueDate: assessmentDue,
+      feedbackOpenDate: feedbackOpen,
+      feedbackDueDate: feedbackDue,
+    },
+  });
 }
 main()
   .then(async () => {

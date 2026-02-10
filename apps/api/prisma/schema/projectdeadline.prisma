@@ -1,6 +1,8 @@
 model ProjectDeadline {
   id                      Int       @id @default(autoincrement())
   projectId               Int       @unique
+  taskOpenDate            DateTime
+  taskDueDate             DateTime
   assessmentOpenDate      DateTime
   assessmentDueDate       DateTime
   feedbackOpenDate        DateTime

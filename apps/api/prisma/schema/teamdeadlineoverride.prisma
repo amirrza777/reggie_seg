@@ -2,6 +2,8 @@ model TeamDeadlineOverride {
   id                      Int       @id @default(autoincrement())
   teamId                  Int       @unique
   projectDeadlineId       Int
+  taskOpenDate            DateTime?
+  taskDueDate             DateTime?
   assessmentOpenDate      DateTime?
   assessmentDueDate       DateTime?
   feedbackOpenDate        DateTime?
