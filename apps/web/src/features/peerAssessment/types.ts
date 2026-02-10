@@ -29,8 +29,7 @@ export type Question = {
 };
 
 export type PeerAssessmentData = {
-  moduleId: number;
-  projectId?: number;
+  projectId: number;
   teamId: number;
   reviewerUserId: number;
   revieweeUserId: number;
@@ -40,19 +39,13 @@ export type PeerAssessmentData = {
 
 export type PeerAssessment = {
   id: string;
-  moduleId: number;
-  projectId?: number;
+  projectId: number;
   teamId: number;
   reviewerUserId: number;
   revieweeUserId: number;
   submittedAt: string;
   templateId: number;
-  answers: {
-    id: string;
-    order: number;
-    question: string;
-    answer: string;
-  }[];
+  answers: Record<string, string>;
   firstName: string; 
   lastName: string; 
 }

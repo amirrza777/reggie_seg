@@ -18,6 +18,8 @@ export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
   } catch (err) {
     existingReview = null;
   }
+  console.log("Existing review:", existingReview);
+  console.log("Feedback data:", feedback);
 
   return (
     <div>

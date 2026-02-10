@@ -18,9 +18,9 @@ export function PeerListView({
 }: PeerListViewProps) {
   const router = useRouter();
 
-  const handlePeerClick = (peerId: number) => {
+  const handlePeerClick = (peerId: number, allocation: TeamAllocation) => {
     router.push(
-      `/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}`
+      `/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}&teammateName=${allocation.user.firstName}%20${allocation.user.lastName}`
     );
   };
 
@@ -38,7 +38,7 @@ export function PeerListView({
         {peers.map((allocation) => (
           <div
             key={allocation.user.id}
-            onClick={() => handlePeerClick(allocation.user.id)}
+            onClick={() => handlePeerClick(allocation.user.id, allocation)}
             style={{
               cursor: "pointer",
               padding: "16px",
