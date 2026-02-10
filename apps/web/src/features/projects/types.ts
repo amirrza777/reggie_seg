@@ -2,6 +2,7 @@ export type Project = {
   id: string;
   name: string;
   summary?: string;
+  questionnaireTemplateId: number;
 };
 
 export type ProjectDeadline = {

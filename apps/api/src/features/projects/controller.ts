@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject, fetchTeamById, fetchTeamByUserAndProject} from "./service.js"
+import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject, fetchTeamById, fetchTeamByUserAndProject, fetchQuestionsForProject } from "./service.js"
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -130,3 +130,22 @@ export async function getTeamByUserAndProjectHandler(req: Request, res: Response
     res.status(500).json({ error: "Failed to fetch team" });
   }
 } 
+
+export async function getQuestionsForProjectHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" }); 
+  }
+
+  try {
+    const project = await fetchQuestionsForProject(projectId);
+    if (!project || !project.questionnaireTemplate) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(project.questionnaireTemplate);
+  } catch (error) {
+    console.error("Error fetching questions for project:", error);
+    res.status(500).json({ error: "Failed to fetch questions" });
+  }
+}

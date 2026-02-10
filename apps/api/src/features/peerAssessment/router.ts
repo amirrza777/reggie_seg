@@ -9,7 +9,7 @@ import {
   updateAssessmentHandler,
   getAssessmentsHandler,
   getAssessmentByIdHandler,
-  getQuestionsForProjectHandler
+  getQuestionsForProjectHandler,
 } from "./controller.js"
 
 router.get("/teams/:teamId/teammates", getTeammatesHandler) // Get teammates in a team

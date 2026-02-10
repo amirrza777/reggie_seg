@@ -1,30 +1,31 @@
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getQuestionsForProject, getPeerAssessmentById } from "@/features/peerAssessment/api/client";
-
-
+import { getQuestionsByAssessment, getPeerAssessmentById, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 
 type AssessmentPageProps = {
   params: Promise<{ projectId: string; assessmentId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function AssessmentPage({params,}: AssessmentPageProps) {
+export default async function AssessmentPage({params, searchParams}: AssessmentPageProps) {
   const { projectId , assessmentId } = await params;
+  const resolvedSearchParams = await searchParams;
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
-  const questions = await getQuestionsForProject(String(projectId));
+  const questions = await getQuestionsByProject(String(assessmentId));
 
+  console.log(questions);
   const assessmentIdNum = Number(assessmentId);
+  const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
 
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />
       <div style={{ padding: "20px" }}>
-        <h2>Edit Peer Assessment {assessment.firstName} {assessment.lastName}</h2>
+        <h2>Edit Peer Assessment </h2>
         {questions.length > 0 ? (
           <PeerAssessmentForm
-            teamName="Team"
-            teammateName="Peer"
+            teammateName={teammateName}
             questions={questions}
             projectId={Number(projectId)}
             teamId={assessment.teamId}

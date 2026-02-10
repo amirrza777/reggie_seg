@@ -34,6 +34,18 @@ export function mapApiQuestionsToQuestions(raw: any): Question[] {
 }
 
 export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
+    // Convert answers array to Record if needed
+    let answers: Record<string, string> = {};
+    if (Array.isArray(raw.answersJson)) {
+      raw.answersJson.forEach((item: any) => {
+        answers[item.question] = String(item.answer ?? "");
+      });
+    } else if (typeof raw.answersJson === "object" && raw.answersJson !== null) {
+      Object.entries(raw.answersJson).forEach(([k, v]) => {
+        answers[k] = String(v ?? "");
+      });
+    }
+
     return {   
     id: String(raw.id),
     projectId: raw.projectId,
@@ -42,7 +54,7 @@ export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
     revieweeUserId: raw.revieweeUserId,
     submittedAt: raw.submittedAt,
     templateId: raw.templateId,
-    answers: raw.answersJson ?? {},
+    answers,
     firstName: raw.reviewee?.firstName ?? "",
     lastName: raw.reviewee?.lastName ?? "",
   }

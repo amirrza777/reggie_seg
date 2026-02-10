@@ -45,12 +45,7 @@ export type PeerAssessment = {
   revieweeUserId: number;
   submittedAt: string;
   templateId: number;
-  answers: {
-    id: string;
-    order: number;
-    question: string;
-    answer: string;
-  }[];
+  answers: Record<string, string>;
   firstName: string; 
   lastName: string; 
 }

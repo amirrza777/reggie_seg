@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
-import { PeerAssessmentData, TeamAllocation } from "../types";
+import { PeerAssessmentData, TeamAllocation, Question } from "../types";
 import { mapApiQuestionsToQuestions , mapApiAssessmentToPeerAssessment } from "./mapper";
 
 export async function getTeammates(userId: number, teamId: number): Promise<TeamAllocation[]> {
@@ -30,9 +30,14 @@ export async function getPeerAssessment(
 }
 
 export async function updatePeerAssessment(assessmentId: number, answersJson: Record<string, any>) {
+  // Convert Record to array format matching create format
+  const answersArray = Object.entries(answersJson).map(([question, answer]) => ({
+    question,
+    answer,
+  }));
   return apiFetch(`/peer-assessments/${assessmentId}`, {
     method: "PUT",
-    body: JSON.stringify({ answersJson }),
+    body: JSON.stringify({ answersJson: answersArray }),
   });
 }
 
@@ -45,16 +50,16 @@ export async function getPeerAssessmentData(
   const raw = await getPeerAssessment(projectId, teamId, reviewerId, revieweeId);
   return mapApiAssessmentToPeerAssessment(raw);
 }
+/*
+export async function getQuestionsByAssessment(projectId: string): Promise<Question[]> {
+  const raw = await apiFetch<{ questionnaireTemplate: { questions: any[] } }>(`/peer-assessments/projects/${projectId}/questions`);
+    return mapApiQuestionsToQuestions(raw.questionnaireTemplate.questions);
+}
+*/
 
-export async function getQuestionsForProject(projectId: string) {
-  const raw = await apiFetch(`/peer-assessments/projects/${projectId}/questions`);
-  const questions = mapApiQuestionsToQuestions(raw);
-  if(questions.length > 0) {
-    return mapApiQuestionsToQuestions(raw);
-  }
-  else {    
-    return [];
-  }
+export async function getQuestionsByProject(projectId: string): Promise<Question[]> {
+  const raw = await apiFetch<{ questions: any[] }>(`/projects/${projectId}/questions`);
+  return mapApiQuestionsToQuestions(raw);
 }
 
 export async function getPeerAssessmentById(assessmentId: number) {

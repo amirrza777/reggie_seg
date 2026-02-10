@@ -1,4 +1,4 @@
-import { getProjectById, getUserProjects, createProject as createProjectInDb , getTeammatesInProject, getUserProjectDeadline, getTeamById, getTeamByUserAndProject } from "./repo.js";
+import { getProjectById, getUserProjects, createProject as createProjectInDb , getTeammatesInProject, getUserProjectDeadline, getTeamById, getTeamByUserAndProject , getQuestionsForProject} from "./repo.js";
 
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
   return createProjectInDb(name, moduleId, questionnaireTemplateId, teamIds);
@@ -28,4 +28,6 @@ export async function fetchTeamByUserAndProject(userId: number, projectId: numbe
   return getTeamByUserAndProject(userId, projectId);
 }
 
-
+export async function fetchQuestionsForProject(projectId: number) {
+  return getQuestionsForProject(projectId); 
+}

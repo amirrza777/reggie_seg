@@ -1,3 +1,4 @@
+import e from "express";
 import { prisma } from "../../shared/db.js";
 
 export async function getUserProjects(userId: number) {
@@ -183,6 +184,29 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
               firstName: true,
               lastName: true,
               email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getQuestionsForProject(projectId: number) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      questionnaireTemplate: {
+        select: {
+          id: true,
+          questions: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              label: true,
+              type: true,
+              order: true,
+              configs: true,
             },
           },
         },

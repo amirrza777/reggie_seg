@@ -13,7 +13,6 @@ const toAnswersArray = (answers: Record<string, string>) =>
 
 type PeerAssessmentFormProps = {
   teammateName: string;
-  teamName: string;
   questions: Question[];
   projectId: number;
   teamId: number;
@@ -26,7 +25,6 @@ type PeerAssessmentFormProps = {
 
 export function PeerAssessmentForm({
   teammateName,
-  teamName,
   questions,
   projectId,
   teamId,
@@ -94,7 +92,7 @@ export function PeerAssessmentForm({
   return (
     <form className="stack" onSubmit={handleSubmit}>
       <h3>
-        {teamName} | You're reviewing {teammateName}
+         You're reviewing {teammateName}
       </h3>
       {questions.map((question) => (
         <div key={question.id}>
