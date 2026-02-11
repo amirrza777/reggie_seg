@@ -22,7 +22,7 @@ export function ProjectList({ projects }: ProjectListProps) {
           <Link
             key={project.id}
             href={`/projects/${project.id}`}
-            className="project-card"
+            className="project-card card"
           >
             <div className="project-card__header">
               <h2 className="project-card__title">{project.name}</h2>

@@ -12,18 +12,13 @@
 .project-card {
   display: flex;
   flex-direction: column;
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
   text-decoration: none;
   color: inherit;
-  transition: all 0.2s ease;
-  background: white;
+  transition: transform 0.2s ease;
+  height: 100%;
 }
 
 .project-card:hover {
-  border-color: #0066cc;
-  box-shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
   transform: translateY(-2px);
 }
 
@@ -50,13 +45,13 @@
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border);
 }
 
 .project-card__cta {
   font-size: 14px;
   font-weight: 500;
-  color: #0066cc;
+  color: var(--accent-strong);
 }
 
 .project-list-empty {
