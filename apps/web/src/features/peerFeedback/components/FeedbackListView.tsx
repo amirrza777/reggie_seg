@@ -18,10 +18,10 @@ export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListVie
           <li key={f.id} style={{ listStyle: "none" }}>
             <Link
               href={`/projects/${projectId}/peer-feedback/${f.id}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <div style={{ border: "1px solid #e6e6e6", padding: 12, borderRadius: 8, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ border: "1px solid var(--border)", padding: 12, borderRadius: 8, cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>From: {f.firstName} {f.lastName}</div>
-                  <div style={{ color: "#666", fontSize: 13 }}>Submitted: {new Date(f.submittedAt).toLocaleString()}</div>
+                  <div style={{ color: "var(--muted)", fontSize: 13 }}>Submitted: {new Date(f.submittedAt).toLocaleString()}</div>
                 </div>
               </div>
             </Link>
