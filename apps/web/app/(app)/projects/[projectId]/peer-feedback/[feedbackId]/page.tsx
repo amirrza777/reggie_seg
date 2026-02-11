@@ -3,23 +3,21 @@ import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackR
 import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
 
 type ProjectPageProps = {
-  params: Promise<{
+  params: {
     feedbackId: string;
     projectId: string;
-  }>;
+  };
 };
 
 export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
-  const { feedbackId, projectId } = await params;
+  const { feedbackId } = params;
   const feedback: PeerFeedback = await getPeerFeedbackById(feedbackId);
-  let existingReview: any = null;
+  let existingReview: Awaited<ReturnType<typeof getFeedbackReview>> | null = null;
   try {
     existingReview = await getFeedbackReview(feedbackId);
-  } catch (err) {
+  } catch {
     existingReview = null;
   }
-  console.log("Existing review:", existingReview);
-  console.log("Feedback data:", feedback);
 
   return (
     <div>
