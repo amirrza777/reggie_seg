@@ -1,11 +1,21 @@
 model PeerFeedback {
-  id              Int      @id @default(autoincrement())
-  peerAssessment  PeerAssessment @relation(fields: [peerAssessmentId], references: [id])
-  peerAssessmentId Int     @unique  
-  reviewerUserId  Int       
-  revieweeUserId  Int       
-  reviewText      String?
-  agreementsJson  Json      
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                  Int             @id @default(autoincrement())
+  teamId              Int
+  peerAssessmentId    Int             @unique
+  reviewerUserId      Int
+  revieweeUserId      Int
+  reviewText          String?
+  agreementsJson      Json
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  team                Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  peerAssessment      PeerAssessment  @relation(fields: [peerAssessmentId], references: [id], onDelete: Cascade)
+  reviewer            User            @relation("PeerFeedbackReviewer", fields: [reviewerUserId], references: [id])
+  reviewee            User            @relation("PeerFeedbackReviewee", fields: [revieweeUserId], references: [id])
+
+  @@index([teamId])
+  @@index([peerAssessmentId])
+  @@index([reviewerUserId])
+  @@index([revieweeUserId])
 }

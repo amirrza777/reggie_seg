@@ -36,7 +36,14 @@ export function UserMenu() {
     router.push("/login");
   };
 
-  if (!user) return null;
+  if (!user) {
+    return (
+      <Link className="user-menu__trigger" href="/login">
+        <span className="user-menu__avatar user-menu__avatar--fallback">?</span>
+        <span className="user-menu__name">Sign in</span>
+      </Link>
+    );
+  }
 
   const avatarSrc = user.avatarBase64 && user.avatarMime
     ? `data:${user.avatarMime};base64,${user.avatarBase64}`
@@ -60,7 +67,7 @@ export function UserMenu() {
             <div className="user-menu__meta-email">{user.email}</div>
           </div>
           <div className="user-menu__links">
-            <Link className="user-menu__link" href="/profile">Edit profile</Link>
+            <Link className="user-menu__link" href="/profile">Profile</Link>
             <button className="user-menu__link user-menu__link--danger" type="button" onClick={handleLogout}>
               Log out
             </button>

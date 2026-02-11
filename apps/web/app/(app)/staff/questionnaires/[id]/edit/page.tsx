@@ -3,12 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/shared/api/http";
-import { API_BASE_URL } from "@/shared/api/env";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
   QuestionType,
-  RatingConfigs,
   SliderConfigs,
 } from "@/features/questionnaires/types";
 
@@ -63,7 +61,7 @@ export default function EditQuestionnairePage() {
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -74,7 +72,8 @@ export default function EditQuestionnairePage() {
 
     const load = async () => {
       try {
-        const template = await apiFetch<{ templateName: string; questions: any[] }>(
+        type TemplateQuestion = { id: number; label: string; type: QuestionType; configs?: unknown };
+        const template = await apiFetch<{ templateName: string; questions: TemplateQuestion[] }>(
           `/questionnaires/${templateId}`
         );
 
@@ -86,7 +85,7 @@ export default function EditQuestionnairePage() {
         setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
 
         setQuestions(
-          template.questions.map((q: any) => ({
+          template.questions.map((q) => ({
             uiId: Date.now() + Math.random(),
             id: q.id,
             dbId: q.id,

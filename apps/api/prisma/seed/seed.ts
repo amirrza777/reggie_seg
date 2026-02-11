@@ -7,15 +7,20 @@ async function main() {
   await seedAdminUser();
   const users = await seedUsers();
   const modules = await seedModules();
-  const teams = await seedTeams(modules);
+  const templates = await seedQuestionnaireTemplates();
+  const projects = await seedProjects(modules, templates);
+  const teams = await seedTeams(projects);
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
+  await seedProjectDeadlines();
 }
 
 type SeedUser = { id: number; isStaff: boolean };
 type SeedModule = { id: number };
-type SeedTeam = { id: number; moduleId: number };
+type SeedTemplate = { id: number };
+type SeedProject = { id: number };
+type SeedTeam = { id: number; projectId: number };
 
 async function seedAdminUser() {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
@@ -84,10 +89,18 @@ const moduleData = [{ name: 'Software Engineering Group Project' },
                     { name: 'Internet Systems'}
                    ];
 
+const projectData = [
+  { name: 'Small Group Project', moduleIndex: 0 },
+  { name: 'Large Group Project', moduleIndex: 0 },
+  { name: 'Data Project', moduleIndex: 2 },
+  { name: 'Database Project', moduleIndex: 1 },
+];
+
 const teamData = [
-  { teamName: 'Team Alpha', moduleIndex: 0 },
-  { teamName: 'Team Beta', moduleIndex: 0 },
-  { teamName: 'Team Gamma', moduleIndex: 1 },
+  { teamName: 'Team Alpha', projectIndex: 0 },
+  { teamName: 'Team Beta', projectIndex: 0 },
+  { teamName: 'Team Beta', projectIndex: 1 },
+  { teamName: 'Team Gamma', projectIndex: 2 },
 ];
 
 async function seedUsers(): Promise<SeedUser[]> {
@@ -127,17 +140,89 @@ async function seedModules(): Promise<SeedModule[]> {
   return modules.map((m: { id: number }) => ({ id: m.id }));
 }
 
-async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
-  // Create teams tied to modules (moduleId is required on Team).
-  if (modules.length === 0) return [];
+async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
+  // Create a default questionnaire template with sample questions.
+  // Get a staff user to own the templates
+  const staffUser = await prisma.user.findFirst({
+    where: { isStaff: true },
+  });
+  
+  if (!staffUser) return [];
+
+  const templateName = 'Default Peer Assessment Template';
+  
+  const template = await prisma.questionnaireTemplate.upsert({
+    where: { id: 1 },
+    update: {},
+    create: {
+      templateName,
+      ownerId: staffUser.id,
+      questions: {
+        create: [
+          {
+            label: 'Technical Skills',
+            type: 'text',
+            order: 1,
+          },
+          {
+            label: 'Communication',
+            type: 'text',
+            order: 2,
+          },
+          {
+            label: 'Teamwork',
+            type: 'text',
+            order: 3,
+          },
+        ],
+      },
+    },
+    include: { questions: true },
+  });
+
+  return [{ id: template.id }];
+}
+
+async function seedProjects(modules: SeedModule[], templates: SeedTemplate[]): Promise<SeedProject[]> {
+  // Create projects tied to modules.
+  if (modules.length === 0 || templates.length === 0) return [];
   const fallbackModule = modules[0];
-  if (!fallbackModule) return [];
+  const defaultTemplate = templates[0];
+  if (!fallbackModule || !defaultTemplate) return [];
+
+  const data = projectData.map((project) => {
+    const module = modules[project.moduleIndex] ?? fallbackModule;
+    return {
+      name: project.name,
+      moduleId: module.id,
+      questionnaireTemplateId: defaultTemplate.id,
+    };
+  });
+
+  await prisma.project.createMany({
+    data,
+    skipDuplicates: true,
+  });
+
+  const projects = await prisma.project.findMany({
+    select: { id: true },
+    where: { name: { in: projectData.map((p) => p.name) } },
+  });
+
+  return projects.map((p: { id: number }) => ({ id: p.id }));
+}
+
+async function seedTeams(projects: SeedProject[]): Promise<SeedTeam[]> {
+  // Create teams tied to projects.
+  if (projects.length === 0) return [];
+  const fallbackProject = projects[0];
+  if (!fallbackProject) return [];
 
   const data = teamData.map((team) => {
-    const module = modules[team.moduleIndex] ?? fallbackModule;
+    const project = projects[team.projectIndex] ?? fallbackProject;
     return {
       teamName: team.teamName,
-      moduleId: module.id,
+      projectId: project.id,
     };
   });
 
@@ -147,13 +232,13 @@ async function seedTeams(modules: SeedModule[]): Promise<SeedTeam[]> {
   });
 
   const teams = await prisma.team.findMany({
-    select: { id: true, moduleId: true, teamName: true },
+    select: { id: true, projectId: true, teamName: true },
     where: { teamName: { in: teamData.map((t) => t.teamName) } },
   });
 
-  return teams.map((t: { id: number; moduleId: number }) => ({
+  return teams.map((t: { id: number; projectId: number }) => ({
     id: t.id,
-    moduleId: t.moduleId,
+    projectId: t.projectId,
   }));
 }
 
@@ -202,6 +287,31 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   }
 
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
+}
+
+async function seedProjectDeadlines() {
+  // Create deadlines for project 1
+  const now = new Date();
+  const taskOpen = new Date(now);
+  const taskDue = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days
+  const assessmentOpen = new Date(taskDue.getTime() + 1 * 24 * 60 * 60 * 1000); // 1 day after task due
+  const assessmentDue = new Date(assessmentOpen.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
+  const feedbackOpen = new Date(assessmentDue.getTime() + 1 * 24 * 60 * 60 * 1000); // 1 day after
+  const feedbackDue = new Date(feedbackOpen.getTime() + 3 * 24 * 60 * 60 * 1000); // 3 days
+
+  await prisma.projectDeadline.upsert({
+    where: { projectId: 1 },
+    update: {},
+    create: {
+      projectId: 1,
+      taskOpenDate: taskOpen,
+      taskDueDate: taskDue,
+      assessmentOpenDate: assessmentOpen,
+      assessmentDueDate: assessmentDue,
+      feedbackOpenDate: feedbackOpen,
+      feedbackDueDate: feedbackDue,
+    },
+  });
 }
 main()
   .then(async () => {

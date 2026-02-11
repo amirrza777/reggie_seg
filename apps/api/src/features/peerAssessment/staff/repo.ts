@@ -28,13 +28,13 @@ export function countStudentsInModule(moduleId: number) {
 
 export function countSubmittedPAsForModule(moduleId: number) {
   return prisma.peerAssessment.count({
-    where: { moduleId },
+    where: { project: { moduleId } },
   });
 }
 
 export function findTeamsInModule(moduleId: number) {
   return prisma.team.findMany({
-    where: { moduleId },
+    where: { project: { moduleId } },
     orderBy: { teamName: "asc" },
   });
 }
@@ -53,7 +53,7 @@ export function countSubmittedPAsForTeam(teamId: number) {
 
 export function findTeamByIdAndModule(teamId: number, moduleId: number) {
   return prisma.team.findFirst({
-    where: { id: teamId, moduleId },
+    where: { id: teamId, project: { moduleId } },
     select: { id: true, teamName: true },
   });
 }

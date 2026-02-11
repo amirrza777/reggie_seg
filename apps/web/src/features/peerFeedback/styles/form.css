@@ -1,0 +1,88 @@
+.headerContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reviewLabel {
+  gap: 6px;
+}
+
+.textarea {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  background-color: var(--surface);
+  color: var(--ink);
+  width: 100%;
+}
+
+.reviewBox {
+  margin: 0;
+  padding: 8px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  min-height: 100px;
+  display: flex;
+  align-items: flex-start;
+  color: var(--ink);
+}
+
+.reviewText {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.agreementSection {
+  margin-top: 8px;
+}
+
+.agreementTitle {
+  margin: 0;
+}
+
+.answersList {
+  padding-left: 18px;
+  margin: 8px 0;
+  display: grid;
+  gap: 12px;
+  list-style: none;
+}
+
+.answerItem {
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.answerQuestion {
+  display: block;
+  color: var(--ink);
+}
+
+.answerText {
+  margin: 6px 0;
+  color: var(--ink-lede);
+}
+
+.select {
+  background-color: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px;
+  width: 100%;
+}
+
+.agreementSpan {
+  color: var(--ink-subtle);
+}
+
+.labelBlock {
+  display: block;
+  gap: 8px;
+}

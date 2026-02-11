@@ -139,7 +139,7 @@ export default function ProfilePage() {
         <div className="profile-section">
           <div className="profile-section__header">
             <h3>Avatar</h3>
-            <p>Upload a square image to personalize your profile.</p>
+            <p>Upload an image to personalize your profile.</p>
           </div>
           <div className="profile-avatar">
             {avatarSrc ? (

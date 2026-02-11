@@ -1,50 +1,11 @@
-/* Progress bar component that shows a green bar, {value}% filled in */
-
 export function ProgressBar({ value }: { value: number }) {
   const clampedValue = Math.min(100, Math.max(0, value));
 
   return (
-    <>
-      <style>{`
-        .progress-bar-container {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex: 1;
-        }
-
-        .progress-bar {
-          flex: 1;
-          height: 8px;
-          background-color: var(--border);
-          border-radius: 999px;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .progress-bar__fill {
-          height: 100%;
-          width: var(--progress, 0%);
-          background-color: var(--accent-strong);
-          border-radius: 999px;
-          transition: width 0.3s ease;
-        }
-
-        .progress-bar__label {
-          min-width: fit-content;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--ink-strong);
-        }
-      `}</style>
-      <div className="progress-bar-container">
-        <div className="progress-bar">
-          <div
-            className="progress-bar__fill"
-            style={{ "--progress": `${clampedValue}%` } as React.CSSProperties}
-          />
-        </div>
+    <div className="progress-bar-container">
+      <div className="progress-bar">
+        <div className="progress-bar__fill" style={{ width: `${clampedValue}%` }} />
       </div>
-    </>
+    </div>
   );
 }

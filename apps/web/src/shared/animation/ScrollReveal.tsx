@@ -155,7 +155,6 @@ const createVisibilityHandler = ({
   revealElement,
   hideElement: hide,
   revealGroup,
-  hideGroup,
   updateGroupVisibility,
 }: {
   elementGroup: Map<HTMLElement, HTMLElement>;
@@ -163,7 +162,6 @@ const createVisibilityHandler = ({
   revealElement: (element: HTMLElement) => void;
   hideElement: (element: HTMLElement) => void;
   revealGroup: (group: HTMLElement) => void;
-  hideGroup: (group: HTMLElement) => void;
   updateGroupVisibility: (group: HTMLElement, element: HTMLElement, isVisible: boolean) => void;
 }) => (element: HTMLElement, isVisible: boolean) => {
   const group = elementGroup.get(element);

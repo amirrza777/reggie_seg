@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 const peerService = new PeerAssessmentService();
 
@@ -22,7 +22,6 @@ export async function getTeammatesHandler(req: Request, res: Response) {
 
 export async function createAssessmentHandler(req: Request, res: Response) {
   const {
-    moduleId,
     projectId,
     teamId,
     reviewerUserId,
@@ -31,14 +30,13 @@ export async function createAssessmentHandler(req: Request, res: Response) {
     answersJson
   } = req.body
 
-  if (!moduleId || !teamId || !reviewerUserId || !revieweeUserId || !templateId || !answersJson) {
+  if (!projectId ||!teamId || !reviewerUserId || !revieweeUserId || !templateId || !answersJson) {
     return res.status(400).json({ error: "Invalid request body" })
   }
 
   try {
-    const assessment = await saveAssessment({
-      moduleId,
-      projectId: projectId || null,
+    const assessment = await saveAssessment({ 
+      projectId,
       teamId,
       reviewerUserId,
       revieweeUserId,
@@ -53,18 +51,17 @@ export async function createAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function getAssessmentHandler(req: Request, res: Response) {
-  const moduleId = Number(req.query.moduleId)
   const projectId = Number(req.query.projectId)
   const teamId = Number(req.query.teamId)
   const reviewerId = Number(req.query.reviewerId)
   const revieweeId = Number(req.query.revieweeId)
 
-  if (isNaN(moduleId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
+  if (isNaN(projectId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
     return res.status(400).json({ error: "Invalid query parameters" })
   }
 
   try {
-    const assessment = await fetchAssessment(moduleId, projectId, teamId, reviewerId, revieweeId)
+    const assessment = await fetchAssessment(projectId, teamId, reviewerId, revieweeId)
 
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" })
@@ -146,13 +143,32 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 
   try {
-    const template = await fetchQuestionsForProject(projectId);
-    if (!template) {
+    const project = await fetchQuestionsForProject(projectId);
+    if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
-    res.json(template);
+    res.json(project.questionnaireTemplate);
   } catch (error) {
     console.error("Error fetching questionnaire template:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getProjectQuestionnaireTemplateHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const project = await fetchProjectQuestionnaireTemplate(projectId);
+    if (!project || !project.questionnaireTemplate) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(project.questionnaireTemplate);
+  } catch (error) {
+    console.error("Error fetching project questionnaire template:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
