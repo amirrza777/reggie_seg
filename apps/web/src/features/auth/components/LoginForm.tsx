@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/shared/ui/Button";
 import { login } from "../api/client";
 import type { LoginCredentials } from "../types";
 import { AuthField } from "./AuthField";
 import { API_BASE_URL } from "@/shared/api/env";
-import { GoogleIcon } from "@/shared/ui/GoogleIcon";
+import { Button } from "@/shared/ui/Button";
+import { GoogleAuthButton } from "./GoogleAuthButton";
 
 const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" | "text" }> = [
   { name: "email", label: "Email or username", type: "text" },
@@ -70,18 +70,12 @@ export function LoginForm() {
           onChange={updateField}
         />
       ))}
-      <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
-        {status === "loading" ? "Signing in..." : "Log in"}
-      </Button>
-      <button
-        type="button"
-        className="auth-btn-google"
-        style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}
-        onClick={handleGoogleLogin}
-      >
-        <GoogleIcon />
-        Continue with Google
-      </button>
+      <div className="auth-actions">
+        <Button type="submit" disabled={status === "loading"} className="auth-button">
+          {status === "loading" ? "Signing in..." : "Log in"}
+        </Button>
+        <GoogleAuthButton onClick={handleGoogleLogin} disabled={status === "loading"} />
+      </div>
     </form>
   );
 }

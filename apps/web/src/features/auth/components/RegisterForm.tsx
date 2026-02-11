@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { AuthField } from "./AuthField";
 import { signup } from "../api/client";
 import { API_BASE_URL } from "@/shared/api/env";
-import { GoogleIcon } from "@/shared/ui/GoogleIcon";
+import { Button } from "@/shared/ui/Button";
+import { GoogleAuthButton } from "./GoogleAuthButton";
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -105,18 +106,12 @@ export function RegisterForm() {
         onChange={(name, value) => setFormData({ ...formData, [name]: value })}
       />
 
-      <button type="submit" className="auth-btn-primary" disabled={status === "loading"}>
-        {status === "loading" ? "Creating account..." : "Create account"}
-      </button>
-      <button
-        type="button"
-        className="auth-btn-google"
-        onClick={handleGoogleRegister}
-        style={{ marginTop: 8, display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}
-      >
-        <GoogleIcon />
-        Continue with Google
-      </button>
+      <div className="auth-actions">
+        <Button type="submit" className="auth-button" disabled={status === "loading"}>
+          {status === "loading" ? "Creating account..." : "Create account"}
+        </Button>
+        <GoogleAuthButton onClick={handleGoogleRegister} disabled={status === "loading"} />
+      </div>
     </form>
   );
 }

@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
@@ -22,9 +23,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refresh().catch(() => {
-      setUser(null);
-    });
+    const run = async () => {
+      try {
+        await refresh();
+      } catch {
+        setUser(null);
+      }
+    };
+    run();
   }, [refresh]);
 
   const value = useMemo(() => ({ user, setUser, refresh }), [user, refresh]);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/shared/api/http";
 import type { AuthResponse, LoginCredentials, UserProfile } from "../types";
 import { setAccessToken, clearAccessToken } from "./session";
@@ -43,7 +44,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     const res = await apiFetch<{ accessToken: string }>("/auth/refresh", { method: "POST" });
     if (res.accessToken) setAccessToken(res.accessToken);
     return res.accessToken ?? null;
-  } catch (_) {
+  } catch {
     return null;
   }
 }
