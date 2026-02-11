@@ -11,6 +11,10 @@ model Team {
   peerAssessments PeerAssessment[]
   peerFeedbacks   PeerFeedback[]
   meetings        Meeting[]
+  
+  trelloBoardId String?
+  trelloOwnerId Int?
+  trelloOwner User?@relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
 
   @@unique([projectId, teamName])
   @@index([projectId])

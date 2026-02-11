@@ -23,6 +23,9 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
 
+  trelloToken String?
+  ownedTeamTrelloBoards Team[] @relation("TrelloOwner")
+
   questionnaires         QuestionnaireTemplate[]
   reviewerFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewer")
   revieweeFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewee")
