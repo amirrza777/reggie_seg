@@ -41,31 +41,12 @@ export function FeatureFlagsCard() {
     };
   }, []);
 
-  const alertStyle =
-    status === "error"
-      ? {
-          backgroundColor: "rgba(255, 77, 79, 0.08)",
-          border: "1px solid rgba(255, 77, 79, 0.35)",
-          color: "#a11a1c",
-        }
-      : {
-          backgroundColor: "rgba(47, 158, 68, 0.08)",
-          border: "1px solid rgba(47, 158, 68, 0.35)",
-          color: "#1f7a36",
-        };
-
   return (
     <div className="stack">
       {message ? (
         <div
-          style={{
-            ...alertStyle,
-            borderRadius: 12,
-            padding: "10px 12px",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
+          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
+          style={{ padding: "10px 12px" }}
         >
           <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
