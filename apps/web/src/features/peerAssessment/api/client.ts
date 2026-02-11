@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/shared/api/http";
 import { PeerAssessmentData, TeamAllocation, Question } from "../types";
 import { mapApiQuestionsToQuestions , mapApiAssessmentToPeerAssessment } from "./mapper";

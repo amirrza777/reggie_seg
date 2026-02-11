@@ -7,7 +7,6 @@ import type {
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
-import { apiFetch } from "@/shared/api/http";
 import { useRouter } from "next/navigation";
 
 const styles = {
@@ -62,7 +61,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
   const addQuestion = (type: QuestionType) => {
     const q: EditableQuestion = {

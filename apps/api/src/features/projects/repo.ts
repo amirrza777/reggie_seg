@@ -1,4 +1,3 @@
-import e from "express";
 import { prisma } from "../../shared/db.js";
 
 export async function getUserProjects(userId: number) {

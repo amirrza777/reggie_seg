@@ -2,7 +2,6 @@
 
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
-import type { ProgressCardData } from "@/shared/ui/ProgressCard";
 import { getModulesSummary } from "@/features/staff/peerAssessments/api/client";
 
 // TODO: Get staffId from authentication

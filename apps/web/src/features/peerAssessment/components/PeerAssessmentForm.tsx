@@ -20,7 +20,7 @@ type PeerAssessmentFormProps = {
   reviewerId: number;
   revieweeId: number;
   templateId: number;
-  initialAnswers?: Record<string, any>;
+  initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
 };
 
@@ -34,7 +34,9 @@ export function PeerAssessmentForm({
   templateId,
   initialAnswers,
   assessmentId,
-}: PeerAssessmentFormProps) {  const router = useRouter();  const [answers, setAnswers] = useState<Record<string, string>>({});
+}: PeerAssessmentFormProps) {
+  const router = useRouter();
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -50,6 +52,7 @@ export function PeerAssessmentForm({
           normalized[k] = String(v ?? "");
         });
       }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnswers(normalized);
     }
   }, [initialAnswers]);

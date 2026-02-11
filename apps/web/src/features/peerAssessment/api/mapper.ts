@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Question , PeerAssessment} from "../types";
 
 export function mapApiQuestionsToQuestions(raw: any): Question[] {
@@ -35,7 +36,7 @@ export function mapApiQuestionsToQuestions(raw: any): Question[] {
 
 export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
     // Convert answers array to Record if needed
-    let answers: Record<string, string> = {};
+    const answers: Record<string, string> = {};
     if (Array.isArray(raw.answersJson)) {
       raw.answersJson.forEach((item: any) => {
         answers[item.question] = String(item.answer ?? "");

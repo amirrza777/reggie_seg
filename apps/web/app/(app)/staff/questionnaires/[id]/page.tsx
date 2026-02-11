@@ -3,7 +3,7 @@ import { apiFetch } from "@/shared/api/http";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
-import { Questionnaire, Question } from "@/features/questionnaires/types";
+import { Questionnaire } from "@/features/questionnaires/types";
 
 type PageProps = {
   params: { id: string };

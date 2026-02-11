@@ -60,7 +60,7 @@ export function UserManagementTable() {
         if (subscribed && response.length > 0) {
           setUsers(response.map(normalizeUser));
         }
-      } catch (_err) {
+      } catch {
         if (subscribed) {
           setStatus("error");
           setMessage("Using demo users while the admin API responds.");
