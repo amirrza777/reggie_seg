@@ -65,6 +65,7 @@
   font-weight: 700;
   border-radius: var(--radius-sm);
   padding: 10px 18px;
+  transition: border-color 0.2s ease;
 }
 
 .profile-alert {
@@ -260,10 +261,10 @@
   font-size: 24px;
   text-align: center;
   outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease;
 }
 
 .otp-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+  box-shadow: none;
 }

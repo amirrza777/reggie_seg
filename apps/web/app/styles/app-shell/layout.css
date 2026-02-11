@@ -5,8 +5,8 @@
 
 html,
 body {
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .app-shell {
@@ -87,7 +87,6 @@ body {
   background: transparent;
   position: static;
   z-index: 6;
-  box-shadow: none;
   display: flex;
   align-items: center;
 }
@@ -110,7 +109,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+  box-shadow: none;
   display: grid;
   grid-template-columns: clamp(200px, 22vw, 240px) minmax(0, 1fr);
   gap: 20px;
@@ -192,7 +191,6 @@ body {
   background: transparent;
   border: none;
   font-weight: var(--fw-semibold);
-  box-shadow: none;
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -200,13 +198,19 @@ body {
 .sidebar__link:focus-visible {
   background: transparent;
   color: var(--accent-strong);
-  outline: none;
 }
 
 .sidebar__link.is-active {
-  background: color-mix(in srgb, var(--sidebar-text) 50%, transparent);
+  background: color-mix(in srgb, var(--sidebar-text) 18%, transparent);
   color: var(--sidebar-text);
   font-weight: var(--fw-bold);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sidebar__link.is-active {
+    background: color-mix(in srgb, var(--sidebar-text) 65%, transparent);
+    border: 1px solid color-mix(in srgb, var(--sidebar-text) 30%, transparent);
+  }
 }
 
 .sidebar__footer {
@@ -275,7 +279,6 @@ body {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  box-shadow: none;
   overflow-y: auto;
 }
 
@@ -498,7 +501,7 @@ body {
     width: 100%;
     padding: 14px;
     border-radius: 12px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+    box-shadow: none;
     min-height: auto;
     gap: 16px;
   }

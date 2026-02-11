@@ -110,7 +110,7 @@ h3 {
 .btn--primary {
   background: var(--btn-primary-bg);
   color: var(--btn-primary-text);
-  border-color: var(--btn-primary-border);
+  border: 2px solid var(--btn-primary-bg);
 }
 
 .btn--ghost,
@@ -123,9 +123,13 @@ h3 {
   font-weight: var(--fw-semibold);
 }
 
-.btn:hover,
-.link-ghost:hover {
+.btn:hover {
   transform: scale(0.97);
+}
+
+.btn--ghost:hover,
+.link-ghost:hover {
+  transform: none;
 }
 
 .placeholder {

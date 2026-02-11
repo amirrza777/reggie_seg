@@ -23,7 +23,7 @@ export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {
     try {
       const parsed = JSON.parse(text);
       friendly = parsed.error || parsed.message || text;
-    } catch (_) {
+    } catch {
       // keep text
     }
     throw new ApiError(friendly || `Request failed with ${res.status}`, { status: res.status, details: text });
