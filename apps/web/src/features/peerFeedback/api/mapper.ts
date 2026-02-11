@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { PeerFeedback, Answer } from "../types";
 
 function mapAnswersJsonToArray(answersJson: any, questions: any[] = []): Answer[] {
