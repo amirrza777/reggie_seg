@@ -10,6 +10,8 @@ a {
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
   font-size: var(--fs-body);
@@ -65,6 +67,8 @@ h3 {
 .stack {
   display: grid;
   gap: 16px;
+  width: 100%;
+  min-width: 0;
 }
 
 .muted {
@@ -85,11 +89,13 @@ h3 {
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  padding-inline: clamp(16px, 4vw, 32px);
+  box-sizing: border-box;
 }
 
 .btn {
   border: 1px solid transparent;
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 12px 18px;
   font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
@@ -112,7 +118,7 @@ h3 {
   background: transparent;
   color: var(--btn-ghost-text);
   border: 2px solid var(--btn-ghost-border);
-  border-radius: 999px;
+  border-radius: var(--radius-sm);
   padding: 10px 14px;
   font-weight: var(--fw-semibold);
 }

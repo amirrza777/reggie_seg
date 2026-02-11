@@ -46,7 +46,7 @@
   border-radius: 20px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: linear-gradient(135deg, #eef1ff, #f7f7fb);
+  background: linear-gradient(135deg, var(--showcase-bg-start), var(--showcase-bg-end));
   display: grid;
   place-items: center;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.08);
@@ -194,8 +194,25 @@
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  column-gap: 18px;
+  row-gap: clamp(32px, 6vw, 64px);
+  align-items: start;
+  grid-auto-rows: auto;
+  justify-items: stretch;
+  width: 100%;
+  max-width: 1100px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+#toolkit .stack {
+  justify-items: center;
+  gap: clamp(20px, 3vw, 28px);
+}
+
+#toolkit .section__header {
+  text-align: center;
 }
 
 @media (min-width: 1024px) {
@@ -208,6 +225,40 @@
   }
 }
 
+@media (max-width: 1024px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    column-gap: 16px;
+    row-gap: 40px;
+  }
+}
+
+@media (min-width: 720px) and (max-width: 1023px) {
+  .card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+    row-gap: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .card-grid {
+    grid-template-columns: 1fr;
+    column-gap: 14px;
+    row-gap: 28px;
+    margin: 0 auto;
+  }
+
+  .feature-card__visual {
+    width: 100%;
+  }
+
+  .feature-card {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
 .feature-card {
   background: none;
   border: none;
@@ -215,17 +266,23 @@
   display: grid;
   gap: 14px;
   text-align: left;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .feature-card__visual {
   border-radius: 20px;
   background: var(--feature-card-visual-bg);
-  aspect-ratio: 3 / 4;
+  width: 100%;
+  height: clamp(220px, 32vw, 360px);
+  max-height: 420px;
+  min-height: 200px;
   display: grid;
   place-items: center;
   text-align: center;
   color: var(--ink-quiet);
-  padding: 20px;
+  padding: 18px;
 }
 
 .feature-card .link-ghost {
@@ -238,7 +295,7 @@
   border-width: 1.5px;
   align-self: flex-start;
   justify-self: flex-start;
-  margin-left: -4px;
+  margin-left: 0;
 }
 
 .feature-tile {
