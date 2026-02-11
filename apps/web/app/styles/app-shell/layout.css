@@ -15,7 +15,7 @@ body {
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
-  background: var(--bg-strong);
+  background: var(--bg);
   height: 100vh;
   overflow: hidden;
 }
@@ -26,7 +26,7 @@ body {
   min-height: 0;
   position: relative;
   isolation: isolate;
-  background: var(--bg-strong);
+  background: var(--bg);
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -47,7 +47,7 @@ body {
     var(--marketing-glow-1),
     var(--marketing-glow-2),
     var(--marketing-glow-3);
-  opacity: 0.82;
+  opacity: 0.78;
   filter: blur(26px);
   mix-blend-mode: screen;
   transform: translate3d(0, 0, 0);
@@ -63,15 +63,22 @@ body {
   pointer-events: none;
   background:
     var(--marketing-noise-gradient),
-    var(--marketing-noise-pattern),
-    var(--panel-noise-pattern);
-  background-repeat: no-repeat, repeat, repeat;
-  background-size: 100% 100%, 90px 90px, 96px 96px;
-  background-position: center, center, center;
+    var(--marketing-noise-pattern);
+  background-repeat: no-repeat, repeat;
+  background-size: 100% 100%, 90px 90px;
+  background-position: center, center;
   opacity: var(--marketing-noise-opacity);
   mix-blend-mode: normal;
   will-change: transform, opacity;
   z-index: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .app-shell__content::before {
+    opacity: 0.88;
+    filter: blur(26px);
+    mix-blend-mode: multiply;
+  }
 }
 
 .app-shell__topbar {
