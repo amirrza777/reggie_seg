@@ -70,13 +70,9 @@ export default async function StudentPage({ params }: PageProps) {
                   style={{ display: "flex", alignItems: "center", gap: 8 }}
                 >
                   {m.reviewedByCurrentStudent ? (
-                    <span style={{ fontSize: "1.25rem", color: "#0f8a55" }}>
-                      ✓
-                    </span>
+                    <span style={{ fontSize: "1.25rem", color: "var(--status-success)" }}>✓</span>
                   ) : (
-                    <span style={{ fontSize: "1.25rem", color: "#dc2626" }}>
-                      ✗
-                    </span>
+                    <span style={{ fontSize: "1.25rem", color: "var(--status-danger)" }}>✗</span>
                   )}
                   <span>{memberName(m)}</span>
                 </div>
@@ -95,13 +91,9 @@ export default async function StudentPage({ params }: PageProps) {
                   style={{ display: "flex", alignItems: "center", gap: 8 }}
                 >
                   {m.reviewedCurrentStudent ? (
-                    <span style={{ fontSize: "1.25rem", color: "#0f8a55" }}>
-                      ✓
-                    </span>
+                    <span style={{ fontSize: "1.25rem", color: "var(--status-success)" }}>✓</span>
                   ) : (
-                    <span style={{ fontSize: "1.25rem", color: "#dc2626" }}>
-                      ✗
-                    </span>
+                    <span style={{ fontSize: "1.25rem", color: "var(--status-danger)" }}>✗</span>
                   )}
                   <span>{memberName(m)}</span>
                 </div>
