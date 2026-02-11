@@ -60,7 +60,7 @@ export function UserMenu() {
             <div className="user-menu__meta-email">{user.email}</div>
           </div>
           <div className="user-menu__links">
-            <Link className="user-menu__link" href="/profile">Edit profile</Link>
+            <Link className="user-menu__link" href="/profile">Profile</Link>
             <button className="user-menu__link user-menu__link--danger" type="button" onClick={handleLogout}>
               Log out
             </button>
