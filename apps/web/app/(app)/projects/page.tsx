@@ -4,13 +4,7 @@ import { getCurrentUser } from "@/features/auth/api/client";
 
 export default async function ProjectsListPage() {
   
-  const profile = await getCurrentUser();
-  console.log("User profile:", profile);
-  let id = 4;
-  if(profile) {
-    id = profile.id;
-  }
-  console.log(id);
+  const id = 4;
   const projects = await getUserProjects(id);
   return (
     <div className="stack">
