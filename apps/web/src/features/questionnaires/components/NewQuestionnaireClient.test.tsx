@@ -81,7 +81,8 @@ describe("NewQuestionnaireClient", () => {
       target: { value: "How clear was communication?" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "✕" }));
+    const removeOptionButtons = screen.getAllByRole("button", { name: "✕" });
+    fireEvent.click(removeOptionButtons[0]);
 
     expect(screen.getByText("Question 1 must have at least two options.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
