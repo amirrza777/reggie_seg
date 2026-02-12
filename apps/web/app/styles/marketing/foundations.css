@@ -12,6 +12,9 @@
   isolation: isolate;
   overflow: hidden;
   background: var(--bg);
+  contain: paint;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .marketing-shell::before {
@@ -22,8 +25,12 @@
     var(--marketing-glow-1),
     var(--marketing-glow-2),
     var(--marketing-glow-3);
-  opacity: 0.9;
+  opacity: 0.78;
+  filter: blur(26px);
+  mix-blend-mode: screen;
   transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  will-change: transform, opacity, filter;
   pointer-events: none;
   z-index: -2;
 }
@@ -39,6 +46,8 @@
   background-size: 100% 100%, 90px 90px;
   background-position: center, center;
   opacity: var(--marketing-noise-opacity);
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   pointer-events: none;
   z-index: 0;
 }
@@ -48,9 +57,17 @@
   z-index: 1;
 }
 
+@media (prefers-color-scheme: light) {
+  .marketing-shell::before {
+    opacity: 0.88;
+    filter: blur(26px);
+    mix-blend-mode: multiply;
+  }
+}
 [data-reveal] {
+  --reveal-translate: 32px;
   opacity: 0;
-  transform: translateY(32px) scale(0.98);
+  transform: translateY(var(--reveal-translate)) scale(0.98);
   filter: blur(2px);
   visibility: hidden;
 }
@@ -58,14 +75,14 @@
 /* Keep elements hidden until reveal-ready so the first animation plays fully */
 html:not(.reveal-ready) [data-reveal] {
   opacity: 0;
-  transform: translateY(32px) scale(0.98);
+  transform: translateY(var(--reveal-translate)) scale(0.98);
   filter: blur(2px);
   visibility: hidden;
 }
 
 html.reveal-ready [data-reveal] {
   opacity: 0;
-  transform: translateY(32px) scale(0.98);
+  transform: translateY(var(--reveal-translate)) scale(0.98);
   filter: blur(2px);
   visibility: hidden;
   transition:

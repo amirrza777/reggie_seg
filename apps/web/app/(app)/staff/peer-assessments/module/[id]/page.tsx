@@ -1,64 +1,59 @@
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
-import type { ProgressCardData } from "@/shared/ui/ProgressCard";
+import { getModuleDetails } from "@/features/staff/peerAssessments/api/client";
+import { ApiError } from "@/shared/api/errors";
 
 type PageProps = {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 };
 
-// TODO: replace with actual db call
-const demoModules: Record<string, { title: string; teams: ProgressCardData[] }> = {
-  "mod-1": {
-    title: "ModuleA",
-    teams: [
-      { id: "team-1", title: "TeamA", progress: 80 },
-      { id: "team-2", title: "TeamB", progress: 65 },
-      { id: "team-3", title: "TeamC", progress: 45 },
-      { id: "team-4", title: "TeamD", progress: 90 },
-    ],
-  },
-  "mod-2": {
-    title: "ModuleB",
-    teams: [
-      { id: "team-1", title: "TeamA", progress: 60 },
-      { id: "team-2", title: "TeamB", progress: 75 },
-    ],
-  },
-  "mod-3": {
-    title: "ModuleC",
-    teams: [
-      { id: "team-1", title: "TeamA", progress: 90 },
-      { id: "team-2", title: "TeamB", progress: 85 },
-      { id: "team-3", title: "TeamC", progress: 70 },
-    ],
-  },
-  "mod-4": {
-    title: "ModuleD",
-    teams: [
-      { id: "team-1", title: "TeamA", progress: 30 },
-      { id: "team-2", title: "TeamB", progress: 40 },
-    ],
-  },
-};
+// TODO: get staffId from authentication
+async function getStaffId(): Promise<number> {
+  return 1;
+}
 
-export default function ModulePage({ params }: PageProps) {
-  const moduleData = demoModules[params.id] ?? {
-    title: `Module ${params.id}`,
-    teams: [],
-  };
+export default async function ModulePage({ params }: PageProps) {
+  const { id } = await params;
+  const moduleId = parseInt(id);
+  const staffId = await getStaffId();
+
+  let moduleInfo: Awaited<ReturnType<typeof getModuleDetails>>["module"] | null = null;
+  let teams: Awaited<ReturnType<typeof getModuleDetails>>["teams"] = [];
+  let errorMessage: string | null = null;
+
+  try {
+    const data = await getModuleDetails(staffId, moduleId);
+    moduleInfo = data.module;
+    teams = data.teams;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 403) {
+      errorMessage =
+        "You are not a module lead for this module. You don’t have permission to view this page.";
+    } else {
+      errorMessage = "Something went wrong loading this module. Please try again.";
+    }
+  }
+
+  if (errorMessage || !moduleInfo) {
+    return (
+      <div className="stack">
+        <p className="muted">{errorMessage}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="stack">
       <Placeholder
-        title={moduleData.title}
-        path={`/staff/peer-assessments/module/${params.id}`}
-        description="Progress overview of a given module's peer assessments."
+        title={moduleInfo.title}
+        path={`/staff/peer-assessments/module/${id}`}
+        description="Progress overview of this module's peer assessments."
       />
       <ProgressCardGrid
-        items={moduleData.teams}
-        getHref={(item) => `/staff/peer-assessments/module/${params.id}/team/${item.id}`}
+        items={teams}
+        getHref={(item) =>
+          `/staff/peer-assessments/module/${id}/team/${item.id ?? ""}`
+        }
       />
     </div>
   );

@@ -1,65 +1,77 @@
-import React, { act } from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import { RegisterForm } from "./RegisterForm";
+import type { MockedFunction } from "vitest";
+
+const push = vi.fn();
+const originalLocation = window.location;
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
+vi.mock("../api/client", () => ({
+  signup: vi.fn(),
+}));
+
+// Import after mocks so we get the mocked instances
+import { signup } from "../api/client";
+const signupMock = signup as MockedFunction<typeof signup>;
+
+beforeAll(() => {
+  const mockLocation: Pick<Location, "href" | "assign"> = {
+    href: "http://localhost:3000/",
+    assign: vi.fn((url: string) => {
+      mockLocation.href = url;
+    }),
+  };
+
+  Object.defineProperty(window, "location", {
+    value: mockLocation,
+    writable: true,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, "location", {
+    value: originalLocation,
+  });
+});
 
 describe("RegisterForm", () => {
-  it("submits and shows loading state", async () => {
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    const pendingTimers: Array<() => void> = [];
-    const timeoutSpy = vi
-      .spyOn(global, "setTimeout")
-      .mockImplementation((cb: TimerHandler, _ms?: number) => {
-        if (typeof cb === "function") {
-          pendingTimers.push(cb);
-        }
-        return 0 as any;
-      });
-
-    render(<RegisterForm />);
-
-    fireEvent.change(screen.getByLabelText(/full name/i), {
-      target: { value: "Ada Lovelace" },
-    });
-    fireEvent.change(screen.getByLabelText(/email address/i), {
-      target: { value: "ada@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: "supersecure" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
-    expect(
-      screen.getByRole("button", { name: /creating account/i })
-    ).toBeDisabled();
-
-    // Run queued timeout callbacks to finish submission
-    await act(async () => {
-      pendingTimers.forEach((fn) => fn());
-    });
-
-    expect(consoleSpy).toHaveBeenCalledWith(
-      "Registering:",
-      expect.objectContaining({
-        name: "Ada Lovelace",
-        email: "ada@example.com",
-        password: "supersecure",
-      })
-    );
-
-    consoleSpy.mockRestore();
-    timeoutSpy.mockRestore();
+  beforeEach(() => {
+    push.mockReset();
+    signupMock.mockReset();
+    signupMock.mockResolvedValue(undefined);
+    // jsdom allows reassignment
+    window.location.href = "http://localhost:3000/";
   });
 
-  it("supports Google register action", () => {
-    const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
+  it("submits form and redirects", async () => {
     render(<RegisterForm />);
 
-    fireEvent.click(screen.getByRole("button", { name: /sign up with google/i }));
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
 
-    expect(consoleSpy).toHaveBeenCalledWith("Google Register Clicked");
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    consoleSpy.mockRestore();
+    expect(signupMock).toHaveBeenCalledWith({
+      email: "ada@example.com",
+      password: "supersecure",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
+    expect(screen.getByText(/account created/i)).toBeInTheDocument();
+  });
+
+  it("starts Google OAuth flow", () => {
+    render(<RegisterForm />);
+    fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
+    expect(window.location.href).toContain("/auth/google");
   });
 });

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, saveFeedbackReview } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 const peerService = new PeerAssessmentService();
 
@@ -22,7 +22,6 @@ export async function getTeammatesHandler(req: Request, res: Response) {
 
 export async function createAssessmentHandler(req: Request, res: Response) {
   const {
-    moduleId,
     projectId,
     teamId,
     reviewerUserId,
@@ -31,14 +30,13 @@ export async function createAssessmentHandler(req: Request, res: Response) {
     answersJson
   } = req.body
 
-  if (!moduleId || !teamId || !reviewerUserId || !revieweeUserId || !templateId || !answersJson) {
+  if (!projectId ||!teamId || !reviewerUserId || !revieweeUserId || !templateId || !answersJson) {
     return res.status(400).json({ error: "Invalid request body" })
   }
 
   try {
-    const assessment = await saveAssessment({
-      moduleId,
-      projectId: projectId || null,
+    const assessment = await saveAssessment({ 
+      projectId,
       teamId,
       reviewerUserId,
       revieweeUserId,
@@ -53,18 +51,17 @@ export async function createAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function getAssessmentHandler(req: Request, res: Response) {
-  const moduleId = Number(req.query.moduleId)
   const projectId = Number(req.query.projectId)
   const teamId = Number(req.query.teamId)
   const reviewerId = Number(req.query.reviewerId)
   const revieweeId = Number(req.query.revieweeId)
 
-  if (isNaN(moduleId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
+  if (isNaN(projectId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
     return res.status(400).json({ error: "Invalid query parameters" })
   }
 
   try {
-    const assessment = await fetchAssessment(moduleId, projectId, teamId, reviewerId, revieweeId)
+    const assessment = await fetchAssessment(projectId, teamId, reviewerId, revieweeId)
 
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" })
@@ -78,6 +75,7 @@ export async function getAssessmentHandler(req: Request, res: Response) {
 }
 
 export async function updateAssessmentHandler(req: Request, res: Response) {
+  
   const assessmentId = Number(req.params.id)
   const { answersJson } = req.body
 
@@ -103,82 +101,74 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 
 export async function getAssessmentsHandler(req: Request, res: Response) {
   const userId = Number(req.params.userId);
+  const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
   }
 
   try {
-    const feedbacks = await peerService.getFeedbackForStudent(userId);
-    res.json(feedbacks);
+    const assessments = await fetchTeammateAssessments(userId, projectId);
+    res.json(assessments);
   } catch (error) {
-    console.error("Error fetching peer feedbacks:", error);
+    console.error("Error fetching peer assessments:", error);
     res.status(500).json({ error: "Internal server error" });
   }   
 }
 
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
+  const assessmentId = Number(req.params.id);
 
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
+  if (isNaN(assessmentId)) {
+    return res.status(400).json({ error: "Invalid assessment ID" });
   }
   
   try {
-    const feedback = await peerService.getFeedbackById(feedbackId);
-    if (!feedback) {
-      return res.status(404).json({ error: "Feedback not found" });
+    const assessment = await fetchAssessmentById(assessmentId);
+    if (!assessment) {
+      return res.status(404).json({ error: "Assessment not found" });
     }
-    res.json(feedback);
+    res.json(assessment);
   } catch (error) {
-    console.error("Error fetching peer feedback:", error);
+    console.error("Error fetching peer assessment:", error);
     res.status(500).json({ error: "Internal server error" });   
   }   
 }
 
-export async function createFeedbackReviewHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  const { reviewText, agreements } = req.body;
+export async function getQuestionsForProjectHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
 
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
-  }
-
-  if (typeof agreements !== 'object' || !agreements) {
-    return res.status(400).json({ error: "Invalid agreements object" });
-  }
-
-  const validOptions = ['Strongly Disagree', 'Disagree', 'Reasonable', 'Agree', 'Strongly Agree'];
-  for (const [answerId, value] of Object.entries(agreements)) {
-    if (typeof value !== 'object' || !value) {
-      return res.status(400).json({ error: `Invalid agreement value for ${answerId}` });
-    }
-    const { selected, score } = value as any;
-    if (!validOptions.includes(selected) || typeof score !== 'number' || score < 1 || score > 5) {
-      return res.status(400).json({ error: `Invalid agreement option or score for ${answerId}` });
-    }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
-    const saved = saveFeedbackReview(feedbackId, { reviewText: reviewText || '', agreements });
-    res.json({ ok: true, saved });
+    const project = await fetchQuestionsForProject(projectId);
+    if (!project || !project.questionnaireTemplate) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(project.questionnaireTemplate);
   } catch (error) {
-    console.error("Error saving feedback review:", error);
+    console.error("Error fetching questionnaire template:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
 
-export async function getFeedbackReviewHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
+export async function getProjectQuestionnaireTemplateHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
+
   try {
-    const review = await (await import("./service.js")).getFeedbackReview(feedbackId);
-    if (!review) return res.status(404).json({ error: "Review not found" });
-    res.json(review);
+    const project = await fetchProjectQuestionnaireTemplate(projectId);
+    if (!project || !project.questionnaireTemplate) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    res.json(project.questionnaireTemplate);
   } catch (error) {
-    console.error("Error retrieving feedback review:", error);
+    console.error("Error fetching project questionnaire template:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

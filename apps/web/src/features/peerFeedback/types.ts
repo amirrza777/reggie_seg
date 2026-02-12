@@ -13,9 +13,9 @@ export type FeedbackSubmission = {
 
 export type Answer = {
   id: string;
-  order: Number;
+  order: number;
   question: string;
-  answer: string;
+  answer: string | number;
 };
 
 export type PeerFeedback = {

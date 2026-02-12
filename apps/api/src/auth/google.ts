@@ -4,13 +4,22 @@ import { prisma } from "../shared/db.js";
 import { randomBytes } from "crypto";
 import { signUpWithProvider } from "./service.js";
 
-export function configureGoogle() {
+export function configureGoogle(): boolean {
+  const clientID = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const callbackURL = process.env.GOOGLE_REDIRECT_URI;
+
+  if (!clientID || !clientSecret || !callbackURL) {
+    console.warn("Google OAuth not configured: missing GOOGLE_CLIENT_ID/SECRET/REDIRECT_URI");
+    return false;
+  }
+
   passport.use(
     new GoogleStrategy(
       {
-        clientID: process.env.GOOGLE_CLIENT_ID ?? "",
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
-        callbackURL: process.env.GOOGLE_REDIRECT_URI ?? "",
+        clientID,
+        clientSecret,
+        callbackURL,
       },
       async (_accessToken, _refreshToken, profile, done) => {
         try {
@@ -26,4 +35,6 @@ export function configureGoogle() {
       }
     )
   );
+
+  return true;
 }

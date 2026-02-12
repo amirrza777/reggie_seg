@@ -1,38 +1,61 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import type { Question } from "../types";
-import { createPeerAssessment } from "../api/client";
+import { createPeerAssessment, updatePeerAssessment } from "../api/client";
+
+const toAnswersArray = (answers: Record<string, string>) =>
+  Object.entries(answers).map(([question, answer]) => ({
+    question,
+    answer,
+  }));
 
 type PeerAssessmentFormProps = {
   teammateName: string;
-  teamName: string;
   questions: Question[];
-  moduleId: number;
-  projectId?: number;
+  projectId: number;
   teamId: number;
   reviewerId: number;
   revieweeId: number;
   templateId: number;
+  initialAnswers?: Record<string, string | number | boolean | null>;
+  assessmentId?: number;
 };
 
 export function PeerAssessmentForm({
   teammateName,
-  teamName,
   questions,
-  moduleId,
   projectId,
   teamId,
   reviewerId,
   revieweeId,
   templateId,
+  initialAnswers,
+  assessmentId,
 }: PeerAssessmentFormProps) {
+  const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const isEditMode = !!assessmentId;
+
+
+  useEffect(() => {
+    if (initialAnswers) {
+      const normalized: Record<string, string> = {};
+      if (typeof initialAnswers === "object") {
+        Object.entries(initialAnswers).forEach(([k, v]) => {
+          normalized[k] = String(v ?? "");
+        });
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAnswers(normalized);
+    }
+  }, [initialAnswers]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,53 +63,74 @@ export function PeerAssessmentForm({
     setMessage(null);
 
     try {
-      await createPeerAssessment({
-        moduleId,
-        projectId,
-        teamId,
-        reviewerUserId: reviewerId,
-        revieweeUserId: revieweeId,
-        templateId,
-        answersJson: answers,
-      });
+      if (isEditMode && assessmentId) {
+        await updatePeerAssessment(assessmentId, answers);
+      } else {
+        await createPeerAssessment({
+          projectId,
+          teamId,
+          reviewerUserId: reviewerId,
+          revieweeUserId: revieweeId,
+          templateId,
+          answersJson: toAnswersArray(answers),
+        });
+      }
       setStatus("success");
-      setMessage("Assessment saved successfully!");
+      setMessage(
+        isEditMode ? "Assessment updated successfully!" : "Assessment saved successfully!"
+      );
     } catch (error) {
       setStatus("error");
       setMessage(
-        error instanceof Error ? error.message : "Failed to save assessment",
+        error instanceof Error ? error.message : "Failed to save assessment"
       );
     }
   };
 
   const handleDiscard = () => {
-    setAnswers({});
+    setAnswers(initialAnswers ? { ...initialAnswers } : {});
     setMessage(null);
   };
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <h1>
-        {teamName} | You're reviewing {teammateName}
-      </h1>
+      <h3>
+         You're reviewing {teammateName}
+      </h3>
       {questions.map((question) => (
-        <div key={question.id}>
-          <label>{question.text}</label>
+        <div key={question.id} style={{ display: 'grid', gap: 6 }}>
+          <label style={{ color: 'var(--ink)', fontWeight: 500 }}>{question.text}</label>
           <input
             type="text"
-            value={answers[question.id] || ""}
+            value={answers[String(question.id)] || ""}
             onChange={(e) =>
-              setAnswers({ ...answers, [question.id]: e.target.value })
+              setAnswers({ ...answers, [String(question.id)]: e.target.value })
             }
+            style={{
+              padding: 8,
+              border: '1px solid var(--border)',
+              borderRadius: 4,
+              backgroundColor: 'var(--surface)',
+              color: 'var(--ink)',
+              fontFamily: 'inherit',
+              fontSize: 'inherit'
+            }}
           />
         </div>
       ))}
-      <div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <Button type="button" onClick={handleDiscard}>
-          Discard changes
+          {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
         <Button type="submit" disabled={status === "loading"}>
-          {status === "loading" ? "Saving..." : "Save"}
+          {status === "loading"
+            ? "Saving..."
+            : isEditMode
+              ? "Update Assessment"
+              : "Save Assessment"}
+        </Button>
+        <Button type="button" onClick={() => router.back()} style={{ marginLeft: 'auto' }}>
+          Back
         </Button>
       </div>
       {message ? (

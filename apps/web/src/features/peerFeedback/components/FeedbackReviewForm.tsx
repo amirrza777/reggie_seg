@@ -1,27 +1,40 @@
-'use client';
+"use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
 import { AGREEMENT_OPTIONS } from "../types";
-import { submitFeedbackReview } from "../api/client";
+import { submitPeerFeedback } from "../api/client";
+import "../styles/form.css";
 
 type FeedbackReviewFormProps = {
   feedback: PeerFeedback;
   onSubmit?: (payload: PeerAssessmentReviewPayload) => Promise<void>;
+  initialReview?: string | null;
+  initialAgreements?: AgreementsMap | null;
+  redirectTo?: "back" | string;
+  currentUserId: string;
 };
 
-export function FeedbackReviewForm({ feedback, onSubmit }: FeedbackReviewFormProps) {
-  const [review, setReview] = useState<string>("");
+export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialAgreements, redirectTo = 'back', currentUserId }: FeedbackReviewFormProps) {
+  const router = useRouter();
+  const [review, setReview] = useState<string>(initialReview ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(!initialReview);
+  const editingMode = !!initialReview;
 
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
-    const initial: AgreementsMap = {};
-    (feedback.answers || []).forEach((a: Answer) => {
-      initial[a.id] = { selected: 'Reasonable', score: 3 }; // default to Reasonable
-    });
-    return initial;
+    return Object.fromEntries(
+      (feedback.answers ?? []).map((a) => [
+        a.id,
+        initialAgreements?.[a.id] ?? {
+          selected: "Reasonable",
+          score: 3,
+        },
+      ])
+    );
   });
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,72 +51,105 @@ export function FeedbackReviewForm({ feedback, onSubmit }: FeedbackReviewFormPro
         reviewText: review,
         agreements,
       };
+
       if (onSubmit) {
         await onSubmit(payload);
       } else {
-        await submitFeedbackReview(String(feedback.id), payload);
+        await submitPeerFeedback(String(feedback.id), payload, currentUserId, String(feedback.reviewerId));
       }
-      setMessage("Review submitted successfully.");
-      setReview("");
+
+      setMessage("Peer feedback submitted successfully.");
+
+      if (redirectTo === "back") {
+        router.back();
+      } else if (redirectTo) {
+        router.push(redirectTo);
+      } else if (feedback.projectId) {
+        router.push(`/projects/${feedback.projectId}/peer-feedback`);
+      }
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : "Failed to submit review");
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "Failed to submit peer feedback"
+      );
     } finally {
       setIsLoading(false);
     }
   }
-  console.log(feedback.answers);
 
   return (
     <div className="stack">
-      <h3>Respond to Feedback</h3>
+      <div className="headerContainer">
+        <h3>{editingMode && !isEditing ? 'View Review' : 'Respond to Feedback'}</h3>
+        {editingMode && !isEditing && (
+          <Button onClick={() => setIsEditing(true)} disabled={isLoading}>
+            Edit
+          </Button>
+        )}
+      </div>
       <p className="muted">
         Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
       </p>
       <form className="stack" onSubmit={handleSubmit}>
-        <label className="stack" style={{ gap: 6 }}>
+        <label className="stack reviewLabel">
           <span>Your Review</span>
-          <textarea
-            rows={4}
-            placeholder="Type your response here..."
-            value={review}
-            onChange={(e) => setReview(e.target.value)}
-            disabled={isLoading}
-          />
+          {isEditing ? (
+            <textarea rows={4} placeholder="Type your response here..." value={review} onChange={(e) => setReview(e.target.value)} disabled={isLoading} className="textarea"/>
+          ) : (
+            <div className="reviewBox">
+              <p className="reviewText">{review || '(No review provided)'}</p>
+            </div>
+          )}
         </label>
 
-        <div style={{ marginTop: 8 }}>
-          <h4 style={{ margin: 0 }}>Agree with each answer?</h4>
+        <div className="agreementSection">
+          <h4 className="agreementTitle">Agree with each answer?</h4>
           <p className="muted">Select how much you agree or disagree with each provided answer.</p>
-          <ul style={{ paddingLeft: 18, margin: '8px 0', display: 'grid', gap: 12 }}>
+          <ul className="answersList">
             {(feedback.answers || []).map((a: Answer) => (
-              <li key={a.id} style={{ border: '1px solid #eee', padding: 8, borderRadius: 6 }}>
-                <strong style={{ display: 'block' }}>{a.question}</strong>
-                <p style={{ margin: '6px 0' }}>{a.answer}</p>
-                <label style={{ display: 'block', gap: 8 }}>
-                  <select
-                    value={agreements[a.id]?.selected ?? 'Reasonable'}
-                    onChange={(e) => {
-                      const selected = e.target.value as AgreementOption;
-                      const score = AGREEMENT_OPTIONS.find(o => o.label === selected)?.score ?? 3;
-                      setAgreements((prev) => ({ ...prev, [a.id]: { selected, score } }));
-                    }}
-                    disabled={isLoading}
-                  >
-                    {AGREEMENT_OPTIONS.map((option) => (
-                      <option key={option.label} value={option.label}>
-                        {option.score} — {option.label}
-                      </option>
-                    ))}
-                  </select>
+              <li key={a.id} className="answerItem">
+                <strong className="answerQuestion">{a.question}</strong>
+                <p className="answerText">{a.answer}</p>
+                <label className="labelBlock">
+                  {isEditing ? (
+                    <select
+                      value={agreements[a.id]?.selected ?? 'Reasonable'}
+                      onChange={(e) => {
+                        const selected = e.target.value as AgreementOption;
+                        const score = AGREEMENT_OPTIONS.find(o => o.label === selected)?.score ?? 3;
+                        setAgreements((prev) => ({ ...prev, [a.id]: { selected, score } }));
+                      }}
+                      disabled={isLoading}
+                      className="select"
+                    >
+                      {AGREEMENT_OPTIONS.map((option) => (
+                        <option key={option.label} value={option.label}>
+                          {option.score} — {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="agreementSpan">
+                      {agreements[a.id]?.score} — {agreements[a.id]?.selected ?? 'Not selected'}
+                    </span>
+                  )}
                 </label>
               </li>
             ))}
           </ul>
         </div>
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Submitting..." : "Submit Review"}
-        </Button>
+        {isEditing && (
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Submitting..." : editingMode ? "Update Review" : "Submit Review"}
+          </Button>
+        )}
+        {editingMode && !isEditing && (
+          <Button onClick={() => feedback.projectId ? router.push(`/projects/${feedback.projectId}/peer-feedback`) : router.back()}>
+            Back
+          </Button>
+        )}
         {message ? (
           <p className={message.includes("success") ? "" : "muted"}>
             {message}
@@ -113,4 +159,3 @@ export function FeedbackReviewForm({ feedback, onSubmit }: FeedbackReviewFormPro
     </div>
   );
 }
-

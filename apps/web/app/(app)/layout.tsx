@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/modules", label: "Modules" },
-  { href: "/projects/123", label: "Projects" },
+  { href: "/projects", label: "Projects" },
   { href: "/staff/questionnaires", label: "Questionnaires" },
   { href: "/staff/peer-assessments", label: "Staff Peer Assessments" },
   { href: "/admin", label: "Admin" },

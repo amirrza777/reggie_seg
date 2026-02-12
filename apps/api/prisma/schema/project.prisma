@@ -1,0 +1,17 @@
+model Project {
+  id                    Int                   @id @default(autoincrement())
+  moduleId              Int
+  name                  String
+  questionnaireTemplateId Int
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+
+  module                Module                @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questionnaireTemplate QuestionnaireTemplate @relation("ProjectTemplate", fields: [questionnaireTemplateId], references: [id])
+  teams                 Team[]
+  peerAssessments       PeerAssessment[]
+  deadline              ProjectDeadline?
+
+  @@index([moduleId])
+  @@index([questionnaireTemplateId])
+}

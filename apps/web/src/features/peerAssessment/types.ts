@@ -4,6 +4,18 @@ export type Teammate = {
   lastName: string;
 };
 
+export type TeamAllocation = {
+  id: number;
+  userId: number;
+  teamId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+};
+
 export type Question = {
   id: number;
   text: string;
@@ -17,11 +29,23 @@ export type Question = {
 };
 
 export type PeerAssessmentData = {
-  moduleId: number;
-  projectId?: number;
+  projectId: number;
   teamId: number;
   reviewerUserId: number;
   revieweeUserId: number;
   templateId: number;
-  answersJson: Record<string, any>;
+  answersJson: Record<string, string | number | boolean | null>;
 };
+
+export type PeerAssessment = {
+  id: string;
+  projectId: number;
+  teamId: number;
+  reviewerUserId: number;
+  revieweeUserId: number;
+  submittedAt: string;
+  templateId: number;
+  answers: Record<string, string>;
+  firstName: string; 
+  lastName: string; 
+}

@@ -62,7 +62,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [answers, setAnswers] = useState<Record<number, any>>({});
+  const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
   const addQuestion = (type: QuestionType) => {
     const q: EditableQuestion = {
@@ -133,9 +133,8 @@ export default function NewQuestionnairePage() {
     setSaved(false);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/questionnaires/new`, {
+      await apiFetch("/questionnaires/new", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           templateName,
           questions: questions.map((q) => ({
@@ -145,8 +144,6 @@ export default function NewQuestionnairePage() {
           })),
         }),
       });
-
-      if (!res.ok) throw new Error(await res.text());
 
       setTemplateName("");
       setQuestions([]);

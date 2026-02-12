@@ -1,6 +1,27 @@
 import { apiFetch } from "@/shared/api/http";
-import type { Project } from "../types";
+import type { Project, ProjectDeadline, Team } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`);
 }
+
+export async function getUserProjects(userId: number): Promise<Project[]> {
+  return apiFetch<Project[]>(`/projects?userId=${userId}`);
+}
+
+export async function getProjectDeadline(userId: number, projectId: number): Promise<ProjectDeadline> {
+  const response = await apiFetch<{ deadline: ProjectDeadline }>(`/projects/${projectId}/deadline?userId=${userId}`);
+  return response.deadline;
+}
+
+export async function getTeammatesInProject(userId: number, projectId: number) {
+  return apiFetch(`/projects/${projectId}/teammates?userId=${userId}`);
+}
+
+export async function getTeamById(teamId: number): Promise<Team> {
+  return apiFetch<Team>(`/projects/teams/${teamId}`);
+}
+
+export async function getTeamByUserAndProject(userId: number, projectId: number): Promise<Team> {
+  return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`);
+} 

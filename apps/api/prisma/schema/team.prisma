@@ -1,13 +1,17 @@
 model Team {
   id              Int              @id @default(autoincrement())
-  moduleId        Int
-  teamName        String           @unique
+  projectId       Int
+  teamName        String         
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
   allocations     TeamAllocation[]
-  module          Module           @relation(fields: [moduleId], references: [id])
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments PeerAssessment[]
+  peerFeedbacks   PeerFeedback[]
   meetings        Meeting[]
 
-  @@index([moduleId])
+  @@unique([projectId, teamName])
+  @@index([projectId])
 }

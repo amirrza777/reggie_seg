@@ -19,29 +19,35 @@
 .logo-marquee {
   --marquee-gap: clamp(64px, 12vw, 180px);
   --marquee-duration: 220s;
+  --marquee-fade: 6%;
+  position: relative;
+  isolation: isolate;
   overflow: hidden;
   width: 100%;
   margin: 0 auto;
   padding: clamp(28px, 4vw, 52px) clamp(20px, 6vw, 48px) clamp(24px, 4vw, 44px);
-  position: relative;
   mask-image: linear-gradient(
     90deg,
-    transparent 0,
-    transparent 48px,
-    var(--marquee-mask) 64px,
-    var(--marquee-mask) calc(100% - 64px),
-    transparent calc(100% - 48px),
+    transparent 0%,
+    transparent var(--marquee-fade),
+    #000 calc(var(--marquee-fade) + 1%),
+    #000 calc(100% - (var(--marquee-fade) + 1%)),
+    transparent calc(100% - var(--marquee-fade)),
     transparent 100%
   );
   -webkit-mask-image: linear-gradient(
     90deg,
-    transparent 0,
-    transparent 48px,
-    var(--marquee-mask) 64px,
-    var(--marquee-mask) calc(100% - 64px),
-    transparent calc(100% - 48px),
+    transparent 0%,
+    transparent var(--marquee-fade),
+    #000 calc(var(--marquee-fade) + 1%),
+    #000 calc(100% - (var(--marquee-fade) + 1%)),
+    transparent calc(100% - var(--marquee-fade)),
     transparent 100%
   );
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-size: 100% 100%;
+  -webkit-mask-size: 100% 100%;
 }
 
 .logo-marquee__track {
@@ -50,6 +56,7 @@
   align-items: center;
   gap: 0;
   width: max-content;
+  min-width: 100%;
   animation: logo-marquee var(--marquee-duration) linear infinite;
   will-change: transform;
   backface-visibility: hidden;
@@ -62,6 +69,7 @@
   padding-right: var(--marquee-gap);
   flex-shrink: 0;
   flex-grow: 0;
+  min-width: max-content;
 }
 
 .logo-marquee__logo {
@@ -74,6 +82,30 @@
   opacity: 1;
   filter: none;
   flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .logo-marquee {
+    --marquee-gap: clamp(36px, 8vw, 64px);
+    --marquee-fade: 16%;
+  }
+}
+
+@media (max-width: 520px) {
+  .logo-marquee {
+    --marquee-gap: clamp(28px, 10vw, 48px);
+    --marquee-fade: 20%;
+  }
+
+  .logo-marquee__logo {
+    height: clamp(60px, 16vw, 78px);
+    max-height: 78px;
+  }
+
+  .logo-marquee::before,
+  .logo-marquee::after {
+    display: none;
+  }
 }
 
 @keyframes logo-marquee {
