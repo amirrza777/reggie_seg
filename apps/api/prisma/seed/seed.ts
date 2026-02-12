@@ -14,7 +14,7 @@ async function main() {
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
   await seedProjectDeadlines();
-  await seedPeerAssessments(users, projects, teams, templates);
+  await seedPeerAssessments(projects, teams, templates);
 }
 
 type SeedUser = { id: number; isStaff: boolean };
