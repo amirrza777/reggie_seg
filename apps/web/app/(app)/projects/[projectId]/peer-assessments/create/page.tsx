@@ -12,11 +12,13 @@ type CreatePageProps = {
 };
 
 export default async function CreateAssessmentPage({ params, searchParams }: CreatePageProps) {
-  const projectId = Number(params.projectId);
-  const teamId = Number(searchParams.teamId);
-  const revieweeId = Number(searchParams.revieweeId);
-  const reviewerId = Number(searchParams.reviewerId);
-  const teammateName = searchParams.teammateName ?? "";
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const projectId = Number(resolvedParams.projectId);
+  const teamId = Number(resolvedSearchParams.teamId);
+  const revieweeId = Number(resolvedSearchParams.revieweeId);
+  const reviewerId = Number(resolvedSearchParams.reviewerId);
+  const teammateName = resolvedSearchParams.teammateName ?? "";
 
   let existingAssessment: PeerAssessment | null = null;
   try {

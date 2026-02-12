@@ -9,8 +9,9 @@ type ProjectPageProps = {
 const tempId = 4;
 const tempTeamId = 1;
 
-export default async function ProjectPeerAssessmentsPage({params,}: ProjectPageProps) {
-  const { projectId } = await params;
+export default async function ProjectPeerAssessmentsPage(props : ProjectPageProps) {
+  const { projectId } = await props.params;
+  
   const peers = await getTeammates(tempId, tempTeamId);
   return (
     <div className="stack">
