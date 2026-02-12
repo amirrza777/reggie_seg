@@ -8,11 +8,12 @@ type AssessmentPageProps = {
 };
 
 export default async function AssessmentPage({params, searchParams}: AssessmentPageProps) {
-  const { projectId , assessmentId } = await params;
+  const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
+  const { projectId , assessmentId } = resolvedParams;
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
-  const questions = await getQuestionsByProject(String(assessmentId));
+  const questions = await getQuestionsByProject(String(projectId));
 
   const assessmentIdNum = Number(assessmentId);
   const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
