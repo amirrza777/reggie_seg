@@ -14,6 +14,7 @@ async function main() {
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
   await seedProjectDeadlines();
+  await seedPeerAssessments(users, projects, teams, templates);
 }
 
 type SeedUser = { id: number; isStaff: boolean };
@@ -76,6 +77,20 @@ const userData = [
     firstName: 'Eve',
     lastName: 'Student',
     email: 'eve.student@example.com',
+    passwordHash: 'dev-hash',
+    isStaff: false,
+  },
+  {
+    firstName: 'Frank',
+    lastName: 'Student',
+    email: 'frank.student@example.com',
+    passwordHash: 'dev-hash',
+    isStaff: false,
+  },
+  {
+    firstName: 'Grace',
+    lastName: 'Student',
+    email: 'grace.student@example.com',
     passwordHash: 'dev-hash',
     isStaff: false,
   },
@@ -278,12 +293,13 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   const students = users.filter((u) => !u.isStaff);
   if (students.length === 0 || teams.length === 0) return;
 
+  const team1 = teams.find(t => t.projectId === 1);
+  if (!team1) return;
+
   const data: { userId: number; teamId: number }[] = [];
-  for (let index = 0; index < students.length; index += 1) {
-    const student = students[index];
-    const team = teams[index % teams.length];
-    if (!student || !team) continue;
-    data.push({ userId: student.id, teamId: team.id });
+  
+  for (const student of students) {
+    data.push({ userId: student.id, teamId: team1.id });
   }
 
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
@@ -312,6 +328,60 @@ async function seedProjectDeadlines() {
       feedbackDueDate: feedbackDue,
     },
   });
+}
+
+async function seedPeerAssessments(
+  projects: SeedProject[],
+  teams: SeedTeam[],
+  templates: SeedTemplate[]
+) {
+  if (projects.length === 0 || templates.length === 0) return;
+
+  const project1 = projects[0];
+  const team1 = teams.find(t => t.projectId === project1.id);
+  const template1 = templates[0];
+
+  if (!project1 || !team1 || !template1) return;
+
+  const teamMembers = await prisma.teamAllocation.findMany({
+    where: { teamId: team1.id },
+    include: { user: true },
+  });
+
+  if (teamMembers.length < 2) return;
+
+  const teamMemberIds = teamMembers.map(tm => tm.user.id);
+
+  for (let i = 0; i < teamMemberIds.length; i++) {
+    const reviewerId = teamMemberIds[i];
+    const revieweeId = teamMemberIds[(i + 1) % teamMemberIds.length];
+
+    if (!reviewerId || !revieweeId) continue;
+
+    await prisma.peerAssessment.upsert({
+      where: {
+        projectId_teamId_reviewerUserId_revieweeUserId: {
+          projectId: project1.id,
+          teamId: team1.id,
+          reviewerUserId: reviewerId,
+          revieweeUserId: revieweeId,
+        },
+      },
+      update: {},
+      create: {
+        projectId: project1.id,
+        teamId: team1.id,
+        reviewerUserId: reviewerId,
+        revieweeUserId: revieweeId,
+        templateId: template1.id,
+        answersJson: {
+          'Technical Skills': `${reviewerId % 2 === 0 ? 'Excellent' : 'Good'} technical abilities`,
+          'Communication': `${reviewerId % 3 === 0 ? 'Clear' : 'Could improve'} communication`,
+          'Teamwork': `${reviewerId % 4 === 0 ? 'Strong' : 'Adequate'} teamwork skills`,
+        },
+      },
+    });
+  }
 }
 main()
   .then(async () => {

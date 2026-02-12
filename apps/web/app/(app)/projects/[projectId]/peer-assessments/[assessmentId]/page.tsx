@@ -12,7 +12,7 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const resolvedSearchParams = await searchParams;
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
-  const questions = await getQuestionsByProject(String(assessmentId));
+  const questions = await getQuestionsByProject(String(projectId));
 
   const assessmentIdNum = Number(assessmentId);
   const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
