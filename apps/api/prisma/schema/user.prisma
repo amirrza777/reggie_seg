@@ -24,6 +24,8 @@ model User {
   emailChangeTokens   EmailChangeToken[]
 
   questionnaires         QuestionnaireTemplate[]
-  reviewerFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewee")
+  reviewerFeedbacks      PeerFeedback[]             @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks      PeerFeedback[]             @relation("PeerFeedbackReviewee")
+  gitHubAccount          GitHubAccount?
+  linkedGitHubRepos      ProjectGitHubRepository[]  @relation("ProjectGitHubRepositoryLinkedBy")
 }

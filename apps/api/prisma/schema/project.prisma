@@ -11,6 +11,7 @@ model Project {
   teams                 Team[]
   peerAssessments       PeerAssessment[]
   deadline              ProjectDeadline?
+  gitHubRepositories    ProjectGitHubRepository[]
 
   @@index([moduleId])
   @@index([questionnaireTemplateId])
