@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
 import {
   createTeamInviteRecord,
@@ -6,6 +7,7 @@ import {
   findInviteContext,
   getInvitesForTeam,
   TeamService,
+  updateInviteStatusFromPending,
 } from "./repo.js";
 
 type CreateTeamInviteParams = {
@@ -78,4 +80,35 @@ export async function addUserToTeam(teamId: number, userId: number, role: "OWNER
 
 export async function getTeamMembers(teamId: number) {
   return TeamService.getTeamMembers(teamId);
+}
+
+async function transitionInviteFromPending(inviteId: string, status: TeamInviteStatus) {
+  const invite = await updateInviteStatusFromPending(inviteId, status, new Date());
+
+  if (!invite) {
+    throw { code: "INVITE_NOT_PENDING" };
+  }
+
+  return invite;
+}
+
+export async function acceptTeamInvite(inviteId: string) {
+  return transitionInviteFromPending(inviteId, "ACCEPTED");
+}
+
+export async function declineTeamInvite(inviteId: string) {
+  return transitionInviteFromPending(inviteId, "DECLINED");
+}
+
+// "REJECTED" is treated as an alias of DECLINED in current schema.
+export async function rejectTeamInvite(inviteId: string) {
+  return transitionInviteFromPending(inviteId, "DECLINED");
+}
+
+export async function cancelTeamInvite(inviteId: string) {
+  return transitionInviteFromPending(inviteId, "CANCELLED");
+}
+
+export async function expireTeamInvite(inviteId: string) {
+  return transitionInviteFromPending(inviteId, "EXPIRED");
 }

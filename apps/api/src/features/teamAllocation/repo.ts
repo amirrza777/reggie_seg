@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client";
+import type { Prisma, TeamInviteStatus } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
 
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
@@ -55,6 +55,33 @@ export async function getInvitesForTeam(teamId: number) {
   return prisma.teamInvite.findMany({
     where: { teamId },
     orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function updateInviteStatusFromPending(
+  inviteId: string,
+  status: TeamInviteStatus,
+  now: Date,
+) {
+  const result = await prisma.teamInvite.updateMany({
+    where: {
+      id: inviteId,
+      status: "PENDING",
+      active: true,
+    },
+    data: {
+      status,
+      active: false,
+      respondedAt: now,
+    },
+  });
+
+  if (result.count === 0) {
+    return null;
+  }
+
+  return prisma.teamInvite.findUnique({
+    where: { id: inviteId },
   });
 }
 
