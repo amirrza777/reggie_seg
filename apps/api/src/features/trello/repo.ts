@@ -2,6 +2,7 @@ import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
 
 export const TrelloRepo = {
+  //Stores Trello credentials in db
   async updateUserTrelloToken(userId: number, token: string, trelloMemberId: string) {
     return prisma.user.update({
       where: { id: userId },
@@ -9,6 +10,7 @@ export const TrelloRepo = {
     })
   },
 
+  //Assigns a board to a team
   async assignBoard(teamId: number, boardId: string, ownerId: number) {
     return prisma.team.update({
       where: { id: teamId },
@@ -16,6 +18,7 @@ export const TrelloRepo = {
     })
   },
 
+  //Returns a team with its Trello owner
   async getTeamWithOwner(teamId: number) {
     return prisma.team.findUnique({
       where: { id: teamId },

@@ -1,8 +1,10 @@
 "use client";
 
+//ChatGPT generated test page for Trello board assignment and verification. This is not meant for production use and should be removed after testing.
+
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/shared/api/env";
-import { getAccessToken } from "@/features/auth/api/session";
+import { trelloApiFetch } from "./_lib/trelloApi";
+
 
 type TrelloBoard = {
   id: string;
@@ -16,29 +18,15 @@ export default function TrelloBoardsPage() {
   const [boards, setBoards] = useState<TrelloBoard[]>([]);
 
   useEffect(() => {
+    // Initial load of boards for quick sanity-check after linking.
     const loadBoards = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        setError("You must be logged in before loading Trello boards.");
-        return;
-      }
-
       setLoading(true);
       setError(null);
 
       try {
-        const res = await fetch(`${API_BASE_URL}/trello/owner-boards`, {
+        const data = await trelloApiFetch<TrelloBoard[]>("/trello/boards", {
           method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: "include",
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to load Trello boards.");
-        }
-
-        const data = (await res.json()) as TrelloBoard[];
         setBoards(Array.isArray(data) ? data : []);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load Trello boards.");
@@ -53,30 +41,21 @@ export default function TrelloBoardsPage() {
   const goToLinkPage = () => {
     window.location.href = "/trello-test/link-trello";
   };
+  const goToTeamBoardPage = () => {
+    window.location.href = "/trello-test/team-board";
+  };
+  const goToAssignBoardPage = () => {
+    window.location.href = "/trello-test/assign-board";
+  };
 
   const refreshBoards = async () => {
-    const token = getAccessToken();
-    if (!token) {
-      setError("You must be logged in before loading Trello boards.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/trello/owner-boards`, {
+      const data = await trelloApiFetch<TrelloBoard[]>("/trello/boards", {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "include",
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to load Trello boards.");
-      }
-
-      const data = (await res.json()) as TrelloBoard[];
       setBoards(Array.isArray(data) ? data : []);
     } catch (err) {
       setLoading(false);
@@ -123,6 +102,40 @@ export default function TrelloBoardsPage() {
       >
         {loading ? "Loading..." : "Refresh Boards"}
       </button>
+      <button
+        onClick={goToTeamBoardPage}
+        style={{
+          padding: "8px 16px",
+          fontSize: 16,
+          backgroundColor: "#0f766e",
+          color: "white",
+          border: "none",
+          borderRadius: 4,
+          cursor: "pointer",
+          marginLeft: 8,
+          opacity: loading ? 0.6 : 1,
+        }}
+        disabled={loading}
+      >
+        View Team Board
+      </button>
+      <button
+        onClick={goToAssignBoardPage}
+        style={{
+          padding: "8px 16px",
+          fontSize: 16,
+          backgroundColor: "#1d4ed8",
+          color: "white",
+          border: "none",
+          borderRadius: 4,
+          cursor: "pointer",
+          marginLeft: 8,
+          opacity: loading ? 0.6 : 1,
+        }}
+        disabled={loading}
+      >
+        Assign Team Board
+      </button>
       {error ? <p style={{ color: "#b42318", marginTop: 12 }}>{error}</p> : null}
       {!loading && !error && boards.length === 0 ? (
         <p style={{ marginTop: 12 }}>
@@ -143,3 +156,4 @@ export default function TrelloBoardsPage() {
     </div>
   );
 }
+

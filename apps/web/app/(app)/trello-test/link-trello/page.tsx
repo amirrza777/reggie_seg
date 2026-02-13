@@ -1,37 +1,24 @@
 "use client";
 
+//ChatGPT generated test page for Trello board assignment and verification. This is not meant for production use and should be removed after testing.
+
 import { useState } from "react";
-import { API_BASE_URL } from "@/shared/api/env";
-import { getAccessToken } from "@/features/auth/api/session";
+import { trelloApiFetch } from "../_lib/trelloApi";
 
 export default function LinkTrelloPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch backend connect URL then hand control to Trello auth page.
   const connectTrello = async () => {
-    const token = getAccessToken();
-    if (!token) {
-      setError("You must be logged in before connecting Trello.");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/trello/connect-url`, {
+      const data = await trelloApiFetch<{ url?: string }>("/trello/connect-url", {
         method: "GET",
-        headers: { Authorization: `Bearer ${token}` },
-        credentials: "include",
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Failed to start Trello connection.");
-      }
-
-      const data = (await res.json()) as { url?: string };
-      if (!data.url) throw new Error("Missing Trello authorization URL.");
+      if (!data.url) throw new Error("Missing Trello authorisation URL.");
       window.location.href = data.url;
     } catch (err) {
       setLoading(false);
@@ -62,3 +49,4 @@ export default function LinkTrelloPage() {
     </div>
   );
 }
+

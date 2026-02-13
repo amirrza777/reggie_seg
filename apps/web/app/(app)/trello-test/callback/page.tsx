@@ -1,10 +1,12 @@
 "use client";
 
+//ChatGPT generated test page for Trello board assignment and verification. This is not meant for production use and should be removed after testing.
+
 import { useEffect, useState } from "react";
-import { API_BASE_URL } from "@/shared/api/env";
-import { getAccessToken } from "@/features/auth/api/session";
+import { trelloApiFetch } from "../_lib/trelloApi";
 
 function readTokenFromHash(hash: string): string | null {
+  // Trello returns token in URL fragment, not query params.
   const value = hash.startsWith("#") ? hash.slice(1) : hash;
   const params = new URLSearchParams(value);
   return params.get("token");
@@ -15,12 +17,6 @@ export default function TrelloCallbackPage() {
 
   useEffect(() => {
     const token = readTokenFromHash(window.location.hash);
-    const accessToken = getAccessToken();
-
-    if (!accessToken) {
-      setStatus("Login is required before connecting Trello.");
-      return;
-    }
 
     if (!token) {
       setStatus("Trello did not return a token. Try connecting again.");
@@ -29,20 +25,10 @@ export default function TrelloCallbackPage() {
 
     const run = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/trello/callback`, {
+        await trelloApiFetch<{ ok: boolean }>("/trello/callback", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          credentials: "include",
           body: JSON.stringify({ token }),
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || "Failed to save Trello token.");
-        }
 
         setStatus("Trello connected. Redirecting...");
         window.setTimeout(() => {
@@ -63,3 +49,4 @@ export default function TrelloCallbackPage() {
     </div>
   );
 }
+
