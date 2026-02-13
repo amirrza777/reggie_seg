@@ -1,30 +1,36 @@
-import type { Request, Response } from "express";
-import {
-  getBoard,
-  getBoardLists,
-  getListCards
-} from "./service.js";
+import { Request, Response } from "express"
+import { TrelloService } from "./service"
 
-//GET /trello/boards/:boardId
-export async function fetchBoard(req: Request, res: Response) {
-  const { boardId } = req.params;
+export const TrelloController = {
+  async assignBoard(req: Request, res: Response) {
+    try {
+      const { teamId, boardId, ownerId } = req.body
+      await TrelloService.assignBoard(teamId, boardId, ownerId)
+      res.status(200).json({ message: "Board assigned" })
+    } catch (err: any) {
+      res.status(400).json({ error: err.message })
+    }
+  },
 
-  const board = await getBoard(boardId);
-  res.json(board);
-}
+  async fetchTeamBoard(req: Request, res: Response) {
+    try {
+      const teamId = Number(req.query.teamId)
+      if (!teamId) return res.status(400).json({ error: "Missing teamId" })
+      const userId = (req.user as any).sub
+      const board = await TrelloService.fetchTeamBoard(teamId, userId)
+      res.status(200).json(board)
+    } catch (err: any) {
+      res.status(400).json({ error: err.message })
+    }
+  },
 
-//GET /trello/boards/:boardId/lists
-export async function fetchBoardLists(req: Request, res: Response) {
-  const { boardId } = req.params;
-
-  const lists = await getBoardLists(boardId);
-  res.json(lists);
-}
-
-//GET /trello/lists/:listId/cards
-export async function fetchListCards(req: Request, res: Response) {
-  const { listId } = req.params;
-
-  const cards = await getListCards(listId);
-  res.json(cards);
+  async fetchOwnerBoards(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any).sub
+      const boards = await TrelloService.fetchOwnerBoards(userId)
+      res.status(200).json(boards)
+    } catch (err: any) {
+      res.status(400).json({ error: err.message })
+    }
+  }
 }

@@ -1,14 +1,11 @@
-import { Router } from "express";
-import {
-  fetchBoard,
-  fetchBoardLists,
-  fetchListCards
-} from "./controller.js";
+import { Router } from "express"
+import { TrelloController } from "./controller.js"
+import { requireAuth } from "../../auth/middleware.js"
 
-const router = Router();
+const router = Router()
 
-router.get("/boards/:boardId", fetchBoard);
-router.get("/boards/:boardId/lists", fetchBoardLists);
-router.get("/lists/:listId/cards", fetchListCards);
+router.post("/assign", requireAuth, TrelloController.assignBoard)
+router.get("/team-board", requireAuth, TrelloController.fetchTeamBoard)
+router.get("/owner-boards", requireAuth, TrelloController.fetchOwnerBoards)
 
-export default router;
+export default router

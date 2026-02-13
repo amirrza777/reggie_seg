@@ -1,35 +1,59 @@
-const TRELLO_BASE_URL = "https://api.trello.com/1";
+import { TrelloRepo } from "./repo.js"
 
-const key = process.env.TRELLO_KEY!;
-const token = process.env.TRELLO_TOKEN!;
+const TRELLO_KEY = process.env.TRELLO_KEY!
 
-async function trelloFetch(path: string) {
-  const url = new URL(`${TRELLO_BASE_URL}${path}`);
-  url.searchParams.append("key", key);
-  url.searchParams.append("token", token);
+export const TrelloService = {
+  async getTrelloMember(token: string) {
+    const res = await fetch(
+      `https://api.trello.com/1/members/me?key=${TRELLO_KEY}&token=${token}`
+    )
+    if (!res.ok) throw new Error("Failed to fetch Trello member")
+    return res.json()
+  },
 
-  const response = await fetch(url.toString());
+  async getUserBoards(token: string) {
+    const res = await fetch(
+      `https://api.trello.com/1/members/me/boards?key=${TRELLO_KEY}&token=${token}`
+    )
+    if (!res.ok) throw new Error("Failed to fetch boards")
+    return res.json()
+  },
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+  async getBoardWithData(boardId: string, token: string) {
+    const res = await fetch(
+      `https://api.trello.com/1/boards/${boardId}?lists=open&cards=open&key=${TRELLO_KEY}&token=${token}`
+    )
+    if (!res.ok) throw new Error("Failed to fetch board")
+    return res.json()
+  },
+
+  // Business logic + DB calls via repo
+  async saveUserToken(userId: number, token: string, trelloMemberId: string) {
+    return TrelloRepo.updateUserTrelloToken(userId, token, trelloMemberId)
+  },
+
+  async assignBoard(teamId: number, boardId: string, ownerId: number) {
+    return TrelloRepo.assignBoard(teamId, boardId, ownerId)
+  },
+
+  async fetchTeamBoard(teamId: number, userId: number) {
+    const isMember = await TrelloRepo.isUserInTeam(userId, teamId)
+    if (!isMember) throw new Error("Not a member of this team")
+
+    const team = await TrelloRepo.getTeamWithOwner(teamId)
+    if (!team?.trelloBoardId) throw new Error("No board assigned")
+    if (!team.trelloOwner?.trelloToken)
+      throw new Error("Team owner not connected to Trello")
+
+    return TrelloService.getBoardWithData(
+      team.trelloBoardId,
+      team.trelloOwner.trelloAccessToken
+    )
+  },
+
+  async fetchOwnerBoards(userId: number) {
+    const user = await TrelloRepo.getUserById(userId)
+    if (!user?.trelloToken) throw new Error("User not connected to Trello")
+    return TrelloService.getUserBoards(user.trelloToken)
   }
-
-  return response.json();
 }
-
-//fetch a team's trello board
-export function getBoard(boardId: string) {
-  return trelloFetch(`/boards/${boardId}`);
-}
-
-//fetch lists on a board
-export function getBoardLists(boardId: string) {
-  return trelloFetch(`/boards/${boardId}/lists`);
-}
-
-//fetch cards on a list
-export function getListCards(listId: string) {
-  return trelloFetch(`/lists/${listId}/cards`);
-}
-
