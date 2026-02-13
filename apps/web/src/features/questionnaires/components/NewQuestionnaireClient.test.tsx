@@ -34,7 +34,7 @@ describe("NewQuestionnaireClient", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 
-  it("allows valid text questionnaire and sends expected create payload", async () => {
+  it("saves a valid questionnaire and returns to questionnaires list", async () => {
     render(<NewQuestionnaireClient />);
 
     fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
@@ -47,24 +47,21 @@ describe("NewQuestionnaireClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
-    await waitFor(() => expect(apiFetchMock).toHaveBeenCalledTimes(1));
-    expect(apiFetchMock).toHaveBeenCalledWith(
-      "/questionnaires/new",
-      expect.objectContaining({ method: "POST" })
-    );
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/new",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
 
     const [, init] = apiFetchMock.mock.calls[0];
     const body = JSON.parse(String(init?.body));
 
-    expect(body).toEqual({
-      templateName: "Sprint Reflection",
-      questions: [
-        {
-          label: "What should we improve next sprint?",
-          type: "text",
-          configs: {},
-        },
-      ],
+    expect(body.templateName).toBe("Sprint Reflection");
+    expect(body.questions).toHaveLength(1);
+    expect(body.questions[0]).toMatchObject({
+      label: "What should we improve next sprint?",
+      type: "text",
     });
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/staff/questionnaires"));

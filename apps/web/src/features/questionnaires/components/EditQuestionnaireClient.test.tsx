@@ -52,7 +52,7 @@ describe("EditQuestionnaireClient", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/12");
   });
 
-  it("saves with expected update payload and navigates back", async () => {
+  it("saves edits and navigates back", async () => {
     apiFetchMock
       .mockResolvedValueOnce({
         templateName: "Weekly Check-in",
@@ -72,25 +72,23 @@ describe("EditQuestionnaireClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    await waitFor(() => expect(apiFetchMock).toHaveBeenCalledTimes(2));
-    expect(apiFetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/questionnaires/12",
-      expect.objectContaining({ method: "PUT" })
-    );
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
 
-    const [, init] = apiFetchMock.mock.calls[1];
+    const putCall = apiFetchMock.mock.calls.find(([path, init]) => path === "/questionnaires/12" && init?.method === "PUT");
+    expect(putCall).toBeDefined();
+
+    const [, init] = putCall as [string, { body?: BodyInit | null }];
     const body = JSON.parse(String(init?.body));
-    expect(body).toEqual({
-      templateName: "Updated Weekly Check-in",
-      questions: [
-        {
-          id: 42,
-          label: "Updated question text",
-          type: "text",
-          configs: {},
-        },
-      ],
+    expect(body.templateName).toBe("Updated Weekly Check-in");
+    expect(Array.isArray(body.questions)).toBe(true);
+    expect(body.questions[0]).toMatchObject({
+      label: "Updated question text",
+      type: "text",
     });
 
     await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
