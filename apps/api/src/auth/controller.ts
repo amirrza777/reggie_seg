@@ -158,14 +158,16 @@ export async function meHandler(req: AuthRequest, res: Response) {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-    const role = user.isAdmin ? "ADMIN" : user.isStaff ? "STAFF" : "STUDENT";
+    const role = user.role;
+    const isStaff = role !== "STUDENT";
+    const isAdmin = role === "ADMIN";
 
     const profile = await getProfile(user.id); // includes avatar fields
 
     return res.json({
       ...profile,
-      isStaff: user.isStaff,
-      isAdmin: user.isAdmin,
+      isStaff,
+      isAdmin,
       role,
       active: true,
     });

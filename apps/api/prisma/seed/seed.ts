@@ -1,9 +1,20 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import argon2 from 'argon2';
+import { randFirstName, randLastName } from '@ngneat/falso';
 
 const prisma = new PrismaClient();
 
+function assertPrismaClientModels() {
+  const client = prisma as unknown as Record<string, unknown>;
+  if (!("project" in client)) {
+    throw new Error(
+      "Prisma Client is out of date (missing `project` delegate). Run `npx prisma generate` and retry."
+    );
+  }
+}
+
 async function main() {
+  assertPrismaClientModels();
   const enterpriseId = await getDefaultEnterpriseId();
   await seedAdminUser(enterpriseId);
   const users = await seedUsers(enterpriseId);
@@ -18,7 +29,7 @@ async function main() {
   await seedPeerAssessments(projects, teams, templates);
 }
 
-type SeedUser = { id: number; isStaff: boolean };
+type SeedUser = { id: number; role: Role };
 type SeedModule = { id: number };
 type SeedTemplate = { id: number };
 type SeedProject = { id: number };
@@ -57,63 +68,45 @@ async function seedAdminUser(enterpriseId: string) {
       passwordHash,
       firstName: 'Admin',
       lastName: 'User',
-      isStaff: true,
-      isAdmin: true,
+      role: "ADMIN",
       enterpriseId,
     },
   });
 }
 
+// Adjust this directly to control generated students count.
+const generatedStudentCount = 5;
+const generatedStaffCount = Math.ceil(generatedStudentCount / 10);
+
+const randomStudents = Array.from({ length: generatedStudentCount }, (_, index) => {
+  const firstName = randFirstName();
+  const lastName = randLastName();
+
+  return {
+    firstName,
+    lastName,
+    email: `student${index + 1}@example.com`,
+    passwordHash: 'dev-hash',
+    role: "STUDENT" as const,
+  };
+});
+
+const randomStaff = Array.from({ length: generatedStaffCount }, (_, index) => {
+  const firstName = randFirstName();
+  const lastName = randLastName();
+
+  return {
+    firstName,
+    lastName,
+    email: `staff${index + 1}@example.com`,
+    passwordHash: 'dev-hash',
+    role: "STAFF" as const,
+  };
+});
+
 const userData = [
-  {
-    firstName: 'Alice',
-    lastName: 'Lecturer',
-    email: 'alice.lecturer@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Ben',
-    lastName: 'Tutor',
-    email: 'ben.tutor@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Cara',
-    lastName: 'Student',
-    email: 'cara.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Dan',
-    lastName: 'Student',
-    email: 'dan.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Eve',
-    lastName: 'Student',
-    email: 'eve.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Frank',
-    lastName: 'Student',
-    email: 'frank.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Grace',
-    lastName: 'Student',
-    email: 'grace.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
+  ...randomStaff,
+  ...randomStudents,
 ];
 
 const moduleData = [{ name: 'Software Engineering Group Project' }, 
@@ -146,7 +139,7 @@ async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
   });
 
   const allUsers = await prisma.user.findMany({
-    select: { id: true, isStaff: true, email: true },
+    select: { id: true, role: true, email: true },
     where: {
       email: {
         in: userData.map((u) => u.email),
@@ -154,9 +147,9 @@ async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
     },
   });
 
-  return allUsers.map((u: { id: number; isStaff: boolean }) => ({
+  return allUsers.map((u: { id: number; role: Role }) => ({
     id: u.id,
-    isStaff: u.isStaff,
+    role: u.role,
   }));
 }
 
@@ -179,7 +172,7 @@ async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
   // Create a default questionnaire template with sample questions.
   // Get a staff user to own the templates
   const staffUser = await prisma.user.findFirst({
-    where: { isStaff: true },
+    where: { role: { in: ["STAFF", "ADMIN"] } },
   });
   
   if (!staffUser) return [];
@@ -280,7 +273,7 @@ async function seedTeams(enterpriseId: string, projects: SeedProject[]): Promise
 
 async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   // Assign the first two staff users as module leads.
-  const staff = users.filter((u) => u.isStaff);
+  const staff = users.filter((u) => u.role === "STAFF" || u.role === "ADMIN");
   if (staff.length === 0 || modules.length === 0) return;
 
   const data: { moduleId: number; userId: number }[] = [];
@@ -296,7 +289,7 @@ async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
 
 async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) {
   // Enroll all students into all modules.
-  const students = users.filter((u) => !u.isStaff);
+  const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || modules.length === 0) return;
 
   const data = students.flatMap((s) =>
@@ -311,7 +304,7 @@ async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) 
 
 async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   // Assign students to teams that match their module.
-  const students = users.filter((u) => !u.isStaff);
+  const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || teams.length === 0) return;
 
   const team1 = teams.find(t => t.projectId === 1);

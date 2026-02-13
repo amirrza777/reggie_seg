@@ -1,3 +1,9 @@
+enum Role {
+  STUDENT
+  STAFF
+  ADMIN
+}
+
 model User {
   id                  Int                 @id @default(autoincrement())
   enterpriseId        String
@@ -6,8 +12,7 @@ model User {
   avatarData          Bytes?
   avatarMime          String?
   firstName           String
-  isAdmin             Boolean             @default(false)
-  isStaff             Boolean             @default(false)
+  role                Role                @default(STUDENT)
   lastName            String
   passwordHash        String
   updatedAt           DateTime            @updatedAt
