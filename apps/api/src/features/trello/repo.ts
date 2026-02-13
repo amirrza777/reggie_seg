@@ -25,7 +25,7 @@ export const TrelloRepo = {
 
   async isUserInTeam(userId: number, teamId: number) {
     const membership = await prisma.teamAllocation.findUnique({
-      where: { userId_teamId: { userId, teamId } }
+      where: { teamId_userId: { userId, teamId } }
     })
     return !!membership
   },

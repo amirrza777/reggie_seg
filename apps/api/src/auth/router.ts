@@ -61,7 +61,3 @@ if (googleEnabled) {
 }
 
 export default router;
-
-import trelloRouter from "../features/trello/router.js";
-
-router.use("/trello", trelloRouter);

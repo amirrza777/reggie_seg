@@ -1,5 +1,5 @@
-import { Request, Response } from "express"
-import { TrelloService } from "./service"
+import type { Request, Response } from "express"
+import { TrelloService } from "./service.js"
 
 export const TrelloController = {
   async assignBoard(req: Request, res: Response) {

@@ -1,27 +1,35 @@
 import { TrelloRepo } from "./repo.js"
 
-const TRELLO_KEY = process.env.TRELLO_KEY!
+const TRELLO_KEY = process.env.TRELLO_KEY
+
+function requireTrelloKey() {
+  if (!TRELLO_KEY) throw new Error("Trello is not configured on this server")
+  return TRELLO_KEY
+}
 
 export const TrelloService = {
   async getTrelloMember(token: string) {
+    const trelloKey = requireTrelloKey()
     const res = await fetch(
-      `https://api.trello.com/1/members/me?key=${TRELLO_KEY}&token=${token}`
+      `https://api.trello.com/1/members/me?key=${trelloKey}&token=${token}`
     )
     if (!res.ok) throw new Error("Failed to fetch Trello member")
     return res.json()
   },
 
   async getUserBoards(token: string) {
+    const trelloKey = requireTrelloKey()
     const res = await fetch(
-      `https://api.trello.com/1/members/me/boards?key=${TRELLO_KEY}&token=${token}`
+      `https://api.trello.com/1/members/me/boards?key=${trelloKey}&token=${token}`
     )
     if (!res.ok) throw new Error("Failed to fetch boards")
     return res.json()
   },
 
   async getBoardWithData(boardId: string, token: string) {
+    const trelloKey = requireTrelloKey()
     const res = await fetch(
-      `https://api.trello.com/1/boards/${boardId}?lists=open&cards=open&key=${TRELLO_KEY}&token=${token}`
+      `https://api.trello.com/1/boards/${boardId}?lists=open&cards=open&key=${trelloKey}&token=${token}`
     )
     if (!res.ok) throw new Error("Failed to fetch board")
     return res.json()
@@ -47,7 +55,7 @@ export const TrelloService = {
 
     return TrelloService.getBoardWithData(
       team.trelloBoardId,
-      team.trelloOwner.trelloAccessToken
+      team.trelloOwner.trelloToken
     )
   },
 
