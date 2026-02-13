@@ -14,7 +14,7 @@ model Team {
   
   trelloBoardId String?
   trelloOwnerId Int?
-  trelloOwner User?@relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
+  trelloOwner User? @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
 
   @@unique([projectId, teamName])
   @@index([projectId])
