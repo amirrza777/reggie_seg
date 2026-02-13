@@ -1,0 +1,12 @@
+model Enterprise {
+  id        String   @id @default(cuid())
+  code      String   @unique @db.VarChar(16)
+  name      String   @db.VarChar(120)
+  createdAt DateTime @default(now())
+
+  users   User[]
+  modules Module[]
+  teams   Team[]
+
+  @@index([code])
+}

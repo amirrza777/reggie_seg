@@ -1,6 +1,7 @@
 model User {
   id                  Int                 @id @default(autoincrement())
-  email               String              @unique
+  enterpriseId        String
+  email               String
   createdAt           DateTime            @default(now())
   avatarData          Bytes?
   avatarMime          String?
@@ -10,6 +11,7 @@ model User {
   lastName            String
   passwordHash        String
   updatedAt           DateTime            @updatedAt
+  enterprise          Enterprise          @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   moduleLeads         ModuleLead[]
   revieweeAssessments PeerAssessment[]    @relation("PeerAssessmentReviewee")
   reviewerAssessments PeerAssessment[]    @relation("PeerAssessmentReviewer")
@@ -23,7 +25,12 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
 
-  questionnaires         QuestionnaireTemplate[]
-  reviewerFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks PeerFeedback[]    @relation("PeerFeedbackReviewee")
+  questionnaires       QuestionnaireTemplate[]
+  reviewerFeedbacks    PeerFeedback[]        @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks    PeerFeedback[]        @relation("PeerFeedbackReviewee")
+  teamInvitesSent      TeamInvite[]          @relation("TeamInvitesSent")
+  teamInvitesReceived  TeamInvite[]          @relation("TeamInvitesReceived")
+
+  @@index([enterpriseId])
+  @@unique([enterpriseId, email])
 }
