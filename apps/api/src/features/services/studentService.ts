@@ -9,7 +9,7 @@ export class UserService {
     const rows = await prisma.userModule.findMany({
       where: {
         moduleId,
-        user: { isStaff: false },
+        user: { role: "STUDENT" },
       },
       select: {
         user: {
@@ -30,7 +30,7 @@ export class UserService {
     const rows = await prisma.teamAllocation.findMany({
       where: {
         teamId,
-        user: { isStaff: false },
+        user: { role: "STUDENT" },
       },
       select: {
         user: {

@@ -1,15 +1,27 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import argon2 from 'argon2';
+import { randFirstName, randLastName } from '@ngneat/falso';
 
 const prisma = new PrismaClient();
 
+function assertPrismaClientModels() {
+  const client = prisma as unknown as Record<string, unknown>;
+  if (!("project" in client)) {
+    throw new Error(
+      "Prisma Client is out of date (missing `project` delegate). Run `npx prisma generate` and retry."
+    );
+  }
+}
+
 async function main() {
-  await seedAdminUser();
-  const users = await seedUsers();
-  const modules = await seedModules();
+  assertPrismaClientModels();
+  const enterpriseId = await getDefaultEnterpriseId();
+  await seedAdminUser(enterpriseId);
+  const users = await seedUsers(enterpriseId);
+  const modules = await seedModules(enterpriseId);
   const templates = await seedQuestionnaireTemplates();
   const projects = await seedProjects(modules, templates);
-  const teams = await seedTeams(projects);
+  const teams = await seedTeams(enterpriseId, projects);
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
@@ -17,18 +29,36 @@ async function main() {
   await seedPeerAssessments(projects, teams, templates);
 }
 
-type SeedUser = { id: number; isStaff: boolean };
+type SeedUser = { id: number; role: Role };
 type SeedModule = { id: number };
 type SeedTemplate = { id: number };
 type SeedProject = { id: number };
 type SeedTeam = { id: number; projectId: number };
 
-async function seedAdminUser() {
+async function getDefaultEnterpriseId(): Promise<string> {
+  const enterprise = await prisma.enterprise.findUnique({
+    where: { code: 'DEFAULT' },
+    select: { id: true },
+  });
+
+  if (enterprise) return enterprise.id;
+
+  const created = await prisma.enterprise.create({
+    data: { code: 'DEFAULT', name: 'Default Enterprise' },
+    select: { id: true },
+  });
+
+  return created.id;
+}
+
+async function seedAdminUser(enterpriseId: string) {
   const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
   const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
   if (!email || !password) return;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+  });
   if (existing) return;
 
   const passwordHash = await argon2.hash(password);
@@ -38,62 +68,45 @@ async function seedAdminUser() {
       passwordHash,
       firstName: 'Admin',
       lastName: 'User',
-      isStaff: true,
-      isAdmin: true,
+      role: "ADMIN",
+      enterpriseId,
     },
   });
 }
 
+// Adjust this directly to control generated students count.
+const generatedStudentCount = 5;
+const generatedStaffCount = Math.ceil(generatedStudentCount / 10);
+
+const randomStudents = Array.from({ length: generatedStudentCount }, (_, index) => {
+  const firstName = randFirstName();
+  const lastName = randLastName();
+
+  return {
+    firstName,
+    lastName,
+    email: `student${index + 1}@example.com`,
+    passwordHash: 'dev-hash',
+    role: "STUDENT" as const,
+  };
+});
+
+const randomStaff = Array.from({ length: generatedStaffCount }, (_, index) => {
+  const firstName = randFirstName();
+  const lastName = randLastName();
+
+  return {
+    firstName,
+    lastName,
+    email: `staff${index + 1}@example.com`,
+    passwordHash: 'dev-hash',
+    role: "STAFF" as const,
+  };
+});
+
 const userData = [
-  {
-    firstName: 'Alice',
-    lastName: 'Lecturer',
-    email: 'alice.lecturer@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Ben',
-    lastName: 'Tutor',
-    email: 'ben.tutor@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: true,
-  },
-  {
-    firstName: 'Cara',
-    lastName: 'Student',
-    email: 'cara.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Dan',
-    lastName: 'Student',
-    email: 'dan.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Eve',
-    lastName: 'Student',
-    email: 'eve.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Frank',
-    lastName: 'Student',
-    email: 'frank.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
-  {
-    firstName: 'Grace',
-    lastName: 'Student',
-    email: 'grace.student@example.com',
-    passwordHash: 'dev-hash',
-    isStaff: false,
-  },
+  ...randomStaff,
+  ...randomStudents,
 ];
 
 const moduleData = [{ name: 'Software Engineering Group Project' }, 
@@ -118,15 +131,15 @@ const teamData = [
   { teamName: 'Team Gamma', projectIndex: 2 },
 ];
 
-async function seedUsers(): Promise<SeedUser[]> {
+async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
   // Create a small set of staff and student users with a placeholder password hash.
   await prisma.user.createMany({
-    data: userData,
+    data: userData.map((user) => ({ ...user, enterpriseId })),
     skipDuplicates: true,
   });
 
   const allUsers = await prisma.user.findMany({
-    select: { id: true, isStaff: true, email: true },
+    select: { id: true, role: true, email: true },
     where: {
       email: {
         in: userData.map((u) => u.email),
@@ -134,16 +147,16 @@ async function seedUsers(): Promise<SeedUser[]> {
     },
   });
 
-  return allUsers.map((u: { id: number; isStaff: boolean }) => ({
+  return allUsers.map((u: { id: number; role: Role }) => ({
     id: u.id,
-    isStaff: u.isStaff,
+    role: u.role,
   }));
 }
 
-async function seedModules(): Promise<SeedModule[]> {
+async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
   // Create a couple of modules for students to enroll in and for teams to belong to.
   await prisma.module.createMany({
-    data: moduleData,
+    data: moduleData.map((module) => ({ ...module, enterpriseId })),
     skipDuplicates: true,
   });
 
@@ -159,7 +172,7 @@ async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
   // Create a default questionnaire template with sample questions.
   // Get a staff user to own the templates
   const staffUser = await prisma.user.findFirst({
-    where: { isStaff: true },
+    where: { role: { in: ["STAFF", "ADMIN"] } },
   });
   
   if (!staffUser) return [];
@@ -227,7 +240,7 @@ async function seedProjects(modules: SeedModule[], templates: SeedTemplate[]): P
   return projects.map((p: { id: number }) => ({ id: p.id }));
 }
 
-async function seedTeams(projects: SeedProject[]): Promise<SeedTeam[]> {
+async function seedTeams(enterpriseId: string, projects: SeedProject[]): Promise<SeedTeam[]> {
   // Create teams tied to projects.
   if (projects.length === 0) return [];
   const fallbackProject = projects[0];
@@ -238,6 +251,7 @@ async function seedTeams(projects: SeedProject[]): Promise<SeedTeam[]> {
     return {
       teamName: team.teamName,
       projectId: project.id,
+      enterpriseId,
     };
   });
 
@@ -259,7 +273,7 @@ async function seedTeams(projects: SeedProject[]): Promise<SeedTeam[]> {
 
 async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   // Assign the first two staff users as module leads.
-  const staff = users.filter((u) => u.isStaff);
+  const staff = users.filter((u) => u.role === "STAFF" || u.role === "ADMIN");
   if (staff.length === 0 || modules.length === 0) return;
 
   const data: { moduleId: number; userId: number }[] = [];
@@ -275,7 +289,7 @@ async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
 
 async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) {
   // Enroll all students into all modules.
-  const students = users.filter((u) => !u.isStaff);
+  const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || modules.length === 0) return;
 
   const data = students.flatMap((s) =>
@@ -290,7 +304,7 @@ async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) 
 
 async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   // Assign students to teams that match their module.
-  const students = users.filter((u) => !u.isStaff);
+  const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || teams.length === 0) return;
 
   const team1 = teams.find(t => t.projectId === 1);

@@ -1,10 +1,14 @@
 model Module {
   id              Int              @id @default(autoincrement())
-  name            String           @unique
+  enterpriseId    String
+  name            String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  enterprise      Enterprise       @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
 
   projects        Project[]
   moduleLeads     ModuleLead[]
   userModules     UserModule[]
+
+  @@index([enterpriseId])
 }
