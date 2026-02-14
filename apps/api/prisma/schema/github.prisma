@@ -45,9 +45,26 @@ model ProjectGitHubRepository {
   project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   repository         GitHubRepository @relation(fields: [gitHubRepositoryId], references: [id], onDelete: Cascade)
   linkedByUser       User             @relation("ProjectGitHubRepositoryLinkedBy", fields: [linkedByUserId], references: [id], onDelete: Cascade)
+  snapshots          GitHubRepoSnapshot[]
 
   @@unique([projectId, gitHubRepositoryId])
   @@index([projectId])
   @@index([gitHubRepositoryId])
   @@index([linkedByUserId])
+}
+
+model GitHubRepoSnapshot {
+  id                      Int                    @id @default(autoincrement())
+  projectGitHubRepositoryId Int
+  analysedByUserId        Int?
+  analysedAt              DateTime               @default(now())
+  data                    Json
+  createdAt               DateTime               @default(now())
+
+  repoLink                ProjectGitHubRepository @relation(fields: [projectGitHubRepositoryId], references: [id], onDelete: Cascade)
+  analysedByUser          User?                  @relation("GitHubRepoSnapshotAnalysedBy", fields: [analysedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([projectGitHubRepositoryId])
+  @@index([analysedAt])
+  @@index([analysedByUserId])
 }

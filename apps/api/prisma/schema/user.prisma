@@ -28,4 +28,5 @@ model User {
   revieweeFeedbacks      PeerFeedback[]             @relation("PeerFeedbackReviewee")
   gitHubAccount          GitHubAccount?
   linkedGitHubRepos      ProjectGitHubRepository[]  @relation("ProjectGitHubRepositoryLinkedBy")
+  analysedGitHubSnapshots GitHubRepoSnapshot[]      @relation("GitHubRepoSnapshotAnalysedBy")
 }
