@@ -15,6 +15,11 @@ import {
 import type { AuthRequest } from "./middleware.js";
 import { prisma } from "../shared/db.js";
 
+const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production";
+// SameSite=None is required for cross-site XHR/fetch with credentials; browsers also require Secure in that case.
+const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
 export async function signupHandler(req: Request, res: Response) {
   const { email, password, firstName, lastName } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
@@ -136,9 +141,10 @@ export async function confirmEmailChangeHandler(req: AuthRequest, res: Response)
 function setRefreshCookie(res: Response, token: string) {
   res.cookie("refresh_token", token, {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     path: "/",
+    domain: cookieDomain,
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
 }
