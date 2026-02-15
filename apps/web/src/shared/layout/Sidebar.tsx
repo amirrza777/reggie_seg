@@ -25,6 +25,14 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
 
   return (
     <div className="sidebar">
+      <div className="sidebar__brand">
+        <span className="sidebar__dot" />
+        <div>
+          <p className="eyebrow">Team Feedback</p>
+          <strong>{title}</strong>
+        </div>
+      </div>
+
       <div className="sidebar__mobile">
         <button
           type="button"

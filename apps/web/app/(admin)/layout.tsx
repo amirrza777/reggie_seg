@@ -3,14 +3,13 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/shared/layout/AppShell";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
-import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
-import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser, isAdmin } from "@/shared/auth/session";
 
 export const dynamic = "force-dynamic";
 
 const adminNav = [
   { href: "/admin", label: "Admin dashboard" },
+  { href: "/dashboard", label: "Workspace" },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -24,24 +23,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/dashboard");
   }
 
-  const spaceLinks: SpaceLink[] = [
-    {
-      href: "/dashboard",
-      label: "Workspace",
-    },
-    {
-      href: "/admin",
-      label: "Admin",
-    },
-  ];
-
   return (
     <AppShell
       sidebar={<Sidebar title="Admin" links={adminNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
-      ribbon={<SpaceSwitcher links={spaceLinks} />}
+      topbar={<Topbar title="Admin control panel" />}
     >
-      <div className="workspace-shell">{children}</div>
+      {children}
     </AppShell>
   );
 }

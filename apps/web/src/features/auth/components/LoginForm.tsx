@@ -8,7 +8,6 @@ import { AuthField } from "./AuthField";
 import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
-import { useUser } from "../context";
 
 const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" | "text" }> = [
   { name: "email", label: "Email or username", type: "text" },
@@ -20,7 +19,6 @@ const useLoginFormState = () => {
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
-  const { refresh } = useUser();
 
   const updateField = (name: keyof LoginCredentials, value: string) =>
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -31,7 +29,6 @@ const useLoginFormState = () => {
     setMessage(null);
     try {
       await login(form);
-      await refresh(); // pull fresh profile into context
       setStatus("success");
       setMessage("Logged in.");
       router.push("/modules");

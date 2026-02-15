@@ -10,32 +10,30 @@ type UserContextValue = {
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
   refresh: () => Promise<void>;
-  loading: boolean;
 };
 
 const UserContext = createContext<UserContextValue | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
-   const [loading, setLoading] = useState<boolean>(true);
 
   const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const profile = await getCurrentUser();
-      setUser(profile);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+    const profile = await getCurrentUser();
+    setUser(profile);
   }, []);
 
   useEffect(() => {
-    void refresh();
+    const run = async () => {
+      try {
+        await refresh();
+      } catch {
+        setUser(null);
+      }
+    };
+    run();
   }, [refresh]);
 
-  const value = useMemo(() => ({ user, setUser, refresh, loading }), [user, refresh, loading]);
+  const value = useMemo(() => ({ user, setUser, refresh }), [user, refresh]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }

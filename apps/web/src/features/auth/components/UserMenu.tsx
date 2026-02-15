@@ -15,7 +15,7 @@ function initials(user: UserProfile) {
 }
 
 export function UserMenu() {
-  const { user, setUser, loading } = useUser();
+  const { user, setUser } = useUser();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -36,15 +36,6 @@ export function UserMenu() {
     router.push("/login");
   };
 
-  if (loading) {
-    return (
-      <div className="user-menu__trigger" aria-busy="true" aria-label="Loading user menu">
-        <span className="user-menu__avatar user-menu__avatar--fallback">…</span>
-        <span className="user-menu__name">Loading...</span>
-      </div>
-    );
-  }
-
   if (!user) {
     return (
       <Link className="user-menu__trigger" href="/login">
@@ -57,8 +48,6 @@ export function UserMenu() {
   const avatarSrc = user.avatarBase64 && user.avatarMime
     ? `data:${user.avatarMime};base64,${user.avatarBase64}`
     : null;
-  const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
-  const userInitials = initials(user);
 
   return (
     <div className="user-menu" ref={menuRef}>
@@ -66,33 +55,19 @@ export function UserMenu() {
         {avatarSrc ? (
           <img className="user-menu__avatar" src={avatarSrc} alt="User avatar" />
         ) : (
-          <span className="user-menu__avatar user-menu__avatar--fallback">{userInitials}</span>
+          <span className="user-menu__avatar user-menu__avatar--fallback">{initials(user)}</span>
         )}
-        <span className="user-menu__name">{displayName}</span>
+        <span className="user-menu__name">{user.firstName || user.lastName ? `${user.firstName} ${user.lastName}` : user.email}</span>
       </button>
 
       {open ? (
         <div className="user-menu__dropdown">
           <div className="user-menu__meta">
-            {avatarSrc ? (
-              <img className="user-menu__avatar user-menu__avatar--large" src={avatarSrc} alt="User avatar" />
-            ) : (
-              <span className="user-menu__avatar user-menu__avatar--fallback user-menu__avatar--large">
-                {userInitials}
-              </span>
-            )}
-            <div className="user-menu__identity">
-              <div className="user-menu__meta-name">{displayName}</div>
-              <div className="user-menu__meta-email">{user.email}</div>
-            </div>
+            <div className="user-menu__meta-name">{user.firstName} {user.lastName}</div>
+            <div className="user-menu__meta-email">{user.email}</div>
           </div>
           <div className="user-menu__links">
             <Link className="user-menu__link" href="/profile">Profile</Link>
-          </div>
-          <div className="user-menu__links">
-            <a className="user-menu__link" href="mailto:support@teamfeedback.app">Contact support</a>
-          </div>
-          <div className="user-menu__links">
             <button className="user-menu__link user-menu__link--danger" type="button" onClick={handleLogout}>
               Log out
             </button>
