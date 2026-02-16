@@ -105,7 +105,21 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         setAvailableRepos([]);
         setSelectedRepoId("");
       }
-      setCoverageByLinkId({});
+      if (repoLinks.length > 0) {
+        const coverageEntries = await Promise.all(
+          repoLinks.map(async (link) => {
+            try {
+              const coverage = await getProjectGithubMappingCoverage(link.id);
+              return [link.id, coverage] as const;
+            } catch {
+              return [link.id, null] as const;
+            }
+          })
+        );
+        setCoverageByLinkId(Object.fromEntries(coverageEntries));
+      } else {
+        setCoverageByLinkId({});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load GitHub data.");
     } finally {
@@ -277,6 +291,14 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 <p className="muted">
                   {link.repository.isPrivate ? "Private" : "Public"} • default branch {link.repository.defaultBranch || "unknown"}
                 </p>
+                {coverageByLinkId[link.id]?.analysedAt ? (
+                  <p className="muted">
+                    Last analysed {new Date(String(coverageByLinkId[link.id]?.analysedAt)).toLocaleString()} • Total commits{" "}
+                    {coverageByLinkId[link.id]?.coverage?.totalCommits ?? 0}
+                  </p>
+                ) : (
+                  <p className="muted">No snapshot analysed yet.</p>
+                )}
                 <div style={styles.actions}>
                   <Button
                     onClick={() => void handleAnalyseNow(link.id)}
