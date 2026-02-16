@@ -1,6 +1,5 @@
-import { CommitList } from "@/features/repos/components/CommitList";
+import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { RepoLinkForm } from "@/features/repos/components/RepoLinkForm";
 import { Placeholder } from "@/shared/ui/Placeholder";
 
 type ProjectPageProps = {
@@ -15,10 +14,9 @@ export default async function ProjectReposPage({ params }: ProjectPageProps) {
       <Placeholder
         title="Repos"
         path={`/projects/${projectId}/repos`}
-        description="Link repositories for this project."
+        description="Connect your GitHub account and view repositories linked to this project."
       />
-      <RepoLinkForm projectId={projectId} />
-      <CommitList />
+      <GithubProjectReposClient projectId={projectId} />
     </div>
   );
 }
