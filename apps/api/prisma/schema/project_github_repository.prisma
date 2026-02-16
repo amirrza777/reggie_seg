@@ -1,0 +1,24 @@
+model ProjectGitHubRepository {
+  id                 Int              @id @default(autoincrement())
+  projectId          Int
+  gitHubRepositoryId Int
+  linkedByUserId     Int
+  isActive           Boolean          @default(true)
+  autoSyncEnabled    Boolean          @default(true)
+  syncIntervalMinutes Int             @default(60)
+  lastSyncedAt       DateTime?
+  nextSyncAt         DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  repository         GitHubRepository @relation(fields: [gitHubRepositoryId], references: [id], onDelete: Cascade)
+  linkedByUser       User             @relation("ProjectGitHubRepositoryLinkedBy", fields: [linkedByUserId], references: [id], onDelete: Cascade)
+  snapshots          GitHubRepoSnapshot[]
+
+  @@unique([projectId, gitHubRepositoryId])
+  @@index([projectId])
+  @@index([gitHubRepositoryId])
+  @@index([linkedByUserId])
+  @@index([nextSyncAt])
+}

@@ -1,0 +1,20 @@
+model GitHubRepository {
+  id            Int       @id @default(autoincrement())
+  githubRepoId  BigInt    @unique
+  ownerLogin    String
+  ownerType     String?
+  name          String
+  fullName      String    @unique
+  description   String?   @db.Text
+  htmlUrl       String
+  isPrivate     Boolean
+  isArchived    Boolean   @default(false)
+  defaultBranch String?
+  pushedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  projectLinks  ProjectGitHubRepository[]
+
+  @@index([ownerLogin])
+}

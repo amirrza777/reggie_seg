@@ -1,0 +1,20 @@
+model GitHubRepoSnapshotRepoStat {
+  id                  Int                @id @default(autoincrement())
+  snapshotId          Int
+  totalCommits        Int                @default(0)
+  totalAdditions      Int                @default(0)
+  totalDeletions      Int                @default(0)
+  totalContributors   Int                @default(0)
+  matchedContributors Int                @default(0)
+  unmatchedContributors Int              @default(0)
+  unmatchedCommits    Int                @default(0)
+  defaultBranchCommits Int               @default(0)
+  commitsByDay        Json?
+  commitsByBranch     Json?
+  createdAt           DateTime           @default(now())
+
+  snapshot            GitHubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId])
+  @@index([snapshotId])
+}

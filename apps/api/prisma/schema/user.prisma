@@ -23,10 +23,11 @@ model User {
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
 
-  questionnaires         QuestionnaireTemplate[]
-  reviewerFeedbacks      PeerFeedback[]             @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks      PeerFeedback[]             @relation("PeerFeedbackReviewee")
-  gitHubAccount          GitHubAccount?
-  linkedGitHubRepos      ProjectGitHubRepository[]  @relation("ProjectGitHubRepositoryLinkedBy")
-  analysedGitHubSnapshots GitHubRepoSnapshot[]      @relation("GitHubRepoSnapshotAnalysedBy")
+  questionnaires          QuestionnaireTemplate[]
+  reviewerFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewee")
+  gitHubAccount           GitHubAccount?
+  linkedGitHubRepos       ProjectGitHubRepository[]     @relation("ProjectGitHubRepositoryLinkedBy")
+  analysedGitHubSnapshots GitHubRepoSnapshot[]          @relation("GitHubRepoSnapshotAnalysedBy")
+  mappedGitHubStats       GitHubRepoSnapshotUserStat[]  @relation("GitHubRepoSnapshotUserStatMappedUser")
 }

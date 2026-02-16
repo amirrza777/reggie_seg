@@ -1,0 +1,26 @@
+model GitHubRepoSnapshotUserStat {
+  id                    Int                @id @default(autoincrement())
+  snapshotId            Int
+  mappedUserId          Int?
+  contributorKey        String
+  githubUserId          BigInt?
+  githubLogin           String?
+  authorEmail           String?
+  isMatched             Boolean            @default(false)
+  commits               Int                @default(0)
+  additions             Int                @default(0)
+  deletions             Int                @default(0)
+  commitsByDay          Json?
+  commitsByBranch       Json?
+  firstCommitAt         DateTime?
+  lastCommitAt          DateTime?
+  createdAt             DateTime           @default(now())
+
+  snapshot              GitHubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  mappedUser            User?              @relation("GitHubRepoSnapshotUserStatMappedUser", fields: [mappedUserId], references: [id], onDelete: SetNull)
+
+  @@unique([snapshotId, contributorKey])
+  @@index([snapshotId])
+  @@index([mappedUserId])
+  @@index([githubLogin])
+}
