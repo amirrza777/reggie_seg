@@ -4,6 +4,7 @@ import {
   analyseProjectGithubRepoHandler,
   disconnectGithubAccountHandler,
   getGithubConnectionStatusHandler,
+  getLatestProjectGithubRepoSnapshotHandler,
   getGithubSnapshotHandler,
   getGithubOAuthConnectUrlHandler,
   getProjectGithubMappingCoverageHandler,
@@ -25,6 +26,7 @@ router.post("/project-repos", requireAuth, linkGithubProjectRepoHandler);
 router.get("/project-repos", requireAuth, listProjectGithubReposHandler);
 router.post("/project-repos/:linkId/analyse", requireAuth, analyseProjectGithubRepoHandler);
 router.get("/project-repos/:linkId/snapshots", requireAuth, listProjectGithubRepoSnapshotsHandler);
+router.get("/project-repos/:linkId/latest-snapshot", requireAuth, getLatestProjectGithubRepoSnapshotHandler);
 router.get("/project-repos/:linkId/mapping-coverage", requireAuth, getProjectGithubMappingCoverageHandler);
 router.get("/snapshots/:snapshotId", requireAuth, getGithubSnapshotHandler);
 

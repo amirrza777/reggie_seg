@@ -363,6 +363,66 @@ export function findLatestGithubSnapshotCoverageByProjectLinkId(projectGithubRep
   });
 }
 
+export function findLatestGithubSnapshotByProjectLinkId(projectGithubRepositoryId: number) {
+  return prisma.githubRepoSnapshot.findFirst({
+    where: { projectGithubRepositoryId },
+    orderBy: { analysedAt: "desc" },
+    select: {
+      id: true,
+      projectGithubRepositoryId: true,
+      analysedByUserId: true,
+      analysedAt: true,
+      createdAt: true,
+      data: true,
+      repoLink: {
+        select: {
+          id: true,
+          projectId: true,
+          githubRepositoryId: true,
+        },
+      },
+      userStats: {
+        orderBy: {
+          commits: "desc",
+        },
+        select: {
+          id: true,
+          mappedUserId: true,
+          contributorKey: true,
+          githubUserId: true,
+          githubLogin: true,
+          authorEmail: true,
+          isMatched: true,
+          commits: true,
+          additions: true,
+          deletions: true,
+          commitsByDay: true,
+          commitsByBranch: true,
+          firstCommitAt: true,
+          lastCommitAt: true,
+          createdAt: true,
+        },
+      },
+      repoStats: {
+        select: {
+          id: true,
+          totalCommits: true,
+          totalAdditions: true,
+          totalDeletions: true,
+          totalContributors: true,
+          matchedContributors: true,
+          unmatchedContributors: true,
+          unmatchedCommits: true,
+          defaultBranchCommits: true,
+          commitsByDay: true,
+          commitsByBranch: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+}
+
 type CreateGithubSnapshotInput = {
   projectGithubRepositoryId: number;
   analysedByUserId: number;

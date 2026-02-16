@@ -6,6 +6,7 @@ import {
   connectGithubAccount,
   disconnectGithubAccount,
   getGithubConnectionStatus,
+  getLatestProjectGithubRepositorySnapshot,
   getProjectGithubMappingCoverage,
   getProjectGithubRepositorySnapshot,
   GithubServiceError,
@@ -262,6 +263,29 @@ export async function getGithubSnapshotHandler(req: AuthRequest, res: Response) 
     }
     console.error("Error fetching GitHub snapshot:", error);
     return res.status(500).json({ error: "Failed to fetch GitHub snapshot" });
+  }
+}
+
+export async function getLatestProjectGithubRepoSnapshotHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
+
+  try {
+    const snapshot = await getLatestProjectGithubRepositorySnapshot(userId, linkId);
+    return res.json({ snapshot });
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error fetching latest GitHub snapshot:", error);
+    return res.status(500).json({ error: "Failed to fetch latest GitHub snapshot" });
   }
 }
 

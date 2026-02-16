@@ -9,6 +9,7 @@ import {
   findGithubAccountByUserId,
   findProjectGithubRepositoryLinkById,
   findGithubSnapshotById,
+  findLatestGithubSnapshotByProjectLinkId,
   findLatestGithubSnapshotCoverageByProjectLinkId,
   findUserById,
   isUserInProject,
@@ -858,6 +859,25 @@ export async function getProjectGithubRepositorySnapshot(userId: number, snapsho
   const isMember = await isUserInProject(userId, snapshot.repoLink.projectId);
   if (!isMember) {
     throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  return snapshot;
+}
+
+export async function getLatestProjectGithubRepositorySnapshot(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const snapshot = await findLatestGithubSnapshotByProjectLinkId(link.id);
+  if (!snapshot) {
+    throw new GithubServiceError(404, "No snapshots found for this project repository link");
   }
 
   return snapshot;
