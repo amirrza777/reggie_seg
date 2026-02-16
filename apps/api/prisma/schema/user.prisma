@@ -26,8 +26,8 @@ model User {
   questionnaires          QuestionnaireTemplate[]
   reviewerFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewer")
   revieweeFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewee")
-  gitHubAccount           GitHubAccount?
-  linkedGitHubRepos       ProjectGitHubRepository[]     @relation("ProjectGitHubRepositoryLinkedBy")
-  analysedGitHubSnapshots GitHubRepoSnapshot[]          @relation("GitHubRepoSnapshotAnalysedBy")
-  mappedGitHubStats       GitHubRepoSnapshotUserStat[]  @relation("GitHubRepoSnapshotUserStatMappedUser")
+  githubAccount           GithubAccount?
+  linkedGithubRepos       ProjectGithubRepository[]     @relation("ProjectGithubRepositoryLinkedBy")
+  analysedGithubSnapshots GithubRepoSnapshot[]          @relation("GithubRepoSnapshotAnalysedBy")
+  mappedGithubStats       GithubRepoSnapshotUserStat[]  @relation("GithubRepoSnapshotUserStatMappedUser")
 }

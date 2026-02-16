@@ -1,4 +1,4 @@
-model GitHubRepoSnapshotRepoStat {
+model GithubRepoSnapshotRepoStat {
   id                  Int                @id @default(autoincrement())
   snapshotId          Int
   totalCommits        Int                @default(0)
@@ -13,7 +13,7 @@ model GitHubRepoSnapshotRepoStat {
   commitsByBranch     Json?
   createdAt           DateTime           @default(now())
 
-  snapshot            GitHubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  snapshot            GithubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@unique([snapshotId])
   @@index([snapshotId])

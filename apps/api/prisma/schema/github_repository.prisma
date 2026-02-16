@@ -1,4 +1,4 @@
-model GitHubRepository {
+model GithubRepository {
   id            Int       @id @default(autoincrement())
   githubRepoId  BigInt    @unique
   ownerLogin    String
@@ -14,7 +14,7 @@ model GitHubRepository {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  projectLinks  ProjectGitHubRepository[]
+  projectLinks  ProjectGithubRepository[]
 
   @@index([ownerLogin])
 }

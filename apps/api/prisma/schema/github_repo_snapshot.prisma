@@ -1,17 +1,17 @@
-model GitHubRepoSnapshot {
+model GithubRepoSnapshot {
   id                      Int                     @id @default(autoincrement())
-  projectGitHubRepositoryId Int
+  projectGithubRepositoryId Int
   analysedByUserId        Int?
   analysedAt              DateTime                @default(now())
   data                    Json
   createdAt               DateTime                @default(now())
 
-  repoLink                ProjectGitHubRepository @relation(fields: [projectGitHubRepositoryId], references: [id], onDelete: Cascade)
-  analysedByUser          User?                   @relation("GitHubRepoSnapshotAnalysedBy", fields: [analysedByUserId], references: [id], onDelete: SetNull)
-  userStats               GitHubRepoSnapshotUserStat[]
-  repoStats               GitHubRepoSnapshotRepoStat[]
+  repoLink                ProjectGithubRepository @relation(fields: [projectGithubRepositoryId], references: [id], onDelete: Cascade)
+  analysedByUser          User?                   @relation("GithubRepoSnapshotAnalysedBy", fields: [analysedByUserId], references: [id], onDelete: SetNull)
+  userStats               GithubRepoSnapshotUserStat[]
+  repoStats               GithubRepoSnapshotRepoStat[]
 
-  @@index([projectGitHubRepositoryId])
+  @@index([projectGithubRepositoryId])
   @@index([analysedAt])
   @@index([analysedByUserId])
 }

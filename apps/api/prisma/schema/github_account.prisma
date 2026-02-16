@@ -1,4 +1,4 @@
-model GitHubAccount {
+model GithubAccount {
   id                    Int       @id @default(autoincrement())
   userId                Int       @unique
   githubUserId          BigInt    @unique

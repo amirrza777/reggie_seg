@@ -1,7 +1,7 @@
-model ProjectGitHubRepository {
+model ProjectGithubRepository {
   id                 Int              @id @default(autoincrement())
   projectId          Int
-  gitHubRepositoryId Int
+  githubRepositoryId Int
   linkedByUserId     Int
   isActive           Boolean          @default(true)
   autoSyncEnabled    Boolean          @default(true)
@@ -12,13 +12,13 @@ model ProjectGitHubRepository {
   updatedAt          DateTime         @updatedAt
 
   project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  repository         GitHubRepository @relation(fields: [gitHubRepositoryId], references: [id], onDelete: Cascade)
-  linkedByUser       User             @relation("ProjectGitHubRepositoryLinkedBy", fields: [linkedByUserId], references: [id], onDelete: Cascade)
-  snapshots          GitHubRepoSnapshot[]
+  repository         GithubRepository @relation(fields: [githubRepositoryId], references: [id], onDelete: Cascade)
+  linkedByUser       User             @relation("ProjectGithubRepositoryLinkedBy", fields: [linkedByUserId], references: [id], onDelete: Cascade)
+  snapshots          GithubRepoSnapshot[]
 
-  @@unique([projectId, gitHubRepositoryId])
+  @@unique([projectId, githubRepositoryId])
   @@index([projectId])
-  @@index([gitHubRepositoryId])
+  @@index([githubRepositoryId])
   @@index([linkedByUserId])
   @@index([nextSyncAt])
 }

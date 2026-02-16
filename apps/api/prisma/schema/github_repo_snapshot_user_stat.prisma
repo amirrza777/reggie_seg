@@ -1,4 +1,4 @@
-model GitHubRepoSnapshotUserStat {
+model GithubRepoSnapshotUserStat {
   id                    Int                @id @default(autoincrement())
   snapshotId            Int
   mappedUserId          Int?
@@ -16,8 +16,8 @@ model GitHubRepoSnapshotUserStat {
   lastCommitAt          DateTime?
   createdAt             DateTime           @default(now())
 
-  snapshot              GitHubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
-  mappedUser            User?              @relation("GitHubRepoSnapshotUserStatMappedUser", fields: [mappedUserId], references: [id], onDelete: SetNull)
+  snapshot              GithubRepoSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  mappedUser            User?              @relation("GithubRepoSnapshotUserStatMappedUser", fields: [mappedUserId], references: [id], onDelete: SetNull)
 
   @@unique([snapshotId, contributorKey])
   @@index([snapshotId])
