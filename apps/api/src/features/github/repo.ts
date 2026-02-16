@@ -270,6 +270,37 @@ export function findProjectGithubRepositoryLinkById(linkId: number) {
   });
 }
 
+type UpdateProjectGithubRepositorySyncSettingsInput = {
+  linkId: number;
+  autoSyncEnabled: boolean;
+  syncIntervalMinutes: number;
+};
+
+export function updateProjectGithubRepositorySyncSettings(input: UpdateProjectGithubRepositorySyncSettingsInput) {
+  const nextSyncAt = input.autoSyncEnabled
+    ? new Date(Date.now() + input.syncIntervalMinutes * 60 * 1000)
+    : null;
+
+  return prisma.projectGithubRepository.update({
+    where: { id: input.linkId },
+    data: {
+      autoSyncEnabled: input.autoSyncEnabled,
+      syncIntervalMinutes: input.syncIntervalMinutes,
+      nextSyncAt,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      autoSyncEnabled: true,
+      syncIntervalMinutes: true,
+      lastSyncedAt: true,
+      nextSyncAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
 export function listGithubSnapshotsByProjectLinkId(projectGithubRepositoryId: number) {
   return prisma.githubRepoSnapshot.findMany({
     where: { projectGithubRepositoryId },

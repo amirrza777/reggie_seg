@@ -14,6 +14,7 @@ import {
   listProjectGithubRepositorySnapshots,
   listProjectGithubRepositories,
   listGithubRepositoriesForUser,
+  updateProjectGithubSyncSettings,
 } from "./service.js";
 
 export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Response) {
@@ -309,5 +310,39 @@ export async function getProjectGithubMappingCoverageHandler(req: AuthRequest, r
     }
     console.error("Error fetching project GitHub mapping coverage:", error);
     return res.status(500).json({ error: "Failed to fetch project GitHub mapping coverage" });
+  }
+}
+
+export async function updateProjectGithubSyncSettingsHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
+
+  const { autoSyncEnabled, syncIntervalMinutes } = req.body ?? {};
+  if (typeof autoSyncEnabled !== "boolean") {
+    return res.status(400).json({ error: "autoSyncEnabled must be a boolean" });
+  }
+  if (typeof syncIntervalMinutes !== "number" || Number.isNaN(syncIntervalMinutes)) {
+    return res.status(400).json({ error: "syncIntervalMinutes must be a number" });
+  }
+
+  try {
+    const syncSettings = await updateProjectGithubSyncSettings(userId, linkId, {
+      autoSyncEnabled,
+      syncIntervalMinutes,
+    });
+    return res.json({ syncSettings });
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error updating project GitHub sync settings:", error);
+    return res.status(500).json({ error: "Failed to update project GitHub sync settings" });
   }
 }

@@ -13,6 +13,7 @@ import {
   listProjectGithubRepoSnapshotsHandler,
   listProjectGithubReposHandler,
   listGithubReposHandler,
+  updateProjectGithubSyncSettingsHandler,
 } from "./controller.js";
 
 const router = Router();
@@ -28,6 +29,7 @@ router.post("/project-repos/:linkId/analyse", requireAuth, analyseProjectGithubR
 router.get("/project-repos/:linkId/snapshots", requireAuth, listProjectGithubRepoSnapshotsHandler);
 router.get("/project-repos/:linkId/latest-snapshot", requireAuth, getLatestProjectGithubRepoSnapshotHandler);
 router.get("/project-repos/:linkId/mapping-coverage", requireAuth, getProjectGithubMappingCoverageHandler);
+router.patch("/project-repos/:linkId/sync-settings", requireAuth, updateProjectGithubSyncSettingsHandler);
 router.get("/snapshots/:snapshotId", requireAuth, getGithubSnapshotHandler);
 
 export default router;

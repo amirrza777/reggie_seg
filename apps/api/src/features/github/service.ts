@@ -17,6 +17,7 @@ import {
   listProjectGithubRepositoryLinks,
   listProjectGithubIdentityCandidates,
   updateGithubAccountTokens,
+  updateProjectGithubRepositorySyncSettings,
   upsertGithubAccount,
   upsertGithubRepository,
   upsertProjectGithubRepositoryLink,
@@ -916,6 +917,34 @@ export async function getProjectGithubMappingCoverage(userId: number, linkId: nu
       unmatchedCommits: latest.repoStats.unmatchedCommits,
     },
   };
+}
+
+type UpdateProjectGithubSyncSettingsInput = {
+  autoSyncEnabled: boolean;
+  syncIntervalMinutes: number;
+};
+
+export async function updateProjectGithubSyncSettings(
+  userId: number,
+  linkId: number,
+  input: UpdateProjectGithubSyncSettingsInput
+) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const interval = Math.max(15, Math.min(1440, input.syncIntervalMinutes));
+  return updateProjectGithubRepositorySyncSettings({
+    linkId: link.id,
+    autoSyncEnabled: input.autoSyncEnabled,
+    syncIntervalMinutes: interval,
+  });
 }
 
 export { GithubServiceError };
