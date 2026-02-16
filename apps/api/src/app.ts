@@ -11,6 +11,7 @@ import peerFeedbackRouter from "./features/peerFeedback/router.js";
 import projectsRouter from "./features/projects/router.js";
 import { healthHandler } from "./health.js";
 import adminRouter from "./features/admin/router.js";
+import githubRouter from "./features/github/router.js";
 
 const app = express();
 
@@ -36,5 +37,6 @@ app.use("/peer-feedback", peerFeedbackRouter);
 app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
 app.use("/admin", adminRouter);
+app.use("/github", githubRouter);
 
 export { app };
