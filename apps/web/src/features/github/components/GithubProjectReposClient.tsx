@@ -6,9 +6,11 @@ import {
   disconnectGithubAccount,
   getGithubConnectionStatus,
   getGithubOAuthConnectUrl,
+  linkGithubRepositoryToProject,
+  listGithubRepositories,
   listProjectGithubRepoLinks,
 } from "../api/client";
-import type { GithubConnectionStatus, ProjectGithubRepoLink } from "../types";
+import type { GithubConnectionStatus, GithubRepositoryOption, ProjectGithubRepoLink } from "../types";
 
 type GithubProjectReposClientProps = {
   projectId: string;
@@ -37,14 +39,26 @@ const styles = {
     background: "var(--glass-surface)",
     marginBottom: 8,
   } as React.CSSProperties,
+  select: {
+    width: "100%",
+    minHeight: 40,
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    padding: "8px 10px",
+    background: "var(--surface)",
+    color: "var(--ink)",
+  } as React.CSSProperties,
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [connection, setConnection] = useState<GithubConnectionStatus | null>(null);
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
+  const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
+  const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
   const numericProjectId = Number(projectId);
 
@@ -57,6 +71,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
     setLoading(true);
     setError(null);
+    setInfo(null);
     try {
       const [status, repoLinks] = await Promise.all([
         getGithubConnectionStatus(),
@@ -64,6 +79,16 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       ]);
       setConnection(status);
       setLinks(repoLinks);
+      if (status.connected) {
+        const repos = await listGithubRepositories();
+        setAvailableRepos(repos);
+        if (!selectedRepoId && repos.length > 0) {
+          setSelectedRepoId(String(repos[0]?.githubRepoId || ""));
+        }
+      } else {
+        setAvailableRepos([]);
+        setSelectedRepoId("");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load GitHub data.");
     } finally {
@@ -95,6 +120,37 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to disconnect GitHub.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleLinkSelectedRepo() {
+    if (Number.isNaN(numericProjectId)) return;
+    const chosen = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
+    if (!chosen) {
+      setError("Select a repository to link.");
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    try {
+      await linkGithubRepositoryToProject({
+        projectId: numericProjectId,
+        githubRepoId: chosen.githubRepoId,
+        name: chosen.name,
+        fullName: chosen.fullName,
+        htmlUrl: chosen.htmlUrl,
+        isPrivate: chosen.isPrivate,
+        ownerLogin: chosen.ownerLogin || chosen.fullName.split("/")[0] || "unknown",
+        defaultBranch: chosen.defaultBranch,
+      });
+      setInfo(`Linked ${chosen.fullName} to this project.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to link repository.");
     } finally {
       setBusy(false);
     }
@@ -134,6 +190,37 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           </Button>
         </div>
         <div style={styles.list}>
+          {connection?.connected ? (
+            <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
+              <label className="muted" htmlFor="github-repo-select">
+                Select repository to link
+              </label>
+              <select
+                id="github-repo-select"
+                style={styles.select}
+                value={selectedRepoId}
+                onChange={(e) => setSelectedRepoId(e.target.value)}
+                disabled={loading || busy || availableRepos.length === 0}
+              >
+                {availableRepos.length === 0 ? (
+                  <option value="">No accessible repositories found</option>
+                ) : null}
+                {availableRepos.map((repo) => (
+                  <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
+                    {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
+                  </option>
+                ))}
+              </select>
+              <div>
+                <Button
+                  onClick={handleLinkSelectedRepo}
+                  disabled={loading || busy || !selectedRepoId || availableRepos.length === 0}
+                >
+                  Link selected repository
+                </Button>
+              </div>
+            </div>
+          ) : null}
           {loading ? <p className="muted">Loading repositories...</p> : null}
           {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
           {!loading &&
@@ -148,6 +235,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         </div>
       </section>
 
+      {info ? <p className="muted">{info}</p> : null}
       {error ? <p className="muted">{error}</p> : null}
     </div>
   );
