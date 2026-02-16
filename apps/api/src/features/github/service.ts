@@ -7,6 +7,7 @@ import {
   findGithubAccountByUserId,
   findProjectGithubRepositoryLinkById,
   findGithubSnapshotById,
+  findLatestGithubSnapshotCoverageByProjectLinkId,
   findUserById,
   isUserInProject,
   listGithubSnapshotsByProjectLinkId,
@@ -833,6 +834,41 @@ export async function getProjectGithubRepositorySnapshot(userId: number, snapsho
   }
 
   return snapshot;
+}
+
+export async function getProjectGithubMappingCoverage(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const latest = await findLatestGithubSnapshotCoverageByProjectLinkId(link.id);
+  if (!latest || !latest.repoStats) {
+    return {
+      linkId: link.id,
+      snapshotId: null,
+      analysedAt: null,
+      coverage: null,
+    };
+  }
+
+  return {
+    linkId: link.id,
+    snapshotId: latest.id,
+    analysedAt: latest.analysedAt,
+    coverage: {
+      totalContributors: latest.repoStats.totalContributors,
+      matchedContributors: latest.repoStats.matchedContributors,
+      unmatchedContributors: latest.repoStats.unmatchedContributors,
+      totalCommits: latest.repoStats.totalCommits,
+      unmatchedCommits: latest.repoStats.unmatchedCommits,
+    },
+  };
 }
 
 export { GithubServiceError };

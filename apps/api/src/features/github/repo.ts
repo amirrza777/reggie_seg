@@ -319,6 +319,26 @@ export function findGithubSnapshotById(snapshotId: number) {
   });
 }
 
+export function findLatestGithubSnapshotCoverageByProjectLinkId(projectGithubRepositoryId: number) {
+  return prisma.githubRepoSnapshot.findFirst({
+    where: { projectGithubRepositoryId },
+    orderBy: { analysedAt: "desc" },
+    select: {
+      id: true,
+      analysedAt: true,
+      repoStats: {
+        select: {
+          totalCommits: true,
+          totalContributors: true,
+          matchedContributors: true,
+          unmatchedContributors: true,
+          unmatchedCommits: true,
+        },
+      },
+    },
+  });
+}
+
 type CreateGithubSnapshotInput = {
   projectGithubRepositoryId: number;
   analysedByUserId: number;
