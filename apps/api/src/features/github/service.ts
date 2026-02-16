@@ -12,6 +12,7 @@ import {
   listGithubSnapshotsByProjectLinkId,
   listProjectGithubRepositoryLinks,
   listProjectGithubIdentityCandidates,
+  updateGithubAccountTokens,
   upsertGithubAccount,
   upsertGithubRepository,
   upsertProjectGithubRepositoryLink,
@@ -95,6 +96,17 @@ export function validateGithubOAuthCallback(code: string, state: string) {
 }
 
 type GithubTokenResponse = {
+  access_token?: string;
+  token_type?: string;
+  scope?: string;
+  refresh_token?: string;
+  expires_in?: number;
+  refresh_token_expires_in?: number;
+  error?: string;
+  error_description?: string;
+};
+
+type GithubRefreshTokenResponse = {
   access_token?: string;
   token_type?: string;
   scope?: string;
@@ -197,6 +209,38 @@ async function exchangeGithubOAuthCode(code: string, state: string) {
   const data = (await response.json()) as GithubTokenResponse;
   if (!data.access_token) {
     throw new GithubServiceError(400, data.error_description || data.error || "GitHub access token missing");
+  }
+
+  return data;
+}
+
+async function refreshGithubAccessToken(refreshToken: string) {
+  const oauth = getGitHubOAuthConfig();
+  if (!oauth) {
+    throw new GithubServiceError(503, "GitHub OAuth is not configured");
+  }
+
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      client_id: oauth.clientId,
+      client_secret: oauth.clientSecret,
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new GithubServiceError(502, "Failed to refresh GitHub access token");
+  }
+
+  const data = (await response.json()) as GithubRefreshTokenResponse;
+  if (!data.access_token) {
+    throw new GithubServiceError(401, data.error_description || data.error || "GitHub refresh token is invalid");
   }
 
   return data;
@@ -333,13 +377,60 @@ async function fetchUserRepositories(accessToken: string) {
   return repositories;
 }
 
+type GithubAccountTokenState = {
+  userId: number;
+  accessTokenEncrypted: string;
+  accessTokenExpiresAt: Date | null;
+  refreshTokenEncrypted: string | null;
+  refreshTokenExpiresAt: Date | null;
+  tokenType: string | null;
+  scopes: string | null;
+};
+
+async function getValidGithubAccessToken(account: GithubAccountTokenState) {
+  const now = Date.now();
+  const expiresAtMs = account.accessTokenExpiresAt ? account.accessTokenExpiresAt.getTime() : null;
+  const refreshWindowMs = 2 * 60 * 1000;
+  const accessTokenStillValid = !expiresAtMs || expiresAtMs - now > refreshWindowMs;
+
+  if (accessTokenStillValid) {
+    return decryptToken(account.accessTokenEncrypted);
+  }
+
+  if (!account.refreshTokenEncrypted) {
+    throw new GithubServiceError(401, "GitHub access token expired and no refresh token is available");
+  }
+
+  if (account.refreshTokenExpiresAt && account.refreshTokenExpiresAt.getTime() <= now) {
+    throw new GithubServiceError(401, "GitHub refresh token has expired");
+  }
+
+  const decryptedRefreshToken = decryptToken(account.refreshTokenEncrypted);
+  const refreshed = await refreshGithubAccessToken(decryptedRefreshToken);
+  const updated = await updateGithubAccountTokens({
+    userId: account.userId,
+    accessTokenEncrypted: encryptToken(refreshed.access_token),
+    refreshTokenEncrypted: refreshed.refresh_token
+      ? encryptToken(refreshed.refresh_token)
+      : account.refreshTokenEncrypted,
+    tokenType: refreshed.token_type || account.tokenType,
+    scopes: refreshed.scope || account.scopes,
+    accessTokenExpiresAt: addSecondsToNow(refreshed.expires_in),
+    refreshTokenExpiresAt: refreshed.refresh_token_expires_in
+      ? addSecondsToNow(refreshed.refresh_token_expires_in)
+      : account.refreshTokenExpiresAt,
+  });
+
+  return decryptToken(updated.accessTokenEncrypted);
+}
+
 export async function listGithubRepositoriesForUser(userId: number) {
   const account = await findGithubAccountByUserId(userId);
   if (!account) {
     throw new GithubServiceError(404, "GitHub account is not connected");
   }
 
-  const accessToken = decryptToken(account.accessTokenEncrypted);
+  const accessToken = await getValidGithubAccessToken(account);
   const repositories = await fetchUserRepositories(accessToken);
 
   return repositories.map((repo): GithubRepositoryListItem => ({
@@ -600,7 +691,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     throw new GithubServiceError(404, "GitHub account is not connected");
   }
 
-  const accessToken = decryptToken(account.accessTokenEncrypted);
+  const accessToken = await getValidGithubAccessToken(account);
   const defaultBranch = link.repository.defaultBranch || "main";
   const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const commits = await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceDate.toISOString());
