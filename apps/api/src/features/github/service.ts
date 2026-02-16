@@ -6,8 +6,10 @@ import {
   findGithubAccountByGithubUserId,
   findGithubAccountByUserId,
   findProjectGithubRepositoryLinkById,
+  findGithubSnapshotById,
   findUserById,
   isUserInProject,
+  listGithubSnapshotsByProjectLinkId,
   listProjectGithubRepositoryLinks,
   listProjectGithubIdentityCandidates,
   upsertGithubAccount,
@@ -637,6 +639,34 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       commitsByBranch: aggregated.repoCommitsByBranch,
     },
   });
+
+  return snapshot;
+}
+
+export async function listProjectGithubRepositorySnapshots(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  return listGithubSnapshotsByProjectLinkId(link.id);
+}
+
+export async function getProjectGithubRepositorySnapshot(userId: number, snapshotId: number) {
+  const snapshot = await findGithubSnapshotById(snapshotId);
+  if (!snapshot) {
+    throw new GithubServiceError(404, "GitHub snapshot not found");
+  }
+
+  const isMember = await isUserInProject(userId, snapshot.repoLink.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
 
   return snapshot;
 }
