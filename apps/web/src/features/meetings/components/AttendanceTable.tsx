@@ -22,7 +22,7 @@ export function AttendanceTable({ attendances, onStatusChange, onSave }: Attenda
             <div>{record.user.firstName} {record.user.lastName}</div>
             <div>
               <select
-                value={record.status}
+                value={record.status.toLowerCase()}
                 onChange={(e) => onStatusChange(record.userId, e.target.value)}
               >
                 <option value="absent">Absent</option>
