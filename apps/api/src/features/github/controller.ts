@@ -17,6 +17,14 @@ import {
   updateProjectGithubSyncSettings,
 } from "./service.js";
 
+function toJsonSafe<T>(value: T): T {
+  return JSON.parse(
+    JSON.stringify(value, (_key, currentValue) =>
+      typeof currentValue === "bigint" ? Number(currentValue) : currentValue
+    )
+  ) as T;
+}
+
 export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -43,7 +51,7 @@ export async function getGithubConnectionStatusHandler(req: AuthRequest, res: Re
 
   try {
     const status = await getGithubConnectionStatus(userId);
-    return res.json(status);
+    return res.json(toJsonSafe(status));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -61,7 +69,7 @@ export async function disconnectGithubAccountHandler(req: AuthRequest, res: Resp
 
   try {
     const result = await disconnectGithubAccount(userId);
-    return res.json(result);
+    return res.json(toJsonSafe(result));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -83,7 +91,7 @@ export async function githubOAuthCallbackHandler(req: AuthRequest, res: Response
     const account = await connectGithubAccount(code, state);
     return res.json({
       connected: true,
-      account,
+      account: toJsonSafe(account),
     });
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -102,7 +110,7 @@ export async function listGithubReposHandler(req: AuthRequest, res: Response) {
 
   try {
     const repos = await listGithubRepositoriesForUser(userId);
-    return res.json({ repos });
+    return res.json(toJsonSafe({ repos }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -165,7 +173,7 @@ export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Respon
       ownerLogin,
       defaultBranch,
     });
-    return res.status(201).json(linked);
+    return res.status(201).json(toJsonSafe(linked));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -188,7 +196,7 @@ export async function listProjectGithubReposHandler(req: AuthRequest, res: Respo
 
   try {
     const links = await listProjectGithubRepositories(userId, projectId);
-    return res.json({ links });
+    return res.json(toJsonSafe({ links }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -211,7 +219,7 @@ export async function analyseProjectGithubRepoHandler(req: AuthRequest, res: Res
 
   try {
     const snapshot = await analyseProjectGithubRepository(userId, linkId);
-    return res.status(201).json({ snapshot });
+    return res.status(201).json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -234,7 +242,7 @@ export async function listProjectGithubRepoSnapshotsHandler(req: AuthRequest, re
 
   try {
     const snapshots = await listProjectGithubRepositorySnapshots(userId, linkId);
-    return res.json({ snapshots });
+    return res.json(toJsonSafe({ snapshots }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -257,7 +265,7 @@ export async function getGithubSnapshotHandler(req: AuthRequest, res: Response) 
 
   try {
     const snapshot = await getProjectGithubRepositorySnapshot(userId, snapshotId);
-    return res.json({ snapshot });
+    return res.json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -280,7 +288,7 @@ export async function getLatestProjectGithubRepoSnapshotHandler(req: AuthRequest
 
   try {
     const snapshot = await getLatestProjectGithubRepositorySnapshot(userId, linkId);
-    return res.json({ snapshot });
+    return res.json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -303,7 +311,7 @@ export async function getProjectGithubMappingCoverageHandler(req: AuthRequest, r
 
   try {
     const mappingCoverage = await getProjectGithubMappingCoverage(userId, linkId);
-    return res.json({ mappingCoverage });
+    return res.json(toJsonSafe({ mappingCoverage }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
@@ -337,7 +345,7 @@ export async function updateProjectGithubSyncSettingsHandler(req: AuthRequest, r
       autoSyncEnabled,
       syncIntervalMinutes,
     });
-    return res.json({ syncSettings });
+    return res.json(toJsonSafe({ syncSettings }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
