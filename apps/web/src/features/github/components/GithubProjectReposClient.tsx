@@ -3,14 +3,21 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import {
+  analyseProjectGithubRepo,
   disconnectGithubAccount,
   getGithubConnectionStatus,
   getGithubOAuthConnectUrl,
+  getProjectGithubMappingCoverage,
   linkGithubRepositoryToProject,
   listGithubRepositories,
   listProjectGithubRepoLinks,
 } from "../api/client";
-import type { GithubConnectionStatus, GithubRepositoryOption, ProjectGithubRepoLink } from "../types";
+import type {
+  GithubConnectionStatus,
+  GithubMappingCoverage,
+  GithubRepositoryOption,
+  ProjectGithubRepoLink,
+} from "../types";
 
 type GithubProjectReposClientProps = {
   projectId: string;
@@ -39,6 +46,12 @@ const styles = {
     background: "var(--glass-surface)",
     marginBottom: 8,
   } as React.CSSProperties,
+  actions: {
+    marginTop: 8,
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  } as React.CSSProperties,
   select: {
     width: "100%",
     minHeight: 40,
@@ -57,6 +70,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [info, setInfo] = useState<string | null>(null);
   const [connection, setConnection] = useState<GithubConnectionStatus | null>(null);
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
+  const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
+  const [analysingLinkId, setAnalysingLinkId] = useState<number | null>(null);
+  const [loadingCoverageLinkId, setLoadingCoverageLinkId] = useState<number | null>(null);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
@@ -89,6 +105,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         setAvailableRepos([]);
         setSelectedRepoId("");
       }
+      setCoverageByLinkId({});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load GitHub data.");
     } finally {
@@ -153,6 +170,36 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setError(err instanceof Error ? err.message : "Failed to link repository.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handleAnalyseNow(linkId: number) {
+    setAnalysingLinkId(linkId);
+    setError(null);
+    setInfo(null);
+    try {
+      await analyseProjectGithubRepo(linkId);
+      const latestCoverage = await getProjectGithubMappingCoverage(linkId);
+      setCoverageByLinkId((prev) => ({ ...prev, [linkId]: latestCoverage }));
+      setInfo("Analysis complete.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to analyse linked repository.");
+    } finally {
+      setAnalysingLinkId(null);
+    }
+  }
+
+  async function handleLoadCoverage(linkId: number) {
+    setLoadingCoverageLinkId(linkId);
+    setError(null);
+    try {
+      const latestCoverage = await getProjectGithubMappingCoverage(linkId);
+      setCoverageByLinkId((prev) => ({ ...prev, [linkId]: latestCoverage }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load coverage.");
+    } finally {
+      setLoadingCoverageLinkId(null);
     }
   }
 
@@ -230,6 +277,29 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 <p className="muted">
                   {link.repository.isPrivate ? "Private" : "Public"} • default branch {link.repository.defaultBranch || "unknown"}
                 </p>
+                <div style={styles.actions}>
+                  <Button
+                    onClick={() => void handleAnalyseNow(link.id)}
+                    disabled={busy || loading || analysingLinkId === link.id}
+                  >
+                    {analysingLinkId === link.id ? "Analysing..." : "Analyse now"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => void handleLoadCoverage(link.id)}
+                    disabled={busy || loading || loadingCoverageLinkId === link.id}
+                  >
+                    {loadingCoverageLinkId === link.id ? "Loading..." : "Load coverage"}
+                  </Button>
+                </div>
+                {coverageByLinkId[link.id]?.coverage ? (
+                  <p className="muted">
+                    Matched {coverageByLinkId[link.id]?.coverage?.matchedContributors}/
+                    {coverageByLinkId[link.id]?.coverage?.totalContributors} contributors • Unmatched commits{" "}
+                    {coverageByLinkId[link.id]?.coverage?.unmatchedCommits}/
+                    {coverageByLinkId[link.id]?.coverage?.totalCommits}
+                  </p>
+                ) : null}
               </div>
             ))}
         </div>
