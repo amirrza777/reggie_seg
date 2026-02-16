@@ -14,6 +14,22 @@ export function findGithubAccountByGithubUserId(githubUserId: bigint) {
   });
 }
 
+export function findGithubAccountByUserId(userId: number) {
+  return prisma.githubAccount.findUnique({
+    where: { userId },
+    select: {
+      userId: true,
+      accessTokenEncrypted: true,
+      accessTokenExpiresAt: true,
+      refreshTokenEncrypted: true,
+      refreshTokenExpiresAt: true,
+      tokenType: true,
+      scopes: true,
+      login: true,
+    },
+  });
+}
+
 type UpsertGithubAccountInput = {
   userId: number;
   githubUserId: bigint;

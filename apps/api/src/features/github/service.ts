@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
-import { createCipheriv, randomBytes } from "crypto";
-import { getGitHubOAuthConfig } from "./config.js";
-import { findGithubAccountByGithubUserId, findUserById, upsertGithubAccount } from "./repo.js";
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
+import { findGithubAccountByGithubUserId, findGithubAccountByUserId, findUserById, upsertGithubAccount } from "./repo.js";
 
 type GithubOAuthStatePayload = {
   sub: number;
@@ -129,6 +129,23 @@ function encryptToken(plainToken: string) {
   return `${iv.toString("base64")}.${encrypted.toString("base64")}.${authTag.toString("base64")}`;
 }
 
+function decryptToken(encryptedToken: string) {
+  const key = getTokenEncryptionKey();
+  const parts = encryptedToken.split(".");
+  if (parts.length !== 3) {
+    throw new GithubServiceError(500, "Stored GitHub token has invalid format");
+  }
+
+  const [ivBase64, payloadBase64, authTagBase64] = parts;
+  const iv = Buffer.from(ivBase64, "base64");
+  const payload = Buffer.from(payloadBase64, "base64");
+  const authTag = Buffer.from(authTagBase64, "base64");
+  const decipher = createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(authTag);
+  const decrypted = Buffer.concat([decipher.update(payload), decipher.final()]);
+  return decrypted.toString("utf8");
+}
+
 function addSecondsToNow(seconds?: number) {
   if (!seconds || seconds <= 0) {
     return null;
@@ -240,6 +257,84 @@ export async function connectGithubAccount(code: string, state: string) {
   });
 
   return account;
+}
+
+type GithubRepoResponse = {
+  id: number;
+  name: string;
+  full_name: string;
+  html_url: string;
+  private: boolean;
+  default_branch: string;
+  owner?: {
+    login?: string;
+  };
+};
+
+type GithubRepositoryListItem = {
+  githubRepoId: number;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  isPrivate: boolean;
+  ownerLogin: string | null;
+  defaultBranch: string | null;
+};
+
+async function fetchUserRepositories(accessToken: string) {
+  const { baseUrl } = getGitHubApiConfig();
+  const repositories: GithubRepoResponse[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetch(`${baseUrl}/user/repos?per_page=100&page=${page}&sort=updated&direction=desc`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+      }
+      throw new GithubServiceError(502, "Failed to fetch GitHub repositories");
+    }
+
+    const pageData = (await response.json()) as GithubRepoResponse[];
+    repositories.push(...pageData);
+
+    if (pageData.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 10) {
+      break;
+    }
+  }
+
+  return repositories;
+}
+
+export async function listGithubRepositoriesForUser(userId: number) {
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+
+  const accessToken = decryptToken(account.accessTokenEncrypted);
+  const repositories = await fetchUserRepositories(accessToken);
+
+  return repositories.map((repo): GithubRepositoryListItem => ({
+    githubRepoId: repo.id,
+    name: repo.name,
+    fullName: repo.full_name,
+    htmlUrl: repo.html_url,
+    isPrivate: repo.private,
+    ownerLogin: repo.owner?.login || null,
+    defaultBranch: repo.default_branch || null,
+  }));
 }
 
 export { GithubServiceError };
