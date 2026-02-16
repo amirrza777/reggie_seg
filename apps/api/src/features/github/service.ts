@@ -1,7 +1,15 @@
 import jwt from "jsonwebtoken";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
-import { findGithubAccountByGithubUserId, findGithubAccountByUserId, findUserById, upsertGithubAccount } from "./repo.js";
+import {
+  findGithubAccountByGithubUserId,
+  findGithubAccountByUserId,
+  findUserById,
+  isUserInProject,
+  upsertGithubAccount,
+  upsertGithubRepository,
+  upsertProjectGithubRepositoryLink,
+} from "./repo.js";
 
 type GithubOAuthStatePayload = {
   sub: number;
@@ -335,6 +343,41 @@ export async function listGithubRepositoriesForUser(userId: number) {
     ownerLogin: repo.owner?.login || null,
     defaultBranch: repo.default_branch || null,
   }));
+}
+
+type LinkGithubRepositoryToProjectInput = {
+  projectId: number;
+  githubRepoId: number;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  isPrivate: boolean;
+  ownerLogin: string;
+  defaultBranch: string | null;
+};
+
+export async function linkGithubRepositoryToProject(userId: number, input: LinkGithubRepositoryToProjectInput) {
+  const isMember = await isUserInProject(userId, input.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const repository = await upsertGithubRepository({
+    githubRepoId: BigInt(input.githubRepoId),
+    ownerLogin: input.ownerLogin,
+    name: input.name,
+    fullName: input.fullName,
+    htmlUrl: input.htmlUrl,
+    isPrivate: input.isPrivate,
+    defaultBranch: input.defaultBranch,
+  });
+
+  const link = await upsertProjectGithubRepositoryLink(input.projectId, repository.id, userId);
+
+  return {
+    link,
+    repository,
+  };
 }
 
 export { GithubServiceError };

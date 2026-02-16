@@ -30,6 +30,97 @@ export function findGithubAccountByUserId(userId: number) {
   });
 }
 
+export async function isUserInProject(userId: number, projectId: number) {
+  const allocation = await prisma.teamAllocation.findFirst({
+    where: {
+      userId,
+      team: {
+        projectId,
+      },
+    },
+    select: { userId: true },
+  });
+
+  return Boolean(allocation);
+}
+
+type UpsertGithubRepositoryInput = {
+  githubRepoId: bigint;
+  ownerLogin: string;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  isPrivate: boolean;
+  defaultBranch: string | null;
+};
+
+export function upsertGithubRepository(input: UpsertGithubRepositoryInput) {
+  return prisma.githubRepository.upsert({
+    where: { githubRepoId: input.githubRepoId },
+    create: {
+      githubRepoId: input.githubRepoId,
+      ownerLogin: input.ownerLogin,
+      name: input.name,
+      fullName: input.fullName,
+      htmlUrl: input.htmlUrl,
+      isPrivate: input.isPrivate,
+      defaultBranch: input.defaultBranch,
+    },
+    update: {
+      ownerLogin: input.ownerLogin,
+      name: input.name,
+      fullName: input.fullName,
+      htmlUrl: input.htmlUrl,
+      isPrivate: input.isPrivate,
+      defaultBranch: input.defaultBranch,
+    },
+    select: {
+      id: true,
+      githubRepoId: true,
+      ownerLogin: true,
+      name: true,
+      fullName: true,
+      htmlUrl: true,
+      isPrivate: true,
+      defaultBranch: true,
+    },
+  });
+}
+
+export function upsertProjectGithubRepositoryLink(projectId: number, githubRepositoryId: number, linkedByUserId: number) {
+  return prisma.projectGithubRepository.upsert({
+    where: {
+      projectId_githubRepositoryId: {
+        projectId,
+        githubRepositoryId,
+      },
+    },
+    create: {
+      projectId,
+      githubRepositoryId,
+      linkedByUserId,
+      isActive: true,
+    },
+    update: {
+      isActive: true,
+      autoSyncEnabled: true,
+      syncIntervalMinutes: 60,
+      nextSyncAt: null,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      linkedByUserId: true,
+      isActive: true,
+      autoSyncEnabled: true,
+      syncIntervalMinutes: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
 type UpsertGithubAccountInput = {
   userId: number;
   githubUserId: bigint;
