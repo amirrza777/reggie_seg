@@ -121,6 +121,43 @@ export function upsertProjectGithubRepositoryLink(projectId: number, githubRepos
   });
 }
 
+export function listProjectGithubRepositoryLinks(projectId: number) {
+  return prisma.projectGithubRepository.findMany({
+    where: {
+      projectId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      linkedByUserId: true,
+      isActive: true,
+      autoSyncEnabled: true,
+      syncIntervalMinutes: true,
+      lastSyncedAt: true,
+      nextSyncAt: true,
+      createdAt: true,
+      updatedAt: true,
+      repository: {
+        select: {
+          id: true,
+          githubRepoId: true,
+          ownerLogin: true,
+          name: true,
+          fullName: true,
+          htmlUrl: true,
+          isPrivate: true,
+          defaultBranch: true,
+          pushedAt: true,
+          updatedAt: true,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 type UpsertGithubAccountInput = {
   userId: number;
   githubUserId: bigint;

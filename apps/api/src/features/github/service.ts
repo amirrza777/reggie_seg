@@ -6,6 +6,7 @@ import {
   findGithubAccountByUserId,
   findUserById,
   isUserInProject,
+  listProjectGithubRepositoryLinks,
   upsertGithubAccount,
   upsertGithubRepository,
   upsertProjectGithubRepositoryLink,
@@ -378,6 +379,15 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
     link,
     repository,
   };
+}
+
+export async function listProjectGithubRepositories(userId: number, projectId: number) {
+  const isMember = await isUserInProject(userId, projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  return listProjectGithubRepositoryLinks(projectId);
 }
 
 export { GithubServiceError };

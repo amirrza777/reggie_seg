@@ -5,6 +5,7 @@ import {
   connectGithubAccount,
   GithubServiceError,
   linkGithubRepositoryToProject,
+  listProjectGithubRepositories,
   listGithubRepositoriesForUser,
 } from "./service.js";
 
@@ -127,5 +128,28 @@ export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Respon
     }
     console.error("Error linking GitHub repository to project:", error);
     return res.status(500).json({ error: "Failed to link GitHub repository to project" });
+  }
+}
+
+export async function listProjectGithubReposHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const projectId = Number(req.query.projectId);
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "projectId query param must be a number" });
+  }
+
+  try {
+    const links = await listProjectGithubRepositories(userId, projectId);
+    return res.json({ links });
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error listing project GitHub repositories:", error);
+    return res.status(500).json({ error: "Failed to list project GitHub repositories" });
   }
 }
