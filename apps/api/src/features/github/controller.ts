@@ -4,6 +4,7 @@ import {
   analyseProjectGithubRepository,
   buildGithubOAuthConnectUrl,
   connectGithubAccount,
+  getGithubConnectionStatus,
   getProjectGithubMappingCoverage,
   getProjectGithubRepositorySnapshot,
   GithubServiceError,
@@ -28,6 +29,24 @@ export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Res
     }
     console.error("Error building GitHub OAuth URL:", error);
     return res.status(500).json({ error: "Failed to build GitHub OAuth URL" });
+  }
+}
+
+export async function getGithubConnectionStatusHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const status = await getGithubConnectionStatus(userId);
+    return res.json(status);
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error fetching GitHub connection status:", error);
+    return res.status(500).json({ error: "Failed to fetch GitHub connection status" });
   }
 }
 

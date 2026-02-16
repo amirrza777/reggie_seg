@@ -4,6 +4,7 @@ import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
 import {
   createGithubSnapshot,
   findGithubAccountByGithubUserId,
+  findGithubAccountStatusByUserId,
   findGithubAccountByUserId,
   findProjectGithubRepositoryLinkById,
   findGithubSnapshotById,
@@ -443,6 +444,21 @@ export async function listGithubRepositoriesForUser(userId: number) {
     ownerLogin: repo.owner?.login || null,
     defaultBranch: repo.default_branch || null,
   }));
+}
+
+export async function getGithubConnectionStatus(userId: number) {
+  const account = await findGithubAccountStatusByUserId(userId);
+  if (!account) {
+    return {
+      connected: false,
+      account: null,
+    };
+  }
+
+  return {
+    connected: true,
+    account,
+  };
 }
 
 type LinkGithubRepositoryToProjectInput = {

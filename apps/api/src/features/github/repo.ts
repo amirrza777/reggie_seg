@@ -30,6 +30,24 @@ export function findGithubAccountByUserId(userId: number) {
   });
 }
 
+export function findGithubAccountStatusByUserId(userId: number) {
+  return prisma.githubAccount.findUnique({
+    where: { userId },
+    select: {
+      userId: true,
+      login: true,
+      email: true,
+      scopes: true,
+      tokenType: true,
+      accessTokenExpiresAt: true,
+      refreshTokenExpiresAt: true,
+      tokenLastRefreshedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
 type UpdateGithubAccountTokensInput = {
   userId: number;
   accessTokenEncrypted: string;
