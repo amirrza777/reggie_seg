@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import {
-  analyseProjectGithubRepo,
   disconnectGithubAccount,
   getGithubConnectionStatus,
   getLatestProjectGithubSnapshot,
@@ -12,6 +11,7 @@ import {
   linkGithubRepositoryToProject,
   listGithubRepositories,
   listProjectGithubRepoLinks,
+  removeProjectGithubRepoLink,
 } from "../api/client";
 import type {
   GithubConnectionStatus,
@@ -74,8 +74,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
   const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
   const [latestSnapshotByLinkId, setLatestSnapshotByLinkId] = useState<Record<number, GithubLatestSnapshot["snapshot"] | null>>({});
-  const [analysingLinkId, setAnalysingLinkId] = useState<number | null>(null);
-  const [loadingCoverageLinkId, setLoadingCoverageLinkId] = useState<number | null>(null);
+  const [removingLinkId, setRemovingLinkId] = useState<number | null>(null);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
@@ -204,35 +203,18 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }
   }
 
-  async function handleAnalyseNow(linkId: number) {
-    setAnalysingLinkId(linkId);
+  async function handleRemoveLink(linkId: number) {
+    setRemovingLinkId(linkId);
     setError(null);
     setInfo(null);
     try {
-      await analyseProjectGithubRepo(linkId);
-      const latestCoverage = await getProjectGithubMappingCoverage(linkId);
-      const latestSnapshot = await getLatestProjectGithubSnapshot(linkId);
-      setCoverageByLinkId((prev) => ({ ...prev, [linkId]: latestCoverage }));
-      setLatestSnapshotByLinkId((prev) => ({ ...prev, [linkId]: latestSnapshot.snapshot }));
-      setInfo("Analysis complete.");
+      await removeProjectGithubRepoLink(linkId);
+      setInfo("Removed linked repository from this project.");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to analyse linked repository.");
+      setError(err instanceof Error ? err.message : "Failed to remove linked repository.");
     } finally {
-      setAnalysingLinkId(null);
-    }
-  }
-
-  async function handleLoadCoverage(linkId: number) {
-    setLoadingCoverageLinkId(linkId);
-    setError(null);
-    try {
-      const latestCoverage = await getProjectGithubMappingCoverage(linkId);
-      setCoverageByLinkId((prev) => ({ ...prev, [linkId]: latestCoverage }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load coverage.");
-    } finally {
-      setLoadingCoverageLinkId(null);
+      setRemovingLinkId(null);
     }
   }
 
@@ -270,7 +252,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           </Button>
         </div>
         <div style={styles.list}>
-          {connection?.connected ? (
+          {connection?.connected && links.length === 0 ? (
             <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
               <label className="muted" htmlFor="github-repo-select">
                 Select repository to link
@@ -301,6 +283,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
               </div>
             </div>
           ) : null}
+          {connection?.connected && links.length > 0 ? (
+            <p className="muted">This project already has a linked repository. Remove it before linking another one.</p>
+          ) : null}
           {loading ? <p className="muted">Loading repositories...</p> : null}
           {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
           {!loading &&
@@ -326,17 +311,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 ) : null}
                 <div style={styles.actions}>
                   <Button
-                    onClick={() => void handleAnalyseNow(link.id)}
-                    disabled={busy || loading || analysingLinkId === link.id}
-                  >
-                    {analysingLinkId === link.id ? "Analysing..." : "Analyse now"}
-                  </Button>
-                  <Button
                     variant="ghost"
-                    onClick={() => void handleLoadCoverage(link.id)}
-                    disabled={busy || loading || loadingCoverageLinkId === link.id}
+                    onClick={() => void handleRemoveLink(link.id)}
+                    disabled={busy || loading || removingLinkId === link.id}
                   >
-                    {loadingCoverageLinkId === link.id ? "Loading..." : "Load coverage"}
+                    {removingLinkId === link.id ? "Removing..." : "Remove link"}
                   </Button>
                 </div>
                 {coverageByLinkId[link.id]?.coverage ? (

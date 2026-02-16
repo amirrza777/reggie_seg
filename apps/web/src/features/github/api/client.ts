@@ -59,17 +59,15 @@ export async function linkGithubRepositoryToProject(payload: {
       isPrivate: boolean;
       defaultBranch: string | null;
     };
+    snapshot: {
+      id: number;
+      analysedAt: string;
+      createdAt: string;
+    };
   }>("/github/project-repos", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-}
-
-export async function analyseProjectGithubRepo(linkId: number) {
-  return apiFetch<{ snapshot: { id: number; analysedAt: string; createdAt: string } }>(
-    `/github/project-repos/${linkId}/analyse`,
-    { method: "POST" }
-  );
 }
 
 export async function getLatestProjectGithubSnapshot(linkId: number): Promise<GithubLatestSnapshot> {
@@ -85,6 +83,22 @@ export async function getProjectGithubMappingCoverage(linkId: number): Promise<G
 
 export async function disconnectGithubAccount() {
   return apiFetch<{ disconnected: boolean; alreadyDisconnected: boolean }>("/github/me", {
+    method: "DELETE",
+  });
+}
+
+export async function removeProjectGithubRepoLink(linkId: number) {
+  return apiFetch<{
+    removed: {
+      id: number;
+      projectId: number;
+      githubRepositoryId: number;
+      isActive: boolean;
+      autoSyncEnabled: boolean;
+      nextSyncAt: string | null;
+      updatedAt: string;
+    };
+  }>(`/github/project-repos/${linkId}`, {
     method: "DELETE",
   });
 }

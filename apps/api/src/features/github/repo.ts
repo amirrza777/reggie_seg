@@ -246,6 +246,25 @@ export function listProjectGithubRepositoryLinks(projectId: number) {
   });
 }
 
+export function findActiveProjectGithubRepositoryLink(projectId: number) {
+  return prisma.projectGithubRepository.findFirst({
+    where: {
+      projectId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      repository: {
+        select: {
+          fullName: true,
+        },
+      },
+    },
+  });
+}
+
 export function findProjectGithubRepositoryLinkById(linkId: number) {
   return prisma.projectGithubRepository.findUnique({
     where: { id: linkId },
@@ -295,6 +314,26 @@ export function updateProjectGithubRepositorySyncSettings(input: UpdateProjectGi
       autoSyncEnabled: true,
       syncIntervalMinutes: true,
       lastSyncedAt: true,
+      nextSyncAt: true,
+      updatedAt: true,
+    },
+  });
+}
+
+export function deactivateProjectGithubRepositoryLink(linkId: number) {
+  return prisma.projectGithubRepository.update({
+    where: { id: linkId },
+    data: {
+      isActive: false,
+      autoSyncEnabled: false,
+      nextSyncAt: null,
+    },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      isActive: true,
+      autoSyncEnabled: true,
       nextSyncAt: true,
       updatedAt: true,
     },

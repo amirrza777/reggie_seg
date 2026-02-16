@@ -3,6 +3,8 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
 import {
   createGithubSnapshot,
+  deactivateProjectGithubRepositoryLink,
+  findActiveProjectGithubRepositoryLink,
   deleteGithubAccountByUserId,
   findGithubAccountByGithubUserId,
   findGithubAccountStatusByUserId,
@@ -491,6 +493,14 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
     throw new GithubServiceError(403, "You are not a member of this project");
   }
 
+  const existingActiveLink = await findActiveProjectGithubRepositoryLink(input.projectId);
+  if (existingActiveLink) {
+    throw new GithubServiceError(
+      409,
+      `This project already has a linked repository (${existingActiveLink.repository.fullName}). Remove it before linking another one.`
+    );
+  }
+
   const repository = await upsertGithubRepository({
     githubRepoId: BigInt(input.githubRepoId),
     ownerLogin: input.ownerLogin,
@@ -502,10 +512,12 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
   });
 
   const link = await upsertProjectGithubRepositoryLink(input.projectId, repository.id, userId);
+  const snapshot = await analyseProjectGithubRepository(userId, link.id);
 
   return {
     link,
     repository,
+    snapshot,
   };
 }
 
@@ -945,6 +957,20 @@ export async function updateProjectGithubSyncSettings(
     autoSyncEnabled: input.autoSyncEnabled,
     syncIntervalMinutes: interval,
   });
+}
+
+export async function removeProjectGithubRepositoryLink(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  return deactivateProjectGithubRepositoryLink(link.id);
 }
 
 export { GithubServiceError };
