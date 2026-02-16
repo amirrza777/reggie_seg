@@ -412,6 +412,14 @@ type GithubCommitListItem = {
   } | null;
 };
 
+type GithubCommitDetailResponse = {
+  sha: string;
+  stats?: {
+    additions?: number;
+    deletions?: number;
+  };
+};
+
 type AggregatedContributor = {
   contributorKey: string;
   githubUserId: bigint | null;
@@ -482,6 +490,42 @@ async function fetchCommitsForLinkedRepository(accessToken: string, fullName: st
   }
 
   return commits;
+}
+
+async function fetchCommitStatsForRepository(
+  accessToken: string,
+  fullName: string,
+  commitShas: string[]
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const statsBySha = new Map<string, { additions: number; deletions: number }>();
+  const maxDetailedCommits = 250;
+  const shasToFetch = commitShas.slice(0, maxDetailedCommits);
+
+  for (const sha of shasToFetch) {
+    const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 403 || response.status === 429) {
+        break;
+      }
+      continue;
+    }
+
+    const detail = (await response.json()) as GithubCommitDetailResponse;
+    statsBySha.set(sha, {
+      additions: detail.stats?.additions || 0,
+      deletions: detail.stats?.deletions || 0,
+    });
+  }
+
+  return statsBySha;
 }
 
 function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
@@ -560,6 +604,11 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const defaultBranch = link.repository.defaultBranch || "main";
   const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const commits = await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceDate.toISOString());
+  const commitStatsBySha = await fetchCommitStatsForRepository(
+    accessToken,
+    link.repository.fullName,
+    commits.map((commit) => commit.sha)
+  );
   const aggregated = aggregateCommitData(commits, defaultBranch);
 
   const identities = await listProjectGithubIdentityCandidates(link.projectId);
@@ -596,7 +645,27 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     };
   });
 
+  const contributorKeyBySha = new Map<string, string>();
+  for (const commit of commits) {
+    contributorKeyBySha.set(commit.sha, contributorKeyFromCommit(commit));
+  }
+  const userStatsByKey = new Map(userStats.map((stat) => [stat.contributorKey, stat]));
+  for (const [sha, stat] of commitStatsBySha.entries()) {
+    const contributorKey = contributorKeyBySha.get(sha);
+    if (!contributorKey) {
+      continue;
+    }
+    const userStat = userStatsByKey.get(contributorKey);
+    if (!userStat) {
+      continue;
+    }
+    userStat.additions += stat.additions;
+    userStat.deletions += stat.deletions;
+  }
+
   const totalCommits = userStats.reduce((sum, stat) => sum + stat.commits, 0);
+  const totalAdditions = userStats.reduce((sum, stat) => sum + stat.additions, 0);
+  const totalDeletions = userStats.reduce((sum, stat) => sum + stat.deletions, 0);
   const matchedContributors = userStats.filter((stat) => stat.isMatched).length;
   const unmatchedContributors = userStats.length - matchedContributors;
   const unmatchedCommits = userStats.filter((stat) => !stat.isMatched).reduce((sum, stat) => sum + stat.commits, 0);
@@ -618,6 +687,10 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         until: new Date().toISOString(),
       },
       commitCount: commits.length,
+      commitStatsCoverage: {
+        detailedCommitCount: commitStatsBySha.size,
+        requestedCommitCount: commits.length,
+      },
       sampleCommits: commits.slice(0, 200).map((commit) => ({
         sha: commit.sha,
         date: commit.commit.author?.date || null,
@@ -628,8 +701,8 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     userStats,
     repoStat: {
       totalCommits,
-      totalAdditions: 0,
-      totalDeletions: 0,
+      totalAdditions,
+      totalDeletions,
       totalContributors: userStats.length,
       matchedContributors,
       unmatchedContributors,
