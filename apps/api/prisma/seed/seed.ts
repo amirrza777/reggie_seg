@@ -13,6 +13,7 @@ async function main() {
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
+  await seedGithubE2EUsers(projects, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
 }
@@ -303,6 +304,99 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   }
 
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
+}
+
+async function seedGithubE2EUsers(projects: SeedProject[], teams: SeedTeam[]) {
+  // Deterministic users for manual GitHub integration testing.
+  const project = projects[0];
+  if (!project) return;
+
+  const team = teams.find((t) => t.projectId === project.id);
+  if (!team) return;
+
+  const staffEmail = (process.env.SEED_GITHUB_STAFF_EMAIL || "github.staff@example.com").toLowerCase();
+  const staffPassword = process.env.SEED_GITHUB_STAFF_PASSWORD || "Password123!";
+  const studentEmail = (process.env.SEED_GITHUB_STUDENT_EMAIL || "github.student@example.com").toLowerCase();
+  const studentPassword = process.env.SEED_GITHUB_STUDENT_PASSWORD || "Password123!";
+
+  const [staffPasswordHash, studentPasswordHash] = await Promise.all([
+    argon2.hash(staffPassword),
+    argon2.hash(studentPassword),
+  ]);
+
+  const staff = await prisma.user.upsert({
+    where: { email: staffEmail },
+    update: {
+      firstName: "Github",
+      lastName: "Staff",
+      passwordHash: staffPasswordHash,
+      isStaff: true,
+      isAdmin: false,
+    },
+    create: {
+      email: staffEmail,
+      firstName: "Github",
+      lastName: "Staff",
+      passwordHash: staffPasswordHash,
+      isStaff: true,
+      isAdmin: false,
+    },
+    select: { id: true },
+  });
+
+  const student = await prisma.user.upsert({
+    where: { email: studentEmail },
+    update: {
+      firstName: "Github",
+      lastName: "Student",
+      passwordHash: studentPasswordHash,
+      isStaff: false,
+      isAdmin: false,
+    },
+    create: {
+      email: studentEmail,
+      firstName: "Github",
+      lastName: "Student",
+      passwordHash: studentPasswordHash,
+      isStaff: false,
+      isAdmin: false,
+    },
+    select: { id: true },
+  });
+
+  await prisma.teamAllocation.upsert({
+    where: {
+      teamId_userId: {
+        teamId: team.id,
+        userId: student.id,
+      },
+    },
+    update: {},
+    create: {
+      teamId: team.id,
+      userId: student.id,
+    },
+  });
+
+  const projectWithModule = await prisma.project.findUnique({
+    where: { id: project.id },
+    select: { moduleId: true },
+  });
+
+  if (projectWithModule) {
+    await prisma.userModule.createMany({
+      data: [
+        { userId: student.id, moduleId: projectWithModule.moduleId },
+        { userId: staff.id, moduleId: projectWithModule.moduleId },
+      ],
+      skipDuplicates: true,
+    });
+
+    await prisma.moduleLead.createMany({
+      data: [{ moduleId: projectWithModule.moduleId, userId: staff.id }],
+      skipDuplicates: true,
+    });
+  }
 }
 
 async function seedProjectDeadlines() {
