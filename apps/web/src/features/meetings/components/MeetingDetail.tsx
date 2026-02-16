@@ -6,8 +6,8 @@ import { useUser } from "@/features/auth/context";
 import { AttendanceTable } from "./AttendanceTable";
 import { MinutesEditor } from "./MinutesEditor";
 import { CommentSection } from "./CommentSection";
-import { markAttendance, saveMinutes } from "../api/client";
-import type { Meeting, MeetingAttendanceRecord } from "../types";
+import { saveMinutes } from "../api/client";
+import type { Meeting } from "../types";
 
 type MeetingDetailProps = {
   meeting: Meeting;
@@ -15,44 +15,19 @@ type MeetingDetailProps = {
 
 export function MeetingDetail({ meeting }: MeetingDetailProps) {
   const { user } = useUser();
-  const [attendances, setAttendances] = useState<MeetingAttendanceRecord[]>(meeting.attendances);
-  const [attendanceStatus, setAttendanceStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [attendanceMsg, setAttendanceMsg] = useState<string | null>(null);
-  const [minutesStatus, setMinutesStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [minutesMsg, setMinutesMsg] = useState<string | null>(null);
-
-  function handleStatusChange(userId: number, status: string) {
-    setAttendances((prev) =>
-      prev.map((a) => (a.userId === userId ? { ...a, status } : a))
-    );
-  }
-
-  async function handleSaveAttendance() {
-    setAttendanceStatus("loading");
-    setAttendanceMsg(null);
-    try {
-      await markAttendance(
-        meeting.id,
-        attendances.map((a) => ({ userId: a.userId, status: a.status }))
-      );
-      setAttendanceStatus("success");
-      setAttendanceMsg("Attendance saved!");
-    } catch (error) {
-      setAttendanceStatus("error");
-      setAttendanceMsg(error instanceof Error ? error.message : "Failed to save attendance");
-    }
-  }
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [message, setMessage] = useState<string | null>(null);
 
   async function handleSaveMinutes(content: string) {
-    setMinutesStatus("loading");
-    setMinutesMsg(null);
+    setStatus("loading");
+    setMessage(null);
     try {
       await saveMinutes(meeting.id, user!.id, content);
-      setMinutesStatus("success");
-      setMinutesMsg("Minutes saved!");
-    } catch (error) {
-      setMinutesStatus("error");
-      setMinutesMsg(error instanceof Error ? error.message : "Failed to save minutes");
+      setStatus("success");
+      setMessage("Minutes saved!");
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Failed to save minutes");
     }
   }
 
@@ -70,21 +45,14 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
         )}
       </Card>
 
-      <Card title="Attendance">
-        <AttendanceTable
-          attendances={attendances}
-          onStatusChange={handleStatusChange}
-          onSave={handleSaveAttendance}
-        />
-        {attendanceMsg && <p className={attendanceStatus === "error" ? "error" : "muted"}>{attendanceMsg}</p>}
-      </Card>
+      <AttendanceTable meetingId={meeting.id} initialAttendances={meeting.attendances} />
 
       <Card title="Minutes">
         <MinutesEditor
           initialContent={meeting.minutes?.content ?? ""}
           onSave={handleSaveMinutes}
         />
-        {minutesMsg && <p className={minutesStatus === "error" ? "error" : "muted"}>{minutesMsg}</p>}
+        {message && <p className={status === "error" ? "error" : "muted"}>{message}</p>}
       </Card>
 
       <CommentSection meetingId={meeting.id} initialComments={meeting.comments} />
