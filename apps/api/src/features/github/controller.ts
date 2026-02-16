@@ -1,6 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
-import { buildGithubOAuthConnectUrl, GithubServiceError, validateGithubOAuthCallback } from "./service.js";
+import { buildGithubOAuthConnectUrl, connectGithubAccount, GithubServiceError } from "./service.js";
 
 export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
@@ -29,10 +29,10 @@ export async function githubOAuthCallbackHandler(req: AuthRequest, res: Response
   }
 
   try {
-    const validated = validateGithubOAuthCallback(code, state);
-    return res.status(501).json({
-      error: "GitHub token exchange is not implemented yet",
-      callback: validated,
+    const account = await connectGithubAccount(code, state);
+    return res.json({
+      connected: true,
+      account,
     });
   } catch (error) {
     if (error instanceof GithubServiceError) {
