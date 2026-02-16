@@ -1,6 +1,7 @@
 import { apiFetch } from "@/shared/api/http";
 import type {
   GithubConnectionStatus,
+  GithubLatestSnapshot,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -71,8 +72,8 @@ export async function analyseProjectGithubRepo(linkId: number) {
   );
 }
 
-export async function getLatestProjectGithubSnapshot(linkId: number) {
-  return apiFetch<{ snapshot: unknown }>(`/github/project-repos/${linkId}/latest-snapshot`);
+export async function getLatestProjectGithubSnapshot(linkId: number): Promise<GithubLatestSnapshot> {
+  return apiFetch<GithubLatestSnapshot>(`/github/project-repos/${linkId}/latest-snapshot`);
 }
 
 export async function getProjectGithubMappingCoverage(linkId: number): Promise<GithubMappingCoverage> {

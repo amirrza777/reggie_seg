@@ -6,6 +6,7 @@ import {
   analyseProjectGithubRepo,
   disconnectGithubAccount,
   getGithubConnectionStatus,
+  getLatestProjectGithubSnapshot,
   getGithubOAuthConnectUrl,
   getProjectGithubMappingCoverage,
   linkGithubRepositoryToProject,
@@ -14,6 +15,7 @@ import {
 } from "../api/client";
 import type {
   GithubConnectionStatus,
+  GithubLatestSnapshot,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -71,6 +73,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [connection, setConnection] = useState<GithubConnectionStatus | null>(null);
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
   const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
+  const [latestSnapshotByLinkId, setLatestSnapshotByLinkId] = useState<Record<number, GithubLatestSnapshot["snapshot"] | null>>({});
   const [analysingLinkId, setAnalysingLinkId] = useState<number | null>(null);
   const [loadingCoverageLinkId, setLoadingCoverageLinkId] = useState<number | null>(null);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
@@ -106,19 +109,33 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         setSelectedRepoId("");
       }
       if (repoLinks.length > 0) {
-        const coverageEntries = await Promise.all(
-          repoLinks.map(async (link) => {
-            try {
-              const coverage = await getProjectGithubMappingCoverage(link.id);
-              return [link.id, coverage] as const;
-            } catch {
-              return [link.id, null] as const;
-            }
-          })
-        );
+        const [coverageEntries, snapshotEntries] = await Promise.all([
+          Promise.all(
+            repoLinks.map(async (link) => {
+              try {
+                const coverage = await getProjectGithubMappingCoverage(link.id);
+                return [link.id, coverage] as const;
+              } catch {
+                return [link.id, null] as const;
+              }
+            })
+          ),
+          Promise.all(
+            repoLinks.map(async (link) => {
+              try {
+                const latestSnapshot = await getLatestProjectGithubSnapshot(link.id);
+                return [link.id, latestSnapshot.snapshot] as const;
+              } catch {
+                return [link.id, null] as const;
+              }
+            })
+          ),
+        ]);
         setCoverageByLinkId(Object.fromEntries(coverageEntries));
+        setLatestSnapshotByLinkId(Object.fromEntries(snapshotEntries));
       } else {
         setCoverageByLinkId({});
+        setLatestSnapshotByLinkId({});
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load GitHub data.");
@@ -194,7 +211,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     try {
       await analyseProjectGithubRepo(linkId);
       const latestCoverage = await getProjectGithubMappingCoverage(linkId);
+      const latestSnapshot = await getLatestProjectGithubSnapshot(linkId);
       setCoverageByLinkId((prev) => ({ ...prev, [linkId]: latestCoverage }));
+      setLatestSnapshotByLinkId((prev) => ({ ...prev, [linkId]: latestSnapshot.snapshot }));
       setInfo("Analysis complete.");
       await load();
     } catch (err) {
@@ -299,6 +318,12 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 ) : (
                   <p className="muted">No snapshot analysed yet.</p>
                 )}
+                {latestSnapshotByLinkId[link.id]?.repoStats ? (
+                  <p className="muted">
+                    Additions {latestSnapshotByLinkId[link.id]?.repoStats?.totalAdditions ?? 0} • Deletions{" "}
+                    {latestSnapshotByLinkId[link.id]?.repoStats?.totalDeletions ?? 0}
+                  </p>
+                ) : null}
                 <div style={styles.actions}>
                   <Button
                     onClick={() => void handleAnalyseNow(link.id)}

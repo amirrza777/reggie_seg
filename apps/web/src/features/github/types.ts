@@ -62,3 +62,19 @@ export type GithubMappingCoverage = {
     unmatchedCommits: number;
   } | null;
 };
+
+export type GithubLatestSnapshot = {
+  snapshot: {
+    id: number;
+    analysedAt: string;
+    repoStats: {
+      totalCommits: number;
+      totalAdditions: number;
+      totalDeletions: number;
+      totalContributors: number;
+      matchedContributors: number;
+      unmatchedContributors: number;
+      unmatchedCommits: number;
+    } | null;
+  };
+};
