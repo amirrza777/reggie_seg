@@ -4,6 +4,7 @@ import {
   analyseProjectGithubRepository,
   buildGithubOAuthConnectUrl,
   connectGithubAccount,
+  disconnectGithubAccount,
   getGithubConnectionStatus,
   getProjectGithubMappingCoverage,
   getProjectGithubRepositorySnapshot,
@@ -47,6 +48,24 @@ export async function getGithubConnectionStatusHandler(req: AuthRequest, res: Re
     }
     console.error("Error fetching GitHub connection status:", error);
     return res.status(500).json({ error: "Failed to fetch GitHub connection status" });
+  }
+}
+
+export async function disconnectGithubAccountHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const result = await disconnectGithubAccount(userId);
+    return res.json(result);
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error disconnecting GitHub account:", error);
+    return res.status(500).json({ error: "Failed to disconnect GitHub account" });
   }
 }
 

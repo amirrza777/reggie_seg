@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
 import {
   createGithubSnapshot,
+  deleteGithubAccountByUserId,
   findGithubAccountByGithubUserId,
   findGithubAccountStatusByUserId,
   findGithubAccountByUserId,
@@ -459,6 +460,16 @@ export async function getGithubConnectionStatus(userId: number) {
     connected: true,
     account,
   };
+}
+
+export async function disconnectGithubAccount(userId: number) {
+  const account = await findGithubAccountStatusByUserId(userId);
+  if (!account) {
+    return { disconnected: true, alreadyDisconnected: true };
+  }
+
+  await deleteGithubAccountByUserId(userId);
+  return { disconnected: true, alreadyDisconnected: false };
 }
 
 type LinkGithubRepositoryToProjectInput = {

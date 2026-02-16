@@ -48,6 +48,12 @@ export function findGithubAccountStatusByUserId(userId: number) {
   });
 }
 
+export async function deleteGithubAccountByUserId(userId: number) {
+  await prisma.githubAccount.delete({
+    where: { userId },
+  });
+}
+
 type UpdateGithubAccountTokensInput = {
   userId: number;
   accessTokenEncrypted: string;
