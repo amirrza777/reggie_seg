@@ -2,11 +2,14 @@ import jwt from "jsonwebtoken";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { getGitHubApiConfig, getGitHubOAuthConfig } from "./config.js";
 import {
+  createGithubSnapshot,
   findGithubAccountByGithubUserId,
   findGithubAccountByUserId,
+  findProjectGithubRepositoryLinkById,
   findUserById,
   isUserInProject,
   listProjectGithubRepositoryLinks,
+  listProjectGithubIdentityCandidates,
   upsertGithubAccount,
   upsertGithubRepository,
   upsertProjectGithubRepositoryLink,
@@ -145,7 +148,9 @@ function decryptToken(encryptedToken: string) {
     throw new GithubServiceError(500, "Stored GitHub token has invalid format");
   }
 
-  const [ivBase64, payloadBase64, authTagBase64] = parts;
+  const ivBase64 = parts[0] || "";
+  const payloadBase64 = parts[1] || "";
+  const authTagBase64 = parts[2] || "";
   const iv = Buffer.from(ivBase64, "base64");
   const payload = Buffer.from(payloadBase64, "base64");
   const authTag = Buffer.from(authTagBase64, "base64");
@@ -388,6 +393,252 @@ export async function listProjectGithubRepositories(userId: number, projectId: n
   }
 
   return listProjectGithubRepositoryLinks(projectId);
+}
+
+type GithubCommitListItem = {
+  sha: string;
+  commit: {
+    author: {
+      date: string;
+      email: string | null;
+      name: string | null;
+    } | null;
+  };
+  author: {
+    id?: number;
+    login?: string;
+  } | null;
+};
+
+type AggregatedContributor = {
+  contributorKey: string;
+  githubUserId: bigint | null;
+  githubLogin: string | null;
+  authorEmail: string | null;
+  commits: number;
+  additions: number;
+  deletions: number;
+  firstCommitAt: Date | null;
+  lastCommitAt: Date | null;
+  commitsByDay: Record<string, number>;
+  commitsByBranch: Record<string, number>;
+};
+
+function toUtcDayKey(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function contributorKeyFromCommit(commit: GithubCommitListItem) {
+  const login = commit.author?.login?.trim().toLowerCase();
+  if (login) {
+    return `login:${login}`;
+  }
+  const email = commit.commit.author?.email?.trim().toLowerCase();
+  if (email) {
+    return `email:${email}`;
+  }
+  return "unmatched:unknown";
+}
+
+async function fetchCommitsForLinkedRepository(accessToken: string, fullName: string, branch: string, sinceIso: string) {
+  const { baseUrl } = getGitHubApiConfig();
+  const commits: GithubCommitListItem[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetch(
+      `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&since=${encodeURIComponent(sinceIso)}&per_page=100&page=${page}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new GithubServiceError(404, "Linked GitHub repository was not found");
+      }
+      if (response.status === 401) {
+        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+      }
+      throw new GithubServiceError(502, "Failed to fetch repository commits");
+    }
+
+    const pageData = (await response.json()) as GithubCommitListItem[];
+    commits.push(...pageData);
+
+    if (pageData.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 10) {
+      break;
+    }
+  }
+
+  return commits;
+}
+
+function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
+  const contributors = new Map<string, AggregatedContributor>();
+  const repoCommitsByDay: Record<string, number> = {};
+  const repoCommitsByBranch: Record<string, number> = {};
+  repoCommitsByBranch[defaultBranch] = 0;
+
+  for (const commit of commits) {
+    if (!commit.commit.author?.date) {
+      continue;
+    }
+    const commitDate = new Date(commit.commit.author.date);
+    if (Number.isNaN(commitDate.getTime())) {
+      continue;
+    }
+
+    const contributorKey = contributorKeyFromCommit(commit);
+    const existing = contributors.get(contributorKey);
+    const dayKey = toUtcDayKey(commitDate);
+
+    if (!existing) {
+      contributors.set(contributorKey, {
+        contributorKey,
+        githubUserId: commit.author?.id ? BigInt(commit.author.id) : null,
+        githubLogin: commit.author?.login || null,
+        authorEmail: commit.commit.author.email || null,
+        commits: 1,
+        additions: 0,
+        deletions: 0,
+        firstCommitAt: commitDate,
+        lastCommitAt: commitDate,
+        commitsByDay: { [dayKey]: 1 },
+        commitsByBranch: { [defaultBranch]: 1 },
+      });
+    } else {
+      existing.commits += 1;
+      existing.commitsByDay[dayKey] = (existing.commitsByDay[dayKey] || 0) + 1;
+      existing.commitsByBranch[defaultBranch] = (existing.commitsByBranch[defaultBranch] || 0) + 1;
+      if (!existing.firstCommitAt || commitDate < existing.firstCommitAt) {
+        existing.firstCommitAt = commitDate;
+      }
+      if (!existing.lastCommitAt || commitDate > existing.lastCommitAt) {
+        existing.lastCommitAt = commitDate;
+      }
+    }
+
+    repoCommitsByDay[dayKey] = (repoCommitsByDay[dayKey] || 0) + 1;
+    repoCommitsByBranch[defaultBranch] = (repoCommitsByBranch[defaultBranch] || 0) + 1;
+  }
+
+  return {
+    contributors: Array.from(contributors.values()),
+    repoCommitsByDay,
+    repoCommitsByBranch,
+  };
+}
+
+export async function analyseProjectGithubRepository(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+
+  const accessToken = decryptToken(account.accessTokenEncrypted);
+  const defaultBranch = link.repository.defaultBranch || "main";
+  const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const commits = await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceDate.toISOString());
+  const aggregated = aggregateCommitData(commits, defaultBranch);
+
+  const identities = await listProjectGithubIdentityCandidates(link.projectId);
+  const byLogin = new Map<string, number>();
+  const byEmail = new Map<string, number>();
+  for (const identity of identities) {
+    if (identity.githubLogin) {
+      byLogin.set(identity.githubLogin.toLowerCase(), identity.userId);
+    }
+    if (identity.githubEmail) {
+      byEmail.set(identity.githubEmail.toLowerCase(), identity.userId);
+    }
+  }
+
+  const userStats = aggregated.contributors.map((contributor) => {
+    const mappedByLogin = contributor.githubLogin ? byLogin.get(contributor.githubLogin.toLowerCase()) : undefined;
+    const mappedByEmail = contributor.authorEmail ? byEmail.get(contributor.authorEmail.toLowerCase()) : undefined;
+    const mappedUserId = mappedByLogin ?? mappedByEmail ?? null;
+
+    return {
+      mappedUserId,
+      contributorKey: contributor.contributorKey,
+      githubUserId: contributor.githubUserId,
+      githubLogin: contributor.githubLogin,
+      authorEmail: contributor.authorEmail,
+      isMatched: Boolean(mappedUserId),
+      commits: contributor.commits,
+      additions: contributor.additions,
+      deletions: contributor.deletions,
+      commitsByDay: contributor.commitsByDay,
+      commitsByBranch: contributor.commitsByBranch,
+      firstCommitAt: contributor.firstCommitAt,
+      lastCommitAt: contributor.lastCommitAt,
+    };
+  });
+
+  const totalCommits = userStats.reduce((sum, stat) => sum + stat.commits, 0);
+  const matchedContributors = userStats.filter((stat) => stat.isMatched).length;
+  const unmatchedContributors = userStats.length - matchedContributors;
+  const unmatchedCommits = userStats.filter((stat) => !stat.isMatched).reduce((sum, stat) => sum + stat.commits, 0);
+
+  const snapshot = await createGithubSnapshot({
+    projectGithubRepositoryId: link.id,
+    analysedByUserId: userId,
+    nextSyncIntervalMinutes: link.syncIntervalMinutes || 60,
+    data: {
+      repository: {
+        id: link.repository.id,
+        fullName: link.repository.fullName,
+        htmlUrl: link.repository.htmlUrl,
+        ownerLogin: link.repository.ownerLogin,
+        defaultBranch,
+      },
+      analysedWindow: {
+        since: sinceDate.toISOString(),
+        until: new Date().toISOString(),
+      },
+      commitCount: commits.length,
+      sampleCommits: commits.slice(0, 200).map((commit) => ({
+        sha: commit.sha,
+        date: commit.commit.author?.date || null,
+        login: commit.author?.login || null,
+        email: commit.commit.author?.email || null,
+      })),
+    },
+    userStats,
+    repoStat: {
+      totalCommits,
+      totalAdditions: 0,
+      totalDeletions: 0,
+      totalContributors: userStats.length,
+      matchedContributors,
+      unmatchedContributors,
+      unmatchedCommits,
+      defaultBranchCommits: totalCommits,
+      commitsByDay: aggregated.repoCommitsByDay,
+      commitsByBranch: aggregated.repoCommitsByBranch,
+    },
+  });
+
+  return snapshot;
 }
 
 export { GithubServiceError };

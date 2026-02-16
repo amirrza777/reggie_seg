@@ -44,6 +44,35 @@ export async function isUserInProject(userId: number, projectId: number) {
   return Boolean(allocation);
 }
 
+export async function listProjectGithubIdentityCandidates(projectId: number) {
+  const rows = await prisma.teamAllocation.findMany({
+    where: {
+      team: {
+        projectId,
+      },
+    },
+    select: {
+      userId: true,
+      user: {
+        select: {
+          githubAccount: {
+            select: {
+              login: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return rows.map((row) => ({
+    userId: row.userId,
+    githubLogin: row.user.githubAccount?.login || null,
+    githubEmail: row.user.githubAccount?.email || null,
+  }));
+}
+
 type UpsertGithubRepositoryInput = {
   githubRepoId: bigint;
   ownerLogin: string;
@@ -155,6 +184,130 @@ export function listProjectGithubRepositoryLinks(projectId: number) {
       },
     },
     orderBy: { createdAt: "desc" },
+  });
+}
+
+export function findProjectGithubRepositoryLinkById(linkId: number) {
+  return prisma.projectGithubRepository.findUnique({
+    where: { id: linkId },
+    select: {
+      id: true,
+      projectId: true,
+      githubRepositoryId: true,
+      syncIntervalMinutes: true,
+      repository: {
+        select: {
+          id: true,
+          githubRepoId: true,
+          ownerLogin: true,
+          name: true,
+          fullName: true,
+          htmlUrl: true,
+          isPrivate: true,
+          defaultBranch: true,
+        },
+      },
+    },
+  });
+}
+
+type CreateGithubSnapshotInput = {
+  projectGithubRepositoryId: number;
+  analysedByUserId: number;
+  nextSyncIntervalMinutes: number;
+  data: unknown;
+  userStats: Array<{
+    mappedUserId: number | null;
+    contributorKey: string;
+    githubUserId: bigint | null;
+    githubLogin: string | null;
+    authorEmail: string | null;
+    isMatched: boolean;
+    commits: number;
+    additions: number;
+    deletions: number;
+    commitsByDay: unknown;
+    commitsByBranch: unknown;
+    firstCommitAt: Date | null;
+    lastCommitAt: Date | null;
+  }>;
+  repoStat: {
+    totalCommits: number;
+    totalAdditions: number;
+    totalDeletions: number;
+    totalContributors: number;
+    matchedContributors: number;
+    unmatchedContributors: number;
+    unmatchedCommits: number;
+    defaultBranchCommits: number;
+    commitsByDay: unknown;
+    commitsByBranch: unknown;
+  };
+};
+
+export async function createGithubSnapshot(input: CreateGithubSnapshotInput) {
+  return prisma.$transaction(async (tx) => {
+    const snapshot = await tx.githubRepoSnapshot.create({
+      data: {
+        projectGithubRepositoryId: input.projectGithubRepositoryId,
+        analysedByUserId: input.analysedByUserId,
+        data: input.data as any,
+      },
+      select: {
+        id: true,
+        projectGithubRepositoryId: true,
+        analysedByUserId: true,
+        analysedAt: true,
+        createdAt: true,
+      },
+    });
+
+    if (input.userStats.length > 0) {
+      await tx.githubRepoSnapshotUserStat.createMany({
+        data: input.userStats.map((stat) => ({
+          snapshotId: snapshot.id,
+          mappedUserId: stat.mappedUserId,
+          contributorKey: stat.contributorKey,
+          githubUserId: stat.githubUserId,
+          githubLogin: stat.githubLogin,
+          authorEmail: stat.authorEmail,
+          isMatched: stat.isMatched,
+          commits: stat.commits,
+          additions: stat.additions,
+          deletions: stat.deletions,
+          commitsByDay: stat.commitsByDay as any,
+          commitsByBranch: stat.commitsByBranch as any,
+          firstCommitAt: stat.firstCommitAt,
+          lastCommitAt: stat.lastCommitAt,
+        })),
+      });
+    }
+
+    await tx.githubRepoSnapshotRepoStat.create({
+      data: {
+        snapshotId: snapshot.id,
+        totalCommits: input.repoStat.totalCommits,
+        totalAdditions: input.repoStat.totalAdditions,
+        totalDeletions: input.repoStat.totalDeletions,
+        totalContributors: input.repoStat.totalContributors,
+        matchedContributors: input.repoStat.matchedContributors,
+        unmatchedContributors: input.repoStat.unmatchedContributors,
+        unmatchedCommits: input.repoStat.unmatchedCommits,
+        defaultBranchCommits: input.repoStat.defaultBranchCommits,
+        commitsByDay: input.repoStat.commitsByDay as any,
+        commitsByBranch: input.repoStat.commitsByBranch as any,
+      },
+    });
+
+    await tx.projectGithubRepository.update({
+      where: { id: input.projectGithubRepositoryId },
+      data: {
+        lastSyncedAt: snapshot.analysedAt,
+        nextSyncAt: new Date(snapshot.analysedAt.getTime() + input.nextSyncIntervalMinutes * 60 * 1000),
+      },
+    });
+
+    return snapshot;
   });
 }
 

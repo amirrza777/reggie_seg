@@ -1,6 +1,7 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
 import {
+  analyseProjectGithubRepository,
   buildGithubOAuthConnectUrl,
   connectGithubAccount,
   GithubServiceError,
@@ -151,5 +152,28 @@ export async function listProjectGithubReposHandler(req: AuthRequest, res: Respo
     }
     console.error("Error listing project GitHub repositories:", error);
     return res.status(500).json({ error: "Failed to list project GitHub repositories" });
+  }
+}
+
+export async function analyseProjectGithubRepoHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
+
+  try {
+    const snapshot = await analyseProjectGithubRepository(userId, linkId);
+    return res.status(201).json({ snapshot });
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error analysing project GitHub repository:", error);
+    return res.status(500).json({ error: "Failed to analyse project GitHub repository" });
   }
 }
