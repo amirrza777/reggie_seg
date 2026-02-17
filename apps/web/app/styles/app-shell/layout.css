@@ -533,14 +533,14 @@ body {
 .space-switcher__link:focus-visible {
   background: var(--sidebar-active-bg);
   border-color: transparent;
-  box-shadow: 0 10px 32px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
 }
 
 .space-switcher__link.is-active {
   background: var(--sidebar-active-bg);
   border-color: transparent;
   color: color-mix(in srgb, var(--ink-strong) 96%, var(--ink) 2%);
-  box-shadow: 0 10px 32px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
   transform: none;
 }
 
