@@ -318,6 +318,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 link={link}
                 coverage={coverageByLinkId[link.id] ?? null}
                 snapshot={latestSnapshotByLinkId[link.id] ?? null}
+                currentGithubLogin={connection?.account?.login ?? null}
                 busy={busy}
                 loading={loading}
                 removingLinkId={removingLinkId}

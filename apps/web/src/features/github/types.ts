@@ -91,6 +91,7 @@ export type GithubLatestSnapshot = {
       commits: number;
       additions: number;
       deletions: number;
+      commitsByDay?: Record<string, number> | null;
     }>;
     repoStats: Array<{
       totalCommits: number;

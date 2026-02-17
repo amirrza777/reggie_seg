@@ -21,6 +21,7 @@ type GithubRepoLinkCardProps = {
   link: ProjectGithubRepoLink;
   coverage: GithubMappingCoverage | null;
   snapshot: GithubLatestSnapshot["snapshot"] | null;
+  currentGithubLogin: string | null;
   busy: boolean;
   loading: boolean;
   removingLinkId: number | null;
@@ -63,10 +64,39 @@ function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+function getPersonalCommitsByDay(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined, currentGithubLogin: string | null) {
+  const normalizedLogin = currentGithubLogin?.trim().toLowerCase();
+  if (!normalizedLogin || !snapshot?.userStats?.length) {
+    return {};
+  }
+
+  const personalStat = snapshot.userStats.find(
+    (stat) => stat.githubLogin?.trim().toLowerCase() === normalizedLogin
+  );
+  const commitsByDay = personalStat?.commitsByDay;
+  if (!commitsByDay || typeof commitsByDay !== "object") {
+    return {};
+  }
+
+  return commitsByDay;
+}
+
+function buildChartSeries(
+  totalSeries: Array<{ date: string; commits: number }>,
+  personalByDay: Record<string, number>
+) {
+  return totalSeries.map((item) => ({
+    date: item.date,
+    commits: item.commits,
+    personalCommits: Number(personalByDay[item.date]) || 0,
+  }));
+}
+
 export function GithubRepoLinkCard({
   link,
   coverage,
   snapshot,
+  currentGithubLogin,
   busy,
   loading,
   removingLinkId,
@@ -76,6 +106,8 @@ export function GithubRepoLinkCard({
   const allBranchesTotals = snapshot?.data?.branchScopeStats?.allBranches;
   const fallbackRepoTotals = snapshot?.repoStats?.[0] ?? null;
   const commitsByDaySeries = getCommitsByDaySeries(snapshot);
+  const personalByDay = getPersonalCommitsByDay(snapshot, currentGithubLogin);
+  const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
 
   return (
     <div key={link.id} style={styles.listItem}>
@@ -107,12 +139,12 @@ export function GithubRepoLinkCard({
           {allBranchesTotals.totalAdditions} • deletions {allBranchesTotals.totalDeletions}
         </p>
       ) : null}
-      {commitsByDaySeries.length > 0 ? (
+      {chartSeries.length > 0 ? (
         <div style={styles.chartWrap}>
-          <p className="muted" style={{ marginBottom: 6 }}>Commits over time</p>
-          <div style={{ width: "100%", height: 220 }}>
+          <p className="muted" style={{ marginBottom: 6 }}>Commits over time (total vs your commits)</p>
+          <div style={{ width: "100%", height: 280 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={commitsByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+              <LineChart data={chartSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
                 <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
@@ -126,7 +158,16 @@ export function GithubRepoLinkCard({
                 <Line
                   type="monotone"
                   dataKey="commits"
+                  name="Total commits"
                   stroke="var(--accent)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="personalCommits"
+                  name="Your commits"
+                  stroke="var(--accent-warm)"
                   strokeWidth={2}
                   dot={false}
                 />
@@ -147,4 +188,3 @@ export function GithubRepoLinkCard({
     </div>
   );
 }
-
