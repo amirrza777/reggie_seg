@@ -11,8 +11,9 @@ export async function getGithubConnectionStatus(): Promise<GithubConnectionStatu
   return apiFetch<GithubConnectionStatus>("/github/me");
 }
 
-export async function getGithubOAuthConnectUrl() {
-  return apiFetch<{ url: string }>("/github/oauth/connect");
+export async function getGithubOAuthConnectUrl(returnTo?: string) {
+  const query = returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : "";
+  return apiFetch<{ url: string }>(`/github/oauth/connect${query}`);
 }
 
 export async function listGithubRepositories(): Promise<GithubRepositoryOption[]> {

@@ -75,6 +75,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
   const [latestSnapshotByLinkId, setLatestSnapshotByLinkId] = useState<Record<number, GithubLatestSnapshot["snapshot"] | null>>({});
   const [removingLinkId, setRemovingLinkId] = useState<number | null>(null);
+  const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
@@ -147,11 +148,36 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     void load();
   }, [projectId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const url = new URL(window.location.href);
+    const githubStatus = url.searchParams.get("github");
+    const reason = url.searchParams.get("reason");
+    if (!githubStatus) {
+      return;
+    }
+
+    if (githubStatus === "connected") {
+      setInfo("GitHub account connected successfully.");
+      setError(null);
+      void load();
+    } else if (githubStatus === "error") {
+      setError(reason ? `GitHub connection failed: ${reason}` : "GitHub connection failed.");
+    }
+
+    url.searchParams.delete("github");
+    url.searchParams.delete("reason");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, []);
+
   async function handleConnect() {
     setBusy(true);
     setError(null);
     try {
-      const { url } = await getGithubOAuthConnectUrl();
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      const { url } = await getGithubOAuthConnectUrl(returnTo);
       window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start GitHub connect flow.");
@@ -180,6 +206,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       return;
     }
 
+    setLinking(true);
     setBusy(true);
     setError(null);
     setInfo(null);
@@ -200,6 +227,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setError(err instanceof Error ? err.message : "Failed to link repository.");
     } finally {
       setBusy(false);
+      setLinking(false);
     }
   }
 
@@ -276,9 +304,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
               <div>
                 <Button
                   onClick={handleLinkSelectedRepo}
-                  disabled={loading || busy || !selectedRepoId || availableRepos.length === 0}
+                  disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
                 >
-                  Link selected repository
+                  {linking ? "Linking and analysing..." : "Link selected repository"}
                 </Button>
               </div>
             </div>

@@ -28,6 +28,7 @@ import {
 type GithubOAuthStatePayload = {
   sub: number;
   nonce: string;
+  returnTo?: string;
 };
 
 class GithubServiceError extends Error {
@@ -43,7 +44,18 @@ function getStateSecret() {
   return process.env.GITHUB_OAUTH_STATE_SECRET || process.env.JWT_ACCESS_SECRET || "";
 }
 
-export async function buildGithubOAuthConnectUrl(userId: number) {
+function normalizeReturnTo(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) {
+    return null;
+  }
+  return trimmed;
+}
+
+export async function buildGithubOAuthConnectUrl(userId: number, returnTo?: string | null) {
   const oauth = getGitHubOAuthConfig();
   if (!oauth) {
     throw new GithubServiceError(503, "GitHub OAuth is not configured");
@@ -59,10 +71,12 @@ export async function buildGithubOAuthConnectUrl(userId: number) {
     throw new GithubServiceError(500, "OAuth state secret is not configured");
   }
 
+  const normalizedReturnTo = normalizeReturnTo(returnTo);
   const state = jwt.sign(
     {
       sub: user.id,
       nonce: randomBytes(16).toString("hex"),
+      ...(normalizedReturnTo ? { returnTo: normalizedReturnTo } : {}),
     } satisfies GithubOAuthStatePayload,
     secret,
     { expiresIn: "10m" }
@@ -99,6 +113,7 @@ export function validateGithubOAuthCallback(code: string, state: string) {
   return {
     code,
     userId: payload.sub,
+    returnTo: normalizeReturnTo(payload.returnTo),
   };
 }
 
@@ -323,7 +338,10 @@ export async function connectGithubAccount(code: string, state: string) {
     refreshTokenExpiresAt: addSecondsToNow(tokenResponse.refresh_token_expires_in),
   });
 
-  return account;
+  return {
+    account,
+    returnTo: validated.returnTo,
+  };
 }
 
 type GithubRepoResponse = {

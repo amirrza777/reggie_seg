@@ -26,6 +26,16 @@ function toJsonSafe<T>(value: T): T {
   ) as T;
 }
 
+function withQuery(path: string, params: Record<string, string>) {
+  const [basePath, existingQuery = ""] = path.split("?", 2);
+  const query = new URLSearchParams(existingQuery);
+  for (const [key, value] of Object.entries(params)) {
+    query.set(key, value);
+  }
+  const qs = query.toString();
+  return qs ? `${basePath}?${qs}` : basePath;
+}
+
 export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -33,7 +43,8 @@ export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Res
   }
 
   try {
-    const url = await buildGithubOAuthConnectUrl(userId);
+    const returnTo = typeof req.query.returnTo === "string" ? req.query.returnTo : null;
+    const url = await buildGithubOAuthConnectUrl(userId, returnTo);
     return res.json({ url });
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -81,25 +92,27 @@ export async function disconnectGithubAccountHandler(req: AuthRequest, res: Resp
 }
 
 export async function githubOAuthCallbackHandler(req: AuthRequest, res: Response) {
+  const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
+  const fallbackPath = "/modules";
   const code = String(req.query.code || "");
   const state = String(req.query.state || "");
 
   if (!code || !state) {
-    return res.status(400).json({ error: "Missing code or state" });
+    return res.redirect(`${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: "missing-code-or-state" })}`);
   }
 
   try {
-    const account = await connectGithubAccount(code, state);
-    return res.json({
-      connected: true,
-      account: toJsonSafe(account),
-    });
+    const connected = await connectGithubAccount(code, state);
+    const returnPath = connected.returnTo || fallbackPath;
+    return res.redirect(`${appBaseUrl}${withQuery(returnPath, { github: "connected" })}`);
   } catch (error) {
     if (error instanceof GithubServiceError) {
-      return res.status(error.status).json({ error: error.message });
+      return res.redirect(
+        `${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: error.message })}`
+      );
     }
     console.error("Error validating GitHub OAuth callback:", error);
-    return res.status(500).json({ error: "Failed to validate GitHub OAuth callback" });
+    return res.redirect(`${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: "callback-failed" })}`);
   }
 }
 
