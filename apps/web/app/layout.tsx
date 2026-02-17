@@ -19,6 +19,17 @@ const sfPro = localFont({
 export const metadata: Metadata = {
   title: "Team Feedback",
   description: "Team feedback and reflection platform.",
+  icons: {
+    icon: [
+      "/favicon-16x16.png",
+      "/favicon-32x32.png",
+      { url: "/android-chrome-192x192.png", sizes: "192x192" },
+      { url: "/android-chrome-512x512.png", sizes: "512x512" },
+      "/favicon.ico",
+    ],
+    apple: "/apple-touch-icon.png",
+  },
+  manifest: "/site.webmanifest",
 };
 
 export const viewport: Viewport = {
