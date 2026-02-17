@@ -2,7 +2,7 @@
 :root {
   --topbar-title-size: var(--fs-logo, 1.6rem);
   /* Shared selection background for sidebar and workspace/admin pills */
-  --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 18%, transparent);
+  --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
 }
 
 html,
@@ -502,15 +502,15 @@ body {
   padding: 6px 8px 2px;
   border-radius: 18px;
   background: transparent;
-  align-self: flex-start;
-  transform: translateY(0);
+  align-self: center;
+  transform: translateY(8px);
 }
 
 .space-switcher__link {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 13px 4px 11px;
+  padding: 3px 12px 3px 10px;
   border-radius: 12px;
   position: relative;
   border: 1px solid transparent;
@@ -549,12 +549,12 @@ body {
   position: absolute;
   left: 18px;
   right: 18px;
-  bottom: -8px;
+  bottom: -12px;
   height: 3px;
   background: var(--status-success, #22c55e);
   border-radius: 999px;
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(18px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
