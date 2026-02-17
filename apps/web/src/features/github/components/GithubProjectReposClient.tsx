@@ -289,45 +289,54 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           {loading ? <p className="muted">Loading repositories...</p> : null}
           {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
           {!loading &&
-            links.map((link) => (
-              <div key={link.id} style={styles.listItem}>
-                <strong>{link.repository.fullName}</strong>
-                <p className="muted">
-                  {link.repository.isPrivate ? "Private" : "Public"} • default branch {link.repository.defaultBranch || "unknown"}
-                </p>
-                {coverageByLinkId[link.id]?.analysedAt ? (
+            links.map((link) => {
+              const snapshot = latestSnapshotByLinkId[link.id];
+              const defaultBranchTotals = snapshot?.data?.branchScopeStats?.defaultBranch;
+              const allBranchesTotals = snapshot?.data?.branchScopeStats?.allBranches;
+              const fallbackRepoTotals = snapshot?.repoStats?.[0] ?? null;
+              return (
+                <div key={link.id} style={styles.listItem}>
+                  <strong>{link.repository.fullName}</strong>
                   <p className="muted">
-                    Last analysed {new Date(String(coverageByLinkId[link.id]?.analysedAt)).toLocaleString()} • Total commits{" "}
-                    {coverageByLinkId[link.id]?.coverage?.totalCommits ?? 0}
+                    {link.repository.isPrivate ? "Private" : "Public"} • default branch {link.repository.defaultBranch || "unknown"}
                   </p>
-                ) : (
-                  <p className="muted">No snapshot analysed yet.</p>
-                )}
-                {latestSnapshotByLinkId[link.id]?.repoStats ? (
-                  <p className="muted">
-                    Additions {latestSnapshotByLinkId[link.id]?.repoStats?.totalAdditions ?? 0} • Deletions{" "}
-                    {latestSnapshotByLinkId[link.id]?.repoStats?.totalDeletions ?? 0}
-                  </p>
-                ) : null}
-                <div style={styles.actions}>
-                  <Button
-                    variant="ghost"
-                    onClick={() => void handleRemoveLink(link.id)}
-                    disabled={busy || loading || removingLinkId === link.id}
-                  >
-                    {removingLinkId === link.id ? "Removing..." : "Remove link"}
-                  </Button>
+                  {coverageByLinkId[link.id]?.analysedAt ? (
+                    <p className="muted">
+                      Last analysed {new Date(String(coverageByLinkId[link.id]?.analysedAt)).toLocaleString()} • Total commits{" "}
+                      {coverageByLinkId[link.id]?.coverage?.totalCommits ?? 0}
+                    </p>
+                  ) : (
+                    <p className="muted">No snapshot analysed yet.</p>
+                  )}
+                  {defaultBranchTotals ? (
+                    <p className="muted">
+                      Default branch ({defaultBranchTotals.branch}) • commits {defaultBranchTotals.totalCommits} • additions{" "}
+                      {defaultBranchTotals.totalAdditions} • deletions {defaultBranchTotals.totalDeletions}
+                    </p>
+                  ) : fallbackRepoTotals ? (
+                    <p className="muted">
+                      Default branch • commits {fallbackRepoTotals.totalCommits} • additions {fallbackRepoTotals.totalAdditions} •
+                      {" "}deletions {fallbackRepoTotals.totalDeletions}
+                    </p>
+                  ) : null}
+                  {allBranchesTotals ? (
+                    <p className="muted">
+                      All branches ({allBranchesTotals.branchCount}) • commits {allBranchesTotals.totalCommits} • additions{" "}
+                      {allBranchesTotals.totalAdditions} • deletions {allBranchesTotals.totalDeletions}
+                    </p>
+                  ) : null}
+                  <div style={styles.actions}>
+                    <Button
+                      variant="ghost"
+                      onClick={() => void handleRemoveLink(link.id)}
+                      disabled={busy || loading || removingLinkId === link.id}
+                    >
+                      {removingLinkId === link.id ? "Removing..." : "Remove link"}
+                    </Button>
+                  </div>
                 </div>
-                {coverageByLinkId[link.id]?.coverage ? (
-                  <p className="muted">
-                    Matched {coverageByLinkId[link.id]?.coverage?.matchedContributors}/
-                    {coverageByLinkId[link.id]?.coverage?.totalContributors} contributors • Unmatched commits{" "}
-                    {coverageByLinkId[link.id]?.coverage?.unmatchedCommits}/
-                    {coverageByLinkId[link.id]?.coverage?.totalCommits}
-                  </p>
-                ) : null}
-              </div>
-            ))}
+              );
+            })}
         </div>
       </section>
 

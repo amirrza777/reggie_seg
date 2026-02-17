@@ -553,6 +553,10 @@ type GithubCommitDetailResponse = {
   };
 };
 
+type GithubBranchResponseItem = {
+  name: string;
+};
+
 type AggregatedContributor = {
   contributorKey: string;
   githubUserId: bigint | null;
@@ -623,6 +627,41 @@ async function fetchCommitsForLinkedRepository(accessToken: string, fullName: st
   }
 
   return commits;
+}
+
+async function listRepositoryBranches(accessToken: string, fullName: string) {
+  const { baseUrl } = getGitHubApiConfig();
+  const branches: string[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetch(
+      `${baseUrl}/repos/${fullName}/branches?per_page=100&page=${page}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      break;
+    }
+
+    const pageData = (await response.json()) as GithubBranchResponseItem[];
+    branches.push(...pageData.map((branch) => branch.name).filter(Boolean));
+    if (pageData.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 5) {
+      break;
+    }
+  }
+
+  return Array.from(new Set(branches));
 }
 
 async function fetchCommitStatsForRepository(
@@ -737,10 +776,34 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const defaultBranch = link.repository.defaultBranch || "main";
   const sinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const commits = await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceDate.toISOString());
+  const branchNames = await listRepositoryBranches(accessToken, link.repository.fullName);
+  const allBranchNames = branchNames.length > 0 ? branchNames : [defaultBranch];
+  const allBranchCommitBySha = new Map<string, GithubCommitListItem>();
+  const allBranchCommitCountByBranch: Record<string, number> = {};
+  for (const branchName of allBranchNames) {
+    const branchCommits = await fetchCommitsForLinkedRepository(
+      accessToken,
+      link.repository.fullName,
+      branchName,
+      sinceDate.toISOString()
+    );
+    allBranchCommitCountByBranch[branchName] = branchCommits.length;
+    for (const branchCommit of branchCommits) {
+      if (!allBranchCommitBySha.has(branchCommit.sha)) {
+        allBranchCommitBySha.set(branchCommit.sha, branchCommit);
+      }
+    }
+  }
+  const allBranchCommits = Array.from(allBranchCommitBySha.values());
   const commitStatsBySha = await fetchCommitStatsForRepository(
     accessToken,
     link.repository.fullName,
     commits.map((commit) => commit.sha)
+  );
+  const allBranchCommitStatsBySha = await fetchCommitStatsForRepository(
+    accessToken,
+    link.repository.fullName,
+    allBranchCommits.map((commit) => commit.sha)
   );
   const aggregated = aggregateCommitData(commits, defaultBranch);
 
@@ -799,6 +862,15 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const totalCommits = userStats.reduce((sum, stat) => sum + stat.commits, 0);
   const totalAdditions = userStats.reduce((sum, stat) => sum + stat.additions, 0);
   const totalDeletions = userStats.reduce((sum, stat) => sum + stat.deletions, 0);
+  const allBranchesTotalCommits = allBranchCommits.length;
+  const allBranchesTotalAdditions = Array.from(allBranchCommitStatsBySha.values()).reduce(
+    (sum, stat) => sum + stat.additions,
+    0
+  );
+  const allBranchesTotalDeletions = Array.from(allBranchCommitStatsBySha.values()).reduce(
+    (sum, stat) => sum + stat.deletions,
+    0
+  );
   const matchedContributors = userStats.filter((stat) => stat.isMatched).length;
   const unmatchedContributors = userStats.length - matchedContributors;
   const unmatchedCommits = userStats.filter((stat) => !stat.isMatched).reduce((sum, stat) => sum + stat.commits, 0);
@@ -823,6 +895,25 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       commitStatsCoverage: {
         detailedCommitCount: commitStatsBySha.size,
         requestedCommitCount: commits.length,
+      },
+      branchScopeStats: {
+        defaultBranch: {
+          branch: defaultBranch,
+          totalCommits,
+          totalAdditions,
+          totalDeletions,
+        },
+        allBranches: {
+          branchCount: allBranchNames.length,
+          totalCommits: allBranchesTotalCommits,
+          totalAdditions: allBranchesTotalAdditions,
+          totalDeletions: allBranchesTotalDeletions,
+          commitsByBranch: allBranchCommitCountByBranch,
+          commitStatsCoverage: {
+            detailedCommitCount: allBranchCommitStatsBySha.size,
+            requestedCommitCount: allBranchCommits.length,
+          },
+        },
       },
       sampleCommits: commits.slice(0, 200).map((commit) => ({
         sha: commit.sha,

@@ -67,7 +67,32 @@ export type GithubLatestSnapshot = {
   snapshot: {
     id: number;
     analysedAt: string;
-    repoStats: {
+    data?: {
+      branchScopeStats?: {
+        defaultBranch?: {
+          branch: string;
+          totalCommits: number;
+          totalAdditions: number;
+          totalDeletions: number;
+        };
+        allBranches?: {
+          branchCount: number;
+          totalCommits: number;
+          totalAdditions: number;
+          totalDeletions: number;
+        };
+      };
+    } | null;
+    userStats: Array<{
+      id: number;
+      mappedUserId: number | null;
+      githubLogin: string | null;
+      isMatched: boolean;
+      commits: number;
+      additions: number;
+      deletions: number;
+    }>;
+    repoStats: Array<{
       totalCommits: number;
       totalAdditions: number;
       totalDeletions: number;
@@ -75,6 +100,6 @@ export type GithubLatestSnapshot = {
       matchedContributors: number;
       unmatchedContributors: number;
       unmatchedCommits: number;
-    } | null;
+    }>;
   };
 };
