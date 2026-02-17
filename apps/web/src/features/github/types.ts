@@ -100,6 +100,7 @@ export type GithubLatestSnapshot = {
       matchedContributors: number;
       unmatchedContributors: number;
       unmatchedCommits: number;
+      commitsByDay?: Record<string, number> | null;
     }>;
   };
 };
