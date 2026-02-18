@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 
-type MinutesEditorProps = {
+type MeetingMinutesProps = {
   initialContent: string;
   onSave: (content: string) => void;
 };
 
-export function MinutesEditor({ initialContent, onSave }: MinutesEditorProps) {
+export function MeetingMinutes({ initialContent, onSave }: MeetingMinutesProps) {
   const [minutes, setMinutes] = useState(initialContent);
 
   return (

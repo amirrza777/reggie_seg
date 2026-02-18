@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { useUser } from "@/features/auth/context";
 import { AttendanceTable } from "./AttendanceTable";
-import { MinutesEditor } from "./MinutesEditor";
+import { MeetingMinutes } from "./MeetingMinutes";
 import { CommentSection } from "./CommentSection";
 import { saveMinutes } from "../api/client";
 import type { Meeting } from "../types";
@@ -48,7 +48,7 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
       <AttendanceTable meetingId={meeting.id} initialAttendances={meeting.attendances} />
 
       <Card title="Minutes">
-        <MinutesEditor
+        <MeetingMinutes
           initialContent={meeting.minutes?.content ?? ""}
           onSave={handleSaveMinutes}
         />
