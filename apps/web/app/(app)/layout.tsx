@@ -36,7 +36,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <AppShell
       sidebar={<Sidebar title="Workspace" links={filteredLinks} />}
       topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
-      ribbon={spaceLinks.length > 1 ? <SpaceSwitcher links={spaceLinks} /> : null}
+      ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
     >
       <div className="workspace-shell">{children}</div>
     </AppShell>
