@@ -100,6 +100,7 @@ async function fetchGitHubAppUserRepositories(accessToken: string) {
   const { baseUrl } = getGitHubApiConfig();
   const repositoryById = new Map<number, GithubRepoResponse>();
   let installationPage = 1;
+  let totalInstallations = 0;
 
   while (true) {
     const installationsResponse = await fetch(
@@ -122,6 +123,7 @@ async function fetchGitHubAppUserRepositories(accessToken: string) {
 
     const installationsData = (await installationsResponse.json()) as GithubInstallationListResponse;
     const installations = installationsData.installations || [];
+    totalInstallations += installations.length;
 
     for (const installation of installations) {
       let repoPage = 1;
@@ -167,6 +169,13 @@ async function fetchGitHubAppUserRepositories(accessToken: string) {
     if (installationPage > 5) {
       break;
     }
+  }
+
+  if (totalInstallations === 0) {
+    throw new GithubServiceError(
+      403,
+      "GitHub App is connected but not installed on any account or organization. Install the app, then try again."
+    );
   }
 
   return Array.from(repositoryById.values());
