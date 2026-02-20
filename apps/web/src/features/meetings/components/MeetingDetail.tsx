@@ -1,12 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { useUser } from "@/features/auth/context";
 import { AttendanceTable } from "./AttendanceTable";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { CommentSection } from "./CommentSection";
-import { saveMinutes } from "../api/client";
 import type { Meeting } from "../types";
 
 type MeetingDetailProps = {
@@ -15,21 +13,6 @@ type MeetingDetailProps = {
 
 export function MeetingDetail({ meeting }: MeetingDetailProps) {
   const { user } = useUser();
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [message, setMessage] = useState<string | null>(null);
-
-  async function handleSaveMinutes(content: string) {
-    setStatus("loading");
-    setMessage(null);
-    try {
-      await saveMinutes(meeting.id, user!.id, content);
-      setStatus("success");
-      setMessage("Minutes saved!");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Failed to save minutes");
-    }
-  }
 
   return (
     <div className="stack">
@@ -49,10 +32,10 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
 
       <Card title="Minutes">
         <MeetingMinutes
+          meetingId={meeting.id}
+          writerId={user!.id}
           initialContent={meeting.minutes?.content ?? ""}
-          onSave={handleSaveMinutes}
         />
-        {message && <p className={status === "error" ? "error" : "muted"}>{message}</p>}
       </Card>
 
       <CommentSection meetingId={meeting.id} initialComments={meeting.comments} />
