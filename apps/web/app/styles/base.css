@@ -180,6 +180,7 @@ textarea {
   font-size: var(--fs-body);
   font-family: inherit;
   background: var(--surface);
+  color: inherit;
 }
 
 textarea {
