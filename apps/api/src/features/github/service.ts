@@ -1,4 +1,4 @@
-import { getGitHubApiConfig } from "./config.js";
+import { getGitHubApiConfig, getGitHubAuthMode } from "./config.js";
 import {
   createGithubSnapshot,
   deactivateProjectGithubRepositoryLink,
@@ -48,6 +48,11 @@ type GithubRepositoryListItem = {
 };
 
 async function fetchUserRepositories(accessToken: string) {
+  const authMode = getGitHubAuthMode();
+  if (authMode === "github_app") {
+    return fetchGitHubAppUserRepositories(accessToken);
+  }
+
   const { baseUrl } = getGitHubApiConfig();
   const repositories: GithubRepoResponse[] = [];
   let page = 1;
@@ -81,6 +86,90 @@ async function fetchUserRepositories(accessToken: string) {
   }
 
   return repositories;
+}
+
+type GithubInstallationListResponse = {
+  installations: Array<{ id: number }>;
+};
+
+type GithubInstallationReposResponse = {
+  repositories: GithubRepoResponse[];
+};
+
+async function fetchGitHubAppUserRepositories(accessToken: string) {
+  const { baseUrl } = getGitHubApiConfig();
+  const repositoryById = new Map<number, GithubRepoResponse>();
+  let installationPage = 1;
+
+  while (true) {
+    const installationsResponse = await fetch(
+      `${baseUrl}/user/installations?per_page=100&page=${installationPage}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+
+    if (!installationsResponse.ok) {
+      if (installationsResponse.status === 401) {
+        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+      }
+      throw new GithubServiceError(502, "Failed to fetch GitHub App installations");
+    }
+
+    const installationsData = (await installationsResponse.json()) as GithubInstallationListResponse;
+    const installations = installationsData.installations || [];
+
+    for (const installation of installations) {
+      let repoPage = 1;
+      while (true) {
+        const reposResponse = await fetch(
+          `${baseUrl}/user/installations/${installation.id}/repositories?per_page=100&page=${repoPage}`,
+          {
+            headers: {
+              Accept: "application/vnd.github+json",
+              Authorization: `Bearer ${accessToken}`,
+              "X-GitHub-Api-Version": "2022-11-28",
+            },
+          }
+        );
+
+        if (!reposResponse.ok) {
+          if (reposResponse.status === 403 || reposResponse.status === 404) {
+            break;
+          }
+          throw new GithubServiceError(502, "Failed to fetch repositories for GitHub App installation");
+        }
+
+        const reposData = (await reposResponse.json()) as GithubInstallationReposResponse;
+        const repositories = reposData.repositories || [];
+        for (const repository of repositories) {
+          repositoryById.set(repository.id, repository);
+        }
+
+        if (repositories.length < 100) {
+          break;
+        }
+        repoPage += 1;
+        if (repoPage > 10) {
+          break;
+        }
+      }
+    }
+
+    if (installations.length < 100) {
+      break;
+    }
+    installationPage += 1;
+    if (installationPage > 5) {
+      break;
+    }
+  }
+
+  return Array.from(repositoryById.values());
 }
 
 

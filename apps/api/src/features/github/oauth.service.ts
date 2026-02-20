@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { getGitHubOAuthConfig } from "./config.js";
+import { getGitHubAppConfig, getGitHubAuthMode, getGitHubOAuthConfig } from "./config.js";
 import {
   findGithubAccountByGithubUserId,
   findUserById,
@@ -127,8 +127,13 @@ function addSecondsToNow(seconds?: number) {
 }
 
 export async function buildGithubOAuthConnectUrl(userId: number, returnTo?: string | null) {
+  const authMode = getGitHubAuthMode();
   const oauth = getGitHubOAuthConfig();
-  if (!oauth) {
+  const githubApp = getGitHubAppConfig();
+  if (authMode === "github_app" && !githubApp) {
+    throw new GithubServiceError(503, "GitHub App auth is not configured");
+  }
+  if (authMode === "oauth_app" && !oauth) {
     throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
@@ -154,12 +159,14 @@ export async function buildGithubOAuthConnectUrl(userId: number, returnTo?: stri
   );
 
   const params = new URLSearchParams({
-    client_id: oauth.clientId,
-    redirect_uri: oauth.redirectUri,
-    scope: oauth.scopes.join(" "),
+    client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
+    redirect_uri: authMode === "github_app" ? githubApp!.redirectUri : oauth!.redirectUri,
     state,
     allow_signup: "false",
   });
+  if (authMode === "oauth_app") {
+    params.set("scope", oauth!.scopes.join(" "));
+  }
 
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
@@ -189,8 +196,13 @@ export function validateGithubOAuthCallback(code: string, state: string) {
 }
 
 async function exchangeGithubOAuthCode(code: string, state: string) {
+  const authMode = getGitHubAuthMode();
   const oauth = getGitHubOAuthConfig();
-  if (!oauth) {
+  const githubApp = getGitHubAppConfig();
+  if (authMode === "github_app" && !githubApp) {
+    throw new GithubServiceError(503, "GitHub App auth is not configured");
+  }
+  if (authMode === "oauth_app" && !oauth) {
     throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
@@ -201,10 +213,10 @@ async function exchangeGithubOAuthCode(code: string, state: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      client_id: oauth.clientId,
-      client_secret: oauth.clientSecret,
+      client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
+      client_secret: authMode === "github_app" ? githubApp!.clientSecret : oauth!.clientSecret,
       code,
-      redirect_uri: oauth.redirectUri,
+      redirect_uri: authMode === "github_app" ? githubApp!.redirectUri : oauth!.redirectUri,
       state,
     }),
   });
@@ -222,8 +234,13 @@ async function exchangeGithubOAuthCode(code: string, state: string) {
 }
 
 async function refreshGithubAccessToken(refreshToken: string) {
+  const authMode = getGitHubAuthMode();
   const oauth = getGitHubOAuthConfig();
-  if (!oauth) {
+  const githubApp = getGitHubAppConfig();
+  if (authMode === "github_app" && !githubApp) {
+    throw new GithubServiceError(503, "GitHub App auth is not configured");
+  }
+  if (authMode === "oauth_app" && !oauth) {
     throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
@@ -234,8 +251,8 @@ async function refreshGithubAccessToken(refreshToken: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      client_id: oauth.clientId,
-      client_secret: oauth.clientSecret,
+      client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
+      client_secret: authMode === "github_app" ? githubApp!.clientSecret : oauth!.clientSecret,
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
@@ -365,4 +382,3 @@ export async function getValidGithubAccessToken(account: GithubAccountTokenState
 
   return decryptToken(updated.accessTokenEncrypted);
 }
-
