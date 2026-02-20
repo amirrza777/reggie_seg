@@ -11,10 +11,9 @@ import type { Meeting, MeetingAttendanceRecord } from "../types";
 
 type MeetingDetailProps = {
   meeting: Meeting;
-  onUpdated?: () => void;
 };
 
-export function MeetingDetail({ meeting, onUpdated }: MeetingDetailProps) {
+export function MeetingDetail({ meeting }: MeetingDetailProps) {
   const { user } = useUser();
   const [attendances, setAttendances] = useState<MeetingAttendanceRecord[]>(meeting.attendances);
   const [comments, setComments] = useState(meeting.comments);

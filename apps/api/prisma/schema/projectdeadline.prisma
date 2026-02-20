@@ -1,0 +1,18 @@
+model ProjectDeadline {
+  id                      Int       @id @default(autoincrement())
+  projectId               Int       @unique
+  taskOpenDate            DateTime
+  taskDueDate             DateTime
+  assessmentOpenDate      DateTime
+  assessmentDueDate       DateTime
+  feedbackOpenDate        DateTime
+  feedbackDueDate         DateTime
+  
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  
+  project                 Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  teamOverrides           TeamDeadlineOverride[]
+  
+  @@index([projectId])
+}

@@ -1,21 +1,23 @@
 import type { PeerFeedback } from "@/features/peerFeedback/types";
 import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
 import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
+import { a } from "vitest/dist/chunks/suite.B2jumIFP";
 
 type ProjectPageProps = {
-  params: Promise<{
+  params: {
     feedbackId: string;
     projectId: string;
-  }>;
+  };
 };
 
-export default async function PeerFeedbackReview({ params }: ProjectPageProps) {
-  const { feedbackId, projectId } = await params;
+export default async function PeerFeedbackReview(props : ProjectPageProps) {
+  const params = await props.params;
+  const { feedbackId , projectId } = params;
   const feedback: PeerFeedback = await getPeerFeedbackById(feedbackId);
-  let existingReview: any = null;
+  let existingReview: Awaited<ReturnType<typeof getFeedbackReview>> | null = null;
   try {
     existingReview = await getFeedbackReview(feedbackId);
-  } catch (err) {
+  } catch {
     existingReview = null;
   }
 

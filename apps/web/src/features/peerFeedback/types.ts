@@ -13,7 +13,7 @@ export type FeedbackSubmission = {
 
 export type Answer = {
   id: string;
-  order: Number;
+  order: number;
   question: string;
   answer: string | number;
 };

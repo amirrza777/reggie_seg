@@ -20,7 +20,6 @@ export function getTeammates(userId: number, teamId: number) {
 }
 
 export function createPeerAssessment(data: {
-  moduleId: number;
   projectId: number;
   teamId: number;
   reviewerUserId: number;
@@ -30,12 +29,10 @@ export function createPeerAssessment(data: {
 }) {
   return prisma.peerAssessment.create({
     data: {
-      moduleId: data.moduleId,
       projectId: data.projectId,
       teamId: data.teamId,
       reviewerUserId: data.reviewerUserId,
       revieweeUserId: data.revieweeUserId,
-      questionnaireTemplateId: data.templateId,
       templateId: data.templateId,
       answersJson: data.answersJson,
     },
@@ -43,7 +40,6 @@ export function createPeerAssessment(data: {
 }
 
 export function getPeerAssessment(
-  moduleId: number,
   projectId: number,
   teamId: number,
   reviewerId: number,
@@ -51,8 +47,7 @@ export function getPeerAssessment(
 ) {
   return prisma.peerAssessment.findUnique({
     where: {
-      moduleId_projectId_teamId_reviewerUserId_revieweeUserId: {
-        moduleId,
+      projectId_teamId_reviewerUserId_revieweeUserId: {
         projectId,
         teamId,
         reviewerUserId: reviewerId,
@@ -108,10 +103,23 @@ export function getTeammateAssessments(userId: number, projectId: number) {
 }
 
 export function getQuestionsForProject(projectId: number) {
-  return prisma.peerAssessment.findFirst({
-    where: {
-      projectId: projectId,
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      questionnaireTemplate: {
+        include: {
+          questions: {
+            orderBy: { order: "asc" },
+          },
+        },
+      },
     },
+  });
+}
+
+export function getProjectQuestionnaireTemplate(projectId: number) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
     include: {
       questionnaireTemplate: {
         include: {

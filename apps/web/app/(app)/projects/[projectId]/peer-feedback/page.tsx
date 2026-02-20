@@ -9,15 +9,15 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const feedbacks = await getPeerAssessmentsForUser("3", projectId); //hardcoded user id for now
+  const feedbacks = await getPeerAssessmentsForUser("4", projectId); //hardcoded user id for now
   return (
     <div>
       <ProjectNav projectId={projectId} />
-    <div className="placeholder">
-    <h1>Feedbacks</h1>
-    <p>Collect and review peer feedback for this project.</p>
-    <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
-  </div>
+      <div style={{ padding: "30px" }}>
+      <h2>Feedbacks</h2>
+      <p>Collect and review peer feedback for this project.</p>
+      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+    </div>
 </div>
   );
 }

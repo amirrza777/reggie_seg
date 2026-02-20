@@ -1,53 +1,60 @@
 import { redirect } from "next/navigation";
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getQuestionsForProject, getPeerAssessmentData } from "@/features/peerAssessment/api/client";
+import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAssessment/api/client";
+import { getProject } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
+import { ApiError } from "@/shared/api/errors";
 
 type CreatePageProps = {
   params: { projectId: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
-export default async function CreateAssessmentPage(props : CreatePageProps) {
-    const resolvedParams = await props.params;
-    const resolvedSearchParams = await props.searchParams;
-    const projectId = Number(resolvedParams.projectId);
-    const teamId = Number(resolvedSearchParams.teamId);
-    const revieweeId = Number(resolvedSearchParams.revieweeId);
-    const reviewerId = Number(resolvedSearchParams.reviewerId);
+export default async function CreateAssessmentPage({ params, searchParams }: CreatePageProps) {
+  const resolvedParams = await params;
+  const resolvedSearchParams = await searchParams;
+  const projectId = Number(resolvedParams.projectId);
+  const teamId = Number(resolvedSearchParams.teamId);
+  const revieweeId = Number(resolvedSearchParams.revieweeId);
+  const reviewerId = Number(resolvedSearchParams.reviewerId);
+  const teammateName = resolvedSearchParams.teammateName ?? "";
 
-    const existingAssessment = await getPeerAssessmentData(
-      1, // moduleId - placeholder
-      projectId,
-      teamId,
-      reviewerId,
-      revieweeId
-    );
-    if (existingAssessment) {
-      redirect(`/projects/${projectId}/peer-assessments/${existingAssessment.id}`);
+  let existingAssessment: PeerAssessment | null = null;
+  try {
+    existingAssessment = await getPeerAssessmentData(projectId, teamId, reviewerId, revieweeId);
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === 404)) {
+      console.error("Error checking for existing assessment:", error);
     }
+  }
 
-    const questions = await getQuestionsForProject(String(projectId));
-    return (
-      <div className="stack">
-        <ProjectNav projectId={String(projectId)} />
-        <div style={{ padding: "20px" }}>
-          <h1>Create Peer Assessment</h1>
-          {questions.length > 0 && (
-            <PeerAssessmentForm
-              teamName="Team"
-              teammateName="Peer"
-              questions={questions}
-              moduleId={1}
-              projectId={projectId}
-              teamId={teamId}
-              reviewerId={reviewerId}
-              revieweeId={revieweeId}
-              templateId={1}
-            />
-          )}
-        </div>
-      </div>
+  if (existingAssessment) {
+    redirect(
+      `/projects/${projectId}/peer-assessments/${existingAssessment.id}?teammateName=${encodeURIComponent(String(teammateName))}`
     );
   }
+
+  const project = await getProject(String(projectId));
+  const questions = await getQuestionsByProject(String(projectId));
+
+  return (
+    <div className="stack">
+      <ProjectNav projectId={String(projectId)} />
+      <div style={{ padding: "20px" }}>
+        <h2>Create Peer Assessment</h2>
+        {questions.length > 0 && (
+          <PeerAssessmentForm
+            teammateName={String(teammateName)}
+            questions={questions}
+            projectId={projectId}
+            teamId={teamId}
+            reviewerId={reviewerId}
+            revieweeId={revieweeId}
+            templateId={project.questionnaireTemplateId}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

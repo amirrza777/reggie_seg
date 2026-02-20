@@ -6,18 +6,6 @@ import { Button } from "@/shared/ui/Button";
 import { resetPassword } from "../api/client";
 import { AuthField } from "./AuthField";
 
-const successAlert = {
-  backgroundColor: "rgba(47, 158, 68, 0.08)",
-  border: "1px solid rgba(47, 158, 68, 0.35)",
-  color: "#c6f6d5",
-};
-
-const errorAlert = {
-  backgroundColor: "rgba(255, 77, 79, 0.08)",
-  border: "1px solid rgba(255, 77, 79, 0.35)",
-  color: "#ffcccc",
-};
-
 export function ResetPasswordForm({ token }: { token: string | null }) {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,15 +44,7 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
   if (!token) {
     return (
       <div style={{ textAlign: "center", width: "100%" }}>
-        <div
-          style={{
-            ...errorAlert,
-            borderRadius: 12,
-            padding: "16px",
-            marginBottom: 24,
-            fontSize: 14,
-          }}
-        >
+        <div className="status-alert status-alert--error" style={{ padding: 16, marginBottom: 24, fontSize: 14 }}>
           Reset link is missing or invalid. Please request a new one.
         </div>
         <Link href="/forgot-password" style={{ textDecoration: "none" }}>
@@ -77,15 +57,7 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
   if (status === "success") {
     return (
       <div style={{ textAlign: "center", width: "100%" }}>
-        <div
-          style={{
-            ...successAlert,
-            borderRadius: 12,
-            padding: "16px",
-            marginBottom: 24,
-            fontSize: 14,
-          }}
-        >
+        <div className="status-alert status-alert--success" style={{ padding: 16, marginBottom: 24, fontSize: 14 }}>
           {message}
         </div>
         <Link href="/login" style={{ textDecoration: "none" }}>
@@ -95,23 +67,13 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
     );
   }
 
-  const alertStyle = status === "error" ? errorAlert : successAlert;
+  const alertClass =
+    status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success";
 
   return (
     <form style={{ width: "100%" }} onSubmit={handleSubmit}>
       {message ? (
-        <div
-          style={{
-            ...alertStyle,
-            borderRadius: 12,
-            padding: "10px 12px",
-            marginBottom: 12,
-            fontSize: 14,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
+        <div className={alertClass} style={{ padding: "10px 12px", marginBottom: 12, fontSize: 14 }}>
           <span>⚠️</span>
           <span>{message}</span>
         </div>

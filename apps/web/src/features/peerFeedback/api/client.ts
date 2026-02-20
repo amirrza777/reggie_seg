@@ -11,7 +11,7 @@ export async function submitFeedback(payload: FeedbackSubmission) {
 }
 
 export async function getPeerFeedbackById(feedbackId: string) {
-  // fetch the underlying peer-assessment/feedback record
+  // fetch the peer feedback 
   const raw = await apiFetch(`/peer-feedback/feedback/${feedbackId}`);
   return mapApiAssessmentToPeerFeedback(raw);
 }
@@ -27,7 +27,7 @@ export async function getFeedbackReview(feedbackId: string) {
 }
 
 export async function submitPeerFeedback(feedbackId: string, payload: PeerAssessmentReviewPayload, reviewerUserId: string, revieweeUserId: string) {
-  // submit (create/update) a review for a peer-assessment
+  // submit (create/update) a review for a peer-feedback
   const body = { ...payload, reviewerUserId, revieweeUserId};
   return apiFetch(`/peer-feedback/feedback/${feedbackId}/review`, {
     method: "POST",

@@ -15,7 +15,6 @@ export function Placeholder({
 }: PlaceholderProps) {
   return (
     <div className="placeholder">
-      <div className="placeholder__hint">Coming soon</div>
       <div className="stack">
         <h2>{title}</h2>
         {description && <p className="muted">{description}</p>}

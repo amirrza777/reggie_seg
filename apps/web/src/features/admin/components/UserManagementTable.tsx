@@ -45,19 +45,6 @@ const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   active: user.active ?? true,
 });
 
-const statusStyles = {
-  active: {
-    backgroundColor: "rgba(47, 158, 68, 0.08)",
-    border: "1px solid rgba(47, 158, 68, 0.35)",
-    color: "#1f7a36",
-  },
-  suspended: {
-    backgroundColor: "rgba(255, 77, 79, 0.08)",
-    border: "1px solid rgba(255, 77, 79, 0.35)",
-    color: "#a11a1c",
-  },
-};
-
 const roleOptions: UserRole[] = ["STUDENT", "STAFF", "ADMIN"];
 
 export function UserManagementTable() {
@@ -73,7 +60,7 @@ export function UserManagementTable() {
         if (subscribed && response.length > 0) {
           setUsers(response.map(normalizeUser));
         }
-      } catch (_err) {
+      } catch {
         if (subscribed) {
           setStatus("error");
           setMessage("Using demo users while the admin API responds.");
@@ -140,21 +127,8 @@ export function UserManagementTable() {
     }
   };
 
-  const alertStyle =
-    status === "error"
-      ? {
-          backgroundColor: "rgba(255, 77, 79, 0.08)",
-          border: "1px solid rgba(255, 77, 79, 0.35)",
-          color: "#a11a1c",
-        }
-      : {
-          backgroundColor: "rgba(47, 158, 68, 0.08)",
-          border: "1px solid rgba(47, 158, 68, 0.35)",
-          color: "#1f7a36",
-        };
-
   const rows = users.map((user) => {
-    const statusStyle = user.active ? statusStyles.active : statusStyles.suspended;
+    const statusClass = user.active ? "status-chip status-chip--success" : "status-chip status-chip--danger";
     const statusLabel = user.active ? "Active" : "Suspended";
     return [
       <div key={`${user.id}-email`} className="stack" style={{ gap: 4 }}>
@@ -180,16 +154,8 @@ export function UserManagementTable() {
       <button
         key={`${user.id}-status`}
         onClick={() => handleStatusToggle(user.id, !user.active)}
-        style={{
-          ...statusStyle,
-          padding: "8px 12px",
-          borderRadius: 12,
-          cursor: "pointer",
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          justifyContent: "center",
-        }}
+        className={statusClass}
+        style={{ cursor: "pointer" }}
       >
         <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
         <span>{statusLabel}</span>
@@ -208,15 +174,8 @@ export function UserManagementTable() {
     >
       {message ? (
         <div
-          style={{
-            ...alertStyle,
-            borderRadius: 12,
-            padding: "10px 12px",
-            marginBottom: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-          }}
+          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
+          style={{ padding: "10px 12px", marginBottom: 10 }}
         >
           <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
