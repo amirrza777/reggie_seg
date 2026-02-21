@@ -19,7 +19,15 @@ type TokenPayload = { sub: number; email: string; admin?: boolean };
 const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
 const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-export async function signUp(data: { email: string; password: string; firstName?: string; lastName?: string }) {
+type NewUserRole = Extract<Role, "STUDENT" | "STAFF">;
+
+export async function signUp(data: {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: NewUserRole;
+}) {
   const email = data.email.toLowerCase();
   const enterpriseId = await getDefaultEnterpriseId();
   const existing = await prisma.user.findUnique({
@@ -27,13 +35,14 @@ export async function signUp(data: { email: string; password: string; firstName?
   });
   if (existing) throw { code: "EMAIL_TAKEN" };
   const passwordHash = await argon2.hash(data.password);
+  const role: NewUserRole = data.role && data.role !== "ADMIN" ? data.role : "STUDENT";
   const user = await prisma.user.create({
     data: {
       email,
       passwordHash,
       firstName: data.firstName ?? "",
       lastName: data.lastName ?? "",
-      role: "STUDENT",
+      role,
       enterpriseId,
     },
   });

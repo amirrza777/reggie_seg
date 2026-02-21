@@ -13,7 +13,13 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   return res;
 }
 
-export async function signup(payload: { email: string; password: string; firstName?: string; lastName?: string }) {
+export async function signup(payload: {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: "STUDENT" | "STAFF";
+}) {
   const res = await apiFetch<AuthResponse>("/auth/signup", {
     method: "POST",
     auth: false,
