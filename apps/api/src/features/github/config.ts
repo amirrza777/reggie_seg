@@ -1,14 +1,4 @@
 const GITHUB_API_BASE_URL = "https://api.github.com";
-const DEFAULT_GITHUB_OAUTH_SCOPES = ["read:user", "user:email", "public_repo"] as const;
-
-export type GitHubAuthMode = "oauth_app" | "github_app";
-
-export type GitHubOAuthConfig = {
-  clientId: string;
-  clientSecret: string;
-  redirectUri: string;
-  scopes: string[];
-};
 
 export type GitHubAppConfig = {
   appId: string;
@@ -18,29 +8,6 @@ export type GitHubAppConfig = {
   redirectUri: string;
   webhookSecret: string | null;
 };
-
-export function getGitHubAuthMode(): GitHubAuthMode {
-  const mode = (process.env.GITHUB_AUTH_MODE || "github_app").trim().toLowerCase();
-  return mode === "github_app" ? "github_app" : "oauth_app";
-}
-
-export function getGitHubOAuthConfig(): GitHubOAuthConfig | null {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
-  const redirectUri = process.env.GITHUB_REDIRECT_URI;
-  const scopes = process.env.GITHUB_OAUTH_SCOPES?.trim();
-
-  if (!clientId || !clientSecret || !redirectUri) {
-    return null;
-  }
-
-  return {
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: scopes ? scopes.split(",").map((scope) => scope.trim()).filter(Boolean) : [...DEFAULT_GITHUB_OAUTH_SCOPES],
-  };
-}
 
 export function getGitHubAppConfig(): GitHubAppConfig | null {
   const appId = process.env.GITHUB_APP_ID?.trim();

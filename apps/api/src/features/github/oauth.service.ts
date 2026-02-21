@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { getGitHubAppConfig, getGitHubAuthMode, getGitHubOAuthConfig } from "./config.js";
+import { getGitHubAppConfig } from "./config.js";
 import {
   findGithubAccountByGithubUserId,
   findUserById,
@@ -126,15 +126,10 @@ function addSecondsToNow(seconds?: number) {
   return new Date(Date.now() + seconds * 1000);
 }
 
-export async function buildGithubOAuthConnectUrl(userId: number, returnTo?: string | null) {
-  const authMode = getGitHubAuthMode();
-  const oauth = getGitHubOAuthConfig();
+export async function buildGithubConnectUrl(userId: number, returnTo?: string | null) {
   const githubApp = getGitHubAppConfig();
-  if (authMode === "github_app" && !githubApp) {
+  if (!githubApp) {
     throw new GithubServiceError(503, "GitHub App auth is not configured");
-  }
-  if (authMode === "oauth_app" && !oauth) {
-    throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
   const user = await findUserById(userId);
@@ -159,19 +154,16 @@ export async function buildGithubOAuthConnectUrl(userId: number, returnTo?: stri
   );
 
   const params = new URLSearchParams({
-    client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
-    redirect_uri: authMode === "github_app" ? githubApp!.redirectUri : oauth!.redirectUri,
+    client_id: githubApp.clientId,
+    redirect_uri: githubApp.redirectUri,
     state,
     allow_signup: "false",
   });
-  if (authMode === "oauth_app") {
-    params.set("scope", oauth!.scopes.join(" "));
-  }
 
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
 
-export function validateGithubOAuthCallback(code: string, state: string) {
+export function validateGithubCallback(code: string, state: string) {
   const secret = getStateSecret();
   if (!secret) {
     throw new GithubServiceError(500, "OAuth state secret is not configured");
@@ -195,15 +187,10 @@ export function validateGithubOAuthCallback(code: string, state: string) {
   };
 }
 
-async function exchangeGithubOAuthCode(code: string, state: string) {
-  const authMode = getGitHubAuthMode();
-  const oauth = getGitHubOAuthConfig();
+async function exchangeGithubCallbackCode(code: string, state: string) {
   const githubApp = getGitHubAppConfig();
-  if (authMode === "github_app" && !githubApp) {
+  if (!githubApp) {
     throw new GithubServiceError(503, "GitHub App auth is not configured");
-  }
-  if (authMode === "oauth_app" && !oauth) {
-    throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
   const response = await fetch("https://github.com/login/oauth/access_token", {
@@ -213,10 +200,10 @@ async function exchangeGithubOAuthCode(code: string, state: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
-      client_secret: authMode === "github_app" ? githubApp!.clientSecret : oauth!.clientSecret,
+      client_id: githubApp.clientId,
+      client_secret: githubApp.clientSecret,
       code,
-      redirect_uri: authMode === "github_app" ? githubApp!.redirectUri : oauth!.redirectUri,
+      redirect_uri: githubApp.redirectUri,
       state,
     }),
   });
@@ -234,14 +221,9 @@ async function exchangeGithubOAuthCode(code: string, state: string) {
 }
 
 async function refreshGithubAccessToken(refreshToken: string) {
-  const authMode = getGitHubAuthMode();
-  const oauth = getGitHubOAuthConfig();
   const githubApp = getGitHubAppConfig();
-  if (authMode === "github_app" && !githubApp) {
+  if (!githubApp) {
     throw new GithubServiceError(503, "GitHub App auth is not configured");
-  }
-  if (authMode === "oauth_app" && !oauth) {
-    throw new GithubServiceError(503, "GitHub OAuth is not configured");
   }
 
   const response = await fetch("https://github.com/login/oauth/access_token", {
@@ -251,8 +233,8 @@ async function refreshGithubAccessToken(refreshToken: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      client_id: authMode === "github_app" ? githubApp!.clientId : oauth!.clientId,
-      client_secret: authMode === "github_app" ? githubApp!.clientSecret : oauth!.clientSecret,
+      client_id: githubApp.clientId,
+      client_secret: githubApp.clientSecret,
       grant_type: "refresh_token",
       refresh_token: refreshToken,
     }),
@@ -314,13 +296,13 @@ async function fetchGithubUser(accessToken: string) {
 }
 
 export async function connectGithubAccount(code: string, state: string) {
-  const validated = validateGithubOAuthCallback(code, state);
+  const validated = validateGithubCallback(code, state);
   const user = await findUserById(validated.userId);
   if (!user) {
     throw new GithubServiceError(404, "User not found");
   }
 
-  const tokenResponse = await exchangeGithubOAuthCode(validated.code, state);
+  const tokenResponse = await exchangeGithubCallbackCode(validated.code, state);
   const githubUser = await fetchGithubUser(tokenResponse.access_token);
   const existingGithubAccount = await findGithubAccountByGithubUserId(BigInt(githubUser.id));
   if (existingGithubAccount && existingGithubAccount.userId !== user.id) {

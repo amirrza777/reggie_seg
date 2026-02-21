@@ -2,7 +2,7 @@ import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
 import {
   analyseProjectGithubRepository,
-  buildGithubOAuthConnectUrl,
+  buildGithubConnectUrl,
   connectGithubAccount,
   disconnectGithubAccount,
   getGithubConnectionStatus,
@@ -36,7 +36,7 @@ function withQuery(path: string, params: Record<string, string>) {
   return qs ? `${basePath}?${qs}` : basePath;
 }
 
-export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Response) {
+export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -44,14 +44,14 @@ export async function getGithubOAuthConnectUrlHandler(req: AuthRequest, res: Res
 
   try {
     const returnTo = typeof req.query.returnTo === "string" ? req.query.returnTo : null;
-    const url = await buildGithubOAuthConnectUrl(userId, returnTo);
+    const url = await buildGithubConnectUrl(userId, returnTo);
     return res.json({ url });
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.status(error.status).json({ error: error.message });
     }
-    console.error("Error building GitHub OAuth URL:", error);
-    return res.status(500).json({ error: "Failed to build GitHub OAuth URL" });
+    console.error("Error building GitHub connect URL:", error);
+    return res.status(500).json({ error: "Failed to build GitHub connect URL" });
   }
 }
 
@@ -91,7 +91,7 @@ export async function disconnectGithubAccountHandler(req: AuthRequest, res: Resp
   }
 }
 
-export async function githubOAuthCallbackHandler(req: AuthRequest, res: Response) {
+export async function githubCallbackHandler(req: AuthRequest, res: Response) {
   const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
   const fallbackPath = "/modules";
   const code = String(req.query.code || "");
@@ -111,7 +111,7 @@ export async function githubOAuthCallbackHandler(req: AuthRequest, res: Response
         `${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: error.message })}`
       );
     }
-    console.error("Error validating GitHub OAuth callback:", error);
+    console.error("Error validating GitHub callback:", error);
     return res.redirect(`${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: "callback-failed" })}`);
   }
 }

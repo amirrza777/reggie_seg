@@ -5,9 +5,9 @@ import { Button } from "@/shared/ui/Button";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import {
   disconnectGithubAccount,
+  getGithubConnectUrl,
   getGithubConnectionStatus,
   getLatestProjectGithubSnapshot,
-  getGithubOAuthConnectUrl,
   getProjectGithubMappingCoverage,
   linkGithubRepositoryToProject,
   listGithubRepositories,
@@ -172,7 +172,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     setError(null);
     try {
       const returnTo = `${window.location.pathname}${window.location.search}`;
-      const { url } = await getGithubOAuthConnectUrl(returnTo);
+      const { url } = await getGithubConnectUrl(returnTo);
       window.location.href = url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start GitHub connect flow.");

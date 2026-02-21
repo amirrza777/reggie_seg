@@ -2,12 +2,12 @@ import { Router } from "express";
 import { requireAuth } from "../../auth/middleware.js";
 import {
   disconnectGithubAccountHandler,
+  getGithubConnectUrlHandler,
   getGithubConnectionStatusHandler,
   getLatestProjectGithubRepoSnapshotHandler,
   getGithubSnapshotHandler,
-  getGithubOAuthConnectUrlHandler,
   getProjectGithubMappingCoverageHandler,
-  githubOAuthCallbackHandler,
+  githubCallbackHandler,
   linkGithubProjectRepoHandler,
   removeGithubProjectRepoHandler,
   listProjectGithubRepoSnapshotsHandler,
@@ -18,8 +18,8 @@ import {
 
 const router = Router();
 
-router.get("/oauth/connect", requireAuth, getGithubOAuthConnectUrlHandler);
-router.get("/oauth/callback", githubOAuthCallbackHandler);
+router.get("/connect", requireAuth, getGithubConnectUrlHandler);
+router.get("/callback", githubCallbackHandler);
 router.get("/me", requireAuth, getGithubConnectionStatusHandler);
 router.delete("/me", requireAuth, disconnectGithubAccountHandler);
 router.get("/repos", requireAuth, listGithubReposHandler);

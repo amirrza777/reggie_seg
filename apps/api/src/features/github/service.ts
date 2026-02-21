@@ -1,4 +1,4 @@
-import { getGitHubApiConfig, getGitHubAuthMode } from "./config.js";
+import { getGitHubApiConfig } from "./config.js";
 import {
   createGithubSnapshot,
   deactivateProjectGithubRepositoryLink,
@@ -19,7 +19,7 @@ import {
   upsertProjectGithubRepositoryLink,
 } from "./repo.js";
 import {
-  buildGithubOAuthConnectUrl,
+  buildGithubConnectUrl,
   connectGithubAccount,
   getValidGithubAccessToken,
 } from "./oauth.service.js";
@@ -48,44 +48,7 @@ type GithubRepositoryListItem = {
 };
 
 async function fetchUserRepositories(accessToken: string) {
-  const authMode = getGitHubAuthMode();
-  if (authMode === "github_app") {
-    return fetchGitHubAppUserRepositories(accessToken);
-  }
-
-  const { baseUrl } = getGitHubApiConfig();
-  const repositories: GithubRepoResponse[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await fetch(`${baseUrl}/user/repos?per_page=100&page=${page}&sort=updated&direction=desc`, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
-      }
-      throw new GithubServiceError(502, "Failed to fetch GitHub repositories");
-    }
-
-    const pageData = (await response.json()) as GithubRepoResponse[];
-    repositories.push(...pageData);
-
-    if (pageData.length < 100) {
-      break;
-    }
-    page += 1;
-    if (page > 10) {
-      break;
-    }
-  }
-
-  return repositories;
+  return fetchGitHubAppUserRepositories(accessToken);
 }
 
 type GithubInstallationListResponse = {
@@ -815,4 +778,4 @@ export async function removeProjectGithubRepositoryLink(userId: number, linkId: 
   return deactivateProjectGithubRepositoryLink(link.id);
 }
 
-export { buildGithubOAuthConnectUrl, connectGithubAccount, GithubServiceError };
+export { buildGithubConnectUrl, connectGithubAccount, GithubServiceError };
