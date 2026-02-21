@@ -30,13 +30,15 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
 
       <AttendanceTable meetingId={meeting.id} initialAttendances={meeting.attendances} />
 
-      <Card title="Minutes">
-        <MeetingMinutes
-          meetingId={meeting.id}
-          writerId={user!.id}
-          initialContent={meeting.minutes?.content ?? ""}
-        />
-      </Card>
+      {user && (
+        <Card title="Minutes">
+          <MeetingMinutes
+            meetingId={meeting.id}
+            writerId={user.id}
+            initialContent={meeting.minutes?.content ?? ""}
+          />
+        </Card>
+      )}
 
       <CommentSection meetingId={meeting.id} initialComments={meeting.comments} />
     </div>
