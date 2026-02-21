@@ -322,7 +322,8 @@ body {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 65%, transparent);
+    /* Tone down active pill contrast in dark mode so selections don't glow */
+    --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
   }
 
   .sidebar__link.is-active {
