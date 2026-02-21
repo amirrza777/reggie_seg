@@ -334,6 +334,10 @@ async function fetchCommitsForLinkedRepository(accessToken: string, fullName: st
       if (response.status === 404) {
         throw new GithubServiceError(404, "Linked GitHub repository was not found");
       }
+      if (response.status === 409) {
+        // Empty repositories/branches can return 409 from the commits API.
+        return [];
+      }
       if (response.status === 401) {
         throw new GithubServiceError(401, "GitHub access token is invalid or expired");
       }
