@@ -11,13 +11,22 @@ const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/modules", label: "Modules" },
   { href: "/projects", label: "Projects" },
-  { href: "/staff/questionnaires", label: "Questionnaires" },
-  { href: "/staff/peer-assessments", label: "Staff Peer Assessments" },
+  // Staff-only
+  { href: "/staff/dashboard", label: "Staff Overview", staffOnly: true },
+  { href: "/staff/health", label: "Team Health", staffOnly: true },
+  { href: "/staff/analytics", label: "Analytics", staffOnly: true },
+  { href: "/staff/integrations", label: "Integrations", staffOnly: true },
+  { href: "/staff/questionnaires", label: "Questionnaires", staffOnly: true },
+  { href: "/staff/peer-assessments", label: "Peer Assessments", staffOnly: true },
 ];
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
-  const filteredLinks = navLinks.filter((link) => (link.href === "/admin" ? isAdmin(user) : true));
+  const filteredLinks = navLinks.filter((link) => {
+    if (link.href === "/admin") return isAdmin(user);
+    if (link.staffOnly) return user?.isStaff || isAdmin(user);
+    return true;
+  });
   const spaceLinks: SpaceLink[] = [
     {
       href: "/dashboard",
