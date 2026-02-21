@@ -171,7 +171,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     setBusy(true);
     setError(null);
     try {
-      const returnTo = `${window.location.pathname}${window.location.search}`;
+      const returnTo = `${window.location.origin}${window.location.pathname}${window.location.search}`;
       const { url } = await getGithubConnectUrl(returnTo);
       window.location.href = url;
     } catch (err) {

@@ -226,7 +226,19 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
   });
 
   const link = await upsertProjectGithubRepositoryLink(input.projectId, repository.id, userId);
-  const snapshot = await analyseProjectGithubRepository(userId, link.id);
+  let snapshot;
+  try {
+    snapshot = await analyseProjectGithubRepository(userId, link.id);
+  } catch (error) {
+    // If auto-analysis fails, deactivate the fresh link so user can retry linking.
+    await deactivateProjectGithubRepositoryLink(link.id).catch(() => {
+      // best effort rollback; original analysis error is the actionable one
+    });
+    if (error instanceof GithubServiceError) {
+      throw error;
+    }
+    throw new GithubServiceError(502, "Repository linked but analysis failed. Please try linking again.");
+  }
 
   return {
     link,

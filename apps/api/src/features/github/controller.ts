@@ -27,13 +27,21 @@ function toJsonSafe<T>(value: T): T {
 }
 
 function withQuery(path: string, params: Record<string, string>) {
-  const [basePath, existingQuery = ""] = path.split("?", 2);
-  const query = new URLSearchParams(existingQuery);
-  for (const [key, value] of Object.entries(params)) {
-    query.set(key, value);
+  try {
+    const absolute = new URL(path);
+    for (const [key, value] of Object.entries(params)) {
+      absolute.searchParams.set(key, value);
+    }
+    return absolute.toString();
+  } catch {
+    const [basePath, existingQuery = ""] = path.split("?", 2);
+    const query = new URLSearchParams(existingQuery);
+    for (const [key, value] of Object.entries(params)) {
+      query.set(key, value);
+    }
+    const qs = query.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
   }
-  const qs = query.toString();
-  return qs ? `${basePath}?${qs}` : basePath;
 }
 
 export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response) {
@@ -104,7 +112,10 @@ export async function githubCallbackHandler(req: AuthRequest, res: Response) {
   try {
     const connected = await connectGithubAccount(code, state);
     const returnPath = connected.returnTo || fallbackPath;
-    return res.redirect(`${appBaseUrl}${withQuery(returnPath, { github: "connected" })}`);
+    const target = returnPath.startsWith("http://") || returnPath.startsWith("https://")
+      ? withQuery(returnPath, { github: "connected" })
+      : `${appBaseUrl}${withQuery(returnPath, { github: "connected" })}`;
+    return res.redirect(target);
   } catch (error) {
     if (error instanceof GithubServiceError) {
       return res.redirect(
