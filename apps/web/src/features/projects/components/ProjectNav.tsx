@@ -9,7 +9,8 @@ export function ProjectNav({ projectId }: ProjectNavProps) {
   const links = [
     { href: base, label: "Overview" },
     { href: `${base}/team`, label: "Team" },
-    { href: `${base}/meetings`, label: "Meetings" },
+    { href: `${base}/meetings`, label: "Team meetings" },
+    { href: `${base}/meeting-scheduler`, label: "Meeting scheduler" },
     { href: `${base}/peer-assessments`, label: "Peer assessment" },
     { href: `${base}/peer-feedback`, label: "Peer feedback" },
     { href: `${base}/repos`, label: "Repos" },
