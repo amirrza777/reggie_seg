@@ -79,7 +79,7 @@
   --table-head-bg: var(--surface);
   --table-head-text: #0f0f0f;
   --table-row-alt: var(--surface);
-  --soft-surface-gradient: linear-gradient(180deg, #f2fff8 0%, #ffffff 90%);
+  --soft-surface-gradient: linear-gradient(180deg, #e0f7ea 0%, #ebfff2 90%);
   --visual-placeholder-border: rgba(255, 255, 255, 0.4);
   --visual-placeholder-bg: rgba(255, 255, 255, 0.08);
   --visual-placeholder-ink: rgba(0, 0, 0, 0.12);
@@ -89,7 +89,7 @@
   --marketing-glow-1: radial-gradient(42% 36% at 14% 12%, rgba(32, 173, 120, 0.58) 0%, rgba(32, 173, 120, 0.28) 28%, rgba(32, 173, 120, 0.12) 52%, rgba(32, 173, 120, 0) 74%);
   --marketing-glow-2: radial-gradient(46% 32% at 88% 92%, rgba(32, 173, 120, 0.92) 0%, rgba(32, 173, 120, 0.42) 32%, rgba(32, 173, 120, 0.2) 58%, rgba(32, 173, 120, 0) 84%);
   --marketing-glow-3: radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.3) 0%, rgba(32, 173, 120, 0.12) 42%, rgba(32, 173, 120, 0) 72%);
-  --marketing-noise-gradient: linear-gradient(180deg, #ffffff 0%, #fbfffd 100%);
+  --marketing-noise-gradient: linear-gradient(180deg, #e5f7ed 0%, #ddf4e7 100%);
   --marketing-noise-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   --marketing-noise-opacity: 0.36;
   --award-card-gradient: linear-gradient(135deg, #0c4227, #0b5a36 45%, #0c8d5b);

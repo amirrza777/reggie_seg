@@ -32,7 +32,7 @@ const ensureAdmin = async (req: any, res: any, next: any) => {
     if (!payload.admin) return res.status(403).json({ error: "Forbidden" });
 
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user || !user.isAdmin) return res.status(403).json({ error: "Forbidden" });
+    if (!user || user.role !== "ADMIN") return res.status(403).json({ error: "Forbidden" });
 
     return next();
   } catch (err) {

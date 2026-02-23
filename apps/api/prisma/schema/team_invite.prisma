@@ -1,0 +1,31 @@
+enum TeamInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  EXPIRED
+}
+
+model TeamInvite {
+  id           String           @id @default(cuid())
+  teamId       Int
+  inviterId    Int
+  inviteeId    Int?
+  inviteeEmail String
+  status       TeamInviteStatus @default(PENDING)
+  tokenHash    String           @unique
+  active       Boolean          @default(true)
+  expiresAt    DateTime
+  createdAt    DateTime         @default(now())
+  respondedAt  DateTime?
+  message      String?
+
+  team    Team  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  inviter User  @relation("TeamInvitesSent", fields: [inviterId], references: [id])
+  invitee User? @relation("TeamInvitesReceived", fields: [inviteeId], references: [id])
+
+  @@index([teamId])
+  @@index([inviterId])
+  @@index([inviteeEmail])
+  @@unique([teamId, inviteeEmail, active])
+}

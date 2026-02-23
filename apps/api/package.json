@@ -10,7 +10,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "dev": "tsx watch src/index.ts",
-    "db:seed": "tsx prisma/seed/seed.ts",
+    "db:seed": "prisma generate && tsx prisma/seed/seed.ts",
     "db:unseed": "tsx prisma/seed/unseed.ts"
   },
   "keywords": [],
@@ -21,6 +21,7 @@
   },
   "type": "module",
   "dependencies": {
+    "@ngneat/falso": "^8.0.2",
     "@prisma/client": "^6.19.2",
     "argon2": "^0.44.0",
     "cookie-parser": "^1.4.7",

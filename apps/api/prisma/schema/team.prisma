@@ -1,12 +1,14 @@
 model Team {
   id              Int              @id @default(autoincrement())
+  enterpriseId    String
   projectId       Int
-  teamName        String         
+  teamName        String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
   allocations     TeamAllocation[]
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  enterprise      Enterprise       @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments PeerAssessment[]
   peerFeedbacks   PeerFeedback[]
@@ -15,7 +17,10 @@ model Team {
   trelloBoardId String?
   trelloOwnerId Int?
   trelloOwner User? @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
+  invites         TeamInvite[]
 
   @@unique([projectId, teamName])
   @@index([projectId])
+  @@index([enterpriseId])
+  @@unique([enterpriseId, teamName])
 }

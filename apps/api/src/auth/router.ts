@@ -39,11 +39,16 @@ if (googleEnabled) {
     async (req, res) => {
       const user: any = (req as any).user;
       const { accessToken, refreshToken } = await issueTokensForUser(user.id, user.email);
+      // Mirror the refresh cookie settings used in the regular login flow.
+      const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production";
+      const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
+      const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
       res.cookie("refresh_token", refreshToken, {
         httpOnly: true,
-        secure: false,
-        sameSite: "lax",
+        secure: cookieSecure,
+        sameSite: cookieSameSite,
         path: "/",
+        domain: cookieDomain,
         maxAge: 1000 * 60 * 60 * 24 * 30,
       });
       const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
