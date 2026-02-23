@@ -23,7 +23,7 @@ describe("QuestionnaireTemplate service", () => {
     vi.clearAllMocks();
   });
 
-  //Create
+  //Creating template
 
   it("forwards createTemplate to repo with correct arguments", async () => {
     (repo.createQuestionnaireTemplate as any).mockResolvedValue({
@@ -34,18 +34,18 @@ describe("QuestionnaireTemplate service", () => {
 
     const result = await createTemplate("Template A", questions, 10);
 
-    // ensures arguments are passed correctly
+    //Ensures arguments are passed correctly
     expect(repo.createQuestionnaireTemplate).toHaveBeenCalledWith(
       "Template A",
       questions,
       10
     );
 
-    // ensures return value is passed through
+    //ensures return value is passed through
     expect(result).toEqual({ id: 1 });
   });
 
-  // get by id
+  //Tests getting a template by id
 
   it("forwards getTemplate to repo", async () => {
     (repo.getQuestionnaireTemplateById as any).mockResolvedValue({
@@ -58,8 +58,7 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual({ id: 5 });
   });
 
-  // get all
-
+  //Tesys getting all templates
   it("forwards getAllTemplates to repo", async () => {
     (repo.getAllQuestionnaireTemplates as any).mockResolvedValue([
       { id: 1 },
@@ -72,7 +71,7 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 
-  // update
+  //Updating a template
 
   it("forwards updateTemplate to repo with correct arguments", async () => {
     (repo.updateQuestionnaireTemplate as any).mockResolvedValue(undefined);
@@ -90,8 +89,7 @@ describe("QuestionnaireTemplate service", () => {
     );
   });
 
-  // delete
-
+  //Deleting a template
   it("forwards deleteTemplate to repo", async () => {
     (repo.deleteQuestionnaireTemplate as any).mockResolvedValue(undefined);
 
