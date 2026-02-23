@@ -1,6 +1,7 @@
 enum Role {
   STUDENT
   STAFF
+  ENTERPRISE_ADMIN
   ADMIN
 }
 
