@@ -6,37 +6,38 @@ enum Role {
 }
 
 model User {
-  id                  Int                 @id @default(autoincrement())
+  id                  Int                  @id @default(autoincrement())
   enterpriseId        String
   email               String
-  createdAt           DateTime            @default(now())
+  createdAt           DateTime             @default(now())
   avatarData          Bytes?
   avatarMime          String?
   firstName           String
-  role                Role                @default(STUDENT)
+  role                Role                 @default(STUDENT)
   lastName            String
   passwordHash        String
-  updatedAt           DateTime            @updatedAt
-  enterprise          Enterprise          @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
+  updatedAt           DateTime             @updatedAt
+  enterprise          Enterprise           @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   moduleLeads         ModuleLead[]
-  revieweeAssessments PeerAssessment[]    @relation("PeerAssessmentReviewee")
-  reviewerAssessments PeerAssessment[]    @relation("PeerAssessmentReviewer")
+  revieweeAssessments PeerAssessment[]     @relation("PeerAssessmentReviewee")
+  reviewerAssessments PeerAssessment[]     @relation("PeerAssessmentReviewer")
   teamAllocations     TeamAllocation[]
   userModules         UserModule[]
-  meetingOrganisers   Meeting[]           @relation("MeetingOrganiser")
-  meetingAttendances  MeetingAttendance[] @relation("MeetingAttendance")
-  meetingMinutes      MeetingMinutes[]    @relation("MeetingMinutesWriter")
-  meetingComments     MeetingComment[]    @relation("MeetingComment")
+  meetingOrganisers   Meeting[]            @relation("MeetingOrganiser")
+  meetingAttendances  MeetingAttendance[]  @relation("MeetingAttendance")
+  meetingMinutes      MeetingMinutes[]     @relation("MeetingMinutesWriter")
+  meetingComments     MeetingComment[]     @relation("MeetingComment")
   refreshTokens       RefreshToken[]
   passwordResetTokens PasswordResetToken[]
   emailChangeTokens   EmailChangeToken[]
 
-  questionnaires       QuestionnaireTemplate[]
-  reviewerFeedbacks    PeerFeedback[]        @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks    PeerFeedback[]        @relation("PeerFeedbackReviewee")
-  teamInvitesSent      TeamInvite[]          @relation("TeamInvitesSent")
-  teamInvitesReceived  TeamInvite[]          @relation("TeamInvitesReceived")
+  questionnaires      QuestionnaireTemplate[]
+  reviewerFeedbacks   PeerFeedback[]          @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks   PeerFeedback[]          @relation("PeerFeedbackReviewee")
+  teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
+  teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
 
-  @@index([enterpriseId])
+  @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])
+  @@index([enterpriseId])
 }
