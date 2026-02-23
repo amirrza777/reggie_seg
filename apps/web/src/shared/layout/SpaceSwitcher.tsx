@@ -28,6 +28,21 @@ const defaultIcons: Record<string, ReactNode> = {
       <path d="M9 9h6M9 12h4M9 15h2" />
     </svg>
   ),
+  staff: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="8" cy="8" r="3" />
+      <path d="M2.5 19a5.5 5.5 0 0 1 11 0" />
+      <circle cx="17" cy="10" r="3" />
+      <path d="M13.5 19q.5-3 3.5-3 3 0 3.5 3" />
+    </svg>
+  ),
   admin: (
     <svg
       viewBox="0 0 24 24"
@@ -50,10 +65,7 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
     <nav className="space-switcher" aria-label="Spaces">
       {links.map(({ href, label, icon }) => {
         const normalizedLabel = label.toLowerCase();
-        const active =
-          href === "/admin"
-            ? Boolean(pathname?.startsWith("/admin"))
-            : Boolean(pathname ? !pathname.startsWith("/admin") : true);
+        const active = pathname ? pathname.startsWith(href) : false;
         const resolvedIcon = icon ?? defaultIcons[normalizedLabel];
 
         return (

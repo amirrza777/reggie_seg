@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-type SidebarLink = { href: string; label: string };
+type SidebarLink = { href: string; label: string; space?: "workspace" | "staff" | "admin" };
 
 type SidebarProps = {
   title?: string;
@@ -16,9 +16,21 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
+  const activeSpace: NonNullable<SidebarLink["space"]> =
+    pathname?.startsWith("/admin") ? "admin" : pathname?.startsWith("/staff") ? "staff" : "workspace";
+
+  const spaceFiltered = useMemo(
+    () =>
+      links.filter((link) => {
+        if (!link.space) return activeSpace === "workspace";
+        return link.space === activeSpace;
+      }),
+    [links, activeSpace]
+  );
+
   const current = useMemo(() => {
-    return links.find((link) => pathname?.startsWith(link.href)) ?? links[0];
-  }, [links, pathname]);
+    return spaceFiltered.find((link) => pathname?.startsWith(link.href)) ?? spaceFiltered[0];
+  }, [spaceFiltered, pathname]);
 
   const close = () => setIsOpen(false);
   const toggle = () => setIsOpen((prev) => !prev);
@@ -51,7 +63,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                 </button>
               </div>
               <nav className="sidebar__mobile-nav">
-                {links.map((link) => (
+                {spaceFiltered.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -68,7 +80,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
       </div>
 
       <nav className="sidebar__nav">
-        {links.map((link) => {
+        {spaceFiltered.map((link) => {
           const isActive = pathname?.startsWith(link.href);
           return (
             <Link
