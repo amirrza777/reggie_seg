@@ -41,10 +41,39 @@ export const TrelloService = {
 
   async getBoardWithData(boardId: string, token: string) {
     const trelloKey = requireTrelloKey()
-    const res = await fetch(
-      `https://api.trello.com/1/boards/${boardId}?lists=open&cards=open&key=${trelloKey}&token=${token}`
+    const boardParams = new URLSearchParams({
+      lists: "open",
+      cards: "open",
+      key: trelloKey,
+      token,
+      members: "all",
+      member_fields: "fullName,initials",
+      labels: "all",
+      card_fields: "name,desc,idList,due,dateLastActivity,idMembers,labels",
+    })
+    const boardRes = await fetch(
+      `https://api.trello.com/1/boards/${boardId}?${boardParams.toString()}`
     )
-    if (!res.ok) throw new Error("Failed to fetch board")
+    if (!boardRes.ok) throw new Error("Failed to fetch board")
+    const board = await boardRes.json()
+
+    board.actions = await TrelloService.getBoardHistory(boardId, token)
+    return board
+  },
+
+  async getBoardHistory(boardId: string, token: string) {
+    const trelloKey = requireTrelloKey()
+    const params = new URLSearchParams({
+      filter: "createCard,updateCard:idList",
+      limit: "500",
+      fields: "type,date,data",
+      key: trelloKey,
+      token,
+    })
+    const res = await fetch(
+      `https://api.trello.com/1/boards/${boardId}/actions?${params.toString()}`
+    )
+    if (!res.ok) return []
     return res.json()
   },
 

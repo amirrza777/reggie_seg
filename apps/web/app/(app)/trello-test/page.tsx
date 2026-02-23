@@ -2,6 +2,7 @@
 
 //ChatGPT generated test page for Trello board assignment and verification. This is not meant for production use and should be removed after testing.
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { trelloApiFetch } from "./_lib/trelloApi";
 
@@ -146,9 +147,9 @@ export default function TrelloBoardsPage() {
         <ul style={{ marginTop: 16 }}>
           {boards.map((board) => (
             <li key={board.id} style={{ marginBottom: 8 }}>
-              <a href={board.url} target="_blank" rel="noreferrer">
+              <Link href={`/trello-test/boards/${board.id}`}>
                 {board.name}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
