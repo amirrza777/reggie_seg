@@ -10,7 +10,7 @@ import { getCurrentUser, isAdmin } from "@/shared/auth/session";
 export const dynamic = "force-dynamic";
 
 const adminNav = [
-  { href: "/admin", label: "Admin dashboard" },
+  { href: "/admin", label: "Admin dashboard", space: "admin" as const },
 ];
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
@@ -28,6 +28,10 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     {
       href: "/dashboard",
       label: "Workspace",
+    },
+    {
+      href: "/staff/dashboard",
+      label: "Staff",
     },
     {
       href: "/admin",
