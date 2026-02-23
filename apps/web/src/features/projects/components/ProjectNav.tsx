@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 type ProjectNavProps = {
   projectId: string;
 };
 
 export function ProjectNav({ projectId }: ProjectNavProps) {
+  const pathname = usePathname();
   const base = `/projects/${projectId}`;
   const links = [
     { href: base, label: "Overview" },
@@ -18,11 +22,21 @@ export function ProjectNav({ projectId }: ProjectNavProps) {
 
   return (
     <nav className="pill-nav">
-      {links.map((link) => (
-        <Link key={link.href} href={link.href} className="pill-nav__link">
-          {link.label}
-        </Link>
-      ))}
+      {links.map((link) => {
+        const isActive = link.href === base
+          ? pathname === base
+          : pathname?.startsWith(link.href);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`pill-nav__link${isActive ? " pill-nav__link--active" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
