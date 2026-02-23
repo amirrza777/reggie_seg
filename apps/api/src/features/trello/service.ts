@@ -1,20 +1,19 @@
 import { TrelloRepo } from "./repo.js"
 
-const TRELLO_KEY = process.env.TRELLO_KEY
-
 //Fails early if Trello env is missing.
 function requireTrelloKey() {
-  if (!TRELLO_KEY) throw new Error("Trello is not configured on this server")
-  return TRELLO_KEY
+  const trelloKey = process.env.TRELLO_KEY
+  if (!trelloKey) throw new Error("Trello is not configured on this server.")
+  return trelloKey
 }
+
 
 export const TrelloService = {
   //Builds the Trello authorisation URL
   getAuthoriseUrl() {
-    const trelloKey = process.env.TRELLO_KEY
-    if (!trelloKey) throw new Error("Trello is not configured on this server.")
+    const trelloKey = requireTrelloKey()
 
-    const appName = process.env.TRELLO_APP_NAME || "Team Feedback"
+    const appName = process.env.TRELLO_APP_NAME || "TeamFeedback2Keys"
     const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
     const callbackUrl = `${appBaseUrl}/trello-test/callback`
 
