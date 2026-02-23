@@ -1,0 +1,102 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import {
+  createTemplate,
+  getTemplate,
+  getAllTemplates,
+  updateTemplate,
+  deleteTemplate,
+} from "./service.js";
+
+import * as repo from "./repo.js";
+
+//Mocks the repo layer 
+vi.mock("./repo.js", () => ({
+  createQuestionnaireTemplate: vi.fn(),
+  getQuestionnaireTemplateById: vi.fn(),
+  getAllQuestionnaireTemplates: vi.fn(),
+  updateQuestionnaireTemplate: vi.fn(),
+  deleteQuestionnaireTemplate: vi.fn(),
+}));
+
+describe("QuestionnaireTemplate service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  //Create
+
+  it("forwards createTemplate to repo with correct arguments", async () => {
+    (repo.createQuestionnaireTemplate as any).mockResolvedValue({
+      id: 1,
+    });
+
+    const questions = [{ label: "Q1", type: "text" }];
+
+    const result = await createTemplate("Template A", questions, 10);
+
+    // ensures arguments are passed correctly
+    expect(repo.createQuestionnaireTemplate).toHaveBeenCalledWith(
+      "Template A",
+      questions,
+      10
+    );
+
+    // ensures return value is passed through
+    expect(result).toEqual({ id: 1 });
+  });
+
+  // get by id
+
+  it("forwards getTemplate to repo", async () => {
+    (repo.getQuestionnaireTemplateById as any).mockResolvedValue({
+      id: 5,
+    });
+
+    const result = await getTemplate(5);
+
+    expect(repo.getQuestionnaireTemplateById).toHaveBeenCalledWith(5);
+    expect(result).toEqual({ id: 5 });
+  });
+
+  // get all
+
+  it("forwards getAllTemplates to repo", async () => {
+    (repo.getAllQuestionnaireTemplates as any).mockResolvedValue([
+      { id: 1 },
+      { id: 2 },
+    ]);
+
+    const result = await getAllTemplates();
+
+    expect(repo.getAllQuestionnaireTemplates).toHaveBeenCalled();
+    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  // update
+
+  it("forwards updateTemplate to repo with correct arguments", async () => {
+    (repo.updateQuestionnaireTemplate as any).mockResolvedValue(undefined);
+
+    const questions = [
+      { id: 1, label: "Updated", type: "text" },
+    ];
+
+    await updateTemplate(10, "Updated Template", questions);
+
+    expect(repo.updateQuestionnaireTemplate).toHaveBeenCalledWith(
+      10,
+      "Updated Template",
+      questions
+    );
+  });
+
+  // delete
+
+  it("forwards deleteTemplate to repo", async () => {
+    (repo.deleteQuestionnaireTemplate as any).mockResolvedValue(undefined);
+
+    await deleteTemplate(20);
+
+    expect(repo.deleteQuestionnaireTemplate).toHaveBeenCalledWith(20);
+  });
+});
