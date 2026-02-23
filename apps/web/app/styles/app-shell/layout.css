@@ -3,6 +3,8 @@
   --topbar-title-size: var(--fs-logo, 1.6rem);
   /* Shared selection background for sidebar and workspace/admin pills */
   --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
+  /* Underline for the space switcher tabs */
+  --space-switcher-underline: #22c55e;
 }
 
 html,
@@ -552,7 +554,7 @@ body {
   right: 18px;
   bottom: -12px;
   height: 3px;
-  background: var(--status-success, #22c55e);
+  background: var(--space-switcher-underline);
   border-radius: 999px;
   opacity: 0;
   transform: translateY(18px);

@@ -6,7 +6,6 @@ import { apiFetch } from "@/shared/api/http";
 
 const buttonStyle: React.CSSProperties = {
   padding: "10px 20px",
-  border: "1px solid var(--btn-primary-border)",
   color: "var(--btn-primary-text)",
   cursor: "pointer",
 };
@@ -77,4 +76,3 @@ export function DeleteQuestionnaireButton({
     </button>
   );
 }
-
