@@ -5,18 +5,16 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Button } from "@/shared/ui/Button";
+import { GithubDonutChartCard } from "./GithubDonutChartCard";
 import type {
   GithubLatestSnapshot,
   GithubMappingCoverage,
@@ -205,6 +203,21 @@ function buildCommitShareSeries(
   ];
 }
 
+function buildCoverageShareSeries(coverage: GithubMappingCoverage | null) {
+  const totalCommits = Number(coverage?.coverage?.totalCommits ?? 0);
+  const unmatchedCommits = Number(coverage?.coverage?.unmatchedCommits ?? 0);
+  const matchedCommits = Math.max(0, totalCommits - unmatchedCommits);
+
+  if (!totalCommits) {
+    return [];
+  }
+
+  return [
+    { name: "Matched commits", value: matchedCommits, fill: "var(--accent)" },
+    { name: "Unmatched commits", value: unmatchedCommits, fill: "var(--accent-warm)" },
+  ];
+}
+
 export function GithubRepoLinkCard({
   link,
   coverage,
@@ -223,6 +236,7 @@ export function GithubRepoLinkCard({
   const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
+  const coverageShareSeries = buildCoverageShareSeries(coverage);
   const analysedLabel = coverage?.analysedAt
     ? new Date(String(coverage.analysedAt)).toLocaleString()
     : "Not analysed yet";
@@ -268,7 +282,10 @@ export function GithubRepoLinkCard({
           </div>
         </div>
       </div>
-      {chartSeries.length > 0 || lineChangesByDaySeries.length > 0 || commitShareSeries.length > 0 ? (
+      {chartSeries.length > 0 ||
+      lineChangesByDaySeries.length > 0 ||
+      commitShareSeries.length > 0 ||
+      coverageShareSeries.length > 0 ? (
         <section style={styles.chartSection} aria-label="Repository charts">
           <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
           <div style={styles.chartGrid}>
@@ -337,37 +354,18 @@ export function GithubRepoLinkCard({
             </div>
           ) : null}
           {commitShareSeries.length > 0 ? (
-            <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
-              <p className="muted" style={{ marginBottom: 6 }}>Commit share (you vs rest)</p>
-              <div style={{ width: "100%", height: 220 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={commitShareSeries}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={48}
-                      outerRadius={76}
-                      paddingAngle={2}
-                    >
-                      {commitShareSeries.map((entry) => (
-                        <Cell key={entry.name} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--border)",
-                        borderRadius: 8,
-                      }}
-                    />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            <GithubDonutChartCard
+              title="Commit share (you vs rest)"
+              data={commitShareSeries}
+              style={{ ...styles.chartWrap, ...styles.chartColHalf }}
+            />
+          ) : null}
+          {coverageShareSeries.length > 0 ? (
+            <GithubDonutChartCard
+              title="Mapping coverage (matched vs unmatched)"
+              data={coverageShareSeries}
+              style={{ ...styles.chartWrap, ...styles.chartColHalf }}
+            />
           ) : null}
           </div>
         </section>
