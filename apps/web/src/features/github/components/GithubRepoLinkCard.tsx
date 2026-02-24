@@ -152,28 +152,19 @@ function buildChartSeries(
   }));
 }
 
-function buildLineChangeComparisonSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const defaultBranch = snapshot?.data?.branchScopeStats?.defaultBranch;
-  const allBranches = snapshot?.data?.branchScopeStats?.allBranches;
-  const rows: Array<{ scope: string; additions: number; deletions: number }> = [];
-
-  if (defaultBranch) {
-    rows.push({
-      scope: "Default",
-      additions: Number(defaultBranch.totalAdditions) || 0,
-      deletions: Number(defaultBranch.totalDeletions) || 0,
-    });
+function buildLineChangesByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
+  const byDay = snapshot?.data?.timeSeries?.defaultBranch?.lineChangesByDay;
+  if (!byDay || typeof byDay !== "object") {
+    return [];
   }
 
-  if (allBranches) {
-    rows.push({
-      scope: "All branches",
-      additions: Number(allBranches.totalAdditions) || 0,
-      deletions: Number(allBranches.totalDeletions) || 0,
-    });
-  }
-
-  return rows;
+  return Object.entries(byDay)
+    .map(([date, values]) => ({
+      date,
+      additions: Number(values?.additions ?? 0),
+      deletions: -Math.abs(Number(values?.deletions ?? 0)),
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 function buildCommitShareSeries(
@@ -218,7 +209,7 @@ export function GithubRepoLinkCard({
   const commitsByDaySeries = getCommitsByDaySeries(snapshot);
   const personalByDay = getPersonalCommitsByDay(snapshot, currentGithubLogin);
   const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
-  const lineChangeComparisonSeries = buildLineChangeComparisonSeries(snapshot);
+  const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
   const analysedLabel = coverage?.analysedAt
     ? new Date(String(coverage.analysedAt)).toLocaleString()
@@ -265,7 +256,7 @@ export function GithubRepoLinkCard({
           </div>
         </div>
       </div>
-      {chartSeries.length > 0 || lineChangeComparisonSeries.length > 0 || commitShareSeries.length > 0 ? (
+      {chartSeries.length > 0 || lineChangesByDaySeries.length > 0 || commitShareSeries.length > 0 ? (
         <section style={styles.chartSection} aria-label="Repository charts">
           <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
           {chartSeries.length > 0 ? (
@@ -305,16 +296,19 @@ export function GithubRepoLinkCard({
               </div>
             </div>
           ) : null}
-          {lineChangeComparisonSeries.length > 0 ? (
+          {lineChangesByDaySeries.length > 0 ? (
             <div style={styles.chartWrap}>
-              <p className="muted" style={{ marginBottom: 6 }}>Line changes comparison (default vs all branches)</p>
-              <div style={{ width: "100%", height: 220 }}>
+              <p className="muted" style={{ marginBottom: 6 }}>
+                Additions and deletions over time (default branch)
+              </p>
+              <div style={{ width: "100%", height: 260 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={lineChangeComparisonSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                  <BarChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                    <XAxis dataKey="scope" tick={{ fill: "var(--muted)" }} />
+                    <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
                     <YAxis tick={{ fill: "var(--muted)" }} />
                     <Tooltip
+                      formatter={(value: number, name: string) => [Math.abs(Number(value)), name]}
                       contentStyle={{
                         background: "var(--surface)",
                         border: "1px solid var(--border)",
@@ -322,8 +316,8 @@ export function GithubRepoLinkCard({
                       }}
                     />
                     <Legend />
-                    <Bar dataKey="additions" name="Additions" fill="var(--accent)" radius={[6, 6, 0, 0]} />
-                    <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="additions" name="Additions" fill="var(--accent)" />
+                    <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

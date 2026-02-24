@@ -486,6 +486,36 @@ function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: str
   };
 }
 
+function aggregateLineChangesByDay(
+  commits: GithubCommitListItem[],
+  commitStatsBySha: Map<string, { additions: number; deletions: number }>
+) {
+  const byDay: Record<string, { additions: number; deletions: number }> = {};
+
+  for (const commit of commits) {
+    if (!commit.commit.author?.date) {
+      continue;
+    }
+    const commitDate = new Date(commit.commit.author.date);
+    if (Number.isNaN(commitDate.getTime())) {
+      continue;
+    }
+
+    const stats = commitStatsBySha.get(commit.sha);
+    if (!stats) {
+      continue;
+    }
+
+    const dayKey = toUtcDayKey(commitDate);
+    const existing = byDay[dayKey] || { additions: 0, deletions: 0 };
+    existing.additions += stats.additions || 0;
+    existing.deletions += stats.deletions || 0;
+    byDay[dayKey] = existing;
+  }
+
+  return byDay;
+}
+
 export async function analyseProjectGithubRepository(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -536,6 +566,8 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     allBranchCommits.map((commit) => commit.sha)
   );
   const aggregated = aggregateCommitData(commits, defaultBranch);
+  const defaultBranchLineChangesByDay = aggregateLineChangesByDay(commits, commitStatsBySha);
+  const allBranchesLineChangesByDay = aggregateLineChangesByDay(allBranchCommits, allBranchCommitStatsBySha);
 
   const identities = await listProjectGithubIdentityCandidates(link.projectId);
   const byLogin = new Map<string, number>();
@@ -620,6 +652,14 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       analysedWindow: {
         since: sinceDate.toISOString(),
         until: new Date().toISOString(),
+      },
+      timeSeries: {
+        defaultBranch: {
+          lineChangesByDay: defaultBranchLineChangesByDay,
+        },
+        allBranches: {
+          lineChangesByDay: allBranchesLineChangesByDay,
+        },
       },
       commitCount: commits.length,
       commitStatsCoverage: {

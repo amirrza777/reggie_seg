@@ -68,6 +68,14 @@ export type GithubLatestSnapshot = {
     id: number;
     analysedAt: string;
     data?: {
+      timeSeries?: {
+        defaultBranch?: {
+          lineChangesByDay?: Record<string, { additions: number; deletions: number }> | null;
+        };
+        allBranches?: {
+          lineChangesByDay?: Record<string, { additions: number; deletions: number }> | null;
+        };
+      };
       branchScopeStats?: {
         defaultBranch?: {
           branch: string;
