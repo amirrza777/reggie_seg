@@ -111,7 +111,7 @@ body {
 .app-shell__main {
   --sidebar-width: clamp(180px, 20vw, 220px);
   --main-gap: 14px;
-  --divider-thickness: 4px;
+  --divider-thickness: 0px;
   --ribbon-height: 56px;
   /* Split padding to pull content to the very top while keeping horizontal breathing room */
   --main-padding-x: 12px;

@@ -2,12 +2,16 @@ import { API_BASE_URL } from "./env";
 import { getAccessToken } from "@/features/auth/api/session";
 import { ApiError } from "./errors";
 
-type FetchOptions = RequestInit & { parse?: "json" | "text"; auth?: boolean };
+type FetchOptions = RequestInit & {
+  parse?: "json" | "text";
+  auth?: boolean;
+  baseUrl?: string;
+};
 
 export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {}): Promise<T> {
-  const { parse = "json", headers, auth = true, ...rest } = init;
+  const { parse = "json", headers, auth = true, baseUrl, ...rest } = init;
   const token = auth ? getAccessToken() : null;
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await fetch(`${baseUrl ?? API_BASE_URL}${path}`, {
     ...rest,
     credentials: "include",
     headers: {
