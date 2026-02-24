@@ -704,6 +704,17 @@ function filterCommitsAfter(
   });
 }
 
+function hasUsableRepoCommitsByDay(latestSnapshot: Awaited<ReturnType<typeof findLatestGithubSnapshotByProjectLinkId>> | null) {
+  const repoStat = latestSnapshot?.repoStats?.[0];
+  if (!repoStat) {
+    return false;
+  }
+  const totalCommits = repoStat.totalCommits ?? 0;
+  const commitsByDay = repoStat.commitsByDay as CountMap | null | undefined;
+  const hasCommitDays = !!commitsByDay && typeof commitsByDay === "object" && Object.keys(commitsByDay).length > 0;
+  return totalCommits === 0 || hasCommitDays;
+}
+
 export async function analyseProjectGithubRepository(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -723,7 +734,9 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const accessToken = await getValidGithubAccessToken(account);
   const defaultBranch = link.repository.defaultBranch || "main";
   const latestSnapshot = await findLatestGithubSnapshotByProjectLinkId(link.id);
-  const previousAnalysedAt = latestSnapshot?.analysedAt ?? null;
+  const useLatestSnapshotAsBaseline = hasUsableRepoCommitsByDay(latestSnapshot);
+  const baselineSnapshot = useLatestSnapshotAsBaseline ? latestSnapshot : null;
+  const previousAnalysedAt = baselineSnapshot?.analysedAt ?? null;
   const now = new Date();
   const fallbackSinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const sinceDate = previousAnalysedAt ?? fallbackSinceDate;
@@ -832,10 +845,10 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     (sum, stat) => sum + stat.deletions,
     0
   );
-  const previousData = (latestSnapshot?.data ?? {}) as PreviousSnapshotData;
+  const previousData = (baselineSnapshot?.data ?? {}) as PreviousSnapshotData;
 
-  const mergedUserStats = latestSnapshot
-    ? mergeUserStats(latestSnapshot.userStats as SnapshotUserStatRow[], userStats as SnapshotUserStatRecord[])
+  const mergedUserStats = baselineSnapshot
+    ? mergeUserStats(baselineSnapshot.userStats as SnapshotUserStatRow[], userStats as SnapshotUserStatRecord[])
     : (userStats as SnapshotUserStatRecord[]);
 
   const mergedTotalCommits = mergedUserStats.reduce((sum, stat) => sum + stat.commits, 0);
@@ -847,7 +860,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     .filter((stat) => !stat.isMatched)
     .reduce((sum, stat) => sum + stat.commits, 0);
 
-  const previousRepoStats = latestSnapshot?.repoStats;
+  const previousRepoStats = baselineSnapshot?.repoStats?.[0] ?? null;
   const mergedRepoCommitsByDay = mergeCountMaps(
     ((previousRepoStats?.commitsByDay as CountMap | undefined) ?? {}),
     aggregated.repoCommitsByDay

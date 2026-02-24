@@ -88,6 +88,11 @@ export type GithubLatestSnapshot = {
           totalCommits: number;
           totalAdditions: number;
           totalDeletions: number;
+          commitsByBranch?: Record<string, number> | null;
+          commitStatsCoverage?: {
+            detailedCommitCount: number;
+            requestedCommitCount: number;
+          } | null;
         };
       };
     } | null;

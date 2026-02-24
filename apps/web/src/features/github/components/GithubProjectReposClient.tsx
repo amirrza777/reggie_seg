@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { Table } from "@/shared/ui/Table";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import {
@@ -86,6 +87,30 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     connection?.connected &&
     typeof error === "string" &&
     error.toLowerCase().includes("not installed on any account or organization");
+
+  function buildBranchRows(link: ProjectGithubRepoLink) {
+    const snapshot = latestSnapshotByLinkId[link.id];
+    const defaultBranch = link.repository.defaultBranch || "main";
+    const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch;
+
+    if (!commitsByBranch || Object.keys(commitsByBranch).length === 0) {
+      return null;
+    }
+
+    return Object.entries(commitsByBranch)
+      .sort((a, b) => {
+        if (a[0] === defaultBranch) return -1;
+        if (b[0] === defaultBranch) return 1;
+        return b[1] - a[1];
+      })
+      .map(([branchName, commitCount]) => [
+        branchName,
+        branchName === defaultBranch ? "Yes" : "No",
+        Number(commitCount) || 0,
+        branchName === defaultBranch ? "-" : "Not available yet",
+        branchName === defaultBranch ? "-" : "Not available yet",
+      ]);
+  }
 
   async function load() {
     if (Number.isNaN(numericProjectId)) {
@@ -370,10 +395,51 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "branches" ? (
         <section style={styles.panel}>
-          <strong>Branches</strong>
-          <p className="muted" style={styles.list}>
-            Branches view coming soon.
-          </p>
+          <div style={styles.row}>
+            <strong>Branches</strong>
+            <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
+              {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+          <div style={styles.list}>
+            {loading ? <p className="muted">Loading branch data...</p> : null}
+            {!loading && links.length === 0 ? <p className="muted">No linked repository available.</p> : null}
+            {!loading &&
+              links.map((link) => {
+                const snapshot = latestSnapshotByLinkId[link.id];
+                const rows = buildBranchRows(link);
+                return (
+                  <div key={link.id} style={{ ...styles.panel, marginTop: 12, padding: 12 }}>
+                    <div style={styles.row}>
+                      <div className="stack" style={{ gap: 4 }}>
+                        <strong>{link.repository.fullName}</strong>
+                        <p className="muted">
+                          Default branch: {link.repository.defaultBranch || "unknown"}
+                          {snapshot?.analysedAt ? ` • Snapshot: ${new Date(snapshot.analysedAt).toLocaleString()}` : ""}
+                        </p>
+                      </div>
+                    </div>
+                    {!rows ? (
+                      <p className="muted" style={{ marginTop: 10 }}>
+                        No branch snapshot data yet. Refresh the repository to load branch commit counts.
+                      </p>
+                    ) : (
+                      <>
+                        <p className="muted" style={{ marginTop: 10 }}>
+                          Branch list is based on the latest snapshot. Ahead/behind vs main is not available yet.
+                        </p>
+                        <div style={{ marginTop: 10 }}>
+                          <Table
+                            headers={["Branch", "Default", "Commits (snapshot)", "Ahead of main", "Behind main"]}
+                            rows={rows}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
         </section>
       ) : null}
 
