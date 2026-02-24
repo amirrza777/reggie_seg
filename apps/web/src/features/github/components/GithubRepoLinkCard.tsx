@@ -109,6 +109,18 @@ const styles = {
     paddingTop: 4,
     borderTop: "1px solid var(--border)",
   } as React.CSSProperties,
+  chartGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
+    gap: 10,
+    alignItems: "start",
+  } as React.CSSProperties,
+  chartColFull: {
+    gridColumn: "1 / -1",
+  } as React.CSSProperties,
+  chartColHalf: {
+    gridColumn: "span 6",
+  } as React.CSSProperties,
 };
 
 function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
@@ -259,8 +271,9 @@ export function GithubRepoLinkCard({
       {chartSeries.length > 0 || lineChangesByDaySeries.length > 0 || commitShareSeries.length > 0 ? (
         <section style={styles.chartSection} aria-label="Repository charts">
           <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
+          <div style={styles.chartGrid}>
           {chartSeries.length > 0 ? (
-            <div style={styles.chartWrap}>
+            <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
               <p className="muted" style={{ marginBottom: 6 }}>Commits over time (total vs your commits)</p>
               <div style={{ width: "100%", height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -297,7 +310,7 @@ export function GithubRepoLinkCard({
             </div>
           ) : null}
           {lineChangesByDaySeries.length > 0 ? (
-            <div style={styles.chartWrap}>
+            <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
               <p className="muted" style={{ marginBottom: 6 }}>
                 Additions and deletions over time (default branch)
               </p>
@@ -324,7 +337,7 @@ export function GithubRepoLinkCard({
             </div>
           ) : null}
           {commitShareSeries.length > 0 ? (
-            <div style={styles.chartWrap}>
+            <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
               <p className="muted" style={{ marginBottom: 6 }}>Commit share (you vs rest)</p>
               <div style={{ width: "100%", height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -356,6 +369,7 @@ export function GithubRepoLinkCard({
               </div>
             </div>
           ) : null}
+          </div>
         </section>
       ) : null}
       <div style={styles.actions}>
