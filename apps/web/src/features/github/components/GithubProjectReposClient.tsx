@@ -13,6 +13,7 @@ import {
   getLatestProjectGithubSnapshot,
   getProjectGithubMappingCoverage,
   linkGithubRepositoryToProject,
+  listLiveProjectGithubRepoBranches,
   listGithubRepositories,
   listProjectGithubRepoLinks,
   removeProjectGithubRepoLink,
@@ -20,6 +21,7 @@ import {
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -76,6 +78,10 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
   const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
   const [latestSnapshotByLinkId, setLatestSnapshotByLinkId] = useState<Record<number, GithubLatestSnapshot["snapshot"] | null>>({});
+  const [liveBranchesByLinkId, setLiveBranchesByLinkId] = useState<Record<number, GithubLiveProjectRepoBranches | null>>({});
+  const [liveBranchesLoadingByLinkId, setLiveBranchesLoadingByLinkId] = useState<Record<number, boolean>>({});
+  const [liveBranchesErrorByLinkId, setLiveBranchesErrorByLinkId] = useState<Record<number, string | null>>({});
+  const [liveBranchesRefreshing, setLiveBranchesRefreshing] = useState(false);
   const [removingLinkId, setRemovingLinkId] = useState<number | null>(null);
   const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
@@ -90,26 +96,70 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
   function buildBranchRows(link: ProjectGithubRepoLink) {
     const snapshot = latestSnapshotByLinkId[link.id];
-    const defaultBranch = link.repository.defaultBranch || "main";
-    const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch;
+    const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch || {};
+    const liveBranchData = liveBranchesByLinkId[link.id];
 
-    if (!commitsByBranch || Object.keys(commitsByBranch).length === 0) {
+    if (!liveBranchData?.branches?.length) {
       return null;
     }
 
-    return Object.entries(commitsByBranch)
-      .sort((a, b) => {
-        if (a[0] === defaultBranch) return -1;
-        if (b[0] === defaultBranch) return 1;
-        return b[1] - a[1];
+    return liveBranchData.branches.map((branch) => [
+      branch.name,
+      branch.isDefault ? "Yes" : "No",
+      typeof commitsByBranch[branch.name] === "number" ? Number(commitsByBranch[branch.name]) : "-",
+      branch.aheadBy ?? "-",
+      branch.behindBy ?? "-",
+      branch.compareStatus ?? "-",
+    ]);
+  }
+
+  async function fetchLiveBranchesForLinks(linkIds: number[], options?: { force?: boolean }) {
+    if (linkIds.length === 0) {
+      return;
+    }
+
+    const idsToFetch = options?.force
+      ? linkIds
+      : linkIds.filter((linkId) => liveBranchesByLinkId[linkId] === undefined && !liveBranchesLoadingByLinkId[linkId]);
+
+    if (idsToFetch.length === 0) {
+      return;
+    }
+
+    setLiveBranchesRefreshing(true);
+    setLiveBranchesLoadingByLinkId((prev) => {
+      const next = { ...prev };
+      for (const id of idsToFetch) next[id] = true;
+      return next;
+    });
+    setLiveBranchesErrorByLinkId((prev) => {
+      const next = { ...prev };
+      for (const id of idsToFetch) next[id] = null;
+      return next;
+    });
+
+    await Promise.all(
+      idsToFetch.map(async (linkId) => {
+        try {
+          const data = await listLiveProjectGithubRepoBranches(linkId);
+          setLiveBranchesByLinkId((prev) => ({ ...prev, [linkId]: data }));
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Failed to load live branches.";
+          setLiveBranchesErrorByLinkId((prev) => ({ ...prev, [linkId]: message }));
+        } finally {
+          setLiveBranchesLoadingByLinkId((prev) => ({ ...prev, [linkId]: false }));
+        }
       })
-      .map(([branchName, commitCount]) => [
-        branchName,
-        branchName === defaultBranch ? "Yes" : "No",
-        Number(commitCount) || 0,
-        branchName === defaultBranch ? "-" : "Not available yet",
-        branchName === defaultBranch ? "-" : "Not available yet",
-      ]);
+    );
+
+    setLiveBranchesRefreshing(false);
+  }
+
+  async function handleRefreshLiveBranches() {
+    await fetchLiveBranchesForLinks(
+      links.map((link) => link.id),
+      { force: true }
+    );
   }
 
   async function load() {
@@ -202,6 +252,13 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     url.searchParams.delete("reason");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "branches" || loading || links.length === 0) {
+      return;
+    }
+    void fetchLiveBranchesForLinks(links.map((link) => link.id));
+  }, [activeTab, loading, links]);
 
   async function handleConnect() {
     setBusy(true);
@@ -397,8 +454,8 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         <section style={styles.panel}>
           <div style={styles.row}>
             <strong>Branches</strong>
-            <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
-              {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
+            <Button variant="ghost" onClick={() => void handleRefreshLiveBranches()} disabled={loading || liveBranchesRefreshing}>
+              {liveBranchesRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
           </div>
           <div style={styles.list}>
@@ -419,23 +476,33 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                         </p>
                       </div>
                     </div>
-                    {!rows ? (
+                    {liveBranchesLoadingByLinkId[link.id] ? (
                       <p className="muted" style={{ marginTop: 10 }}>
-                        No branch snapshot data yet. Refresh the repository to load branch commit counts.
+                        Loading live branches...
                       </p>
-                    ) : (
+                    ) : null}
+                    {liveBranchesErrorByLinkId[link.id] ? (
+                      <p className="muted" style={{ marginTop: 10 }}>
+                        Failed to load live branches: {liveBranchesErrorByLinkId[link.id]}
+                      </p>
+                    ) : null}
+                    {!rows && !liveBranchesLoadingByLinkId[link.id] && !liveBranchesErrorByLinkId[link.id] ? (
+                      <p className="muted" style={{ marginTop: 10 }}>
+                        No live branches returned for this repository.
+                      </p>
+                    ) : rows ? (
                       <>
                         <p className="muted" style={{ marginTop: 10 }}>
-                          Branch list is based on the latest snapshot. Ahead/behind vs main is not available yet.
+                          Branches are fetched live from GitHub. Commit counts are shown from the latest snapshot when available.
                         </p>
                         <div style={{ marginTop: 10 }}>
                           <Table
-                            headers={["Branch", "Default", "Commits (snapshot)", "Ahead of main", "Behind main"]}
+                            headers={["Branch", "Default", "Commits (snapshot)", "Ahead of main", "Behind main", "Status"]}
                             rows={rows}
                           />
                         </div>
                       </>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

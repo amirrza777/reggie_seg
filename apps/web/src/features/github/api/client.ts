@@ -2,6 +2,7 @@ import { apiFetch } from "@/shared/api/http";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -86,6 +87,10 @@ export async function getProjectGithubMappingCoverage(linkId: number): Promise<G
     `/github/project-repos/${linkId}/mapping-coverage`
   );
   return response.mappingCoverage;
+}
+
+export async function listLiveProjectGithubRepoBranches(linkId: number): Promise<GithubLiveProjectRepoBranches> {
+  return apiFetch<GithubLiveProjectRepoBranches>(`/github/project-repos/${linkId}/branches`);
 }
 
 export async function disconnectGithubAccount() {

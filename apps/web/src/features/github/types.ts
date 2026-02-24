@@ -118,3 +118,22 @@ export type GithubLatestSnapshot = {
     }>;
   };
 };
+
+export type GithubLiveProjectRepoBranches = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  branches: Array<{
+    name: string;
+    isDefault: boolean;
+    isProtected: boolean;
+    headSha: string | null;
+    aheadBy: number | null;
+    behindBy: number | null;
+    compareStatus: string | null;
+  }>;
+};
