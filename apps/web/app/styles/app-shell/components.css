@@ -115,6 +115,75 @@
   padding: 16px;
 }
 
+.admin-modal__body {
+  display: grid;
+  gap: 12px;
+  max-height: min(70vh, 720px);
+  overflow: hidden;
+}
+
+.admin-modal__list {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-modal__table {
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top: 1px solid var(--border);
+}
+
+.admin-modal__table .table__row {
+  align-items: center;
+  background: var(--surface);
+}
+
+.admin-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-toggle {
+  padding: 10px 14px;
+}
+
+.admin-toggle--make {
+  background: #f5f5f5;
+  color: #0f0f0f;
+  border: 1px solid var(--border);
+}
+
+.admin-toggle--remove {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.role-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-toggle__btn {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  min-width: 88px;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: var(--fw-semibold);
+  font-size: 0.95rem;
+}
+
 /* Status indicators */
 .status-chip {
   display: inline-flex;
