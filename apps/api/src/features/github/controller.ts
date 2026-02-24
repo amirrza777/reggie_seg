@@ -7,6 +7,7 @@ import {
   disconnectGithubAccount,
   getGithubConnectionStatus,
   getLatestProjectGithubRepositorySnapshot,
+  listLiveProjectGithubRepositoryBranches,
   getProjectGithubMappingCoverage,
   getProjectGithubRepositorySnapshot,
   GithubServiceError,
@@ -366,6 +367,29 @@ export async function getProjectGithubMappingCoverageHandler(req: AuthRequest, r
     }
     console.error("Error fetching project GitHub mapping coverage:", error);
     return res.status(500).json({ error: "Failed to fetch project GitHub mapping coverage" });
+  }
+}
+
+export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
+
+  try {
+    const branchData = await listLiveProjectGithubRepositoryBranches(userId, linkId);
+    return res.json(toJsonSafe(branchData));
+  } catch (error) {
+    if (error instanceof GithubServiceError) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    console.error("Error fetching live project GitHub branches:", error);
+    return res.status(500).json({ error: "Failed to fetch live project GitHub branches" });
   }
 }
 

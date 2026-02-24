@@ -281,6 +281,16 @@ type GithubCommitDetailResponse = {
 
 type GithubBranchResponseItem = {
   name: string;
+  protected?: boolean;
+  commit?: {
+    sha?: string;
+  };
+};
+
+type GithubCompareResponse = {
+  status?: string;
+  ahead_by?: number;
+  behind_by?: number;
 };
 
 type AggregatedContributor = {
@@ -392,6 +402,103 @@ async function listRepositoryBranches(accessToken: string, fullName: string) {
   }
 
   return Array.from(new Set(branches));
+}
+
+async function listRepositoryBranchesLive(
+  accessToken: string,
+  fullName: string
+): Promise<Array<{ name: string; protected: boolean; headSha: string | null }>> {
+  const { baseUrl } = getGitHubApiConfig();
+  const branches: Array<{ name: string; protected: boolean; headSha: string | null }> = [];
+  let page = 1;
+
+  while (true) {
+    const response = await fetch(
+      `${baseUrl}/repos/${fullName}/branches?per_page=100&page=${page}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new GithubServiceError(404, "Linked GitHub repository was not found");
+      }
+      if (response.status === 401) {
+        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+      }
+      throw new GithubServiceError(502, "Failed to fetch repository branches");
+    }
+
+    const pageData = (await response.json()) as GithubBranchResponseItem[];
+    for (const branch of pageData) {
+      if (!branch?.name) {
+        continue;
+      }
+      branches.push({
+        name: branch.name,
+        protected: Boolean(branch.protected),
+        headSha: branch.commit?.sha || null,
+      });
+    }
+
+    if (pageData.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 5) {
+      break;
+    }
+  }
+
+  return branches;
+}
+
+async function getBranchAheadBehind(
+  accessToken: string,
+  fullName: string,
+  baseBranch: string,
+  branchName: string
+) {
+  if (branchName === baseBranch) {
+    return {
+      aheadBy: 0,
+      behindBy: 0,
+      status: "identical",
+    };
+  }
+
+  const { baseUrl } = getGitHubApiConfig();
+  const response = await fetch(
+    `${baseUrl}/repos/${fullName}/compare/${encodeURIComponent(baseBranch)}...${encodeURIComponent(branchName)}`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    // Some branches may be deleted/race conditions/or compare unavailable. Return partial data instead of failing the whole list.
+    return {
+      aheadBy: null,
+      behindBy: null,
+      status: null,
+    };
+  }
+
+  const compare = (await response.json()) as GithubCompareResponse;
+  return {
+    aheadBy: typeof compare.ahead_by === "number" ? compare.ahead_by : null,
+    behindBy: typeof compare.behind_by === "number" ? compare.behind_by : null,
+    status: typeof compare.status === "string" ? compare.status : null,
+  };
 }
 
 async function fetchCommitStatsForRepository(
@@ -1067,6 +1174,64 @@ export async function updateProjectGithubSyncSettings(
     autoSyncEnabled: input.autoSyncEnabled,
     syncIntervalMinutes: interval,
   });
+}
+
+export async function listLiveProjectGithubRepositoryBranches(userId: number, linkId: number) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+
+  const accessToken = await getValidGithubAccessToken(account);
+  const defaultBranch = link.repository.defaultBranch || "main";
+  const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
+
+  const branchesWithCompare = await Promise.all(
+    liveBranches.map(async (branch) => {
+      const compare = await getBranchAheadBehind(
+        accessToken,
+        link.repository.fullName,
+        defaultBranch,
+        branch.name
+      );
+      return {
+        name: branch.name,
+        isDefault: branch.name === defaultBranch,
+        isProtected: branch.protected,
+        headSha: branch.headSha,
+        aheadBy: compare.aheadBy,
+        behindBy: compare.behindBy,
+        compareStatus: compare.status,
+      };
+    })
+  );
+
+  const branches = branchesWithCompare.sort((a, b) => {
+    if (a.isDefault) return -1;
+    if (b.isDefault) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  return {
+    linkId: link.id,
+    repository: {
+      id: link.repository.id,
+      fullName: link.repository.fullName,
+      defaultBranch,
+      htmlUrl: link.repository.htmlUrl,
+    },
+    branches,
+  };
 }
 
 export async function removeProjectGithubRepositoryLink(userId: number, linkId: number) {
