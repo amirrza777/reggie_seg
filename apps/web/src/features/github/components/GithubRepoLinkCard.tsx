@@ -2,7 +2,10 @@
 
 import type React from "react";
 import {
+  Bar,
+  BarChart,
   CartesianGrid,
+  Legend,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -92,6 +95,30 @@ function buildChartSeries(
   }));
 }
 
+function buildLineChangeComparisonSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
+  const defaultBranch = snapshot?.data?.branchScopeStats?.defaultBranch;
+  const allBranches = snapshot?.data?.branchScopeStats?.allBranches;
+  const rows: Array<{ scope: string; additions: number; deletions: number }> = [];
+
+  if (defaultBranch) {
+    rows.push({
+      scope: "Default",
+      additions: Number(defaultBranch.totalAdditions) || 0,
+      deletions: Number(defaultBranch.totalDeletions) || 0,
+    });
+  }
+
+  if (allBranches) {
+    rows.push({
+      scope: "All branches",
+      additions: Number(allBranches.totalAdditions) || 0,
+      deletions: Number(allBranches.totalDeletions) || 0,
+    });
+  }
+
+  return rows;
+}
+
 export function GithubRepoLinkCard({
   link,
   coverage,
@@ -108,6 +135,7 @@ export function GithubRepoLinkCard({
   const commitsByDaySeries = getCommitsByDaySeries(snapshot);
   const personalByDay = getPersonalCommitsByDay(snapshot, currentGithubLogin);
   const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
+  const lineChangeComparisonSeries = buildLineChangeComparisonSeries(snapshot);
 
   return (
     <div key={link.id} style={styles.listItem}>
@@ -172,6 +200,30 @@ export function GithubRepoLinkCard({
                   dot={false}
                 />
               </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : null}
+      {lineChangeComparisonSeries.length > 0 ? (
+        <div style={styles.chartWrap}>
+          <p className="muted" style={{ marginBottom: 6 }}>Line changes comparison (default vs all branches)</p>
+          <div style={{ width: "100%", height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={lineChangeComparisonSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis dataKey="scope" tick={{ fill: "var(--muted)" }} />
+                <YAxis tick={{ fill: "var(--muted)" }} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="additions" name="Additions" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" radius={[6, 6, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
