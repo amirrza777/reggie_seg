@@ -55,6 +55,11 @@ const styles = {
     padding: 10,
     background: "var(--surface)",
   } as React.CSSProperties,
+  chartSection: {
+    marginTop: 12,
+    paddingTop: 4,
+    borderTop: "1px solid var(--border)",
+  } as React.CSSProperties,
 };
 
 function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
@@ -197,99 +202,104 @@ export function GithubRepoLinkCard({
           {allBranchesTotals.totalAdditions} • deletions {allBranchesTotals.totalDeletions}
         </p>
       ) : null}
-      {chartSeries.length > 0 ? (
-        <div style={styles.chartWrap}>
-          <p className="muted" style={{ marginBottom: 6 }}>Commits over time (total vs your commits)</p>
-          <div style={{ width: "100%", height: 280 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
-                <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="commits"
-                  name="Total commits"
-                  stroke="var(--accent)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="personalCommits"
-                  name="Your commits"
-                  stroke="var(--accent-warm)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      ) : null}
-      {lineChangeComparisonSeries.length > 0 ? (
-        <div style={styles.chartWrap}>
-          <p className="muted" style={{ marginBottom: 6 }}>Line changes comparison (default vs all branches)</p>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={lineChangeComparisonSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="scope" tick={{ fill: "var(--muted)" }} />
-                <YAxis tick={{ fill: "var(--muted)" }} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="additions" name="Additions" fill="var(--accent)" radius={[6, 6, 0, 0]} />
-                <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      ) : null}
-      {commitShareSeries.length > 0 ? (
-        <div style={styles.chartWrap}>
-          <p className="muted" style={{ marginBottom: 6 }}>Commit share (you vs rest)</p>
-          <div style={{ width: "100%", height: 220 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={commitShareSeries}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={48}
-                  outerRadius={76}
-                  paddingAngle={2}
-                >
-                  {commitShareSeries.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--surface)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                  }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+      {chartSeries.length > 0 || lineChangeComparisonSeries.length > 0 || commitShareSeries.length > 0 ? (
+        <section style={styles.chartSection} aria-label="Repository charts">
+          <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
+          {chartSeries.length > 0 ? (
+            <div style={styles.chartWrap}>
+              <p className="muted" style={{ marginBottom: 6 }}>Commits over time (total vs your commits)</p>
+              <div style={{ width: "100%", height: 280 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
+                    <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="commits"
+                      name="Total commits"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="personalCommits"
+                      name="Your commits"
+                      stroke="var(--accent-warm)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+          {lineChangeComparisonSeries.length > 0 ? (
+            <div style={styles.chartWrap}>
+              <p className="muted" style={{ marginBottom: 6 }}>Line changes comparison (default vs all branches)</p>
+              <div style={{ width: "100%", height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={lineChangeComparisonSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <XAxis dataKey="scope" tick={{ fill: "var(--muted)" }} />
+                    <YAxis tick={{ fill: "var(--muted)" }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="additions" name="Additions" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+          {commitShareSeries.length > 0 ? (
+            <div style={styles.chartWrap}>
+              <p className="muted" style={{ marginBottom: 6 }}>Commit share (you vs rest)</p>
+              <div style={{ width: "100%", height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={commitShareSeries}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={48}
+                      outerRadius={76}
+                      paddingAngle={2}
+                    >
+                      {commitShareSeries.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+        </section>
       ) : null}
       <div style={styles.actions}>
         <Button
