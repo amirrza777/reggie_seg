@@ -62,6 +62,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
   const addQuestion = (type: QuestionType) => {
@@ -137,6 +138,7 @@ export default function NewQuestionnairePage() {
         method: "POST",
         body: JSON.stringify({
           templateName,
+          isPublic,
           questions: questions.map((q) => ({
             label: q.label,
             type: q.type,
@@ -148,6 +150,7 @@ export default function NewQuestionnairePage() {
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
+      setIsPublic(true);
       setAnswers({});
       setSaved(true);
       router.push("/staff/questionnaires");
@@ -166,12 +169,41 @@ export default function NewQuestionnairePage() {
       <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
       {!preview && (
-        <input
-          placeholder="Questionnaire name"
-          value={templateName}
-          onChange={(e) => setTemplateName(e.target.value)}
-          style={styles.input}
-        />
+        <>
+          <input
+            placeholder="Questionnaire name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            style={styles.input}
+          />
+          <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+            <span style={styles.small}>Visibility:</span>
+            <button
+              type="button"
+              style={{
+                ...styles.btn,
+                borderColor: isPublic ? "var(--btn-primary-border)" : "var(--border)",
+                background: isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
+                color: isPublic ? "var(--btn-primary-text)" : "var(--ink)",
+              }}
+              onClick={() => setIsPublic(true)}
+            >
+              Public
+            </button>
+            <button
+              type="button"
+              style={{
+                ...styles.btn,
+                borderColor: !isPublic ? "var(--btn-primary-border)" : "var(--border)",
+                background: !isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
+                color: !isPublic ? "var(--btn-primary-text)" : "var(--ink)",
+              }}
+              onClick={() => setIsPublic(false)}
+            >
+              Private
+            </button>
+          </div>
+        </>
       )}
 
       <div style={styles.btnRow}>
