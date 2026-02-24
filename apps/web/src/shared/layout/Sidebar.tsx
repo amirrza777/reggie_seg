@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-type SidebarLink = { href: string; label: string };
+type SidebarLink = { href: string; label: string; space?: "workspace" | "staff" | "admin" };
 
 type SidebarProps = {
   title?: string;

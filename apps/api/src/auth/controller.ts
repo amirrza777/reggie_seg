@@ -21,10 +21,22 @@ const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 export async function signupHandler(req: Request, res: Response) {
-  const { email, password, firstName, lastName } = req.body ?? {};
+  const { email, password, firstName, lastName, role } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
+  const normalizedRole =
+    typeof role === "string" ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ADMIN") : undefined;
+  if (normalizedRole && normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+    return res.status(400).json({ error: "Invalid role" });
+  }
+  const requestedRole = normalizedRole === "STUDENT" || normalizedRole === "STAFF" ? normalizedRole : undefined;
   try {
-    const tokens = await signUp({ email, password, firstName, lastName });
+    const tokens = await signUp({
+      email,
+      password,
+      firstName,
+      lastName,
+      role: requestedRole,
+    });
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {

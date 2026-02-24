@@ -3,6 +3,8 @@
   --topbar-title-size: var(--fs-logo, 1.6rem);
   /* Shared selection background for sidebar and workspace/admin pills */
   --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
+  /* Underline for the space switcher tabs */
+  --space-switcher-underline: #22c55e;
 }
 
 html,
@@ -109,7 +111,7 @@ body {
 .app-shell__main {
   --sidebar-width: clamp(180px, 20vw, 220px);
   --main-gap: 14px;
-  --divider-thickness: 4px;
+  --divider-thickness: 0px;
   --ribbon-height: 56px;
   /* Split padding to pull content to the very top while keeping horizontal breathing room */
   --main-padding-x: 12px;
@@ -322,7 +324,8 @@ body {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 65%, transparent);
+    /* Tone down active pill contrast in dark mode so selections don't glow */
+    --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
   }
 
   .sidebar__link.is-active {
@@ -533,14 +536,14 @@ body {
 .space-switcher__link:focus-visible {
   background: var(--sidebar-active-bg);
   border-color: transparent;
-  box-shadow: 0 10px 32px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
 }
 
 .space-switcher__link.is-active {
   background: var(--sidebar-active-bg);
   border-color: transparent;
   color: color-mix(in srgb, var(--ink-strong) 96%, var(--ink) 2%);
-  box-shadow: 0 10px 32px color-mix(in srgb, var(--ink) 10%, transparent);
+  box-shadow: none;
   transform: none;
 }
 
@@ -551,7 +554,7 @@ body {
   right: 18px;
   bottom: -12px;
   height: 3px;
-  background: var(--status-success, #22c55e);
+  background: var(--space-switcher-underline);
   border-radius: 999px;
   opacity: 0;
   transform: translateY(18px);

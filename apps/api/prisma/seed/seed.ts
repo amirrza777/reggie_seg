@@ -23,7 +23,7 @@ async function main() {
   const projects = await seedProjects(modules, templates);
   const teams = await seedTeams(enterpriseId, projects);
   await seedModuleLeads(users, modules);
-  await seedStudentEnrollments(users, modules);
+  await seedStudentEnrollments(enterpriseId, users, modules);
   await seedTeamAllocations(users, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
@@ -287,13 +287,14 @@ async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   await prisma.moduleLead.createMany({ data, skipDuplicates: true });
 }
 
-async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) {
+async function seedStudentEnrollments(enterpriseId: string, users: SeedUser[], modules: SeedModule[]) {
   // Enroll all students into all modules.
   const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || modules.length === 0) return;
 
   const data = students.flatMap((s) =>
     modules.map((m) => ({
+      enterpriseId,
       userId: s.id,
       moduleId: m.id,
     }))
