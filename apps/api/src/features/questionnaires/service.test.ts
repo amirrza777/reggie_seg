@@ -32,13 +32,14 @@ describe("QuestionnaireTemplate service", () => {
 
     const questions = [{ label: "Q1", type: "text" }];
 
-    const result = await createTemplate("Template A", questions, 10);
+    const result = await createTemplate("Template A", questions, 10, false);
 
     //Ensures arguments are passed correctly
     expect(repo.createQuestionnaireTemplate).toHaveBeenCalledWith(
       "Template A",
       questions,
-      10
+      10,
+      false
     );
 
     //ensures return value is passed through
@@ -52,9 +53,9 @@ describe("QuestionnaireTemplate service", () => {
       id: 5,
     });
 
-    const result = await getTemplate(5);
+    const result = await getTemplate(5, 12);
 
-    expect(repo.getQuestionnaireTemplateById).toHaveBeenCalledWith(5);
+    expect(repo.getQuestionnaireTemplateById).toHaveBeenCalledWith(5, 12);
     expect(result).toEqual({ id: 5 });
   });
 
@@ -65,9 +66,9 @@ describe("QuestionnaireTemplate service", () => {
       { id: 2 },
     ]);
 
-    const result = await getAllTemplates();
+    const result = await getAllTemplates(12);
 
-    expect(repo.getAllQuestionnaireTemplates).toHaveBeenCalled();
+    expect(repo.getAllQuestionnaireTemplates).toHaveBeenCalledWith(12);
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 
@@ -80,12 +81,13 @@ describe("QuestionnaireTemplate service", () => {
       { id: 1, label: "Updated", type: "text" },
     ];
 
-    await updateTemplate(10, "Updated Template", questions);
+    await updateTemplate(10, "Updated Template", questions, true);
 
     expect(repo.updateQuestionnaireTemplate).toHaveBeenCalledWith(
       10,
       "Updated Template",
-      questions
+      questions,
+      true
     );
   });
 

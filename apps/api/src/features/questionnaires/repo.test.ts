@@ -13,7 +13,7 @@ vi.mock("../../shared/db.js", () => ({
   prisma: {
     questionnaireTemplate: {
       create: vi.fn(),
-      findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       delete: vi.fn(),
     },
@@ -41,12 +41,13 @@ describe("QuestionnaireTemplate repository", () => {
       { label: "Q2", type: "number", configs: { min: 1 } },
     ];
 
-    await createQuestionnaireTemplate("Template A", questions, 10);
+    await createQuestionnaireTemplate("Template A", questions, 10, false);
 
     //ensures questions are mapped correctly with order and configs fallback
     expect(prisma.questionnaireTemplate.create).toHaveBeenCalledWith({
       data: {
         templateName: "Template A",
+        isPublic: false,
         ownerId: 10,
         questions: {
           create: [
@@ -62,8 +63,8 @@ describe("QuestionnaireTemplate repository", () => {
   it("fetches a template including ordered questions", async () => {
     await getQuestionnaireTemplateById(5);
 
-    expect(prisma.questionnaireTemplate.findUnique).toHaveBeenCalledWith({
-      where: { id: 5 },
+    expect(prisma.questionnaireTemplate.findFirst).toHaveBeenCalledWith({
+      where: { id: 5, isPublic: true },
       include: { questions: { orderBy: { order: "asc" } } },
     });
   });
@@ -73,6 +74,7 @@ describe("QuestionnaireTemplate repository", () => {
     await getAllQuestionnaireTemplates();
 
     expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
+      where: { isPublic: true },
       include: { questions: true },
     });
   });

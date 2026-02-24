@@ -12,7 +12,7 @@ type AccessPayload = { sub: number; email: string };
 function resolveUserId(req: AuthRequest): number | null {
   if (req.user?.sub) return req.user.sub;
 
-  const auth = req.headers.authorization || "";
+  const auth = req.headers?.authorization || "";
   const accessToken = auth.startsWith("Bearer ") ? auth.slice(7) : null;
   if (accessToken) {
     try {
@@ -34,7 +34,7 @@ function resolveUserId(req: AuthRequest): number | null {
 }
 
 export async function createTemplateHandler(req: AuthRequest, res: Response) {
-  const { templateName, questions } = req.body
+  const { templateName, questions, isPublic } = req.body
 
   if (!templateName || !Array.isArray(questions)) {
     return res.status(400).json({ error: "Invalid request body" })
@@ -43,22 +43,24 @@ export async function createTemplateHandler(req: AuthRequest, res: Response) {
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const template = await createTemplate(templateName, questions,  userId)
-    res.json({ ok: true, templateID: template.id , userId: userId})
+    const visibility = typeof isPublic === "boolean" ? isPublic : true;
+    const template = await createTemplate(templateName, questions, userId, visibility)
+    res.json({ ok: true, templateID: template.id, userId, isPublic: visibility })
   } catch (error) {
     console.error("Error creating questionnaire template:", error)
     res.status(500).json({ error: "Internal server error" })
   }
 }
 
-export async function getTemplateHandler(req: Request, res: Response) {
+export async function getTemplateHandler(req: AuthRequest, res: Response) {
   const id = Number(req.params.id)
 
   if (isNaN(id)) {
     return res.status(400).json({ error: "Invalid template ID" })
   }
 
-  const template = await getTemplate(id)
+  const requesterUserId = resolveUserId(req);
+  const template = await getTemplate(id, requesterUserId)
 
   if (!template) {
     return res.status(404).json({ error: "Template wasn't found" })
@@ -69,7 +71,8 @@ export async function getTemplateHandler(req: Request, res: Response) {
 
 export async function getAllTemplatesHandler(req: Request, res: Response){
   try {
-    const templates = await getAllTemplates();
+    const requesterUserId = resolveUserId(req as AuthRequest);
+    const templates = await getAllTemplates(requesterUserId);
     res.json(templates);
   } catch (error) {
     console.error(error);
@@ -79,9 +82,10 @@ export async function getAllTemplatesHandler(req: Request, res: Response){
 
 export async function updateTemplateHandler(req: Request, res: Response) {
   const templateId = Number(req.params.id);
-  const { templateName, questions } = req.body as {
+  const { templateName, questions, isPublic } = req.body as {
     templateName: string;
     questions: IncomingQuestion[];
+    isPublic?: boolean;
   };
 
   if (isNaN(templateId)) {
@@ -92,7 +96,7 @@ export async function updateTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    await updateTemplate(templateId, templateName, questions);
+    await updateTemplate(templateId, templateName, questions, isPublic);
     res.json({ ok: true });
   } catch (error: any) {
     if (error.code === "P2025") {

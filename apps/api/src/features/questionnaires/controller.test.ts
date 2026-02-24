@@ -68,7 +68,7 @@ describe("createTemplateHandler", () => {
     (service.createTemplate as any).mockResolvedValue({ id: 123 });
 
     const req: any = {
-      body: { templateName: "Test", questions: [] },
+      body: { templateName: "Test", questions: [], isPublic: false },
       user: { sub: 5 },
     };
     const res = mockResponse();
@@ -76,11 +76,12 @@ describe("createTemplateHandler", () => {
     await createTemplateHandler(req, res);
 
     //Should use req.user.sub
-    expect(service.createTemplate).toHaveBeenCalledWith("Test", [], 5);
+    expect(service.createTemplate).toHaveBeenCalledWith("Test", [], 5, false);
     expect(res.json).toHaveBeenCalledWith({
       ok: true,
       templateID: 123,
       userId: 5,
+      isPublic: false,
     });
   });
 
@@ -98,7 +99,7 @@ describe("createTemplateHandler", () => {
     await createTemplateHandler(req, res);
 
     //Tests extracting user from JWT
-    expect(service.createTemplate).toHaveBeenCalledWith("JWT", [], 9);
+    expect(service.createTemplate).toHaveBeenCalledWith("JWT", [], 9, true);
   });
 
   it("falls back to refresh token if access token fails", async () => {
@@ -118,7 +119,7 @@ describe("createTemplateHandler", () => {
     await createTemplateHandler(req, res);
 
     //should use refresh token
-    expect(service.createTemplate).toHaveBeenCalledWith("Refresh", [], 42);
+    expect(service.createTemplate).toHaveBeenCalledWith("Refresh", [], 42, true);
   });
 
   it("returns 401 if refresh token resolves without sub", async () => {
@@ -194,6 +195,7 @@ describe("getTemplateHandler", () => {
 
     await getTemplateHandler(req, res);
 
+    expect(service.getTemplate).toHaveBeenCalledWith(1, null);
     expect(res.json).toHaveBeenCalledWith({ id: 1 });
   });
 });
@@ -213,6 +215,7 @@ describe("getAllTemplatesHandler", () => {
 
     await getAllTemplatesHandler(req, res);
 
+    expect(service.getAllTemplates).toHaveBeenCalledWith(null);
     expect(res.json).toHaveBeenCalledWith([{ id: 1 }]);
   });
 
@@ -299,6 +302,7 @@ describe("updateTemplateHandler", () => {
 
     await updateTemplateHandler(req, res);
 
+    expect(service.updateTemplate).toHaveBeenCalledWith(1, "Updated", [], undefined);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 });

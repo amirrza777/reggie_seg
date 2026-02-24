@@ -5,11 +5,13 @@ import type { Question, IncomingQuestion } from "./types.js";
 export function createQuestionnaireTemplate(
   templateName: string,
   questions: any[],
-  userId: number
+  userId: number,
+  isPublic: boolean
 ) {
   return prisma.questionnaireTemplate.create({
     data: {
       templateName,
+      isPublic,
       questions: {
         create: questions.map((q, index) => ({
           label: q.label,
@@ -23,15 +25,20 @@ export function createQuestionnaireTemplate(
   })
 }
 
-export function getQuestionnaireTemplateById(id: number) {
-  return prisma.questionnaireTemplate.findUnique({
-    where: { id },
+export function getQuestionnaireTemplateById(id: number, requesterUserId?: number | null) {
+  return prisma.questionnaireTemplate.findFirst({
+    where: requesterUserId
+      ? { id, OR: [{ isPublic: true }, { ownerId: requesterUserId }] }
+      : { id, isPublic: true },
     include: { questions: { orderBy: { order: "asc" } } },
   })
 }
 
-export function getAllQuestionnaireTemplates() {
+export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findMany({
+    where: requesterUserId
+      ? { OR: [{ isPublic: true }, { ownerId: requesterUserId }] }
+      : { isPublic: true },
     include: { questions: true },
   });
 };
@@ -39,13 +46,14 @@ export function getAllQuestionnaireTemplates() {
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
-  questions: IncomingQuestion[]
+  questions: IncomingQuestion[],
+  isPublic?: boolean
 ) {
   //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
-      data: { templateName },
+      data: { templateName, ...(typeof isPublic === "boolean" ? { isPublic } : {}) },
     });
 
     const existingQuestions = await tx.question.findMany({

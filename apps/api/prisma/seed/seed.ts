@@ -181,9 +181,12 @@ async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
   
   const template = await prisma.questionnaireTemplate.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      isPublic: true,
+    },
     create: {
       templateName,
+      isPublic: true,
       ownerId: staffUser.id,
       questions: {
         create: [
