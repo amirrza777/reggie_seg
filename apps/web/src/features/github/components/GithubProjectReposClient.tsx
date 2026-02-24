@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Table } from "@/shared/ui/Table";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
@@ -71,7 +71,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
   const githubAppInstallUrl = process.env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL?.trim() || "";
   console.log("Using GitHub App install URL:", githubAppInstallUrl);
-  const [activeTab, setActiveTab] = useState<TabKey>("configurations");
+  const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +92,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
+  const didAutoSelectInitialTabRef = useRef(false);
 
   const numericProjectId = Number(projectId);
   const activeLinkCount = links.filter((link) => link.isActive).length;
@@ -258,6 +259,21 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   useEffect(() => {
     void load();
   }, [projectId]);
+
+  useEffect(() => {
+    didAutoSelectInitialTabRef.current = false;
+    setActiveTab(null);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (loading || didAutoSelectInitialTabRef.current) {
+      return;
+    }
+
+    const shouldOpenConfigurations = !connection?.connected || needsGithubAppInstall;
+    setActiveTab(shouldOpenConfigurations ? "configurations" : "repositories");
+    didAutoSelectInitialTabRef.current = true;
+  }, [loading, connection?.connected, needsGithubAppInstall]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
