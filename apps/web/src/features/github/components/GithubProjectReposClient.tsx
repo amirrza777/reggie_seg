@@ -55,7 +55,18 @@ const styles = {
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
+  const tabs = [
+    { key: "graphs", label: "Graphs" },
+    { key: "commits", label: "Commits" },
+    { key: "stats", label: "Stats" },
+    { key: "configurations", label: "Configurations" },
+  ] as const;
+
+  type TabKey = (typeof tabs)[number]["key"];
+
   const githubAppInstallUrl = process.env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL?.trim() || "";
+  console.log("Using GitHub App install URL:", githubAppInstallUrl);
+  const [activeTab, setActiveTab] = useState<TabKey>("configurations");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -273,94 +284,139 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         linkedRepoCount={activeLinkCount}
         loading={loading}
       />
-      <section style={styles.panel}>
-        <div style={styles.row}>
-          <div className="stack" style={{ gap: 4 }}>
-            <strong>GitHub account</strong>
-            {loading ? (
-              <p className="muted">Loading connection...</p>
-            ) : connection?.connected ? (
-              <p className="muted">Connected as @{connection.account?.login}</p>
-            ) : (
-              <p className="muted">No GitHub account connected.</p>
-            )}
-          </div>
-          {connection?.connected ? (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {needsGithubAppInstall ? (
-                <Button variant="ghost" onClick={handleOpenGithubAppInstall} disabled={busy || loading}>
-                  Install GitHub App
+      <section style={{ ...styles.panel, padding: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {tabs.map((tab) => (
+            <Button
+              key={tab.key}
+              variant={activeTab === tab.key ? "primary" : "ghost"}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      {activeTab === "graphs" ? (
+        <section style={styles.panel}>
+          <strong>Graphs</strong>
+          <p className="muted" style={styles.list}>
+            Graphs view coming soon.
+          </p>
+        </section>
+      ) : null}
+
+      {activeTab === "commits" ? (
+        <section style={styles.panel}>
+          <strong>Commits</strong>
+          <p className="muted" style={styles.list}>
+            Commits view coming soon.
+          </p>
+        </section>
+      ) : null}
+
+      {activeTab === "stats" ? (
+        <section style={styles.panel}>
+          <strong>Stats</strong>
+          <p className="muted" style={styles.list}>
+            Stats view coming soon.
+          </p>
+        </section>
+      ) : null}
+
+      {activeTab === "configurations" ? (
+        <>
+          <section style={styles.panel}>
+            <div style={styles.row}>
+              <div className="stack" style={{ gap: 4 }}>
+                <strong>GitHub account</strong>
+                {loading ? (
+                  <p className="muted">Loading connection...</p>
+                ) : connection?.connected ? (
+                  <p className="muted">Connected as @{connection.account?.login}</p>
+                ) : (
+                  <p className="muted">No GitHub account connected.</p>
+                )}
+              </div>
+              {connection?.connected ? (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {needsGithubAppInstall ? (
+                    <Button variant="ghost" onClick={handleOpenGithubAppInstall} disabled={busy || loading}>
+                      Install GitHub App
+                    </Button>
+                  ) : null}
+                  <Button variant="ghost" onClick={handleDisconnect} disabled={busy || loading}>
+                    Disconnect
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={handleConnect} disabled={busy || loading}>
+                  Connect GitHub
                 </Button>
-              ) : null}
-              <Button variant="ghost" onClick={handleDisconnect} disabled={busy || loading}>
-                Disconnect
+              )}
+            </div>
+          </section>
+          <section style={styles.panel}>
+            <div style={styles.row}>
+              <strong>Linked repositories</strong>
+              <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
+                {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
               </Button>
             </div>
-          ) : (
-            <Button onClick={handleConnect} disabled={busy || loading}>
-              Connect GitHub
-            </Button>
-          )}
-        </div>
-      </section>
-      <section style={styles.panel}>
-        <div style={styles.row}>
-          <strong>Linked repositories</strong>
-          <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
-            {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
-          </Button>
-        </div>
-        <div style={styles.list}>
-          {connection?.connected && links.length === 0 ? (
-            <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
-              <label className="muted" htmlFor="github-repo-select">
-                Select repository to link
-              </label>
-              <select
-                id="github-repo-select"
-                style={styles.select}
-                value={selectedRepoId}
-                onChange={(e) => setSelectedRepoId(e.target.value)}
-                disabled={loading || busy || availableRepos.length === 0}
-              >
-                {availableRepos.length === 0 ? (
-                  <option value="">No accessible repositories found</option>
-                ) : null}
-                {availableRepos.map((repo) => (
-                  <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
-                    {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
-                  </option>
+            <div style={styles.list}>
+              {connection?.connected && links.length === 0 ? (
+                <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
+                  <label className="muted" htmlFor="github-repo-select">
+                    Select repository to link
+                  </label>
+                  <select
+                    id="github-repo-select"
+                    style={styles.select}
+                    value={selectedRepoId}
+                    onChange={(e) => setSelectedRepoId(e.target.value)}
+                    disabled={loading || busy || availableRepos.length === 0}
+                  >
+                    {availableRepos.length === 0 ? (
+                      <option value="">No accessible repositories found</option>
+                    ) : null}
+                    {availableRepos.map((repo) => (
+                      <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
+                        {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
+                      </option>
+                    ))}
+                  </select>
+                  <div>
+                    <Button
+                      onClick={handleLinkSelectedRepo}
+                      disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
+                    >
+                      {linking ? "Linking and analysing..." : "Link selected repository"}
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+              {connection?.connected && links.length > 0 ? <p className="muted">This project already has a linked repository. Remove it before linking another one.</p> : null}
+              {loading ? <p className="muted">Loading repositories...</p> : null}
+              {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
+              {!loading &&
+                links.map((link) => (
+                  <GithubRepoLinkCard
+                    key={link.id}
+                    link={link}
+                    coverage={coverageByLinkId[link.id] ?? null}
+                    snapshot={latestSnapshotByLinkId[link.id] ?? null}
+                    currentGithubLogin={connection?.account?.login ?? null}
+                    busy={busy}
+                    loading={loading}
+                    removingLinkId={removingLinkId}
+                    onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
+                  />
                 ))}
-              </select>
-              <div>
-                <Button
-                  onClick={handleLinkSelectedRepo}
-                  disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
-                >
-                  {linking ? "Linking and analysing..." : "Link selected repository"}
-                </Button>
-              </div>
             </div>
-          ) : null}
-          {connection?.connected && links.length > 0 ? <p className="muted">This project already has a linked repository. Remove it before linking another one.</p> : null}
-          {loading ? <p className="muted">Loading repositories...</p> : null}
-          {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
-          {!loading &&
-            links.map((link) => (
-              <GithubRepoLinkCard
-                key={link.id}
-                link={link}
-                coverage={coverageByLinkId[link.id] ?? null}
-                snapshot={latestSnapshotByLinkId[link.id] ?? null}
-                currentGithubLogin={connection?.account?.login ?? null}
-                busy={busy}
-                loading={loading}
-                removingLinkId={removingLinkId}
-                onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
-              />
-            ))}
-        </div>
-      </section>
+          </section>
+        </>
+      ) : null}
 
       {info ? <p className="muted">{info}</p> : null}
       {error ? <p className="muted">{error}</p> : null}

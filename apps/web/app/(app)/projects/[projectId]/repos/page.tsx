@@ -11,11 +11,6 @@ export default async function ProjectReposPage({ params }: ProjectPageProps) {
   return (
     <div className="stack">
       <ProjectNav projectId={projectId} />
-      <Placeholder
-        title="Repos"
-        path={`/projects/${projectId}/repos`}
-        description="Connect your GitHub account and view repositories linked to this project."
-      />
       <GithubProjectReposClient projectId={projectId} />
     </div>
   );
