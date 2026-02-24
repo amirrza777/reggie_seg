@@ -75,6 +75,12 @@ export async function getLatestProjectGithubSnapshot(linkId: number): Promise<Gi
   return apiFetch<GithubLatestSnapshot>(`/github/project-repos/${linkId}/latest-snapshot`);
 }
 
+export async function analyseProjectGithubRepo(linkId: number) {
+  return apiFetch<{ snapshot: { id: number; analysedAt: string } }>(`/github/project-repos/${linkId}/analyse`, {
+    method: "POST",
+  });
+}
+
 export async function getProjectGithubMappingCoverage(linkId: number): Promise<GithubMappingCoverage> {
   const response = await apiFetch<{ mappingCoverage: GithubMappingCoverage }>(
     `/github/project-repos/${linkId}/mapping-coverage`

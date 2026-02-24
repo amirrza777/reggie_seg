@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import {
+  analyseProjectGithubRepo,
   disconnectGithubAccount,
   getGithubConnectUrl,
   getGithubConnectionStatus,
@@ -25,7 +26,6 @@ import type {
 type GithubProjectReposClientProps = {
   projectId: string;
 };
-
 const styles = {
   panel: {
     border: "1px solid var(--border)",
@@ -42,13 +42,6 @@ const styles = {
     flexWrap: "wrap",
   } as React.CSSProperties,
   list: { marginTop: 10 } as React.CSSProperties,
-  listItem: {
-    padding: "10px 12px",
-    border: "1px solid var(--border)",
-    borderRadius: 10,
-    background: "var(--glass-surface)",
-    marginBottom: 8,
-  } as React.CSSProperties,
   select: {
     width: "100%",
     minHeight: 40,
@@ -277,6 +270,22 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }
   }
 
+  async function handleRefreshSnapshots() {
+    setBusy(true);
+    setError(null);
+    setInfo(null);
+    try {
+      if (links.length > 0) {
+        await Promise.all(links.map((link) => analyseProjectGithubRepo(link.id)));
+        setInfo("Repository snapshot refreshed.");
+      }
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to refresh repository snapshot.");
+    } finally {
+      setBusy(false);
+    }
+  }
   return (
     <div className="stack" style={{ gap: 16 }}>
       <section style={styles.hero}>
@@ -295,7 +304,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           <span style={styles.chip}>Snapshots are stored immutably</span>
         </div>
       </section>
-
       <section style={styles.panel}>
         <div style={styles.row}>
           <div className="stack" style={{ gap: 4 }}>
@@ -326,12 +334,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           )}
         </div>
       </section>
-
       <section style={styles.panel}>
         <div style={styles.row}>
           <strong>Linked repositories</strong>
-          <Button variant="ghost" onClick={() => void load()} disabled={loading || busy}>
-            Refresh
+          <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
+            {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
         <div style={styles.list}>
@@ -366,9 +373,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
               </div>
             </div>
           ) : null}
-          {connection?.connected && links.length > 0 ? (
-            <p className="muted">This project already has a linked repository. Remove it before linking another one.</p>
-          ) : null}
+          {connection?.connected && links.length > 0 ? <p className="muted">This project already has a linked repository. Remove it before linking another one.</p> : null}
           {loading ? <p className="muted">Loading repositories...</p> : null}
           {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
           {!loading &&
