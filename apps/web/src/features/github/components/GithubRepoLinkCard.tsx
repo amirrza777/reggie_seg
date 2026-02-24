@@ -107,6 +107,19 @@ const styles = {
     paddingTop: 4,
     borderTop: "1px solid var(--border)",
   } as React.CSSProperties,
+  overviewSection: {
+    marginTop: 12,
+    paddingTop: 4,
+    borderTop: "1px solid var(--border)",
+  } as React.CSSProperties,
+  sectionLabel: {
+    marginTop: 2,
+    marginBottom: 4,
+    color: "var(--muted)",
+    fontSize: 12,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  } as React.CSSProperties,
   chartGrid: {
     display: "grid",
     gridTemplateColumns: "repeat(12, minmax(0, 1fr))",
@@ -260,34 +273,37 @@ export function GithubRepoLinkCard({
         </div>
       </div>
 
-      <div style={styles.statGrid}>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>Default branch commits</div>
-          <div style={styles.statValue}>{defaultCommitCount}</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>Default additions / deletions</div>
-          <div style={styles.statValue}>
-            {defaultAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {defaultDeletionCount}</span>
+      <section style={styles.overviewSection} aria-label="Repository overview">
+        <p style={styles.sectionLabel}>Overview</p>
+        <div style={styles.statGrid}>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>Default branch commits</div>
+            <div style={styles.statValue}>{defaultCommitCount}</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>Default additions / deletions</div>
+            <div style={styles.statValue}>
+              {defaultAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {defaultDeletionCount}</span>
+            </div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>All-branches commits</div>
+            <div style={styles.statValue}>{allCommitCount}</div>
+          </div>
+          <div style={styles.statCard}>
+            <div style={styles.statLabel}>All additions / deletions</div>
+            <div style={styles.statValue}>
+              {allAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {allDeletionCount}</span>
+            </div>
           </div>
         </div>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>All-branches commits</div>
-          <div style={styles.statValue}>{allCommitCount}</div>
-        </div>
-        <div style={styles.statCard}>
-          <div style={styles.statLabel}>All additions / deletions</div>
-          <div style={styles.statValue}>
-            {allAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {allDeletionCount}</span>
-          </div>
-        </div>
-      </div>
+      </section>
       {chartSeries.length > 0 ||
       lineChangesByDaySeries.length > 0 ||
       commitShareSeries.length > 0 ||
       coverageShareSeries.length > 0 ? (
         <section style={styles.chartSection} aria-label="Repository charts">
-          <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
+          <p style={styles.sectionLabel}>Charts</p>
           <div style={styles.chartGrid}>
           {chartSeries.length > 0 ? (
             <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
