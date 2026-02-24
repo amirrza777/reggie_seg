@@ -8,6 +8,7 @@ import {
   getLatestProjectGithubRepoSnapshotHandler,
   getGithubSnapshotHandler,
   getProjectGithubMappingCoverageHandler,
+  listLiveProjectGithubRepoBranchCommitsHandler,
   listLiveProjectGithubRepoBranchesHandler,
   githubCallbackHandler,
   linkGithubProjectRepoHandler,
@@ -33,6 +34,7 @@ router.get("/project-repos/:linkId/snapshots", requireAuth, listProjectGithubRep
 router.get("/project-repos/:linkId/latest-snapshot", requireAuth, getLatestProjectGithubRepoSnapshotHandler);
 router.get("/project-repos/:linkId/mapping-coverage", requireAuth, getProjectGithubMappingCoverageHandler);
 router.get("/project-repos/:linkId/branches", requireAuth, listLiveProjectGithubRepoBranchesHandler);
+router.get("/project-repos/:linkId/branch-commits", requireAuth, listLiveProjectGithubRepoBranchCommitsHandler);
 router.patch("/project-repos/:linkId/sync-settings", requireAuth, updateProjectGithubSyncSettingsHandler);
 router.get("/snapshots/:snapshotId", requireAuth, getGithubSnapshotHandler);
 

@@ -2,6 +2,7 @@ import { apiFetch } from "@/shared/api/http";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   GithubRepositoryOption,
@@ -91,6 +92,15 @@ export async function getProjectGithubMappingCoverage(linkId: number): Promise<G
 
 export async function listLiveProjectGithubRepoBranches(linkId: number): Promise<GithubLiveProjectRepoBranches> {
   return apiFetch<GithubLiveProjectRepoBranches>(`/github/project-repos/${linkId}/branches`);
+}
+
+export async function listLiveProjectGithubRepoBranchCommits(
+  linkId: number,
+  branch: string,
+  limit = 10
+): Promise<GithubLiveProjectRepoBranchCommits> {
+  const query = new URLSearchParams({ branch, limit: String(limit) }).toString();
+  return apiFetch<GithubLiveProjectRepoBranchCommits>(`/github/project-repos/${linkId}/branch-commits?${query}`);
 }
 
 export async function disconnectGithubAccount() {

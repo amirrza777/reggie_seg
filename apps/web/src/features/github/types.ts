@@ -137,3 +137,24 @@ export type GithubLiveProjectRepoBranches = {
     compareStatus: string | null;
   }>;
 };
+
+export type GithubLiveProjectRepoBranchCommits = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  branch: string;
+  commits: Array<{
+    sha: string;
+    message: string;
+    date: string | null;
+    authorLogin: string | null;
+    authorEmail: string | null;
+    additions: number | null;
+    deletions: number | null;
+    htmlUrl: string;
+  }>;
+};

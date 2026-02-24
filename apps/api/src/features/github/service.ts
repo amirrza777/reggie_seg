@@ -259,6 +259,7 @@ export async function listProjectGithubRepositories(userId: number, projectId: n
 type GithubCommitListItem = {
   sha: string;
   commit: {
+    message?: string;
     author: {
       date: string;
       email: string | null;
@@ -367,6 +368,41 @@ async function fetchCommitsForLinkedRepository(accessToken: string, fullName: st
   }
 
   return commits;
+}
+
+async function fetchRecentCommitsForBranch(
+  accessToken: string,
+  fullName: string,
+  branch: string,
+  limit: number
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const safeLimit = Math.max(1, Math.min(50, limit));
+  const response = await fetch(
+    `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=${safeLimit}&page=1`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new GithubServiceError(404, "Linked GitHub repository or branch was not found");
+    }
+    if (response.status === 409) {
+      return [];
+    }
+    if (response.status === 401) {
+      throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+    }
+    throw new GithubServiceError(502, "Failed to fetch branch commits");
+  }
+
+  return (await response.json()) as GithubCommitListItem[];
 }
 
 async function listRepositoryBranches(accessToken: string, fullName: string) {
@@ -1231,6 +1267,61 @@ export async function listLiveProjectGithubRepositoryBranches(userId: number, li
       htmlUrl: link.repository.htmlUrl,
     },
     branches,
+  };
+}
+
+export async function listLiveProjectGithubRepositoryBranchCommits(
+  userId: number,
+  linkId: number,
+  branchName: string,
+  limit = 10
+) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+
+  const accessToken = await getValidGithubAccessToken(account);
+  const safeLimit = Math.max(1, Math.min(10, limit));
+  const commits = await fetchRecentCommitsForBranch(accessToken, link.repository.fullName, branchName, safeLimit);
+  const commitStatsBySha = await fetchCommitStatsForRepository(
+    accessToken,
+    link.repository.fullName,
+    commits.map((commit) => commit.sha)
+  );
+
+  return {
+    linkId: link.id,
+    repository: {
+      id: link.repository.id,
+      fullName: link.repository.fullName,
+      defaultBranch: link.repository.defaultBranch || "main",
+      htmlUrl: link.repository.htmlUrl,
+    },
+    branch: branchName,
+    commits: commits.map((commit) => {
+      const stats = commitStatsBySha.get(commit.sha);
+      return {
+        sha: commit.sha,
+        message: commit.commit.message || "",
+        date: commit.commit.author?.date || null,
+        authorLogin: commit.author?.login || null,
+        authorEmail: commit.commit.author?.email || null,
+        additions: stats?.additions ?? null,
+        deletions: stats?.deletions ?? null,
+        htmlUrl: `${link.repository.htmlUrl}/commit/${commit.sha}`,
+      };
+    }),
   };
 }
 

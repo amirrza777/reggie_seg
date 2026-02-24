@@ -13,6 +13,7 @@ import {
   getLatestProjectGithubSnapshot,
   getProjectGithubMappingCoverage,
   linkGithubRepositoryToProject,
+  listLiveProjectGithubRepoBranchCommits,
   listLiveProjectGithubRepoBranches,
   listGithubRepositories,
   listProjectGithubRepoLinks,
@@ -21,6 +22,7 @@ import {
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   GithubRepositoryOption,
@@ -82,6 +84,10 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [liveBranchesLoadingByLinkId, setLiveBranchesLoadingByLinkId] = useState<Record<number, boolean>>({});
   const [liveBranchesErrorByLinkId, setLiveBranchesErrorByLinkId] = useState<Record<number, string | null>>({});
   const [liveBranchesRefreshing, setLiveBranchesRefreshing] = useState(false);
+  const [selectedBranchByLinkId, setSelectedBranchByLinkId] = useState<Record<number, string>>({});
+  const [branchCommitsByLinkId, setBranchCommitsByLinkId] = useState<Record<number, GithubLiveProjectRepoBranchCommits | null>>({});
+  const [branchCommitsLoadingByLinkId, setBranchCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
+  const [branchCommitsErrorByLinkId, setBranchCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
   const [removingLinkId, setRemovingLinkId] = useState<number | null>(null);
   const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
@@ -143,6 +149,13 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         try {
           const data = await listLiveProjectGithubRepoBranches(linkId);
           setLiveBranchesByLinkId((prev) => ({ ...prev, [linkId]: data }));
+          setSelectedBranchByLinkId((prev) => {
+            if (prev[linkId]) {
+              return prev;
+            }
+            const defaultBranch = data.branches.find((branch) => branch.isDefault)?.name || data.branches[0]?.name || "";
+            return defaultBranch ? { ...prev, [linkId]: defaultBranch } : prev;
+          });
         } catch (err) {
           const message = err instanceof Error ? err.message : "Failed to load live branches.";
           setLiveBranchesErrorByLinkId((prev) => ({ ...prev, [linkId]: message }));
@@ -160,6 +173,23 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       links.map((link) => link.id),
       { force: true }
     );
+  }
+
+  async function fetchBranchCommits(linkId: number, branchName: string) {
+    if (!branchName) {
+      return;
+    }
+    setBranchCommitsLoadingByLinkId((prev) => ({ ...prev, [linkId]: true }));
+    setBranchCommitsErrorByLinkId((prev) => ({ ...prev, [linkId]: null }));
+    try {
+      const data = await listLiveProjectGithubRepoBranchCommits(linkId, branchName, 10);
+      setBranchCommitsByLinkId((prev) => ({ ...prev, [linkId]: data }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load branch commits.";
+      setBranchCommitsErrorByLinkId((prev) => ({ ...prev, [linkId]: message }));
+    } finally {
+      setBranchCommitsLoadingByLinkId((prev) => ({ ...prev, [linkId]: false }));
+    }
   }
 
   async function load() {
@@ -259,6 +289,26 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }
     void fetchLiveBranchesForLinks(links.map((link) => link.id));
   }, [activeTab, loading, links]);
+
+  useEffect(() => {
+    if (activeTab !== "branches" || loading || links.length === 0) {
+      return;
+    }
+    for (const link of links) {
+      const selectedBranch = selectedBranchByLinkId[link.id];
+      if (!selectedBranch) {
+        continue;
+      }
+      const currentCommitData = branchCommitsByLinkId[link.id];
+      if (currentCommitData?.branch === selectedBranch) {
+        continue;
+      }
+      if (branchCommitsLoadingByLinkId[link.id]) {
+        continue;
+      }
+      void fetchBranchCommits(link.id, selectedBranch);
+    }
+  }, [activeTab, loading, links, selectedBranchByLinkId]);
 
   async function handleConnect() {
     setBusy(true);
@@ -501,6 +551,52 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                             rows={rows}
                           />
                         </div>
+                        <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+                          <label className="muted" htmlFor={`branch-commit-select-${link.id}`}>
+                            Select branch to view 10 most recent commits
+                          </label>
+                          <select
+                            id={`branch-commit-select-${link.id}`}
+                            style={styles.select}
+                            value={selectedBranchByLinkId[link.id] || ""}
+                            onChange={(e) => {
+                              const nextBranch = e.target.value;
+                              setSelectedBranchByLinkId((prev) => ({ ...prev, [link.id]: nextBranch }));
+                              void fetchBranchCommits(link.id, nextBranch);
+                            }}
+                            disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
+                          >
+                            {(liveBranchesByLinkId[link.id]?.branches || []).map((branch) => (
+                              <option key={branch.name} value={branch.name}>
+                                {branch.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        {branchCommitsLoadingByLinkId[link.id] ? (
+                          <p className="muted" style={{ marginTop: 10 }}>
+                            Loading recent commits...
+                          </p>
+                        ) : null}
+                        {branchCommitsErrorByLinkId[link.id] ? (
+                          <p className="muted" style={{ marginTop: 10 }}>
+                            Failed to load branch commits: {branchCommitsErrorByLinkId[link.id]}
+                          </p>
+                        ) : null}
+                        {branchCommitsByLinkId[link.id]?.commits?.length ? (
+                          <div style={{ marginTop: 10 }}>
+                            <Table
+                              headers={["Message", "Author", "Date", "Additions", "Deletions"]}
+                              rows={branchCommitsByLinkId[link.id]!.commits.map((commit) => [
+                                commit.message || "(no message)",
+                                commit.authorLogin || commit.authorEmail || "unknown",
+                                commit.date ? new Date(commit.date).toLocaleString() : "-",
+                                commit.additions ?? "-",
+                                commit.deletions ?? "-",
+                              ])}
+                            />
+                          </div>
+                        ) : null}
                       </>
                     ) : null}
                   </div>
