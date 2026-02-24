@@ -223,6 +223,25 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
           </div>
         ) : null}
 
+        {lineChangesByDaySeries.length > 0 ? (
+          <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
+            <p className="muted" style={{ marginBottom: 6 }}>Daily net line change</p>
+            <div style={{ width: "100%", height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
+                  <YAxis tick={{ fill: "var(--muted)" }} />
+                  <Tooltip
+                    contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
+                  />
+                  <Line type="monotone" dataKey="net" name="Net change" stroke="#5ab0ff" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : null}
+
         {commitShareSeries.length > 0 ? (
           <GithubDonutChartCard
             title="Commit share (you vs rest)"
