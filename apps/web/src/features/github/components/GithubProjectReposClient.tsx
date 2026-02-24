@@ -61,6 +61,7 @@ const styles = {
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
+  const githubAppInstallUrl = process.env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL?.trim() || "";
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +76,10 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
   const numericProjectId = Number(projectId);
+  const needsGithubAppInstall =
+    connection?.connected &&
+    typeof error === "string" &&
+    error.toLowerCase().includes("not installed on any account or organization");
 
   async function load() {
     if (Number.isNaN(numericProjectId)) {
@@ -193,6 +198,14 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }
   }
 
+  function handleOpenGithubAppInstall() {
+    if (!githubAppInstallUrl) {
+      setError("GitHub App install URL is not configured.");
+      return;
+    }
+    window.open(githubAppInstallUrl, "_blank", "noopener,noreferrer");
+  }
+
   async function handleLinkSelectedRepo() {
     if (Number.isNaN(numericProjectId)) return;
     const chosen = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
@@ -256,15 +269,27 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
             )}
           </div>
           {connection?.connected ? (
-            <Button variant="ghost" onClick={handleDisconnect} disabled={busy || loading}>
-              Disconnect
-            </Button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {needsGithubAppInstall ? (
+                <Button variant="ghost" onClick={handleOpenGithubAppInstall} disabled={busy || loading}>
+                  Install GitHub App
+                </Button>
+              ) : null}
+              <Button variant="ghost" onClick={handleDisconnect} disabled={busy || loading}>
+                Disconnect
+              </Button>
+            </div>
           ) : (
             <Button onClick={handleConnect} disabled={busy || loading}>
               Connect GitHub
             </Button>
           )}
         </div>
+        {connection?.connected && !githubAppInstallUrl ? (
+          <p className="muted" style={{ marginTop: 8 }}>
+            Set <code>NEXT_PUBLIC_GITHUB_APP_INSTALL_URL</code> to enable a one-click GitHub App install button.
+          </p>
+        ) : null}
       </section>
 
       <section style={styles.panel}>
