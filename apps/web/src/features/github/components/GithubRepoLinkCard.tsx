@@ -5,9 +5,12 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Legend,
   Line,
   LineChart,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -119,6 +122,32 @@ function buildLineChangeComparisonSeries(snapshot: GithubLatestSnapshot["snapsho
   return rows;
 }
 
+function buildCommitShareSeries(
+  snapshot: GithubLatestSnapshot["snapshot"] | null | undefined,
+  currentGithubLogin: string | null
+) {
+  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
+  if (!totalCommits || !currentGithubLogin || !snapshot?.userStats?.length) {
+    return [];
+  }
+
+  const normalizedLogin = currentGithubLogin.trim().toLowerCase();
+  const personalStat = snapshot.userStats.find(
+    (stat) => stat.githubLogin?.trim().toLowerCase() === normalizedLogin
+  );
+  const personalCommits = Math.max(0, Number(personalStat?.commits ?? 0));
+  const restCommits = Math.max(0, totalCommits - personalCommits);
+
+  if (personalCommits === 0 && restCommits === 0) {
+    return [];
+  }
+
+  return [
+    { name: "Your commits", value: personalCommits, fill: "var(--accent-warm)" },
+    { name: "Rest", value: restCommits, fill: "var(--border-strong, #9ca3af)" },
+  ];
+}
+
 export function GithubRepoLinkCard({
   link,
   coverage,
@@ -136,6 +165,7 @@ export function GithubRepoLinkCard({
   const personalByDay = getPersonalCommitsByDay(snapshot, currentGithubLogin);
   const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
   const lineChangeComparisonSeries = buildLineChangeComparisonSeries(snapshot);
+  const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
 
   return (
     <div key={link.id} style={styles.listItem}>
@@ -224,6 +254,39 @@ export function GithubRepoLinkCard({
                 <Bar dataKey="additions" name="Additions" fill="var(--accent)" radius={[6, 6, 0, 0]} />
                 <Bar dataKey="deletions" name="Deletions" fill="var(--accent-warm)" radius={[6, 6, 0, 0]} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      ) : null}
+      {commitShareSeries.length > 0 ? (
+        <div style={styles.chartWrap}>
+          <p className="muted" style={{ marginBottom: 6 }}>Commit share (you vs rest)</p>
+          <div style={{ width: "100%", height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={commitShareSeries}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={48}
+                  outerRadius={76}
+                  paddingAngle={2}
+                >
+                  {commitShareSeries.map((entry) => (
+                    <Cell key={entry.name} fill={entry.fill} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--surface)",
+                    border: "1px solid var(--border)",
+                    borderRadius: 8,
+                  }}
+                />
+                <Legend />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
