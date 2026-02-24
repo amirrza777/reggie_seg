@@ -56,9 +56,9 @@ const styles = {
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
   const tabs = [
-    { key: "graphs", label: "Graphs" },
-    { key: "commits", label: "Commits" },
-    { key: "stats", label: "Stats" },
+    { key: "repositories", label: "Repositories" },
+    { key: "my-commits", label: "My commits" },
+    { key: "branches", label: "Branches" },
     { key: "configurations", label: "Configurations" },
   ] as const;
 
@@ -298,29 +298,81 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         </div>
       </section>
 
-      {activeTab === "graphs" ? (
+      {activeTab === "repositories" ? (
         <section style={styles.panel}>
-          <strong>Graphs</strong>
+          <div style={styles.row}>
+            <strong>Linked repositories</strong>
+            <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
+              {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+          <div style={styles.list}>
+            {connection?.connected && links.length === 0 ? (
+              <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
+                <label className="muted" htmlFor="github-repo-select">
+                  Select repository to link
+                </label>
+                <select
+                  id="github-repo-select"
+                  style={styles.select}
+                  value={selectedRepoId}
+                  onChange={(e) => setSelectedRepoId(e.target.value)}
+                  disabled={loading || busy || availableRepos.length === 0}
+                >
+                  {availableRepos.length === 0 ? (
+                    <option value="">No accessible repositories found</option>
+                  ) : null}
+                  {availableRepos.map((repo) => (
+                    <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
+                      {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
+                    </option>
+                  ))}
+                </select>
+                <div>
+                  <Button
+                    onClick={handleLinkSelectedRepo}
+                    disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
+                  >
+                    {linking ? "Linking and analysing..." : "Link selected repository"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            {connection?.connected && links.length > 0 ? <p className="muted">This project already has a linked repository. Remove it before linking another one.</p> : null}
+            {loading ? <p className="muted">Loading repositories...</p> : null}
+            {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
+            {!loading &&
+              links.map((link) => (
+                <GithubRepoLinkCard
+                  key={link.id}
+                  link={link}
+                  coverage={coverageByLinkId[link.id] ?? null}
+                  snapshot={latestSnapshotByLinkId[link.id] ?? null}
+                  currentGithubLogin={connection?.account?.login ?? null}
+                  busy={busy}
+                  loading={loading}
+                  removingLinkId={removingLinkId}
+                  onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
+                />
+              ))}
+          </div>
+        </section>
+      ) : null}
+
+      {activeTab === "my-commits" ? (
+        <section style={styles.panel}>
+          <strong>My commits</strong>
           <p className="muted" style={styles.list}>
-            Graphs view coming soon.
+            My commits view coming soon.
           </p>
         </section>
       ) : null}
 
-      {activeTab === "commits" ? (
+      {activeTab === "branches" ? (
         <section style={styles.panel}>
-          <strong>Commits</strong>
+          <strong>Branches</strong>
           <p className="muted" style={styles.list}>
-            Commits view coming soon.
-          </p>
-        </section>
-      ) : null}
-
-      {activeTab === "stats" ? (
-        <section style={styles.panel}>
-          <strong>Stats</strong>
-          <p className="muted" style={styles.list}>
-            Stats view coming soon.
+            Branches view coming soon.
           </p>
         </section>
       ) : null}
@@ -355,64 +407,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                   Connect GitHub
                 </Button>
               )}
-            </div>
-          </section>
-          <section style={styles.panel}>
-            <div style={styles.row}>
-              <strong>Linked repositories</strong>
-              <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
-                {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
-              </Button>
-            </div>
-            <div style={styles.list}>
-              {connection?.connected && links.length === 0 ? (
-                <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
-                  <label className="muted" htmlFor="github-repo-select">
-                    Select repository to link
-                  </label>
-                  <select
-                    id="github-repo-select"
-                    style={styles.select}
-                    value={selectedRepoId}
-                    onChange={(e) => setSelectedRepoId(e.target.value)}
-                    disabled={loading || busy || availableRepos.length === 0}
-                  >
-                    {availableRepos.length === 0 ? (
-                      <option value="">No accessible repositories found</option>
-                    ) : null}
-                    {availableRepos.map((repo) => (
-                      <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
-                        {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
-                      </option>
-                    ))}
-                  </select>
-                  <div>
-                    <Button
-                      onClick={handleLinkSelectedRepo}
-                      disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
-                    >
-                      {linking ? "Linking and analysing..." : "Link selected repository"}
-                    </Button>
-                  </div>
-                </div>
-              ) : null}
-              {connection?.connected && links.length > 0 ? <p className="muted">This project already has a linked repository. Remove it before linking another one.</p> : null}
-              {loading ? <p className="muted">Loading repositories...</p> : null}
-              {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
-              {!loading &&
-                links.map((link) => (
-                  <GithubRepoLinkCard
-                    key={link.id}
-                    link={link}
-                    coverage={coverageByLinkId[link.id] ?? null}
-                    snapshot={latestSnapshotByLinkId[link.id] ?? null}
-                    currentGithubLogin={connection?.account?.login ?? null}
-                    busy={busy}
-                    loading={loading}
-                    removingLinkId={removingLinkId}
-                    onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
-                  />
-                ))}
             </div>
           </section>
         </>
