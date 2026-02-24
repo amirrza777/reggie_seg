@@ -41,7 +41,7 @@ describe("QuestionnaireTemplate controller", () => {
         templateName: "Template A",
         questions: [{ label: "Q1", type: "text" }],
       },
-      user: { id: 10 },
+      user: { sub: 10 },
     };
 
     const res = createMockRes();
@@ -62,25 +62,22 @@ describe("QuestionnaireTemplate controller", () => {
     });
   });
 
-  it("defaults userId to 1 if req.user is missing", async () => {
-    (service.createTemplate as any).mockResolvedValue({ id: 3 });
-
+  it("returns 401 if no authenticated user can be resolved", async () => {
     const req: any = {
       body: {
         templateName: "Template A",
         questions: [],
       },
+      headers: {},
+      cookies: {},
     };
 
     const res = createMockRes();
 
     await createTemplateHandler(req, res);
 
-    expect(service.createTemplate).toHaveBeenCalledWith(
-      "Template A",
-      [],
-      1
-    );
+    expect(service.createTemplate).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it("returns 400 if request body is invalid", async () => {
@@ -100,7 +97,7 @@ describe("QuestionnaireTemplate controller", () => {
 
     const req: any = {
       body: { templateName: "A", questions: [] },
-      user: { id: 1 },
+      user: { sub: 1 },
     };
 
     const res = createMockRes();

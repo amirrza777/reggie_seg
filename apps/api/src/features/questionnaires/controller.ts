@@ -1,8 +1,39 @@
 import type { Request, Response } from "express"
 import { createTemplate, getTemplate, getAllTemplates, deleteTemplate,updateTemplate } from "./service.js"
 import type { Question , IncomingQuestion} from "./types.js";
+import jwt from "jsonwebtoken";
+import { verifyRefreshToken } from "../../auth/service.js";
+import type { AuthRequest } from "../../auth/middleware.js";
 
-export async function createTemplateHandler(req: Request, res: Response) {
+const accessSecret = process.env.JWT_ACCESS_SECRET || "";
+
+type AccessPayload = { sub: number; email: string };
+
+function resolveUserId(req: AuthRequest): number | null {
+  if (req.user?.sub) return req.user.sub;
+
+  const auth = req.headers.authorization || "";
+  const accessToken = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+  if (accessToken) {
+    try {
+      const payload = jwt.verify(accessToken, accessSecret) as AccessPayload;
+      if (payload?.sub) return payload.sub;
+    } catch {
+      // Fall back to refresh cookie below.
+    }
+  }
+
+  const refreshToken = req.cookies?.refresh_token;
+  if (!refreshToken) return null;
+  try {
+    const payload = verifyRefreshToken(refreshToken);
+    return payload?.sub ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export async function createTemplateHandler(req: AuthRequest, res: Response) {
   const { templateName, questions } = req.body
 
   if (!templateName || !Array.isArray(questions)) {
@@ -10,7 +41,8 @@ export async function createTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    const userId = req.user?.id || 1; // TODO needs to be replaced with actual user ID from auth
+    const userId = resolveUserId(req);
+    if (!userId) return res.status(401).json({ error: "Unauthorized" });
     const template = await createTemplate(templateName, questions,  userId)
     res.json({ ok: true, templateID: template.id , userId: userId})
   } catch (error) {
