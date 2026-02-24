@@ -58,6 +58,28 @@ const styles = {
     background: "var(--surface)",
     color: "var(--ink)",
   } as React.CSSProperties,
+  hero: {
+    border: "1px solid var(--border)",
+    borderRadius: 14,
+    background:
+      "linear-gradient(135deg, color-mix(in srgb, var(--surface) 85%, var(--accent) 15%), var(--surface))",
+    padding: 16,
+    boxShadow: "var(--shadow-sm)",
+  } as React.CSSProperties,
+  chipRow: {
+    marginTop: 10,
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  chip: {
+    border: "1px solid var(--border)",
+    borderRadius: 999,
+    padding: "6px 10px",
+    background: "var(--glass-surface)",
+    fontSize: 13,
+    color: "var(--muted)",
+  } as React.CSSProperties,
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
@@ -76,6 +98,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
 
   const numericProjectId = Number(projectId);
+  const activeLinkCount = links.filter((link) => link.isActive).length;
   const needsGithubAppInstall =
     connection?.connected &&
     typeof error === "string" &&
@@ -256,6 +279,23 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
   return (
     <div className="stack" style={{ gap: 16 }}>
+      <section style={styles.hero}>
+        <div className="stack" style={{ gap: 4 }}>
+          <strong style={{ fontSize: 18 }}>Project Repository Insights</strong>
+          <p className="muted">
+            Connect GitHub, install access if needed, then link one repository to generate contribution snapshots.
+          </p>
+        </div>
+        <div style={styles.chipRow}>
+          <span style={styles.chip}>
+            Account {connection?.connected ? `connected as @${connection.account?.login}` : "not connected"}
+          </span>
+          <span style={styles.chip}>Accessible repos {loading ? "..." : availableRepos.length}</span>
+          <span style={styles.chip}>Linked repos {loading ? "..." : activeLinkCount}</span>
+          <span style={styles.chip}>Snapshots are stored immutably</span>
+        </div>
+      </section>
+
       <section style={styles.panel}>
         <div style={styles.row}>
           <div className="stack" style={{ gap: 4 }}>
@@ -285,11 +325,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
             </Button>
           )}
         </div>
-        {connection?.connected && !githubAppInstallUrl ? (
-          <p className="muted" style={{ marginTop: 8 }}>
-            Set <code>NEXT_PUBLIC_GITHUB_APP_INSTALL_URL</code> to enable a one-click GitHub App install button.
-          </p>
-        ) : null}
       </section>
 
       <section style={styles.panel}>

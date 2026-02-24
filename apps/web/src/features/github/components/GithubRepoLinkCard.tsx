@@ -36,11 +36,60 @@ type GithubRepoLinkCardProps = {
 
 const styles = {
   listItem: {
-    padding: "10px 12px",
+    padding: "14px",
     border: "1px solid var(--border)",
-    borderRadius: 10,
+    borderRadius: 12,
     background: "var(--glass-surface)",
     marginBottom: 8,
+  } as React.CSSProperties,
+  headerRow: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  repoTitle: {
+    fontSize: 24,
+    fontWeight: 700,
+    lineHeight: 1.15,
+    margin: 0,
+  } as React.CSSProperties,
+  metaRow: {
+    marginTop: 8,
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  metaChip: {
+    border: "1px solid var(--border)",
+    borderRadius: 999,
+    padding: "4px 10px",
+    background: "var(--surface)",
+    color: "var(--muted)",
+    fontSize: 12,
+  } as React.CSSProperties,
+  statGrid: {
+    marginTop: 12,
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: 10,
+  } as React.CSSProperties,
+  statCard: {
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    background: "var(--surface)",
+    padding: 10,
+  } as React.CSSProperties,
+  statLabel: {
+    color: "var(--muted)",
+    fontSize: 12,
+    marginBottom: 4,
+  } as React.CSSProperties,
+  statValue: {
+    fontWeight: 700,
+    fontSize: 18,
+    lineHeight: 1.1,
   } as React.CSSProperties,
   actions: {
     marginTop: 8,
@@ -171,37 +220,51 @@ export function GithubRepoLinkCard({
   const chartSeries = buildChartSeries(commitsByDaySeries, personalByDay);
   const lineChangeComparisonSeries = buildLineChangeComparisonSeries(snapshot);
   const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
+  const analysedLabel = coverage?.analysedAt
+    ? new Date(String(coverage.analysedAt)).toLocaleString()
+    : "Not analysed yet";
+  const defaultCommitCount = defaultBranchTotals?.totalCommits ?? fallbackRepoTotals?.totalCommits ?? 0;
+  const defaultAdditionCount = defaultBranchTotals?.totalAdditions ?? fallbackRepoTotals?.totalAdditions ?? 0;
+  const defaultDeletionCount = defaultBranchTotals?.totalDeletions ?? fallbackRepoTotals?.totalDeletions ?? 0;
+  const allCommitCount = allBranchesTotals?.totalCommits ?? defaultCommitCount;
+  const allAdditionCount = allBranchesTotals?.totalAdditions ?? defaultAdditionCount;
+  const allDeletionCount = allBranchesTotals?.totalDeletions ?? defaultDeletionCount;
 
   return (
     <div key={link.id} style={styles.listItem}>
-      <strong>{link.repository.fullName}</strong>
-      <p className="muted">
-        {link.repository.isPrivate ? "Private" : "Public"} • default branch {link.repository.defaultBranch || "unknown"}
-      </p>
-      {coverage?.analysedAt ? (
-        <p className="muted">
-          Last analysed {new Date(String(coverage.analysedAt)).toLocaleString()} • Total commits {coverage.coverage?.totalCommits ?? 0}
-        </p>
-      ) : (
-        <p className="muted">No snapshot analysed yet.</p>
-      )}
-      {defaultBranchTotals ? (
-        <p className="muted">
-          Default branch ({defaultBranchTotals.branch}) • commits {defaultBranchTotals.totalCommits} • additions{" "}
-          {defaultBranchTotals.totalAdditions} • deletions {defaultBranchTotals.totalDeletions}
-        </p>
-      ) : fallbackRepoTotals ? (
-        <p className="muted">
-          Default branch • commits {fallbackRepoTotals.totalCommits} • additions {fallbackRepoTotals.totalAdditions} •
-          {" "}deletions {fallbackRepoTotals.totalDeletions}
-        </p>
-      ) : null}
-      {allBranchesTotals ? (
-        <p className="muted">
-          All branches ({allBranchesTotals.branchCount}) • commits {allBranchesTotals.totalCommits} • additions{" "}
-          {allBranchesTotals.totalAdditions} • deletions {allBranchesTotals.totalDeletions}
-        </p>
-      ) : null}
+      <div style={styles.headerRow}>
+        <div>
+          <p style={styles.repoTitle}>{link.repository.fullName}</p>
+          <div style={styles.metaRow}>
+            <span style={styles.metaChip}>{link.repository.isPrivate ? "Private repository" : "Public repository"}</span>
+            <span style={styles.metaChip}>Default branch {link.repository.defaultBranch || "unknown"}</span>
+            <span style={styles.metaChip}>Analysed {analysedLabel}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={styles.statGrid}>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Default branch commits</div>
+          <div style={styles.statValue}>{defaultCommitCount}</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>Default additions / deletions</div>
+          <div style={styles.statValue}>
+            {defaultAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {defaultDeletionCount}</span>
+          </div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>All-branches commits</div>
+          <div style={styles.statValue}>{allCommitCount}</div>
+        </div>
+        <div style={styles.statCard}>
+          <div style={styles.statLabel}>All additions / deletions</div>
+          <div style={styles.statValue}>
+            {allAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {allDeletionCount}</span>
+          </div>
+        </div>
+      </div>
       {chartSeries.length > 0 || lineChangeComparisonSeries.length > 0 || commitShareSeries.length > 0 ? (
         <section style={styles.chartSection} aria-label="Repository charts">
           <p className="muted" style={{ marginTop: 2, marginBottom: 4 }}>Charts</p>
