@@ -145,19 +145,36 @@ function buildCoverageShareSeries(coverage: GithubMappingCoverage | null) {
   ];
 }
 
+function buildBranchScopeCommitShareSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
+  const defaultCommits = Number(snapshot?.data?.branchScopeStats?.defaultBranch?.totalCommits ?? 0);
+  const allCommits = Number(snapshot?.data?.branchScopeStats?.allBranches?.totalCommits ?? 0);
+  const otherBranchCommits = Math.max(0, allCommits - defaultCommits);
+
+  if (allCommits <= 0) {
+    return [];
+  }
+
+  return [
+    { name: "Default branch", value: defaultCommits, fill: "var(--accent)" },
+    { name: "Other branches", value: otherBranchCommits, fill: "var(--accent-warm)" },
+  ].filter((row) => row.value > 0);
+}
+
 export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLogin }: GithubRepoChartsDashboardProps) {
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin);
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const weeklyCommitSeries = buildWeeklyCommitSeries(snapshot);
   const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
   const coverageShareSeries = buildCoverageShareSeries(coverage);
+  const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
 
   if (
     commitTimelineSeries.length === 0 &&
     lineChangesByDaySeries.length === 0 &&
     weeklyCommitSeries.length === 0 &&
     commitShareSeries.length === 0 &&
-    coverageShareSeries.length === 0
+    coverageShareSeries.length === 0 &&
+    branchScopeCommitShareSeries.length === 0
   ) {
     return null;
   }
@@ -223,23 +240,12 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
           </div>
         ) : null}
 
-        {lineChangesByDaySeries.length > 0 ? (
-          <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
-            <p className="muted" style={{ marginBottom: 6 }}>Daily net line change</p>
-            <div style={{ width: "100%", height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
-                  <YAxis tick={{ fill: "var(--muted)" }} />
-                  <Tooltip
-                    contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
-                  />
-                  <Line type="monotone" dataKey="net" name="Net change" stroke="#5ab0ff" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+        {branchScopeCommitShareSeries.length > 0 ? (
+          <GithubDonutChartCard
+            title="Default vs other branches (commit share)"
+            data={branchScopeCommitShareSeries}
+            style={{ ...styles.chartWrap, ...styles.chartColHalf }}
+          />
         ) : null}
 
         {commitShareSeries.length > 0 ? (
