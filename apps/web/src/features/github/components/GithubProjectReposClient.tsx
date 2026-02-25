@@ -851,10 +851,17 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                         {branchCommitsByLinkId[link.id]?.commits?.length ? (
                           <div style={{ marginTop: 10 }}>
                             <Table
-                              headers={["Message", "Author", "Date", "Additions", "Deletions"]}
+                              headers={["Commit", "Date", "Additions", "Deletions"]}
+                              columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
                               rows={branchCommitsByLinkId[link.id]!.commits.map((commit) => [
-                                commit.message || "(no message)",
-                                commit.authorLogin || commit.authorEmail || "unknown",
+                                <div key={commit.sha} className="stack" style={{ gap: 2 }}>
+                                  <a href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ color: "var(--ink)" }}>
+                                    {commit.message || "(no message)"}
+                                  </a>
+                                  <span className="muted" style={{ fontSize: 12 }}>
+                                    {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
+                                  </span>
+                                </div>,
                                 commit.date ? new Date(commit.date).toLocaleString() : "-",
                                 commit.additions ?? "-",
                                 commit.deletions ?? "-",
