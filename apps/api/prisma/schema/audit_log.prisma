@@ -1,0 +1,19 @@
+enum AuditAction {
+  LOGIN
+  LOGOUT
+}
+
+model AuditLog {
+  id           Int          @id @default(autoincrement())
+  enterpriseId String
+  userId       Int
+  action       AuditAction
+  ip           String?      @db.VarChar(64)
+  userAgent    String?      @db.VarChar(500)
+  createdAt    DateTime     @default(now())
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enterprise   Enterprise   @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
+
+  @@index([enterpriseId, createdAt])
+  @@index([userId, createdAt])
+}

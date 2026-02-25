@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
 import { listUsers, updateUserRole } from "../api/client";
+import { AuditLogModal } from "./AuditLogModal";
 
 const overview = [
   { label: "Users", value: 132, hint: "User + RefreshToken records" },
@@ -55,6 +56,7 @@ const isStaffAccount = (user: AdminUser) => user.role !== "STUDENT" && (user.isS
 
 export function AdminWorkspaceSummary() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
   const [staff, setStaff] = useState<AdminUser[]>([]);
   const [status, setStatus] = useState<RequestState>("idle");
   const [notice, setNotice] = useState<string | null>(null);
@@ -122,7 +124,7 @@ export function AdminWorkspaceSummary() {
             <Button type="button" onClick={() => setModalOpen(true)}>
               Invite admin
             </Button>
-            <Button type="button" variant="ghost">
+            <Button type="button" variant="ghost" onClick={() => setAuditOpen(true)}>
               Audit log
             </Button>
           </div>
@@ -248,14 +250,11 @@ export function AdminWorkspaceSummary() {
               </div>
             </div>
 
-            <div className="modal__footer" style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                Cancel
-              </Button>
-            </div>
           </div>
         </div>
       ) : null}
+
+      <AuditLogModal open={auditOpen} onClose={() => setAuditOpen(false)} />
     </>
   );
 }

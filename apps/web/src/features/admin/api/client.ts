@@ -1,5 +1,12 @@
 import { apiFetch } from "@/shared/api/http";
-import type { AdminUser, AdminUserRecord, AdminUserUpdate, FeatureFlag, UserRole } from "../types";
+import type {
+  AdminUser,
+  AdminUserRecord,
+  AdminUserUpdate,
+  AuditLogEntry,
+  FeatureFlag,
+  UserRole,
+} from "../types";
 
 export async function listFeatureFlags(): Promise<FeatureFlag[]> {
   return apiFetch<FeatureFlag[]>("/admin/feature-flags");
@@ -21,4 +28,14 @@ export async function updateUser(userId: number, payload: AdminUserUpdate) {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function listAuditLogs(params: { from?: string; to?: string; limit?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.from) search.set("from", params.from);
+  if (params.to) search.set("to", params.to);
+  if (params.limit) search.set("limit", String(params.limit));
+  const qs = search.toString();
+  const path = qs ? `/admin/audit-logs?${qs}` : "/admin/audit-logs";
+  return apiFetch<AuditLogEntry[]>(path);
 }

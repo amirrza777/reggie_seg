@@ -1,6 +1,7 @@
 import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../../shared/db.js";
+import { listAuditLogs } from "../audit/service.js";
 
 type UserRole = "STUDENT" | "STAFF" | "ADMIN";
 
@@ -34,6 +35,7 @@ const ensureAdmin = async (req: any, res: any, next: any) => {
     const user = await prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user || user.role !== "ADMIN") return res.status(403).json({ error: "Forbidden" });
 
+    (req as any).adminUser = user;
     return next();
   } catch (err) {
     return res.status(401).json({ error: "Not authenticated" });
@@ -117,6 +119,36 @@ router.patch("/users/:id", (req, res) => {
 
 router.get("/feature-flags", (_req, res) => {
   res.json(featureFlags);
+});
+
+router.get("/audit-logs", async (req, res) => {
+  const adminUser = (req as any).adminUser as { enterpriseId: string } | undefined;
+  const enterpriseId = adminUser?.enterpriseId;
+  if (!enterpriseId) return res.status(500).json({ error: "Enterprise not resolved" });
+
+  const parsedFrom = req.query.from ? new Date(String(req.query.from)) : undefined;
+  const parsedTo = req.query.to ? new Date(String(req.query.to)) : undefined;
+  const from = parsedFrom && !isNaN(parsedFrom.getTime()) ? parsedFrom : undefined;
+  const to = parsedTo && !isNaN(parsedTo.getTime()) ? parsedTo : undefined;
+  const limit = req.query.limit ? Number(req.query.limit) : undefined;
+
+  const logs = await listAuditLogs({ enterpriseId, from, to, limit });
+  const payload = logs.map((entry) => ({
+    id: entry.id,
+    action: entry.action,
+    createdAt: entry.createdAt,
+    ip: entry.ip,
+    userAgent: entry.userAgent,
+    user: {
+      id: entry.user.id,
+      email: entry.user.email,
+      firstName: entry.user.firstName,
+      lastName: entry.user.lastName,
+      role: entry.user.role,
+    },
+  }));
+
+  res.json(payload);
 });
 
 export default router;
