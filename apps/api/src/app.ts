@@ -15,6 +15,15 @@ import adminRouter from "./features/admin/router.js";
 
 const app = express();
 
+// Normalize quoted charset to avoid body-parser charset errors (e.g. charset="UTF-8").
+app.use((req, _res, next) => {
+  const ct = req.headers["content-type"];
+  if (ct && /charset\s*=\s*"/i.test(ct)) {
+    req.headers["content-type"] = ct.replace(/charset\s*=\s*"([^"]*)"/i, "charset=$1");
+  }
+  next();
+});
+
 app.use(
   cors({
     origin: ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"],
