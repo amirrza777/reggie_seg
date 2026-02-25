@@ -15,6 +15,7 @@ import {
   linkGithubRepositoryToProject,
   listLiveProjectGithubRepoBranchCommits,
   listLiveProjectGithubRepoBranches,
+  listLiveProjectGithubRepoMyCommits,
   listGithubRepositories,
   listProjectGithubRepoLinks,
   removeProjectGithubRepoLink,
@@ -24,6 +25,7 @@ import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
+  GithubLiveProjectRepoMyCommits,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -88,6 +90,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [branchCommitsByLinkId, setBranchCommitsByLinkId] = useState<Record<number, GithubLiveProjectRepoBranchCommits | null>>({});
   const [branchCommitsLoadingByLinkId, setBranchCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
   const [branchCommitsErrorByLinkId, setBranchCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
+  const [myCommitsByLinkId, setMyCommitsByLinkId] = useState<Record<number, GithubLiveProjectRepoMyCommits | null>>({});
+  const [myCommitsLoadingByLinkId, setMyCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
+  const [myCommitsErrorByLinkId, setMyCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
   const [removingLinkId, setRemovingLinkId] = useState<number | null>(null);
   const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
@@ -190,6 +195,31 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setBranchCommitsErrorByLinkId((prev) => ({ ...prev, [linkId]: message }));
     } finally {
       setBranchCommitsLoadingByLinkId((prev) => ({ ...prev, [linkId]: false }));
+    }
+  }
+
+  async function fetchMyCommits(linkId: number, page = 1, options?: { includeTotals?: boolean }) {
+    setMyCommitsLoadingByLinkId((prev) => ({ ...prev, [linkId]: true }));
+    setMyCommitsErrorByLinkId((prev) => ({ ...prev, [linkId]: null }));
+    try {
+      const previousData = myCommitsByLinkId[linkId];
+      const shouldIncludeTotals =
+        typeof options?.includeTotals === "boolean" ? options.includeTotals : page === 1 || !previousData?.totals;
+      const data = await listLiveProjectGithubRepoMyCommits(linkId, page, 10, {
+        includeTotals: shouldIncludeTotals,
+      });
+      setMyCommitsByLinkId((prev) => ({
+        ...prev,
+        [linkId]: {
+          ...data,
+          totals: data.totals ?? prev[linkId]?.totals ?? null,
+        },
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load your commits.";
+      setMyCommitsErrorByLinkId((prev) => ({ ...prev, [linkId]: message }));
+    } finally {
+      setMyCommitsLoadingByLinkId((prev) => ({ ...prev, [linkId]: false }));
     }
   }
 
@@ -325,6 +355,43 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       void fetchBranchCommits(link.id, selectedBranch);
     }
   }, [activeTab, loading, links, selectedBranchByLinkId]);
+
+  useEffect(() => {
+    if (activeTab !== "my-commits" || loading || links.length === 0 || !connection?.connected) {
+      return;
+    }
+
+    for (const link of links) {
+      if (myCommitsLoadingByLinkId[link.id]) {
+        continue;
+      }
+      const existing = myCommitsByLinkId[link.id];
+      if (!existing) {
+        void fetchMyCommits(link.id, 1);
+        continue;
+      }
+      if (!existing.totals) {
+        void fetchMyCommits(link.id, 1, { includeTotals: true });
+      }
+    }
+  }, [activeTab, loading, links, connection?.connected]);
+
+  useEffect(() => {
+    if (loading || activeTab === "my-commits" || links.length === 0 || !connection?.connected) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      for (const link of links) {
+        if (myCommitsByLinkId[link.id] || myCommitsLoadingByLinkId[link.id]) {
+          continue;
+        }
+        void fetchMyCommits(link.id, 1, { includeTotals: false });
+      }
+    }, 500);
+
+    return () => window.clearTimeout(timer);
+  }, [loading, activeTab, links, connection?.connected]);
 
   async function handleConnect() {
     setBusy(true);
@@ -510,9 +577,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       {activeTab === "my-commits" ? (
         <section style={styles.panel}>
           <strong>My commits</strong>
-          <p className="muted" style={styles.list}>
-            My commits view coming soon.
-          </p>
         </section>
       ) : null}
 

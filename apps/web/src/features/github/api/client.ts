@@ -4,6 +4,7 @@ import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,
   GithubLiveProjectRepoBranches,
+  GithubLiveProjectRepoMyCommits,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -101,6 +102,20 @@ export async function listLiveProjectGithubRepoBranchCommits(
 ): Promise<GithubLiveProjectRepoBranchCommits> {
   const query = new URLSearchParams({ branch, limit: String(limit) }).toString();
   return apiFetch<GithubLiveProjectRepoBranchCommits>(`/github/project-repos/${linkId}/branch-commits?${query}`);
+}
+
+export async function listLiveProjectGithubRepoMyCommits(
+  linkId: number,
+  page = 1,
+  perPage = 10,
+  options?: { includeTotals?: boolean }
+): Promise<GithubLiveProjectRepoMyCommits> {
+  const queryParams = new URLSearchParams({ page: String(page), perPage: String(perPage) });
+  if (options?.includeTotals === false) {
+    queryParams.set("includeTotals", "false");
+  }
+  const query = queryParams.toString();
+  return apiFetch<GithubLiveProjectRepoMyCommits>(`/github/project-repos/${linkId}/my-commits?${query}`);
 }
 
 export async function disconnectGithubAccount() {

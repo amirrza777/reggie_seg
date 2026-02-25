@@ -47,6 +47,48 @@ type GithubRepositoryListItem = {
   defaultBranch: string | null;
 };
 
+type CachedCommitStats = {
+  additions: number;
+  deletions: number;
+  cachedAt: number;
+};
+
+const githubCommitStatsCache = new Map<string, CachedCommitStats>();
+const GITHUB_COMMIT_STATS_CACHE_TTL_MS = 1000 * 60 * 60 * 24;
+const GITHUB_COMMIT_STATS_CACHE_MAX_ENTRIES = 10000;
+
+function makeCommitStatsCacheKey(fullName: string, sha: string) {
+  return `${fullName}:${sha}`;
+}
+
+function getCachedCommitStats(fullName: string, sha: string) {
+  const key = makeCommitStatsCacheKey(fullName, sha);
+  const cached = githubCommitStatsCache.get(key);
+  if (!cached) {
+    return null;
+  }
+  if (Date.now() - cached.cachedAt > GITHUB_COMMIT_STATS_CACHE_TTL_MS) {
+    githubCommitStatsCache.delete(key);
+    return null;
+  }
+  return cached;
+}
+
+function setCachedCommitStats(fullName: string, sha: string, value: { additions: number; deletions: number }) {
+  const key = makeCommitStatsCacheKey(fullName, sha);
+  if (githubCommitStatsCache.size >= GITHUB_COMMIT_STATS_CACHE_MAX_ENTRIES) {
+    const oldestKey = githubCommitStatsCache.keys().next().value;
+    if (typeof oldestKey === "string") {
+      githubCommitStatsCache.delete(oldestKey);
+    }
+  }
+  githubCommitStatsCache.set(key, {
+    additions: value.additions,
+    deletions: value.deletions,
+    cachedAt: Date.now(),
+  });
+}
+
 async function fetchUserRepositories(accessToken: string) {
   return fetchGitHubAppUserRepositories(accessToken);
 }
@@ -270,6 +312,9 @@ type GithubCommitListItem = {
     id?: number;
     login?: string;
   } | null;
+  parents?: Array<{
+    sha?: string;
+  }>;
 };
 
 type GithubCommitDetailResponse = {
@@ -403,6 +448,65 @@ async function fetchRecentCommitsForBranch(
   }
 
   return (await response.json()) as GithubCommitListItem[];
+}
+
+async function fetchUserCommitsForRepositoryPage(
+  accessToken: string,
+  fullName: string,
+  author: string,
+  page: number,
+  perPage: number
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const safePage = Math.max(1, page);
+  const safePerPage = Math.max(1, Math.min(100, perPage));
+  const params = new URLSearchParams({
+    author,
+    page: String(safePage),
+    per_page: String(safePerPage),
+  });
+
+  const response = await fetch(`${baseUrl}/repos/${fullName}/commits?${params.toString()}`, {
+    headers: {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-GitHub-Api-Version": "2022-11-28",
+    },
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new GithubServiceError(404, "Linked GitHub repository was not found");
+    }
+    if (response.status === 409) {
+      return [];
+    }
+    if (response.status === 401) {
+      throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+    }
+    throw new GithubServiceError(502, "Failed to fetch repository commits");
+  }
+
+  return (await response.json()) as GithubCommitListItem[];
+}
+
+async function fetchAllUserCommitsForRepository(accessToken: string, fullName: string, author: string) {
+  const commits: GithubCommitListItem[] = [];
+  let page = 1;
+
+  while (true) {
+    const pageData = await fetchUserCommitsForRepositoryPage(accessToken, fullName, author, page, 100);
+    commits.push(...pageData);
+    if (pageData.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 30) {
+      break;
+    }
+  }
+
+  return commits;
 }
 
 async function listRepositoryBranches(accessToken: string, fullName: string) {
@@ -540,37 +644,71 @@ async function getBranchAheadBehind(
 async function fetchCommitStatsForRepository(
   accessToken: string,
   fullName: string,
-  commitShas: string[]
+  commitShas: string[],
+  maxDetailedCommits = 250
 ) {
   const { baseUrl } = getGitHubApiConfig();
   const statsBySha = new Map<string, { additions: number; deletions: number }>();
-  const maxDetailedCommits = 250;
   const shasToFetch = commitShas.slice(0, maxDetailedCommits);
+  const missingShas: string[] = [];
 
   for (const sha of shasToFetch) {
-    const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    });
-
-    if (!response.ok) {
-      if (response.status === 403 || response.status === 429) {
-        break;
-      }
+    const cached = getCachedCommitStats(fullName, sha);
+    if (cached) {
+      statsBySha.set(sha, { additions: cached.additions, deletions: cached.deletions });
       continue;
     }
+    missingShas.push(sha);
+  }
 
-    const detail = (await response.json()) as GithubCommitDetailResponse;
-    statsBySha.set(sha, {
-      additions: detail.stats?.additions || 0,
-      deletions: detail.stats?.deletions || 0,
+  if (missingShas.length > 0) {
+    let shouldStop = false;
+    const concurrency = 6;
+    let nextIndex = 0;
+
+    const workers = Array.from({ length: Math.min(concurrency, missingShas.length) }, async () => {
+      while (!shouldStop) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        if (currentIndex >= missingShas.length) {
+          return;
+        }
+
+        const sha = missingShas[currentIndex];
+        const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${accessToken}`,
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 403 || response.status === 429) {
+            shouldStop = true;
+          }
+          continue;
+        }
+
+        const detail = (await response.json()) as GithubCommitDetailResponse;
+        const stats = {
+          additions: detail.stats?.additions || 0,
+          deletions: detail.stats?.deletions || 0,
+        };
+        statsBySha.set(sha, stats);
+        setCachedCommitStats(fullName, sha, stats);
+      }
     });
+
+    await Promise.all(workers);
   }
 
   return statsBySha;
+}
+
+function isMergePullRequestCommit(commit: GithubCommitListItem) {
+  const message = (commit.commit.message || "").trim().toLowerCase();
+  return message.startsWith("merge pull request");
 }
 
 function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
@@ -1319,6 +1457,128 @@ export async function listLiveProjectGithubRepositoryBranchCommits(
         authorEmail: commit.commit.author?.email || null,
         additions: stats?.additions ?? null,
         deletions: stats?.deletions ?? null,
+        htmlUrl: `${link.repository.htmlUrl}/commit/${commit.sha}`,
+      };
+    }),
+  };
+}
+
+export async function listLiveProjectGithubRepositoryMyCommits(
+  userId: number,
+  linkId: number,
+  page = 1,
+  perPage = 10,
+  options?: { includeTotals?: boolean }
+) {
+  const link = await findProjectGithubRepositoryLinkById(linkId);
+  if (!link) {
+    throw new GithubServiceError(404, "Project GitHub repository link not found");
+  }
+
+  const isMember = await isUserInProject(userId, link.projectId);
+  if (!isMember) {
+    throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+
+  const accessToken = await getValidGithubAccessToken(account);
+  const safePage = Math.max(1, page);
+  const safePerPage = Math.max(1, Math.min(20, perPage));
+  const includeTotals = options?.includeTotals !== false;
+  const commits = await fetchUserCommitsForRepositoryPage(
+    accessToken,
+    link.repository.fullName,
+    account.login,
+    safePage,
+    safePerPage
+  );
+  const commitStatsBySha = await fetchCommitStatsForRepository(
+    accessToken,
+    link.repository.fullName,
+    commits.map((commit) => commit.sha)
+  );
+  let totals: {
+    commits: number;
+    mergePullRequestCommits: number;
+    additionsExcludingMergePullRequests: number;
+    deletionsExcludingMergePullRequests: number;
+    additionsIncludingMergePullRequests: number;
+    deletionsIncludingMergePullRequests: number;
+    detailedCommitCount: number;
+    requestedCommitCount: number;
+  } | null = null;
+
+  if (includeTotals) {
+    const allUserCommits = await fetchAllUserCommitsForRepository(accessToken, link.repository.fullName, account.login);
+    const allCommitStatsBySha = await fetchCommitStatsForRepository(
+      accessToken,
+      link.repository.fullName,
+      allUserCommits.map((commit) => commit.sha),
+      allUserCommits.length
+    );
+
+    let additionsIncludingMerges = 0;
+    let deletionsIncludingMerges = 0;
+    let additionsExcludingMergePullRequests = 0;
+    let deletionsExcludingMergePullRequests = 0;
+    let mergePullRequestCommitCount = 0;
+    for (const commit of allUserCommits) {
+      const stats = allCommitStatsBySha.get(commit.sha);
+      const additions = stats?.additions ?? 0;
+      const deletions = stats?.deletions ?? 0;
+      const isMergePullRequest = isMergePullRequestCommit(commit);
+      if (isMergePullRequest) {
+        mergePullRequestCommitCount += 1;
+      }
+      additionsIncludingMerges += additions;
+      deletionsIncludingMerges += deletions;
+      if (!isMergePullRequest) {
+        additionsExcludingMergePullRequests += additions;
+        deletionsExcludingMergePullRequests += deletions;
+      }
+    }
+
+    totals = {
+      commits: allUserCommits.length,
+      mergePullRequestCommits: mergePullRequestCommitCount,
+      additionsExcludingMergePullRequests,
+      deletionsExcludingMergePullRequests,
+      additionsIncludingMergePullRequests: additionsIncludingMerges,
+      deletionsIncludingMergePullRequests: deletionsIncludingMerges,
+      detailedCommitCount: allCommitStatsBySha.size,
+      requestedCommitCount: allUserCommits.length,
+    };
+  }
+
+  return {
+    linkId: link.id,
+    repository: {
+      id: link.repository.id,
+      fullName: link.repository.fullName,
+      defaultBranch: link.repository.defaultBranch || "main",
+      htmlUrl: link.repository.htmlUrl,
+    },
+    githubLogin: account.login,
+    page: safePage,
+    perPage: safePerPage,
+    hasNextPage: commits.length === safePerPage,
+    totals,
+    commits: commits.map((commit) => {
+      const stats = commitStatsBySha.get(commit.sha);
+      const isMergePullRequest = isMergePullRequestCommit(commit);
+      return {
+        sha: commit.sha,
+        message: commit.commit.message || "",
+        date: commit.commit.author?.date || null,
+        authorLogin: commit.author?.login || null,
+        authorEmail: commit.commit.author?.email || null,
+        additions: stats?.additions ?? null,
+        deletions: stats?.deletions ?? null,
+        isMergePullRequest,
         htmlUrl: `${link.repository.htmlUrl}/commit/${commit.sha}`,
       };
     }),

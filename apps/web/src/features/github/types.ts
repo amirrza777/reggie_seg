@@ -158,3 +158,38 @@ export type GithubLiveProjectRepoBranchCommits = {
     htmlUrl: string;
   }>;
 };
+
+export type GithubLiveProjectRepoMyCommits = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  githubLogin: string;
+  page: number;
+  perPage: number;
+  hasNextPage: boolean;
+  totals: {
+    commits: number;
+    mergePullRequestCommits: number;
+    additionsExcludingMergePullRequests: number;
+    deletionsExcludingMergePullRequests: number;
+    additionsIncludingMergePullRequests: number;
+    deletionsIncludingMergePullRequests: number;
+    detailedCommitCount: number;
+    requestedCommitCount: number;
+  } | null;
+  commits: Array<{
+    sha: string;
+    message: string;
+    date: string | null;
+    authorLogin: string | null;
+    authorEmail: string | null;
+    additions: number | null;
+    deletions: number | null;
+    isMergePullRequest: boolean;
+    htmlUrl: string;
+  }>;
+};
