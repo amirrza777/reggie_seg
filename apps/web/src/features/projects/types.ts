@@ -38,3 +38,20 @@ export type TeamMember = {
   name: string;
   role: string;
 };
+
+export type ProjectOverviewDashboardProps = {
+  project: Project;
+  deadline: ProjectDeadline;
+  team: Team;
+};
+
+export type DeadlineItem = {
+  label: string;
+  value: string | null;
+  group: string;
+};
+
+export type DeadlineState = {
+  label: string;
+  color: string;
+};
