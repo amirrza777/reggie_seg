@@ -36,6 +36,7 @@ model User {
   revieweeFeedbacks   PeerFeedback[]          @relation("PeerFeedbackReviewee")
   teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
   teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
+  auditLogs           AuditLog[]
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

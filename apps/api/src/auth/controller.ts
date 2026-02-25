@@ -50,7 +50,10 @@ export async function loginHandler(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   try {
-    const tokens = await login({ email, password });
+    const tokens = await login(
+      { email, password },
+      { ip: req.ip, userAgent: req.get("user-agent") ?? null }
+    );
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
@@ -75,7 +78,7 @@ export async function refreshHandler(req: Request, res: Response) {
 
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
-  if (token) await logout(token);
+  if (token) await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
   res.clearCookie("refresh_token");
   return res.json({ success: true });
 }
