@@ -1,7 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { apiFetch } from "@/shared/api/http";
 import { API_BASE_URL, getApiBaseForRequest } from "@/shared/api/env";
-export type UserRole = "STUDENT" | "STAFF" | "ADMIN";
+export type UserRole = "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 
 export type SessionUser = {
   id: number;
@@ -10,6 +10,7 @@ export type SessionUser = {
   lastName: string;
   isStaff: boolean;
   isAdmin?: boolean;
+  isEnterpriseAdmin?: boolean;
   role?: UserRole;
   active?: boolean;
 };
@@ -56,4 +57,10 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
 
 export function isAdmin(user: SessionUser | null | undefined): user is SessionUser & { role: "ADMIN" } {
   return Boolean(user && (user.role === "ADMIN" || user.isAdmin));
+}
+
+export function isEnterpriseAdmin(
+  user: SessionUser | null | undefined
+): user is SessionUser & { role: "ENTERPRISE_ADMIN" } {
+  return Boolean(user && (user.role === "ENTERPRISE_ADMIN" || user.isEnterpriseAdmin));
 }

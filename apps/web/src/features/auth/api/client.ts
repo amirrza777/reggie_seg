@@ -18,7 +18,7 @@ export async function signup(payload: {
   password: string;
   firstName?: string;
   lastName?: string;
-  role?: "STUDENT" | "STAFF";
+  role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN";
 }) {
   const res = await apiFetch<AuthResponse>("/auth/signup", {
     method: "POST",

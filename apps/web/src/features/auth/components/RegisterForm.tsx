@@ -15,7 +15,7 @@ export function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
-    role: "STUDENT" as "STUDENT" | "STAFF",
+    role: "STUDENT" as "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -110,7 +110,7 @@ export function RegisterForm() {
 
       <fieldset style={{ margin: "12px 0", padding: 0, border: "none" }}>
         <legend className="muted" style={{ fontSize: 14, marginBottom: 6 }}>
-          Developer shortcut: choose temporary role (excludes admin)
+          Developer shortcut: choose temporary role (excludes super admin)
         </legend>
         <div
           role="radiogroup"
@@ -122,7 +122,7 @@ export function RegisterForm() {
             width: "100%",
           }}
         >
-          {(["STUDENT", "STAFF"] as const).map((role) => {
+          {(["STUDENT", "STAFF", "ENTERPRISE_ADMIN"] as const).map((role) => {
             const active = formData.role === role;
             return (
               <button
@@ -148,7 +148,7 @@ export function RegisterForm() {
                   color: "inherit",
                 }}
               >
-                {role === "STUDENT" ? "Student" : "Staff"}
+                {role === "STUDENT" ? "Student" : role === "STAFF" ? "Staff" : "Enterprise Admin"}
               </button>
             );
           })}

@@ -2,7 +2,7 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../../shared/db.js";
 
-type UserRole = "STUDENT" | "STAFF" | "ADMIN";
+type UserRole = "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 
 type AdminUser = {
   id: number;
@@ -68,6 +68,15 @@ const users: AdminUser[] = [
     role: "STUDENT",
     active: true,
   },
+  {
+    id: 4,
+    email: "enterprise.admin@kcl.ac.uk",
+    firstName: "Enterprise",
+    lastName: "Admin",
+    isStaff: true,
+    role: "ENTERPRISE_ADMIN",
+    active: true,
+  },
 ];
 
 const featureFlags: FeatureFlag[] = [
@@ -77,7 +86,7 @@ const featureFlags: FeatureFlag[] = [
 ];
 
 const isRole = (value: unknown): value is UserRole =>
-  value === "STUDENT" || value === "STAFF" || value === "ADMIN";
+  value === "STUDENT" || value === "STAFF" || value === "ENTERPRISE_ADMIN" || value === "ADMIN";
 
 router.use(ensureAdmin);
 

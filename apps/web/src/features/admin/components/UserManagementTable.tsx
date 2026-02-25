@@ -45,7 +45,7 @@ const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   active: user.active ?? true,
 });
 
-const roleOptions: UserRole[] = ["STUDENT", "STAFF", "ADMIN"];
+const roleOptions: UserRole[] = ["STUDENT", "STAFF", "ENTERPRISE_ADMIN", "ADMIN"];
 
 export function UserManagementTable() {
   const [users, setUsers] = useState<AdminUser[]>(demoUsers);
@@ -133,7 +133,15 @@ export function UserManagementTable() {
     return [
       <div key={`${user.id}-email`} className="stack" style={{ gap: 4 }}>
         <strong>{user.email}</strong>
-        <span className="muted">{user.isStaff ? "Staff" : "Student"}</span>
+        <span className="muted">
+          {user.role === "ENTERPRISE_ADMIN"
+            ? "Enterprise admin"
+            : user.role === "ADMIN"
+              ? "Admin"
+              : user.isStaff
+                ? "Staff"
+                : "Student"}
+        </span>
       </div>,
       <div key={`${user.id}-name`} className="stack" style={{ gap: 4 }}>
         <span>{`${user.firstName} ${user.lastName}`}</span>

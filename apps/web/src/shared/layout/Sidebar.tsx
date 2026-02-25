@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-type SidebarLink = { href: string; label: string; space?: "workspace" | "staff" | "admin" };
+type SidebarLink = { href: string; label: string; space?: "workspace" | "staff" | "enterprise" | "admin" };
 
 type SidebarProps = {
   title?: string;
@@ -25,6 +25,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
   const currentSpace: SidebarLink["space"] = useMemo(() => {
     if (activeLink?.space) return activeLink.space;
     if (!pathname) return "workspace";
+    if (pathname.startsWith("/enterprise")) return "enterprise";
     if (pathname.startsWith("/admin")) return "admin";
     if (pathname.startsWith("/staff")) return "staff";
     return "workspace";

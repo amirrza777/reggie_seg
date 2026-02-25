@@ -19,7 +19,7 @@ type TokenPayload = { sub: number; email: string; admin?: boolean };
 const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
 const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-type NewUserRole = Extract<Role, "STUDENT" | "STAFF">;
+type NewUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
 export async function signUp(data: {
   email: string;

@@ -24,11 +24,16 @@ export async function signupHandler(req: Request, res: Response) {
   const { email, password, firstName, lastName, role } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   const normalizedRole =
-    typeof role === "string" ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ADMIN") : undefined;
-  if (normalizedRole && normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+    typeof role === "string"
+      ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN")
+      : undefined;
+  if (normalizedRole && !["STUDENT", "STAFF", "ENTERPRISE_ADMIN"].includes(normalizedRole)) {
     return res.status(400).json({ error: "Invalid role" });
   }
-  const requestedRole = normalizedRole === "STUDENT" || normalizedRole === "STAFF" ? normalizedRole : undefined;
+  const requestedRole =
+    normalizedRole === "STUDENT" || normalizedRole === "STAFF" || normalizedRole === "ENTERPRISE_ADMIN"
+      ? normalizedRole
+      : undefined;
   try {
     const tokens = await signUp({
       email,
@@ -178,6 +183,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     const role = user.role;
     const isStaff = role !== "STUDENT";
+    const isEnterpriseAdmin = role === "ENTERPRISE_ADMIN";
     const isAdmin = role === "ADMIN";
 
     const profile = await getProfile(user.id); // includes avatar fields
@@ -186,6 +192,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
       ...profile,
       isStaff,
       isAdmin,
+      isEnterpriseAdmin,
       role,
       active: true,
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -57,14 +57,45 @@ const defaultIcons: Record<string, ReactNode> = {
       <path d="m10.2 12.4 1.6 1.6 2.8-2.8" />
     </svg>
   ),
+  enterprise: (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 20V6.5a1.5 1.5 0 0 1 1-1.414l6-2.4a1.5 1.5 0 0 1 1 0l6 2.4A1.5 1.5 0 0 1 19 6.5V20" />
+      <path d="M4 20h16M9 9h6M9 13h6M9 17h6" />
+    </svg>
+  ),
 };
 
 export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
   const pathname = usePathname();
 
+  const weight: Record<string, number> = {
+    admin: 1,
+    workspace: 2,
+    staff: 3,
+    enterprise: 4,
+  };
+
+  const sortedLinks = useMemo(
+    () =>
+      [...links].sort((a, b) => {
+        const wa = weight[a.label.toLowerCase()] ?? 99;
+        const wb = weight[b.label.toLowerCase()] ?? 99;
+        if (wa !== wb) return wa - wb;
+        return a.label.localeCompare(b.label);
+      }),
+    [links]
+  );
+
   return (
     <nav className="space-switcher" aria-label="Spaces">
-      {links.map(({ href, label, icon, activePaths }) => {
+      {sortedLinks.map(({ href, label, icon, activePaths }) => {
         const normalizedLabel = label.toLowerCase();
         const activeByAlias = activePaths?.some((prefix) => pathname?.startsWith(prefix) ?? false) ?? false;
         const active = pathname ? activeByAlias || pathname.startsWith(href) : false;
