@@ -51,6 +51,33 @@ const styles = {
   } as React.CSSProperties,
   chartColFull: { gridColumn: "1 / -1" } as React.CSSProperties,
   chartColHalf: { gridColumn: "span 6" } as React.CSSProperties,
+  insightGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: 10,
+    marginTop: 8,
+  } as React.CSSProperties,
+  insightCard: {
+    border: "1px solid var(--border)",
+    borderRadius: 10,
+    padding: 10,
+    background: "var(--surface)",
+  } as React.CSSProperties,
+  insightLabel: {
+    fontSize: 12,
+    color: "var(--muted)",
+    marginBottom: 4,
+  } as React.CSSProperties,
+  insightValue: {
+    fontSize: 20,
+    fontWeight: 700,
+    lineHeight: 1.05,
+  } as React.CSSProperties,
+  insightSubtext: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "var(--muted)",
+  } as React.CSSProperties,
 };
 
 function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
@@ -160,6 +187,51 @@ function buildBranchScopeCommitShareSeries(snapshot: GithubLatestSnapshot["snaps
   ].filter((row) => row.value > 0);
 }
 
+function clampScore(value: number) {
+  return Math.max(0, Math.min(10, Math.round(value * 10) / 10));
+}
+
+function countActiveDays(dailySeries: Array<{ date: string; commits: number }>) {
+  return dailySeries.filter((row) => row.commits > 0).length;
+}
+
+function buildDerivedSignals(params: {
+  snapshot: GithubLatestSnapshot["snapshot"] | null;
+  coverage: GithubMappingCoverage | null;
+  commitTimelineSeries: Array<{ date: string; commits: number; personalCommits: number }>;
+  weeklyCommitSeries: Array<{ week: string; commits: number }>;
+}) {
+  const { snapshot, coverage, commitTimelineSeries, weeklyCommitSeries } = params;
+
+  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
+  const totalContributors = Number(snapshot?.repoStats?.[0]?.totalContributors ?? 0);
+  const personalCommits = commitTimelineSeries.reduce((sum, row) => sum + (row.personalCommits || 0), 0);
+  const activeDays = countActiveDays(commitTimelineSeries);
+  const weeksWithCommits = weeklyCommitSeries.filter((row) => row.commits > 0).length;
+  const totalWeeks = Math.max(weeklyCommitSeries.length, 1);
+  const matchedRatio = coverage?.coverage?.totalCommits
+    ? (coverage.coverage.totalCommits - coverage.coverage.unmatchedCommits) / coverage.coverage.totalCommits
+    : 0;
+  const personalShare = totalCommits > 0 ? personalCommits / totalCommits : 0;
+  const consistencyScore = clampScore((weeksWithCommits / totalWeeks) * 10);
+  const visibilityScore = clampScore(matchedRatio * 10);
+  const participationScore = clampScore(Math.min(1, personalShare * 2.5) * 10);
+  const overallSignal = clampScore((consistencyScore + visibilityScore + participationScore) / 3);
+
+  return {
+    overallSignal,
+    consistencyScore,
+    visibilityScore,
+    participationScore,
+    activeDays,
+    weeksWithCommits,
+    totalWeeks,
+    personalCommits,
+    totalCommits,
+    totalContributors,
+  };
+}
+
 export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLogin }: GithubRepoChartsDashboardProps) {
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin);
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
@@ -167,6 +239,12 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
   const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
   const coverageShareSeries = buildCoverageShareSeries(coverage);
   const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
+  const signals = buildDerivedSignals({
+    snapshot,
+    coverage,
+    commitTimelineSeries,
+    weeklyCommitSeries,
+  });
 
   if (
     commitTimelineSeries.length === 0 &&
@@ -182,6 +260,34 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
   return (
     <section style={styles.chartSection} aria-label="Repository charts">
       <p style={styles.sectionLabel}>Charts</p>
+      <div style={styles.insightGrid}>
+        <div style={styles.insightCard}>
+          <div style={styles.insightLabel}>Overall contribution signal</div>
+          <div style={styles.insightValue}>{signals.overallSignal}/10</div>
+          <div style={styles.insightSubtext}>Heuristic only, not a grade</div>
+        </div>
+        <div style={styles.insightCard}>
+          <div style={styles.insightLabel}>Consistency signal</div>
+          <div style={styles.insightValue}>{signals.consistencyScore}/10</div>
+          <div style={styles.insightSubtext}>
+            {signals.weeksWithCommits}/{signals.totalWeeks} active weeks
+          </div>
+        </div>
+        <div style={styles.insightCard}>
+          <div style={styles.insightLabel}>Mapping visibility</div>
+          <div style={styles.insightValue}>{signals.visibilityScore}/10</div>
+          <div style={styles.insightSubtext}>
+            {coverage?.coverage?.unmatchedCommits ?? 0} unmatched commits
+          </div>
+        </div>
+        <div style={styles.insightCard}>
+          <div style={styles.insightLabel}>Personal activity share</div>
+          <div style={styles.insightValue}>{signals.participationScore}/10</div>
+          <div style={styles.insightSubtext}>
+            {signals.personalCommits}/{signals.totalCommits || 0} commits
+          </div>
+        </div>
+      </div>
       <div style={styles.chartGrid}>
         {commitTimelineSeries.length > 0 ? (
           <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
