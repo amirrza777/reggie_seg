@@ -5,16 +5,10 @@ import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
 import { listFeatureFlags } from "../api/client";
 import type { FeatureFlag } from "../types";
 
-const fallbackFlags: FeatureFlag[] = [
-  { key: "peer_feedback", label: "Peer feedback", enabled: true },
-  { key: "modules", label: "Modules", enabled: true },
-  { key: "repos", label: "Repos", enabled: false },
-];
-
 type Status = "idle" | "loading" | "error" | "success";
 
 export function FeatureFlagsCard() {
-  const [flags, setFlags] = useState<FeatureFlag[]>(fallbackFlags);
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -24,10 +18,9 @@ export function FeatureFlagsCard() {
       setStatus("loading");
       try {
         const response = await listFeatureFlags();
-        if (subscribed && response.length > 0) {
-          setFlags(response);
-        }
-        setStatus("idle");
+        if (!subscribed) return;
+        setFlags(response);
+        setStatus("success");
       } catch (err) {
         if (subscribed) {
           setStatus("error");

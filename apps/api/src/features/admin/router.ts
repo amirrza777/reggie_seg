@@ -99,7 +99,12 @@ router.patch("/users/:id", async (req, res) => {
 });
 
 router.get("/feature-flags", async (_req, res) => {
-  res.json([]);
+  const adminUser = (_req as any).adminUser as { enterpriseId: string };
+  const flags = await prisma.featureFlag.findMany({
+    where: { enterpriseId: adminUser.enterpriseId },
+    orderBy: { key: "asc" },
+  });
+  res.json(flags);
 });
 
 router.get("/audit-logs", async (req, res) => {

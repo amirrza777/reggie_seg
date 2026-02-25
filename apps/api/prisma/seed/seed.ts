@@ -27,6 +27,7 @@ async function main() {
   await seedTeamAllocations(users, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
+  await seedFeatureFlags(enterpriseId);
 }
 
 type SeedUser = { id: number; role: Role };
@@ -395,6 +396,22 @@ async function seedPeerAssessments(
           'Teamwork': `${reviewerId % 4 === 0 ? 'Strong' : 'Adequate'} teamwork skills`,
         },
       },
+    });
+  }
+}
+
+async function seedFeatureFlags(enterpriseId: string) {
+  const defaults = [
+    { key: 'peer_feedback', label: 'Peer feedback', enabled: true },
+    { key: 'modules', label: 'Modules', enabled: true },
+    { key: 'repos', label: 'Repos', enabled: false },
+  ];
+
+  for (const flag of defaults) {
+    await prisma.featureFlag.upsert({
+      where: { enterpriseId_key: { enterpriseId, key: flag.key } },
+      update: { label: flag.label, enabled: flag.enabled },
+      create: { ...flag, enterpriseId },
     });
   }
 }
