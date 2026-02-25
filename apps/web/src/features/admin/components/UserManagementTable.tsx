@@ -130,6 +130,7 @@ export function UserManagementTable() {
     const statusLabel = user.active ? "Active" : "Suspended";
     const isAdmin = user.role === "ADMIN";
     const roleLabel = isAdmin ? "Admin" : user.role === "STAFF" ? "Staff" : "Student";
+    const isSuperAdmin = user.email.toLowerCase() === "admin@kcl.ac.uk";
 
     const roleControl = isAdmin ? (
       <span className="role-chip">Admin</span>
@@ -168,15 +169,22 @@ export function UserManagementTable() {
       <div key={`${user.id}-role`} style={{ display: "flex", justifyContent: "flex-start" }}>
         {roleControl}
       </div>,
-      <button
-        key={`${user.id}-status`}
-        onClick={() => handleStatusToggle(user.id, !user.active)}
-        className={statusClass}
-        style={{ cursor: "pointer" }}
-      >
-        <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
-        <span>{statusLabel}</span>
-      </button>,
+      isSuperAdmin ? (
+        <span key={`${user.id}-status`} className={statusClass} style={{ cursor: "not-allowed", opacity: 0.75 }}>
+          <span style={{ fontSize: 14 }}>●</span>
+          <span>Active</span>
+        </span>
+      ) : (
+        <button
+          key={`${user.id}-status`}
+          onClick={() => handleStatusToggle(user.id, !user.active)}
+          className={statusClass}
+          style={{ cursor: "pointer" }}
+        >
+          <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
+          <span>{statusLabel}</span>
+        </button>
+      ),
     ];
   });
 
