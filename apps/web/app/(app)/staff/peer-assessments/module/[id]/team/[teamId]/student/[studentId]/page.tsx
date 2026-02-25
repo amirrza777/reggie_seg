@@ -5,6 +5,7 @@ import { Card } from "@/shared/ui/Card";
 import { PerformanceSummaryCard } from "@/shared/ui/PerformanceSummaryCard";
 import { getStudentDetails } from "@/features/staff/peerAssessments/api/client";
 import { ApiError } from "@/shared/api/errors";
+import { getCurrentUser } from "@/shared/auth/session";
 
 type PageProps = {
   params: Promise<{
@@ -14,9 +15,12 @@ type PageProps = {
   }>;
 };
 
-// TODO: get staffId from authentication
-async function getStaffId(): Promise<number> {
-  return 1;
+async function getStaffIdFromSession() {
+  const user = await getCurrentUser();
+  if (!user || (!user.isStaff && !user.isAdmin)) {
+    throw new ApiError("You don’t have permission to view staff peer assessments.", { status: 403 });
+  }
+  return user.id;
 }
 
 function memberName(m: { firstName: string; lastName: string }) {
@@ -29,12 +33,13 @@ export default async function StudentPage({ params }: PageProps) {
   const moduleId = parseInt(moduleIdParam);
   const teamId = parseInt(teamIdParam);
   const studentId = parseInt(studentIdParam);
-  const staffId = await getStaffId();
+  let staffId: number | null = null;
 
   let data: Awaited<ReturnType<typeof getStudentDetails>> | null = null;
   let errorMessage: string | null = null;
 
   try {
+    staffId = await getStaffIdFromSession();
     data = await getStudentDetails(staffId, moduleId, teamId, studentId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {

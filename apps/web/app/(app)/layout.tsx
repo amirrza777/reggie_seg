@@ -23,9 +23,10 @@ const navLinks: NavLink[] = [
   { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
   { href: "/staff/health", label: "Team Health", space: "staff" },
   { href: "/staff/analytics", label: "Analytics", space: "staff" },
-  { href: "/staff/integrations", label: "Integrations", space: "staff" },
-  { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
-  { href: "/staff/peer-assessments", label: "Peer Assessments", space: "staff" },
+  // Items that should remain visible in the Workspace space (pre-staff split)
+  { href: "/staff/integrations", label: "Integrations", space: "workspace" },
+  { href: "/staff/questionnaires", label: "Questionnaires", space: "workspace" },
+  { href: "/staff/peer-assessments", label: "Peer Assessments", space: "workspace" },
 
   // Admin
   { href: "/admin", label: "Admin Home", space: "admin" },
@@ -40,7 +41,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     return true;
   });
 
-  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace" }];
+  const workspaceAliases = ["/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
+
+  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 

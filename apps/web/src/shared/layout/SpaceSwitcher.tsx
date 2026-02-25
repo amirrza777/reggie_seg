@@ -8,6 +8,7 @@ type SpaceLink = {
   href: string;
   label: string;
   icon?: ReactNode;
+  activePaths?: string[];
 };
 
 type SpaceSwitcherProps = {
@@ -63,9 +64,10 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
 
   return (
     <nav className="space-switcher" aria-label="Spaces">
-      {links.map(({ href, label, icon }) => {
+      {links.map(({ href, label, icon, activePaths }) => {
         const normalizedLabel = label.toLowerCase();
-        const active = pathname ? pathname.startsWith(href) : false;
+        const activeByAlias = activePaths?.some((prefix) => pathname?.startsWith(prefix) ?? false) ?? false;
+        const active = pathname ? activeByAlias || pathname.startsWith(href) : false;
         const resolvedIcon = icon ?? defaultIcons[normalizedLabel];
 
         return (
