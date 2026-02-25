@@ -4,21 +4,25 @@ import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { ApiError } from "@/shared/api/errors";
+import { getCurrentUser } from "@/shared/auth/session";
 
 type PageProps = {
   params: Promise<{ id: string; teamId: string }>;
 };
 
-// TODO: get staffId from authentication
-async function getStaffId(): Promise<number> {
-  return 1;
+async function getStaffIdFromSession() {
+  const user = await getCurrentUser();
+  if (!user || (!user.isStaff && !user.isAdmin)) {
+    throw new ApiError("You don’t have permission to view staff peer assessments.", { status: 403 });
+  }
+  return user.id;
 }
 
 export default async function TeamPage({ params }: PageProps) {
   const { id: moduleIdParam, teamId: teamIdParam } = await params;
   const moduleId = parseInt(moduleIdParam);
   const teamId = parseInt(teamIdParam);
-  const staffId = await getStaffId();
+  let staffId: number | null = null;
 
   let moduleInfo: Awaited<ReturnType<typeof getTeamDetails>>["module"] | null = null;
   let teamInfo: Awaited<ReturnType<typeof getTeamDetails>>["team"] | null = null;
@@ -26,6 +30,7 @@ export default async function TeamPage({ params }: PageProps) {
   let errorMessage: string | null = null;
 
   try {
+    staffId = await getStaffIdFromSession();
     const data = await getTeamDetails(staffId, moduleId, teamId);
     moduleInfo = data.module;
     teamInfo = data.team;

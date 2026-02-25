@@ -111,12 +111,14 @@ body {
 .app-shell__main {
   --sidebar-width: clamp(180px, 20vw, 220px);
   --main-gap: 14px;
-  --divider-thickness: 0px;
+  --divider-thickness: 2px;
   --ribbon-height: 56px;
+  /* Solid, low-contrast divider that adapts with theme (no transparency) */
+  --divider-color: color-mix(in srgb, var(--surface) 80%, var(--ink) 20%);
   /* Split padding to pull content to the very top while keeping horizontal breathing room */
   --main-padding-x: 12px;
   --main-padding-y: 0px;
-  /* keep the dividers as cut-outs so the outer glow shows through */
+  /* Divider positions between sidebar/workspace (x) and below ribbon (y) */
   --divider-x: calc(var(--main-padding-x) + var(--sidebar-width) + (var(--main-gap) / 2));
   --divider-y: calc(var(--main-padding-y) + var(--ribbon-height) + (var(--main-gap) / 2));
   width: 100%;
@@ -136,66 +138,32 @@ body {
   box-sizing: border-box;
   overflow: hidden;
   margin-top: 0;
-  mask-image:
-    linear-gradient(#000 0 0),
-    linear-gradient(
-      to right,
-      #000 0,
-      #000 calc(var(--divider-x) - (var(--divider-thickness) / 2)),
-      transparent calc(var(--divider-x) - (var(--divider-thickness) / 2)),
-      transparent calc(var(--divider-x) + (var(--divider-thickness) / 2)),
-      #000 calc(var(--divider-x) + (var(--divider-thickness) / 2)),
-      #000 100%
-    ),
-    linear-gradient(
-      to bottom,
-      #000 0,
-      #000 var(--divider-y),
-      transparent var(--divider-y),
-      transparent calc(var(--divider-y) + var(--divider-thickness)),
-      #000 calc(var(--divider-y) + var(--divider-thickness)),
-      #000 100%
-    );
-  mask-repeat: no-repeat;
-  mask-size:
-    100% 100%,
-    100% calc(100% - var(--divider-y)),
-    100% 100%;
-  mask-position:
-    0 0,
-    0 var(--divider-y),
-    0 0;
-  mask-composite: intersect, intersect;
-  -webkit-mask-image:
-    linear-gradient(#000 0 0),
-    linear-gradient(
-      to right,
-      #000 0,
-      #000 calc(var(--divider-x) - (var(--divider-thickness) / 2)),
-      transparent calc(var(--divider-x) - (var(--divider-thickness) / 2)),
-      transparent calc(var(--divider-x) + (var(--divider-thickness) / 2)),
-      #000 calc(var(--divider-x) + (var(--divider-thickness) / 2)),
-      #000 100%
-    ),
-    linear-gradient(
-      to bottom,
-      #000 0,
-      #000 var(--divider-y),
-      transparent var(--divider-y),
-      transparent calc(var(--divider-y) + var(--divider-thickness)),
-      #000 calc(var(--divider-y) + var(--divider-thickness)),
-      #000 100%
-    );
-  -webkit-mask-repeat: no-repeat;
-  -webkit-mask-size:
-    100% 100%,
-    100% calc(100% - var(--divider-y)),
-    100% 100%;
-  -webkit-mask-position:
-    0 0,
-    0 var(--divider-y),
-    0 0;
-  -webkit-mask-composite: source-in, source-in;
+  position: relative;
+}
+
+.app-shell__main::before,
+.app-shell__main::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  background: var(--divider-color);
+  border-radius: 0;
+}
+
+/* Vertical divider between sidebar and workspace */
+.app-shell__main::before {
+  left: calc(var(--divider-x) - (var(--divider-thickness) / 2));
+  top: var(--divider-y);
+  bottom: var(--main-padding-y);
+  width: var(--divider-thickness);
+}
+
+/* Horizontal divider below ribbon */
+.app-shell__main::after {
+  top: var(--divider-y);
+  left: 0;
+  right: 0;
+  height: var(--divider-thickness);
 }
 
 .app-shell__main--solo {
@@ -802,6 +770,10 @@ body {
     box-shadow: none;
     min-height: auto;
     gap: 16px;
+  }
+  .app-shell__main::before,
+  .app-shell__main::after {
+    display: none;
   }
 
   .app-shell__sidebar {

@@ -2,26 +2,31 @@ import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
 import { getModuleDetails } from "@/features/staff/peerAssessments/api/client";
 import { ApiError } from "@/shared/api/errors";
+import { getCurrentUser } from "@/shared/auth/session";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
 
-// TODO: get staffId from authentication
-async function getStaffId(): Promise<number> {
-  return 1;
+async function getStaffIdFromSession() {
+  const user = await getCurrentUser();
+  if (!user || (!user.isStaff && !user.isAdmin)) {
+    throw new ApiError("You don’t have permission to view staff peer assessments.", { status: 403 });
+  }
+  return user.id;
 }
 
 export default async function ModulePage({ params }: PageProps) {
   const { id } = await params;
   const moduleId = parseInt(id);
-  const staffId = await getStaffId();
+  let staffId: number | null = null;
 
   let moduleInfo: Awaited<ReturnType<typeof getModuleDetails>>["module"] | null = null;
   let teams: Awaited<ReturnType<typeof getModuleDetails>>["teams"] = [];
   let errorMessage: string | null = null;
 
   try {
+    staffId = await getStaffIdFromSession();
     const data = await getModuleDetails(staffId, moduleId);
     moduleInfo = data.module;
     teams = data.teams;

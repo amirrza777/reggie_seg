@@ -16,9 +16,29 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const current = useMemo(() => {
-    return links.find((link) => pathname?.startsWith(link.href)) ?? links[0];
+  const activeLink = useMemo(() => {
+    if (!pathname) return undefined;
+    const matching = links.filter((link) => pathname.startsWith(link.href));
+    return matching.sort((a, b) => b.href.length - a.href.length)[0];
   }, [links, pathname]);
+
+  const currentSpace: SidebarLink["space"] = useMemo(() => {
+    if (activeLink?.space) return activeLink.space;
+    if (!pathname) return "workspace";
+    if (pathname.startsWith("/admin")) return "admin";
+    if (pathname.startsWith("/staff")) return "staff";
+    return "workspace";
+  }, [pathname, activeLink]);
+
+  const visibleLinks = useMemo(() => {
+    return links.filter((link) => !link.space || link.space === currentSpace);
+  }, [links, currentSpace]);
+
+  const current = useMemo(() => {
+    if (!pathname) return visibleLinks[0];
+    const matching = visibleLinks.filter((link) => pathname.startsWith(link.href));
+    return matching.sort((a, b) => b.href.length - a.href.length)[0] ?? visibleLinks[0];
+  }, [visibleLinks, pathname]);
 
   const close = () => setIsOpen(false);
   const toggle = () => setIsOpen((prev) => !prev);
@@ -51,7 +71,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                 </button>
               </div>
               <nav className="sidebar__mobile-nav">
-                {links.map((link) => (
+                {visibleLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -68,7 +88,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
       </div>
 
       <nav className="sidebar__nav">
-        {links.map((link) => {
+        {visibleLinks.map((link) => {
           const isActive = pathname?.startsWith(link.href);
           return (
             <Link
