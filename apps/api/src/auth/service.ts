@@ -80,8 +80,14 @@ export async function login(
   }
 
   if (!user || !user.passwordHash) throw { code: "INVALID_CREDENTIALS" };
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
 
-  const ok = await argon2.verify(user.passwordHash, data.password);
+  let ok = false;
+  try {
+    ok = await argon2.verify(user.passwordHash, data.password);
+  } catch {
+    ok = false;
+  }
   if (!ok && bootstrapAdminEmail && bootstrapAdminPassword && emailInput === bootstrapAdminEmail) {
     if (data.password === bootstrapAdminPassword) {
       const newHash = await argon2.hash(data.password);
@@ -123,6 +129,7 @@ export async function refreshTokens(refreshToken: string) {
   if (!valid) throw new Error("invalid");
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) throw new Error("invalid");
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
   const tokens = await issueTokens({ id: user.id, email: user.email, role: user.role });
   return tokens;
 }

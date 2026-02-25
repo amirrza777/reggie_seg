@@ -16,6 +16,7 @@ model User {
   role                Role                 @default(STUDENT)
   lastName            String
   passwordHash        String
+  active              Boolean              @default(true)
   updatedAt           DateTime             @updatedAt
   enterprise          Enterprise           @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   moduleLeads         ModuleLead[]

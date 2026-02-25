@@ -59,6 +59,7 @@ export async function loginHandler(req: Request, res: Response) {
   } catch (e: any) {
     console.error("login error", e);
     if (e.code === "INVALID_CREDENTIALS") return res.status(401).json({ error: "Invalid credentials" });
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(500).json({ error: "login failed", detail: e?.message || e?.code || String(e) });
   }
 }
@@ -72,6 +73,7 @@ export async function refreshHandler(req: Request, res: Response) {
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("refresh error", e);
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(401).json({ error: "invalid refresh token", detail: e?.message || e?.code || String(e) });
   }
 }
@@ -178,6 +180,10 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(401).json({ error: "Not authenticated" });
+    if (user.active === false) {
+      await prisma.refreshToken.updateMany({ where: { userId: user.id, revoked: false }, data: { revoked: true } });
+      return res.status(403).json({ error: "Account is suspended" });
+    }
 
     const role = user.role;
     const isStaff = role !== "STUDENT";
@@ -190,7 +196,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
       isStaff,
       isAdmin,
       role,
-      active: true,
+      active: user.active ?? true,
     });
   } catch (err) {
     console.error("meHandler error", err);
