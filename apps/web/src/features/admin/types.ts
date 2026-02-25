@@ -42,3 +42,10 @@ export type AuditLogEntry = {
     role: UserRole;
   };
 };
+
+export type AdminSummary = {
+  users: number;
+  modules: number;
+  teams: number;
+  meetings: number;
+};

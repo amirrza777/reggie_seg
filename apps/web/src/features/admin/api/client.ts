@@ -5,6 +5,7 @@ import type {
   AdminUserUpdate,
   AuditLogEntry,
   FeatureFlag,
+  AdminSummary,
   UserRole,
 } from "../types";
 
@@ -38,4 +39,8 @@ export async function listAuditLogs(params: { from?: string; to?: string; limit?
   const qs = search.toString();
   const path = qs ? `/admin/audit-logs?${qs}` : "/admin/audit-logs";
   return apiFetch<AuditLogEntry[]>(path);
+}
+
+export async function getAdminSummary() {
+  return apiFetch<AdminSummary>("/admin/summary");
 }

@@ -12,6 +12,7 @@ export type SessionUser = {
   isAdmin?: boolean;
   role?: UserRole;
   active?: boolean;
+  suspended?: boolean;
 };
 
 const normalizeUser = (user: SessionUser): SessionUser => {
@@ -49,7 +50,11 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     });
 
     return normalizeUser(user);
-  } catch {
+  } catch (err: any) {
+    // If suspended, surface as inactive user so layouts can show a suspension notice.
+    if (err?.status === 403 && String(err?.message || "").toLowerCase().includes("suspend")) {
+      return { id: -1, email: "", firstName: "", lastName: "", isStaff: false, role: "STUDENT", active: false, suspended: true };
+    }
     return null;
   }
 }

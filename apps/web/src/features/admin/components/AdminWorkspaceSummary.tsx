@@ -3,16 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import type { AdminUser, AdminUserRecord, UserRole } from "../types";
-import { listUsers, updateUserRole } from "../api/client";
+import type { AdminUser, AdminUserRecord, UserRole, AdminSummary } from "../types";
+import { listUsers, updateUserRole, getAdminSummary } from "../api/client";
 import { AuditLogModal } from "./AuditLogModal";
-
-const overview = [
-  { label: "Users", value: 132, hint: "User + RefreshToken records" },
-  { label: "Modules", value: 19, hint: "Module + ModuleLead ownership" },
-  { label: "Teams", value: 20, hint: "Team + TeamAllocation links" },
-  { label: "Meetings", value: 65, hint: "Meeting + MeetingMinutes" },
-];
 
 const demoStaff: AdminUser[] = [
   {
@@ -61,6 +54,8 @@ export function AdminWorkspaceSummary() {
   const [status, setStatus] = useState<RequestState>("idle");
   const [notice, setNotice] = useState<string | null>(null);
   const [actionStatus, setActionStatus] = useState<Record<number, RequestState>>({});
+  const [summary, setSummary] = useState<AdminSummary | null>(null);
+  const [summaryStatus, setSummaryStatus] = useState<RequestState>("idle");
 
   const gridTemplate = "1.3fr 1fr 1fr";
 
@@ -94,6 +89,21 @@ export function AdminWorkspaceSummary() {
     if (!modalOpen) return;
     loadStaff();
   }, [modalOpen, loadStaff]);
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      setSummaryStatus("loading");
+      try {
+        const data = await getAdminSummary();
+        setSummary(data);
+        setSummaryStatus("success");
+      } catch (err) {
+        setSummaryStatus("error");
+        setNotice((err as Error)?.message ?? "Unable to load admin summary.");
+      }
+    };
+    loadSummary();
+  }, []);
 
   const changeRole = async (userId: number, role: UserRole) => {
     const previous = staff.map((user) => ({ ...user }));
@@ -130,9 +140,6 @@ export function AdminWorkspaceSummary() {
           </div>
         }
       >
-        <p className="muted">
-          Super user view that maps directly to the Prisma models: users, modules, teams, and meetings.
-        </p>
         <div
           style={{
             display: "grid",
@@ -140,7 +147,12 @@ export function AdminWorkspaceSummary() {
             gap: 12,
           }}
         >
-          {overview.map((item) => (
+          {[
+            { label: "Users", value: summary?.users },
+            { label: "Modules", value: summary?.modules },
+            { label: "Teams", value: summary?.teams },
+            { label: "Meetings", value: summary?.meetings },
+          ].map((item) => (
             <div
               key={item.label}
               className="stack"
@@ -153,8 +165,9 @@ export function AdminWorkspaceSummary() {
               }}
             >
               <span className="eyebrow">{item.label}</span>
-              <strong style={{ fontSize: 22, letterSpacing: "-0.02em" }}>{item.value}</strong>
-              <span className="muted">{item.hint}</span>
+              <strong style={{ fontSize: 22, letterSpacing: "-0.02em" }}>
+                {item.value ?? (summaryStatus === "loading" ? "…" : 0)}
+              </strong>
             </div>
           ))}
         </div>
