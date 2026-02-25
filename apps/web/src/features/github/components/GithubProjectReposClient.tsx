@@ -59,6 +59,63 @@ const styles = {
     background: "var(--surface)",
     color: "var(--ink)",
   } as React.CSSProperties,
+  tabBarPanel: {
+    ...({
+      border: "1px solid var(--border)",
+      borderRadius: 14,
+      background:
+        "linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface))",
+      padding: 10,
+      boxShadow: "var(--shadow-sm)",
+    } as React.CSSProperties),
+  } as React.CSSProperties,
+  tabRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  } as React.CSSProperties,
+  tabButton: {
+    borderRadius: 10,
+    minHeight: 38,
+    paddingInline: 12,
+  } as React.CSSProperties,
+  tabButtonActive: {
+    boxShadow: "inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent)",
+  } as React.CSSProperties,
+  sectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 4,
+  } as React.CSSProperties,
+  sectionTitleWrap: {
+    display: "grid",
+    gap: 2,
+  } as React.CSSProperties,
+  sectionKicker: {
+    margin: 0,
+    color: "var(--muted)",
+    fontSize: 12,
+    letterSpacing: 0.35,
+    textTransform: "uppercase",
+  } as React.CSSProperties,
+  statusBanner: {
+    borderRadius: 12,
+    border: "1px solid var(--border)",
+    padding: "10px 12px",
+    background: "var(--surface)",
+    boxShadow: "var(--shadow-sm)",
+  } as React.CSSProperties,
+  statusInfo: {
+    borderColor: "color-mix(in srgb, var(--accent) 35%, var(--border))",
+    background: "color-mix(in srgb, var(--accent) 10%, var(--surface))",
+  } as React.CSSProperties,
+  statusError: {
+    borderColor: "color-mix(in srgb, #ef4444 35%, var(--border))",
+    background: "color-mix(in srgb, #ef4444 8%, var(--surface))",
+  } as React.CSSProperties,
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
@@ -72,7 +129,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   type TabKey = (typeof tabs)[number]["key"];
 
   const githubAppInstallUrl = process.env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL?.trim() || "";
-  console.log("Using GitHub App install URL:", githubAppInstallUrl);
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -424,7 +480,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setError("GitHub App install URL is not configured.");
       return;
     }
-    window.open(githubAppInstallUrl, "_blank", "noopener,noreferrer");
+    window.location.assign(githubAppInstallUrl);
   }
 
   async function handleLinkSelectedRepo() {
@@ -499,13 +555,27 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         linkedRepoCount={activeLinkCount}
         loading={loading}
       />
-      <section style={{ ...styles.panel, padding: 8 }}>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {info ? (
+        <div style={{ ...styles.statusBanner, ...styles.statusInfo }}>
+          <p className="muted" style={{ margin: 0 }}>{info}</p>
+        </div>
+      ) : null}
+      {error ? (
+        <div style={{ ...styles.statusBanner, ...styles.statusError }}>
+          <p className="muted" style={{ margin: 0 }}>{error}</p>
+        </div>
+      ) : null}
+      <section style={styles.tabBarPanel}>
+        <div style={styles.tabRow}>
           {tabs.map((tab) => (
             <Button
               key={tab.key}
               variant={activeTab === tab.key ? "primary" : "ghost"}
               onClick={() => setActiveTab(tab.key)}
+              style={{
+                ...styles.tabButton,
+                ...(activeTab === tab.key ? styles.tabButtonActive : null),
+              }}
             >
               {tab.label}
             </Button>
@@ -515,8 +585,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "repositories" ? (
         <section style={styles.panel}>
-          <div style={styles.row}>
-            <strong>Linked repositories</strong>
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitleWrap}>
+              <p style={styles.sectionKicker}>Repositories</p>
+              <strong>Linked repositories</strong>
+            </div>
             <Button variant="ghost" onClick={handleRefreshSnapshots} disabled={loading || busy}>
               {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
             </Button>
@@ -576,7 +649,10 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "my-commits" ? (
         <section style={styles.panel}>
-          <strong>My commits</strong>
+          <div style={styles.sectionTitleWrap}>
+            <p style={styles.sectionKicker}>Personal activity</p>
+            <strong>My commits</strong>
+          </div>
           <div style={styles.list}>
             {loading ? <p className="muted">Loading commits...</p> : null}
             {!loading && !connection?.connected ? <p className="muted">Connect GitHub to view your commits.</p> : null}
@@ -767,8 +843,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "branches" ? (
         <section style={styles.panel}>
-          <div style={styles.row}>
-            <strong>Branches</strong>
+          <div style={styles.sectionHeader}>
+            <div style={styles.sectionTitleWrap}>
+              <p style={styles.sectionKicker}>Live repository data</p>
+              <strong>Branches</strong>
+            </div>
             <Button variant="ghost" onClick={() => void handleRefreshLiveBranches()} disabled={loading || liveBranchesRefreshing}>
               {liveBranchesRefreshing ? "Refreshing..." : "Refresh"}
             </Button>
@@ -881,8 +960,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       {activeTab === "configurations" ? (
         <>
           <section style={styles.panel}>
-            <div style={styles.row}>
+            <div style={styles.sectionHeader}>
               <div className="stack" style={{ gap: 4 }}>
+                <p style={styles.sectionKicker}>Setup</p>
                 <strong>GitHub account</strong>
                 {loading ? (
                   <p className="muted">Loading connection...</p>
@@ -909,12 +989,12 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
                 </Button>
               )}
             </div>
+            <p className="muted" style={{ marginTop: 10 }}>
+              Connect GitHub first, then install or grant repository access to the GitHub App if repositories do not appear.
+            </p>
           </section>
         </>
       ) : null}
-
-      {info ? <p className="muted">{info}</p> : null}
-      {error ? <p className="muted">{error}</p> : null}
     </div>
   );
 }
