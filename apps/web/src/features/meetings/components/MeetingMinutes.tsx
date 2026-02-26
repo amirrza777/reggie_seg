@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { useAutosave } from "../hooks/useAutosave";
 import { saveMinutes } from "../api/client";
+import { MinutesEditor } from "./MinutesEditor";
 
 type MeetingMinutesProps = {
   meetingId: number;
@@ -27,15 +28,8 @@ export function MeetingMinutes({ meetingId, writerId, initialContent }: MeetingM
 
   return (
     <div className="stack">
-      <label className="stack">
-        <span>Minutes</span>
-        <textarea
-          rows={6}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Capture decisions, risks, and action items..."
-        />
-      </label>
+      <span>Minutes</span>
+      <MinutesEditor initialContent={initialContent} onChange={setContent} />
       <div className="cluster">
         <Button type="button" onClick={saveNow}>
           Save minutes
