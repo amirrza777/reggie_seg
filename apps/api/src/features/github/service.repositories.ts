@@ -133,7 +133,6 @@ async function fetchGitHubAppUserRepositories(accessToken: string) {
   return Array.from(repositoryById.values());
 }
 
-
 export async function listGithubRepositoriesForUser(userId: number) {
   const account = await findGithubAccountByUserId(userId);
   if (!account) {
