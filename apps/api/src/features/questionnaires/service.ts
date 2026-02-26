@@ -1,5 +1,6 @@
 import {
   createQuestionnaireTemplate,
+  copyPublicQuestionnaireTemplateToUser,
   getQuestionnaireTemplateById,
   getAllQuestionnaireTemplates,
   getMyQuestionnaireTemplates,
@@ -61,5 +62,12 @@ export function deleteTemplate(requesterUserId: number, templateId: number) {
   return ensureTemplateOwnership(requesterUserId, templateId).then(() =>
     deleteQuestionnaireTemplate(templateId)
   );
+}
+
+export function usePublicTemplate(requesterUserId: number, templateId: number) {
+  if (!requesterUserId) {
+    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+  }
+  return copyPublicQuestionnaireTemplateToUser(templateId, requesterUserId);
 }
 

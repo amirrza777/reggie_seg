@@ -66,7 +66,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [isPublic, setIsPublic] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
   const addQuestion = (type: QuestionType) => {
@@ -130,7 +130,7 @@ export default function NewQuestionnairePage() {
   }, [templateName, questions]);
 
   const isValid = validationErrors.length === 0;
-  const hasUnsavedChanges = Boolean(templateName.trim()) || questions.length > 0 || !isPublic;
+  const hasUnsavedChanges = Boolean(templateName.trim()) || questions.length > 0 || isPublic;
 
   const saveTemplate = async () => {
     if (!isValid) return;
@@ -152,7 +152,7 @@ export default function NewQuestionnairePage() {
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
-      setIsPublic(true);
+      setIsPublic(false);
       setAnswers({});
       setSaved(true);
       router.push("/staff/questionnaires");

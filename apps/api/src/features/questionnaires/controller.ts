@@ -6,7 +6,8 @@ import {
   getMyTemplates,
   getPublicTemplatesFromOtherUsers,
   deleteTemplate,
-  updateTemplate
+  updateTemplate,
+  usePublicTemplate,
 } from "./service.js"
 import type { Question , IncomingQuestion} from "./types.js";
 import jwt from "jsonwebtoken";
@@ -169,6 +170,24 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }
     console.error("Error deleting questionnaire template:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function useTemplateHandler(req: Request, res: Response) {
+  const id = Number(req.params.id);
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "Invalid questionnaire template ID" });
+  }
+
+  try {
+    const requesterUserId = requireRequesterUserId(req);
+    const copied = await usePublicTemplate(requesterUserId, id);
+    if (!copied) return res.status(404).json({ error: "Public questionnaire template not found" });
+    res.json({ ok: true, templateID: copied.id });
+  } catch (error: any) {
+    if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
+    console.error("Error copying questionnaire template:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

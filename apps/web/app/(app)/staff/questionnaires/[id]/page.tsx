@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
@@ -11,6 +11,7 @@ import { getQuestionnaireById } from "@/features/questionnaires/api/client";
 
 export default function QuestionnairePage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export default function QuestionnairePage() {
   if (!questionnaire) return <p style={{ padding: 32 }}>Loading...</p>;
 
   const canManage = questionnaire.canEdit === true;
+  const canUse = questionnaire.isPublic === true && !canManage;
 
   return (
     <div className="stack" style={{ padding: 32, gap: 40 }}>
@@ -52,6 +54,14 @@ export default function QuestionnairePage() {
             <EditQuestionnaireButton questionnaireId={id} />
             <DeleteQuestionnaireButton questionnaireId={id} />
           </>
+        )}
+        {canUse && (
+          <button
+            className="btn"
+            onClick={() => router.push(`/staff/questionnaires/${id}/edit?mode=use`)}
+          >
+            Use Template
+          </button>
         )}
 
         <Link href="/staff/questionnaires" style={{ marginLeft: 100 }}>

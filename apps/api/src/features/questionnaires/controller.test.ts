@@ -18,6 +18,7 @@ vi.mock("./service.js", () => ({
   getAllTemplates: vi.fn(),
   updateTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
+  usePublicTemplate: vi.fn(),
 }));
 
 //mock auth helpers

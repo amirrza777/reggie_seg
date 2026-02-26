@@ -12,6 +12,7 @@ import * as repo from "./repo.js";
 //Mocks the repo layer 
 vi.mock("./repo.js", () => ({
   createQuestionnaireTemplate: vi.fn(),
+  copyPublicQuestionnaireTemplateToUser: vi.fn(),
   getQuestionnaireTemplateById: vi.fn(),
   getAllQuestionnaireTemplates: vi.fn(),
   isQuestionnaireTemplateOwnedByUser: vi.fn(),

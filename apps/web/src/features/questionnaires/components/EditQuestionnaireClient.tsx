@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
-import { getQuestionnaireById, updateQuestionnaire } from "../api/client";
+import { createQuestionnaire, getQuestionnaireById, updateQuestionnaire } from "../api/client";
 import {
   CancelQuestionnaireButton,
   QuestionnaireVisibilityButtons,
@@ -59,7 +59,9 @@ const styles = {
 
 export default function EditQuestionnairePage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const templateId = Number(id);
+  const isUseMode = searchParams.get("mode") === "use";
   const router = useRouter();
   const [templateName, setTemplateName] = useState("");
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
@@ -85,8 +87,14 @@ export default function EditQuestionnairePage() {
           return;
         }
 
-        setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
-        setIsPublic(typeof template.isPublic === "boolean" ? template.isPublic : true);
+        const baseName =
+          typeof template.templateName === "string" ? template.templateName : "";
+        setTemplateName(
+          isUseMode && !template.canEdit ? `${baseName} (Copy)` : baseName
+        );
+        const templateVisibility =
+          typeof template.isPublic === "boolean" ? template.isPublic : true;
+        setIsPublic(isUseMode && !template.canEdit ? false : templateVisibility);
         setCanEdit(typeof template.canEdit === "boolean" ? template.canEdit : true);
 
         setQuestions(
@@ -176,15 +184,30 @@ export default function EditQuestionnairePage() {
     setSaving(true);
 
     try {
-      await updateQuestionnaire(templateId, {
+      if (isUseMode && !canEdit) {
+        await createQuestionnaire({
           templateName,
           isPublic,
           questions: questions.map((q) => ({
-            id: q.dbId,
             label: q.label,
             type: q.type,
             configs: q.configs,
           })),
+        });
+        setHasUnsavedChanges(false);
+        router.push("/staff/questionnaires");
+        return;
+      }
+
+      await updateQuestionnaire(templateId, {
+        templateName,
+        isPublic,
+        questions: questions.map((q) => ({
+          id: q.dbId,
+          label: q.label,
+          type: q.type,
+          configs: q.configs,
+        })),
       });
 
       setHasUnsavedChanges(false);
@@ -200,7 +223,7 @@ export default function EditQuestionnairePage() {
 
   if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
   if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
-  if (!canEdit) {
+  if (!canEdit && !isUseMode) {
     return (
       <div style={{ padding: 32 }}>
         <p style={{ marginBottom: 12 }}>You do not have permission to edit this questionnaire.</p>

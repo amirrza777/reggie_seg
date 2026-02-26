@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getMyQuestionnaires, getPublicQuestionnairesFromOthers } from "../api/client";
+import {
+  getMyQuestionnaires,
+  getPublicQuestionnairesFromOthers,
+} from "../api/client";
 import { Questionnaire } from "../types";
 import { EditQuestionnaireButton, DeleteQuestionnaireButton } from "./SharedQuestionnaireButtons";
 

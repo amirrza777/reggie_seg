@@ -26,7 +26,9 @@ type QuestionnaireMutationPayload = {
   questions: QuestionnaireMutationQuestion[];
 };
 
-export async function createQuestionnaire(payload: QuestionnaireMutationPayload) {
+export async function createQuestionnaire(
+  payload: QuestionnaireMutationPayload
+): Promise<{ ok: true; templateID: number; userId: number; isPublic: boolean }> {
   return apiFetch("/questionnaires/new", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -46,5 +48,11 @@ export async function updateQuestionnaire(
 export async function deleteQuestionnaire(templateId: number | string) {
   return apiFetch(`/questionnaires/${templateId}`, {
     method: "DELETE",
+  });
+}
+
+export async function usePublicQuestionnaire(templateId: number | string): Promise<{ ok: true; templateID: number }> {
+  return apiFetch(`/questionnaires/${templateId}/use`, {
+    method: "POST",
   });
 }

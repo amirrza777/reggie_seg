@@ -16,6 +16,7 @@ describe("template router", () => {
         { path: "/mine", methods: { get: true } },
         { path: "/public/others", methods: { get: true } },
         { path: "/new", methods: { post: true } },
+        { path: "/:id/use", methods: { post: true } },
         { path: "/:id", methods: { get: true } },
         { path: "/:id", methods: { put: true } },
         { path: "/:id", methods: { delete: true } },

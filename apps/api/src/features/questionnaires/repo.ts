@@ -150,3 +150,29 @@ export function deleteQuestionnaireTemplate(id: number) {
   });
 }
 
+export async function copyPublicQuestionnaireTemplateToUser(templateId: number, userId: number) {
+  const source = await prisma.questionnaireTemplate.findFirst({
+    where: { id: templateId, isPublic: true },
+    include: { questions: { orderBy: { order: "asc" } } },
+  });
+
+  if (!source) return null;
+
+  return prisma.questionnaireTemplate.create({
+    data: {
+      templateName: `${source.templateName} (Copy)`,
+      isPublic: false,
+      ownerId: userId,
+      questions: {
+        create: source.questions.map((q, index) => ({
+          label: q.label,
+          type: q.type,
+          order: index,
+          configs: q.configs ?? null,
+        })),
+      },
+    },
+    select: { id: true },
+  });
+}
+

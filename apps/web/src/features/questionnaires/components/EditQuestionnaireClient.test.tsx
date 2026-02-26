@@ -9,6 +9,7 @@ const routeParams = { id: "12" };
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ back }),
   useParams: () => routeParams,
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock("@/shared/api/http", () => ({
