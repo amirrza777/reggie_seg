@@ -3,8 +3,11 @@ import {
   createTemplate,
   getTemplate,
   getAllTemplates,
+  getMyTemplates,
+  getPublicTemplatesFromOtherUsers,
   updateTemplate,
   deleteTemplate,
+  usePublicTemplate,
 } from "./service.js";
 
 import * as repo from "./repo.js";
@@ -15,6 +18,8 @@ vi.mock("./repo.js", () => ({
   copyPublicQuestionnaireTemplateToUser: vi.fn(),
   getQuestionnaireTemplateById: vi.fn(),
   getAllQuestionnaireTemplates: vi.fn(),
+  getMyQuestionnaireTemplates: vi.fn(),
+  getPublicQuestionnaireTemplatesByOtherUsers: vi.fn(),
   isQuestionnaireTemplateOwnedByUser: vi.fn(),
   updateQuestionnaireTemplate: vi.fn(),
   deleteQuestionnaireTemplate: vi.fn(),
@@ -74,6 +79,24 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 
+  it("forwards getMyTemplates to repo", async () => {
+    (repo.getMyQuestionnaireTemplates as any).mockResolvedValue([{ id: 7 }]);
+
+    const result = await getMyTemplates(12);
+
+    expect(repo.getMyQuestionnaireTemplates).toHaveBeenCalledWith(12);
+    expect(result).toEqual([{ id: 7 }]);
+  });
+
+  it("forwards getPublicTemplatesFromOtherUsers to repo", async () => {
+    (repo.getPublicQuestionnaireTemplatesByOtherUsers as any).mockResolvedValue([{ id: 9 }]);
+
+    const result = await getPublicTemplatesFromOtherUsers(21);
+
+    expect(repo.getPublicQuestionnaireTemplatesByOtherUsers).toHaveBeenCalledWith(21);
+    expect(result).toEqual([{ id: 9 }]);
+  });
+
   //Updating a template
 
   it("forwards updateTemplate to repo with correct arguments", async () => {
@@ -95,6 +118,22 @@ describe("QuestionnaireTemplate service", () => {
     );
   });
 
+  it("throws unauthorized when updateTemplate requester is missing", async () => {
+    await expect(
+      updateTemplate(0, 10, "Updated Template", [{ id: 1, label: "Q", type: "text" }], true)
+    ).rejects.toMatchObject({ statusCode: 401 });
+    expect(repo.updateQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
+  it("throws forbidden when updateTemplate requester is not owner", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(false);
+
+    await expect(
+      updateTemplate(99, 10, "Updated Template", [{ id: 1, label: "Q", type: "text" }], true)
+    ).rejects.toMatchObject({ statusCode: 403 });
+    expect(repo.updateQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
   //Deleting a template
   it("forwards deleteTemplate to repo", async () => {
     (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
@@ -104,5 +143,31 @@ describe("QuestionnaireTemplate service", () => {
 
     expect(repo.isQuestionnaireTemplateOwnedByUser).toHaveBeenCalledWith(20, 99);
     expect(repo.deleteQuestionnaireTemplate).toHaveBeenCalledWith(20);
+  });
+
+  it("throws unauthorized when deleteTemplate requester is missing", async () => {
+    await expect(deleteTemplate(0, 20)).rejects.toMatchObject({ statusCode: 401 });
+    expect(repo.deleteQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
+  it("throws forbidden when deleteTemplate requester is not owner", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(false);
+
+    await expect(deleteTemplate(99, 20)).rejects.toMatchObject({ statusCode: 403 });
+    expect(repo.deleteQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
+  it("throws unauthorized for usePublicTemplate when requester is missing", async () => {
+    expect(() => usePublicTemplate(0, 20)).toThrowError("Unauthorized");
+    expect(repo.copyPublicQuestionnaireTemplateToUser).not.toHaveBeenCalled();
+  });
+
+  it("forwards usePublicTemplate to repo", async () => {
+    (repo.copyPublicQuestionnaireTemplateToUser as any).mockResolvedValue({ id: 33 });
+
+    const result = await usePublicTemplate(45, 20);
+
+    expect(repo.copyPublicQuestionnaireTemplateToUser).toHaveBeenCalledWith(20, 45);
+    expect(result).toEqual({ id: 33 });
   });
 });

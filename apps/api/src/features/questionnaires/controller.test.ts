@@ -1,27 +1,30 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
+import jwt from "jsonwebtoken";
+import * as authService from "../../auth/service.js";
+import * as service from "./service.js";
 import {
   createTemplateHandler,
   getTemplateHandler,
   getAllTemplatesHandler,
+  getMyTemplatesHandler,
+  getPublicTemplatesFromOtherUsersHandler,
   updateTemplateHandler,
   deleteTemplateHandler,
+  useTemplateHandler,
 } from "./controller.js";
-import * as service from "./service.js";
-import * as authService from "../../auth/service.js";
-import jwt from "jsonwebtoken";
 
-//mock service layer
 vi.mock("./service.js", () => ({
   createTemplate: vi.fn(),
   getTemplate: vi.fn(),
   getAllTemplates: vi.fn(),
+  getMyTemplates: vi.fn(),
+  getPublicTemplatesFromOtherUsers: vi.fn(),
   updateTemplate: vi.fn(),
   deleteTemplate: vi.fn(),
   usePublicTemplate: vi.fn(),
 }));
 
-//mock auth helpers
 vi.mock("jsonwebtoken");
 vi.mock("../../auth/service.js", () => ({
   verifyRefreshToken: vi.fn(),
@@ -34,8 +37,6 @@ function mockResponse() {
   return res as Response;
 }
 
-//creating a template
-
 describe("createTemplateHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +48,6 @@ describe("createTemplateHandler", () => {
 
     await createTemplateHandler(req, res);
 
-    //missing templateName or questions
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
@@ -61,7 +61,6 @@ describe("createTemplateHandler", () => {
 
     await createTemplateHandler(req, res);
 
-    //No auth info provided
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
@@ -76,7 +75,6 @@ describe("createTemplateHandler", () => {
 
     await createTemplateHandler(req, res);
 
-    //Should use req.user.sub
     expect(service.createTemplate).toHaveBeenCalledWith("Test", [], 5, false);
     expect(res.json).toHaveBeenCalledWith({
       ok: true,
@@ -99,7 +97,6 @@ describe("createTemplateHandler", () => {
 
     await createTemplateHandler(req, res);
 
-    //Tests extracting user from JWT
     expect(service.createTemplate).toHaveBeenCalledWith("JWT", [], 9, true);
   });
 
@@ -119,7 +116,6 @@ describe("createTemplateHandler", () => {
 
     await createTemplateHandler(req, res);
 
-    //should use refresh token
     expect(service.createTemplate).toHaveBeenCalledWith("Refresh", [], 42, true);
   });
 
@@ -127,8 +123,6 @@ describe("createTemplateHandler", () => {
     (jwt.verify as any).mockImplementation(() => {
       throw new Error("invalid access");
     });
-
-    //Payload exists but no sub
     (authService.verifyRefreshToken as any).mockReturnValue({});
 
     const req: any = {
@@ -136,7 +130,26 @@ describe("createTemplateHandler", () => {
       headers: { authorization: "Bearer badtoken" },
       cookies: { refresh_token: "refresh123" },
     };
+    const res = mockResponse();
 
+    await createTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
+  it("returns 401 if refresh token verification throws", async () => {
+    (jwt.verify as any).mockImplementation(() => {
+      throw new Error("invalid access");
+    });
+    (authService.verifyRefreshToken as any).mockImplementation(() => {
+      throw new Error("invalid refresh");
+    });
+
+    const req: any = {
+      body: { templateName: "Test", questions: [] },
+      headers: { authorization: "Bearer badtoken" },
+      cookies: { refresh_token: "badrefresh" },
+    };
     const res = mockResponse();
 
     await createTemplateHandler(req, res);
@@ -151,17 +164,13 @@ describe("createTemplateHandler", () => {
       body: { templateName: "Fail", questions: [] },
       user: { sub: 10 },
     };
-
     const res = mockResponse();
 
     await createTemplateHandler(req, res);
 
-    //Service failure should hit catch block
     expect(res.status).toHaveBeenCalledWith(500);
   });
 });
-
-//Tests getting template
 
 describe("getTemplateHandler", () => {
   beforeEach(() => {
@@ -197,11 +206,21 @@ describe("getTemplateHandler", () => {
     await getTemplateHandler(req, res);
 
     expect(service.getTemplate).toHaveBeenCalledWith(1, null);
-    expect(res.json).toHaveBeenCalledWith({ id: 1 });
+    expect(res.json).toHaveBeenCalledWith({ id: 1, canEdit: false });
+  });
+
+  it("sets canEdit=true when requester owns template", async () => {
+    (service.getTemplate as any).mockResolvedValue({ id: 2, ownerId: 7 });
+
+    const req: any = { params: { id: "2" }, user: { sub: 7 } };
+    const res = mockResponse();
+
+    await getTemplateHandler(req, res);
+
+    expect(service.getTemplate).toHaveBeenCalledWith(2, 7);
+    expect(res.json).toHaveBeenCalledWith({ id: 2, ownerId: 7, canEdit: true });
   });
 });
-
-//tests getting all templates
 
 describe("getAllTemplatesHandler", () => {
   beforeEach(() => {
@@ -232,7 +251,83 @@ describe("getAllTemplatesHandler", () => {
   });
 });
 
-// tests updating a template
+describe("getMyTemplatesHandler", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 when requester is missing", async () => {
+    const req: any = { headers: {}, cookies: {} };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(service.getMyTemplates).not.toHaveBeenCalled();
+  });
+
+  it("returns requester templates when authenticated", async () => {
+    (service.getMyTemplates as any).mockResolvedValue([{ id: 10 }]);
+
+    const req: any = { user: { sub: 55 } };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(service.getMyTemplates).toHaveBeenCalledWith(55);
+    expect(res.json).toHaveBeenCalledWith([{ id: 10 }]);
+  });
+
+  it("returns 500 for non-auth errors", async () => {
+    (service.getMyTemplates as any).mockRejectedValue(new Error("db fail"));
+
+    const req: any = { user: { sub: 55 } };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+describe("getPublicTemplatesFromOtherUsersHandler", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 when requester is missing", async () => {
+    const req: any = { headers: {}, cookies: {} };
+    const res = mockResponse();
+
+    await getPublicTemplatesFromOtherUsersHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(service.getPublicTemplatesFromOtherUsers).not.toHaveBeenCalled();
+  });
+
+  it("returns public templates from others when authenticated", async () => {
+    (service.getPublicTemplatesFromOtherUsers as any).mockResolvedValue([{ id: 11 }]);
+
+    const req: any = { user: { sub: 77 } };
+    const res = mockResponse();
+
+    await getPublicTemplatesFromOtherUsersHandler(req, res);
+
+    expect(service.getPublicTemplatesFromOtherUsers).toHaveBeenCalledWith(77);
+    expect(res.json).toHaveBeenCalledWith([{ id: 11 }]);
+  });
+
+  it("returns 500 for non-auth errors", async () => {
+    (service.getPublicTemplatesFromOtherUsers as any).mockRejectedValue(new Error("db fail"));
+
+    const req: any = { user: { sub: 77 } };
+    const res = mockResponse();
+
+    await getPublicTemplatesFromOtherUsersHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
 
 describe("updateTemplateHandler", () => {
   beforeEach(() => {
@@ -253,7 +348,6 @@ describe("updateTemplateHandler", () => {
       params: { id: "1" },
       body: { templateName: "", questions: "not-an-array" },
     };
-
     const res = mockResponse();
 
     await updateTemplateHandler(req, res);
@@ -269,12 +363,41 @@ describe("updateTemplateHandler", () => {
       body: { templateName: "Name", questions: [] },
       user: { sub: 99 },
     };
-
     const res = mockResponse();
 
     await updateTemplateHandler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 401 when requester is missing", async () => {
+    const req: any = {
+      params: { id: "1" },
+      body: { templateName: "Name", questions: [] },
+      headers: {},
+      cookies: {},
+    };
+    const res = mockResponse();
+
+    await updateTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(service.updateTemplate).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when update is forbidden", async () => {
+    (service.updateTemplate as any).mockRejectedValue({ statusCode: 403 });
+
+    const req: any = {
+      params: { id: "1" },
+      body: { templateName: "Name", questions: [] },
+      user: { sub: 99 },
+    };
+    const res = mockResponse();
+
+    await updateTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it("returns 500 for non-P2025 error", async () => {
@@ -285,7 +408,6 @@ describe("updateTemplateHandler", () => {
       body: { templateName: "Name", questions: [] },
       user: { sub: 99 },
     };
-
     const res = mockResponse();
 
     await updateTemplateHandler(req, res);
@@ -301,7 +423,6 @@ describe("updateTemplateHandler", () => {
       body: { templateName: "Updated", questions: [] },
       user: { sub: 99 },
     };
-
     const res = mockResponse();
 
     await updateTemplateHandler(req, res);
@@ -311,7 +432,6 @@ describe("updateTemplateHandler", () => {
   });
 });
 
-// testing deleting a template
 describe("deleteTemplateHandler", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -335,6 +455,27 @@ describe("deleteTemplateHandler", () => {
     await deleteTemplateHandler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 401 when requester is missing", async () => {
+    const req: any = { params: { id: "1" }, headers: {}, cookies: {} };
+    const res = mockResponse();
+
+    await deleteTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(service.deleteTemplate).not.toHaveBeenCalled();
+  });
+
+  it("returns 403 when delete is forbidden", async () => {
+    (service.deleteTemplate as any).mockRejectedValue({ statusCode: 403 });
+
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
+    const res = mockResponse();
+
+    await deleteTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it("returns 500 for non-P2025 error", async () => {
@@ -363,5 +504,65 @@ describe("deleteTemplateHandler", () => {
 
     expect(service.deleteTemplate).toHaveBeenCalledWith(99, 1);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
+  });
+});
+
+describe("useTemplateHandler", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns 400 for invalid id", async () => {
+    const req: any = { params: { id: "abc" } };
+    const res = mockResponse();
+
+    await useTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 401 when requester is missing", async () => {
+    const req: any = { params: { id: "1" }, headers: {}, cookies: {} };
+    const res = mockResponse();
+
+    await useTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(service.usePublicTemplate).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when source public template is not found", async () => {
+    (service.usePublicTemplate as any).mockResolvedValue(null);
+
+    const req: any = { params: { id: "2" }, user: { sub: 3 } };
+    const res = mockResponse();
+
+    await useTemplateHandler(req, res);
+
+    expect(service.usePublicTemplate).toHaveBeenCalledWith(3, 2);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns ok with copied template id", async () => {
+    (service.usePublicTemplate as any).mockResolvedValue({ id: 99 });
+
+    const req: any = { params: { id: "2" }, user: { sub: 3 } };
+    const res = mockResponse();
+
+    await useTemplateHandler(req, res);
+
+    expect(service.usePublicTemplate).toHaveBeenCalledWith(3, 2);
+    expect(res.json).toHaveBeenCalledWith({ ok: true, templateID: 99 });
+  });
+
+  it("returns 500 for non-auth errors", async () => {
+    (service.usePublicTemplate as any).mockRejectedValue(new Error("boom"));
+
+    const req: any = { params: { id: "2" }, user: { sub: 3 } };
+    const res = mockResponse();
+
+    await useTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
   });
 });
