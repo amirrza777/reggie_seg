@@ -266,6 +266,7 @@ describe("updateTemplateHandler", () => {
     const req: any = {
       params: { id: "1" },
       body: { templateName: "Name", questions: [] },
+      user: { sub: 99 },
     };
 
     const res = mockResponse();
@@ -281,6 +282,7 @@ describe("updateTemplateHandler", () => {
     const req: any = {
       params: { id: "1" },
       body: { templateName: "Name", questions: [] },
+      user: { sub: 99 },
     };
 
     const res = mockResponse();
@@ -296,13 +298,14 @@ describe("updateTemplateHandler", () => {
     const req: any = {
       params: { id: "1" },
       body: { templateName: "Updated", questions: [] },
+      user: { sub: 99 },
     };
 
     const res = mockResponse();
 
     await updateTemplateHandler(req, res);
 
-    expect(service.updateTemplate).toHaveBeenCalledWith(1, "Updated", [], undefined);
+    expect(service.updateTemplate).toHaveBeenCalledWith(99, 1, "Updated", [], undefined);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 });
@@ -325,7 +328,7 @@ describe("deleteTemplateHandler", () => {
   it("returns 404 if prisma P2025 error", async () => {
     (service.deleteTemplate as any).mockRejectedValue({ code: "P2025" });
 
-    const req: any = { params: { id: "1" } };
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
     const res = mockResponse();
 
     await deleteTemplateHandler(req, res);
@@ -338,7 +341,7 @@ describe("deleteTemplateHandler", () => {
       code: "SOME_OTHER_ERROR",
     });
 
-    const req: any = { params: { id: "1" } };
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
     const res = mockResponse();
 
     await deleteTemplateHandler(req, res);
@@ -352,11 +355,12 @@ describe("deleteTemplateHandler", () => {
   it("returns ok when delete succeeds", async () => {
     (service.deleteTemplate as any).mockResolvedValue(undefined);
 
-    const req: any = { params: { id: "1" } };
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
     const res = mockResponse();
 
     await deleteTemplateHandler(req, res);
 
+    expect(service.deleteTemplate).toHaveBeenCalledWith(99, 1);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 });

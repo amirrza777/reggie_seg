@@ -7,9 +7,12 @@ import type {
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
-import { apiFetch } from "@/shared/api/http";
+import { createQuestionnaire } from "../api/client";
 import { useRouter } from "next/navigation";
-import { QuestionnaireVisibilityButtons } from "./SharedQuestionnaireButtons";
+import {
+  CancelQuestionnaireButton,
+  QuestionnaireVisibilityButtons,
+} from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -127,6 +130,7 @@ export default function NewQuestionnairePage() {
   }, [templateName, questions]);
 
   const isValid = validationErrors.length === 0;
+  const hasUnsavedChanges = Boolean(templateName.trim()) || questions.length > 0 || !isPublic;
 
   const saveTemplate = async () => {
     if (!isValid) return;
@@ -135,17 +139,14 @@ export default function NewQuestionnairePage() {
     setSaved(false);
 
     try {
-      await apiFetch("/questionnaires/new", {
-        method: "POST",
-        body: JSON.stringify({
-          templateName,
-          isPublic,
-          questions: questions.map((q) => ({
-            label: q.label,
-            type: q.type,
-            configs: q.configs,
-          })),
-        }),
+      await createQuestionnaire({
+        templateName,
+        isPublic,
+        questions: questions.map((q) => ({
+          label: q.label,
+          type: q.type,
+          configs: q.configs,
+        })),
       });
 
       setTemplateName("");
@@ -190,17 +191,24 @@ export default function NewQuestionnairePage() {
         </button>
 
         {!preview && (
-          <button
-            style={{
-              ...styles.btnPrimary,
-              opacity: !isValid || saving ? 0.6 : 1,
-              cursor: !isValid || saving ? "not-allowed" : "pointer",
-            }}
-            onClick={saveTemplate}
-            disabled={!isValid || saving}
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
+          <>
+            <button
+              style={{
+                ...styles.btnPrimary,
+                opacity: !isValid || saving ? 0.6 : 1,
+                cursor: !isValid || saving ? "not-allowed" : "pointer",
+              }}
+              onClick={saveTemplate}
+              disabled={!isValid || saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <CancelQuestionnaireButton
+              style={styles.btn}
+              onCancel={() => router.push("/staff/questionnaires")}
+              confirmWhen={hasUnsavedChanges}
+            />
+          </>
         )}
       </div>
 

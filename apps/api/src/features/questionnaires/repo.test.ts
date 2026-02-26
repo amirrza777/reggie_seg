@@ -75,7 +75,7 @@ describe("QuestionnaireTemplate repository", () => {
 
     expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
       where: { isPublic: true },
-      include: { questions: true },
+      include: { questions: { orderBy: { order: "asc" } } },
     });
   });
 

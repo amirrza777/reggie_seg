@@ -39,14 +39,14 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
     where: requesterUserId
       ? { OR: [{ isPublic: true }, { ownerId: requesterUserId }] }
       : { isPublic: true },
-    include: { questions: true },
+    include: { questions: { orderBy: { order: "asc" } } },
   });
 };
 
 export function getMyQuestionnaireTemplates(userId: number) {
   return prisma.questionnaireTemplate.findMany({
     where: { ownerId: userId },
-    include: { questions: true },
+    include: { questions: { orderBy: { order: "asc" } } },
   });
 }
 
@@ -56,7 +56,7 @@ export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
       isPublic: true,
       ownerId: { not: userId },
     },
-    include: { questions: true },
+    include: { questions: { orderBy: { order: "asc" } } },
   });
 }
 
@@ -97,6 +97,13 @@ export async function updateQuestionnaireTemplate(
       (id) => !toUpdate.some((q) => q.id === id)
     );
 
+    const incomingOrderById = new Map<number, number>();
+    const incomingOrderByRef = new Map<IncomingQuestion, number>();
+    questions.forEach((q, idx) => {
+      incomingOrderByRef.set(q, idx);
+      if (typeof q.id === "number") incomingOrderById.set(q.id, idx);
+    });
+
     //Updates existing questions
     for (const q of toUpdate) {
       await tx.question.update({
@@ -105,21 +112,26 @@ export async function updateQuestionnaireTemplate(
           label: q.label,
           type: q.type,
           configs: q.configs ?? Prisma.JsonNull,
-          order: questions.indexOf(q),
+          order: incomingOrderById.get(q.id!) ?? 0,
         },
       });
     }
 
     //Creates new questions
     if (toCreate.length > 0) {
-      await tx.question.createMany({
-        data: toCreate.map((q) => ({
+      const createData = toCreate.map((q) => {
+        const order = incomingOrderByRef.get(q);
+        return {
           templateId,
           label: q.label,
           type: q.type,
-          order: questions.indexOf(q),
+          order: typeof order === "number" ? order : 0,
           configs: q.configs ?? Prisma.JsonNull,
-        })),
+        };
+      });
+
+      await tx.question.createMany({
+        data: createData,
       });
     }
 

@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { apiFetch } from "@/shared/api/http";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
 import { Questionnaire } from "@/features/questionnaires/types";
+import { getQuestionnaireById } from "@/features/questionnaires/api/client";
 
 export default function QuestionnairePage() {
   const { id } = useParams<{ id: string }>();
@@ -17,7 +17,7 @@ export default function QuestionnairePage() {
   useEffect(() => {
     if (!id) return;
 
-    apiFetch<Questionnaire>(`/questionnaires/${id}`)
+    getQuestionnaireById(id)
       .then(setQuestionnaire)
       .catch((err) => {
         console.error(err);

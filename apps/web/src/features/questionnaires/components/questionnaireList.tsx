@@ -76,7 +76,15 @@ export function QuestionnaireList() {
           Preview
         </button>
         {allowManage && <EditQuestionnaireButton questionnaireId={q.id} />}
-        {allowManage && <DeleteQuestionnaireButton questionnaireId={q.id} />}
+        {allowManage && (
+          <DeleteQuestionnaireButton
+            questionnaireId={q.id}
+            onDeleted={(deletedId) => {
+              const idNum = typeof deletedId === "string" ? Number(deletedId) : deletedId;
+              setMyQuestionnaires((items) => items.filter((item) => item.id !== idNum));
+            }}
+          />
+        )}
       </div>
     </div>
   );

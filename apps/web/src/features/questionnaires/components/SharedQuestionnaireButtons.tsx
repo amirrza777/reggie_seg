@@ -2,7 +2,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/shared/api/http";
+import { deleteQuestionnaire } from "../api/client";
 
 const buttonStyle: React.CSSProperties = {
   padding: "10px 20px",
@@ -13,6 +13,15 @@ const buttonStyle: React.CSSProperties = {
 type QuestionnaireVisibilityButtonsProps = {
   isPublic: boolean;
   onChange: (next: boolean) => void;
+};
+
+type CancelQuestionnaireButtonProps = {
+  onCancel: () => void;
+  label?: string;
+  className?: string;
+  style?: React.CSSProperties;
+  confirmWhen?: boolean;
+  confirmMessage?: string;
 };
 
 export function QuestionnaireVisibilityButtons({
@@ -50,6 +59,29 @@ export function QuestionnaireVisibilityButtons({
   );
 }
 
+export function CancelQuestionnaireButton({
+  onCancel,
+  label = "Cancel",
+  className = "btn",
+  style,
+  confirmWhen = false,
+  confirmMessage = "You have unsaved changes. Are you sure you want to exit without saving?",
+}: CancelQuestionnaireButtonProps) {
+  return (
+    <button
+      type="button"
+      className={className}
+      style={style}
+      onClick={() => {
+        if (confirmWhen && !window.confirm(confirmMessage)) return;
+        onCancel();
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 
 type EditQuestionnaireButtonProps = {
   questionnaireId: number | string;
@@ -79,11 +111,13 @@ export function EditQuestionnaireButton({
 type DeleteQuestionnaireButtonProps = {
   questionnaireId: number | string;
   label?: string;
+  onDeleted?: (questionnaireId: number | string) => void;
 };
 
 export function DeleteQuestionnaireButton({
   questionnaireId,
   label = "Delete",
+  onDeleted,
 }: DeleteQuestionnaireButtonProps) {
   const router = useRouter();
 
@@ -95,9 +129,12 @@ export function DeleteQuestionnaireButton({
     if (!confirmed) return;
 
     try {
-      await apiFetch(`/questionnaires/${questionnaireId}`, {
-        method: "DELETE",
-      });
+      await deleteQuestionnaire(questionnaireId);
+
+      if (onDeleted) {
+        onDeleted(questionnaireId);
+        return;
+      }
 
       router.push("/staff/questionnaires");
       router.refresh(); // ensures list updates if cached

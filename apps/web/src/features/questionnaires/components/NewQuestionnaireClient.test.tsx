@@ -17,12 +17,14 @@ describe("NewQuestionnaireClient", () => {
   const apiFetchMock = vi.mocked(apiFetch);
   let alertSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
+  let confirmSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     push.mockReset();
     apiFetchMock.mockReset();
     apiFetchMock.mockResolvedValue({});
     alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
+    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -113,6 +115,22 @@ describe("NewQuestionnaireClient", () => {
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith("Save failed — check console");
     });
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("asks for confirmation on cancel when there are unsaved changes", () => {
+    confirmSpy.mockReturnValueOnce(false);
+    render(<NewQuestionnaireClient />);
+
+    fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
+      target: { value: "Draft questionnaire" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      "You have unsaved changes. Are you sure you want to exit without saving?"
+    );
     expect(push).not.toHaveBeenCalled();
   });
 });

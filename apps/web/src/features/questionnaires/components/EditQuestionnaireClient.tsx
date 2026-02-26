@@ -2,14 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/shared/api/http";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
-import { QuestionnaireVisibilityButtons } from "./SharedQuestionnaireButtons";
+import { getQuestionnaireById, updateQuestionnaire } from "../api/client";
+import {
+  CancelQuestionnaireButton,
+  QuestionnaireVisibilityButtons,
+} from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -75,10 +78,7 @@ export default function EditQuestionnairePage() {
 
     const load = async () => {
       try {
-        type TemplateQuestion = { id: number; label: string; type: QuestionType; configs?: unknown };
-        const template = await apiFetch<{ templateName: string; isPublic?: boolean; canEdit?: boolean; questions: TemplateQuestion[] }>(
-          `/questionnaires/${templateId}`
-        );
+        const template = await getQuestionnaireById(templateId);
 
         if (!template || !Array.isArray(template.questions)) {
           console.error("Invalid questionnaire payload", template);
@@ -176,9 +176,7 @@ export default function EditQuestionnairePage() {
     setSaving(true);
 
     try {
-      await apiFetch(`/questionnaires/${templateId}`, {
-        method: "PUT",
-        body: JSON.stringify({
+      await updateQuestionnaire(templateId, {
           templateName,
           isPublic,
           questions: questions.map((q) => ({
@@ -187,7 +185,6 @@ export default function EditQuestionnairePage() {
             type: q.type,
             configs: q.configs,
           })),
-        }),
       });
 
       setHasUnsavedChanges(false);
@@ -265,22 +262,11 @@ export default function EditQuestionnairePage() {
               {saving ? "Saving..." : "Save changes"}
             </button>
 
-            <button
+            <CancelQuestionnaireButton
               style={styles.btn}
-              onClick={() => {
-                if (hasUnsavedChanges) {
-                  const confirmed = window.confirm(
-                    "You have unsaved changes. Are you sure you want to exit without saving?"
-                  );
-
-                  if (!confirmed) return;
-                }
-
-                router.back();
-              }}
-            >
-              Cancel
-            </button>
+              onCancel={() => router.back()}
+              confirmWhen={hasUnsavedChanges}
+            />
           </>
         )}
       </div>
