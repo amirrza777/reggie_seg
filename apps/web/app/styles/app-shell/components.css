@@ -160,3 +160,69 @@
   border-color: var(--status-danger-border);
   color: var(--status-danger-text);
 }
+
+.minutes-editor {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.minutes-editor__toolbar {
+  display: flex;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.minutes-editor__tool {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  line-height: 1;
+}
+
+.minutes-editor__tool:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+}
+
+.minutes-editor__content {
+  position: relative;
+}
+
+.minutes-editor__editable {
+  min-height: 140px;
+  padding: 10px 12px;
+  outline: none;
+  font-size: var(--fs-body);
+  font-family: inherit;
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.minutes-editor__placeholder {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  color: var(--muted-subtle);
+  pointer-events: none;
+  font-size: var(--fs-body);
+}
+
+.minutes-editor__bold { font-weight: bold; }
+.minutes-editor__italic { font-style: italic; }
+.minutes-editor__underline { text-decoration: underline; }
+
+.minutes-editor__ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.minutes-editor__listitem {
+  margin: 2px 0;
+}
