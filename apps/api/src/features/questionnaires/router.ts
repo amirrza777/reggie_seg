@@ -3,6 +3,8 @@ import {
   createTemplateHandler,
   getTemplateHandler,
   getAllTemplatesHandler,
+  getMyTemplatesHandler,
+  getPublicTemplatesFromOtherUsersHandler,
   updateTemplateHandler,
   deleteTemplateHandler,
 } from "./controller.js"
@@ -10,6 +12,8 @@ import {
 const router = Router()
 
 router.get("/", getAllTemplatesHandler);
+router.get("/mine", getMyTemplatesHandler);
+router.get("/public/others", getPublicTemplatesFromOtherUsersHandler);
 router.post("/new", createTemplateHandler);
 router.get("/:id", getTemplateHandler);
 router.put("/:id", updateTemplateHandler);

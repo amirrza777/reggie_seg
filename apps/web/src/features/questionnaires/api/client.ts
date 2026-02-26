@@ -5,6 +5,14 @@ export async function getAllQuestionnaires(): Promise<Questionnaire[]> {
   return apiFetch("/questionnaires");
 }
 
+export async function getMyQuestionnaires(): Promise<Questionnaire[]> {
+  return apiFetch("/questionnaires/mine");
+}
+
+export async function getPublicQuestionnairesFromOthers(): Promise<Questionnaire[]> {
+  return apiFetch("/questionnaires/public/others");
+}
+
 export async function createQuestionnaire(
   templateName: string,
   questions: Question[]

@@ -9,6 +9,7 @@ import type {
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
+import { QuestionnaireVisibilityButtons } from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -61,6 +62,8 @@ export default function EditQuestionnairePage() {
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
+  const [canEdit, setCanEdit] = useState(true);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -73,7 +76,7 @@ export default function EditQuestionnairePage() {
     const load = async () => {
       try {
         type TemplateQuestion = { id: number; label: string; type: QuestionType; configs?: unknown };
-        const template = await apiFetch<{ templateName: string; questions: TemplateQuestion[] }>(
+        const template = await apiFetch<{ templateName: string; isPublic?: boolean; canEdit?: boolean; questions: TemplateQuestion[] }>(
           `/questionnaires/${templateId}`
         );
 
@@ -83,6 +86,8 @@ export default function EditQuestionnairePage() {
         }
 
         setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
+        setIsPublic(typeof template.isPublic === "boolean" ? template.isPublic : true);
+        setCanEdit(typeof template.canEdit === "boolean" ? template.canEdit : true);
 
         setQuestions(
           template.questions.map((q) => ({
@@ -175,6 +180,7 @@ export default function EditQuestionnairePage() {
         method: "PUT",
         body: JSON.stringify({
           templateName,
+          isPublic,
           questions: questions.map((q) => ({
             id: q.dbId,
             label: q.label,
@@ -197,6 +203,20 @@ export default function EditQuestionnairePage() {
 
   if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
   if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
+  if (!canEdit) {
+    return (
+      <div style={{ padding: 32 }}>
+        <p style={{ marginBottom: 12 }}>You do not have permission to edit this questionnaire.</p>
+        <button
+          className="btn"
+          style={styles.btn}
+          onClick={() => router.back()}
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>
@@ -205,16 +225,24 @@ export default function EditQuestionnairePage() {
 
 
       {!preview ? (
-        <input
-          placeholder="Questionnaire name"
-          value={templateName}
-          onChange={(e) => {
-            setTemplateName(e.target.value);
-            setHasUnsavedChanges(true);
-          }}
-
-          style={styles.input}
-        />
+        <>
+          <input
+            placeholder="Questionnaire name"
+            value={templateName}
+            onChange={(e) => {
+              setTemplateName(e.target.value);
+              setHasUnsavedChanges(true);
+            }}
+            style={styles.input}
+          />
+          <QuestionnaireVisibilityButtons
+            isPublic={isPublic}
+            onChange={(next) => {
+              setIsPublic(next);
+              setHasUnsavedChanges(true);
+            }}
+          />
+        </>
       )
         : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
 

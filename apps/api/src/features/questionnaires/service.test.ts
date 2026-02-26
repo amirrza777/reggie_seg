@@ -14,6 +14,7 @@ vi.mock("./repo.js", () => ({
   createQuestionnaireTemplate: vi.fn(),
   getQuestionnaireTemplateById: vi.fn(),
   getAllQuestionnaireTemplates: vi.fn(),
+  isQuestionnaireTemplateOwnedByUser: vi.fn(),
   updateQuestionnaireTemplate: vi.fn(),
   deleteQuestionnaireTemplate: vi.fn(),
 }));
@@ -75,14 +76,16 @@ describe("QuestionnaireTemplate service", () => {
   //Updating a template
 
   it("forwards updateTemplate to repo with correct arguments", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
     (repo.updateQuestionnaireTemplate as any).mockResolvedValue(undefined);
 
     const questions = [
       { id: 1, label: "Updated", type: "text" },
     ];
 
-    await updateTemplate(10, "Updated Template", questions, true);
+    await updateTemplate(99, 10, "Updated Template", questions, true);
 
+    expect(repo.isQuestionnaireTemplateOwnedByUser).toHaveBeenCalledWith(10, 99);
     expect(repo.updateQuestionnaireTemplate).toHaveBeenCalledWith(
       10,
       "Updated Template",
@@ -93,10 +96,12 @@ describe("QuestionnaireTemplate service", () => {
 
   //Deleting a template
   it("forwards deleteTemplate to repo", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
     (repo.deleteQuestionnaireTemplate as any).mockResolvedValue(undefined);
 
-    await deleteTemplate(20);
+    await deleteTemplate(99, 20);
 
+    expect(repo.isQuestionnaireTemplateOwnedByUser).toHaveBeenCalledWith(20, 99);
     expect(repo.deleteQuestionnaireTemplate).toHaveBeenCalledWith(20);
   });
 });

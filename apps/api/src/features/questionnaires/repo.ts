@@ -43,6 +43,31 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   });
 };
 
+export function getMyQuestionnaireTemplates(userId: number) {
+  return prisma.questionnaireTemplate.findMany({
+    where: { ownerId: userId },
+    include: { questions: true },
+  });
+}
+
+export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
+  return prisma.questionnaireTemplate.findMany({
+    where: {
+      isPublic: true,
+      ownerId: { not: userId },
+    },
+    include: { questions: true },
+  });
+}
+
+export async function isQuestionnaireTemplateOwnedByUser(templateId: number, userId: number) {
+  const template = await prisma.questionnaireTemplate.findFirst({
+    where: { id: templateId, ownerId: userId },
+    select: { id: true },
+  });
+  return Boolean(template);
+}
+
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,

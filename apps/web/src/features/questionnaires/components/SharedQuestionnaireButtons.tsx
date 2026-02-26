@@ -10,6 +10,46 @@ const buttonStyle: React.CSSProperties = {
   cursor: "pointer",
 };
 
+type QuestionnaireVisibilityButtonsProps = {
+  isPublic: boolean;
+  onChange: (next: boolean) => void;
+};
+
+export function QuestionnaireVisibilityButtons({
+  isPublic,
+  onChange,
+}: QuestionnaireVisibilityButtonsProps) {
+  return (
+    <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
+      <span style={{ fontSize: 12, opacity: 0.75 }}>Visibility:</span>
+      <button
+        type="button"
+        style={{
+          borderColor: isPublic ? "var(--btn-primary-border)" : "var(--border)",
+          background: isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
+          color: isPublic ? "var(--btn-primary-text)" : "var(--ink)",
+        }}
+        className="btn"
+        onClick={() => onChange(true)}
+      >
+        Public
+      </button>
+      <button
+        type="button"
+        style={{
+          borderColor: !isPublic ? "var(--btn-primary-border)" : "var(--border)",
+          background: !isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
+          color: !isPublic ? "var(--btn-primary-text)" : "var(--ink)",
+        }}
+        className="btn"
+        onClick={() => onChange(false)}
+      >
+        Private
+      </button>
+    </div>
+  );
+}
+
 
 type EditQuestionnaireButtonProps = {
   questionnaireId: number | string;

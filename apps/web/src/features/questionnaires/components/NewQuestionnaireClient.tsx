@@ -9,6 +9,7 @@ import type {
 } from "@/features/questionnaires/types";
 import { apiFetch } from "@/shared/api/http";
 import { useRouter } from "next/navigation";
+import { QuestionnaireVisibilityButtons } from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -176,33 +177,10 @@ export default function NewQuestionnairePage() {
             onChange={(e) => setTemplateName(e.target.value)}
             style={styles.input}
           />
-          <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
-            <span style={styles.small}>Visibility:</span>
-            <button
-              type="button"
-              style={{
-                ...styles.btn,
-                borderColor: isPublic ? "var(--btn-primary-border)" : "var(--border)",
-                background: isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
-                color: isPublic ? "var(--btn-primary-text)" : "var(--ink)",
-              }}
-              onClick={() => setIsPublic(true)}
-            >
-              Public
-            </button>
-            <button
-              type="button"
-              style={{
-                ...styles.btn,
-                borderColor: !isPublic ? "var(--btn-primary-border)" : "var(--border)",
-                background: !isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
-                color: !isPublic ? "var(--btn-primary-text)" : "var(--ink)",
-              }}
-              onClick={() => setIsPublic(false)}
-            >
-              Private
-            </button>
-          </div>
+          <QuestionnaireVisibilityButtons
+            isPublic={isPublic}
+            onChange={setIsPublic}
+          />
         </>
       )}
 

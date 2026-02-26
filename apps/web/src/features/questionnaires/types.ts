@@ -2,6 +2,9 @@ export type Questionnaire = {
   id: number;
   templateName: string;
   createdAt: string;
+  isPublic?: boolean;
+  ownerId?: number;
+  canEdit?: boolean;
   questions: Question[];
 };
 

@@ -1,5 +1,13 @@
 import type { Request, Response } from "express"
-import { createTemplate, getTemplate, getAllTemplates, deleteTemplate,updateTemplate } from "./service.js"
+import {
+  createTemplate,
+  getTemplate,
+  getAllTemplates,
+  getMyTemplates,
+  getPublicTemplatesFromOtherUsers,
+  deleteTemplate,
+  updateTemplate
+} from "./service.js"
 import type { Question , IncomingQuestion} from "./types.js";
 import jwt from "jsonwebtoken";
 import { verifyRefreshToken } from "../../auth/service.js";
@@ -66,7 +74,8 @@ export async function getTemplateHandler(req: AuthRequest, res: Response) {
     return res.status(404).json({ error: "Template wasn't found" })
   }
 
-  res.json(template)
+  const canEdit = Boolean(requesterUserId && template.ownerId === requesterUserId);
+  res.json({ ...template, canEdit })
 }
 
 export async function getAllTemplatesHandler(req: Request, res: Response){
@@ -79,6 +88,30 @@ export async function getAllTemplatesHandler(req: Request, res: Response){
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export async function getMyTemplatesHandler(req: Request, res: Response) {
+  try {
+    const requesterUserId = resolveUserId(req as AuthRequest);
+    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const templates = await getMyTemplates(requesterUserId);
+    res.json(templates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res: Response) {
+  try {
+    const requesterUserId = resolveUserId(req as AuthRequest);
+    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const templates = await getPublicTemplatesFromOtherUsers(requesterUserId);
+    res.json(templates);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
 
 export async function updateTemplateHandler(req: Request, res: Response) {
   const templateId = Number(req.params.id);
@@ -96,9 +129,13 @@ export async function updateTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    await updateTemplate(templateId, templateName, questions, isPublic);
+    const requesterUserId = resolveUserId(req as AuthRequest);
+    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    await updateTemplate(requesterUserId, templateId, templateName, questions, isPublic);
     res.json({ ok: true });
   } catch (error: any) {
+    if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
+    if (error.statusCode === 403) return res.status(403).json({ error: "Forbidden" });
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }
@@ -115,9 +152,13 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    await deleteTemplate(id);
+    const requesterUserId = resolveUserId(req as AuthRequest);
+    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    await deleteTemplate(requesterUserId, id);
     res.json({ ok: true });
   } catch (error: any) {
+    if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
+    if (error.statusCode === 403) return res.status(403).json({ error: "Forbidden" });
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }
