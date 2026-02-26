@@ -1,4 +1,5 @@
 import { getGitHubApiConfig } from "./config.js";
+import { aggregateLineChangesByDay } from "./analysis.helpers.js";
 import {
   createGithubSnapshot,
   deactivateProjectGithubRepositoryLink,
@@ -765,36 +766,6 @@ function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: str
     repoCommitsByDay,
     repoCommitsByBranch,
   };
-}
-
-function aggregateLineChangesByDay(
-  commits: GithubCommitListItem[],
-  commitStatsBySha: Map<string, { additions: number; deletions: number }>
-) {
-  const byDay: Record<string, { additions: number; deletions: number }> = {};
-
-  for (const commit of commits) {
-    if (!commit.commit.author?.date) {
-      continue;
-    }
-    const commitDate = new Date(commit.commit.author.date);
-    if (Number.isNaN(commitDate.getTime())) {
-      continue;
-    }
-
-    const stats = commitStatsBySha.get(commit.sha);
-    if (!stats) {
-      continue;
-    }
-
-    const dayKey = toUtcDayKey(commitDate);
-    const existing = byDay[dayKey] || { additions: 0, deletions: 0 };
-    existing.additions += stats.additions || 0;
-    existing.deletions += stats.deletions || 0;
-    byDay[dayKey] = existing;
-  }
-
-  return byDay;
 }
 
 type CountMap = Record<string, number>;
