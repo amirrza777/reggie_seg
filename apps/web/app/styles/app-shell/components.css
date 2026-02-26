@@ -91,6 +91,7 @@
   align-items: center;
   justify-content: center;
   padding: 72px 24px 56px;
+  z-index: 9000;
 }
 
 .modal__dialog {
@@ -99,6 +100,8 @@
   width: min(720px, 96vw);
   overflow: hidden;
   max-height: min(78vh, 820px);
+  position: relative;
+  z-index: 9001;
 }
 
 .modal__header,

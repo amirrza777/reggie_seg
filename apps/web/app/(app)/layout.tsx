@@ -6,6 +6,7 @@ import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser, isAdmin } from "@/shared/auth/session";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
 type NavLink = {
@@ -17,7 +18,7 @@ type NavLink = {
 const navLinks: NavLink[] = [
   // Workspace
   { href: "/dashboard", label: "Dashboard", space: "workspace" },
-  { href: "/modules", label: "Modules", space: "workspace" },
+  { href: "/modules", label: "Modules", space: "workspace", flag: "modules" },
   { href: "/projects", label: "Projects", space: "workspace" },
 
   // Staff
@@ -52,8 +53,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       </main>
     );
   }
-  // Filter only by access; Sidebar will further filter by active space on the client using pathname.
+
+  const flagMap = await getFeatureFlagMap();
+
   const accessibleLinks = navLinks.filter((link) => {
+    if (link.flag && flagMap[link.flag] === false) return false;
     if (link.space === "staff" && !(user?.isStaff || isAdmin(user))) return false;
     if (link.space === "admin" && !isAdmin(user)) return false;
     return true;

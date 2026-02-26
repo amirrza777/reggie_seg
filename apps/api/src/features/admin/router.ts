@@ -107,6 +107,26 @@ router.get("/feature-flags", async (_req, res) => {
   res.json(flags);
 });
 
+router.patch("/feature-flags/:key", async (req, res) => {
+  const adminUser = (req as any).adminUser as { enterpriseId: string };
+  const key = String(req.params.key);
+  const enabled = req.body?.enabled;
+
+  if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled boolean required" });
+
+  try {
+    const updated = await prisma.featureFlag.update({
+      where: { enterpriseId_key: { enterpriseId: adminUser.enterpriseId, key } },
+      data: { enabled },
+    });
+    res.json(updated);
+  } catch (err: any) {
+    if (err.code === "P2025") return res.status(404).json({ error: "Feature flag not found" });
+    console.error("update feature flag error", err);
+    return res.status(500).json({ error: "Could not update feature flag" });
+  }
+});
+
 router.get("/audit-logs", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string } | undefined;
   const enterpriseId = adminUser?.enterpriseId;

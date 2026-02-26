@@ -5,6 +5,7 @@ import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAss
 import { getProject } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
 import { ApiError } from "@/shared/api/errors";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type CreatePageProps = {
   params: { projectId: string };
@@ -19,6 +20,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const revieweeId = Number(resolvedSearchParams.revieweeId);
   const reviewerId = Number(resolvedSearchParams.reviewerId);
   const teammateName = resolvedSearchParams.teammateName ?? "";
+  const flagMap = await getFeatureFlagMap();
 
   let existingAssessment: PeerAssessment | null = null;
   try {
@@ -40,7 +42,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
 
   return (
     <div className="stack">
-      <ProjectNav projectId={String(projectId)} />
+      <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
         <h2>Create Peer Assessment</h2>
         {questions.length > 0 && (
