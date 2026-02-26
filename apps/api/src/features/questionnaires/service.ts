@@ -10,6 +10,16 @@ import {
 } from "./repo.js"
 import type { IncomingQuestion, Question } from "./types.js";
 
+async function ensureTemplateOwnership(requesterUserId: number, templateId: number) {
+  if (!requesterUserId) {
+    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+  }
+  const isOwner = await isQuestionnaireTemplateOwnedByUser(templateId, requesterUserId);
+  if (!isOwner) {
+    throw Object.assign(new Error("Forbidden"), { statusCode: 403 });
+  }
+}
+
 export function createTemplate(
   templateName: string,
   questions: Question[],
@@ -42,26 +52,14 @@ export function updateTemplate(
   questions: IncomingQuestion[],
   isPublic?: boolean
 ) {
-  if (!requesterUserId) {
-    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
-  }
-  return isQuestionnaireTemplateOwnedByUser(templateId, requesterUserId).then((isOwner) => {
-    if (!isOwner) {
-      throw Object.assign(new Error("Forbidden"), { statusCode: 403 });
-    }
-    return updateQuestionnaireTemplate(templateId, templateName, questions, isPublic);
-  });
+  return ensureTemplateOwnership(requesterUserId, templateId).then(() =>
+    updateQuestionnaireTemplate(templateId, templateName, questions, isPublic)
+  );
 }
 
 export function deleteTemplate(requesterUserId: number, templateId: number) {
-  if (!requesterUserId) {
-    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
-  }
-  return isQuestionnaireTemplateOwnedByUser(templateId, requesterUserId).then((isOwner) => {
-    if (!isOwner) {
-      throw Object.assign(new Error("Forbidden"), { statusCode: 403 });
-    }
-    return deleteQuestionnaireTemplate(templateId);
-  });
+  return ensureTemplateOwnership(requesterUserId, templateId).then(() =>
+    deleteQuestionnaireTemplate(templateId)
+  );
 }
 

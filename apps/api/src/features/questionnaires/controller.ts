@@ -78,6 +78,14 @@ export async function getTemplateHandler(req: AuthRequest, res: Response) {
   res.json({ ...template, canEdit })
 }
 
+function requireRequesterUserId(req: Request): number {
+  const requesterUserId = resolveUserId(req as AuthRequest);
+  if (!requesterUserId) {
+    throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
+  }
+  return requesterUserId;
+}
+
 export async function getAllTemplatesHandler(req: Request, res: Response){
   try {
     const requesterUserId = resolveUserId(req as AuthRequest);
@@ -91,11 +99,11 @@ export async function getAllTemplatesHandler(req: Request, res: Response){
 
 export async function getMyTemplatesHandler(req: Request, res: Response) {
   try {
-    const requesterUserId = resolveUserId(req as AuthRequest);
-    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const requesterUserId = requireRequesterUserId(req);
     const templates = await getMyTemplates(requesterUserId);
     res.json(templates);
   } catch (error) {
+    if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -103,11 +111,11 @@ export async function getMyTemplatesHandler(req: Request, res: Response) {
 
 export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res: Response) {
   try {
-    const requesterUserId = resolveUserId(req as AuthRequest);
-    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const requesterUserId = requireRequesterUserId(req);
     const templates = await getPublicTemplatesFromOtherUsers(requesterUserId);
     res.json(templates);
   } catch (error) {
+    if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
     console.error(error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -129,8 +137,7 @@ export async function updateTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    const requesterUserId = resolveUserId(req as AuthRequest);
-    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const requesterUserId = requireRequesterUserId(req);
     await updateTemplate(requesterUserId, templateId, templateName, questions, isPublic);
     res.json({ ok: true });
   } catch (error: any) {
@@ -152,8 +159,7 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
   }
 
   try {
-    const requesterUserId = resolveUserId(req as AuthRequest);
-    if (!requesterUserId) return res.status(401).json({ error: "Unauthorized" });
+    const requesterUserId = requireRequesterUserId(req);
     await deleteTemplate(requesterUserId, id);
     res.json({ ok: true });
   } catch (error: any) {
