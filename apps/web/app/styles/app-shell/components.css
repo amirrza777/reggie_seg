@@ -218,10 +218,14 @@
 .minutes-editor__italic { font-style: italic; }
 .minutes-editor__underline { text-decoration: underline; }
 .minutes-editor__strikethrough { text-decoration: line-through; }
+.minutes-editor__superscript { font-size: 0.75em; vertical-align: super; }
+.minutes-editor__subscript { font-size: 0.75em; vertical-align: sub; }
+.minutes-editor__code { font-family: monospace; background: var(--surface-raised); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
 
 .minutes-editor__h1 { font-size: 1.5rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
 .minutes-editor__h2 { font-size: 1.25rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
 .minutes-editor__h3 { font-size: 1.1rem; font-weight: var(--fw-semibold); margin: 4px 0 2px; }
+.minutes-editor__quote { border-left: 3px solid var(--border); margin: 4px 0; padding: 4px 12px; color: var(--muted); }
 
 .minutes-editor__ul,
 .minutes-editor__ol {

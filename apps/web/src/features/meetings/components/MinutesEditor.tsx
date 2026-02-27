@@ -9,9 +9,9 @@ import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { FORMAT_TEXT_COMMAND, $getSelection, $isRangeSelection, type EditorState } from "lexical";
+import { FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND, $getSelection, $isRangeSelection, type EditorState } from "lexical";
 import { ListNode, ListItemNode, INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from "@lexical/list";
-import { HeadingNode, $createHeadingNode } from "@lexical/rich-text";
+import { HeadingNode, $createHeadingNode, QuoteNode, $createQuoteNode } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
 
 function Toolbar() {
@@ -19,6 +19,20 @@ function Toolbar() {
 
   return (
     <div className="minutes-editor__toolbar">
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(UNDO_COMMAND, undefined); }}
+      >
+        ↩
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(REDO_COMMAND, undefined); }}
+      >
+        ↪
+      </button>
       <button
         type="button"
         className="minutes-editor__tool"
@@ -82,6 +96,76 @@ function Toolbar() {
       >
         1.
       </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }); }}
+      >
+        "
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript"); }}
+      >
+        x²
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript"); }}
+      >
+        x₂
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code"); }}
+      >
+        {"<>"}
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left"); }}
+      >
+        ≡←
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center"); }}
+      >
+        ≡
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right"); }}
+      >
+        ≡→
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify"); }}
+      >
+        ☰
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined); }}
+      >
+        ⇤
+      </button>
+      <button
+        type="button"
+        className="minutes-editor__tool"
+        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined); }}
+      >
+        ⇥
+      </button>
     </div>
   );
 }
@@ -109,7 +193,7 @@ type MinutesEditorProps = {
 export function MinutesEditor({ initialContent, onChange }: MinutesEditorProps) {
   const initialConfig = {
     namespace: "MeetingMinutes",
-    nodes: [ListNode, ListItemNode, HeadingNode],
+    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
     onError: console.error,
     theme: {
       text: {
@@ -117,12 +201,16 @@ export function MinutesEditor({ initialContent, onChange }: MinutesEditorProps) 
         italic: "minutes-editor__italic",
         underline: "minutes-editor__underline",
         strikethrough: "minutes-editor__strikethrough",
+        superscript: "minutes-editor__superscript",
+        subscript: "minutes-editor__subscript",
+        code: "minutes-editor__code",
       },
       heading: {
         h1: "minutes-editor__h1",
         h2: "minutes-editor__h2",
         h3: "minutes-editor__h3",
       },
+      quote: "minutes-editor__quote",
       list: {
         ul: "minutes-editor__ul",
         ol: "minutes-editor__ol",
