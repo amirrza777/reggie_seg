@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -14,173 +14,82 @@ import { ListNode, ListItemNode, INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_L
 import { HeadingNode, $createHeadingNode, QuoteNode, $createQuoteNode } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
 
+type ToolbarButton = {
+  label: string;
+  action: (editor: ReturnType<typeof useLexicalComposerContext>[0]) => void;
+};
+
+const TOOLBAR_GROUPS: ToolbarButton[][] = [
+  [
+    { label: "↩", action: (ed) => ed.dispatchCommand(UNDO_COMMAND, undefined) },
+    { label: "↪", action: (ed) => ed.dispatchCommand(REDO_COMMAND, undefined) },
+  ],
+  [
+    { label: "H1", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }) },
+    { label: "H2", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }) },
+    { label: "H3", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }) },
+  ],
+  [
+    { label: "B", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "bold") },
+    { label: "I", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "italic") },
+    { label: "U", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "underline") },
+    { label: "S", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough") },
+    { label: "x²", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript") },
+    { label: "x₂", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript") },
+    { label: "<>", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "code") },
+  ],
+  [
+    { label: "•", action: (ed) => ed.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
+    { label: "1.", action: (ed) => ed.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
+    { label: '"', action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }) },
+  ],
+  [
+    { label: "≡←", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left") },
+    { label: "≡", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center") },
+    { label: "≡→", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right") },
+    { label: "☰", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify") },
+  ],
+  [
+    { label: "⇤", action: (ed) => ed.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined) },
+    { label: "⇥", action: (ed) => ed.dispatchCommand(INDENT_CONTENT_COMMAND, undefined) },
+  ],
+];
+
 function Toolbar() {
   const [editor] = useLexicalComposerContext();
 
   return (
     <div className="minutes-editor__toolbar">
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(UNDO_COMMAND, undefined); }}
-      >
-        ↩
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(REDO_COMMAND, undefined); }}
-      >
-        ↪
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }); }}
-      >
-        H1
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }); }}
-      >
-        H2
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }); }}
-      >
-        H3
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold"); }}
-      >
-        <strong>B</strong>
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic"); }}
-      >
-        <em>I</em>
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline"); }}
-      >
-        <span style={{ textDecoration: "underline" }}>U</span>
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough"); }}
-      >
-        <span style={{ textDecoration: "line-through" }}>S</span>
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined); }}
-      >
-        •
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined); }}
-      >
-        1.
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }); }}
-      >
-        "
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript"); }}
-      >
-        x²
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript"); }}
-      >
-        x₂
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_TEXT_COMMAND, "code"); }}
-      >
-        {"<>"}
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left"); }}
-      >
-        ≡←
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center"); }}
-      >
-        ≡
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right"); }}
-      >
-        ≡→
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify"); }}
-      >
-        ☰
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined); }}
-      >
-        ⇤
-      </button>
-      <button
-        type="button"
-        className="minutes-editor__tool"
-        onMouseDown={(e) => { e.preventDefault(); editor.dispatchCommand(INDENT_CONTENT_COMMAND, undefined); }}
-      >
-        ⇥
-      </button>
+      {TOOLBAR_GROUPS.map((group, i) => (
+        <span key={i} className="minutes-editor__group">
+          {group.map(({ label, action }) => (
+            <button
+              key={label}
+              type="button"
+              className="minutes-editor__tool"
+              onMouseDown={(e) => { e.preventDefault(); action(editor); }}
+            >
+              {label}
+            </button>
+          ))}
+        </span>
+      ))}
     </div>
   );
 }
 
 function InitialContentPlugin({ content }: { content: string }) {
   const [editor] = useLexicalComposerContext();
+  const initialContent = useRef(content);
 
   useEffect(() => {
-    if (!content) return;
+    if (!initialContent.current) return;
     try {
-      editor.setEditorState(editor.parseEditorState(content));
+      editor.setEditorState(editor.parseEditorState(initialContent.current));
     } catch {
-      // content is not valid Lexical JSON — start empty
+      // saved content isn't valid Lexical JSON — start empty
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [editor]);
 
   return null;
 }

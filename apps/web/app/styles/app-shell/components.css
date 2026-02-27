@@ -170,9 +170,22 @@
 
 .minutes-editor__toolbar {
   display: flex;
+  align-items: center;
   gap: 4px;
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.minutes-editor__group {
+  display: flex;
+  gap: 2px;
+}
+
+.minutes-editor__group + .minutes-editor__group {
+  border-left: 1px solid var(--border);
+  padding-left: 4px;
+  margin-left: 2px;
 }
 
 .minutes-editor__tool {
