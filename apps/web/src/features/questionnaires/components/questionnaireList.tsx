@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   getMyQuestionnaires,
@@ -14,6 +14,9 @@ export function QuestionnaireList() {
   const [publicQuestionnaires, setPublicQuestionnaires] = useState<Questionnaire[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const listPanelRef = useRef<HTMLDivElement | null>(null);
+  const myQuestionnairesRef = useRef<HTMLElement | null>(null);
+  const publicQuestionnairesRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,6 +43,18 @@ export function QuestionnaireList() {
     };
   }, []);
 
+  useEffect(() => {
+    const workspace = document.querySelector(".app-shell__workspace") as HTMLElement | null;
+    if (!workspace) return;
+
+    const previousOverflow = workspace.style.overflow;
+    workspace.style.overflow = "hidden";
+
+    return () => {
+      workspace.style.overflow = previousOverflow;
+    };
+  }, []);
+
   if (loading) return <p style={{ opacity: 0.7 }}>Loading questionnaires...</p>;
   if (error) return <p style={{ opacity: 0.7 }}>{error}</p>;
   if (myQuestionnaires.length === 0 && publicQuestionnaires.length === 0) {
@@ -48,7 +63,7 @@ export function QuestionnaireList() {
 
   const sectionTitleStyle: React.CSSProperties = {
     marginBottom: 8,
-    fontSize: "var(--fs-h4)",
+    fontSize: "clamp(1.8rem, 2.5vw, 2.2rem)",
     lineHeight: "var(--lh-heading)",
   };
 
@@ -60,6 +75,19 @@ export function QuestionnaireList() {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+  };
+
+  const scrollToSection = (sectionRef: React.RefObject<HTMLElement | null>) => {
+    const panel = listPanelRef.current;
+    const section = sectionRef.current;
+    if (!panel || !section) return;
+
+    const top =
+      section.getBoundingClientRect().top -
+      panel.getBoundingClientRect().top +
+      panel.scrollTop;
+
+    panel.scrollTo({ top, behavior: "smooth" });
   };
 
   const renderCard = (q: Questionnaire, allowManage: boolean) => (
@@ -94,19 +122,34 @@ export function QuestionnaireList() {
 
   return (
     <div className="stack" style={{ gap: 20 }}>
-      <section className="stack" style={{ gap: 12 }}>
-        <h2 style={sectionTitleStyle}>My questionnaires</h2>
-        {myQuestionnaires.length === 0
-          ? <p style={{ opacity: 0.7 }}>You have not created any questionnaires yet.</p>
-          : myQuestionnaires.map((q) => renderCard(q, true))}
-      </section>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn" onClick={() => scrollToSection(myQuestionnairesRef)}>
+          My questionnaires
+        </button>
+        <button className="btn" onClick={() => scrollToSection(publicQuestionnairesRef)}>
+          Public Questionnaires
+        </button>
+      </div>
 
-      <section className="stack" style={{ gap: 12 }}>
-        <h2 style={sectionTitleStyle}>Public questionnaires</h2>
-        {publicQuestionnaires.length === 0
-          ? <p style={{ opacity: 0.7 }}>No public questionnaires from other users yet.</p>
-          : publicQuestionnaires.map((q) => renderCard(q, false))}
-      </section>
+      <div
+        ref={listPanelRef}
+        className="stack"
+        style={{ gap: 20, overflowY: "auto", maxHeight: "53vh", paddingRight: 4 }}
+      >
+        <section className="stack" style={{ gap: 12 }} ref={myQuestionnairesRef}>
+          <h2 style={sectionTitleStyle}>My questionnaires</h2>
+          {myQuestionnaires.length === 0
+            ? <p style={{ opacity: 0.7 }}>You have not created any questionnaires yet.</p>
+            : myQuestionnaires.map((q) => renderCard(q, true))}
+        </section>
+
+        <section className="stack" style={{ gap: 12 }} ref={publicQuestionnairesRef}>
+          <h2 style={sectionTitleStyle}>Public Questionnaires</h2>
+          {publicQuestionnaires.length === 0
+            ? <p style={{ opacity: 0.7 }}>No public questionnaires from other users yet.</p>
+            : publicQuestionnaires.map((q) => renderCard(q, false))}
+        </section>
+      </div>
     </div>
   );
 }

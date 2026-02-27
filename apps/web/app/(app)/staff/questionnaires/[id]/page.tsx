@@ -52,6 +52,10 @@ export default function QuestionnairePage() {
         {canManage && (
           <>
             <EditQuestionnaireButton questionnaireId={id} />
+            <button
+              className="btn"
+              onClick={() => router.push(`/staff/questionnaires/${id}/edit?mode=copy`)}
+            >Copy</button>
             <DeleteQuestionnaireButton questionnaireId={id} />
           </>
         )}
@@ -60,7 +64,7 @@ export default function QuestionnairePage() {
             className="btn"
             onClick={() => router.push(`/staff/questionnaires/${id}/edit?mode=use`)}
           >
-            Use Template
+            Copy Template
           </button>
         )}
 
