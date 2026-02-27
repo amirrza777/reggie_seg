@@ -217,8 +217,14 @@
 .minutes-editor__bold { font-weight: bold; }
 .minutes-editor__italic { font-style: italic; }
 .minutes-editor__underline { text-decoration: underline; }
+.minutes-editor__strikethrough { text-decoration: line-through; }
 
-.minutes-editor__ul {
+.minutes-editor__h1 { font-size: 1.5rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
+.minutes-editor__h2 { font-size: 1.25rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
+.minutes-editor__h3 { font-size: 1.1rem; font-weight: var(--fw-semibold); margin: 4px 0 2px; }
+
+.minutes-editor__ul,
+.minutes-editor__ol {
   margin: 0;
   padding-left: 20px;
 }
