@@ -28,7 +28,8 @@ function resolveUserId(req: AuthRequest): number | null {
       const payload = jwt.verify(accessToken, accessSecret) as AccessPayload;
       if (payload?.sub) return payload.sub;
     } catch {
-      // Fall back to refresh cookie below.
+      //Access token invalid or expired
+      //continue and try refresh token
     }
   }
 

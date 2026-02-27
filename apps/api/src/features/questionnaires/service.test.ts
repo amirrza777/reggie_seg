@@ -21,6 +21,7 @@ vi.mock("./repo.js", () => ({
   getMyQuestionnaireTemplates: vi.fn(),
   getPublicQuestionnaireTemplatesByOtherUsers: vi.fn(),
   isQuestionnaireTemplateOwnedByUser: vi.fn(),
+  isQuestionnaireTemplateInUse: vi.fn(),
   updateQuestionnaireTemplate: vi.fn(),
   deleteQuestionnaireTemplate: vi.fn(),
 }));
@@ -137,11 +138,13 @@ describe("QuestionnaireTemplate service", () => {
   //Deleting a template
   it("forwards deleteTemplate to repo", async () => {
     (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
+    (repo.isQuestionnaireTemplateInUse as any).mockResolvedValue(false);
     (repo.deleteQuestionnaireTemplate as any).mockResolvedValue(undefined);
 
     await deleteTemplate(99, 20);
 
     expect(repo.isQuestionnaireTemplateOwnedByUser).toHaveBeenCalledWith(20, 99);
+    expect(repo.isQuestionnaireTemplateInUse).toHaveBeenCalledWith(20);
     expect(repo.deleteQuestionnaireTemplate).toHaveBeenCalledWith(20);
   });
 
@@ -154,6 +157,14 @@ describe("QuestionnaireTemplate service", () => {
     (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(false);
 
     await expect(deleteTemplate(99, 20)).rejects.toMatchObject({ statusCode: 403 });
+    expect(repo.deleteQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
+  it("throws TEMPLATE_IN_USE when deleteTemplate target is in use", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
+    (repo.isQuestionnaireTemplateInUse as any).mockResolvedValue(true);
+
+    await expect(deleteTemplate(99, 20)).rejects.toMatchObject({ code: "TEMPLATE_IN_USE" });
     expect(repo.deleteQuestionnaireTemplate).not.toHaveBeenCalled();
   });
 

@@ -57,9 +57,6 @@ export function QuestionnaireList() {
 
   if (loading) return <p style={{ opacity: 0.7 }}>Loading questionnaires...</p>;
   if (error) return <p style={{ opacity: 0.7 }}>{error}</p>;
-  if (myQuestionnaires.length === 0 && publicQuestionnaires.length === 0) {
-    return <p style={{ opacity: 0.7 }}>No questionnaires yet.</p>;
-  }
 
   const sectionTitleStyle: React.CSSProperties = {
     marginBottom: 8,
@@ -139,14 +136,14 @@ export function QuestionnaireList() {
         <section className="stack" style={{ gap: 12 }} ref={myQuestionnairesRef}>
           <h2 style={sectionTitleStyle}>My Questionnaires</h2>
           {myQuestionnaires.length === 0
-            ? <p style={{ opacity: 0.7 }}>You have not created any questionnaires yet.</p>
+            ? <p style={{ opacity: 0.7 }}>You do not have any questionnaire templates. Create one to view it here.</p>
             : myQuestionnaires.map((q) => renderCard(q, true))}
         </section>
 
         <section className="stack" style={{ gap: 12 }} ref={publicQuestionnairesRef}>
           <h2 style={sectionTitleStyle}>Public Questionnaires</h2>
           {publicQuestionnaires.length === 0
-            ? <p style={{ opacity: 0.7 }}>No public questionnaires from other users yet.</p>
+            ? <p style={{ opacity: 0.7 }}>There are no public questionnaire templates yet.</p>
             : publicQuestionnaires.map((q) => renderCard(q, false))}
         </section>
       </div>

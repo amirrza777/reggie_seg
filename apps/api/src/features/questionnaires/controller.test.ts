@@ -446,17 +446,6 @@ describe("deleteTemplateHandler", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("returns 404 if prisma P2025 error", async () => {
-    (service.deleteTemplate as any).mockRejectedValue({ code: "P2025" });
-
-    const req: any = { params: { id: "1" }, user: { sub: 99 } };
-    const res = mockResponse();
-
-    await deleteTemplateHandler(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
   it("returns 401 when requester is missing", async () => {
     const req: any = { params: { id: "1" }, headers: {}, cookies: {} };
     const res = mockResponse();
@@ -476,6 +465,45 @@ describe("deleteTemplateHandler", () => {
     await deleteTemplateHandler(req, res);
 
     expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("returns 404 if prisma P2025 error", async () => {
+    (service.deleteTemplate as any).mockRejectedValue({ code: "P2025" });
+
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
+    const res = mockResponse();
+
+    await deleteTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 409 when template is in use", async () => {
+    (service.deleteTemplate as any).mockRejectedValue({ code: "TEMPLATE_IN_USE" });
+
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
+    const res = mockResponse();
+
+    await deleteTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Questionnaire template is currently in use and cannot be deleted",
+    });
+  });
+
+  it("returns 409 when prisma P2003 foreign key conflict occurs", async () => {
+    (service.deleteTemplate as any).mockRejectedValue({ code: "P2003" });
+
+    const req: any = { params: { id: "1" }, user: { sub: 99 } };
+    const res = mockResponse();
+
+    await deleteTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Questionnaire template is currently in use and cannot be deleted",
+    });
   });
 
   it("returns 500 for non-P2025 error", async () => {

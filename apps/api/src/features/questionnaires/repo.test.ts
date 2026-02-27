@@ -7,6 +7,7 @@ import {
   getMyQuestionnaireTemplates,
   getPublicQuestionnaireTemplatesByOtherUsers,
   isQuestionnaireTemplateOwnedByUser,
+  isQuestionnaireTemplateInUse,
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate,
   copyPublicQuestionnaireTemplateToUser,
@@ -18,6 +19,7 @@ vi.mock("../../shared/db.js", () => ({
     questionnaireTemplate: {
       create: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       delete: vi.fn(),
     },
@@ -69,6 +71,15 @@ describe("QuestionnaireTemplate repository", () => {
 
     expect(prisma.questionnaireTemplate.findFirst).toHaveBeenCalledWith({
       where: { id: 5, isPublic: true },
+      include: { questions: { orderBy: { order: "asc" } } },
+    });
+  });
+
+  it("fetches a template by id for requester with public-or-owner visibility", async () => {
+    await getQuestionnaireTemplateById(5, 42);
+
+    expect(prisma.questionnaireTemplate.findFirst).toHaveBeenCalledWith({
+      where: { id: 5, OR: [{ isPublic: true }, { ownerId: 42 }] },
       include: { questions: { orderBy: { order: "asc" } } },
     });
   });
@@ -126,13 +137,37 @@ describe("QuestionnaireTemplate repository", () => {
     await expect(isQuestionnaireTemplateOwnedByUser(4, 88)).resolves.toBe(false);
   });
 
-  it("fetches a template by id for requester with public-or-owner visibility", async () => {
-    await getQuestionnaireTemplateById(5, 42);
+  it("returns false when template is missing in in-use check", async () => {
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue(null);
 
-    expect(prisma.questionnaireTemplate.findFirst).toHaveBeenCalledWith({
-      where: { id: 5, OR: [{ isPublic: true }, { ownerId: 42 }] },
-      include: { questions: { orderBy: { order: "asc" } } },
+    await expect(isQuestionnaireTemplateInUse(1)).resolves.toBe(false);
+    expect(prisma.questionnaireTemplate.findUnique).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: {
+        _count: {
+          select: {
+            projects: true,
+            assessments: true,
+          },
+        },
+      },
     });
+  });
+
+  it("returns true when template has project/assessment usage", async () => {
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({
+      _count: { projects: 0, assessments: 2 },
+    });
+
+    await expect(isQuestionnaireTemplateInUse(2)).resolves.toBe(true);
+  });
+
+  it("returns false when template exists but has no usage", async () => {
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({
+      _count: { projects: 0, assessments: 0 },
+    });
+
+    await expect(isQuestionnaireTemplateInUse(3)).resolves.toBe(false);
   });
 
   //Tests updating a question
