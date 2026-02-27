@@ -7,6 +7,8 @@ model Enterprise {
   users   User[]
   modules Module[]
   teams   Team[]
+  auditLogs AuditLog[]
+  featureFlags FeatureFlag[]
 
   @@index([code])
 }
