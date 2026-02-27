@@ -16,21 +16,9 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const activeSpace: NonNullable<SidebarLink["space"]> =
-    pathname?.startsWith("/admin") ? "admin" : pathname?.startsWith("/staff") ? "staff" : "workspace";
-
-  const spaceFiltered = useMemo(
-    () =>
-      links.filter((link) => {
-        if (!link.space) return activeSpace === "workspace";
-        return link.space === activeSpace;
-      }),
-    [links, activeSpace]
-  );
-
   const current = useMemo(() => {
-    return spaceFiltered.find((link) => pathname?.startsWith(link.href)) ?? spaceFiltered[0];
-  }, [spaceFiltered, pathname]);
+    return links.find((link) => pathname?.startsWith(link.href)) ?? links[0];
+  }, [links, pathname]);
 
   const close = () => setIsOpen(false);
   const toggle = () => setIsOpen((prev) => !prev);
@@ -63,7 +51,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                 </button>
               </div>
               <nav className="sidebar__mobile-nav">
-                {spaceFiltered.map((link) => (
+                {links.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}
@@ -80,7 +68,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
       </div>
 
       <nav className="sidebar__nav">
-        {spaceFiltered.map((link) => {
+        {links.map((link) => {
           const isActive = pathname?.startsWith(link.href);
           return (
             <Link

@@ -1,25 +1,39 @@
+"use client";
+
 import Link from "next/link";
-import { apiFetch } from "@/shared/api/http";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
 import { Questionnaire } from "@/features/questionnaires/types";
+import { getQuestionnaireById } from "@/features/questionnaires/api/client";
 
-type PageProps = {
-  params: { id: string };
-};
+export default function QuestionnairePage() {
+  const { id } = useParams<{ id: string }>();
+  const router = useRouter();
+  const [questionnaire, setQuestionnaire] = useState<Questionnaire | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-async function getQuestionnaire(id: string): Promise<Questionnaire> {
-  return apiFetch(`/questionnaires/${id}`);
-}
+  useEffect(() => {
+    if (!id) return;
 
-export default async function QuestionnairePage({ params }: PageProps) {
-  const { id } = await params;
-  const questionnaire: Questionnaire = await getQuestionnaire(id);
+    getQuestionnaireById(id)
+      .then(setQuestionnaire)
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to load questionnaire.");
+      });
+  }, [id]);
+
+  if (error) return <p style={{ padding: 32 }}>{error}</p>;
+  if (!questionnaire) return <p style={{ padding: 32 }}>Loading...</p>;
+
+  const canManage = questionnaire.canEdit === true;
+  const canUse = questionnaire.isPublic === true && !canManage;
 
   return (
     <div className="stack" style={{ padding: 32, gap: 40 }}>
-
       <Placeholder
         title={`Questionnaire: ${questionnaire.templateName}`}
         path={`/staff/questionnaires/${id}`}
@@ -35,15 +49,28 @@ export default async function QuestionnairePage({ params }: PageProps) {
           width: "100%",
         }}
       >
-
-        <EditQuestionnaireButton questionnaireId={id} />
-        <DeleteQuestionnaireButton questionnaireId={id} />
-
+        {canManage && (
+          <>
+            <EditQuestionnaireButton questionnaireId={id} />
+            <button
+              className="btn"
+              onClick={() => router.push(`/staff/questionnaires/${id}/edit?mode=copy`)}
+            >Copy</button>
+            <DeleteQuestionnaireButton questionnaireId={id} />
+          </>
+        )}
+        {canUse && (
+          <button
+            className="btn"
+            onClick={() => router.push(`/staff/questionnaires/${id}/edit?mode=use`)}
+          >
+            Copy Template
+          </button>
+        )}
 
         <Link href="/staff/questionnaires" style={{ marginLeft: 100 }}>
           <button
             style={{
-              
               padding: "10px 20px",
               border: "1px solid var(--btn-primary-border)",
               background: "var(--btn-primary-bg)",
@@ -55,7 +82,6 @@ export default async function QuestionnairePage({ params }: PageProps) {
             Back to all questionnaires
           </button>
         </Link>
-
       </div>
     </div>
   );

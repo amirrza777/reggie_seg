@@ -1,14 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { apiFetch } from "@/shared/api/http";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
+import { createQuestionnaire, getQuestionnaireById, updateQuestionnaire } from "../api/client";
+import {
+  CancelQuestionnaireButton,
+  QuestionnaireVisibilityButtons,
+} from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -55,12 +59,17 @@ const styles = {
 
 export default function EditQuestionnairePage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const templateId = Number(id);
+  const isUseMode = searchParams.get("mode") === "use";
+  const isCopyMode = searchParams.get("mode") === "copy";
   const router = useRouter();
   const [templateName, setTemplateName] = useState("");
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
+  const [canEdit, setCanEdit] = useState(true);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -72,17 +81,21 @@ export default function EditQuestionnairePage() {
 
     const load = async () => {
       try {
-        type TemplateQuestion = { id: number; label: string; type: QuestionType; configs?: unknown };
-        const template = await apiFetch<{ templateName: string; questions: TemplateQuestion[] }>(
-          `/questionnaires/${templateId}`
-        );
+        const template = await getQuestionnaireById(templateId);
 
         if (!template || !Array.isArray(template.questions)) {
           console.error("Invalid questionnaire payload", template);
           return;
         }
 
-        setTemplateName(typeof template.templateName === "string" ? template.templateName : "");
+        const baseName =
+          typeof template.templateName === "string" ? template.templateName : "";
+        const shouldDuplicate = isCopyMode || (isUseMode && !template.canEdit);
+        setTemplateName(shouldDuplicate ? `${baseName} (Copy)` : baseName);
+        const templateVisibility =
+          typeof template.isPublic === "boolean" ? template.isPublic : true;
+        setIsPublic(shouldDuplicate ? false : templateVisibility);
+        setCanEdit(typeof template.canEdit === "boolean" ? template.canEdit : true);
 
         setQuestions(
           template.questions.map((q) => ({
@@ -102,7 +115,7 @@ export default function EditQuestionnairePage() {
     };
 
     load();
-  }, [templateId]);
+  }, [templateId, isUseMode, isCopyMode]);
 
   const addQuestion = (type: QuestionType) => {
     const q: EditableQuestion = {
@@ -171,17 +184,31 @@ export default function EditQuestionnairePage() {
     setSaving(true);
 
     try {
-      await apiFetch(`/questionnaires/${templateId}`, {
-        method: "PUT",
-        body: JSON.stringify({
+      const shouldDuplicate = isCopyMode || (isUseMode && !canEdit);
+      if (shouldDuplicate) {
+        await createQuestionnaire({
           templateName,
+          isPublic,
           questions: questions.map((q) => ({
-            id: q.dbId,
             label: q.label,
             type: q.type,
             configs: q.configs,
           })),
-        }),
+        });
+        setHasUnsavedChanges(false);
+        router.push("/staff/questionnaires");
+        return;
+      }
+
+      await updateQuestionnaire(templateId, {
+        templateName,
+        isPublic,
+        questions: questions.map((q) => ({
+          id: q.dbId,
+          label: q.label,
+          type: q.type,
+          configs: q.configs,
+        })),
       });
 
       setHasUnsavedChanges(false);
@@ -197,6 +224,20 @@ export default function EditQuestionnairePage() {
 
   if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
   if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
+  if (!canEdit && !isUseMode && !isCopyMode) {
+    return (
+      <div style={{ padding: 32 }}>
+        <p style={{ marginBottom: 12 }}>You do not have permission to edit this questionnaire.</p>
+        <button
+          className="btn"
+          style={styles.btn}
+          onClick={() => router.back()}
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.page}>
@@ -205,16 +246,24 @@ export default function EditQuestionnairePage() {
 
 
       {!preview ? (
-        <input
-          placeholder="Questionnaire name"
-          value={templateName}
-          onChange={(e) => {
-            setTemplateName(e.target.value);
-            setHasUnsavedChanges(true);
-          }}
-
-          style={styles.input}
-        />
+        <>
+          <input
+            placeholder="Questionnaire name"
+            value={templateName}
+            onChange={(e) => {
+              setTemplateName(e.target.value);
+              setHasUnsavedChanges(true);
+            }}
+            style={styles.input}
+          />
+          <QuestionnaireVisibilityButtons
+            isPublic={isPublic}
+            onChange={(next) => {
+              setIsPublic(next);
+              setHasUnsavedChanges(true);
+            }}
+          />
+        </>
       )
         : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
 
@@ -237,22 +286,11 @@ export default function EditQuestionnairePage() {
               {saving ? "Saving..." : "Save changes"}
             </button>
 
-            <button
+            <CancelQuestionnaireButton
               style={styles.btn}
-              onClick={() => {
-                if (hasUnsavedChanges) {
-                  const confirmed = window.confirm(
-                    "You have unsaved changes. Are you sure you want to exit without saving?"
-                  );
-
-                  if (!confirmed) return;
-                }
-
-                router.back();
-              }}
-            >
-              Cancel
-            </button>
+              onCancel={() => router.back()}
+              confirmWhen={hasUnsavedChanges}
+            />
           </>
         )}
       </div>

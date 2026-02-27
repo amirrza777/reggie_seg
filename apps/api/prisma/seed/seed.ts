@@ -23,10 +23,11 @@ async function main() {
   const projects = await seedProjects(modules, templates);
   const teams = await seedTeams(enterpriseId, projects);
   await seedModuleLeads(users, modules);
-  await seedStudentEnrollments(users, modules);
+  await seedStudentEnrollments(enterpriseId, users, modules);
   await seedTeamAllocations(users, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
+  await seedFeatureFlags(enterpriseId);
 }
 
 type SeedUser = { id: number; role: Role };
@@ -181,9 +182,12 @@ async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
   
   const template = await prisma.questionnaireTemplate.upsert({
     where: { id: 1 },
-    update: {},
+    update: {
+      isPublic: true,
+    },
     create: {
       templateName,
+      isPublic: true,
       ownerId: staffUser.id,
       questions: {
         create: [
@@ -287,13 +291,14 @@ async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   await prisma.moduleLead.createMany({ data, skipDuplicates: true });
 }
 
-async function seedStudentEnrollments(users: SeedUser[], modules: SeedModule[]) {
+async function seedStudentEnrollments(enterpriseId: string, users: SeedUser[], modules: SeedModule[]) {
   // Enroll all students into all modules.
   const students = users.filter((u) => u.role === "STUDENT");
   if (students.length === 0 || modules.length === 0) return;
 
   const data = students.flatMap((s) =>
     modules.map((m) => ({
+      enterpriseId,
       userId: s.id,
       moduleId: m.id,
     }))
@@ -394,6 +399,22 @@ async function seedPeerAssessments(
           'Teamwork': `${reviewerId % 4 === 0 ? 'Strong' : 'Adequate'} teamwork skills`,
         },
       },
+    });
+  }
+}
+
+async function seedFeatureFlags(enterpriseId: string) {
+  const defaults = [
+    { key: 'peer_feedback', label: 'Peer feedback', enabled: true },
+    { key: 'modules', label: 'Modules', enabled: true },
+    { key: 'repos', label: 'Repos', enabled: false },
+  ];
+
+  for (const flag of defaults) {
+    await prisma.featureFlag.upsert({
+      where: { enterpriseId_key: { enterpriseId, key: flag.key } },
+      update: { label: flag.label, enabled: flag.enabled },
+      create: { ...flag, enterpriseId },
     });
   }
 }

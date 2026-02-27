@@ -1,7 +1,7 @@
 import { getProject, getProjectDeadline , getTeamByUserAndProject} from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
-
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -10,6 +10,7 @@ type ProjectPageProps = {
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
   
+  const flagMap = await getFeatureFlagMap();
   
   const project = await getProject(projectId);
   const deadline = await getProjectDeadline(4, Number(projectId));
@@ -17,7 +18,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   
   return (
     <div className="stack">
-      <ProjectNav projectId={projectId} />
+      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
         <h1>{project?.name || "Project"}</h1>
         <p style={{ color: "#666", marginTop: "8px" }}>
