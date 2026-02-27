@@ -55,12 +55,16 @@ export async function loginHandler(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   try {
-    const tokens = await login({ email, password });
+    const tokens = await login(
+      { email, password },
+      { ip: req.ip, userAgent: req.get("user-agent") ?? null }
+    );
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("login error", e);
     if (e.code === "INVALID_CREDENTIALS") return res.status(401).json({ error: "Invalid credentials" });
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(500).json({ error: "login failed", detail: e?.message || e?.code || String(e) });
   }
 }
@@ -74,13 +78,14 @@ export async function refreshHandler(req: Request, res: Response) {
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("refresh error", e);
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(401).json({ error: "invalid refresh token", detail: e?.message || e?.code || String(e) });
   }
 }
 
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
-  if (token) await logout(token);
+  if (token) await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
   res.clearCookie("refresh_token");
   return res.json({ success: true });
 }
@@ -180,6 +185,10 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(401).json({ error: "Not authenticated" });
+    if (user.active === false) {
+      await prisma.refreshToken.updateMany({ where: { userId: user.id, revoked: false }, data: { revoked: true } });
+      return res.status(403).json({ error: "Account is suspended" });
+    }
 
     const role = user.role;
     const isStaff = role !== "STUDENT";
@@ -194,7 +203,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
       isAdmin,
       isEnterpriseAdmin,
       role,
-      active: true,
+      active: user.active ?? true,
     });
   } catch (err) {
     console.error("meHandler error", err);

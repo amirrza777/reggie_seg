@@ -25,3 +25,27 @@ export type AdminUserRecord = Omit<AdminUser, "role" | "active"> &
   Partial<Pick<AdminUser, "role" | "active">>;
 
 export type { UserRole };
+
+export type AuditAction = "LOGIN" | "LOGOUT";
+
+export type AuditLogEntry = {
+  id: number;
+  action: AuditAction;
+  createdAt: string;
+  ip: string | null;
+  userAgent: string | null;
+  user: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: UserRole;
+  };
+};
+
+export type AdminSummary = {
+  users: number;
+  modules: number;
+  teams: number;
+  meetings: number;
+};

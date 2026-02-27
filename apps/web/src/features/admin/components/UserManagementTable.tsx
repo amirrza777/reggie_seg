@@ -45,8 +45,6 @@ const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   active: user.active ?? true,
 });
 
-const roleOptions: UserRole[] = ["STUDENT", "STAFF", "ENTERPRISE_ADMIN", "ADMIN"];
-
 export function UserManagementTable() {
   const [users, setUsers] = useState<AdminUser[]>(demoUsers);
   const [status, setStatus] = useState<RequestState>("idle");
@@ -130,44 +128,63 @@ export function UserManagementTable() {
   const rows = users.map((user) => {
     const statusClass = user.active ? "status-chip status-chip--success" : "status-chip status-chip--danger";
     const statusLabel = user.active ? "Active" : "Suspended";
+    const isAdmin = user.role === "ADMIN";
+    const roleLabel = isAdmin ? "Admin" : user.role === "STAFF" ? "Staff" : "Student";
+    const isSuperAdmin = user.email.toLowerCase() === "admin@kcl.ac.uk";
+
+    const roleControl = isAdmin ? (
+      <span className="role-chip">Admin</span>
+    ) : (
+      <div className="role-toggle">
+        <Button
+          type="button"
+          variant={user.role === "STUDENT" ? "primary" : "ghost"}
+          className="role-toggle__btn"
+          onClick={() => handleRoleChange(user.id, "STUDENT")}
+          disabled={status === "loading" || user.role === "STUDENT"}
+        >
+          Student
+        </Button>
+        <Button
+          type="button"
+          variant={user.role === "STAFF" ? "primary" : "ghost"}
+          className="role-toggle__btn"
+          onClick={() => handleRoleChange(user.id, "STAFF")}
+          disabled={status === "loading" || user.role === "STAFF"}
+        >
+          Staff
+        </Button>
+      </div>
+    );
+
     return [
       <div key={`${user.id}-email`} className="stack" style={{ gap: 4 }}>
         <strong>{user.email}</strong>
-        <span className="muted">
-          {user.role === "ENTERPRISE_ADMIN"
-            ? "Enterprise admin"
-            : user.role === "ADMIN"
-              ? "Admin"
-              : user.isStaff
-                ? "Staff"
-                : "Student"}
-        </span>
+        <span className="muted">{roleLabel}</span>
       </div>,
       <div key={`${user.id}-name`} className="stack" style={{ gap: 4 }}>
         <span>{`${user.firstName} ${user.lastName}`}</span>
         <span className="muted">ID {user.id}</span>
       </div>,
-      <select
-        key={`${user.id}-role`}
-        value={user.role}
-        onChange={(event) => handleRoleChange(user.id, event.target.value as UserRole)}
-        style={{ padding: "8px 10px", borderRadius: 10, borderColor: "var(--border)" }}
-      >
-        {roleOptions.map((option) => (
-          <option key={option} value={option}>
-            {option.charAt(0) + option.slice(1).toLowerCase()}
-          </option>
-        ))}
-      </select>,
-      <button
-        key={`${user.id}-status`}
-        onClick={() => handleStatusToggle(user.id, !user.active)}
-        className={statusClass}
-        style={{ cursor: "pointer" }}
-      >
-        <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
-        <span>{statusLabel}</span>
-      </button>,
+      <div key={`${user.id}-role`} style={{ display: "flex", justifyContent: "flex-start" }}>
+        {roleControl}
+      </div>,
+      isSuperAdmin ? (
+        <span key={`${user.id}-status`} className={statusClass} style={{ cursor: "not-allowed", opacity: 0.75 }}>
+          <span style={{ fontSize: 14 }}>●</span>
+          <span>Active</span>
+        </span>
+      ) : (
+        <button
+          key={`${user.id}-status`}
+          onClick={() => handleStatusToggle(user.id, !user.active)}
+          className={statusClass}
+          style={{ cursor: "pointer" }}
+        >
+          <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
+          <span>{statusLabel}</span>
+        </button>
+      ),
     ];
   });
 

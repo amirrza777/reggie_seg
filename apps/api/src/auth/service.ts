@@ -2,6 +2,7 @@ import argon2 from "argon2";
 import jwt from "jsonwebtoken";
 import type { Role } from "@prisma/client";
 import { prisma } from "../shared/db.js";
+import { recordAuditLog } from "../features/audit/service.js";
 import { randomBytes, createHash, randomInt } from "crypto";
 import { sendEmail } from "../shared/email.js";
 
@@ -49,7 +50,10 @@ export async function signUp(data: {
   return issueTokens(user);
 }
 
-export async function login(data: { email: string; password: string }) {
+export async function login(
+  data: { email: string; password: string },
+  meta: { ip?: string | null; userAgent?: string | null } = {}
+) {
   const emailInput = (data.email ?? "").toLowerCase();
   const enterpriseId = await getDefaultEnterpriseId();
   const user = await prisma.user.findUnique({
@@ -69,13 +73,21 @@ export async function login(data: { email: string; password: string }) {
           enterpriseId,
         },
       });
-      return issueTokens(created);
+      const tokens = await issueTokens(created);
+      await recordAuditLog({ userId: created.id, action: "LOGIN", ...meta });
+      return tokens;
     }
   }
 
   if (!user || !user.passwordHash) throw { code: "INVALID_CREDENTIALS" };
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
 
-  const ok = await argon2.verify(user.passwordHash, data.password);
+  let ok = false;
+  try {
+    ok = await argon2.verify(user.passwordHash, data.password);
+  } catch {
+    ok = false;
+  }
   if (!ok && bootstrapAdminEmail && bootstrapAdminPassword && emailInput === bootstrapAdminEmail) {
     if (data.password === bootstrapAdminPassword) {
       const newHash = await argon2.hash(data.password);
@@ -83,7 +95,9 @@ export async function login(data: { email: string; password: string }) {
         where: { id: user.id },
         data: { passwordHash: newHash, role: "ADMIN" },
       });
-      return issueTokens(updated);
+      const tokens = await issueTokens(updated);
+      await recordAuditLog({ userId: updated.id, action: "LOGIN", ...meta });
+      return tokens;
     }
   }
 
@@ -95,12 +109,18 @@ export async function login(data: { email: string; password: string }) {
         where: { id: user.id },
         data: { role: "ADMIN" },
       });
-      return issueTokens(updated);
+      const tokens = await issueTokens(updated);
+      await recordAuditLog({ userId: updated.id, action: "LOGIN", ...meta });
+      return tokens;
     }
-    return issueTokens(user);
+    const tokens = await issueTokens(user);
+    await recordAuditLog({ userId: user.id, action: "LOGIN", ...meta });
+    return tokens;
   }
 
-  return issueTokens(user);
+  const tokens = await issueTokens(user);
+  await recordAuditLog({ userId: user.id, action: "LOGIN", ...meta });
+  return tokens;
 }
 
 export async function refreshTokens(refreshToken: string) {
@@ -109,15 +129,21 @@ export async function refreshTokens(refreshToken: string) {
   if (!valid) throw new Error("invalid");
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) throw new Error("invalid");
-  return issueTokens({ id: user.id, email: user.email, role: user.role });
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
+  const tokens = await issueTokens({ id: user.id, email: user.email, role: user.role });
+  return tokens;
 }
 
-export async function logout(refreshToken: string) {
+export async function logout(
+  refreshToken: string,
+  meta: { ip?: string | null; userAgent?: string | null } = {}
+) {
   const payload = verifyRefresh(refreshToken);
   await prisma.refreshToken.updateMany({
     where: { userId: payload.sub, revoked: false },
     data: { revoked: true },
   });
+  await recordAuditLog({ userId: payload.sub, action: "LOGOUT", ...meta });
 }
 
 export async function requestPasswordReset(email: string) {

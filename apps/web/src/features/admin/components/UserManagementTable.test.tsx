@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   listUsersMock.mockResolvedValue([apiUser]);
   updateUserMock.mockResolvedValue(apiUser);
-  updateUserRoleMock.mockResolvedValue({ ...apiUser, role: "ADMIN", isStaff: true });
+  updateUserRoleMock.mockResolvedValue({ ...apiUser, role: "STAFF", isStaff: true });
 });
 
 describe("UserManagementTable", () => {
@@ -41,14 +41,15 @@ describe("UserManagementTable", () => {
     listUsersMock.mockResolvedValue([{ ...apiUser, role: undefined, isStaff: true } as any]);
     await renderTable();
     expect(screen.getByText(apiUser.email)).toBeInTheDocument();
-    expect(screen.getByDisplayValue("Staff")).toBeInTheDocument();
+    const staffButton = screen.getByRole("button", { name: /Staff/i });
+    expect(staffButton).toBeDisabled();
   });
 
   it("updates user role and shows confirmation", async () => {
     await renderTable();
-    fireEvent.change(screen.getByDisplayValue("Student"), { target: { value: "ADMIN" } });
-    await waitFor(() => expect(updateUserRoleMock).toHaveBeenCalledWith(apiUser.id, "ADMIN"));
-    expect(screen.getByText(/Updated role to admin/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    await waitFor(() => expect(updateUserRoleMock).toHaveBeenCalledWith(apiUser.id, "STAFF"));
+    expect(screen.getByText(/Updated role to staff/i)).toBeInTheDocument();
   });
 
   it("toggles account status", async () => {
