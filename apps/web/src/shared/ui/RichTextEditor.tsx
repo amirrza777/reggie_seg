@@ -61,14 +61,14 @@ function Toolbar() {
   const [editor] = useLexicalComposerContext();
 
   return (
-    <div className="minutes-editor__toolbar">
+    <div className="rich-editor__toolbar">
       {TOOLBAR_GROUPS.map((group, i) => (
-        <span key={i} className="minutes-editor__group">
+        <span key={i} className="rich-editor__group">
           {group.map(({ key, label, action }) => (
             <button
               key={key}
               type="button"
-              className="minutes-editor__tool"
+              className="rich-editor__tool"
               onMouseDown={(e) => { e.preventDefault(); action(editor); }}
             >
               {label}
@@ -96,53 +96,54 @@ function InitialContentPlugin({ content }: { content: string }) {
   return null;
 }
 
-type MinutesEditorProps = {
+type RichTextEditorProps = {
   initialContent: string;
   onChange: (json: string) => void;
+  placeholder?: string;
 };
 
-export function MinutesEditor({ initialContent, onChange }: MinutesEditorProps) {
+export function RichTextEditor({ initialContent, onChange, placeholder = "Start typing..." }: RichTextEditorProps) {
   const initialConfig = {
-    namespace: "MeetingMinutes",
+    namespace: "RichTextEditor",
     nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
     onError: console.error,
     theme: {
       text: {
-        bold: "minutes-editor__bold",
-        italic: "minutes-editor__italic",
-        underline: "minutes-editor__underline",
-        strikethrough: "minutes-editor__strikethrough",
-        superscript: "minutes-editor__superscript",
-        subscript: "minutes-editor__subscript",
-        code: "minutes-editor__code",
+        bold: "rich-editor__bold",
+        italic: "rich-editor__italic",
+        underline: "rich-editor__underline",
+        strikethrough: "rich-editor__strikethrough",
+        superscript: "rich-editor__superscript",
+        subscript: "rich-editor__subscript",
+        code: "rich-editor__code",
       },
       heading: {
-        h1: "minutes-editor__h1",
-        h2: "minutes-editor__h2",
-        h3: "minutes-editor__h3",
+        h1: "rich-editor__h1",
+        h2: "rich-editor__h2",
+        h3: "rich-editor__h3",
       },
-      quote: "minutes-editor__quote",
+      quote: "rich-editor__quote",
       list: {
-        ul: "minutes-editor__ul",
-        ol: "minutes-editor__ol",
-        listitem: "minutes-editor__listitem",
+        ul: "rich-editor__ul",
+        ol: "rich-editor__ol",
+        listitem: "rich-editor__listitem",
       },
     },
   };
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="minutes-editor">
+      <div className="rich-editor">
         <Toolbar />
-        <div className="minutes-editor__content">
+        <div className="rich-editor__content">
           <RichTextPlugin
             contentEditable={
               <ContentEditable
-                className="minutes-editor__editable"
-                aria-placeholder="Capture decisions, risks, and action items..."
+                className="rich-editor__editable"
+                aria-placeholder={placeholder}
                 placeholder={
-                  <div className="minutes-editor__placeholder">
-                    Capture decisions, risks, and action items...
+                  <div className="rich-editor__placeholder">
+                    {placeholder}
                   </div>
                 }
               />

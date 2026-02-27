@@ -161,14 +161,14 @@
   color: var(--status-danger-text);
 }
 
-.minutes-editor {
+.rich-editor {
   border: 1px solid var(--border);
   border-radius: 10px;
   overflow: hidden;
   background: var(--surface);
 }
 
-.minutes-editor__toolbar {
+.rich-editor__toolbar {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -177,18 +177,18 @@
   flex-wrap: wrap;
 }
 
-.minutes-editor__group {
+.rich-editor__group {
   display: flex;
   gap: 2px;
 }
 
-.minutes-editor__group + .minutes-editor__group {
+.rich-editor__group + .rich-editor__group {
   border-left: 1px solid var(--border);
   padding-left: 4px;
   margin-left: 2px;
 }
 
-.minutes-editor__tool {
+.rich-editor__tool {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
@@ -199,16 +199,16 @@
   line-height: 1;
 }
 
-.minutes-editor__tool:hover {
+.rich-editor__tool:hover {
   background: var(--accent-soft);
   border-color: var(--accent-border);
 }
 
-.minutes-editor__content {
+.rich-editor__content {
   position: relative;
 }
 
-.minutes-editor__editable {
+.rich-editor__editable {
   min-height: 140px;
   padding: 10px 12px;
   outline: none;
@@ -218,7 +218,7 @@
   line-height: 1.6;
 }
 
-.minutes-editor__placeholder {
+.rich-editor__placeholder {
   position: absolute;
   top: 10px;
   left: 12px;
@@ -227,25 +227,25 @@
   font-size: var(--fs-body);
 }
 
-.minutes-editor__bold { font-weight: bold; }
-.minutes-editor__italic { font-style: italic; }
-.minutes-editor__underline { text-decoration: underline; }
-.minutes-editor__strikethrough { text-decoration: line-through; }
-.minutes-editor__superscript { font-size: 0.75em; vertical-align: super; }
-.minutes-editor__subscript { font-size: 0.75em; vertical-align: sub; }
-.minutes-editor__code { font-family: monospace; background: var(--surface-raised); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
+.rich-editor__bold { font-weight: bold; }
+.rich-editor__italic { font-style: italic; }
+.rich-editor__underline { text-decoration: underline; }
+.rich-editor__strikethrough { text-decoration: line-through; }
+.rich-editor__superscript { font-size: 0.75em; vertical-align: super; }
+.rich-editor__subscript { font-size: 0.75em; vertical-align: sub; }
+.rich-editor__code { font-family: monospace; background: var(--surface-raised); padding: 1px 4px; border-radius: 4px; font-size: 0.9em; }
 
-.minutes-editor__h1 { font-size: 1.5rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
-.minutes-editor__h2 { font-size: 1.25rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
-.minutes-editor__h3 { font-size: 1.1rem; font-weight: var(--fw-semibold); margin: 4px 0 2px; }
-.minutes-editor__quote { border-left: 3px solid var(--border); margin: 4px 0; padding: 4px 12px; color: var(--muted); }
+.rich-editor__h1 { font-size: 1.5rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
+.rich-editor__h2 { font-size: 1.25rem; font-weight: var(--fw-bold); margin: 4px 0 2px; }
+.rich-editor__h3 { font-size: 1.1rem; font-weight: var(--fw-semibold); margin: 4px 0 2px; }
+.rich-editor__quote { border-left: 3px solid var(--border); margin: 4px 0; padding: 4px 12px; color: var(--muted); }
 
-.minutes-editor__ul,
-.minutes-editor__ol {
+.rich-editor__ul,
+.rich-editor__ol {
   margin: 0;
   padding-left: 20px;
 }
 
-.minutes-editor__listitem {
+.rich-editor__listitem {
   margin: 2px 0;
 }
