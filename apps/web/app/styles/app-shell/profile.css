@@ -129,17 +129,41 @@
 .profile-avatar__fallback {
   width: 64px;
   height: 64px;
-  border-radius: 50%;
+  border-radius: 999px;
   object-fit: cover;
-  background: var(--glass-surface);
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--ink-strong);
   display: grid;
   place-items: center;
-  font-weight: 700;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
+  text-transform: uppercase;
 }
 
 .profile-avatar__actions {
   display: grid;
   gap: 10px;
+}
+
+.profile-avatar__actions .profile-avatar__remove.btn {
+  padding: 0;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--status-danger);
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-medium);
+  justify-content: flex-start;
+  text-decoration: none;
+  line-height: 1.4;
+  padding-left: 6px;
+}
+
+.profile-avatar__actions .profile-avatar__remove.btn:hover {
+  color: var(--status-danger-text);
+  transform: none;
+  border: none;
+  background: transparent;
 }
 
 .profile-file {
