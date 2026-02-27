@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Underline, Strikethrough, Superscript, Subscript, Code, List, ListOrdered, Quote, AlignLeft, AlignCenter, AlignRight, AlignJustify, Outdent, Indent } from "lucide-react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -15,43 +16,44 @@ import { HeadingNode, $createHeadingNode, QuoteNode, $createQuoteNode } from "@l
 import { $setBlocksType } from "@lexical/selection";
 
 type ToolbarButton = {
-  label: string;
+  key: string;
+  label: React.ReactNode;
   action: (editor: ReturnType<typeof useLexicalComposerContext>[0]) => void;
 };
 
 const TOOLBAR_GROUPS: ToolbarButton[][] = [
   [
-    { label: "↩", action: (ed) => ed.dispatchCommand(UNDO_COMMAND, undefined) },
-    { label: "↪", action: (ed) => ed.dispatchCommand(REDO_COMMAND, undefined) },
+    { key: "undo", label: <Undo2 size={14} />, action: (ed) => ed.dispatchCommand(UNDO_COMMAND, undefined) },
+    { key: "redo", label: <Redo2 size={14} />, action: (ed) => ed.dispatchCommand(REDO_COMMAND, undefined) },
   ],
   [
-    { label: "H1", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }) },
-    { label: "H2", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }) },
-    { label: "H3", action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }) },
+    { key: "h1", label: <Heading1 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }) },
+    { key: "h2", label: <Heading2 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }) },
+    { key: "h3", label: <Heading3 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }) },
   ],
   [
-    { label: "B", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "bold") },
-    { label: "I", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "italic") },
-    { label: "U", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "underline") },
-    { label: "S", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough") },
-    { label: "x²", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript") },
-    { label: "x₂", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript") },
-    { label: "<>", action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "code") },
+    { key: "bold", label: <Bold size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "bold") },
+    { key: "italic", label: <Italic size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "italic") },
+    { key: "underline", label: <Underline size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "underline") },
+    { key: "strikethrough", label: <Strikethrough size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough") },
+    { key: "superscript", label: <Superscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript") },
+    { key: "subscript", label: <Subscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript") },
+    { key: "code", label: <Code size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "code") },
   ],
   [
-    { label: "•", action: (ed) => ed.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
-    { label: "1.", action: (ed) => ed.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
-    { label: '"', action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }) },
+    { key: "ul", label: <List size={14} />, action: (ed) => ed.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
+    { key: "ol", label: <ListOrdered size={14} />, action: (ed) => ed.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
+    { key: "quote", label: <Quote size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }) },
   ],
   [
-    { label: "≡←", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left") },
-    { label: "≡", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center") },
-    { label: "≡→", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right") },
-    { label: "☰", action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify") },
+    { key: "left", label: <AlignLeft size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left") },
+    { key: "center", label: <AlignCenter size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center") },
+    { key: "right", label: <AlignRight size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right") },
+    { key: "justify", label: <AlignJustify size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify") },
   ],
   [
-    { label: "⇤", action: (ed) => ed.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined) },
-    { label: "⇥", action: (ed) => ed.dispatchCommand(INDENT_CONTENT_COMMAND, undefined) },
+    { key: "outdent", label: <Outdent size={14} />, action: (ed) => ed.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined) },
+    { key: "indent", label: <Indent size={14} />, action: (ed) => ed.dispatchCommand(INDENT_CONTENT_COMMAND, undefined) },
   ],
 ];
 
@@ -62,9 +64,9 @@ function Toolbar() {
     <div className="minutes-editor__toolbar">
       {TOOLBAR_GROUPS.map((group, i) => (
         <span key={i} className="minutes-editor__group">
-          {group.map(({ label, action }) => (
+          {group.map(({ key, label, action }) => (
             <button
-              key={label}
+              key={key}
               type="button"
               className="minutes-editor__tool"
               onMouseDown={(e) => { e.preventDefault(); action(editor); }}
