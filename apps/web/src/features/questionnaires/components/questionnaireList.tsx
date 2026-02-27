@@ -1,61 +1,152 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getAllQuestionnaires } from "../api/client";
+import {
+  getMyQuestionnaires,
+  getPublicQuestionnairesFromOthers,
+} from "../api/client";
 import { Questionnaire } from "../types";
 import { EditQuestionnaireButton, DeleteQuestionnaireButton } from "./SharedQuestionnaireButtons";
 
 export function QuestionnaireList() {
-  const [questionnaires, setQuestionnaires] = useState<Questionnaire[]>([]);
+  const [myQuestionnaires, setMyQuestionnaires] = useState<Questionnaire[]>([]);
+  const [publicQuestionnaires, setPublicQuestionnaires] = useState<Questionnaire[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const listPanelRef = useRef<HTMLDivElement | null>(null);
+  const myQuestionnairesRef = useRef<HTMLElement | null>(null);
+  const publicQuestionnairesRef = useRef<HTMLElement | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    getAllQuestionnaires().then(setQuestionnaires);
+    let active = true;
+
+    Promise.all([getMyQuestionnaires(), getPublicQuestionnairesFromOthers()])
+      .then(([mine, publicOthers]) => {
+        if (!active) return;
+        setMyQuestionnaires(mine);
+        setPublicQuestionnaires(publicOthers);
+      })
+      .catch((err: unknown) => {
+        if (!active) return;
+        console.error(err);
+        setError("Failed to load questionnaires.");
+      })
+      .finally(() => {
+        if (!active) return;
+        setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  if (questionnaires.length === 0) {
-    return <p style={{ opacity: 0.7 }}>No questionnaires yet.</p>;
-  }
+  useEffect(() => {
+    const workspace = document.querySelector(".app-shell__workspace") as HTMLElement | null;
+    if (!workspace) return;
+
+    const previousOverflow = workspace.style.overflow;
+    workspace.style.overflow = "hidden";
+
+    return () => {
+      workspace.style.overflow = previousOverflow;
+    };
+  }, []);
+
+  if (loading) return <p style={{ opacity: 0.7 }}>Loading questionnaires...</p>;
+  if (error) return <p style={{ opacity: 0.7 }}>{error}</p>;
+
+  const sectionTitleStyle: React.CSSProperties = {
+    marginBottom: 8,
+    fontSize: "clamp(1.8rem, 2.5vw, 2.2rem)",
+    lineHeight: "var(--lh-heading)",
+  };
+
+  const cardStyle: React.CSSProperties = {
+    padding: 16,
+    borderRadius: 14,
+    border: "1px solid var(--border)",
+    background: "var(--surface)",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  };
+
+  const scrollToSection = (sectionRef: React.RefObject<HTMLElement | null>) => {
+    const panel = listPanelRef.current;
+    const section = sectionRef.current;
+    if (!panel || !section) return;
+
+    const top =
+      section.getBoundingClientRect().top -
+      panel.getBoundingClientRect().top +
+      panel.scrollTop;
+
+    panel.scrollTo({ top, behavior: "smooth" });
+  };
+
+  const renderCard = (q: Questionnaire, allowManage: boolean) => (
+    <div key={q.id} style={cardStyle}>
+      <div>
+        <strong>{q.templateName}</strong>
+        <div style={{ fontSize: 12, opacity: 0.7 }}>
+          Created {new Date(q.createdAt).toLocaleDateString()}
+        </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          className="btn"
+          onClick={() => router.push(`/staff/questionnaires/${q.id}`)}
+        >
+          Preview
+        </button>
+        {allowManage && <EditQuestionnaireButton questionnaireId={q.id} />}
+        {allowManage && (
+          <DeleteQuestionnaireButton
+            questionnaireId={q.id}
+            onDeleted={(deletedId) => {
+              const idNum = typeof deletedId === "string" ? Number(deletedId) : deletedId;
+              setMyQuestionnaires((items) => items.filter((item) => item.id !== idNum));
+            }}
+          />
+        )}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="stack" style={{ gap: 12 }}>
-      {questionnaires.map((q) => (
-        <div
-          key={q.id}
-          style={{
-            padding: 16,
-            borderRadius: 14,
-            border: "1px solid var(--border)",
-            background: "var(--surface)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <div>
-            <strong>{q.templateName}</strong>
-            <div style={{ fontSize: 12, opacity: 0.7 }}>
-              Created {new Date(q.createdAt).toLocaleDateString()}
-            </div>
-          </div>
+    <div className="stack" style={{ gap: 20 }}>
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button className="btn" onClick={() => scrollToSection(myQuestionnairesRef)}>
+          My Questionnaires
+        </button>
+        <button className="btn" onClick={() => scrollToSection(publicQuestionnairesRef)}>
+          Public Questionnaires
+        </button>
+      </div>
 
-          <div style={{ display: "flex", gap: 8 }}>
+      <div
+        ref={listPanelRef}
+        className="stack"
+        style={{ gap: 20, overflowY: "auto", maxHeight: "53vh", paddingRight: 4 }}
+      >
+        <section className="stack" style={{ gap: 12 }} ref={myQuestionnairesRef}>
+          <h2 style={sectionTitleStyle}>My Questionnaires</h2>
+          {myQuestionnaires.length === 0
+            ? <p style={{ opacity: 0.7 }}>You do not have any questionnaire templates. Create one to view it here.</p>
+            : myQuestionnaires.map((q) => renderCard(q, true))}
+        </section>
 
-            <button
-              className="btn"
-              onClick={() => router.push(`/staff/questionnaires/${q.id}`)}
-            >
-              Preview
-            </button>
-
-            <EditQuestionnaireButton questionnaireId={q.id} />
-
-            <DeleteQuestionnaireButton questionnaireId={q.id} />
-            
-          </div>
-        </div>
-      ))}
+        <section className="stack" style={{ gap: 12 }} ref={publicQuestionnairesRef}>
+          <h2 style={sectionTitleStyle}>Public Questionnaires</h2>
+          {publicQuestionnaires.length === 0
+            ? <p style={{ opacity: 0.7 }}>There are no public questionnaire templates yet.</p>
+            : publicQuestionnaires.map((q) => renderCard(q, false))}
+        </section>
+      </div>
     </div>
   );
 }

@@ -7,8 +7,12 @@ import type {
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
-import { apiFetch } from "@/shared/api/http";
+import { createQuestionnaire } from "../api/client";
 import { useRouter } from "next/navigation";
+import {
+  CancelQuestionnaireButton,
+  QuestionnaireVisibilityButtons,
+} from "./SharedQuestionnaireButtons";
 
 const styles = {
   page: { padding: 32, maxWidth: 900 },
@@ -62,6 +66,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
   const addQuestion = (type: QuestionType) => {
@@ -125,6 +130,7 @@ export default function NewQuestionnairePage() {
   }, [templateName, questions]);
 
   const isValid = validationErrors.length === 0;
+  const hasUnsavedChanges = Boolean(templateName.trim()) || questions.length > 0 || isPublic;
 
   const saveTemplate = async () => {
     if (!isValid) return;
@@ -133,21 +139,20 @@ export default function NewQuestionnairePage() {
     setSaved(false);
 
     try {
-      await apiFetch("/questionnaires/new", {
-        method: "POST",
-        body: JSON.stringify({
-          templateName,
-          questions: questions.map((q) => ({
-            label: q.label,
-            type: q.type,
-            configs: q.configs,
-          })),
-        }),
+      await createQuestionnaire({
+        templateName,
+        isPublic,
+        questions: questions.map((q) => ({
+          label: q.label,
+          type: q.type,
+          configs: q.configs,
+        })),
       });
 
       setTemplateName("");
       setQuestions([]);
       setPreview(false);
+      setIsPublic(false);
       setAnswers({});
       setSaved(true);
       router.push("/staff/questionnaires");
@@ -166,12 +171,18 @@ export default function NewQuestionnairePage() {
       <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
       {!preview && (
-        <input
-          placeholder="Questionnaire name"
-          value={templateName}
-          onChange={(e) => setTemplateName(e.target.value)}
-          style={styles.input}
-        />
+        <>
+          <input
+            placeholder="Questionnaire name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            style={styles.input}
+          />
+          <QuestionnaireVisibilityButtons
+            isPublic={isPublic}
+            onChange={setIsPublic}
+          />
+        </>
       )}
 
       <div style={styles.btnRow}>
@@ -180,17 +191,24 @@ export default function NewQuestionnairePage() {
         </button>
 
         {!preview && (
-          <button
-            style={{
-              ...styles.btnPrimary,
-              opacity: !isValid || saving ? 0.6 : 1,
-              cursor: !isValid || saving ? "not-allowed" : "pointer",
-            }}
-            onClick={saveTemplate}
-            disabled={!isValid || saving}
-          >
-            {saving ? "Saving..." : "Save"}
-          </button>
+          <>
+            <button
+              style={{
+                ...styles.btnPrimary,
+                opacity: !isValid || saving ? 0.6 : 1,
+                cursor: !isValid || saving ? "not-allowed" : "pointer",
+              }}
+              onClick={saveTemplate}
+              disabled={!isValid || saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+            <CancelQuestionnaireButton
+              style={styles.btn}
+              onCancel={() => router.push("/staff/questionnaires")}
+              confirmWhen={hasUnsavedChanges}
+            />
+          </>
         )}
       </div>
 
