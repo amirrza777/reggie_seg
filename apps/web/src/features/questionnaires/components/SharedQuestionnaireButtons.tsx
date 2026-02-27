@@ -3,6 +3,7 @@
 
 import { useRouter } from "next/navigation";
 import { deleteQuestionnaire } from "../api/client";
+import { ApiError } from "@/shared/api/errors";
 
 const buttonStyle: React.CSSProperties = {
   padding: "10px 20px",
@@ -139,8 +140,12 @@ export function DeleteQuestionnaireButton({
       router.push("/staff/questionnaires");
       router.refresh(); // ensures list updates if cached
     } catch (err) {
+      if (err instanceof ApiError) {
+        alert(err.message);
+        return;
+      }
       console.error(err);
-      alert("Delete failed — check console");
+      alert("Delete failed - check console");
     }
   };
 

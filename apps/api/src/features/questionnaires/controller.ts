@@ -166,6 +166,12 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
   } catch (error: any) {
     if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
     if (error.statusCode === 403) return res.status(403).json({ error: "Forbidden" });
+    if (error.code === "TEMPLATE_IN_USE") {
+      return res.status(409).json({ error: "Questionnaire template is currently in use and cannot be deleted" });
+    }
+    if (error.code === "P2003") {
+      return res.status(409).json({ error: "Questionnaire template is currently in use and cannot be deleted" });
+    }
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }

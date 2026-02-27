@@ -6,6 +6,7 @@ import {
   getMyQuestionnaireTemplates,
   getPublicQuestionnaireTemplatesByOtherUsers,
   isQuestionnaireTemplateOwnedByUser,
+  isQuestionnaireTemplateInUse,
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate
 } from "./repo.js"
@@ -59,9 +60,17 @@ export function updateTemplate(
 }
 
 export function deleteTemplate(requesterUserId: number, templateId: number) {
-  return ensureTemplateOwnership(requesterUserId, templateId).then(() =>
-    deleteQuestionnaireTemplate(templateId)
-  );
+  return ensureTemplateOwnership(requesterUserId, templateId).then(async () => {
+    const inUse = await isQuestionnaireTemplateInUse(templateId);
+    if (inUse) {
+      throw Object.assign(
+        new Error("Cannot delete questionnaire template because it is currently in use."),
+        { code: "TEMPLATE_IN_USE" }
+      );
+    }
+
+    return deleteQuestionnaireTemplate(templateId);
+  });
 }
 
 export function usePublicTemplate(requesterUserId: number, templateId: number) {

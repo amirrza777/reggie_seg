@@ -124,7 +124,7 @@ export function QuestionnaireList() {
     <div className="stack" style={{ gap: 20 }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button className="btn" onClick={() => scrollToSection(myQuestionnairesRef)}>
-          My questionnaires
+          My Questionnaires
         </button>
         <button className="btn" onClick={() => scrollToSection(publicQuestionnairesRef)}>
           Public Questionnaires
@@ -137,7 +137,7 @@ export function QuestionnaireList() {
         style={{ gap: 20, overflowY: "auto", maxHeight: "53vh", paddingRight: 4 }}
       >
         <section className="stack" style={{ gap: 12 }} ref={myQuestionnairesRef}>
-          <h2 style={sectionTitleStyle}>My questionnaires</h2>
+          <h2 style={sectionTitleStyle}>My Questionnaires</h2>
           {myQuestionnaires.length === 0
             ? <p style={{ opacity: 0.7 }}>You have not created any questionnaires yet.</p>
             : myQuestionnaires.map((q) => renderCard(q, true))}

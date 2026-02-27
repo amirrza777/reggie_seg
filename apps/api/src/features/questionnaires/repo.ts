@@ -68,6 +68,23 @@ export async function isQuestionnaireTemplateOwnedByUser(templateId: number, use
   return Boolean(template);
 }
 
+export async function isQuestionnaireTemplateInUse(templateId: number) {
+  const template = await prisma.questionnaireTemplate.findUnique({
+    where: { id: templateId },
+    select: {
+      _count: {
+        select: {
+          projects: true,
+          assessments: true,
+        },
+      },
+    },
+  });
+
+  if (!template) return false;
+  return template._count.projects > 0 || template._count.assessments > 0;
+}
+
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
