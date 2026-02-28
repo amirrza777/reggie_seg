@@ -1,4 +1,4 @@
-.feedback-list {
+.peer-assessment-list {
   padding-left: 0;
   margin: 0;
   display: flex;
@@ -6,59 +6,66 @@
   gap: 10px;
 }
 
-.feedback-list__item {
+.peer-assessment-list__item {
   list-style: none;
 }
 
-.feedback-card {
+.peer-assessment-card {
   width: 100%;
   min-height: 120px;
   box-sizing: border-box;
-  padding: 14px;
-  border: 1px solid var(--border);
+  font: inherit;
+  color: inherit;
+  text-align: left;
   border-radius: 12px;
+  border: 1px solid var(--border);
   background: var(--surface);
+  padding: 14px;
   cursor: pointer;
   transition: transform 0.15s ease, border-color 0.2s ease, background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.feedback-card:hover {
+.peer-assessment-card:hover {
   transform: translateY(-1px);
-  border-color: var(--accent-border);
 }
 
-.feedback-card--submitted {
+.peer-assessment-card--completed {
   border-color: var(--status-success-border);
   background: var(--status-success-soft);
 }
 
-.feedback-card--submitted:hover {
+.peer-assessment-card--completed:hover {
   border-color: var(--status-success);
 }
 
-.feedback-card--pending:hover {
+.peer-assessment-card--pending:hover {
   border-color: var(--accent);
   background: var(--glass-hover);
 }
 
-.feedback-card__content {
+.peer-assessment-card__header {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.feedback-card__header {
-  display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
 }
 
-.feedback-card__meta {
+.peer-assessment-card__name {
+  font-size: 16px;
   font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
-.feedback-card__status {
+.peer-assessment-card__email {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.peer-assessment-card__status {
   font-size: 12px;
   font-weight: 600;
   padding: 3px 8px;
@@ -66,31 +73,26 @@
   border: 1px solid var(--border);
 }
 
-.feedback-card__status--submitted {
+.peer-assessment-card__status--completed {
   background-color: var(--status-success-soft);
   color: var(--status-success-text);
   border-color: var(--status-success-border);
 }
 
-.feedback-card__status--pending {
+.peer-assessment-card__status--pending {
   background-color: var(--status-danger-soft);
   color: var(--status-danger-text);
   border-color: var(--status-danger-border);
 }
 
-.feedback-card__timestamp {
-  color: var(--muted);
+.peer-assessment-card__cta {
   font-size: 13px;
 }
 
-.feedback-card__cta {
-  font-size: 13px;
-}
-
-.feedback-card--submitted .feedback-card__cta {
+.peer-assessment-card__cta--completed {
   color: var(--status-success-text);
 }
 
-.feedback-card--pending .feedback-card__cta {
+.peer-assessment-card__cta--pending {
   color: var(--accent);
 }
