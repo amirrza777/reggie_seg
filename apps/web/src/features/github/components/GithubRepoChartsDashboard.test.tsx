@@ -166,15 +166,13 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("Commits over time (total vs your commits)")).toBeInTheDocument();
     expect(screen.getByText("Additions and deletions over time (default branch)")).toBeInTheDocument();
     expect(screen.getByText("Weekly commit totals")).toBeInTheDocument();
+    expect(screen.getByText("Top contributors by commits")).toBeInTheDocument();
     expect(screen.getByText("Default vs other branches (commit share)")).toBeInTheDocument();
-    expect(screen.getByText("Commit share (you vs rest)")).toBeInTheDocument();
     expect(screen.getByText("Mapping coverage (matched vs unmatched)")).toBeInTheDocument();
 
-    expect(screen.getAllByTestId("donut-card")).toHaveLength(3);
+    expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
     expect(screen.getByText("Default branch:8")).toBeInTheDocument();
     expect(screen.getByText("Other branches:2")).toBeInTheDocument();
-    expect(screen.getByText("Your commits:4")).toBeInTheDocument();
-    expect(screen.getByText("Rest:6")).toBeInTheDocument();
     expect(screen.getByText("Matched commits:8")).toBeInTheDocument();
     expect(screen.getByText("Unmatched commits:2")).toBeInTheDocument();
   });

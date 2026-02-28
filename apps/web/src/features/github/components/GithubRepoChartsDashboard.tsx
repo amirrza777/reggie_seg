@@ -137,28 +137,28 @@ function isoWeekKey(dateKey: string) {
 
 function buildWeeklyCommitSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
   const daily = getCommitsByDaySeries(snapshot);
-  const bucket: Record<string, number> = {};
+  const bucket: Record<string, { commits: number; start: string; end: string }> = {};
   for (const row of daily) {
     const wk = isoWeekKey(row.date);
     if (!wk) continue;
-    bucket[wk] = (bucket[wk] || 0) + row.commits;
+    const existing = bucket[wk];
+    if (!existing) {
+      bucket[wk] = { commits: row.commits, start: row.date, end: row.date };
+      continue;
+    }
+    existing.commits += row.commits;
+    if (row.date < existing.start) existing.start = row.date;
+    if (row.date > existing.end) existing.end = row.date;
   }
   return Object.entries(bucket)
-    .map(([week, commits]) => ({ week, commits }))
-    .sort((a, b) => a.week.localeCompare(b.week));
-}
-
-function buildCommitShareSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined, currentGithubLogin: string | null) {
-  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
-  if (!totalCommits || !currentGithubLogin || !snapshot?.userStats?.length) return [];
-  const normalizedLogin = currentGithubLogin.trim().toLowerCase();
-  const personalStat = snapshot.userStats.find((stat) => stat.githubLogin?.trim().toLowerCase() === normalizedLogin);
-  const personalCommits = Math.max(0, Number(personalStat?.commits ?? 0));
-  const restCommits = Math.max(0, totalCommits - personalCommits);
-  return [
-    { name: "Your commits", value: personalCommits, fill: "var(--accent-warm)" },
-    { name: "Rest", value: restCommits, fill: "var(--border-strong, #9ca3af)" },
-  ].filter((row) => row.value > 0);
+    .map(([weekKey, stats]) => ({
+      weekKey,
+      weekLabel: formatShortDate(stats.start),
+      rangeStart: stats.start,
+      rangeEnd: stats.end,
+      commits: stats.commits,
+    }))
+    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
 }
 
 function buildCoverageShareSeries(coverage: GithubMappingCoverage | null) {
@@ -185,6 +185,30 @@ function buildBranchScopeCommitShareSeries(snapshot: GithubLatestSnapshot["snaps
     { name: "Default branch", value: defaultCommits, fill: "var(--accent)" },
     { name: "Other branches", value: otherBranchCommits, fill: "var(--accent-warm)" },
   ].filter((row) => row.value > 0);
+}
+
+function buildTopContributorsSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined, limit = 6) {
+  const stats = snapshot?.userStats ?? [];
+  return stats
+    .map((row) => ({
+      contributor: row.githubLogin || "Unknown",
+      commits: Number(row.commits ?? 0),
+    }))
+    .filter((row) => row.commits > 0)
+    .sort((a, b) => b.commits - a.commits)
+    .slice(0, limit);
+}
+
+function formatShortDate(dateKey: string) {
+  const parsed = new Date(`${dateKey}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return dateKey;
+  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatDateRange(start: string, end: string) {
+  if (!start || !end) return "";
+  if (start === end) return formatShortDate(start);
+  return `${formatShortDate(start)} - ${formatShortDate(end)}`;
 }
 
 function clampScore(value: number) {
@@ -236,9 +260,9 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin);
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const weeklyCommitSeries = buildWeeklyCommitSeries(snapshot);
-  const commitShareSeries = buildCommitShareSeries(snapshot, currentGithubLogin);
   const coverageShareSeries = buildCoverageShareSeries(coverage);
   const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
+  const topContributorsSeries = buildTopContributorsSeries(snapshot);
   const signals = buildDerivedSignals({
     snapshot,
     coverage,
@@ -250,9 +274,9 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
     commitTimelineSeries.length === 0 &&
     lineChangesByDaySeries.length === 0 &&
     weeklyCommitSeries.length === 0 &&
-    commitShareSeries.length === 0 &&
     coverageShareSeries.length === 0 &&
-    branchScopeCommitShareSeries.length === 0
+    branchScopeCommitShareSeries.length === 0 &&
+    topContributorsSeries.length === 0
   ) {
     return null;
   }
@@ -296,7 +320,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={commitTimelineSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
+                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
                   <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
                   <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
                   <Line type="monotone" dataKey="commits" name="Total commits" stroke="var(--accent)" strokeWidth={2} dot={false} />
@@ -314,7 +338,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} />
+                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
                   <YAxis tick={{ fill: "var(--muted)" }} />
                   <Tooltip
                     formatter={(value: number, name: string) => [Math.abs(Number(value)), name]}
@@ -336,10 +360,35 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyCommitSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="week" tick={{ fill: "var(--muted)" }} />
+                  <XAxis dataKey="weekLabel" tick={{ fill: "var(--muted)" }} interval="preserveStartEnd" minTickGap={22} />
                   <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const row = payload?.[0]?.payload as { rangeStart?: string; rangeEnd?: string } | undefined;
+                      return row?.rangeStart && row?.rangeEnd
+                        ? `Week: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
+                        : "Week";
+                    }}
+                    contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
+                  />
                   <Bar dataKey="commits" name="Commits" fill="var(--accent)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : null}
+
+        {topContributorsSeries.length > 0 ? (
+          <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
+            <p className="muted" style={{ marginBottom: 6 }}>Top contributors by commits</p>
+            <div style={{ width: "100%", height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={topContributorsSeries} layout="vertical" margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--muted)" }} />
+                  <YAxis type="category" dataKey="contributor" width={110} tick={{ fill: "var(--muted)" }} />
+                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
+                  <Bar dataKey="commits" name="Commits" fill="var(--accent-strong, #2ca581)" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -350,14 +399,6 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
           <GithubDonutChartCard
             title="Default vs other branches (commit share)"
             data={branchScopeCommitShareSeries}
-            style={{ ...styles.chartWrap, ...styles.chartColHalf }}
-          />
-        ) : null}
-
-        {commitShareSeries.length > 0 ? (
-          <GithubDonutChartCard
-            title="Commit share (you vs rest)"
-            data={commitShareSeries}
             style={{ ...styles.chartWrap, ...styles.chartColHalf }}
           />
         ) : null}
