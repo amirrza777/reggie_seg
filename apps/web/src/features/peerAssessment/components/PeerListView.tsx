@@ -44,7 +44,6 @@ export function PeerListView({
 
   return (
     <div>
-      <h2>Select a peer to assess</h2>
       <ul className="peer-assessment-list" style={{ marginTop: "20px" }}>
         {peers.map((allocation) => {
           const isCompleted = completedRevieweeIdSet.has(allocation.user.id);

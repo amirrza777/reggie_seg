@@ -30,7 +30,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     <div>
       <ProjectNav projectId={projectId} />
       <div style={{ padding: "30px" }}>
-      <h2>Feedbacks</h2>
+      <h2>Peer Feedbacks</h2>
       <p>Collect and review peer feedback for this project.</p>
       <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
     </div>
