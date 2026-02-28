@@ -2,6 +2,7 @@
 
 import type React from "react";
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { GithubChartTitleWithInfo, type GithubChartInfoContent } from "./GithubChartInfo";
 
 type DonutDatum = {
   name: string;
@@ -12,17 +13,18 @@ type DonutDatum = {
 type GithubDonutChartCardProps = {
   title: string;
   data: DonutDatum[];
+  info?: GithubChartInfoContent;
   style?: React.CSSProperties;
 };
 
-export function GithubDonutChartCard({ title, data, style }: GithubDonutChartCardProps) {
+export function GithubDonutChartCard({ title, data, info, style }: GithubDonutChartCardProps) {
   if (!data.length) {
     return null;
   }
 
   return (
     <div style={style}>
-      <p className="muted" style={{ marginBottom: 6 }}>{title}</p>
+      {info ? <GithubChartTitleWithInfo title={title} info={info} /> : <p className="muted" style={{ marginBottom: 6 }}>{title}</p>}
       <div style={{ width: "100%", height: 220 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
