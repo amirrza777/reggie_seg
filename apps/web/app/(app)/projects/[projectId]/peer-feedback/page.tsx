@@ -1,6 +1,11 @@
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getPeerAssessmentsForUser } from "@/features/peerFeedback/api/client";
+import {
+  getFeedbackReview,
+  getPeerAssessmentsForUser,
+} from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
+
+export const dynamic = "force-dynamic";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -9,7 +14,18 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const feedbacks = await getPeerAssessmentsForUser("4", projectId); //hardcoded user id for now
+  const feedbacksRaw = await getPeerAssessmentsForUser("4", projectId); //hardcoded user id for now
+  const feedbacks = await Promise.all(
+    feedbacksRaw.map(async (feedback) => {
+      try {
+        await getFeedbackReview(String(feedback.id));
+        return { ...feedback, reviewSubmitted: true };
+      } catch {
+        return { ...feedback, reviewSubmitted: false };
+      }
+    })
+  );
+
   return (
     <div>
       <ProjectNav projectId={projectId} />

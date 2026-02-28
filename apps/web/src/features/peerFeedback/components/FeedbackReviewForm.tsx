@@ -78,6 +78,14 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
     }
   }
 
+  function handleBack() {
+    if (feedback.projectId) {
+      router.push(`/projects/${feedback.projectId}/peer-feedback`);
+      return;
+    }
+    router.back();
+  }
+
   return (
     <div className="stack">
       <div className="headerContainer">
@@ -141,12 +149,17 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
         </div>
 
         {isEditing && (
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Submitting..." : editingMode ? "Update Review" : "Submit Review"}
-          </Button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Submitting..." : editingMode ? "Update Review" : "Submit Review"}
+            </Button>
+            <Button type="button" onClick={handleBack} disabled={isLoading}>
+              Back
+            </Button>
+          </div>
         )}
         {editingMode && !isEditing && (
-          <Button onClick={() => feedback.projectId ? router.push(`/projects/${feedback.projectId}/peer-feedback`) : router.back()}>
+          <Button onClick={handleBack}>
             Back
           </Button>
         )}

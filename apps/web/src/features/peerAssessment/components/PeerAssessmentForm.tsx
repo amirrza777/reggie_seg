@@ -80,6 +80,8 @@ export function PeerAssessmentForm({
       setMessage(
         isEditMode ? "Assessment updated successfully!" : "Assessment saved successfully!"
       );
+      router.push(peerAssessmentsPath);
+      router.refresh();
     } catch (error) {
       setStatus("error");
       setMessage(
