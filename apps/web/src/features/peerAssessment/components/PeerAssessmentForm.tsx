@@ -36,6 +36,7 @@ export function PeerAssessmentForm({
   assessmentId,
 }: PeerAssessmentFormProps) {
   const router = useRouter();
+  const peerAssessmentsPath = `/projects/${projectId}/peer-assessments`;
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -92,6 +93,11 @@ export function PeerAssessmentForm({
     setMessage(null);
   };
 
+  const handleBack = () => {
+    router.push(peerAssessmentsPath);
+    router.refresh();
+  };
+
   return (
     <form className="stack" onSubmit={handleSubmit}>
       <h3>
@@ -129,7 +135,7 @@ export function PeerAssessmentForm({
               ? "Update Assessment"
               : "Save Assessment"}
         </Button>
-        <Button type="button" onClick={() => router.back()} style={{ marginLeft: 'auto' }}>
+        <Button type="button" onClick={handleBack} style={{ marginLeft: 'auto' }}>
           Back
         </Button>
       </div>

@@ -7,7 +7,7 @@ export async function saveFeedbackReview(
   const created = await upsertPeerFeedback({
     peerAssessmentId: assessmentId,
     reviewerUserId: Number(payload.reviewerUserId),
-    revieweeUserId : Number(payload.reviewerUserId),
+    revieweeUserId : Number(payload.revieweeUserId),
     reviewText: payload.reviewText,
     agreementsJson: payload.agreements,
   });
