@@ -55,7 +55,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   );
 
   return (
-    <div className="stack">
+    <div>
       <ProjectNav projectId={projectId} />
        <div style={{ padding: "30px" }}>
       <h2> Peer Assessments</h2>
