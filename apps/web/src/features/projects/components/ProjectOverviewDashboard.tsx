@@ -4,7 +4,6 @@ import type {
   Project,
   ProjectDeadline,
   ProjectOverviewDashboardProps,
-  Team,
 } from "../types";
 import { Card } from "@/shared/ui/Card";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
@@ -42,14 +41,6 @@ function buildDeadlineItems(deadline: ProjectDeadline): DeadlineItem[] {
   ];
 }
 
-function sortTeammates(team: Team) {
-  return [...(team.allocations || [])].sort((a, b) => {
-    const aName = `${a.user.firstName} ${a.user.lastName}`.trim().toLowerCase();
-    const bName = `${b.user.firstName} ${b.user.lastName}`.trim().toLowerCase();
-    return aName.localeCompare(bName);
-  });
-}
-
 function getNextDeadline(deadlineItems: DeadlineItem[]) {
   return deadlineItems
     .filter((item) => item.value)
@@ -62,13 +53,11 @@ function ProjectOverviewHero({
   project,
   deadline,
   teamName,
-  teammateCount,
   nextDeadline,
 }: {
   project: Project;
   deadline: ProjectDeadline;
   teamName: string;
-  teammateCount: number;
   nextDeadline?: { label: string; value: string | null };
 }) {
   return (
@@ -150,19 +139,6 @@ function ProjectOverviewHero({
             }}
           >
             <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-              Members
-            </p>
-            <p style={{ margin: "4px 0 0", fontWeight: 700, fontSize: 18 }}>{teammateCount}</p>
-          </div>
-          <div
-            style={{
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: "12px 14px",
-              background: "color-mix(in srgb, var(--surface) 88%, white 12%)",
-            }}
-          >
-            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
               Next deadline
             </p>
             <p style={{ margin: "4px 0 0", fontWeight: 700 }}>
@@ -229,67 +205,57 @@ function DeadlinesScheduleCard({ items }: { items: DeadlineItem[] }) {
   );
 }
 
-function TeammatesCard({ team }: { team: Team }) {
-  const teammates = sortTeammates(team);
-
+function InformationBoardCard() {
   return (
-    <Card title={`Teammates (${teammates.length})`}>
-      {teammates.length === 0 ? (
-        <p className="muted" style={{ margin: 0 }}>
-          No teammates found for this project team.
-        </p>
-      ) : (
-        <div className="stack" style={{ gap: 8 }}>
-          {teammates.map((allocation) => {
-            const fullName = `${allocation.user.firstName} ${allocation.user.lastName}`.trim();
-            return (
-              <div
-                key={allocation.userId}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "36px minmax(0, 1fr)",
-                  gap: 10,
-                  alignItems: "center",
-                  border: "1px solid var(--border)",
-                  borderRadius: 12,
-                  padding: "10px 12px",
-                  background: "var(--surface)",
-                }}
-              >
-                <div
-                  aria-hidden="true"
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    display: "grid",
-                    placeItems: "center",
-                    fontWeight: 700,
-                    background:
-                      "linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, white), color-mix(in srgb, var(--surface) 70%, var(--accent) 12%))",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  {(allocation.user.firstName?.[0] || allocation.user.lastName?.[0] || "?").toUpperCase()}
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ margin: 0, fontWeight: 600 }}>{fullName || allocation.user.email}</p>
-                  <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>
-                    {allocation.user.email}
-                  </p>
-                </div>
-              </div>
-            );
-          })}
+    <Card title="Information Board">
+      <div
+        style={{
+          border: "1px solid var(--border)",
+          borderRadius: 12,
+          background: "var(--surface)",
+          overflow: "hidden",
+        }}
+      >
+        <div className="stack" style={{ gap: 14, padding: "14px 16px" }}>
+          <h4 style={{ margin: 0, fontSize: 20, lineHeight: 1.2 }}>Expectations</h4>
+
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            This project begins on Monday, 3 November 2025 and ends on Monday, 15 December 2025.
+            This project contributes 15.0% to the overall module mark. The module organiser will
+            have provided information on how the project is assessed.
+          </p>
+
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            Students are allocated to groups. The module organiser will normally inform students of
+            the process used to allocate students to groups. The allocated groups will be assigned a
+            name by the module organiser and it will not be possible to change this name.
+          </p>
+
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            Staff and students can organise group meetings. When the whole group meets, with or
+            without a member of staff present, to discuss, plan and manage the project and to make
+            key decisions, attendance should be taken and the meeting should be minuted.
+          </p>
+
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            Students are expected to register their shared remote Git repository. Platform links and
+            contribution activity can be used to monitor and verify student engagement across the
+            project timeline.
+          </p>
+
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            This project includes a peer assessment exercise in which students are expected to
+            provide feedback about each of their team mates. Students will also have an opportunity
+            to provide a confidential account of team experiences.
+          </p>
         </div>
-      )}
+      </div>
     </Card>
   );
 }
 
 export function ProjectOverviewDashboard({ project, deadline, team }: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
-  const teammates = sortTeammates(team);
   const nextDeadline = getNextDeadline(deadlineItems);
 
   return (
@@ -306,7 +272,6 @@ export function ProjectOverviewDashboard({ project, deadline, team }: ProjectOve
         project={project}
         deadline={deadline}
         teamName={team.teamName}
-        teammateCount={teammates.length}
         nextDeadline={nextDeadline}
       />
 
@@ -318,9 +283,9 @@ export function ProjectOverviewDashboard({ project, deadline, team }: ProjectOve
           alignItems: "start",
         }}
       >
-        <DeadlinesScheduleCard items={deadlineItems} />
+        <InformationBoardCard />
 
-        <TeammatesCard team={team} />
+        <DeadlinesScheduleCard items={deadlineItems} />
       </div>
     </div>
   );
