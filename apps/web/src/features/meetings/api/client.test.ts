@@ -1,0 +1,114 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { apiFetch } from "@/shared/api/http";
+import {
+  listMeetings,
+  getMeeting,
+  createMeeting,
+  deleteMeeting,
+  markAttendance,
+  saveMinutes,
+  addComment,
+  deleteComment,
+} from "./client";
+
+vi.mock("@/shared/api/http", () => ({
+  apiFetch: vi.fn(),
+}));
+
+describe("meetings api client", () => {
+  const apiFetchMock = vi.mocked(apiFetch);
+
+  beforeEach(() => {
+    apiFetchMock.mockReset();
+    apiFetchMock.mockResolvedValue({} as any);
+  });
+
+  it("lists meetings for a team", async () => {
+    await listMeetings(5);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/team/5");
+  });
+
+  it("gets a single meeting", async () => {
+    await getMeeting(12);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/12");
+  });
+
+  it("creates a meeting", async () => {
+    const data = {
+      teamId: 1,
+      organiserId: 2,
+      title: "Sprint Review",
+      date: "2026-03-01T10:00",
+    };
+    await createMeeting(data);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  });
+
+  it("creates a meeting with optional fields", async () => {
+    const data = {
+      teamId: 1,
+      organiserId: 2,
+      title: "Sprint Review",
+      date: "2026-03-01T10:00",
+      subject: "Q1 progress",
+      location: "Room 301",
+      agenda: "Demo + retro",
+    };
+    await createMeeting(data);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  });
+
+  it("deletes a meeting", async () => {
+    await deleteMeeting(12);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/12", {
+      method: "DELETE",
+    });
+  });
+
+  it("marks attendance", async () => {
+    const records = [
+      { userId: 1, status: "on_time" },
+      { userId: 2, status: "late" },
+    ];
+    await markAttendance(5, records);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/5/attendance", {
+      method: "PUT",
+      body: JSON.stringify({ records }),
+    });
+  });
+
+  it("saves minutes", async () => {
+    await saveMinutes(5, 2, '{"root":{}}');
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/5/minutes", {
+      method: "PUT",
+      body: JSON.stringify({ writerId: 2, content: '{"root":{}}' }),
+    });
+  });
+
+  it("adds a comment", async () => {
+    await addComment(5, 2, "Looks good");
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/5/comments", {
+      method: "POST",
+      body: JSON.stringify({ userId: 2, content: "Looks good" }),
+    });
+  });
+
+  it("deletes a comment", async () => {
+    await deleteComment(99);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/comments/99", {
+      method: "DELETE",
+    });
+  });
+
+  it("returns apiFetch results", async () => {
+    apiFetchMock.mockResolvedValueOnce([{ id: 1 }] as any);
+    const result = await listMeetings(5);
+    expect(result).toEqual([{ id: 1 }]);
+  });
+});
