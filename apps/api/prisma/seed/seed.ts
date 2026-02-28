@@ -135,7 +135,7 @@ const teamData = [
 async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
   // Create a small set of staff and student users with a shared dev password.
   await prisma.user.createMany({
-    data: userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash })),
+   data: userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash })),
     skipDuplicates: true,
   });
 
@@ -144,7 +144,7 @@ async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
      where: {
        enterpriseId,
        email: { in: userData.map((u) => u.email) },
-       OR: [{ passwordHash: 'dev-hash' }, { passwordHash: null }],
+       OR: [{ passwordHash: 'dev-hash' }],
      },
      data: { passwordHash: seedPasswordHash },
    });

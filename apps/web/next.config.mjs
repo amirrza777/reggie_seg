@@ -1,3 +1,5 @@
+import path from "path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -6,6 +8,8 @@ const nextConfig = {
     "http://localhost:3001",
     "http://127.0.0.1:3001",
   ],
+  // Silence workspace-root inference warning when multiple lockfiles exist
+  outputFileTracingRoot: path.join(__dirname, "..", ".."),
 };
 
 export default nextConfig;
