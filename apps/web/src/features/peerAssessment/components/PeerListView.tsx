@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import type { TeamAllocation } from "../types";
+import "../styles/list.css";
 
 type PeerListViewProps = {
   peers: TeamAllocation[];
   projectId: string;
   teamId: number;
   currentUserId: number;
+  completedRevieweeIds?: number[];
+  completedAssessmentByRevieweeId?: Record<number, number>;
 };
 
 export function PeerListView({
@@ -15,72 +18,81 @@ export function PeerListView({
   projectId,
   teamId,
   currentUserId,
+  completedRevieweeIds = [],
+  completedAssessmentByRevieweeId = {},
 }: PeerListViewProps) {
   const router = useRouter();
+  const completedRevieweeIdSet = new Set(completedRevieweeIds);
 
   const handlePeerClick = (peerId: number, allocation: TeamAllocation) => {
+    const existingAssessmentId = completedAssessmentByRevieweeId[peerId];
+    const teammateName = encodeURIComponent(
+      `${allocation.user.firstName} ${allocation.user.lastName}`
+    );
+
+    if (existingAssessmentId) {
+      router.push(
+        `/projects/${projectId}/peer-assessments/${existingAssessmentId}?teammateName=${teammateName}`
+      );
+      return;
+    }
+
     router.push(
-      `/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}&teammateName=${allocation.user.firstName}%20${allocation.user.lastName}`
+      `/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}&teammateName=${teammateName}`
     );
   };
 
   return (
     <div>
-      <h2>Select a peer to assess</h2>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-          gap: "16px",
-          marginTop: "20px",
-        }}
-      >
-        {peers.map((allocation) => (
-          <div
-            key={allocation.user.id}
-            onClick={() => handlePeerClick(allocation.user.id, allocation)}
-            style={{
-              cursor: "pointer",
-              padding: "16px",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              backgroundColor: "var(--surface)",
-              transition: "all 0.2s ease",
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                "var(--hover)";
-              (e.currentTarget as HTMLDivElement).style.borderColor =
-                "var(--primary)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLDivElement).style.backgroundColor =
-                "var(--surface)";
-              (e.currentTarget as HTMLDivElement).style.borderColor =
-                "var(--border)";
-            }}
-          >
-            <div style={{ fontWeight: 600, fontSize: "16px" }}>
-              {allocation.user.firstName} {allocation.user.lastName}
-            </div>
-            <div style={{ color: "var(--muted)", fontSize: "14px" }}>
-              {allocation.user.email}
-            </div>
-            <div
-              style={{
-                marginTop: "8px",
-                fontSize: "13px",
-                color: "var(--primary)",
-              }}
-            >
-              Click to assess →
-            </div>
-          </div>
-        ))}
-      </div>
+      <ul className="peer-assessment-list" style={{ marginTop: "20px" }}>
+        {peers.map((allocation) => {
+          const isCompleted = completedRevieweeIdSet.has(allocation.user.id);
+          const cardClassName = `peer-assessment-card ${
+            isCompleted
+              ? "peer-assessment-card--completed"
+              : "peer-assessment-card--pending"
+          }`;
+
+          return (
+            <li key={allocation.user.id} className="peer-assessment-list__item">
+              <button
+                type="button"
+                onClick={() => handlePeerClick(allocation.user.id, allocation)}
+                className={cardClassName}
+              >
+                <div className="peer-assessment-card__header">
+                  <div className="peer-assessment-card__name">
+                    {allocation.user.firstName} {allocation.user.lastName}
+                  </div>
+                  <div
+                    className={`peer-assessment-card__status ${
+                      isCompleted
+                        ? "peer-assessment-card__status--completed"
+                        : "peer-assessment-card__status--pending"
+                    }`}
+                  >
+                    {isCompleted ? "Completed" : "Pending"}
+                  </div>
+                </div>
+                <div className="peer-assessment-card__email">
+                  {allocation.user.email}
+                </div>
+                <div
+                  className={`peer-assessment-card__cta ${
+                    isCompleted
+                      ? "peer-assessment-card__cta--completed"
+                      : "peer-assessment-card__cta--pending"
+                  }`}
+                >
+                  {isCompleted
+                    ? "Review submitted - click to edit →"
+                    : "Not submitted yet - click to assess →"}
+                </div>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
       {peers.length === 0 && (
         <div style={{ color: "var(--muted)", marginTop: "20px" }}>
           No peers found in this team.

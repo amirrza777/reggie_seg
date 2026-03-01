@@ -1,0 +1,43 @@
+import { Router } from "express";
+import { requireAuth } from "../../auth/middleware.js";
+import {
+  analyseProjectGithubRepoHandler,
+  disconnectGithubAccountHandler,
+  getGithubConnectUrlHandler,
+  getGithubConnectionStatusHandler,
+  getLatestProjectGithubRepoSnapshotHandler,
+  getGithubSnapshotHandler,
+  getProjectGithubMappingCoverageHandler,
+  listLiveProjectGithubRepoBranchCommitsHandler,
+  listLiveProjectGithubRepoBranchesHandler,
+  listLiveProjectGithubRepoMyCommitsHandler,
+  githubCallbackHandler,
+  linkGithubProjectRepoHandler,
+  removeGithubProjectRepoHandler,
+  listProjectGithubRepoSnapshotsHandler,
+  listProjectGithubReposHandler,
+  listGithubReposHandler,
+  updateProjectGithubSyncSettingsHandler,
+} from "./controller.js";
+
+const router = Router();
+
+router.get("/connect", requireAuth, getGithubConnectUrlHandler);
+router.get("/callback", githubCallbackHandler);
+router.get("/me", requireAuth, getGithubConnectionStatusHandler);
+router.delete("/me", requireAuth, disconnectGithubAccountHandler);
+router.get("/repos", requireAuth, listGithubReposHandler);
+router.post("/project-repos", requireAuth, linkGithubProjectRepoHandler);
+router.post("/project-repos/:linkId/analyse", requireAuth, analyseProjectGithubRepoHandler);
+router.delete("/project-repos/:linkId", requireAuth, removeGithubProjectRepoHandler);
+router.get("/project-repos", requireAuth, listProjectGithubReposHandler);
+router.get("/project-repos/:linkId/snapshots", requireAuth, listProjectGithubRepoSnapshotsHandler);
+router.get("/project-repos/:linkId/latest-snapshot", requireAuth, getLatestProjectGithubRepoSnapshotHandler);
+router.get("/project-repos/:linkId/mapping-coverage", requireAuth, getProjectGithubMappingCoverageHandler);
+router.get("/project-repos/:linkId/branches", requireAuth, listLiveProjectGithubRepoBranchesHandler);
+router.get("/project-repos/:linkId/branch-commits", requireAuth, listLiveProjectGithubRepoBranchCommitsHandler);
+router.get("/project-repos/:linkId/my-commits", requireAuth, listLiveProjectGithubRepoMyCommitsHandler);
+router.patch("/project-repos/:linkId/sync-settings", requireAuth, updateProjectGithubSyncSettingsHandler);
+router.get("/snapshots/:snapshotId", requireAuth, getGithubSnapshotHandler);
+
+export default router;

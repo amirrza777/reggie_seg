@@ -1,0 +1,195 @@
+export type GithubConnectionStatus = {
+  connected: boolean;
+  account: {
+    userId: number;
+    login: string;
+    email: string | null;
+    scopes: string | null;
+    tokenType: string | null;
+    accessTokenExpiresAt: string | null;
+    refreshTokenExpiresAt: string | null;
+    tokenLastRefreshedAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+};
+
+export type GithubRepositoryOption = {
+  githubRepoId: number;
+  name: string;
+  fullName: string;
+  htmlUrl: string;
+  isPrivate: boolean;
+  ownerLogin: string | null;
+  defaultBranch: string | null;
+};
+
+export type ProjectGithubRepoLink = {
+  id: number;
+  projectId: number;
+  githubRepositoryId: number;
+  linkedByUserId: number;
+  isActive: boolean;
+  autoSyncEnabled: boolean;
+  syncIntervalMinutes: number;
+  lastSyncedAt: string | null;
+  nextSyncAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  repository: {
+    id: number;
+    githubRepoId: number;
+    ownerLogin: string;
+    name: string;
+    fullName: string;
+    htmlUrl: string;
+    isPrivate: boolean;
+    defaultBranch: string | null;
+    pushedAt: string | null;
+    updatedAt: string;
+  };
+};
+
+export type GithubMappingCoverage = {
+  linkId: number;
+  snapshotId: number | null;
+  analysedAt: string | null;
+  coverage: {
+    totalContributors: number;
+    matchedContributors: number;
+    unmatchedContributors: number;
+    totalCommits: number;
+    unmatchedCommits: number;
+  } | null;
+};
+
+export type GithubLatestSnapshot = {
+  snapshot: {
+    id: number;
+    analysedAt: string;
+    data?: {
+      timeSeries?: {
+        defaultBranch?: {
+          lineChangesByDay?: Record<string, { additions: number; deletions: number }> | null;
+        };
+        allBranches?: {
+          lineChangesByDay?: Record<string, { additions: number; deletions: number }> | null;
+        };
+      };
+      branchScopeStats?: {
+        defaultBranch?: {
+          branch: string;
+          totalCommits: number;
+          totalAdditions: number;
+          totalDeletions: number;
+        };
+        allBranches?: {
+          branchCount: number;
+          totalCommits: number;
+          totalAdditions: number;
+          totalDeletions: number;
+          commitsByBranch?: Record<string, number> | null;
+          commitStatsCoverage?: {
+            detailedCommitCount: number;
+            requestedCommitCount: number;
+          } | null;
+        };
+      };
+    } | null;
+    userStats: Array<{
+      id: number;
+      mappedUserId: number | null;
+      githubLogin: string | null;
+      isMatched: boolean;
+      commits: number;
+      additions: number;
+      deletions: number;
+      commitsByDay?: Record<string, number> | null;
+    }>;
+    repoStats: Array<{
+      totalCommits: number;
+      totalAdditions: number;
+      totalDeletions: number;
+      totalContributors: number;
+      matchedContributors: number;
+      unmatchedContributors: number;
+      unmatchedCommits: number;
+      commitsByDay?: Record<string, number> | null;
+    }>;
+  };
+};
+
+export type GithubLiveProjectRepoBranches = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  branches: Array<{
+    name: string;
+    isDefault: boolean;
+    isProtected: boolean;
+    headSha: string | null;
+    aheadBy: number | null;
+    behindBy: number | null;
+    compareStatus: string | null;
+  }>;
+};
+
+export type GithubLiveProjectRepoBranchCommits = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  branch: string;
+  commits: Array<{
+    sha: string;
+    message: string;
+    date: string | null;
+    authorLogin: string | null;
+    authorEmail: string | null;
+    additions: number | null;
+    deletions: number | null;
+    htmlUrl: string;
+  }>;
+};
+
+export type GithubLiveProjectRepoMyCommits = {
+  linkId: number;
+  repository: {
+    id: number;
+    fullName: string;
+    defaultBranch: string;
+    htmlUrl: string;
+  };
+  githubLogin: string;
+  page: number;
+  perPage: number;
+  hasNextPage: boolean;
+  totals: {
+    commits: number;
+    mergePullRequestCommits: number;
+    additionsExcludingMergePullRequests: number;
+    deletionsExcludingMergePullRequests: number;
+    additionsIncludingMergePullRequests: number;
+    deletionsIncludingMergePullRequests: number;
+    detailedCommitCount: number;
+    requestedCommitCount: number;
+  } | null;
+  commits: Array<{
+    sha: string;
+    message: string;
+    date: string | null;
+    authorLogin: string | null;
+    authorEmail: string | null;
+    additions: number | null;
+    deletions: number | null;
+    isMergePullRequest: boolean;
+    htmlUrl: string;
+  }>;
+};

@@ -16,7 +16,10 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
     { href: `${base}/repos`, label: "Repos", flag: "repos" },
   ].filter((link) => {
     if (link.flag && enabledFlags) {
-      return enabledFlags[link.flag] === true;
+      if (Object.prototype.hasOwnProperty.call(enabledFlags, link.flag)) {
+        return enabledFlags[link.flag] === true;
+      }
+      return true;
     }
     return true;
   });
