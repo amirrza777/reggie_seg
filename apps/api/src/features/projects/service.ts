@@ -9,7 +9,12 @@ export async function fetchProjectById(projectId: number) {
 }
 
 export async function fetchProjectsForUser(userId: number) {
-  return getUserProjects(userId);
+  const projects = await getUserProjects(userId);
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    moduleName: project.module?.name ?? "",
+  }));
 }
 
 export async function fetchTeammatesForProject(userId: number, projectId: number) {
