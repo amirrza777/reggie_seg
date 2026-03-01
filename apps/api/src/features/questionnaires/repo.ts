@@ -5,11 +5,13 @@ import type { Question, IncomingQuestion } from "./types.js";
 export function createQuestionnaireTemplate(
   templateName: string,
   questions: any[],
-  userId: number
+  userId: number,
+  isPublic: boolean
 ) {
   return prisma.questionnaireTemplate.create({
     data: {
       templateName,
+      isPublic,
       questions: {
         create: questions.map((q, index) => ({
           label: q.label,
@@ -23,29 +25,77 @@ export function createQuestionnaireTemplate(
   })
 }
 
-export function getQuestionnaireTemplateById(id: number) {
-  return prisma.questionnaireTemplate.findUnique({
-    where: { id },
+export function getQuestionnaireTemplateById(id: number, requesterUserId?: number | null) {
+  return prisma.questionnaireTemplate.findFirst({
+    where: requesterUserId
+      ? { id, OR: [{ isPublic: true }, { ownerId: requesterUserId }] }
+      : { id, isPublic: true },
     include: { questions: { orderBy: { order: "asc" } } },
   })
 }
 
-export function getAllQuestionnaireTemplates() {
+export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findMany({
-    include: { questions: true },
+    where: requesterUserId
+      ? { OR: [{ isPublic: true }, { ownerId: requesterUserId }] }
+      : { isPublic: true },
+    include: { questions: { orderBy: { order: "asc" } } },
   });
 };
+
+export function getMyQuestionnaireTemplates(userId: number) {
+  return prisma.questionnaireTemplate.findMany({
+    where: { ownerId: userId },
+    include: { questions: { orderBy: { order: "asc" } } },
+  });
+}
+
+export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
+  return prisma.questionnaireTemplate.findMany({
+    where: {
+      isPublic: true,
+      ownerId: { not: userId },
+    },
+    include: { questions: { orderBy: { order: "asc" } } },
+  });
+}
+
+export async function isQuestionnaireTemplateOwnedByUser(templateId: number, userId: number) {
+  const template = await prisma.questionnaireTemplate.findFirst({
+    where: { id: templateId, ownerId: userId },
+    select: { id: true },
+  });
+  return Boolean(template);
+}
+
+export async function isQuestionnaireTemplateInUse(templateId: number) {
+  const template = await prisma.questionnaireTemplate.findUnique({
+    where: { id: templateId },
+    select: {
+      _count: {
+        select: {
+          projects: true,
+          assessments: true,
+        },
+      },
+    },
+  });
+
+  if (!template) return false;
+  return template._count.projects > 0 || template._count.assessments > 0;
+}
 
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
-  questions: IncomingQuestion[]
+  questions: IncomingQuestion[],
+  isPublic?: boolean
 ) {
   //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
-      data: { templateName },
+      data: { templateName, ...(typeof isPublic === "boolean" ? { isPublic } : {}) },
     });
 
     const existingQuestions = await tx.question.findMany({
@@ -64,6 +114,13 @@ export async function updateQuestionnaireTemplate(
       (id) => !toUpdate.some((q) => q.id === id)
     );
 
+    const incomingOrderById = new Map<number, number>();
+    const incomingOrderByRef = new Map<IncomingQuestion, number>();
+    questions.forEach((q, idx) => {
+      incomingOrderByRef.set(q, idx);
+      if (typeof q.id === "number") incomingOrderById.set(q.id, idx);
+    });
+
     //Updates existing questions
     for (const q of toUpdate) {
       await tx.question.update({
@@ -72,21 +129,26 @@ export async function updateQuestionnaireTemplate(
           label: q.label,
           type: q.type,
           configs: q.configs ?? Prisma.JsonNull,
-          order: questions.indexOf(q),
+          order: incomingOrderById.get(q.id!) ?? 0,
         },
       });
     }
 
     //Creates new questions
     if (toCreate.length > 0) {
-      await tx.question.createMany({
-        data: toCreate.map((q) => ({
+      const createData = toCreate.map((q) => {
+        const order = incomingOrderByRef.get(q);
+        return {
           templateId,
           label: q.label,
           type: q.type,
-          order: questions.indexOf(q),
+          order: typeof order === "number" ? order : 0,
           configs: q.configs ?? Prisma.JsonNull,
-        })),
+        };
+      });
+
+      await tx.question.createMany({
+        data: createData,
       });
     }
 
@@ -102,6 +164,32 @@ export async function updateQuestionnaireTemplate(
 export function deleteQuestionnaireTemplate(id: number) {
   return prisma.questionnaireTemplate.delete({
     where: { id },
+  });
+}
+
+export async function copyPublicQuestionnaireTemplateToUser(templateId: number, userId: number) {
+  const source = await prisma.questionnaireTemplate.findFirst({
+    where: { id: templateId, isPublic: true },
+    include: { questions: { orderBy: { order: "asc" } } },
+  });
+
+  if (!source) return null;
+
+  return prisma.questionnaireTemplate.create({
+    data: {
+      templateName: `${source.templateName} (Copy)`,
+      isPublic: false,
+      ownerId: userId,
+      questions: {
+        create: source.questions.map((q, index) => ({
+          label: q.label,
+          type: q.type,
+          order: index,
+          configs: q.configs ?? null,
+        })),
+      },
+    },
+    select: { id: true },
   });
 }
 

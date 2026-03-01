@@ -13,6 +13,7 @@ import projectsRouter from "./features/projects/router.js";
 import { healthHandler } from "./health.js";
 import adminRouter from "./features/admin/router.js";
 import trelloRouter from "./features/trello/router.js";
+import featureFlagsRouter from "./features/featureFlags/router.js";
 
 const app = express();
 
@@ -40,5 +41,6 @@ app.use("/meetings", meetingsRouter);
 app.use("/team-allocation", teamAllocationRouter);
 app.use("/admin", adminRouter);
 app.use("/trello",trelloRouter)
+app.use("/feature-flags", featureFlagsRouter);
 
 export { app };

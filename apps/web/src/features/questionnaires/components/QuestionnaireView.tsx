@@ -13,8 +13,6 @@ type Props = {
 };
 
 export function QuestionnaireView({ questionnaire }: Props) {
-
-  console.log(questionnaire.questions);
   if (questionnaire.questions.length === 0) {
     return <p>No questions in this questionnaire.</p>;
   }

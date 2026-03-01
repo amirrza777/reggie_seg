@@ -1,6 +1,7 @@
 model QuestionnaireTemplate {
   id           Int              @id @default(autoincrement())
   templateName String
+  isPublic     Boolean          @default(true)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   assessments  PeerAssessment[] @relation("TemplateAssessments")

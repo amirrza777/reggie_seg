@@ -90,14 +90,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 72px 24px 56px;
+  z-index: 9000;
 }
 
 .modal__dialog {
   background: var(--surface);
   border-radius: 14px;
-  width: min(620px, 100%);
+  width: min(720px, 96vw);
   overflow: hidden;
+  max-height: min(78vh, 820px);
+  position: relative;
+  z-index: 9001;
 }
 
 .modal__header,
@@ -113,6 +117,143 @@
 
 .modal__body {
   padding: 16px;
+}
+
+.admin-modal__body {
+  display: grid;
+  gap: 12px;
+  max-height: min(70vh, 720px);
+  overflow: hidden;
+}
+
+.admin-modal__list {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.admin-modal__table {
+  max-height: min(52vh, 480px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-top: 1px solid var(--border);
+}
+
+.admin-modal__table .table__row {
+  align-items: center;
+  background: var(--surface);
+}
+
+.admin-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.admin-toggle {
+  padding: 10px 14px;
+}
+
+.admin-toggle--make {
+  background: #f5f5f5;
+  color: #0f0f0f;
+  border: 1px solid var(--border);
+}
+
+.admin-toggle--remove {
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+}
+
+.role-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.role-toggle__btn {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  min-width: 88px;
+}
+
+.role-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: var(--fw-semibold);
+  font-size: 0.95rem;
+}
+
+.audit-modal__body {
+  display: grid;
+  gap: 12px;
+  max-height: min(58vh, 580px);
+  overflow: hidden;
+}
+
+.audit-modal__table {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.audit-modal__head {
+  grid-template-columns: 1.1fr 1.4fr 0.8fr 1.6fr 1fr;
+}
+
+.audit-modal__rows {
+  max-height: min(42vh, 440px);
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+
+.audit-modal__row {
+  grid-template-columns: 1.1fr 1.4fr 0.8fr 1.6fr 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.audit-filters {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audit-filters__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audit-pill {
+  padding: 8px 12px;
+  font-size: 0.95rem;
+}
+
+.audit-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-weight: var(--fw-semibold);
+  width: fit-content;
+}
+
+.audit-badge--login {
+  background: var(--status-success-soft);
+  color: var(--status-success-text);
+  border-color: var(--status-success-border);
+}
+
+.audit-badge--logout {
+  background: var(--surface);
+  color: var(--muted);
 }
 
 /* Status indicators */
