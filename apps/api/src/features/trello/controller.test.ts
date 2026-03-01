@@ -28,28 +28,58 @@ describe("TrelloController", () => {
     vi.clearAllMocks();
   });
 
-  //Get connect url
+  //Get connect url (callbackUrl query required)
 
-  it("returns connect URL as JSON when service succeeds", () => {
-    //Service gives a Trello authorisation URL
+  it("returns connect URL as JSON when service succeeds and callbackUrl is provided", () => {
     (TrelloService.getAuthoriseUrl as any).mockReturnValue("http://trello-url");
 
-    const req: any = {};
+    const req: any = {
+      query: { callbackUrl: "https://app.com/projects/1/trello/callback" },
+    };
     const res = createMockRes();
 
     TrelloController.getConnectUrl(req, res);
 
+    expect(TrelloService.getAuthoriseUrl).toHaveBeenCalledWith(
+      "https://app.com/projects/1/trello/callback"
+    );
     expect(res.status).toHaveBeenCalledWith(200);
     expect(res.json).toHaveBeenCalledWith({ url: "http://trello-url" });
   });
 
+  it("returns 400 when callbackUrl query is missing", () => {
+    const req: any = { query: {} };
+    const res = createMockRes();
+
+    TrelloController.getConnectUrl(req, res);
+
+    expect(TrelloService.getAuthoriseUrl).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "callbackUrl query is required (e.g. app origin + /projects/:projectId/trello/callback)",
+    });
+  });
+
+  it("returns 400 when callbackUrl is not a valid http(s) URL", () => {
+    const req: any = {
+      query: { callbackUrl: "/projects/1/trello/callback" },
+    };
+    const res = createMockRes();
+
+    TrelloController.getConnectUrl(req, res);
+
+    expect(TrelloService.getAuthoriseUrl).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns 503 if URL generation throws an error", () => {
-    //Simulates service failure
     (TrelloService.getAuthoriseUrl as any).mockImplementation(() => {
       throw new Error("Failure");
     });
 
-    const req: any = {};
+    const req: any = {
+      query: { callbackUrl: "https://app.com/projects/1/trello/callback" },
+    };
     const res = createMockRes();
 
     TrelloController.getConnectUrl(req, res);
@@ -58,17 +88,32 @@ describe("TrelloController", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Failure" });
   });
 
-  //Browser redirect
+  //Browser redirect (callbackUrl query required)
 
-  it("redirects browser to Trello authorisation URL", () => {
+  it("redirects browser to Trello authorisation URL when callbackUrl is provided", () => {
     (TrelloService.getAuthoriseUrl as any).mockReturnValue("http://trello-url");
 
-    const req: any = {};
+    const req: any = {
+      query: { callbackUrl: "https://app.com/projects/1/trello/callback" },
+    };
     const res = createMockRes();
 
     TrelloController.connect(req, res);
 
+    expect(TrelloService.getAuthoriseUrl).toHaveBeenCalledWith(
+      "https://app.com/projects/1/trello/callback"
+    );
     expect(res.redirect).toHaveBeenCalledWith("http://trello-url");
+  });
+
+  it("returns 400 when callbackUrl is missing for connect redirect", () => {
+    const req: any = { query: {} };
+    const res = createMockRes();
+
+    TrelloController.connect(req, res);
+
+    expect(TrelloService.getAuthoriseUrl).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it("returns 503 if redirect URL generation fails", () => {
@@ -76,7 +121,9 @@ describe("TrelloController", () => {
       throw new Error("Failure");
     });
 
-    const req: any = {};
+    const req: any = {
+      query: { callbackUrl: "https://app.com/projects/1/trello/callback" },
+    };
     const res = createMockRes();
 
     TrelloController.connect(req, res);
