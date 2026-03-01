@@ -16,14 +16,14 @@ const attendances = [
     meetingId: 10,
     userId: 1,
     status: "absent",
-    user: { id: 1, firstName: "Alice", lastName: "Smith" },
+    user: { id: 1, firstName: "Reggie", lastName: "King" },
   },
   {
     id: 2,
     meetingId: 10,
     userId: 2,
     status: "on_time",
-    user: { id: 2, firstName: "Bob", lastName: "Jones" },
+    user: { id: 2, firstName: "John", lastName: "Smith" },
   },
 ];
 
@@ -35,8 +35,8 @@ beforeEach(() => {
 describe("AttendanceTable", () => {
   it("renders attendee names and statuses", () => {
     render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
-    expect(screen.getByText("Alice Smith")).toBeInTheDocument();
-    expect(screen.getByText("Bob Jones")).toBeInTheDocument();
+    expect(screen.getByText("Reggie King")).toBeInTheDocument();
+    expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
   it("renders a dropdown for each attendee", () => {
