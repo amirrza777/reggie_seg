@@ -37,7 +37,7 @@ describe("meetings api client", () => {
     const data = {
       teamId: 1,
       organiserId: 2,
-      title: "Sprint Review",
+      title: "Team Review",
       date: "2026-03-01T10:00",
     };
     await createMeeting(data);
@@ -51,11 +51,11 @@ describe("meetings api client", () => {
     const data = {
       teamId: 1,
       organiserId: 2,
-      title: "Sprint Review",
+      title: "Team Review",
       date: "2026-03-01T10:00",
-      subject: "Q1 progress",
+      subject: "MVP progress",
       location: "Room 301",
-      agenda: "Demo + retro",
+      agenda: "Trello + progress",
     };
     await createMeeting(data);
     expect(apiFetchMock).toHaveBeenCalledWith("/meetings", {
