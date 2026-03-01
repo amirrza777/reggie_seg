@@ -25,8 +25,7 @@ async function main() {
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(users, modules);
   await seedTeamAllocations(users, teams);
-  // Temporary helper so user 1 can call /trello/team-board?teamId=1 during local testing.
-  await seedTrelloTestAllocation();
+  await seedAdminTeamAllocation(enterpriseId); //TODO: only for testing Trello integration, remove later
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
 }
@@ -322,11 +321,26 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
 }
 
 //TODO: only for testing Trello integration, remove later
-async function seedTrelloTestAllocation() {
-  // Force-link user 1 to team 1 for Trello team-board testing.
-  await prisma.teamAllocation.createMany({
-    data: [{ userId: 1, teamId: 1 }],
-    skipDuplicates: true,
+async function seedAdminTeamAllocation(enterpriseId: string) {
+  const admin = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email: 'admin@kcl.ac.uk' } },
+    select: { id: true },
+  });
+  if (!admin) return;
+
+  const firstProject = await prisma.project.findFirst({ select: { id: true }, orderBy: { id: 'asc' } });
+  if (!firstProject) return;
+
+  const team = await prisma.team.findFirst({
+    where: { projectId: firstProject.id },
+    select: { id: true },
+  });
+  if (!team) return;
+
+  await prisma.teamAllocation.upsert({
+    where: { teamId_userId: { teamId: team.id, userId: admin.id } },
+    update: {},
+    create: { teamId: team.id, userId: admin.id },
   });
 }
 

@@ -1,7 +1,38 @@
 import type { Request, Response } from "express"
+import jwt from "jsonwebtoken"
+import { TrelloRepo } from "./repo.js"
 import { TrelloService } from "./service.js"
 
+const accessSecret = process.env.JWT_ACCESS_SECRET || ""
+
 export const TrelloController = {
+
+  async getMyTrelloMemberId(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.sub
+      if (!userId) return res.status(401).json({ error: "Not authenticated" })
+      const user = await TrelloRepo.getUserById(userId)
+      return res.status(200).json({ trelloMemberId: user?.trelloMemberId ?? null })
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message })
+    }
+  },
+
+  /** Returns a short-lived link token so the callback page can complete the flow without cookies. */
+  getLinkToken(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.sub
+      if (!userId) return res.status(401).json({ error: "Not authenticated" })
+      const linkToken = jwt.sign(
+        { sub: userId, purpose: "trello-link" },
+        accessSecret,
+        { expiresIn: "5m" }
+      )
+      return res.status(200).json({ linkToken })
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message })
+    }
+  },
 
   //Returns an auth URL the frontend can redirect to
   getConnectUrl(_req: Request, res: Response) {
@@ -32,6 +63,28 @@ export const TrelloController = {
       return res.status(200).json({ ok: true })
     } catch (err: any) {
       return res.status(500).json({ error: err.message })
+    }
+  },
+
+  /** Completes Trello link using a short-lived link token (no session cookie needed). */
+  async callbackWithLinkToken(req: Request, res: Response) {
+    try {
+      const linkToken = String(req.body?.linkToken ?? "").trim()
+      const token = String(req.body?.token ?? "").trim()
+      if (!linkToken || !token) {
+        return res.status(400).json({ error: "Missing linkToken or token" })
+      }
+      const payload = jwt.verify(linkToken, accessSecret) as { sub: number; purpose?: string }
+      if (payload.purpose !== "trello-link") {
+        return res.status(400).json({ error: "Invalid link token" })
+      }
+      await TrelloService.completeOauthCallback(payload.sub, token)
+      return res.status(200).json({ ok: true })
+    } catch (err: any) {
+      if (err?.name === "TokenExpiredError") {
+        return res.status(401).json({ error: "Link token expired. Start the flow again from the project Trello page." })
+      }
+      return res.status(400).json({ error: err?.message ?? "Invalid link token" })
     }
   },
 
@@ -88,7 +141,7 @@ export const TrelloController = {
   async fetchBoardById(req: Request, res: Response) {
     try {
       const userId = (req.user as any).sub
-      const boardId = req.params.boardId
+      const boardId = typeof req.params.boardId === "string" ? req.params.boardId : ""
       const board = await TrelloService.fetchBoardById(userId, boardId)
       res.status(200).json(board)
     } catch (err: any) {

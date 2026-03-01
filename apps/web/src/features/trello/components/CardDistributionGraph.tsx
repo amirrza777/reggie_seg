@@ -28,6 +28,8 @@ type CardDistributionGraphProps = {
   actionsByDate: Record<string, TrelloBoardAction[]>;
   listNamesById: Record<string, string>;
   cardsByList: Record<string, TrelloCard[]>;
+  memberIdFilter?: string; /** when set, only cards assigned to this trello member id are included. */
+  title?: string;
 };
 
 type DataPoint = {
@@ -94,14 +96,61 @@ function computeCountsAtDate(
   return { backlog, inProgress, completed };
 }
 
+function isCardAssignedToMember(card: TrelloCard, memberId: string): boolean {
+  if (card.members?.some((m) => m.id === memberId)) return true;
+  if (card.idMembers?.includes(memberId)) return true;
+  return false;
+}
+
+function filterCardsByMember(
+  cardsByList: Record<string, TrelloCard[]>,
+  memberId: string
+): Record<string, TrelloCard[]> {
+  const out: Record<string, TrelloCard[]> = {};
+  for (const [listId, cards] of Object.entries(cardsByList)) {
+    const filtered = cards.filter((c) => isCardAssignedToMember(c, memberId));
+    if (filtered.length > 0) out[listId] = filtered;
+  }
+  return out;
+}
+
+function filterActionsByCardIds(
+  actionsByDate: Record<string, TrelloBoardAction[]>,
+  cardIds: Set<string>
+): Record<string, TrelloBoardAction[]> {
+  const out: Record<string, TrelloBoardAction[]> = {};
+  for (const [dateKey, actions] of Object.entries(actionsByDate)) {
+    const filtered = actions.filter((a) => {
+      const cardId = a.data?.card?.id;
+      return cardId && cardIds.has(cardId);
+    });
+    if (filtered.length > 0) out[dateKey] = filtered;
+  }
+  return out;
+}
+
 export function CardDistributionGraph({
   actionsByDate,
   listNamesById,
   cardsByList,
+  memberIdFilter,
+  title = "Card distribution over time",
 }: CardDistributionGraphProps) {
   const data = useMemo<DataPoint[]>(() => {
-    const currentState = buildCurrentState(cardsByList);
-    const allActions = Object.entries(actionsByDate).flatMap(([, actions]) => actions);
+    const filteredCardsByList = memberIdFilter
+      ? filterCardsByMember(cardsByList, memberIdFilter)
+      : cardsByList;
+    const cardIds = new Set<string>();
+    for (const cards of Object.values(filteredCardsByList)) {
+      for (const c of cards) cardIds.add(c.id);
+    }
+    const filteredActionsByDate =
+      memberIdFilter && cardIds.size > 0
+        ? filterActionsByCardIds(actionsByDate, cardIds)
+        : actionsByDate;
+
+    const currentState = buildCurrentState(filteredCardsByList);
+    const allActions = Object.entries(filteredActionsByDate).flatMap(([, actions]) => actions);
     const allActionsDesc = [...allActions].sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
@@ -122,13 +171,22 @@ export function CardDistributionGraph({
         completed,
       };
     });
-  }, [actionsByDate, listNamesById, cardsByList]);
+  }, [actionsByDate, listNamesById, cardsByList, memberIdFilter]);
+
+  const hasFilteredCards = useMemo(() => {
+    if (!memberIdFilter) return true;
+    for (const cards of Object.values(cardsByList)) {
+      if (cards.some((c) => isCardAssignedToMember(c, memberIdFilter))) return true;
+    }
+    return false;
+  }, [cardsByList, memberIdFilter]);
 
   if (data.length === 0) return null;
+  if (memberIdFilter && !hasFilteredCards) return null;
 
   return (
     <section className="stack" style={{ marginTop: 32 }}>
-      <h2>Card distribution over time</h2>
+      <h2>{title}</h2>
       <div style={{ width: "100%", height: 320 }}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>

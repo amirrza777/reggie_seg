@@ -14,7 +14,11 @@ export const TrelloService = {
     const trelloKey = requireTrelloKey()
 
     const appName = process.env.TRELLO_APP_NAME || "TeamFeedback2Keys"
-    const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
+    let appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
+    // ToDo: remove - requiried to make sure session persists
+    if (appBaseUrl.includes("127.0.0.1")) {
+      appBaseUrl = appBaseUrl.replace("127.0.0.1", "localhost")
+    }
     const callbackUrl = `${appBaseUrl}/trello-test/callback`
 
     return `https://trello.com/1/authorize?key=${trelloKey}&name=${encodeURIComponent(appName)}&scope=read&expiration=never&response_type=token&return_url=${encodeURIComponent(callbackUrl)}`
@@ -116,11 +120,22 @@ export const TrelloService = {
     if (!team.trelloOwner?.trelloToken)
       throw new Error("Team owner not connected to Trello")
 
-    //Team board is fetched with owner's token
-    return TrelloService.getBoardWithData(
+    const board = await TrelloService.getBoardWithData(
       team.trelloBoardId,
       team.trelloOwner.trelloToken
     )
+
+    const user = await TrelloRepo.getUserById(userId)
+
+    // only allow user to view trello board if they're a member of the board on trello
+    if (user?.trelloMemberId && Array.isArray(board.members)) {
+      const isOnBoard = board.members.some((m: { id?: string }) => m?.id === user.trelloMemberId)
+      if (!isOnBoard && board.url) {
+        return { requireJoin: true, boardUrl: board.url }
+      }
+    }
+
+    return board
   },
 
   async fetchMyBoards(userId: number) {

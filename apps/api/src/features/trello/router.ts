@@ -4,6 +4,10 @@ import { requireAuth } from "../../auth/middleware.js"
 
 const router = Router()
 
+router.get("/link-token", requireAuth, TrelloController.getLinkToken)
+router.get("/me-member", requireAuth, TrelloController.getMyTrelloMemberId)
+router.post("/callback-with-link-token", TrelloController.callbackWithLinkToken)
+
 router.post("/assign", requireAuth, TrelloController.assignBoardToTeam)
 router.get("/team-board", requireAuth, TrelloController.fetchAssignedTeamBoard)
 router.get("/boards", requireAuth, TrelloController.fetchMyBoards)
