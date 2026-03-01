@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { completeTrelloLinkWithToken } from "@/features/trello/api/client";
 
@@ -10,6 +11,8 @@ function readTokenFromHash(hash: string): string | null {
 }
 
 export default function TrelloCallbackPage() {
+  const params = useParams();
+  const projectId = typeof params?.projectId === "string" ? params.projectId : "";
   const [status, setStatus] = useState("Finishing Trello connection...");
 
   useEffect(() => {
@@ -30,14 +33,15 @@ export default function TrelloCallbackPage() {
         }
         await completeTrelloLinkWithToken(linkToken, token);
 
+        const fallback = projectId ? `/projects/${projectId}/trello` : "/dashboard";
         setStatus("Trello connected. Redirecting...");
         window.setTimeout(() => {
           try {
             const returnTo = sessionStorage.getItem("trello.returnTo");
             sessionStorage.removeItem("trello.returnTo");
-            window.location.href = returnTo && returnTo.startsWith("/") ? returnTo : "/trello-test";
+            window.location.href = returnTo && returnTo.startsWith("/") ? returnTo : fallback;
           } catch {
-            window.location.href = "/trello-test";
+            window.location.href = fallback;
           }
         }, 800);
       } catch (err) {

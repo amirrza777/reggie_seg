@@ -35,19 +35,27 @@ export const TrelloController = {
   },
 
   //Returns an auth URL the frontend can redirect to
-  getConnectUrl(_req: Request, res: Response) {
+  getConnectUrl(req: Request, res: Response) {
     try {
-      const url = TrelloService.getAuthoriseUrl()
+      const callbackUrl = typeof req.query?.callbackUrl === "string" ? req.query.callbackUrl : ""
+      if (!callbackUrl.startsWith("http")) {
+        return res.status(400).json({ error: "callbackUrl query is required (e.g. app origin + /projects/:projectId/trello/callback)" })
+      }
+      const url = TrelloService.getAuthoriseUrl(callbackUrl)
       return res.status(200).json({ url })
     } catch (err: any) {
       return res.status(503).json({ error: err.message })
     }
   },
 
-  //Redirects endpoint for browser navigation
-  connect(_req: Request, res: Response) {
+  //Redirects endpoint for browser navigation.
+  connect(req: Request, res: Response) {
     try {
-      const url = TrelloService.getAuthoriseUrl()
+      const callbackUrl = typeof req.query?.callbackUrl === "string" ? req.query.callbackUrl : ""
+      if (!callbackUrl.startsWith("http")) {
+        return res.status(400).json({ error: "callbackUrl query is required (e.g. app origin + /projects/:projectId/trello/callback)" })
+      }
+      const url = TrelloService.getAuthoriseUrl(callbackUrl)
       return res.redirect(url)
     } catch (err: any) {
       return res.status(503).json({ error: err.message })

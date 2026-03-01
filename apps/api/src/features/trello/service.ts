@@ -10,17 +10,13 @@ function requireTrelloKey() {
 
 export const TrelloService = {
   //Builds the Trello authorisation URL
-  getAuthoriseUrl() {
+  getAuthoriseUrl(callbackUrl?: string) {
     const trelloKey = requireTrelloKey()
+    if (typeof callbackUrl !== "string" || !callbackUrl.startsWith("http")) {
+      throw new Error("Valid callback URL is required (e.g. app origin + /projects/:projectId/trello/callback)")
+    }
 
     const appName = process.env.TRELLO_APP_NAME || "TeamFeedback2Keys"
-    let appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "")
-    // ToDo: remove - requiried to make sure session persists
-    if (appBaseUrl.includes("127.0.0.1")) {
-      appBaseUrl = appBaseUrl.replace("127.0.0.1", "localhost")
-    }
-    const callbackUrl = `${appBaseUrl}/trello-test/callback`
-
     return `https://trello.com/1/authorize?key=${trelloKey}&name=${encodeURIComponent(appName)}&scope=read&expiration=never&response_type=token&return_url=${encodeURIComponent(callbackUrl)}`
   },
 

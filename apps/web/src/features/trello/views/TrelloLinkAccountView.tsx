@@ -15,7 +15,11 @@ export function TrelloLinkAccountView({ projectId, onError }: Props) {
     e.preventDefault();
     try {
       const { linkToken } = await getLinkToken();
-      const { url } = await getConnectUrl();
+      const callbackUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/projects/${projectId}/trello/callback`
+          : undefined;
+      const { url } = await getConnectUrl(callbackUrl);
       try {
         sessionStorage.setItem("trello.linkToken", linkToken);
         if (typeof pathname === "string") {

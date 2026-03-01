@@ -15,7 +15,10 @@ export default function LinkTrelloPage() {
     setLoading(true);
     setError(null);
     try {
-      const { url } = await getConnectUrl();
+      const callbackUrl = projectId
+        ? `${window.location.origin}/projects/${projectId}/trello/callback`
+        : undefined;
+      const { url } = await getConnectUrl(callbackUrl);
       if (!url) throw new Error("Missing Trello authorisation URL.");
       window.location.href = url;
     } catch (err) {

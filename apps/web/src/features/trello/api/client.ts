@@ -100,8 +100,12 @@ export async function getLinkToken(): Promise<{ linkToken: string }> {
   return trelloFetch<{ linkToken: string }>("/trello/link-token", { method: "GET" });
 }
 
-export async function getConnectUrl(): Promise<{ url: string }> {
-  return trelloFetch<{ url: string }>("/trello/connect-url", { method: "GET" });
+/** Get trello connect URL. Pass full callback URL (e.g. origin + /projects/:projectId/trello/callback) so redirects there after auth. */
+export async function getConnectUrl(callbackUrl?: string): Promise<{ url: string }> {
+  const url = callbackUrl
+    ? `/trello/connect-url?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : "/trello/connect-url";
+  return trelloFetch<{ url: string }>(url, { method: "GET" });
 }
 
 export type OwnerBoard = { id: string; name: string };

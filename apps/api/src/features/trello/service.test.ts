@@ -22,25 +22,25 @@ describe("TrelloService", () => {
   //Authorisation URL generation
 
   it("builds a valid authorise URL", () => {
-    const url = TrelloService.getAuthoriseUrl();
+    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
+    const url = TrelloService.getAuthoriseUrl(callbackUrl);
 
     expect(url).toContain("https://trello.com/1/authorize");
     expect(url).toContain(`key=${process.env.TRELLO_KEY}`);
-    expect(url).toContain("return_url=");
+    expect(url).toContain(encodeURIComponent(callbackUrl));
   });
 
-  //Ensures fallback defaults are used if env vars are missing
+  //Ensures fallback defaults are used if env vars are missing. Uses project callback URL (frontend should always pass this).
   it("uses default app name and base URL when env vars are missing", () => {
     process.env.TRELLO_KEY = "test-key";
     delete process.env.TRELLO_APP_NAME;
     delete process.env.APP_BASE_URL;
 
-    const url = TrelloService.getAuthoriseUrl();
+    const projectCallbackUrl = "http://localhost:3001/projects/123/trello/callback";
+    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
 
     expect(url).toContain("name=TeamFeedback2Keys");
-    expect(url).toContain(
-      encodeURIComponent("http://localhost:3001/trello-test/callback")
-    );
+    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
   });
 
   //Ensures trailing slash is cleaned up correctly
@@ -49,39 +49,60 @@ describe("TrelloService", () => {
     process.env.TRELLO_APP_NAME = "MyApp";
     process.env.APP_BASE_URL = "http://localhost:4000/";
 
-    const url = TrelloService.getAuthoriseUrl();
+    const projectCallbackUrl = "http://localhost:4000/projects/1/trello/callback";
+    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
 
-    expect(url).toContain(
-      encodeURIComponent("http://localhost:4000/trello-test/callback")
-    );
+    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
   });
 
-  it("uses custom APP_BASE_URL and TRELLO_APP_NAME", () => {
+  it("uses custom APP_BASE_URL and TRELLO_APP_NAME with project callback URL", () => {
     process.env.TRELLO_KEY = "test-key";
     process.env.TRELLO_APP_NAME = "CustomApp";
     process.env.APP_BASE_URL = "https://myapp.com";
 
-    const url = TrelloService.getAuthoriseUrl();
+    const projectCallbackUrl = "https://myapp.com/projects/99/trello/callback";
+    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
 
     expect(url).toContain("name=CustomApp");
-    expect(url).toContain(
-      encodeURIComponent("https://myapp.com/trello-test/callback")
+    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
+  });
+
+  it("uses provided callbackUrl when valid", () => {
+    process.env.TRELLO_KEY = "test-key";
+    process.env.APP_BASE_URL = "https://myapp.com";
+
+    const customCallback = "https://myapp.com/projects/42/trello/callback";
+    const url = TrelloService.getAuthoriseUrl(customCallback);
+
+    expect(url).toContain(encodeURIComponent(customCallback));
+  });
+
+  it("throws if callbackUrl is missing or invalid", () => {
+    expect(() => TrelloService.getAuthoriseUrl(undefined as any)).toThrow(
+      "Valid callback URL is required"
+    );
+    expect(() => TrelloService.getAuthoriseUrl("")).toThrow(
+      "Valid callback URL is required"
+    );
+    expect(() => TrelloService.getAuthoriseUrl("/projects/1/trello/callback")).toThrow(
+      "Valid callback URL is required"
     );
   });
 
-  //Covers both requireTrelloKey and null check
   it("throws if TRELLO_KEY is missing", () => {
     delete process.env.TRELLO_KEY;
+    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
 
-    expect(() => TrelloService.getAuthoriseUrl()).toThrow(
+    expect(() => TrelloService.getAuthoriseUrl(callbackUrl)).toThrow(
       "Trello is not configured on this server"
     );
   });
 
   it("throws if requireTrelloKey returns empty string", () => {
     process.env.TRELLO_KEY = "";
+    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
 
-    expect(() => TrelloService.getAuthoriseUrl()).toThrow(
+    expect(() => TrelloService.getAuthoriseUrl(callbackUrl)).toThrow(
       "Trello is not configured on this server."
     );
   });
