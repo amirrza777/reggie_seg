@@ -1,16 +1,17 @@
+import { redirect } from "next/navigation";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import {
   getFeedbackReview,
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 export const dynamic = "force-dynamic";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
-
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
@@ -26,6 +27,9 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     })
   );
 
+  const flagMap = await getFeatureFlagMap();
+  if (!flagMap["peer_feedback"]) redirect(`/projects/${projectId}`);
+
   return (
     <div>
       <ProjectNav projectId={projectId} />
@@ -33,7 +37,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
       <h2>Peer Feedbacks</h2>
       <p>Collect and review peer feedback for this project.</p>
       <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+      </div>
     </div>
-</div>
   );
 }

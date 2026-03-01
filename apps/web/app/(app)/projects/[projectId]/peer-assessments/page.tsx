@@ -4,6 +4,7 @@ import {
 } from "@/features/peerAssessment/api/client";
 import { PeerListView } from "@/features/peerAssessment/components/PeerListView";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 export const dynamic = "force-dynamic";
 

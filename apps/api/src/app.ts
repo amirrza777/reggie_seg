@@ -6,12 +6,14 @@ import questionnairesRouter from "./features/questionnaires/router.js";
 import peerAssessmentsRouter from "./features/peerAssessment/router.js";
 import staffPeerAssessmentsRouter from "./features/peerAssessment/staff/router.js";
 import meetingsRouter from "./features/meetings/router.js";
+import teamAllocationRouter from "./features/teamAllocation/router.js";
 import authRouter from "./auth/router.js";
 import peerFeedbackRouter from "./features/peerFeedback/router.js";
 import projectsRouter from "./features/projects/router.js";
 import { healthHandler } from "./health.js";
 import adminRouter from "./features/admin/router.js";
 import githubRouter from "./features/github/router.js";
+import featureFlagsRouter from "./features/featureFlags/router.js";
 
 const app = express();
 
@@ -36,7 +38,9 @@ app.use("/peer-assessments", peerAssessmentsRouter);
 app.use("/peer-feedback", peerFeedbackRouter);
 app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
+app.use("/team-allocation", teamAllocationRouter);
 app.use("/admin", adminRouter);
 app.use("/github", githubRouter);
+app.use("/feature-flags", featureFlagsRouter);
 
 export { app };

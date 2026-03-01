@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo, useState, type ReactNode } from "react";
 
-type SidebarLink = { href: string; label: string };
+type SidebarLink = { href: string; label: string; space?: "workspace" | "staff" | "admin" };
 
 type SidebarProps = {
   title?: string;
@@ -25,14 +25,6 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
 
   return (
     <div className="sidebar">
-      <div className="sidebar__brand">
-        <span className="sidebar__dot" />
-        <div>
-          <p className="eyebrow">Team Feedback</p>
-          <strong>{title}</strong>
-        </div>
-      </div>
-
       <div className="sidebar__mobile">
         <button
           type="button"

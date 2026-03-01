@@ -22,9 +22,6 @@ ALTER TABLE `PeerAssessment` DROP FOREIGN KEY `PeerAssessment_questionnaireTempl
 ALTER TABLE `PeerAssessment` DROP FOREIGN KEY `PeerAssessment_teamId_fkey`;
 
 -- DropForeignKey
-ALTER TABLE `PeerAssessmentReview` DROP FOREIGN KEY `PeerAssessmentReview_peerAssessmentId_fkey`;
-
--- DropForeignKey
 ALTER TABLE `PeerFeedback` DROP FOREIGN KEY `PeerFeedback_peerAssessmentId_fkey`;
 
 -- DropForeignKey
@@ -42,9 +39,6 @@ DROP INDEX `PeerAssessment_questionnaireTemplateId_fkey` ON `PeerAssessment`;
 -- DropIndex
 DROP INDEX `Team_moduleId_idx` ON `Team`;
 
--- DropIndex
-DROP INDEX `Team_teamName_key` ON `Team`;
-
 -- AlterTable
 ALTER TABLE `PeerAssessment` DROP COLUMN `moduleId`,
     DROP COLUMN `questionnaireTemplateId`;
@@ -55,9 +49,6 @@ ALTER TABLE `PeerFeedback` ADD COLUMN `teamId` INTEGER NOT NULL;
 -- AlterTable
 ALTER TABLE `Team` DROP COLUMN `moduleId`,
     ADD COLUMN `projectId` INTEGER NOT NULL;
-
--- DropTable
-DROP TABLE `PeerAssessmentReview`;
 
 -- CreateTable
 CREATE TABLE `Project` (

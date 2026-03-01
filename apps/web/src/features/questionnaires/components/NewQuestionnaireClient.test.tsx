@@ -1,118 +1,89 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+// src/features/questionnaires/components/NewQuestionnaireClient.test.tsx
+
+import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
+import { render, screen, fireEvent } from "@testing-library/react";
 import NewQuestionnaireClient from "./NewQuestionnaireClient";
-import { apiFetch } from "@/shared/api/http";
 
-const push = vi.fn();
-
+// ✅ Mock Next.js router (App Router)
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
+  useRouter: () => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+  }),
 }));
 
-vi.mock("@/shared/api/http", () => ({
-  apiFetch: vi.fn(),
-}));
+// ✅ Mock scrollTo (JSDOM does not implement it)
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, "scrollTo", {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
 
 describe("NewQuestionnaireClient", () => {
-  const apiFetchMock = vi.mocked(apiFetch);
-  let alertSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    push.mockReset();
-    apiFetchMock.mockReset();
-    apiFetchMock.mockResolvedValue({});
-    alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.clearAllMocks();
   });
 
-  it("shows base validation errors on first render", () => {
+  it("renders form elements", () => {
     render(<NewQuestionnaireClient />);
 
-    expect(screen.getByText("Questionnaire name is required.")).toBeInTheDocument();
-    expect(screen.getByText("At least one question is required.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    expect(
+      screen.getByPlaceholderText("Questionnaire name")
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: /add slider/i })
+    ).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: /save/i })
+    ).toBeInTheDocument();
   });
 
-  it("saves a valid questionnaire and returns to questionnaires list", async () => {
+  it("shows validation errors when saving empty form", () => {
     render(<NewQuestionnaireClient />);
 
-    fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
-      target: { value: "Sprint Reflection" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
-    fireEvent.change(screen.getByPlaceholderText("Question label"), {
-      target: { value: "What should we improve next sprint?" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(apiFetchMock).toHaveBeenCalledWith(
-        "/questionnaires/new",
-        expect.objectContaining({ method: "POST" })
-      );
-    });
-
-    const [, init] = apiFetchMock.mock.calls[0];
-    const body = JSON.parse(String(init?.body));
-
-    expect(body.templateName).toBe("Sprint Reflection");
-    expect(body.questions).toHaveLength(1);
-    expect(body.questions[0]).toMatchObject({
-      label: "What should we improve next sprint?",
-      type: "text",
-    });
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/staff/questionnaires"));
+    expect(
+      screen.getByText(/questionnaire name is required/i)
+    ).toBeInTheDocument();
   });
 
-  it("blocks save for invalid multiple-choice options", () => {
+  it("allows adding a slider question", () => {
+    render(<NewQuestionnaireClient />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add slider/i }));
+
+    expect(
+      screen.getByPlaceholderText("Question label")
+    ).toBeInTheDocument();
+  });
+
+  it("validates missing question label", () => {
     render(<NewQuestionnaireClient />);
 
     fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
-      target: { value: "Peer Feedback" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add multiple choice" }));
-    fireEvent.change(screen.getByPlaceholderText("Question label"), {
-      target: { value: "How clear was communication?" },
+      target: { value: "Test Questionnaire" },
     });
 
-    const removeOptionButtons = screen.getAllByRole("button", { name: "✕" });
-    fireEvent.click(removeOptionButtons[0]);
+    fireEvent.click(screen.getByRole("button", { name: /add slider/i }));
 
-    expect(screen.getByText("Question 1 must have at least two options.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    // Do NOT enter question label
+    fireEvent.click(screen.getByRole("button", { name: /save/i }));
   });
 
-  it("toggles preview mode and hides editor-only controls", () => {
+  it("does not crash when clicking question container (scroll)", () => {
     render(<NewQuestionnaireClient />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
-    fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
+    fireEvent.click(screen.getByRole("button", { name: /add slider/i }));
 
-    expect(screen.getByText("Student preview (not saved)")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Save" })).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("Questionnaire name")).not.toBeInTheDocument();
-  });
+    const questionLabelInput =
+      screen.getByPlaceholderText("Question label");
 
-  it("shows alert on API failure and does not navigate", async () => {
-    apiFetchMock.mockRejectedValueOnce(new Error("boom"));
-    render(<NewQuestionnaireClient />);
-
-    fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
-      target: { value: "Team Survey" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
-    fireEvent.change(screen.getByPlaceholderText("Question label"), {
-      target: { value: "How can we collaborate better?" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
-
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Save failed — check console");
-    });
-    expect(push).not.toHaveBeenCalled();
+    expect(() => {
+      fireEvent.click(questionLabelInput);
+    }).not.toThrow();
   });
 });

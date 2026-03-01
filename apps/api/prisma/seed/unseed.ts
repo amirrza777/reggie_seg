@@ -5,14 +5,33 @@ const prisma = new PrismaClient();
 async function main() {
   // Use TRUNCATE to reset auto-increment counters.
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `TeamAllocation`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `UserModule`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `ModuleLead`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `PeerAssessment`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `questionnaireTemplate`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `Team`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `Module`;');
-  await prisma.$executeRawUnsafe('TRUNCATE TABLE `User`;');
+  const tables = [
+    'MeetingAttendance',
+    'MeetingComment',
+    'MeetingMinutes',
+    'Meeting',
+    'PeerAssessmentReview',
+    'PeerAssessment',
+    'TeamAllocation',
+    'UserModule',
+    'ModuleLead',
+    'Question',
+    'QuestionnaireTemplate',
+    'Team',
+    'Module',
+    'User',
+    'Enterprise',
+  ];
+
+  for (const table of tables) {
+    try {
+      await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${table}\`;`);
+    } catch (error: any) {
+      // Ignore missing tables to support older migration states.
+      if (error?.meta?.code === '1146') continue;
+      throw error;
+    }
+  }
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1;');
 }
 

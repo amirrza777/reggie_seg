@@ -47,7 +47,10 @@ export function GithubDonutChartCard({ title, data, info, style }: GithubDonutCh
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
                 borderRadius: 8,
+                color: "var(--ink)",
               }}
+              itemStyle={{ color: "var(--ink)" }}
+              labelStyle={{ color: "var(--ink)" }}
             />
             <Legend />
           </PieChart>

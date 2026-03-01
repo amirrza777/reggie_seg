@@ -2,21 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
-import { listFeatureFlags } from "../api/client";
+import { listFeatureFlags, updateFeatureFlag } from "../api/client";
 import type { FeatureFlag } from "../types";
-
-const fallbackFlags: FeatureFlag[] = [
-  { key: "peer_feedback", label: "Peer feedback", enabled: true },
-  { key: "modules", label: "Modules", enabled: true },
-  { key: "repos", label: "Repos", enabled: false },
-];
 
 type Status = "idle" | "loading" | "error" | "success";
 
 export function FeatureFlagsCard() {
-  const [flags, setFlags] = useState<FeatureFlag[]>(fallbackFlags);
+  const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [updating, setUpdating] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let subscribed = true;
@@ -24,10 +19,9 @@ export function FeatureFlagsCard() {
       setStatus("loading");
       try {
         const response = await listFeatureFlags();
-        if (subscribed && response.length > 0) {
-          setFlags(response);
-        }
-        setStatus("idle");
+        if (!subscribed) return;
+        setFlags(response);
+        setStatus("success");
       } catch (err) {
         if (subscribed) {
           setStatus("error");
@@ -41,6 +35,22 @@ export function FeatureFlagsCard() {
     };
   }, []);
 
+  const handleToggle = async (key: string, enabled: boolean) => {
+    setUpdating((prev) => ({ ...prev, [key]: true }));
+    setMessage(null);
+    const previous = flags;
+    setFlags((prev) => prev.map((f) => (f.key === key ? { ...f, enabled } : f)));
+    try {
+      const updated = await updateFeatureFlag(key, enabled);
+      setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
+    } catch (err) {
+      setFlags(previous);
+      setMessage(err instanceof Error ? err.message : "Could not update flag.");
+    } finally {
+      setUpdating((prev) => ({ ...prev, [key]: false }));
+    }
+  };
+
   return (
     <div className="stack">
       {message ? (
@@ -52,7 +62,7 @@ export function FeatureFlagsCard() {
           <span>{message}</span>
         </div>
       ) : null}
-      <FeatureFlagsPanel flags={flags} />
+      <FeatureFlagsPanel flags={flags} onToggle={handleToggle} updating={updating} />
     </div>
   );
 }

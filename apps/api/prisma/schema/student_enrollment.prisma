@@ -1,9 +1,11 @@
 model UserModule {
-  userId   Int
-  moduleId Int
-  module   Module @relation(fields: [moduleId], references: [id])
-  user     User   @relation(fields: [userId], references: [id])
+  enterpriseId String
+  userId       Int
+  moduleId     Int
+  module       Module @relation(fields: [moduleId, enterpriseId], references: [id, enterpriseId])
+  user         User   @relation(fields: [userId, enterpriseId], references: [id, enterpriseId])
 
-  @@id([userId, moduleId])
+  @@id([enterpriseId, userId, moduleId])
   @@index([moduleId])
+  @@index([userId])
 }

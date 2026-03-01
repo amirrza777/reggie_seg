@@ -15,6 +15,7 @@ export function RegisterForm() {
     email: "",
     password: "",
     confirmPassword: "",
+    role: "STUDENT" as "STUDENT" | "STAFF",
   });
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function RegisterForm() {
         password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
+        role: formData.role,
       });
       setStatus("success");
       setMessage("Account created. Redirecting...");
@@ -105,6 +107,53 @@ export function RegisterForm() {
         minLength={8}
         onChange={(name, value) => setFormData({ ...formData, [name]: value })}
       />
+
+      <fieldset style={{ margin: "12px 0", padding: 0, border: "none" }}>
+        <legend className="muted" style={{ fontSize: 14, marginBottom: 6 }}>
+          Developer shortcut: choose temporary role (excludes admin)
+        </legend>
+        <div
+          role="radiogroup"
+          aria-label="Select role"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
+            width: "100%",
+          }}
+        >
+          {(["STUDENT", "STAFF"] as const).map((role) => {
+            const active = formData.role === role;
+            return (
+              <button
+                key={role}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setFormData({ ...formData, role })}
+                style={{
+                  width: "100%",
+                  minHeight: 48,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 6,
+                  cursor: "pointer",
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  border: active ? "2px solid var(--border, #cfd3db)" : "1px solid #e2e6ee",
+                  background: active ? "var(--glass-hover, #eef3ff)" : "white",
+                  fontSize: 16,
+                  fontWeight: active ? 400 : 400,
+                  color: "inherit",
+                }}
+              >
+                {role === "STUDENT" ? "Student" : "Staff"}
+              </button>
+            );
+          })}
+        </div>
+      </fieldset>
 
       <div className="auth-actions">
         <Button type="submit" className="auth-button" disabled={status === "loading"}>

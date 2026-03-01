@@ -15,11 +15,28 @@ import {
 import type { AuthRequest } from "./middleware.js";
 import { prisma } from "../shared/db.js";
 
+const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production";
+// SameSite=None is required for cross-site XHR/fetch with credentials; browsers also require Secure in that case.
+const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
+const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+
 export async function signupHandler(req: Request, res: Response) {
-  const { email, password, firstName, lastName } = req.body ?? {};
+  const { email, password, firstName, lastName, role } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
+  const normalizedRole =
+    typeof role === "string" ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ADMIN") : undefined;
+  if (normalizedRole && normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+    return res.status(400).json({ error: "Invalid role" });
+  }
+  const requestedRole = normalizedRole === "STUDENT" || normalizedRole === "STAFF" ? normalizedRole : undefined;
   try {
-    const tokens = await signUp({ email, password, firstName, lastName });
+    const tokens = await signUp({
+      email,
+      password,
+      firstName,
+      lastName,
+      role: requestedRole,
+    });
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
@@ -33,12 +50,16 @@ export async function loginHandler(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   try {
-    const tokens = await login({ email, password });
+    const tokens = await login(
+      { email, password },
+      { ip: req.ip, userAgent: req.get("user-agent") ?? null }
+    );
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("login error", e);
     if (e.code === "INVALID_CREDENTIALS") return res.status(401).json({ error: "Invalid credentials" });
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(500).json({ error: "login failed", detail: e?.message || e?.code || String(e) });
   }
 }
@@ -52,13 +73,14 @@ export async function refreshHandler(req: Request, res: Response) {
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("refresh error", e);
+    if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
     return res.status(401).json({ error: "invalid refresh token", detail: e?.message || e?.code || String(e) });
   }
 }
 
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
-  if (token) await logout(token);
+  if (token) await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
   res.clearCookie("refresh_token");
   return res.json({ success: true });
 }
@@ -136,9 +158,10 @@ export async function confirmEmailChangeHandler(req: AuthRequest, res: Response)
 function setRefreshCookie(res: Response, token: string) {
   res.cookie("refresh_token", token, {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
     path: "/",
+    domain: cookieDomain,
     maxAge: 1000 * 60 * 60 * 24 * 30,
   });
 }
@@ -157,17 +180,23 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(401).json({ error: "Not authenticated" });
+    if (user.active === false) {
+      await prisma.refreshToken.updateMany({ where: { userId: user.id, revoked: false }, data: { revoked: true } });
+      return res.status(403).json({ error: "Account is suspended" });
+    }
 
-    const role = user.isAdmin ? "ADMIN" : user.isStaff ? "STAFF" : "STUDENT";
+    const role = user.role;
+    const isStaff = role !== "STUDENT";
+    const isAdmin = role === "ADMIN";
 
     const profile = await getProfile(user.id); // includes avatar fields
 
     return res.json({
       ...profile,
-      isStaff: user.isStaff,
-      isAdmin: user.isAdmin,
+      isStaff,
+      isAdmin,
       role,
-      active: true,
+      active: user.active ?? true,
     });
   } catch (err) {
     console.error("meHandler error", err);

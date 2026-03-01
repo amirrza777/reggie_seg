@@ -23,6 +23,9 @@ type GithubRepoChartsDashboardProps = {
   currentGithubLogin: string | null;
 };
 
+const CHART_COLOR_PRIMARY = "#36c98f";
+const CHART_COLOR_SECONDARY = "#f59b3a";
+
 
 function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
   const commitsByDay = snapshot?.repoStats?.[0]?.commitsByDay;
@@ -111,8 +114,8 @@ function buildCoverageShareSeries(coverage: GithubMappingCoverage | null) {
   const matchedCommits = Math.max(0, totalCommits - unmatchedCommits);
   if (!totalCommits) return [];
   return [
-    { name: "Matched commits", value: matchedCommits, fill: "var(--accent)" },
-    { name: "Unmatched commits", value: unmatchedCommits, fill: "var(--accent-warm)" },
+    { name: "Matched commits", value: matchedCommits, fill: CHART_COLOR_PRIMARY },
+    { name: "Unmatched commits", value: unmatchedCommits, fill: CHART_COLOR_SECONDARY },
   ];
 }
 
@@ -126,8 +129,8 @@ function buildBranchScopeCommitShareSeries(snapshot: GithubLatestSnapshot["snaps
   }
 
   return [
-    { name: "Default branch", value: defaultCommits, fill: "var(--accent)" },
-    { name: "Other branches", value: otherBranchCommits, fill: "var(--accent-warm)" },
+    { name: "Default branch", value: defaultCommits, fill: CHART_COLOR_PRIMARY },
+    { name: "Other branches", value: otherBranchCommits, fill: CHART_COLOR_SECONDARY },
   ].filter((row) => row.value > 0);
 }
 
@@ -283,8 +286,8 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
                   <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
                   <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
                   <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
-                  <Line type="monotone" dataKey="commits" name="Total commits" stroke="var(--accent)" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="personalCommits" name="Your commits" stroke="var(--accent-warm)" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="commits" name="Total commits" stroke={CHART_COLOR_PRIMARY} strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="personalCommits" name="Your commits" stroke={CHART_COLOR_SECONDARY} strokeWidth={2} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -334,7 +337,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
                     }}
                     contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
                   />
-                  <Bar dataKey="commits" name="Commits" fill="var(--accent)" />
+                  <Bar dataKey="commits" name="Commits" fill={CHART_COLOR_PRIMARY} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -351,7 +354,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
                   <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--muted)" }} />
                   <YAxis type="category" dataKey="contributor" width={110} tick={{ fill: "var(--muted)" }} />
                   <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
-                  <Bar dataKey="commits" name="Commits" fill="var(--accent-strong, #2ca581)" />
+                  <Bar dataKey="commits" name="Commits" fill={CHART_COLOR_PRIMARY} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

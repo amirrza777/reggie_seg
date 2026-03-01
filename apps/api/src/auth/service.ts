@@ -1,6 +1,8 @@
 import argon2 from "argon2";
 import jwt from "jsonwebtoken";
+import type { Role } from "@prisma/client";
 import { prisma } from "../shared/db.js";
+import { recordAuditLog } from "../features/audit/service.js";
 import { randomBytes, createHash, randomInt } from "crypto";
 import { sendEmail } from "../shared/email.js";
 
@@ -13,25 +15,50 @@ const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace
 const resetDebug = process.env.PASSWORD_RESET_DEBUG === "true";
 const emailChangeTtl = process.env.EMAIL_CHANGE_TTL || "15m";
 
-type User = { id: number; email: string };
+type User = { id: number; email: string; role: Role };
 type TokenPayload = { sub: number; email: string; admin?: boolean };
 const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
 const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-export async function signUp(data: { email: string; password: string; firstName?: string; lastName?: string }) {
+type NewUserRole = Extract<Role, "STUDENT" | "STAFF">;
+
+export async function signUp(data: {
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: NewUserRole;
+}) {
   const email = data.email.toLowerCase();
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const enterpriseId = await getDefaultEnterpriseId();
+  const existing = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+  });
   if (existing) throw { code: "EMAIL_TAKEN" };
   const passwordHash = await argon2.hash(data.password);
+  const role: NewUserRole = data.role && data.role !== "ADMIN" ? data.role : "STUDENT";
   const user = await prisma.user.create({
-    data: { email, passwordHash, firstName: data.firstName ?? "", lastName: data.lastName ?? "" },
+    data: {
+      email,
+      passwordHash,
+      firstName: data.firstName ?? "",
+      lastName: data.lastName ?? "",
+      role,
+      enterpriseId,
+    },
   });
-  return issueTokens(user, Boolean(user.isAdmin));
+  return issueTokens(user);
 }
 
-export async function login(data: { email: string; password: string }) {
+export async function login(
+  data: { email: string; password: string },
+  meta: { ip?: string | null; userAgent?: string | null } = {}
+) {
   const emailInput = (data.email ?? "").toLowerCase();
-  const user = await prisma.user.findUnique({ where: { email: emailInput } });
+  const enterpriseId = await getDefaultEnterpriseId();
+  const user = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email: emailInput } },
+  });
 
   if (!user && bootstrapAdminEmail && bootstrapAdminPassword) {
     if (emailInput === bootstrapAdminEmail && data.password === bootstrapAdminPassword) {
@@ -42,42 +69,58 @@ export async function login(data: { email: string; password: string }) {
           passwordHash,
           firstName: "Admin",
           lastName: "User",
-          isStaff: true,
-          isAdmin: true,
+          role: "ADMIN",
+          enterpriseId,
         },
       });
-      return issueTokens(created, true);
+      const tokens = await issueTokens(created);
+      await recordAuditLog({ userId: created.id, action: "LOGIN", ...meta });
+      return tokens;
     }
   }
 
   if (!user || !user.passwordHash) throw { code: "INVALID_CREDENTIALS" };
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
 
-  const ok = await argon2.verify(user.passwordHash, data.password);
+  let ok = false;
+  try {
+    ok = await argon2.verify(user.passwordHash, data.password);
+  } catch {
+    ok = false;
+  }
   if (!ok && bootstrapAdminEmail && bootstrapAdminPassword && emailInput === bootstrapAdminEmail) {
     if (data.password === bootstrapAdminPassword) {
       const newHash = await argon2.hash(data.password);
       const updated = await prisma.user.update({
         where: { id: user.id },
-        data: { passwordHash: newHash, isAdmin: true, isStaff: true },
+        data: { passwordHash: newHash, role: "ADMIN" },
       });
-      return issueTokens(updated, true);
+      const tokens = await issueTokens(updated);
+      await recordAuditLog({ userId: updated.id, action: "LOGIN", ...meta });
+      return tokens;
     }
   }
 
   if (!ok) throw { code: "INVALID_CREDENTIALS" };
 
   if (bootstrapAdminEmail && emailInput === bootstrapAdminEmail) {
-    if (!user.isAdmin || !user.isStaff) {
+    if (user.role !== "ADMIN") {
       const updated = await prisma.user.update({
         where: { id: user.id },
-        data: { isAdmin: true, isStaff: true },
+        data: { role: "ADMIN" },
       });
-      return issueTokens(updated, true);
+      const tokens = await issueTokens(updated);
+      await recordAuditLog({ userId: updated.id, action: "LOGIN", ...meta });
+      return tokens;
     }
-    return issueTokens(user, true);
+    const tokens = await issueTokens(user);
+    await recordAuditLog({ userId: user.id, action: "LOGIN", ...meta });
+    return tokens;
   }
 
-  return issueTokens(user, user.isAdmin);
+  const tokens = await issueTokens(user);
+  await recordAuditLog({ userId: user.id, action: "LOGIN", ...meta });
+  return tokens;
 }
 
 export async function refreshTokens(refreshToken: string) {
@@ -86,19 +129,28 @@ export async function refreshTokens(refreshToken: string) {
   if (!valid) throw new Error("invalid");
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
   if (!user) throw new Error("invalid");
-  return issueTokens({ id: user.id, email: user.email }, Boolean(user.isAdmin));
+  if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
+  const tokens = await issueTokens({ id: user.id, email: user.email, role: user.role });
+  return tokens;
 }
 
-export async function logout(refreshToken: string) {
+export async function logout(
+  refreshToken: string,
+  meta: { ip?: string | null; userAgent?: string | null } = {}
+) {
   const payload = verifyRefresh(refreshToken);
   await prisma.refreshToken.updateMany({
     where: { userId: payload.sub, revoked: false },
     data: { revoked: true },
   });
+  await recordAuditLog({ userId: payload.sub, action: "LOGOUT", ...meta });
 }
 
 export async function requestPasswordReset(email: string) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const enterpriseId = await getDefaultEnterpriseId();
+  const user = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email: email.toLowerCase() } },
+  });
   if (!user) return;
   await prisma.passwordResetToken.updateMany({
     where: { userId: user.id, revoked: false, expiresAt: { gt: new Date() } },
@@ -199,7 +251,16 @@ export async function updateProfile(params: {
 }
 
 export async function requestEmailChange(params: { userId: number; newEmail: string }) {
-  const existing = await prisma.user.findUnique({ where: { email: params.newEmail } });
+  const user = await prisma.user.findUnique({
+    where: { id: params.userId },
+    select: { enterpriseId: true },
+  });
+  if (!user) throw { code: "USER_NOT_FOUND" };
+
+  const nextEmail = params.newEmail.toLowerCase();
+  const existing = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId: user.enterpriseId, email: nextEmail } },
+  });
   if (existing) throw { code: "EMAIL_TAKEN" };
   await prisma.emailChangeToken.updateMany({
     where: { userId: params.userId, revoked: false, expiresAt: { gt: new Date() } },
@@ -209,7 +270,7 @@ export async function requestEmailChange(params: { userId: number; newEmail: str
   const codeHash = hashToken(code);
   const expiresAt = addDurationToNow(emailChangeTtl);
   await prisma.emailChangeToken.create({
-    data: { userId: params.userId, newEmail: params.newEmail, codeHash, expiresAt },
+    data: { userId: params.userId, newEmail: nextEmail, codeHash, expiresAt },
   });
   const text = [
     "Use this verification code to confirm your email change:",
@@ -225,15 +286,16 @@ export async function requestEmailChange(params: { userId: number; newEmail: str
     "<br/><br/>",
     `This 4-digit code expires in ${emailChangeTtl}.`,
   ].join("");
-  await sendEmail({ to: params.newEmail, subject: "Verify your new email", text, html });
+  await sendEmail({ to: nextEmail, subject: "Verify your new email", text, html });
 }
 
 export async function confirmEmailChange(params: { userId: number; newEmail: string; code: string }) {
+  const nextEmail = params.newEmail.toLowerCase();
   const codeHash = hashToken(params.code.trim());
   const record = await prisma.emailChangeToken.findFirst({
     where: {
       userId: params.userId,
-      newEmail: params.newEmail,
+      newEmail: nextEmail,
       codeHash,
       revoked: false,
       usedAt: null,
@@ -242,7 +304,7 @@ export async function confirmEmailChange(params: { userId: number; newEmail: str
   });
   if (!record) throw { code: "INVALID_EMAIL_CODE" };
   await prisma.$transaction([
-    prisma.user.update({ where: { id: params.userId }, data: { email: params.newEmail } }),
+    prisma.user.update({ where: { id: params.userId }, data: { email: nextEmail } }),
     prisma.emailChangeToken.updateMany({
       where: { userId: params.userId, revoked: false },
       data: { revoked: true, usedAt: new Date() },
@@ -253,7 +315,10 @@ export async function confirmEmailChange(params: { userId: number; newEmail: str
 
 export async function signUpWithProvider(params: { email: string; firstName?: string; lastName?: string; provider: string }) {
   const email = params.email.toLowerCase();
-  let user = await prisma.user.findUnique({ where: { email } });
+  const enterpriseId = await getDefaultEnterpriseId();
+  let user = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+  });
   if (!user) {
     const randomPwd = randomBytes(32).toString("hex");
     const passwordHash = await argon2.hash(randomPwd);
@@ -263,7 +328,8 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
         passwordHash,
         firstName: params.firstName ?? "",
         lastName: params.lastName ?? "",
-        isAdmin: false,
+        role: "STUDENT",
+        enterpriseId,
       },
     });
   }
@@ -272,14 +338,26 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
 
 export async function issueTokensForUser(userId: number, email: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  return issueTokens({ id: userId, email: email.toLowerCase() }, Boolean(user?.isAdmin));
+  if (!user) throw new Error("invalid");
+  return issueTokens({ id: userId, email: email.toLowerCase(), role: user.role });
 }
 
-function issueTokens(user: User, adminSession: boolean) {
+function issueTokens(user: User) {
+  const adminSession = user.role === "ADMIN";
   const payload: TokenPayload = { sub: user.id, email: user.email, admin: adminSession };
   const accessToken = jwt.sign(payload, accessSecret, { expiresIn: accessTtl });
   const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshTtl });
   return saveRefresh(user.id, refreshToken, accessToken);
+}
+
+async function getDefaultEnterpriseId() {
+  const enterprise = await prisma.enterprise.upsert({
+    where: { code: "DEFAULT" },
+    update: {},
+    create: { code: "DEFAULT", name: "Default Enterprise" },
+    select: { id: true },
+  });
+  return enterprise.id;
 }
 
 async function saveRefresh(userId: number, token: string, accessToken: string) {
