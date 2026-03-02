@@ -26,7 +26,8 @@ export type PeerFeedback = {
   submittedAt: string;
   answers: Answer[];
   firstName?: string;
-  lastName?: string;  
+  lastName?: string;
+  reviewSubmitted?: boolean;
 }
 export type AgreementOption = 'Strongly Disagree' | 'Disagree' | 'Reasonable' | 'Agree' | 'Strongly Agree';
 

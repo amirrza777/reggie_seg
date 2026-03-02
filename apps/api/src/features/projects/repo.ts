@@ -16,6 +16,11 @@ export async function getUserProjects(userId: number) {
     select: {
       id: true,
       name: true,
+      module: {
+        select: {
+          name: true,
+        },
+      },
     },
   });
 }

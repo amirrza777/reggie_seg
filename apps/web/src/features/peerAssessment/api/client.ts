@@ -51,6 +51,11 @@ export async function getPeerAssessmentData(
   const raw = await getPeerAssessment(projectId, teamId, reviewerId, revieweeId);
   return mapApiAssessmentToPeerAssessment(raw);
 }
+
+export async function getPeerAssessmentsForUser(userId: number, projectId: number) {
+  const raw = await apiFetch<any[]>(`/peer-assessments/projects/${projectId}/user/${userId}`);
+  return Array.isArray(raw) ? raw.map(mapApiAssessmentToPeerAssessment) : [];
+}
 /*
 export async function getQuestionsByAssessment(projectId: string): Promise<Question[]> {
   const raw = await apiFetch<{ questionnaireTemplate: { questions: any[] } }>(`/peer-assessments/projects/${projectId}/questions`);

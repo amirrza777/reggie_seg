@@ -19,8 +19,14 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
     { href: `${base}/peer-assessments`, label: "Peer assessment" },
     { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
     { href: `${base}/repos`, label: "Repos", flag: "repos" },
+    { href: `${base}/trello`, label: "Trello", flag: "trello" },
   ].filter((link) => {
-    if (link.flag && enabledFlags) return enabledFlags[link.flag] === true;
+    if (link.flag && enabledFlags) {
+      if (Object.prototype.hasOwnProperty.call(enabledFlags, link.flag)) {
+        return enabledFlags[link.flag] === true;
+      }
+      return true;
+    }
     return true;
   });
 
