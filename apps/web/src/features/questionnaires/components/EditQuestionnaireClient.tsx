@@ -160,7 +160,7 @@ export default function EditQuestionnairePage() {
       }
 
       if (q.type === "slider") {
-        const { min, max, step, left, right } = (q.configs as SliderConfigs | undefined) ?? {};
+        const { min, max, step, left, right } = q.configs as SliderConfigs;
         if (typeof min !== "number" || typeof max !== "number") {
           errors.push(`Question ${idx + 1} slider min/max must be numbers.`);
         } else if (min >= max) {
@@ -552,3 +552,4 @@ export default function EditQuestionnairePage() {
     </div>
   );
 }
+

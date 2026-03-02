@@ -350,5 +350,409 @@ describe("EditQuestionnaireClient", () => {
     expect(mcOptions).toContain("Absolutely");
     expect(mcOptions).toContain("New option");
   });
+  it("adds new question types with default configs", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "Base Template",
+        canEdit: true,
+        isPublic: true,
+        questions: [{ id: 1, label: "Base question", type: "text", configs: {} }],
+      })
+      .mockResolvedValueOnce({});
+
+    render(<EditQuestionnaireClient />);
+
+    await screen.findByDisplayValue("Base Template");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add multiple choice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add rating" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add slider" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
+
+    const questionInputs = screen.getAllByPlaceholderText("Enter your question");
+    fireEvent.change(questionInputs[1], { target: { value: "Added MC" } });
+    fireEvent.change(questionInputs[2], { target: { value: "Added Rating" } });
+    fireEvent.change(questionInputs[3], { target: { value: "Added Slider" } });
+    fireEvent.change(questionInputs[4], { target: { value: "Added Text" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
+
+    const putCall = apiFetchMock.mock.calls.find(
+      ([path, init]) => path === "/questionnaires/12" && init?.method === "PUT"
+    );
+    const [, init] = putCall as [string, { body?: BodyInit | null }];
+    const body = JSON.parse(String(init?.body));
+
+    const addedMc = body.questions.find((q: any) => q.label === "Added MC");
+    const addedRating = body.questions.find((q: any) => q.label === "Added Rating");
+    const addedSlider = body.questions.find((q: any) => q.label === "Added Slider");
+    const addedText = body.questions.find((q: any) => q.label === "Added Text");
+
+    expect(addedMc).toMatchObject({
+      type: "multiple-choice",
+      configs: { options: ["Yes", "No"] },
+    });
+    expect(addedRating).toMatchObject({
+      type: "rating",
+      configs: { min: 1, max: 10 },
+    });
+    expect(addedSlider).toMatchObject({
+      type: "slider",
+      configs: {
+        min: 0,
+        max: 100,
+        step: 1,
+        left: "Strongly disagree",
+        right: "Strongly agree",
+      },
+    });
+    expect(addedText).toMatchObject({
+      type: "text",
+      configs: {},
+    });
+  });
+
+  it("shows slider numeric validation when min/max are not numbers", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Numeric checks",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        {
+          id: 5,
+          label: "Slider question",
+          type: "slider",
+          configs: { min: "bad", max: 10, step: 1, left: "Low", right: "High" },
+        },
+      ],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(
+      await screen.findByText("Question 1 slider min/max must be numbers.")
+    ).toBeInTheDocument();
+  });
+
+  it("removes a multiple-choice option and saves updated options", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "MC edit",
+        canEdit: true,
+        isPublic: true,
+        questions: [
+          {
+            id: 6,
+            label: "Pick one",
+            type: "multiple-choice",
+            configs: { options: ["Alpha", "Beta", "Gamma"] },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({});
+
+    render(<EditQuestionnaireClient />);
+
+    await screen.findByDisplayValue("MC edit");
+
+    const betaInput = screen.getByDisplayValue("Beta");
+    const optionRow = betaInput.parentElement;
+    const removeButton = optionRow?.querySelector("button");
+    expect(removeButton).not.toBeNull();
+    fireEvent.click(removeButton as HTMLButtonElement);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
+
+    const putCall = apiFetchMock.mock.calls.find(
+      ([path, init]) => path === "/questionnaires/12" && init?.method === "PUT"
+    );
+    const [, init] = putCall as [string, { body?: BodyInit | null }];
+    const body = JSON.parse(String(init?.body));
+
+    expect(body.questions[0].configs.options).toEqual(["Alpha", "Gamma"]);
+  });
+  it("keeps non-target multiple-choice question unchanged when removing option", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "MC map branch",
+        canEdit: true,
+        isPublic: true,
+        questions: [
+          {
+            id: 60,
+            label: "Primary MC",
+            type: "multiple-choice",
+            configs: { options: ["One", "Two", "Three"] },
+          },
+          {
+            id: 61,
+            label: "Secondary MC",
+            type: "multiple-choice",
+            configs: { options: ["Red", "Blue", "Green"] },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({});
+
+    render(<EditQuestionnaireClient />);
+
+    await screen.findByDisplayValue("MC map branch");
+
+    const twoInput = screen.getByDisplayValue("Two");
+    const optionRow = twoInput.parentElement;
+    const removeButton = optionRow?.querySelector("button");
+    expect(removeButton).not.toBeNull();
+    fireEvent.click(removeButton as HTMLButtonElement);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
+
+    const putCall = apiFetchMock.mock.calls.find(
+      ([path, init]) => path === "/questionnaires/12" && init?.method === "PUT"
+    );
+    const [, init] = putCall as [string, { body?: BodyInit | null }];
+    const body = JSON.parse(String(init?.body));
+
+    const primary = body.questions.find((q: any) => q.label === "Primary MC");
+    const secondary = body.questions.find((q: any) => q.label === "Secondary MC");
+
+    expect(primary.configs.options).toEqual(["One", "Three"]);
+    expect(secondary.configs.options).toEqual(["Red", "Blue", "Green"]);
+  });
+  it("duplicates in use mode, applies fallback fields, and saves as new template", async () => {
+    searchParamsState.value = "mode=use";
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: 123,
+        canEdit: false,
+        isPublic: true,
+        questions: [{ id: 70, label: null, type: "text", configs: undefined }],
+      })
+      .mockResolvedValueOnce({ ok: true, templateID: 701 });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(await screen.findByDisplayValue(/\(Copy\)$/)).toBeInTheDocument();
+
+    const questionInput = screen.getByPlaceholderText("Enter your question");
+    fireEvent.change(questionInput, { target: { value: "Use-mode copy question" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/new",
+        expect.objectContaining({ method: "POST" })
+      );
+    });
+
+    const postCall = apiFetchMock.mock.calls.find(
+      ([path, init]) => path === "/questionnaires/new" && init?.method === "POST"
+    );
+    const [, init] = postCall as [string, { body?: BodyInit | null }];
+    const body = JSON.parse(String(init?.body));
+
+    expect(body.templateName).toBe(" (Copy)");
+    expect(body.isPublic).toBe(false);
+    expect(body.questions[0]).toMatchObject({
+      label: "Use-mode copy question",
+      type: "text",
+      configs: {},
+    });
+    expect(push).toHaveBeenCalledWith("/staff/questionnaires");
+    expect(back).not.toHaveBeenCalled();
+  });
+
+  it("renders named preview heading and slider default selected values", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Named Preview",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        {
+          id: 80,
+          label: "Slider with min",
+          type: "slider",
+          configs: { min: 5, max: 10, step: 1, left: "Low", right: "High" },
+        },
+        {
+          id: 81,
+          label: "Slider without min",
+          type: "slider",
+          configs: { max: 10, step: 1, left: "Low", right: "High" },
+        },
+      ],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    await screen.findByDisplayValue("Named Preview");
+    fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
+
+    expect(screen.getByText("Named Preview")).toBeInTheDocument();
+    expect(screen.getByText("Selected: 5")).toBeInTheDocument();
+    expect(screen.getByText("Selected: 0")).toBeInTheDocument();
+  });
+
+  it("handles missing multiple-choice and slider configs and keeps save disabled", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Missing configs",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        { id: 90, label: "MC missing options", type: "multiple-choice", configs: undefined },
+        { id: 91, label: "Slider missing config", type: "slider", configs: undefined },
+      ],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(await screen.findByDisplayValue("Missing configs")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 must have at least two options.")).toBeInTheDocument();
+    expect(screen.queryByText("Question 1 has empty options.")).not.toBeInTheDocument();
+    expect(screen.getByText("Question 2 slider min/max must be numbers.")).toBeInTheDocument();
+    expect(screen.getByText("Question 2 slider step must be greater than zero.")).toBeInTheDocument();
+    expect(screen.getByText("Question 2 slider labels are required.")).toBeInTheDocument();
+
+    const saveButton = screen.getByRole("button", { name: "Save changes" });
+    expect(saveButton).toBeDisabled();
+    fireEvent.click(saveButton);
+
+    expect(apiFetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("supports undefined multiple-choice options in preview/editor and add option fallback", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "MC undefined options",
+        canEdit: true,
+        isPublic: true,
+        questions: [
+          {
+            id: 100,
+            label: "MC with undefined options",
+            type: "multiple-choice",
+            configs: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({});
+
+    render(<EditQuestionnaireClient />);
+
+    await screen.findByDisplayValue("MC undefined options");
+
+    fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Back to editor" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+
+    expect(await screen.findAllByDisplayValue("New option")).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      );
+    });
+
+    const putCall = apiFetchMock.mock.calls.find(
+      ([path, init]) => path === "/questionnaires/12" && init?.method === "PUT"
+    );
+    const [, init] = putCall as [string, { body?: BodyInit | null }];
+    const body = JSON.parse(String(init?.body));
+
+    expect(body.questions[0].configs.options).toEqual(["New option", "New option"]);
+  });
+  it("treats undefined multiple-choice option entries as empty", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Undefined option",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        {
+          id: 110,
+          label: "MC option check",
+          type: "multiple-choice",
+          configs: { options: [undefined, "Filled"] },
+        },
+      ],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(await screen.findByDisplayValue("Undefined option")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 has empty options.")).toBeInTheDocument();
+  });
+
+  it("runs slider validation branch when slider configs are undefined", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Undefined slider config",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        {
+          id: 120,
+          label: "Slider config check",
+          type: "slider",
+          configs: undefined,
+        },
+      ],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(await screen.findByDisplayValue("Undefined slider config")).toBeInTheDocument();
+    expect(screen.getByText("Question 1 slider min/max must be numbers.")).toBeInTheDocument();
+  });
+
+  it("returns early in saveTemplate when invalid even if click is dispatched", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "Early return",
+      canEdit: true,
+      isPublic: true,
+      questions: [{ id: 130, label: "", type: "text", configs: {} }],
+    });
+
+    render(<EditQuestionnaireClient />);
+
+    expect(await screen.findByDisplayValue("Early return")).toBeInTheDocument();
+
+    const saveButton = screen.getByRole("button", { name: "Save changes" }) as HTMLButtonElement;
+    expect(saveButton).toBeDisabled();
+
+    const reactPropsKey = Object.keys(saveButton).find((k) => k.startsWith("__reactProps$"));
+    const onClick = reactPropsKey
+      ? (saveButton as any)[reactPropsKey].onClick
+      : undefined;
+    expect(typeof onClick).toBe("function");
+    onClick({ preventDefault: () => undefined } as any);
+
+    expect(apiFetchMock).toHaveBeenCalledTimes(1);
+  });
 });
 
