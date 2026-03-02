@@ -5,7 +5,7 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { getCurrentUser, isAdmin } from "@/shared/auth/session";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
@@ -68,6 +68,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
+  if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise" });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
