@@ -357,7 +357,8 @@ async function seedAdminTeamAllocation(enterpriseId: string) {
     where: { teamId_userId: { teamId: team.id, userId: admin.id } },
     update: {},
     create: { teamId: team.id, userId: admin.id },
-  });}
+  });
+}
 async function seedGithubE2EUsers(
   enterpriseId: string,
   projects: SeedProject[],
