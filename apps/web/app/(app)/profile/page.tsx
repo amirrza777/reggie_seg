@@ -21,6 +21,14 @@ export default function ProfilePage() {
 
   const profile = user;
 
+  const avatarInitials = useMemo(() => {
+    if (!profile) return "";
+    const first = profile.firstName?.[0] ?? "";
+    const last = profile.lastName?.[0] ?? "";
+    const value = `${first}${last}`.trim();
+    return value.length > 0 ? value.toUpperCase() : profile.email.slice(0, 2).toUpperCase();
+  }, [profile]);
+
   const avatarSrc = useMemo(() => {
     if (!profile?.avatarBase64 || !profile.avatarMime) return null;
     return `data:${profile.avatarMime};base64,${profile.avatarBase64}`;
@@ -145,7 +153,7 @@ export default function ProfilePage() {
             {avatarSrc ? (
               <img src={avatarSrc} alt="Avatar" />
             ) : (
-              <div className="profile-avatar__fallback">{profile.firstName?.[0] ?? profile.email[0]}</div>
+              <div className="profile-avatar__fallback">{avatarInitials}</div>
             )}
             <div className="profile-avatar__actions">
               <label className="profile-file">
@@ -156,7 +164,12 @@ export default function ProfilePage() {
                 />
                 Choose file
               </label>
-              <Button variant="ghost" type="button" onClick={() => handleAvatarChange(null)}>
+              <Button
+                variant="ghost"
+                className="profile-avatar__remove"
+                type="button"
+                onClick={() => handleAvatarChange(null)}
+              >
                 Remove avatar
               </Button>
             </div>

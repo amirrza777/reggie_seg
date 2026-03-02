@@ -5,27 +5,27 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { getCurrentUser, isAdmin } from "@/shared/auth/session";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 
 export const dynamic = "force-dynamic";
 
-const adminNav = [
-  { href: "/admin", label: "Admin dashboard", space: "admin" as const },
-];
+const enterpriseNav = [{ href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const }];
 
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+export default async function EnterpriseLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  if (!isAdmin(user)) {
+  if (!isEnterpriseAdmin(user) && !isAdmin(user)) {
     redirect("/dashboard");
   }
 
+  const workspaceAliases = ["/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
+
   const spaceLinks: SpaceLink[] = [
-    { href: "/dashboard", label: "Workspace" },
+    { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
     { href: "/staff/dashboard", label: "Staff" },
     { href: "/enterprise", label: "Enterprise" },
     { href: "/admin", label: "Admin" },
@@ -33,8 +33,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Admin" links={adminNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
+      topbar={<Topbar title="Enterprise" titleHref="/enterprise" actions={<UserMenu />} />}
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

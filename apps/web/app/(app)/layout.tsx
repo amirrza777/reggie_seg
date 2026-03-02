@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 type NavLink = {
   href: string;
   label: string;
-  space: "workspace" | "staff" | "admin";
+  space: "workspace" | "staff" | "enterprise" | "admin";
 };
 
 const navLinks: NavLink[] = [

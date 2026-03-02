@@ -1,3 +1,8 @@
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -8,6 +13,8 @@ const nextConfig = {
     "http://localhost",
     "http://127.0.0.1",
   ],
+  // Silence workspace-root inference warning when multiple lockfiles exist
+  outputFileTracingRoot: path.join(__dirname, "..", ".."),
 };
 
 export default nextConfig;
