@@ -348,6 +348,7 @@ async function seedAdminTeamAllocation(enterpriseId: string) {
     update: {},
     create: { teamId: team.id, userId: admin.id },
   });
+}
 async function seedGithubE2EUsers(
   enterpriseId: string,
   projects: SeedProject[],
@@ -546,4 +547,3 @@ main()
     await prisma.$disconnect();
     throw err;
   });
-
