@@ -36,9 +36,13 @@ model User {
   trelloMemberId String?
   ownedTeamTrelloBoards Team[] @relation("TrelloOwner")
   
-  questionnaires      QuestionnaireTemplate[]
-  reviewerFeedbacks   PeerFeedback[]          @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks   PeerFeedback[]          @relation("PeerFeedbackReviewee")
+  questionnaires          QuestionnaireTemplate[]
+  reviewerFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewee")
+  githubAccount           GithubAccount?
+  linkedGithubRepos       ProjectGithubRepository[]     @relation("ProjectGithubRepositoryLinkedBy")
+  analysedGithubSnapshots GithubRepoSnapshot[]          @relation("GithubRepoSnapshotAnalysedBy")
+  mappedGithubStats       GithubRepoSnapshotUserStat[]  @relation("GithubRepoSnapshotUserStatMappedUser")
   teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
   teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
   auditLogs           AuditLog[]

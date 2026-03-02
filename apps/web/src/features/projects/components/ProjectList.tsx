@@ -26,6 +26,9 @@ export function ProjectList({ projects }: ProjectListProps) {
           >
             <div className="project-card__header">
               <h2 className="project-card__title">{project.name}</h2>
+              <p className="project-card__module">
+                Module: {project.moduleName || "Module not assigned"}
+              </p>
             </div>
             {project.summary && (
               <p className="project-card__summary">{project.summary}</p>
