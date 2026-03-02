@@ -1,29 +1,19 @@
-"use client";
-
-import { use, useEffect, useState } from "react";
-import { getMeeting } from "@/features/meetings/api/client";
-import { MeetingDetail } from "@/features/meetings/components/MeetingDetail";
+import { MeetingDetailContent } from "@/features/meetings/components/MeetingDetailContent";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import type { Meeting } from "@/features/meetings/types";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type MeetingPageProps = {
   params: Promise<{ projectId: string; meetingId: string }>;
 };
 
-export default function MeetingPage({ params }: MeetingPageProps) {
-  const { projectId, meetingId } = use(params);
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-
-  useEffect(() => {
-    getMeeting(Number(meetingId)).then(setMeeting);
-  }, [meetingId]);
-
-  if (!meeting) return null;
+export default async function MeetingPage({ params }: MeetingPageProps) {
+  const { projectId, meetingId } = await params;
+  const flagMap = await getFeatureFlagMap();
 
   return (
     <div className="stack">
-      <ProjectNav projectId={projectId} />
-      <MeetingDetail meeting={meeting} />
+      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
+      <MeetingDetailContent meetingId={Number(meetingId)} />
     </div>
   );
 }
