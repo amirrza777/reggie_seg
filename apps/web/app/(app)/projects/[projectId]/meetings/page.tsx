@@ -11,8 +11,8 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
 
   return (
     <div className="stack">
-      <ProjectNav projectId={projectId} />
-      <MeetingsPageContent teamId={teamId} />
+      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
+      <MeetingsPageContent teamId={teamId} projectId={teamId} />
     </div>
   );
 }
