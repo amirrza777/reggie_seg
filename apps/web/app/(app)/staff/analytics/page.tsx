@@ -14,7 +14,6 @@ export default async function StaffAnalyticsPage() {
     <div className="stack">
       <Placeholder
         title="Analytics"
-        path="/staff/analytics"
         description="Radar charts, exports, and at-risk notifications."
       />
 

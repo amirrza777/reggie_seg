@@ -59,7 +59,6 @@ export default async function StudentPage({ params }: PageProps) {
   }
 
   const studentName = memberName(data.student);
-  const path = `/staff/peer-assessments/module/${moduleIdParam}/team/${teamIdParam}/student/${studentIdParam}`;
   const performanceSummary = {
     ...data.performanceSummary,
     moduleId: moduleIdParam,
@@ -71,7 +70,6 @@ export default async function StudentPage({ params }: PageProps) {
     <div className="stack">
       <Placeholder
         title={`${data.module.title} – ${data.team.title} – ${studentName}`}
-        path={path}
         description={`Detailed view of ${studentName}'s peer assessments for their team.`}
       />
 

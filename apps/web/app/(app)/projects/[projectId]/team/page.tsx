@@ -2,8 +2,6 @@ import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectTeamList } from "@/features/projects/components/ProjectTeamList";
 import { Card } from "@/shared/ui/Card";
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;

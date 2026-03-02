@@ -56,7 +56,6 @@ export default async function TeamPage({ params }: PageProps) {
     <div className="stack">
       <Placeholder
         title={`${moduleInfo.title} – ${teamInfo.title}`}
-        path={`/staff/peer-assessments/module/${moduleIdParam}/team/${teamIdParam}`}
         description="Peer assessment progress for students in this team."
       />
       <ProgressCardGrid

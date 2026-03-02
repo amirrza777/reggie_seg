@@ -42,7 +42,6 @@ export default async function StaffPeerAssessmentsPage() {
     <div className="stack">
       <Placeholder
         title="All modules' peer assessments"
-        path="/staff/peer-assessments"
         description="Progress overview of peer assessments."
       />
       <ProgressCardGrid

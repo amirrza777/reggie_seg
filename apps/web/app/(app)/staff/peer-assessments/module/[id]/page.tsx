@@ -51,7 +51,6 @@ export default async function ModulePage({ params }: PageProps) {
     <div className="stack">
       <Placeholder
         title={moduleInfo.title}
-        path={`/staff/peer-assessments/module/${id}`}
         description="Progress overview of this module's peer assessments."
       />
       <ProgressCardGrid
