@@ -25,6 +25,7 @@ async function main() {
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(enterpriseId, users, modules);
   await seedTeamAllocations(users, teams);
+  await seedAdminTeamAllocation(enterpriseId); //TODO: only for testing Trello integration, remove later
   await seedGithubE2EUsers(enterpriseId, projects, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
@@ -325,6 +326,28 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
 }
 
+//TODO: only for testing Trello integration, remove later
+async function seedAdminTeamAllocation(enterpriseId: string) {
+  const admin = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email: 'admin@kcl.ac.uk' } },
+    select: { id: true },
+  });
+  if (!admin) return;
+
+  const firstProject = await prisma.project.findFirst({ select: { id: true }, orderBy: { id: 'asc' } });
+  if (!firstProject) return;
+
+  const team = await prisma.team.findFirst({
+    where: { projectId: firstProject.id },
+    select: { id: true },
+  });
+  if (!team) return;
+
+  await prisma.teamAllocation.upsert({
+    where: { teamId_userId: { teamId: team.id, userId: admin.id } },
+    update: {},
+    create: { teamId: team.id, userId: admin.id },
+  });
 async function seedGithubE2EUsers(
   enterpriseId: string,
   projects: SeedProject[],
@@ -523,3 +546,4 @@ main()
     await prisma.$disconnect();
     throw err;
   });
+
