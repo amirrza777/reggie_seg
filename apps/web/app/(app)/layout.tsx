@@ -64,12 +64,18 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     return true;
   });
 
-  const workspaceAliases = ["/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
+  const workspaceAliases = [
+    "/modules",
+    "/projects",
+    "/staff/integrations",
+    "/staff/questionnaires",
+    "/staff/peer-assessments",
+  ];
 
   const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
-  if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
-  if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise" });
-  if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
+  if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
+  if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
+  if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
 
   return (
     <AppShell
