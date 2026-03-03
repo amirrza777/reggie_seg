@@ -8,8 +8,8 @@ import { ApiError } from "@/shared/api/errors";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type CreatePageProps = {
-  params: { projectId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export default async function CreateAssessmentPage({ params, searchParams }: CreatePageProps) {

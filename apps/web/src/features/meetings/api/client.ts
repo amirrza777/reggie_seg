@@ -1,11 +1,12 @@
 import { apiFetch } from "@/shared/api/http";
+import type { Meeting } from "../types";
 
 export async function listMeetings(teamId: number) {
-  return apiFetch(`/meetings/team/${teamId}`);
+  return apiFetch<Meeting[]>(`/meetings/team/${teamId}`);
 }
 
 export async function getMeeting(meetingId: number) {
-  return apiFetch(`/meetings/${meetingId}`);
+  return apiFetch<Meeting>(`/meetings/${meetingId}`);
 }
 
 export async function createMeeting(data: {

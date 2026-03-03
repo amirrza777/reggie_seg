@@ -57,10 +57,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
   const numericProjectId = Number(projectId);
   const activeLinkCount = links.filter((link) => link.isActive).length;
-  const needsGithubAppInstall =
+  const needsGithubAppInstall = Boolean(
     connection?.connected &&
-    typeof error === "string" &&
-    error.toLowerCase().includes("not installed on any account or organization");
+      typeof error === "string" &&
+      error.toLowerCase().includes("not installed on any account or organization")
+  );
 
   const {
     liveBranchesByLinkId,

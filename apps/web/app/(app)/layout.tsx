@@ -13,6 +13,7 @@ type NavLink = {
   href: string;
   label: string;
   space: "workspace" | "staff" | "enterprise" | "admin";
+  flag?: string;
 };
 
 const navLinks: NavLink[] = [

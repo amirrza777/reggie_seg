@@ -20,7 +20,7 @@ export default async function TeamHealthPage() {
       <Card title="High priority (conflict alerts)">
         <p className="muted">List of teams/students with high score variance will appear here.</p>
         <div style={{ marginTop: 12 }}>
-          <Button variant="secondary" disabled>
+          <Button variant="ghost" disabled>
             Request meeting
           </Button>
         </div>

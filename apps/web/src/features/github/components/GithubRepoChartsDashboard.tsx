@@ -183,7 +183,7 @@ function buildDerivedSignals(params: {
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   coverage: GithubMappingCoverage | null;
   commitTimelineSeries: Array<{ date: string; commits: number; personalCommits: number }>;
-  weeklyCommitSeries: Array<{ week: string; commits: number }>;
+  weeklyCommitSeries: Array<{ commits: number }>;
 }) {
   const { snapshot, coverage, commitTimelineSeries, weeklyCommitSeries } = params;
 
@@ -307,7 +307,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
                   <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
                   <YAxis tick={{ fill: "var(--muted)" }} />
                   <Tooltip
-                    formatter={(value: number, name: string) => [Math.abs(Number(value)), name]}
+                    formatter={(value, name) => [Math.abs(Number(value ?? 0)), name]}
                     contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
                   />
                   <Legend />
