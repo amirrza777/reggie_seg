@@ -17,7 +17,8 @@
   "author": "",
   "license": "ISC",
   "overrides": {
-    "@jridgewell/sourcemap-codec": "1.4.15"
+    "@jridgewell/sourcemap-codec": "1.4.15",
+    "fast-check": "3.23.1"
   },
   "type": "module",
   "dependencies": {
