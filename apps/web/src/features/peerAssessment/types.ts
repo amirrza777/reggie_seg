@@ -34,7 +34,9 @@ export type PeerAssessmentData = {
   reviewerUserId: number;
   revieweeUserId: number;
   templateId: number;
-  answersJson: Record<string, string | number | boolean | null>;
+  answersJson:
+    | Record<string, string | number | boolean | null>
+    | Array<{ question: string; answer: string | number | boolean | null }>;
 };
 
 export type PeerAssessment = {

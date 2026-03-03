@@ -14,7 +14,6 @@ export default async function StaffAnalyticsPage() {
     <div className="stack">
       <Placeholder
         title="Analytics"
-        path="/staff/analytics"
         description="Radar charts, exports, and at-risk notifications."
       />
 
@@ -25,10 +24,10 @@ export default async function StaffAnalyticsPage() {
         <Card title="Exports">
           <p className="muted">Buttons to download CSV/PDF snapshots of key charts.</p>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-            <Button variant="secondary" disabled>
+            <Button variant="ghost" disabled>
               Export CSV
             </Button>
-            <Button variant="secondary" disabled>
+            <Button variant="ghost" disabled>
               Export PDF
             </Button>
           </div>
@@ -40,7 +39,7 @@ export default async function StaffAnalyticsPage() {
           List of at-risk students with a “Send nudge email” action will appear here.
         </p>
         <div style={{ marginTop: 12 }}>
-          <Button variant="secondary" disabled>
+          <Button variant="ghost" disabled>
             Send nudge email
           </Button>
         </div>

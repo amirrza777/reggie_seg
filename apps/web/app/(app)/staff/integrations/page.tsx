@@ -13,7 +13,6 @@ export default async function StaffIntegrationsPage() {
     <div className="stack">
       <Placeholder
         title="Integrations"
-        path="/staff/integrations"
         description="GitHub contributions and Trello activity."
       />
 
