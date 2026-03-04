@@ -58,12 +58,15 @@ describe("RegisterForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    expect(signupMock).toHaveBeenCalledWith({
-      email: "ada@example.com",
-      password: "supersecure",
-      firstName: "Ada",
-      lastName: "Lovelace",
-    });
+    await waitFor(() =>
+      expect(signupMock).toHaveBeenCalledWith({
+        email: "ada@example.com",
+        password: "supersecure",
+        firstName: "Ada",
+        lastName: "Lovelace",
+        role: "STUDENT",
+      })
+    );
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
     expect(screen.getByText(/account created/i)).toBeInTheDocument();
