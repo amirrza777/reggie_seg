@@ -135,22 +135,56 @@ describe("TrelloService", () => {
 
   it("getBoardWithData fetches board data", async () => {
     const mockBoard = { id: "board1" };
+    const mockActions = [{ id: "act1", type: "createCard" }];
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockBoard,
-    } as any);
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBoard,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockActions,
+      } as any);
+
+    global.fetch = fetchMock as any;
 
     const result = await TrelloService.getBoardWithData(
       "board1",
       "token123"
     );
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      `https://api.trello.com/1/boards/board1?lists=open&cards=open&key=${process.env.TRELLO_KEY}&token=token123`
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    const boardCall = String(fetchMock.mock.calls[0]?.[0] ?? "");
+    const boardUrl = new URL(boardCall);
+    expect(boardUrl.origin + boardUrl.pathname).toBe(
+      "https://api.trello.com/1/boards/board1"
+    );
+    expect(boardUrl.searchParams.get("lists")).toBe("open");
+    expect(boardUrl.searchParams.get("cards")).toBe("open");
+    expect(boardUrl.searchParams.get("key")).toBe(process.env.TRELLO_KEY);
+    expect(boardUrl.searchParams.get("token")).toBe("token123");
+    expect(boardUrl.searchParams.get("members")).toBe("all");
+    expect(boardUrl.searchParams.get("member_fields")).toBe("fullName,initials");
+    expect(boardUrl.searchParams.get("labels")).toBe("all");
+    expect(boardUrl.searchParams.get("card_fields")).toBe(
+      "name,desc,idList,due,dateLastActivity,idMembers,labels"
     );
 
-    expect(result).toEqual(mockBoard);
+    const actionsCall = String(fetchMock.mock.calls[1]?.[0] ?? "");
+    const actionsUrl = new URL(actionsCall);
+    expect(actionsUrl.origin + actionsUrl.pathname).toBe(
+      "https://api.trello.com/1/boards/board1/actions"
+    );
+    expect(actionsUrl.searchParams.get("filter")).toBe("createCard,updateCard:idList");
+    expect(actionsUrl.searchParams.get("limit")).toBe("500");
+    expect(actionsUrl.searchParams.get("fields")).toBe("type,date,data");
+    expect(actionsUrl.searchParams.get("key")).toBe(process.env.TRELLO_KEY);
+    expect(actionsUrl.searchParams.get("token")).toBe("token123");
+
+    expect(result).toEqual({ ...mockBoard, actions: mockActions });
   });
 
   it("getBoardWithData throws on failure", async () => {
