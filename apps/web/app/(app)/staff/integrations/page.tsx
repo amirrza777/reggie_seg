@@ -16,7 +16,7 @@ export default async function StaffIntegrationsPage() {
         description="GitHub contributions and Trello activity."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div className="stack stack--loose">
         <Card title="GitHub activity">
           <p className="muted">Contribution map and repo activity stream placeholder.</p>
         </Card>

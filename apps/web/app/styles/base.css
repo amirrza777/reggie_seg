@@ -71,6 +71,35 @@ h3 {
     min-width: 0;
 }
 
+.stack--loose {
+    gap: 10px;
+}
+
+/* Utility compatibility for staff pages using Tailwind-style class names */
+.grid {
+    display: grid;
+}
+
+.grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.gap-12 {
+    gap: 3rem;
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    .xl\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
 .muted {
     margin: 0;
     color: var(--muted-subtle);

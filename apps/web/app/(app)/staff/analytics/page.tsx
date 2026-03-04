@@ -17,7 +17,7 @@ export default async function StaffAnalyticsPage() {
         description="Radar charts, exports, and at-risk notifications."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div className="stack stack--loose">
         <Card title="Student radar charts">
           <p className="muted">Radar chart grid placeholder (e.g., Technical Work vs Peer Support).</p>
         </Card>
