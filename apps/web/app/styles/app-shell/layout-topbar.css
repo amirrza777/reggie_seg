@@ -56,11 +56,10 @@
   display: inline-flex;
   align-items: center;
   gap: 14px;
-  padding: 6px 8px 2px;
+  padding: 8px 0 10px;
   border-radius: 18px;
   background: transparent;
   align-self: center;
-  transform: translateY(8px);
 }
 
 .space-switcher__link {
@@ -106,12 +105,12 @@
   position: absolute;
   left: 18px;
   right: 18px;
-  bottom: -12px;
+  bottom: -7px;
   height: 3px;
   background: var(--space-switcher-underline);
   border-radius: 999px;
   opacity: 0;
-  transform: translateY(18px);
+  transform: translateY(7px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 

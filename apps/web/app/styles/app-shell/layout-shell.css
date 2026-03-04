@@ -110,22 +110,13 @@ body {
 
 .app-shell__main {
   --sidebar-width: clamp(180px, 20vw, 220px);
-  --main-gap: 14px;
-  --divider-thickness: 2px;
+  --main-gap: 8px;
   --ribbon-height: 56px;
-  /* Solid, low-contrast divider that adapts with theme (no transparency) */
-  --divider-color: color-mix(in srgb, var(--surface) 80%, var(--ink) 20%);
-  /* Split padding to pull content to the very top while keeping horizontal breathing room */
-  --main-padding-x: 12px;
-  --main-padding-y: 0px;
-  /* Divider positions between sidebar/workspace (x) and below ribbon (y) */
-  --divider-x: calc(var(--main-padding-x) + var(--sidebar-width) + (var(--main-gap) / 2));
-  --divider-y: calc(var(--main-padding-y) + var(--ribbon-height) + (var(--main-gap) / 2));
   width: 100%;
-  background: var(--surface);
+  background: transparent;
   border: none;
-  border-radius: 10px;
-  padding: var(--main-padding-y) var(--main-padding-x) 8px;
+  border-radius: 0;
+  padding: 0;
   box-shadow: none;
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
@@ -136,34 +127,9 @@ body {
   min-height: 0;
   min-width: 0;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   margin-top: 0;
   position: relative;
-}
-
-.app-shell__main::before,
-.app-shell__main::after {
-  content: "";
-  position: absolute;
-  pointer-events: none;
-  background: var(--divider-color);
-  border-radius: 0;
-}
-
-/* Vertical divider between sidebar and workspace */
-.app-shell__main::before {
-  left: calc(var(--divider-x) - (var(--divider-thickness) / 2));
-  top: var(--divider-y);
-  bottom: var(--main-padding-y);
-  width: var(--divider-thickness);
-}
-
-/* Horizontal divider below ribbon */
-.app-shell__main::after {
-  top: var(--divider-y);
-  left: 0;
-  right: 0;
-  height: var(--divider-thickness);
 }
 
 .app-shell__main--solo {
@@ -177,19 +143,9 @@ body {
   justify-content: flex-start;
   gap: 10px;
   min-height: var(--ribbon-height);
-  padding: 0 14px 12px 14px;
-  margin: 0 -14px 12px -14px;
+  padding: 0 10px;
+  margin: 0;
   position: relative;
+  background: var(--surface);
+  border-radius: 10px;
 }
-
-.app-shell__ribbon::after {
-  content: "";
-  position: absolute;
-  left: -16px;
-  right: -16px;
-  bottom: 0;
-  height: 2px;
-  background: transparent;
-  z-index: 100;
-}
-

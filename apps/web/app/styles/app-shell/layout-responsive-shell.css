@@ -6,21 +6,17 @@
   .app-shell__main {
     grid-template-columns: 1fr;
     width: 100%;
-    padding: 14px;
-    border-radius: 12px;
+    padding: 0;
+    border-radius: 0;
     box-shadow: none;
     min-height: auto;
-    gap: 16px;
-  }
-  .app-shell__main::before,
-  .app-shell__main::after {
-    display: none;
+    gap: 10px;
   }
 
   .app-shell__sidebar {
     position: static;
     border-right: none;
-    padding: 0;
+    padding: 12px 10px;
     margin: 0;
   }
 
@@ -34,7 +30,7 @@
   }
 
   .app-shell__workspace {
-    padding-inline-start: 0;
+    padding: 12px;
   }
 
   .sidebar__nav,
