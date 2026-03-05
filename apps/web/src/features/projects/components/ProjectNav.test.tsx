@@ -39,7 +39,7 @@ describe("ProjectNav", () => {
     );
 
     expect(screen.queryByRole("link", { name: "Peer feedback" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Repos" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Repositories" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Trello" })).not.toBeInTheDocument();
   });
 });

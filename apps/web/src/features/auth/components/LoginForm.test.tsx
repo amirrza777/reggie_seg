@@ -46,7 +46,7 @@ describe("LoginForm", () => {
     expect(loginMock).toHaveBeenCalledWith({ email: "user@example.com", password: "secret" });
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
-    expect(screen.getByText(/logged in/i)).toBeInTheDocument();
+    expect(screen.queryByText(/logged in/i)).not.toBeInTheDocument();
   });
 
   it("shows an error message when login fails", async () => {
