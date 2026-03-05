@@ -1,12 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
 import { TrelloBoardView } from "@/features/trello/views/TrelloBoardView";
 import { TrelloJoinBoardView } from "@/features/trello/views/TrelloJoinBoardView";
 import { TrelloLinkAccountView } from "@/features/trello/views/TrelloLinkAccountView";
 import { TrelloLinkBoardView } from "@/features/trello/views/TrelloLinkBoardView";
 import { getMyBoards } from "@/features/trello/api/client";
+import "@/features/trello/styles/loading.css";
 
 type ProjectTrelloContentProps = {
   projectId: string;
@@ -19,17 +19,19 @@ export function ProjectTrelloContent({ projectId, teamId, teamName }: ProjectTre
 
   if (state.status === "loading") {
     return (
-      <div className="stack">
-        <p>Loading Trello…</p>
+      <div className="trello-loading" role="status" aria-live="polite" aria-label="Loading Trello">
+        <div className="trello-loading__inner">
+          <span className="trello-loading__spinner" aria-hidden="true" />
+          <p className="trello-loading__label">Loading Trello…</p>
+        </div>
       </div>
     );
   }
 
   if (state.status === "error") {
     return (
-      <div className="stack">
-        <p>{state.message}</p>
-        <Link href={`/projects/${projectId}`}>← Back to project</Link>
+      <div className="trello-error" role="alert">
+        <p className="trello-error__text">{state.message}</p>
       </div>
     );
   }
@@ -46,7 +48,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName }: ProjectTre
   if (state.status === "link-board") {
     return (
       <TrelloLinkBoardView
-        projectId={projectId}
         teamId={teamId}
         teamName={teamName}
         boards={state.boards}
@@ -67,7 +68,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName }: ProjectTre
 
   return (
     <TrelloBoardView
-      projectId={projectId}
       view={state.view}
       onRequestChangeBoard={async () => {
         try {

@@ -12,30 +12,30 @@ type BoardCardProps = {
 
 export function BoardCard({ card, members }: BoardCardProps) {
   return (
-    <li style={{ marginBottom: 8 }}>
-      <Card title={card.name}>
+    <li className="trello-card">
+      <Card title={card.name} className="trello-card__surface" bodyClassName="trello-card__body">
         {card.desc ? <p className="lede">{card.desc}</p> : null}
 
         {(card.labels?.length ?? 0) > 0 ? (
-          <div className="pill-nav" style={{ marginBottom: 8 }}>
+          <div className="trello-card__labels">
             {(card.labels ?? []).map((label) => (
-              <span key={label.id}>{label.name || "Label"}</span>
+              <span key={label.id} className="trello-card__label-chip">{label.name || "Label"}</span>
             ))}
           </div>
         ) : null}
 
-        <div className="pill-nav">
-          {card.due ? <span title="Due">Due {formatDate(card.due)}</span> : null}
+        <div className="trello-card__meta">
+          {card.due ? <span className="trello-card__meta-chip" title="Due">Due {formatDate(card.due)}</span> : null}
           {card.dateLastActivity ? (
-            <span title="Last activity">Updated {formatDate(card.dateLastActivity)}</span>
+            <span className="trello-card__meta-chip" title="Last activity">Updated {formatDate(card.dateLastActivity)}</span>
           ) : null}
           {members.length > 0 ? (
-            <span className="pill-nav">
+            <span className="trello-card__members">
               {members.map((m) => (
                 <span
                   key={m.id}
                   title={m.fullName}
-                  className="eyebrow"
+                  className="trello-card__member-chip"
                 >
                   {m.initials ?? m.fullName.slice(0, 2)}
                 </span>

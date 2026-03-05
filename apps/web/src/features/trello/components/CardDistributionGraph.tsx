@@ -185,15 +185,33 @@ export function CardDistributionGraph({
   if (memberIdFilter && !hasFilteredCards) return null;
 
   return (
-    <section className="stack" style={{ marginTop: 32 }}>
-      <h2>{title}</h2>
-      <div style={{ width: "100%", height: 320 }}>
+    <section className="stack trello-chart">
+      <h2 className="trello-chart__title">{title}</h2>
+      <div className="trello-chart__surface">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="date" />
             <YAxis allowDecimals={false} />
-            <Tooltip />
+            <Tooltip
+              contentStyle={{
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                boxShadow: "var(--shadow-sm)",
+                color: "var(--ink)",
+                padding: "8px 10px",
+              }}
+              cursor={{
+                stroke: "color-mix(in srgb, var(--muted) 40%, transparent)",
+                strokeWidth: 1,
+              }}
+              labelStyle={{
+                color: "var(--muted)",
+                fontWeight: 600,
+                marginBottom: 6,
+              }}
+            />
             <Legend />
             <Line type="monotone" dataKey="backlog" stroke="#0079bf" name="Backlog" strokeWidth={2} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="inProgress" stroke="#f2d600" name="In progress" strokeWidth={2} dot={{ r: 3 }} />

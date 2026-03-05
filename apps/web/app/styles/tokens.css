@@ -12,6 +12,7 @@
   --fs-h2: clamp(2.8rem, 4.2vw, 3.4rem);
   --fs-h3: 1.2rem;
   --fs-title-sm: 1.25rem;
+  --fs-project-hero-title: clamp(1.9rem, 2.7vw, 2.4rem);
   --fs-marketing-body: clamp(1.15rem, 1.5vw, 1.3rem);
   --fs-body-lg: 1.12rem;
   --fs-body: 1.05rem;
@@ -30,6 +31,8 @@
   --bg: #ffffff;
   --bg-strong: #0f0f0f;
   --surface: #ffffff;
+  --surface-elevated: color-mix(in srgb, var(--surface) 88%, white 12%);
+  --surface-hero-start: color-mix(in srgb, var(--surface) 92%, white 8%);
   --ink: #111111;
   --muted: #4f4f4f;
   --border: rgba(0, 0, 0, 0.08);
@@ -118,9 +121,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #050505;
-    --bg-strong: #0a0a0a;
-    --surface: #111111;
+    --bg: #030303;
+    --bg-strong: #080808;
+    --surface: #0a0a0a;
+    --surface-elevated: color-mix(in srgb, var(--surface) 96%, black 4%);
+    --surface-hero-start: color-mix(in srgb, var(--surface) 94%, black 6%);
     --ink: #f8fafc;
     --muted: #cbd5e1;
     --ink-strong: #e2e8f0;
@@ -128,7 +133,7 @@
     --ink-lede: #cbd5e1;
     --muted-subtle: #94a3b8;
     --ink-quiet: #101010;
-    --border: rgba(148, 163, 184, 0.22);
+    --border: rgba(148, 163, 184, 0.16);
     --accent: var(--ink);
     --accent-strong: var(--ink-strong);
     --accent-soft: color-mix(in srgb, var(--ink) 22%, transparent);
@@ -140,9 +145,9 @@
     --btn-primary-text: var(--surface);
     --btn-ghost-text: #e2e8f0;
     --btn-ghost-border: #e2e8f0;
-    --surface-strong: #121212;
+    --surface-strong: #0f0f0f;
     --on-surface-strong: #e2e8f0;
-    --glass-surface: rgba(5, 5, 5, 0.12);
+    --glass-surface: rgba(3, 3, 3, 0.32);
     --glass-hover: rgba(226, 232, 240, 0.04);
     --glass-strong: rgba(7, 7, 7, 0.4);
     --backdrop-strong: rgba(7, 7, 7, 0.6);
