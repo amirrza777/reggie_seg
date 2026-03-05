@@ -136,6 +136,12 @@ h3 {
     gap: 8px;
 }
 
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 .btn--primary {
     background: var(--btn-primary-bg);
     color: var(--btn-primary-text);
@@ -150,6 +156,24 @@ h3 {
     border-radius: var(--radius-sm);
     padding: 10px 14px;
     font-weight: var(--fw-semibold);
+}
+
+.btn--danger {
+    background: var(--status-danger);
+    color: var(--btn-primary-text);
+    border: 2px solid var(--status-danger);
+}
+
+.btn--quiet {
+    background: var(--glass-hover);
+    color: var(--ink);
+    border: 1px solid var(--border);
+}
+
+.btn--sm {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: var(--fs-body-sm);
 }
 
 .btn:hover {
