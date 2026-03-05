@@ -33,7 +33,6 @@ const useLoginFormState = () => {
       await login(form);
       await refresh(); // pull fresh profile into context
       setStatus("success");
-      setMessage("Logged in.");
       router.push("/modules");
     } catch (err) {
       setStatus("error");
@@ -51,14 +50,10 @@ const useLoginFormState = () => {
 export function LoginForm() {
   const { form, status, message, updateField, handleSubmit, handleGoogleLogin } = useLoginFormState();
 
-  const alertClass =
-    status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success";
-
   return (
-    <form style={{ width: "100%" }} onSubmit={handleSubmit}>
-      {message ? (
-        <div className={alertClass} style={{ marginBottom: 12 }}>
-          <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
+    <form className="auth-form" onSubmit={handleSubmit}>
+      {status === "error" && message ? (
+        <div className="status-alert status-alert--error auth-alert">
           <span>{message}</span>
         </div>
       ) : null}

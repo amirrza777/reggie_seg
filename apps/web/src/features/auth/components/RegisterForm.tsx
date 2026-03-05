@@ -53,13 +53,11 @@ export function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+    <form className="auth-form" onSubmit={handleSubmit}>
       {message ? (
         <div
-          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-          style={{ marginBottom: 12 }}
+          className={`${status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} auth-alert`}
         >
-          <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
         </div>
       ) : null}
@@ -108,8 +106,8 @@ export function RegisterForm() {
         onChange={(name, value) => setFormData({ ...formData, [name]: value })}
       />
 
-      <fieldset style={{ margin: "12px 0", padding: 0, border: "none" }}>
-        <legend className="muted" style={{ fontSize: 14, marginBottom: 6 }}>
+      <fieldset className="auth-role-fieldset">
+        <legend className="muted auth-role-legend">
           Developer shortcut: choose temporary role (excludes super admin)
         </legend>
         <div role="radiogroup" aria-label="Select role" className="role-toggle">

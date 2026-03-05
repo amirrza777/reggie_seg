@@ -16,7 +16,6 @@ export function GoogleAuthButton({ onClick, disabled }: GoogleAuthButtonProps) {
       className="auth-button auth-button--google"
       onClick={onClick}
       disabled={disabled}
-      style={{ justifyContent: "center" }}
     >
       <GoogleIcon />
       Continue with Google
