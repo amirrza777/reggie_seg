@@ -8,18 +8,8 @@ vi.mock("./GithubRepoLinkCard", () => ({
   ),
 }));
 
-const styles = {
-  panel: {},
-  sectionHeader: {},
-  sectionTitleWrap: {},
-  sectionKicker: {},
-  list: {},
-  select: {},
-} as const;
-
 function baseProps() {
   return {
-    styles,
     loading: false,
     busy: false,
     linking: false,
@@ -90,4 +80,3 @@ describe("GithubProjectReposRepositoriesTab", () => {
     expect(screen.getByTestId("repo-link-card")).toHaveTextContent("team/already-linked");
   });
 });
-

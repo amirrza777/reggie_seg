@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
@@ -11,10 +10,7 @@ import type {
   ProjectGithubRepoLink,
 } from "../types";
 
-type StylesMap = Record<string, React.CSSProperties>;
-
 type Props = {
-  styles: StylesMap;
   loading: boolean;
   busy: boolean;
   linking: boolean;
@@ -34,7 +30,6 @@ type Props = {
 
 export function GithubProjectReposRepositoriesTab(props: Props) {
   const {
-    styles,
     loading,
     busy,
     linking,
@@ -53,25 +48,25 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
   } = props;
 
   return (
-    <section style={styles.panel}>
-      <div style={styles.sectionHeader}>
-        <div style={styles.sectionTitleWrap}>
-          <p style={styles.sectionKicker}>Repositories</p>
+    <section className="github-repos-tab">
+      <div className="github-repos-tab__header">
+        <div className="github-repos-tab__title">
+          <p className="github-repos-tab__kicker">Repositories</p>
           <strong>Linked repositories</strong>
         </div>
         <Button variant="ghost" onClick={() => void onRefresh()} disabled={loading || busy}>
           {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div style={styles.list}>
+      <div className="github-repos-tab__list">
         {connection?.connected && links.length === 0 ? (
-          <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
+          <div className="ui-stack-sm github-repos-tab__link-controls">
             <label className="muted" htmlFor="github-repo-select">
               Select repository to link
             </label>
             <select
               id="github-repo-select"
-              style={styles.select}
+              className="github-repos-tab__select"
               value={selectedRepoId}
               onChange={(e) => setSelectedRepoId(e.target.value)}
               disabled={loading || busy || availableRepos.length === 0}

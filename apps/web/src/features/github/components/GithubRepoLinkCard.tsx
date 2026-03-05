@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import { GithubRepoChartsDashboard } from "./GithubRepoChartsDashboard";
 import type {
@@ -18,84 +17,6 @@ type GithubRepoLinkCardProps = {
   loading: boolean;
   removingLinkId: number | null;
   onRemoveLink: (linkId: number) => void;
-};
-
-const styles = {
-  listItem: {
-    padding: "14px",
-    border: "1px solid var(--border)",
-    borderRadius: 12,
-    background: "var(--glass-surface)",
-    marginBottom: 8,
-  } as React.CSSProperties,
-  headerRow: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  } as React.CSSProperties,
-  repoTitle: {
-    fontSize: 24,
-    fontWeight: 700,
-    lineHeight: 1.15,
-    margin: 0,
-  } as React.CSSProperties,
-  metaRow: {
-    marginTop: 8,
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  } as React.CSSProperties,
-  metaChip: {
-    border: "1px solid var(--border)",
-    borderRadius: 999,
-    padding: "4px 10px",
-    background: "var(--surface)",
-    color: "var(--muted)",
-    fontSize: 12,
-  } as React.CSSProperties,
-  statGrid: {
-    marginTop: 12,
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: 10,
-  } as React.CSSProperties,
-  statCard: {
-    border: "1px solid var(--border)",
-    borderRadius: 10,
-    background: "var(--surface)",
-    padding: 10,
-  } as React.CSSProperties,
-  statLabel: {
-    color: "var(--muted)",
-    fontSize: 12,
-    marginBottom: 4,
-  } as React.CSSProperties,
-  statValue: {
-    fontWeight: 700,
-    fontSize: 18,
-    lineHeight: 1.1,
-  } as React.CSSProperties,
-  actions: {
-    marginTop: 8,
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  } as React.CSSProperties,
-  overviewSection: {
-    marginTop: 12,
-    paddingTop: 4,
-    borderTop: "1px solid var(--border)",
-  } as React.CSSProperties,
-  sectionLabel: {
-    marginTop: 2,
-    marginBottom: 4,
-    color: "var(--muted)",
-    fontSize: 12,
-    letterSpacing: 0.4,
-    textTransform: "uppercase",
-  } as React.CSSProperties,
 };
 
 export function GithubRepoLinkCard({
@@ -122,45 +43,45 @@ export function GithubRepoLinkCard({
   const allDeletionCount = allBranchesTotals?.totalDeletions ?? defaultDeletionCount;
 
   return (
-    <div key={link.id} style={styles.listItem}>
-      <div style={styles.headerRow}>
+    <div key={link.id} className="github-repo-link-card">
+      <div className="github-repo-link-card__header">
         <div>
-          <p style={styles.repoTitle}>{link.repository.fullName}</p>
-          <div style={styles.metaRow}>
-            <span style={styles.metaChip}>{link.repository.isPrivate ? "Private repository" : "Public repository"}</span>
-            <span style={styles.metaChip}>Default branch {link.repository.defaultBranch || "unknown"}</span>
-            <span style={styles.metaChip}>Analysed {analysedLabel}</span>
+          <p className="github-repo-link-card__title">{link.repository.fullName}</p>
+          <div className="github-repo-link-card__meta-row">
+            <span className="github-repo-link-card__chip">{link.repository.isPrivate ? "Private repository" : "Public repository"}</span>
+            <span className="github-repo-link-card__chip">Default branch {link.repository.defaultBranch || "unknown"}</span>
+            <span className="github-repo-link-card__chip">Analysed {analysedLabel}</span>
           </div>
         </div>
       </div>
 
-      <section style={styles.overviewSection} aria-label="Repository overview">
-        <p style={styles.sectionLabel}>Overview</p>
-        <div style={styles.statGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Default branch commits</div>
-            <div style={styles.statValue}>{defaultCommitCount}</div>
+      <section className="github-repo-link-card__overview" aria-label="Repository overview">
+        <p className="github-repo-link-card__section-label">Overview</p>
+        <div className="github-repo-link-card__stats">
+          <div className="github-repo-link-card__stat">
+            <div className="github-repo-link-card__stat-label">Default branch commits</div>
+            <div className="github-repo-link-card__stat-value">{defaultCommitCount}</div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Default additions / deletions</div>
-            <div style={styles.statValue}>
-              {defaultAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {defaultDeletionCount}</span>
+          <div className="github-repo-link-card__stat">
+            <div className="github-repo-link-card__stat-label">Default additions / deletions</div>
+            <div className="github-repo-link-card__stat-value">
+              {defaultAdditionCount} <span className="github-repo-link-card__stat-subtle">/ {defaultDeletionCount}</span>
             </div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>All-branches commits</div>
-            <div style={styles.statValue}>{allCommitCount}</div>
+          <div className="github-repo-link-card__stat">
+            <div className="github-repo-link-card__stat-label">All-branches commits</div>
+            <div className="github-repo-link-card__stat-value">{allCommitCount}</div>
           </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>All additions / deletions</div>
-            <div style={styles.statValue}>
-              {allAdditionCount} <span style={{ color: "var(--muted)", fontWeight: 500 }}>/ {allDeletionCount}</span>
+          <div className="github-repo-link-card__stat">
+            <div className="github-repo-link-card__stat-label">All additions / deletions</div>
+            <div className="github-repo-link-card__stat-value">
+              {allAdditionCount} <span className="github-repo-link-card__stat-subtle">/ {allDeletionCount}</span>
             </div>
           </div>
         </div>
       </section>
       <GithubRepoChartsDashboard snapshot={snapshot} coverage={coverage} currentGithubLogin={currentGithubLogin} />
-      <div style={styles.actions}>
+      <div className="github-repo-link-card__actions">
         <Button
           variant="ghost"
           onClick={() => onRemoveLink(link.id)}

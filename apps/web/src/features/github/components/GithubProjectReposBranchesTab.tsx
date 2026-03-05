@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import { Table } from "@/shared/ui/Table";
 import type {
@@ -10,10 +9,7 @@ import type {
   ProjectGithubRepoLink,
 } from "../types";
 
-type StylesMap = Record<string, React.CSSProperties>;
-
 type Props = {
-  styles: StylesMap;
   loading: boolean;
   liveBranchesRefreshing: boolean;
   links: ProjectGithubRepoLink[];
@@ -31,7 +27,6 @@ type Props = {
 };
 
 export function GithubProjectReposBranchesTab({
-  styles,
   loading,
   liveBranchesRefreshing,
   links,
@@ -48,17 +43,17 @@ export function GithubProjectReposBranchesTab({
   onSelectBranch,
 }: Props) {
   return (
-    <section style={styles.panel}>
-      <div style={styles.sectionHeader}>
-        <div style={styles.sectionTitleWrap}>
-          <p style={styles.sectionKicker}>Live repository data</p>
+    <section className="github-repos-tab">
+      <div className="ui-row ui-row--between ui-row--wrap">
+        <div className="github-repos-tab__title">
+          <p className="github-repos-tab__kicker">Live repository data</p>
           <strong>Branches</strong>
         </div>
         <Button variant="ghost" onClick={() => void handleRefreshLiveBranches()} disabled={loading || liveBranchesRefreshing}>
           {liveBranchesRefreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div style={styles.list}>
+      <div className="github-repos-tab__list">
         {loading ? <p className="muted">Loading branch data...</p> : null}
         {!loading && links.length === 0 ? <p className="muted">No linked repository available.</p> : null}
         {!loading &&
@@ -66,9 +61,9 @@ export function GithubProjectReposBranchesTab({
             const snapshot = latestSnapshotByLinkId[link.id];
             const rows = buildBranchRows(link);
             return (
-              <div key={link.id} style={{ ...styles.panel, marginTop: 12, padding: 12 }}>
-                <div style={styles.row}>
-                  <div className="stack" style={{ gap: 4 }}>
+              <div key={link.id} className="github-repos-tab__subpanel">
+                <div className="ui-row ui-row--between ui-row--wrap">
+                  <div className="ui-stack-xs">
                     <strong>{link.repository.fullName}</strong>
                     <p className="muted">
                       Default branch: {link.repository.defaultBranch || "unknown"}
@@ -76,32 +71,32 @@ export function GithubProjectReposBranchesTab({
                     </p>
                   </div>
                 </div>
-                {liveBranchesLoadingByLinkId[link.id] ? <p className="muted" style={{ marginTop: 10 }}>Loading live branches...</p> : null}
+                {liveBranchesLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading live branches...</p> : null}
                 {liveBranchesErrorByLinkId[link.id] ? (
-                  <p className="muted" style={{ marginTop: 10 }}>
+                  <p className="muted github-repos-tab__table-wrap">
                     Failed to load live branches: {liveBranchesErrorByLinkId[link.id]}
                   </p>
                 ) : null}
                 {!rows && !liveBranchesLoadingByLinkId[link.id] && !liveBranchesErrorByLinkId[link.id] ? (
-                  <p className="muted" style={{ marginTop: 10 }}>No live branches returned for this repository.</p>
+                  <p className="muted github-repos-tab__table-wrap">No live branches returned for this repository.</p>
                 ) : rows ? (
                   <>
-                    <p className="muted" style={{ marginTop: 10 }}>
+                    <p className="muted github-repos-tab__table-wrap">
                       Branches are fetched live from GitHub. Commit counts are shown from the latest snapshot when available.
                     </p>
-                    <div style={{ marginTop: 10 }}>
+                    <div className="github-repos-tab__table-wrap">
                       <Table
                         headers={["Branch", "Default", "Commits (snapshot)", "Ahead of main", "Behind main", "Status"]}
                         rows={rows}
                       />
                     </div>
-                    <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+                    <div className="stack github-repos-tab__select-wrap">
                       <label className="muted" htmlFor={`branch-commit-select-${link.id}`}>
                         Select branch to view 10 most recent commits
                       </label>
                       <select
                         id={`branch-commit-select-${link.id}`}
-                        style={styles.select}
+                        className="github-repos-tab__select"
                         value={selectedBranchByLinkId[link.id] || ""}
                         onChange={(e) => onSelectBranch(link.id, e.target.value)}
                         disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
@@ -113,23 +108,23 @@ export function GithubProjectReposBranchesTab({
                         ))}
                       </select>
                     </div>
-                    {branchCommitsLoadingByLinkId[link.id] ? <p className="muted" style={{ marginTop: 10 }}>Loading recent commits...</p> : null}
+                    {branchCommitsLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p> : null}
                     {branchCommitsErrorByLinkId[link.id] ? (
-                      <p className="muted" style={{ marginTop: 10 }}>
+                      <p className="muted github-repos-tab__table-wrap">
                         Failed to load branch commits: {branchCommitsErrorByLinkId[link.id]}
                       </p>
                     ) : null}
                     {branchCommitsByLinkId[link.id]?.commits?.length ? (
-                      <div style={{ marginTop: 10 }}>
+                      <div className="github-repos-tab__table-wrap">
                         <Table
                           headers={["Commit", "Date", "Additions", "Deletions"]}
                           columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
                           rows={branchCommitsByLinkId[link.id]!.commits.map((commit) => [
-                            <div key={commit.sha} className="stack" style={{ gap: 2 }}>
-                              <a href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ color: "var(--ink)" }}>
+                            <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                              <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
                                 {commit.message || "(no message)"}
                               </a>
-                              <span className="muted" style={{ fontSize: 12 }}>
+                              <span className="muted github-repos-tab__commit-meta">
                                 {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
                               </span>
                             </div>,
