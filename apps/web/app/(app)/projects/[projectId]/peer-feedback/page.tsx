@@ -6,6 +6,7 @@ import {
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { PageSection } from "@/shared/ui/PageSection";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +34,12 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   return (
     <div>
       <ProjectNav projectId={projectId} />
-      <div style={{ padding: "30px" }}>
-      <h2>Peer Feedbacks</h2>
-      <p>Collect and review peer feedback for this project.</p>
-      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
-      </div>
+      <PageSection
+        title="Peer Feedback"
+        description="Collect and review peer feedback for this project."
+      >
+        <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+      </PageSection>
     </div>
   );
 }

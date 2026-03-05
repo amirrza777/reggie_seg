@@ -9,7 +9,7 @@ type FeedbackListViewProps = {
 
 export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListViewProps) {
   if (!feedbacks || feedbacks.length === 0) {
-    return <p>No feedbacks submitted yet.</p>;
+    return <p className="ui-note ui-note--muted">No feedbacks submitted yet.</p>;
   }
 
   return (
@@ -22,7 +22,7 @@ export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListVie
             <li key={f.id} className="feedback-list__item">
               <Link
                 href={`/projects/${projectId}/peer-feedback/${f.id}`}
-                style={{ textDecoration: "none", color: "inherit" }}
+                className="ui-link-reset"
               >
                 <div
                   className={`feedback-card ${

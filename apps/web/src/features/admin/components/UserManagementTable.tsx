@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
@@ -158,20 +158,20 @@ export function UserManagementTable() {
     );
 
     return [
-      <div key={`${user.id}-email`} className="stack" style={{ gap: 4 }}>
+      <div key={`${user.id}-email`} className="ui-stack-xs">
         <strong>{user.email}</strong>
         <span className="muted">{roleLabel}</span>
       </div>,
-      <div key={`${user.id}-name`} className="stack" style={{ gap: 4 }}>
+      <div key={`${user.id}-name`} className="ui-stack-xs">
         <span>{`${user.firstName} ${user.lastName}`}</span>
         <span className="muted">ID {user.id}</span>
       </div>,
-      <div key={`${user.id}-role`} style={{ display: "flex", justifyContent: "flex-start" }}>
+      <div key={`${user.id}-role`} className="ui-row ui-row--start">
         {roleControl}
       </div>,
       isSuperAdmin ? (
-        <span key={`${user.id}-status`} className={statusClass} style={{ cursor: "not-allowed", opacity: 0.75 }}>
-          <span style={{ fontSize: 14 }}>●</span>
+        <span key={`${user.id}-status`} className={`${statusClass} status-chip--disabled`}>
+          <span>●</span>
           <span>Active</span>
         </span>
       ) : (
@@ -179,9 +179,8 @@ export function UserManagementTable() {
           key={`${user.id}-status`}
           onClick={() => handleStatusToggle(user.id, !user.active)}
           className={statusClass}
-          style={{ cursor: "pointer" }}
         >
-          <span style={{ fontSize: 14 }}>{user.active ? "●" : "○"}</span>
+          <span>{user.active ? "●" : "○"}</span>
           <span>{statusLabel}</span>
         </button>
       ),
@@ -199,10 +198,9 @@ export function UserManagementTable() {
     >
       {message ? (
         <div
-          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-          style={{ padding: "10px 12px", marginBottom: 10 }}
+          className={`${status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} status-alert--spaced`}
         >
-          <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
+          <span className="ui-status-icon">{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
         </div>
       ) : null}
