@@ -44,17 +44,22 @@ export function PeerAssessmentForm({
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
 
+  const normalizeAnswers = (
+    raw: Record<string, string | number | boolean | null> | undefined
+  ): Record<string, string> => {
+    if (!raw || typeof raw !== "object") return {};
+    const normalized: Record<string, string> = {};
+    Object.entries(raw).forEach(([k, v]) => {
+      normalized[k] = String(v ?? "");
+    });
+    return normalized;
+  };
+
 
   useEffect(() => {
     if (initialAnswers) {
-      const normalized: Record<string, string> = {};
-      if (typeof initialAnswers === "object") {
-        Object.entries(initialAnswers).forEach(([k, v]) => {
-          normalized[k] = String(v ?? "");
-        });
-      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setAnswers(normalized);
+      setAnswers(normalizeAnswers(initialAnswers));
     }
   }, [initialAnswers]);
 
@@ -91,7 +96,7 @@ export function PeerAssessmentForm({
   };
 
   const handleDiscard = () => {
-    setAnswers(initialAnswers ? { ...initialAnswers } : {});
+    setAnswers(normalizeAnswers(initialAnswers));
     setMessage(null);
   };
 

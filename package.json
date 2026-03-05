@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "passport": "^0.7.0",
+    "recharts": "^3.7.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.10",
+    "@types/passport": "^1.0.17",
+    "tsx": "^4.21.0"
+  }
+}

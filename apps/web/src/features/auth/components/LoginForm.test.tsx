@@ -2,10 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi, type MockedFunction } from "vitest";
 
 const push = vi.fn();
+const refresh = vi.fn();
 const originalLocation = window.location;
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("../api/client", () => ({ login: vi.fn() }));
+vi.mock("../context", () => ({ useUser: () => ({ refresh }) }));
 
 import { login } from "../api/client";
 import { LoginForm } from "./LoginForm";
@@ -30,6 +32,8 @@ afterAll(() => {
 beforeEach(() => {
   loginMock.mockReset();
   push.mockReset();
+  refresh.mockReset();
+  refresh.mockResolvedValue(undefined);
   window.location.href = "http://localhost:3000/";
 });
 
@@ -40,6 +44,7 @@ describe("LoginForm", () => {
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
     expect(loginMock).toHaveBeenCalledWith({ email: "user@example.com", password: "secret" });
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
     expect(screen.getByText(/logged in/i)).toBeInTheDocument();
   });

@@ -17,7 +17,8 @@
   "author": "",
   "license": "ISC",
   "overrides": {
-    "@jridgewell/sourcemap-codec": "1.4.15"
+    "@jridgewell/sourcemap-codec": "1.4.15",
+    "fast-check": "3.23.1"
   },
   "type": "module",
   "dependencies": {
@@ -29,7 +30,7 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^6.9.15",
+    "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
   },

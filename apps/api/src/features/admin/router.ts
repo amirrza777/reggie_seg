@@ -7,6 +7,7 @@ type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
 
 const router = Router();
 const refreshSecret = process.env.JWT_REFRESH_SECRET || "";
+const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 const ensureAdmin = async (req: any, res: any, next: any) => {
   const token = req.cookies?.refresh_token;
@@ -68,6 +69,9 @@ router.patch("/users/:id/role", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string };
   const user = await prisma.user.findFirst({ where: { id, enterpriseId: adminUser.enterpriseId } });
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+    return res.status(400).json({ error: "Cannot change role for super admin" });
+  }
 
   const updated = await prisma.user.update({ where: { id }, data: { role } });
   res.json({
@@ -81,6 +85,9 @@ router.patch("/users/:id", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string };
   const user = await prisma.user.findFirst({ where: { id, enterpriseId: adminUser.enterpriseId } });
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+    return res.status(400).json({ error: "Cannot modify super admin" });
+  }
 
   const nextActive = req.body?.active;
   const nextRole = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : undefined;

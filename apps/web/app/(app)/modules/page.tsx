@@ -9,7 +9,7 @@ export default async function ModulesPage() {
 
   return (
     <div className="stack">
-      <Placeholder title="Modules" path="/modules" description="List and manage course modules." />
+      <Placeholder title="Modules" description="List and manage course modules." />
       <ModuleList />
     </div>
   );

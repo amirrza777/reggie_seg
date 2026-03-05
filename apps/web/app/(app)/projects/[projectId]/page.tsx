@@ -1,5 +1,8 @@
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getCurrentUser } from "@/shared/auth/session";
+import { formatDateTime } from "@/shared/lib/dateFormatter";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 
 type ProjectPageProps = {

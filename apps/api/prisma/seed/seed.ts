@@ -3,6 +3,8 @@ import argon2 from 'argon2';
 import { randFirstName, randLastName } from '@ngneat/falso';
 
 const prisma = new PrismaClient();
+const seedPassword = process.env.SEED_USER_PASSWORD || "password123";
+let seedPasswordHash = "";
 
 function assertPrismaClientModels() {
   const client = prisma as unknown as Record<string, unknown>;
@@ -15,6 +17,7 @@ function assertPrismaClientModels() {
 
 async function main() {
   assertPrismaClientModels();
+  seedPasswordHash = await argon2.hash(seedPassword);
   const enterpriseId = await getDefaultEnterpriseId();
   await seedAdminUser(enterpriseId);
   const users = await seedUsers(enterpriseId);
@@ -25,10 +28,13 @@ async function main() {
   await seedModuleLeads(users, modules);
   await seedStudentEnrollments(enterpriseId, users, modules);
   await seedTeamAllocations(users, teams);
+  await seedAdminTeamAllocation(enterpriseId); //TODO: only for testing Trello integration, remove later
   await seedGithubE2EUsers(enterpriseId, projects, teams);
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
   await seedFeatureFlags(enterpriseId);
+
+  console.log(`Seed users ready. Default password: ${seedPassword}`);
 }
 
 type SeedUser = { id: number; role: Role };
@@ -88,7 +94,6 @@ const randomStudents = Array.from({ length: generatedStudentCount }, (_, index) 
     firstName,
     lastName,
     email: `student${index + 1}@example.com`,
-    passwordHash: 'dev-hash',
     role: "STUDENT" as const,
   };
 });
@@ -101,15 +106,11 @@ const randomStaff = Array.from({ length: generatedStaffCount }, (_, index) => {
     firstName,
     lastName,
     email: `staff${index + 1}@example.com`,
-    passwordHash: 'dev-hash',
     role: "STAFF" as const,
   };
 });
 
-const userData = [
-  ...randomStaff,
-  ...randomStudents,
-];
+const userData = [...randomStaff, ...randomStudents];
 
 const moduleData = [{ name: 'Software Engineering Group Project' }, 
                     { name: 'Database Systems' }, 
@@ -134,11 +135,21 @@ const teamData = [
 ];
 
 async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
-  // Create a small set of staff and student users with a placeholder password hash.
+  // Create a small set of staff and student users with a shared dev password.
   await prisma.user.createMany({
-    data: userData.map((user) => ({ ...user, enterpriseId })),
+   data: userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash })),
     skipDuplicates: true,
   });
+
+   // Ensure any previously-seeded accounts get the current seed password hash.
+   await prisma.user.updateMany({
+     where: {
+       enterpriseId,
+       email: { in: userData.map((u) => u.email) },
+       OR: [{ passwordHash: 'dev-hash' }],
+     },
+     data: { passwordHash: seedPasswordHash },
+   });
 
   const allUsers = await prisma.user.findMany({
     select: { id: true, role: true, email: true },
@@ -325,6 +336,29 @@ async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
 }
 
+//TODO: only for testing Trello integration, remove later
+async function seedAdminTeamAllocation(enterpriseId: string) {
+  const admin = await prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email: 'admin@kcl.ac.uk' } },
+    select: { id: true },
+  });
+  if (!admin) return;
+
+  const firstProject = await prisma.project.findFirst({ select: { id: true }, orderBy: { id: 'asc' } });
+  if (!firstProject) return;
+
+  const team = await prisma.team.findFirst({
+    where: { projectId: firstProject.id },
+    select: { id: true },
+  });
+  if (!team) return;
+
+  await prisma.teamAllocation.upsert({
+    where: { teamId_userId: { teamId: team.id, userId: admin.id } },
+    update: {},
+    create: { teamId: team.id, userId: admin.id },
+  });
+}
 async function seedGithubE2EUsers(
   enterpriseId: string,
   projects: SeedProject[],

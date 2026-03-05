@@ -255,7 +255,7 @@ export default function NewQuestionnairePage() {
               {q.type === "text" && (
                 <input
                   style={{ ...styles.input, marginTop: 10 }}
-                  value={answers[q.uiId] || ""}
+                  value={String(answers[q.uiId] ?? "")}
                   onChange={(e) => setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }))}
                 />
               )}
@@ -299,7 +299,7 @@ export default function NewQuestionnairePage() {
                     min={(q.configs as SliderConfigs | undefined)?.min}
                     max={(q.configs as SliderConfigs | undefined)?.max}
                     step={(q.configs as SliderConfigs | undefined)?.step}
-                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                    value={Number(answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0)}
                     onChange={(e) =>
                       setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }))
                     }

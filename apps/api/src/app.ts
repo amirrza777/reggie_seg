@@ -12,10 +12,20 @@ import peerFeedbackRouter from "./features/peerFeedback/router.js";
 import projectsRouter from "./features/projects/router.js";
 import { healthHandler } from "./health.js";
 import adminRouter from "./features/admin/router.js";
+import trelloRouter from "./features/trello/router.js";
 import githubRouter from "./features/github/router.js";
 import featureFlagsRouter from "./features/featureFlags/router.js";
 
 const app = express();
+
+// Normalize quoted charset to avoid body-parser charset errors (e.g. charset="UTF-8").
+app.use((req, _res, next) => {
+  const ct = req.headers["content-type"];
+  if (ct && /charset\s*=\s*"/i.test(ct)) {
+    req.headers["content-type"] = ct.replace(/charset\s*=\s*"([^"]*)"/i, "charset=$1");
+  }
+  next();
+});
 
 app.use(
   cors({
@@ -40,6 +50,7 @@ app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
 app.use("/team-allocation", teamAllocationRouter);
 app.use("/admin", adminRouter);
+app.use("/trello",trelloRouter)
 app.use("/github", githubRouter);
 app.use("/feature-flags", featureFlagsRouter);
 
