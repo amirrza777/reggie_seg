@@ -1,15 +1,9 @@
-
 "use client";
 
 import { useRouter } from "next/navigation";
-import { deleteQuestionnaire } from "../api/client";
 import { ApiError } from "@/shared/api/errors";
-
-const buttonStyle: React.CSSProperties = {
-  padding: "10px 20px",
-  color: "var(--btn-primary-text)",
-  cursor: "pointer",
-};
+import { Button } from "@/shared/ui/Button";
+import { deleteQuestionnaire } from "../api/client";
 
 type QuestionnaireVisibilityButtonsProps = {
   isPublic: boolean;
@@ -20,7 +14,6 @@ type CancelQuestionnaireButtonProps = {
   onCancel: () => void;
   label?: string;
   className?: string;
-  style?: React.CSSProperties;
   confirmWhen?: boolean;
   confirmMessage?: string;
 };
@@ -30,32 +23,24 @@ export function QuestionnaireVisibilityButtons({
   onChange,
 }: QuestionnaireVisibilityButtonsProps) {
   return (
-    <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "center" }}>
-      <span style={{ fontSize: 12, opacity: 0.75 }}>Visibility:</span>
-      <button
+    <div className="questionnaire-visibility">
+      <span className="questionnaire-visibility__label">Visibility:</span>
+      <Button
         type="button"
-        style={{
-          borderColor: isPublic ? "var(--btn-primary-border)" : "var(--border)",
-          background: isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
-          color: isPublic ? "var(--btn-primary-text)" : "var(--ink)",
-        }}
-        className="btn"
+        variant={isPublic ? "primary" : "quiet"}
+        className={`questionnaire-visibility__btn${isPublic ? " is-active" : ""}`}
         onClick={() => onChange(true)}
       >
         Public
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
-        style={{
-          borderColor: !isPublic ? "var(--btn-primary-border)" : "var(--border)",
-          background: !isPublic ? "var(--btn-primary-bg)" : "var(--glass-hover)",
-          color: !isPublic ? "var(--btn-primary-text)" : "var(--ink)",
-        }}
-        className="btn"
+        variant={!isPublic ? "primary" : "quiet"}
+        className={`questionnaire-visibility__btn${!isPublic ? " is-active" : ""}`}
         onClick={() => onChange(false)}
       >
         Private
-      </button>
+      </Button>
     </div>
   );
 }
@@ -63,26 +48,24 @@ export function QuestionnaireVisibilityButtons({
 export function CancelQuestionnaireButton({
   onCancel,
   label = "Cancel",
-  className = "btn",
-  style,
+  className,
   confirmWhen = false,
   confirmMessage = "You have unsaved changes. Are you sure you want to exit without saving?",
 }: CancelQuestionnaireButtonProps) {
   return (
-    <button
+    <Button
       type="button"
+      variant="quiet"
       className={className}
-      style={style}
       onClick={() => {
         if (confirmWhen && !window.confirm(confirmMessage)) return;
         onCancel();
       }}
     >
       {label}
-    </button>
+    </Button>
   );
 }
-
 
 type EditQuestionnaireButtonProps = {
   questionnaireId: number | string;
@@ -96,18 +79,15 @@ export function EditQuestionnaireButton({
   const router = useRouter();
 
   return (
-    <button
-      className="btn"
-      style = {buttonStyle}
-      onClick={() =>
-        router.push(`/staff/questionnaires/${questionnaireId}/edit`)
-      }
+    <Button
+      type="button"
+      variant="quiet"
+      onClick={() => router.push(`/staff/questionnaires/${questionnaireId}/edit`)}
     >
       {label}
-    </button>
+    </Button>
   );
 }
-
 
 type DeleteQuestionnaireButtonProps = {
   questionnaireId: number | string;
@@ -138,7 +118,7 @@ export function DeleteQuestionnaireButton({
       }
 
       router.push("/staff/questionnaires");
-      router.refresh(); // ensures list updates if cached
+      router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
         alert(err.message);
@@ -150,11 +130,8 @@ export function DeleteQuestionnaireButton({
   };
 
   return (
-    <button 
-    className="btn btn-danger" 
-    style = {buttonStyle}
-    onClick={handleDelete}>
+    <Button type="button" variant="danger" onClick={handleDelete}>
       {label}
-    </button>
+    </Button>
   );
 }
