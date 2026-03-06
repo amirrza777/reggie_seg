@@ -19,6 +19,10 @@ type SidebarProps = {
   footer?: ReactNode;
 };
 
+type HrefTarget = {
+  href: string;
+};
+
 function normalizePath(path: string) {
   if (path === "/") return "/";
   return path.replace(/\/+$/, "");
@@ -50,6 +54,16 @@ function isHrefActive(
   }
 
   return true;
+}
+
+function getBestMatchingHref<T extends HrefTarget>(
+  targets: T[],
+  pathname: string | null,
+  searchParams: Pick<URLSearchParams, "get"> | null
+) {
+  const matching = targets.filter((target) => isHrefActive(target.href, pathname, searchParams));
+  if (matching.length === 0) return null;
+  return matching.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
 export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
@@ -154,9 +168,8 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                   }
 
                   const groupOpen = expandedGroups[link.href] ?? false;
-                  const childActive = (link.children ?? []).some((child) =>
-                    isHrefActive(child.href, pathname, searchParams)
-                  );
+                  const activeChildHref = getBestMatchingHref(link.children ?? [], pathname, searchParams);
+                  const childActive = Boolean(activeChildHref);
                   const groupActive = isParentActive || childActive;
 
                   return (
@@ -177,7 +190,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                         <div className="sidebar__mobile-group-collapse-inner">
                           <div className="sidebar__mobile-group-items">
                             {(link.children ?? []).map((child, index) => {
-                              const isChildActive = isHrefActive(child.href, pathname, searchParams);
+                              const isChildActive = activeChildHref === child.href;
                               return (
                                 <Link
                                   key={child.href}
@@ -221,9 +234,8 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
           }
 
           const groupOpen = expandedGroups[link.href] ?? false;
-          const childActive = (link.children ?? []).some((child) =>
-            isHrefActive(child.href, pathname, searchParams)
-          );
+          const activeChildHref = getBestMatchingHref(link.children ?? [], pathname, searchParams);
+          const childActive = Boolean(activeChildHref);
           const groupActive = isParentActive || childActive;
 
           return (
@@ -241,7 +253,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                 <div className="sidebar__group-collapse-inner">
                   <div className="sidebar__group-items">
                     {(link.children ?? []).map((child, index) => {
-                      const isChildActive = isHrefActive(child.href, pathname, searchParams);
+                      const isChildActive = activeChildHref === child.href;
                       return (
                         <Link
                           key={child.href}
