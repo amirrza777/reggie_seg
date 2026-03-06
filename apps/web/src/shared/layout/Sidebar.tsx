@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
 export type SidebarLink = {
   href: string;
@@ -106,6 +106,8 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
       ...prev,
       [href]: !prev[href],
     }));
+  const getDropdownItemStyle = (index: number): CSSProperties =>
+    ({ "--dropdown-item-index": String(index) }) as CSSProperties;
 
   return (
     <div className="sidebar">
@@ -168,23 +170,30 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                         <span>{link.label}</span>
                         <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>▾</span>
                       </button>
-                      {groupOpen ? (
-                        <div className="sidebar__mobile-group-items">
-                          {(link.children ?? []).map((child) => {
-                            const isChildActive = isHrefActive(child.href, pathname, searchParams);
-                            return (
-                              <Link
-                                key={child.href}
-                                href={child.href}
-                                className={`sidebar__mobile-sublink ${isChildActive ? "is-active" : ""}`}
-                                onClick={close}
-                              >
-                                {child.label}
-                              </Link>
-                            );
-                          })}
+                      <div
+                        className={`sidebar__mobile-group-collapse ${groupOpen ? "is-open" : ""}`}
+                        aria-hidden={!groupOpen}
+                      >
+                        <div className="sidebar__mobile-group-collapse-inner">
+                          <div className="sidebar__mobile-group-items">
+                            {(link.children ?? []).map((child, index) => {
+                              const isChildActive = isHrefActive(child.href, pathname, searchParams);
+                              return (
+                                <Link
+                                  key={child.href}
+                                  href={child.href}
+                                  className={`sidebar__mobile-sublink ${isChildActive ? "is-active" : ""}`}
+                                  onClick={close}
+                                  style={getDropdownItemStyle(index)}
+                                  tabIndex={groupOpen ? undefined : -1}
+                                >
+                                  {child.label}
+                                </Link>
+                              );
+                            })}
+                          </div>
                         </div>
-                      ) : null}
+                      </div>
                     </div>
                   );
                 })}
@@ -228,23 +237,27 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
                 <span>{link.label}</span>
                 <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>▾</span>
               </button>
-              {groupOpen ? (
-                <div className="sidebar__group-items">
-                  {(link.children ?? []).map((child) => {
-                    const isChildActive = isHrefActive(child.href, pathname, searchParams);
-                    return (
-                      <Link
-                        key={child.href}
-                        href={child.href}
-                        className={`sidebar__sublink ${isChildActive ? "is-active" : ""}`}
-                        aria-current={isChildActive ? "page" : undefined}
-                      >
-                        {child.label}
-                      </Link>
-                    );
-                  })}
+              <div className={`sidebar__group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
+                <div className="sidebar__group-collapse-inner">
+                  <div className="sidebar__group-items">
+                    {(link.children ?? []).map((child, index) => {
+                      const isChildActive = isHrefActive(child.href, pathname, searchParams);
+                      return (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          className={`sidebar__sublink ${isChildActive ? "is-active" : ""}`}
+                          aria-current={isChildActive ? "page" : undefined}
+                          style={getDropdownItemStyle(index)}
+                          tabIndex={groupOpen ? undefined : -1}
+                        >
+                          {child.label}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              ) : null}
+              </div>
             </div>
           );
         })}
