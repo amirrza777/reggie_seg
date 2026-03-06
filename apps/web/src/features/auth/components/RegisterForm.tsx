@@ -7,6 +7,7 @@ import { signup } from "../api/client";
 import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
+import { useUser } from "../context";
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export function RegisterForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
+  const { refresh } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +41,10 @@ export function RegisterForm() {
         lastName: formData.lastName,
         role: formData.role,
       });
+      await refresh();
       setStatus("success");
       setMessage("Account created. Redirecting...");
-      router.push("/modules");
+      router.push("/dashboard");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Signup failed");
