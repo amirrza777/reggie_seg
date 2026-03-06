@@ -22,6 +22,7 @@ export type GithubRepositoryOption = {
   isPrivate: boolean;
   ownerLogin: string | null;
   defaultBranch: string | null;
+  isAppInstalled: boolean;
 };
 
 export type ProjectGithubRepoLink = {
