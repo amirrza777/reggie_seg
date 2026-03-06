@@ -88,34 +88,33 @@
 }
 
 .sidebar__group-collapse {
-  display: grid;
-  grid-template-rows: 0fr;
+  max-height: 0;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-10px);
   visibility: hidden;
   pointer-events: none;
+  overflow: hidden;
   transition:
-    grid-template-rows 0.24s ease,
-    opacity 0.2s ease,
-    transform 0.24s ease,
-    visibility 0s linear 0.24s;
+    max-height 0.34s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.24s ease,
+    transform 0.28s ease,
+    visibility 0s linear 0.34s;
 }
 
 .sidebar__group-collapse.is-open {
-  grid-template-rows: 1fr;
+  max-height: 1000px;
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
   pointer-events: auto;
   transition:
-    grid-template-rows 0.26s ease,
-    opacity 0.22s ease,
-    transform 0.26s ease,
+    max-height 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.26s ease,
+    transform 0.3s ease,
     visibility 0s linear 0s;
 }
 
 .sidebar__group-collapse-inner {
-  min-height: 0;
   overflow: hidden;
 }
 
@@ -343,34 +342,33 @@
 }
 
 .sidebar__mobile-group-collapse {
-  display: grid;
-  grid-template-rows: 0fr;
+  max-height: 0;
   opacity: 0;
-  transform: translateY(-6px);
+  transform: translateY(-10px);
   visibility: hidden;
   pointer-events: none;
+  overflow: hidden;
   transition:
-    grid-template-rows 0.24s ease,
-    opacity 0.2s ease,
-    transform 0.24s ease,
-    visibility 0s linear 0.24s;
+    max-height 0.34s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.24s ease,
+    transform 0.28s ease,
+    visibility 0s linear 0.34s;
 }
 
 .sidebar__mobile-group-collapse.is-open {
-  grid-template-rows: 1fr;
+  max-height: 1200px;
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
   pointer-events: auto;
   transition:
-    grid-template-rows 0.26s ease,
-    opacity 0.22s ease,
-    transform 0.26s ease,
+    max-height 0.38s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.26s ease,
+    transform 0.3s ease,
     visibility 0s linear 0s;
 }
 
 .sidebar__mobile-group-collapse-inner {
-  min-height: 0;
   overflow: hidden;
 }
 
