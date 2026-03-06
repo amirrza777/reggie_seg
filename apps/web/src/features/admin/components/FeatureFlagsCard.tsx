@@ -58,7 +58,6 @@ export function FeatureFlagsCard() {
           className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
           style={{ padding: "10px 12px" }}
         >
-          <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
         </div>
       ) : null}

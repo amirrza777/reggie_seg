@@ -126,7 +126,7 @@ export function AdminWorkspaceSummary() {
   return (
     <>
       <Card
-        title="Admin workspace"
+        title={<span className="overview-title">Admin workspace</span>}
         action={
           <div className="ui-row ui-row--wrap">
             <Button type="button" onClick={() => setModalOpen(true)}>
@@ -188,7 +188,6 @@ export function AdminWorkspaceSummary() {
                 <div
                   className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
                 >
-                  <span className="ui-status-icon">{status === "error" ? "⚠️" : "✅"}</span>
                   <span>{notice}</span>
                 </div>
               ) : null}

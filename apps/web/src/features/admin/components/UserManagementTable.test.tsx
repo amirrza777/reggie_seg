@@ -59,4 +59,95 @@ describe("UserManagementTable", () => {
     await waitFor(() => expect(updateUserMock).toHaveBeenCalledWith(apiUser.id, { active: false }));
     expect(screen.getByText(/Account suspended/i)).toBeInTheDocument();
   });
+
+  it("filters visible users with search", async () => {
+    listUsersMock.mockResolvedValue([
+      apiUser,
+      {
+        ...apiUser,
+        id: 11,
+        email: "admin@kcl.ac.uk",
+        firstName: "Admin",
+        lastName: "User",
+        role: "ADMIN",
+        isStaff: true,
+      },
+    ]);
+
+    await renderTable();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: /search user accounts/i }), {
+      target: { value: "admin" },
+    });
+
+    expect(screen.getByText("admin@kcl.ac.uk")).toBeInTheDocument();
+    expect(screen.queryByText("student@test.com")).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 1-1 of 1 account \(filtered from 2\)\./i)).toBeInTheDocument();
+  });
+
+  it("shows 10 users per page and supports pagination controls", async () => {
+    const users = Array.from({ length: 13 }, (_, index) => ({
+      ...apiUser,
+      id: index + 1,
+      email: `user${index + 1}@example.com`,
+      firstName: `User${index + 1}`,
+      lastName: "Test",
+    }));
+    listUsersMock.mockResolvedValue(users as any);
+
+    await renderTable();
+
+    expect(screen.getByText("user1@example.com")).toBeInTheDocument();
+    expect(screen.getByText("user10@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("user11@example.com")).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 1-10 of 13 accounts\./i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+    expect(screen.getByText(/Showing 11-13 of 13 accounts\./i)).toBeInTheDocument();
+  });
+
+  it("jumps to a page when a valid page number is entered", async () => {
+    const users = Array.from({ length: 13 }, (_, index) => ({
+      ...apiUser,
+      id: index + 1,
+      email: `user${index + 1}@example.com`,
+      firstName: `User${index + 1}`,
+      lastName: "Test",
+    }));
+    listUsersMock.mockResolvedValue(users as any);
+
+    await renderTable();
+
+    const pageInput = screen.getByRole("spinbutton", { name: /go to page number/i });
+    fireEvent.change(pageInput, {
+      target: { value: "2" },
+    });
+    fireEvent.blur(pageInput);
+
+    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+    expect(screen.getByText("user13@example.com")).toBeInTheDocument();
+    expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
+  });
+
+  it("shows enterprise admin as a locked role chip", async () => {
+    listUsersMock.mockResolvedValue([
+      {
+        ...apiUser,
+        id: 20,
+        email: "ea@test.com",
+        role: "ENTERPRISE_ADMIN",
+        isStaff: true,
+      } as any,
+    ]);
+
+    await renderTable();
+
+    expect(screen.getByText("Enterprise admin", { selector: ".role-chip--locked" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /student/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /staff/i })).not.toBeInTheDocument();
+  });
 });

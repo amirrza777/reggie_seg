@@ -55,7 +55,7 @@ router.get("/users", async (req, res) => {
   const payload = records.map((u) => ({
     ...u,
     isStaff: u.role !== "STUDENT",
-    role: u.role === "ENTERPRISE_ADMIN" ? "ADMIN" : (u.role as UserRole),
+    role: u.role as UserRole,
   }));
   res.json(payload);
 });
@@ -157,7 +157,7 @@ router.get("/audit-logs", async (req, res) => {
       email: entry.user.email,
       firstName: entry.user.firstName,
       lastName: entry.user.lastName,
-      role: entry.user.role === "ENTERPRISE_ADMIN" ? "ADMIN" : entry.user.role,
+      role: entry.user.role,
     },
   }));
 

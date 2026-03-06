@@ -167,7 +167,6 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
             <div
               className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
             >
-              <span className="ui-status-icon">{status === "error" ? "⚠️" : "✅"}</span>
               <span>{message}</span>
             </div>
           ) : null}
