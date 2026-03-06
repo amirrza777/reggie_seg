@@ -1,9 +1,9 @@
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getCurrentUser } from "@/shared/auth/session";
-import { formatDateTime } from "@/shared/lib/dateFormatter";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
+import Link from "next/link";
+import type { ProjectDeadline } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -12,12 +12,55 @@ type ProjectPageProps = {
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
+  const user = await getCurrentUser();
 
-  const [project, deadline, team] = await Promise.all([
-    getProject(projectId),
-    getProjectDeadline(4, numericProjectId),
-    getTeamByUserAndProject(4, numericProjectId),
-  ]);
+  if (!user) {
+    return (
+      <div className="stack" style={{ gap: 16 }}>
+        <ProjectNav projectId={projectId} />
+        <div style={{ padding: 24 }}>
+          <p>Please sign in to view this project.</p>
+          <Link href="/login">Go to login</Link>
+        </div>
+      </div>
+    );
+  }
+
+  let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
+  try {
+    team = await getTeamByUserAndProject(user.id, numericProjectId);
+  } catch {
+    team = null;
+  }
+
+  if (!team) {
+    return (
+      <div className="stack" style={{ gap: 16 }}>
+        <ProjectNav projectId={projectId} />
+        <div style={{ padding: 24 }}>
+          <p>You are not in a team for this project.</p>
+          <Link href="/projects">← Back to projects</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const project = await getProject(projectId);
+
+  let deadline: ProjectDeadline = {
+    taskOpenDate: null,
+    taskDueDate: null,
+    assessmentOpenDate: null,
+    assessmentDueDate: null,
+    feedbackOpenDate: null,
+    feedbackDueDate: null,
+    isOverridden: false,
+  };
+  try {
+    deadline = await getProjectDeadline(user.id, numericProjectId);
+  } catch {
+    // Keep default empty deadline object if API is unavailable.
+  }
 
   return (
     <div className="stack" style={{ gap: 16 }}>

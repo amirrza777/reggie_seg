@@ -23,7 +23,9 @@ export function MeetingMinutes({ meetingId, writerId, initialContent }: MeetingM
   const [content, setContent] = useState(initialContent);
 
   const { status, saveNow } = useAutosave(content, {
-    onSave: (value) => saveMinutes(meetingId, writerId, value),
+    onSave: async (value) => {
+      await saveMinutes(meetingId, writerId, value);
+    },
   });
 
   return (
