@@ -111,7 +111,7 @@ router.get("/feature-flags", async (_req, res) => {
     where: { enterpriseId: adminUser.enterpriseId },
     orderBy: { key: "asc" },
   });
-  res.json(flags);
+  res.json(flags.map(normalizeFeatureFlagLabel));
 });
 
 router.patch("/feature-flags/:key", async (req, res) => {
@@ -126,13 +126,20 @@ router.patch("/feature-flags/:key", async (req, res) => {
       where: { enterpriseId_key: { enterpriseId: adminUser.enterpriseId, key } },
       data: { enabled },
     });
-    res.json(updated);
+    res.json(normalizeFeatureFlagLabel(updated));
   } catch (err: any) {
     if (err.code === "P2025") return res.status(404).json({ error: "Feature flag not found" });
     console.error("update feature flag error", err);
     return res.status(500).json({ error: "Could not update feature flag" });
   }
 });
+
+function normalizeFeatureFlagLabel<T extends { key: string; label: string }>(flag: T): T {
+  if (flag.key === "repos" && flag.label === "Repos") {
+    return { ...flag, label: "Repositories" };
+  }
+  return flag;
+}
 
 router.get("/audit-logs", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string } | undefined;

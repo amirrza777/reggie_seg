@@ -30,8 +30,8 @@ describe("FeatureFlagsCard", () => {
   });
 
   it("renders flags from API and toggles one", async () => {
-    listMock.mockResolvedValue([{ key: "repos", label: "Repos", enabled: false }]);
-    updateMock.mockResolvedValue({ key: "repos", label: "Repos", enabled: true });
+    listMock.mockResolvedValue([{ key: "repos", label: "Repositories", enabled: false }]);
+    updateMock.mockResolvedValue({ key: "repos", label: "Repositories", enabled: true });
 
     render(<FeatureFlagsCard />);
 
