@@ -433,30 +433,3 @@
   background: var(--glass-hover);
   color: var(--accent-strong);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .sidebar__group-collapse,
-  .sidebar__group-collapse.is-open,
-  .sidebar__mobile-group-collapse,
-  .sidebar__mobile-group-collapse.is-open {
-    transition:
-      max-height 0.2s ease,
-      opacity 0.16s ease,
-      visibility 0s linear 0s;
-    transform: none;
-  }
-
-  .sidebar__sublink,
-  .sidebar__mobile-sublink {
-    transition:
-      background 0.12s ease,
-      color 0.12s ease,
-      border-color 0.12s ease,
-      opacity 0.14s ease;
-    transform: none;
-  }
-
-  .sidebar__chevron {
-    transition: transform 0.12s ease;
-  }
-}
