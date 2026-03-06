@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { QuestionnaireList } from "./QuestionnaireList";
+import { QuestionnaireList } from "./questionnaireList";
 import { getMyQuestionnaires, getPublicQuestionnairesFromOthers } from "../api/client";
 
 const push = vi.fn();

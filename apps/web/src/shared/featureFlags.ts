@@ -1,9 +1,20 @@
+import { unstable_cache } from "next/cache";
 import { API_BASE_URL } from "./api/env";
 import { apiFetch } from "./api/http";
 import type { FeatureFlag } from "@/features/admin/types";
 
+const getFeatureFlagsCached = unstable_cache(
+  async (): Promise<FeatureFlag[]> =>
+    apiFetch<FeatureFlag[]>("/feature-flags", {
+      baseUrl: API_BASE_URL,
+      auth: false,
+    }),
+  ["feature-flags"],
+  { revalidate: 60 }
+);
+
 export async function getFeatureFlags(): Promise<FeatureFlag[]> {
-  return apiFetch<FeatureFlag[]>("/feature-flags", { baseUrl: API_BASE_URL, auth: false, cache: "no-store" as RequestCache });
+  return getFeatureFlagsCached();
 }
 
 export async function getFeatureFlagMap(): Promise<Record<string, boolean>> {

@@ -5,37 +5,34 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
+import { listModules } from "@/features/modules/api/client";
+import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
+
+type NavChild = {
+  href: string;
+  label: string;
+  flag?: string;
+};
 
 type NavLink = {
   href: string;
   label: string;
   space: "workspace" | "staff" | "enterprise" | "admin";
   flag?: string;
+  children?: NavChild[];
 };
 
-const navLinks: NavLink[] = [
-  // Workspace
-  { href: "/dashboard", label: "Dashboard", space: "workspace" },
-  { href: "/modules", label: "Modules", space: "workspace", flag: "modules" },
-  { href: "/projects", label: "Projects", space: "workspace" },
-
-  // Staff
-  { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
-  { href: "/staff/health", label: "Team Health", space: "staff" },
-  { href: "/staff/analytics", label: "Analytics", space: "staff" },
-  { href: "/staff/integrations", label: "Integrations", space: "staff" },
-  { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
-  { href: "/staff/peer-assessments", label: "Peer Assessments", space: "staff" },
-
-  // Admin
-  { href: "/admin", label: "Admin Home", space: "admin" },
+const FALLBACK_MODULES = [
+  { id: "MOD-3101", title: "Software Engineering" },
+  { id: "MOD-2240", title: "Data Structures" },
+  { id: "MOD-4120", title: "PEP" },
 ];
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const user = await getCurrentUser();
+  const [user, flagMap] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
   if (!user) redirect("/login");
   if (user.suspended === true || user.active === false) {
     return (
@@ -55,19 +52,71 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  const flagMap = await getFeatureFlagMap();
+  let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
+  try {
+    const modules = await listModules();
+    const source = modules.length > 0 ? modules : FALLBACK_MODULES;
+    moduleChildren = [
+      { href: "/dashboard", label: "Overview" },
+      ...source.map((module) => ({
+        href: `/dashboard?module=${encodeURIComponent(module.id)}`,
+        label: module.title,
+      })),
+    ];
+  } catch {
+    moduleChildren = [
+      { href: "/dashboard", label: "Overview" },
+      ...FALLBACK_MODULES.map((module) => ({
+        href: `/dashboard?module=${encodeURIComponent(module.id)}`,
+        label: module.title,
+      })),
+    ];
+  }
 
-  const accessibleLinks = navLinks.filter((link) => {
-    if (link.flag && flagMap[link.flag] === false) return false;
-    if (link.space === "staff" && !(user?.isStaff || isAdmin(user))) return false;
-    if (link.space === "admin" && !isAdmin(user)) return false;
-    return true;
-  });
+  let projectChildren: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
+  try {
+    const projects = await getUserProjects(user.id);
+    projectChildren = [
+      { href: "/projects", label: "All projects" },
+      ...projects.map((project) => ({
+        href: `/projects/${project.id}`,
+        label: project.name,
+      })),
+    ];
+  } catch {
+    projectChildren = [{ href: "/projects", label: "All projects" }];
+  }
 
-  const workspaceAliases = [
-    "/modules",
-    "/projects",
+  const navLinks: NavLink[] = [
+    // Workspace
+    { href: "/dashboard", label: "Modules", space: "workspace", children: moduleChildren },
+    { href: "/projects", label: "Projects", space: "workspace", children: projectChildren },
+
+    // Staff
+    { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
+    { href: "/staff/health", label: "Team Health", space: "staff" },
+    { href: "/staff/analytics", label: "Analytics", space: "staff" },
+    { href: "/staff/integrations", label: "Integrations", space: "staff" },
+    { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
+    { href: "/staff/peer-assessments", label: "Peer Assessments", space: "staff" },
+
+    // Admin
+    { href: "/admin", label: "Admin Home", space: "admin" },
   ];
+
+  const accessibleLinks = navLinks
+    .filter((link) => {
+      if (link.flag && flagMap[link.flag] === false) return false;
+      if (link.space === "staff" && !(user?.isStaff || isAdmin(user))) return false;
+      if (link.space === "admin" && !isAdmin(user)) return false;
+      return true;
+    })
+    .map((link) => ({
+      ...link,
+      children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
+    }));
+
+  const workspaceAliases = ["/projects"];
 
   const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });

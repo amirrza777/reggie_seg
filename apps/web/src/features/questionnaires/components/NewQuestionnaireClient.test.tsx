@@ -4,7 +4,7 @@ import { describe, it, expect, beforeAll, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import NewQuestionnaireClient from "./NewQuestionnaireClient";
 
-// ✅ Mock Next.js router (App Router)
+// Mock Next.js router (App Router)
 vi.mock("next/navigation", () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
-// ✅ Mock scrollTo (JSDOM does not implement it)
+// Mock scrollTo (JSDOM does not implement it)
 beforeAll(() => {
   Object.defineProperty(HTMLElement.prototype, "scrollTo", {
     configurable: true,
