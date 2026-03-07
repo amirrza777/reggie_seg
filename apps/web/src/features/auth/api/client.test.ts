@@ -51,6 +51,7 @@ describe("auth api client", () => {
     apiFetchMock.mockResolvedValue({ accessToken: "token-2" });
 
     await signup({
+      enterpriseCode: "DEFAULT",
       email: "user@kcl.ac.uk",
       password: "secret",
       firstName: "Ayan",
@@ -62,6 +63,7 @@ describe("auth api client", () => {
       method: "POST",
       auth: false,
       body: JSON.stringify({
+        enterpriseCode: "DEFAULT",
         email: "user@kcl.ac.uk",
         password: "secret",
         firstName: "Ayan",

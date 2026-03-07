@@ -23,6 +23,7 @@ const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 type NewUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
 export async function signUp(data: {
+  enterpriseCode: string;
   email: string;
   password: string;
   firstName?: string;
@@ -30,10 +31,8 @@ export async function signUp(data: {
   role?: NewUserRole;
 }) {
   const email = data.email.toLowerCase();
-  const enterpriseId = await getDefaultEnterpriseId();
-  const existing = await prisma.user.findUnique({
-    where: { enterpriseId_email: { enterpriseId, email } },
-  });
+  const enterpriseId = await resolveEnterpriseIdFromCode(data.enterpriseCode);
+  const existing = await prisma.user.findFirst({ where: { email } });
   if (existing) throw { code: "EMAIL_TAKEN" };
   const passwordHash = await argon2.hash(data.password);
   const role: NewUserRole = data.role && data.role !== "ADMIN" ? data.role : "STUDENT";
@@ -55,13 +54,11 @@ export async function login(
   meta: { ip?: string | null; userAgent?: string | null } = {}
 ) {
   const emailInput = (data.email ?? "").toLowerCase();
-  const enterpriseId = await getDefaultEnterpriseId();
-  const user = await prisma.user.findUnique({
-    where: { enterpriseId_email: { enterpriseId, email: emailInput } },
-  });
+  const user = await prisma.user.findFirst({ where: { email: emailInput } });
 
   if (!user && bootstrapAdminEmail && bootstrapAdminPassword) {
     if (emailInput === bootstrapAdminEmail && data.password === bootstrapAdminPassword) {
+      const enterpriseId = await getDefaultEnterpriseId();
       const passwordHash = await argon2.hash(data.password);
       const created = await prisma.user.create({
         data: {
@@ -152,9 +149,8 @@ export async function logout(
 }
 
 export async function requestPasswordReset(email: string) {
-  const enterpriseId = await getDefaultEnterpriseId();
-  const user = await prisma.user.findUnique({
-    where: { enterpriseId_email: { enterpriseId, email: email.toLowerCase() } },
+  const user = await prisma.user.findFirst({
+    where: { email: email.toLowerCase() },
   });
   if (!user) return;
   await prisma.passwordResetToken.updateMany({
@@ -320,11 +316,9 @@ export async function confirmEmailChange(params: { userId: number; newEmail: str
 
 export async function signUpWithProvider(params: { email: string; firstName?: string; lastName?: string; provider: string }) {
   const email = params.email.toLowerCase();
-  const enterpriseId = await getDefaultEnterpriseId();
-  let user = await prisma.user.findUnique({
-    where: { enterpriseId_email: { enterpriseId, email } },
-  });
+  let user = await prisma.user.findFirst({ where: { email } });
   if (!user) {
+    const enterpriseId = await getDefaultEnterpriseId();
     const randomPwd = randomBytes(32).toString("hex");
     const passwordHash = await argon2.hash(randomPwd);
     user = await prisma.user.create({
@@ -362,6 +356,17 @@ async function getDefaultEnterpriseId() {
     create: { code: "DEFAULT", name: "Default Enterprise" },
     select: { id: true },
   });
+  return enterprise.id;
+}
+
+async function resolveEnterpriseIdFromCode(input: string) {
+  const code = input.trim().toUpperCase();
+  if (!code) throw { code: "ENTERPRISE_CODE_REQUIRED" };
+  const enterprise = await prisma.enterprise.findUnique({
+    where: { code },
+    select: { id: true },
+  });
+  if (!enterprise) throw { code: "ENTERPRISE_NOT_FOUND" };
   return enterprise.id;
 }
 

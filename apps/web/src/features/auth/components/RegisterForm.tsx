@@ -11,6 +11,7 @@ import { useUser } from "../context";
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
+    enterpriseCode: "",
     firstName: "",
     lastName: "",
     email: "",
@@ -35,6 +36,7 @@ export function RegisterForm() {
 
     try {
       await signup({
+        enterpriseCode: formData.enterpriseCode.trim().toUpperCase(),
         email: formData.email,
         password: formData.password,
         firstName: formData.firstName,
@@ -64,6 +66,15 @@ export function RegisterForm() {
           <span>{message}</span>
         </div>
       ) : null}
+      <AuthField
+        name="enterpriseCode"
+        label="Enterprise code"
+        type="text"
+        value={formData.enterpriseCode}
+        required
+        onChange={(name, value) => setFormData({ ...formData, [name]: value })}
+      />
+
       <AuthField
         name="firstName"
         label="First Name"

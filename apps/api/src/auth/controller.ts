@@ -21,8 +21,10 @@ const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 export async function signupHandler(req: Request, res: Response) {
-  const { email, password, firstName, lastName, role } = req.body ?? {};
-  if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
+  const { enterpriseCode, email, password, firstName, lastName, role } = req.body ?? {};
+  if (!enterpriseCode || !email || !password) {
+    return res.status(400).json({ error: "Enterprise code, email and password are required" });
+  }
   const normalizedRole =
     typeof role === "string"
       ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN")
@@ -36,6 +38,7 @@ export async function signupHandler(req: Request, res: Response) {
       : undefined;
   try {
     const tokens = await signUp({
+      enterpriseCode,
       email,
       password,
       firstName,
@@ -46,6 +49,8 @@ export async function signupHandler(req: Request, res: Response) {
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
     console.error("signup error", e);
+    if (e.code === "ENTERPRISE_CODE_REQUIRED") return res.status(400).json({ error: "Enterprise code is required" });
+    if (e.code === "ENTERPRISE_NOT_FOUND") return res.status(404).json({ error: "Enterprise code not found" });
     if (e.code === "EMAIL_TAKEN") return res.status(409).json({ error: "This email is already in use" });
     return res.status(500).json({ error: "signup failed", detail: e?.message || e?.code || String(e) });
   }
