@@ -49,3 +49,22 @@ export type AdminSummary = {
   teams: number;
   meetings: number;
 };
+
+export type EnterpriseRecord = {
+  id: string;
+  name: string;
+  code: string;
+  createdAt: string;
+  users: number;
+  admins: number;
+  enterpriseAdmins: number;
+  staff: number;
+  students: number;
+  modules: number;
+  teams: number;
+};
+
+export type CreateEnterprisePayload = {
+  name: string;
+  code?: string;
+};
