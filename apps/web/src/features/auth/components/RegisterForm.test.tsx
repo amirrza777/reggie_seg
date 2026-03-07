@@ -57,6 +57,7 @@ describe("RegisterForm", () => {
   it("submits form and redirects", async () => {
     render(<RegisterForm />);
 
+    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
     fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
     fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
     fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
@@ -67,6 +68,7 @@ describe("RegisterForm", () => {
 
     await waitFor(() =>
       expect(signupMock).toHaveBeenCalledWith({
+        enterpriseCode: "DEFAULT",
         email: "ada@example.com",
         password: "supersecure",
         firstName: "Ada",

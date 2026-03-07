@@ -3,6 +3,15 @@ export type LoginCredentials = {
   password: string;
 };
 
+export type SignupPayload = {
+  enterpriseCode: string;
+  email: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN";
+};
+
 export type AuthResponse = {
   accessToken?: string;
   message?: string;
