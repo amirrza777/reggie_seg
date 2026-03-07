@@ -9,9 +9,7 @@ import { getCurrentUser, isAdmin } from "@/shared/auth/session";
 
 export const dynamic = "force-dynamic";
 
-const adminNav = [
-  { href: "/admin", label: "Admin dashboard", space: "admin" as const },
-];
+const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -23,6 +21,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (!isAdmin(user)) {
     redirect("/dashboard");
   }
+
+  const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
+  const adminNav = [
+    { href: "/admin", label: "Admin dashboard", space: "admin" as const },
+    ...(isSuperAdmin ? [{ href: "/admin/enterprises", label: "Enterprises", space: "admin" as const }] : []),
+  ];
 
   const spaceLinks: SpaceLink[] = [
     { href: "/dashboard", label: "Workspace" },
