@@ -64,7 +64,7 @@
   --glass-hover: rgba(0, 0, 0, 0.08);
   --selection-gray-bg: color-mix(in srgb, var(--ink) 15%, transparent);
   --glass-strong: rgba(255, 255, 255, 0.85);
-  --backdrop-strong: rgba(0, 0, 0, 0.5);
+  --backdrop-strong: rgba(0, 0, 0, 0.62);
   --placeholder-hint: #f2fff6;
   --panel-gradient-1: #e3f7ef;
   --panel-gradient-2: #e9fff3;
@@ -153,7 +153,7 @@
     --glass-hover: rgba(226, 232, 240, 0.025);
     --selection-gray-bg: color-mix(in srgb, var(--ink) 3%, transparent);
     --glass-strong: rgba(7, 7, 7, 0.4);
-    --backdrop-strong: rgba(7, 7, 7, 0.6);
+    --backdrop-strong: rgba(7, 7, 7, 0.72);
     --placeholder-hint: rgba(52, 211, 153, 0.08);
     --panel-gradient-1: rgba(52, 211, 153, 0.18);
     --panel-gradient-2: rgba(52, 211, 153, 0.12);

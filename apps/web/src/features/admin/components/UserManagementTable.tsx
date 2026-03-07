@@ -116,22 +116,6 @@ export function UserManagementTable() {
     }
   };
 
-  const refreshUsers = async () => {
-    setStatus("loading");
-    setMessage(null);
-    try {
-      const response = await listUsers();
-      if (response.length > 0) {
-        setUsers(response.map(normalizeUser));
-      }
-      setStatus("success");
-      setMessage("User directory refreshed.");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not refresh users.");
-    }
-  };
-
   const filteredUsers = useMemo(
     () =>
       filterBySearchQuery(users, searchQuery, {
@@ -206,11 +190,11 @@ export function UserManagementTable() {
     ) : isEnterpriseAdmin ? (
       <span className="role-chip role-chip--locked">Enterprise admin</span>
     ) : (
-      <div className="role-toggle">
+      <div className="user-management__role-toggle">
         <Button
           type="button"
           variant={user.role === "STUDENT" ? "primary" : "ghost"}
-          className="role-toggle__btn"
+          className="user-management__role-toggle-btn"
           onClick={() => handleRoleChange(user.id, "STUDENT")}
           disabled={status === "loading" || user.role === "STUDENT"}
         >
@@ -219,7 +203,7 @@ export function UserManagementTable() {
         <Button
           type="button"
           variant={user.role === "STAFF" ? "primary" : "ghost"}
-          className="role-toggle__btn"
+          className="user-management__role-toggle-btn"
           onClick={() => handleRoleChange(user.id, "STAFF")}
           disabled={status === "loading" || user.role === "STAFF"}
         >
@@ -272,9 +256,6 @@ export function UserManagementTable() {
             placeholder="Search by name, email, role, status, or ID"
             aria-label="Search user accounts"
           />
-          <Button type="button" variant="ghost" onClick={refreshUsers} disabled={status === "loading"}>
-            Refresh
-          </Button>
         </div>
       }
     >

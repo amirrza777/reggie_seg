@@ -112,8 +112,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   if (!open) return null;
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title">
-      <div className="modal__dialog admin-modal ui-content-width">
+    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title" onClick={onClose}>
+      <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
         <div className="modal__header ui-modal-header">
           <div className="ui-stack-sm">
             <h3 id="audit-log-title">
@@ -153,14 +153,6 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                 );
               })}
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={fetchLogs}
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Loading..." : "Refresh"}
-            </Button>
           </div>
 
           {message ? (
