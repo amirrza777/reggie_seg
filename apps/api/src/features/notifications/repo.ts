@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/db.js";
+import type { NotificationType } from "@prisma/client";
 
 export function getNotificationsByUserId(userId: number) {
   return prisma.notification.findMany({
@@ -16,7 +17,7 @@ export function getUnreadCount(userId: number) {
 
 export function createNotification(data: {
   userId: number;
-  type: "MENTION";
+  type: NotificationType;
   message: string;
   link?: string;
 }) {

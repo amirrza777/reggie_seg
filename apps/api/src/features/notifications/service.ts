@@ -1,3 +1,4 @@
+import type { NotificationType } from "@prisma/client";
 import {
   getNotificationsByUserId,
   getUnreadCount,
@@ -16,7 +17,7 @@ export function countUnread(userId: number) {
 
 export function addNotification(data: {
   userId: number;
-  type: "MENTION";
+  type: NotificationType;
   message: string;
   link?: string;
 }) {
