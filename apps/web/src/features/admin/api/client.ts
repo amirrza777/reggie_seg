@@ -4,6 +4,8 @@ import type {
   AdminUserRecord,
   AdminUserUpdate,
   AuditLogEntry,
+  CreateEnterprisePayload,
+  EnterpriseRecord,
   FeatureFlag,
   AdminSummary,
   UserRole,
@@ -49,5 +51,33 @@ export async function updateFeatureFlag(key: string, enabled: boolean) {
   return apiFetch<FeatureFlag>(`/admin/feature-flags/${encodeURIComponent(key)}`, {
     method: "PATCH",
     body: JSON.stringify({ enabled }),
+  });
+}
+
+export async function listEnterprises() {
+  return apiFetch<EnterpriseRecord[]>("/admin/enterprises");
+}
+
+export async function createEnterprise(payload: CreateEnterprisePayload) {
+  return apiFetch<EnterpriseRecord>("/admin/enterprises", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteEnterprise(enterpriseId: string) {
+  return apiFetch<{ success: boolean }>(`/admin/enterprises/${encodeURIComponent(enterpriseId)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function listEnterpriseUsers(enterpriseId: string) {
+  return apiFetch<AdminUserRecord[]>(`/admin/enterprises/${encodeURIComponent(enterpriseId)}/users`);
+}
+
+export async function updateEnterpriseUser(enterpriseId: string, userId: number, payload: AdminUserUpdate) {
+  return apiFetch<AdminUser>(`/admin/enterprises/${encodeURIComponent(enterpriseId)}/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
 }

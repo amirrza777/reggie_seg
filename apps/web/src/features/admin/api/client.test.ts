@@ -7,10 +7,15 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 import {
+  createEnterprise,
+  deleteEnterprise,
   getAdminSummary,
+  listEnterpriseUsers,
+  listEnterprises,
   listAuditLogs,
   listFeatureFlags,
   listUsers,
+  updateEnterpriseUser,
   updateFeatureFlag,
   updateUser,
   updateUserRole,
@@ -68,6 +73,39 @@ describe("admin api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/feature-flags/peer%20feedback%2Fnew", {
       method: "PATCH",
       body: JSON.stringify({ enabled: true }),
+    });
+  });
+
+  it("lists enterprises", async () => {
+    await listEnterprises();
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises");
+  });
+
+  it("creates an enterprise", async () => {
+    await createEnterprise({ name: "King's College London", code: "KCL" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises", {
+      method: "POST",
+      body: JSON.stringify({ name: "King's College London", code: "KCL" }),
+    });
+  });
+
+  it("deletes an enterprise", async () => {
+    await deleteEnterprise("ent_123");
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123", {
+      method: "DELETE",
+    });
+  });
+
+  it("lists users for an enterprise", async () => {
+    await listEnterpriseUsers("ent_123");
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users");
+  });
+
+  it("updates an enterprise user", async () => {
+    await updateEnterpriseUser("ent_123", 42, { active: false });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/42", {
+      method: "PATCH",
+      body: JSON.stringify({ active: false }),
     });
   });
 });
