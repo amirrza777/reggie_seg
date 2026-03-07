@@ -25,8 +25,8 @@ const columns = [
   {
     title: "Integrations",
     links: [
-      { href: "/?section=integrations", label: "GitHub" },
-      { href: "/?section=integrations", label: "Trello" },
+      { href: "/?section=sync", label: "GitHub" },
+      { href: "/?section=sync", label: "Trello" },
       { href: "/?section=integrations", label: "VLE (placeholder)" },
     ],
   },
