@@ -5,27 +5,13 @@ import { createQuestionnaire } from "../api/client";
 
 const push = vi.fn();
 
-<<<<<<< HEAD
-// Mock Next.js router (App Router)
-=======
->>>>>>> e7391c4 (Questionnaire web tests)
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh: vi.fn() }),
 }));
 
-<<<<<<< HEAD
-// Mock scrollTo (JSDOM does not implement it)
-beforeAll(() => {
-  Object.defineProperty(HTMLElement.prototype, "scrollTo", {
-    configurable: true,
-    value: vi.fn(),
-  });
-});
-=======
 vi.mock("../api/client", () => ({
   createQuestionnaire: vi.fn(),
 }));
->>>>>>> e7391c4 (Questionnaire web tests)
 
 describe("NewQuestionnaireClient", () => {
   const createQuestionnaireMock = vi.mocked(createQuestionnaire);
@@ -126,8 +112,6 @@ describe("NewQuestionnaireClient", () => {
 
     expect(createQuestionnaireMock).not.toHaveBeenCalled();
   });
-<<<<<<< HEAD
-=======
 
   it("saves successfully and resets state", async () => {
     createQuestionnaireMock.mockResolvedValueOnce({
@@ -376,5 +360,4 @@ describe("NewQuestionnaireClient", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: "Add option" })[0]);
   });
->>>>>>> e7391c4 (Questionnaire web tests)
 });
