@@ -59,7 +59,7 @@
   color: var(--btn-primary-text);
 }
 
-.role-toggle {
+.user-management__role-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -74,12 +74,26 @@
 }
 
 .user-management__actions {
+  width: 100%;
   align-items: center;
+  justify-content: flex-start;
 }
 
 .user-management__search {
-  width: min(920px, 90vw);
-  max-width: 920px;
+  flex: 1 1 42rem;
+  min-width: min(42rem, 100%);
+  width: auto;
+  max-width: none;
+}
+
+.user-management-card.card--has-action .card__header {
+  flex-wrap: wrap;
+}
+
+.user-management-card.card--has-action .card__action {
+  width: 100%;
+  margin-left: 0;
+  justify-content: flex-start;
 }
 
 .user-management__pagination {
@@ -114,7 +128,7 @@
   min-width: 36px;
 }
 
-.role-toggle__btn {
+.user-management__role-toggle-btn {
   padding: 8px 12px;
   font-size: 0.95rem;
   min-width: 88px;
@@ -276,3 +290,82 @@
   min-width: 110px;
 }
 
+.enterprise-management__actions {
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.enterprise-management__search {
+  width: clamp(22rem, 56vw, 42rem);
+  min-width: min(22rem, 100%);
+  max-width: 42rem;
+}
+
+.enterprise-management__create-trigger {
+  margin-left: auto;
+}
+
+.enterprise-management__create {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr);
+  gap: 10px;
+}
+
+.enterprise-management__create-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.enterprise-management__create-modal {
+  width: min(760px, 96vw);
+}
+
+.enterprise-management__row {
+  align-items: center;
+}
+
+.enterprise-management__row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.enterprise-management__modal {
+  width: min(1020px, 96vw);
+}
+
+.enterprise-management__modal-toolbar {
+  gap: 10px;
+}
+
+.enterprise-management__modal-search {
+  width: min(660px, 84vw);
+}
+
+.enterprise-management__modal-table {
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: min(46vh, 520px);
+  overflow-y: auto;
+}
+
+@media (max-width: 960px) {
+  .enterprise-management__create {
+    grid-template-columns: 1fr;
+  }
+
+  .enterprise-management__actions {
+    flex-wrap: wrap;
+  }
+
+  .enterprise-management__create-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-management__row-actions {
+    justify-content: flex-start;
+  }
+}

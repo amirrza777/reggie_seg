@@ -91,6 +91,11 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
     return links.filter((link) => !link.space || link.space === currentSpace);
   }, [links, currentSpace]);
 
+  const activeVisibleHref = useMemo(
+    () => getBestMatchingHref(visibleLinks, pathname, searchParams),
+    [visibleLinks, pathname, searchParams],
+  );
+
   const current = useMemo(() => {
     const visibleTargets = visibleLinks.flatMap((link) => [link, ...(link.children ?? [])]);
     if (!pathname) return visibleTargets[0];
@@ -153,7 +158,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
               <nav className="sidebar__mobile-nav">
                 {visibleLinks.map((link) => {
                   const hasChildren = Boolean(link.children && link.children.length > 0);
-                  const isParentActive = isHrefActive(link.href, pathname, searchParams);
+                  const isParentActive = activeVisibleHref === link.href;
                   if (!hasChildren) {
                     return (
                       <Link
@@ -219,7 +224,7 @@ export function Sidebar({ title = "Navigation", links, footer }: SidebarProps) {
       <nav className="sidebar__nav">
         {visibleLinks.map((link) => {
           const hasChildren = Boolean(link.children && link.children.length > 0);
-          const isParentActive = isHrefActive(link.href, pathname, searchParams);
+          const isParentActive = activeVisibleHref === link.href;
           if (!hasChildren) {
             return (
               <Link
