@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -13,6 +13,14 @@ type SpaceLink = {
 
 type SpaceSwitcherProps = {
   links: SpaceLink[];
+};
+
+const ACTIVE_SPACE_STORAGE_KEY = "team-feedback.space-switcher.active";
+const SPACE_WEIGHT: Record<string, number> = {
+  admin: 1,
+  workspace: 2,
+  staff: 3,
+  enterprise: 4,
 };
 
 const defaultIcons: Record<string, ReactNode> = {
@@ -74,27 +82,112 @@ const defaultIcons: Record<string, ReactNode> = {
 
 export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
   const pathname = usePathname();
-
-  const weight: Record<string, number> = {
-    admin: 1,
-    workspace: 2,
-    staff: 3,
-    enterprise: 4,
-  };
+  const navRef = useRef<HTMLElement | null>(null);
+  const indicatorRef = useRef<HTMLSpanElement | null>(null);
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const hasMountedRef = useRef(false);
 
   const sortedLinks = useMemo(
     () =>
       [...links].sort((a, b) => {
-        const wa = weight[a.label.toLowerCase()] ?? 99;
-        const wb = weight[b.label.toLowerCase()] ?? 99;
+        const wa = SPACE_WEIGHT[a.label.toLowerCase()] ?? 99;
+        const wb = SPACE_WEIGHT[b.label.toLowerCase()] ?? 99;
         if (wa !== wb) return wa - wb;
         return a.label.localeCompare(b.label);
       }),
     [links]
   );
 
+  const activeHref = useMemo(() => {
+    if (!pathname) return null;
+
+    for (const { href, activePaths } of sortedLinks) {
+      const activeByAlias = activePaths?.some((prefix) => pathname.startsWith(prefix)) ?? false;
+      if (activeByAlias || pathname.startsWith(href)) return href;
+    }
+
+    return null;
+  }, [pathname, sortedLinks]);
+
+  const setIndicatorPosition = useCallback((href: string | null, animate: boolean) => {
+    const indicator = indicatorRef.current;
+    const nav = navRef.current;
+    if (!indicator || !nav || !href) {
+      indicator?.classList.remove("is-visible");
+      return;
+    }
+
+    const link = linkRefs.current[href];
+    if (!link) {
+      indicator.classList.remove("is-visible");
+      return;
+    }
+
+    const navRect = nav.getBoundingClientRect();
+    const linkRect = link.getBoundingClientRect();
+    const horizontalInset = 18;
+    const left = Math.max(linkRect.left - navRect.left + horizontalInset, 0);
+    const width = Math.max(linkRect.width - horizontalInset * 2, 16);
+
+    indicator.style.setProperty("--space-switcher-indicator-left", `${left}px`);
+    indicator.style.setProperty("--space-switcher-indicator-width", `${width}px`);
+    indicator.classList.toggle("is-animating", animate);
+    indicator.classList.add("is-visible");
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!activeHref) {
+      setIndicatorPosition(null, false);
+      return;
+    }
+
+    let previousHref: string | null = null;
+    try {
+      previousHref = window.sessionStorage.getItem(ACTIVE_SPACE_STORAGE_KEY);
+    } catch {
+      previousHref = null;
+    }
+
+    const animateFromPrevious =
+      !hasMountedRef.current &&
+      previousHref !== null &&
+      previousHref !== activeHref &&
+      !!linkRefs.current[previousHref];
+
+    if (animateFromPrevious && previousHref) {
+      setIndicatorPosition(previousHref, false);
+      const frameId = window.requestAnimationFrame(() => {
+        setIndicatorPosition(activeHref, true);
+      });
+      hasMountedRef.current = true;
+      try {
+        window.sessionStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, activeHref);
+      } catch {
+        // Ignore write failures.
+      }
+      return () => window.cancelAnimationFrame(frameId);
+    }
+
+    setIndicatorPosition(activeHref, hasMountedRef.current);
+    hasMountedRef.current = true;
+    try {
+      window.sessionStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, activeHref);
+    } catch {
+      // Ignore write failures.
+    }
+  }, [activeHref, setIndicatorPosition]);
+
+  useEffect(() => {
+    if (!activeHref) return;
+
+    const reposition = () => setIndicatorPosition(activeHref, false);
+    window.addEventListener("resize", reposition);
+    return () => window.removeEventListener("resize", reposition);
+  }, [activeHref, setIndicatorPosition]);
+
   return (
-    <nav className="space-switcher" aria-label="Spaces">
+    <nav className="space-switcher" aria-label="Spaces" ref={navRef}>
+      <span className="space-switcher__indicator" aria-hidden="true" ref={indicatorRef} />
       {sortedLinks.map(({ href, label, icon, activePaths }) => {
         const normalizedLabel = label.toLowerCase();
         const activeByAlias = activePaths?.some((prefix) => pathname?.startsWith(prefix) ?? false) ?? false;
@@ -107,6 +200,9 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
             href={href}
             className={`space-switcher__link ${active ? "is-active" : ""}`}
             aria-current={active ? "page" : undefined}
+            ref={(node) => {
+              linkRefs.current[href] = node;
+            }}
           >
             {resolvedIcon ? (
               <span className="space-switcher__icon" aria-hidden="true">

@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -43,12 +43,12 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
 
   if (!token) {
     return (
-      <div style={{ textAlign: "center", width: "100%" }}>
-        <div className="status-alert status-alert--error" style={{ padding: 16, marginBottom: 24, fontSize: 14 }}>
+      <div className="auth-reset-wrap auth-reset-wrap--center">
+        <div className="status-alert status-alert--error auth-reset-alert">
           Reset link is missing or invalid. Please request a new one.
         </div>
-        <Link href="/forgot-password" style={{ textDecoration: "none" }}>
-          <Button style={{ width: "100%" }}>Request New Link</Button>
+        <Link href="/forgot-password" className="ui-link-reset">
+          <Button className="full-width-btn">Request New Link</Button>
         </Link>
       </div>
     );
@@ -56,12 +56,10 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
 
   if (status === "success") {
     return (
-      <div style={{ textAlign: "center", width: "100%" }}>
-        <div className="status-alert status-alert--success" style={{ padding: 16, marginBottom: 24, fontSize: 14 }}>
-          {message}
-        </div>
-        <Link href="/login" style={{ textDecoration: "none" }}>
-          <Button style={{ width: "100%" }}>Back to Log in</Button>
+      <div className="auth-reset-wrap auth-reset-wrap--center">
+        <div className="status-alert status-alert--success auth-reset-alert">{message}</div>
+        <Link href="/login" className="ui-link-reset">
+          <Button className="full-width-btn">Back to Log in</Button>
         </Link>
       </div>
     );
@@ -71,13 +69,8 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
     status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success";
 
   return (
-    <form style={{ width: "100%" }} onSubmit={handleSubmit}>
-      {message ? (
-        <div className={alertClass} style={{ padding: "10px 12px", marginBottom: 12, fontSize: 14 }}>
-          <span>⚠️</span>
-          <span>{message}</span>
-        </div>
-      ) : null}
+    <form className="auth-reset-wrap" onSubmit={handleSubmit}>
+      {message ? <div className={`${alertClass} auth-reset-message`}>{message}</div> : null}
 
       <AuthField
         name="newPassword"
@@ -101,11 +94,11 @@ export function ResetPasswordForm({ token }: { token: string | null }) {
         onChange={(_, val) => setConfirmPassword(val)}
       />
 
-      <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
+      <Button type="submit" disabled={status === "loading"} className="full-width-btn">
         {status === "loading" ? "Updating..." : "Reset Password"}
       </Button>
 
-      <div style={{ marginTop: 16, textAlign: "center" }}>
+      <div className="auth-reset-actions">
         <Link href="/login" className="auth-link auth-link--subtle">
           ← Back to Log in
         </Link>

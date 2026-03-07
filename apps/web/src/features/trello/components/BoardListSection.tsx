@@ -11,20 +11,17 @@ type BoardListSectionProps = {
 
 export function BoardListSection({ list, cards }: BoardListSectionProps) {
   return (
-    <div
-      style={{
-        flex: "0 0 280px",
-        backgroundColor: "#f4f5f7",
-        borderRadius: 8,
-        padding: 12,
-      }}
-    >
-      <h3>{list.name}</h3>
-      <ul style={{ listStyle: "none", padding: 0 }}>
+    <section className="trello-lane">
+      <header className="trello-lane__header">
+        <h3 className="trello-lane__title">{list.name}</h3>
+        <span className="trello-lane__count">{cards.length}</span>
+      </header>
+      <ul className="trello-lane__cards">
         {cards.map((card) => (
           <BoardCard key={card.id} card={card} members={card.members ?? []} />
         ))}
       </ul>
-    </div>
+      {cards.length === 0 ? <p className="trello-lane__empty">No cards</p> : null}
+    </section>
   );
 }

@@ -13,6 +13,7 @@ export default async function StaffDashboardPage() {
     <div className="stack">
       <Placeholder
         title="Staff Overview"
+        titleClassName="overview-title"
         description="At-a-glance metrics for submissions, engagement, and risk."
       />
 

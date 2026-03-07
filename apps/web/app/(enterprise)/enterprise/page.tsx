@@ -3,7 +3,7 @@ export default function EnterpriseHomePage() {
     <div className="page">
       <header className="page__header">
         <p className="eyebrow">Enterprise</p>
-        <h1 className="page__title">Enterprise Overview</h1>
+        <h1 className="overview-title">Enterprise Overview</h1>
         <p className="page__subtitle">Enterprise overview</p>
       </header>
 

@@ -38,15 +38,15 @@ beforeEach(() => {
 });
 
 describe("LoginForm", () => {
-  it("submits credentials and redirects to modules", async () => {
+  it("submits credentials and redirects to dashboard", async () => {
     loginMock.mockResolvedValue({ accessToken: "abc" } as any);
     render(<LoginForm />);
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
     expect(loginMock).toHaveBeenCalledWith({ email: "user@example.com", password: "secret" });
     await waitFor(() => expect(refresh).toHaveBeenCalled());
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
-    expect(screen.getByText(/logged in/i)).toBeInTheDocument();
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    expect(screen.queryByText(/logged in/i)).not.toBeInTheDocument();
   });
 
   it("shows an error message when login fails", async () => {

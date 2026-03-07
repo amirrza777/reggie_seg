@@ -5,7 +5,9 @@ import {
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
+import { getCurrentUser } from "@/shared/auth/session";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { PageSection } from "@/shared/ui/PageSection";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +17,25 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const feedbacksRaw = await getPeerAssessmentsForUser("4", projectId); //hardcoded user id for now
+  const flagMap = await getFeatureFlagMap();
+  if (!flagMap["peer_feedback"]) redirect(`/projects/${projectId}`);
+
+  const user = await getCurrentUser();
+  if (!user) {
+    return (
+      <div>
+        <ProjectNav projectId={projectId} />
+        <PageSection
+          title="Peer Feedback"
+          description="Collect and review peer feedback for this project."
+        >
+          <p className="muted">Please sign in to view peer feedback.</p>
+        </PageSection>
+      </div>
+    );
+  }
+
+  const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
   const feedbacks = await Promise.all(
     feedbacksRaw.map(async (feedback) => {
       try {
@@ -27,17 +47,15 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     })
   );
 
-  const flagMap = await getFeatureFlagMap();
-  if (!flagMap["peer_feedback"]) redirect(`/projects/${projectId}`);
-
   return (
     <div>
       <ProjectNav projectId={projectId} />
-      <div style={{ padding: "30px" }}>
-      <h2>Peer Feedbacks</h2>
-      <p>Collect and review peer feedback for this project.</p>
-      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
-      </div>
+      <PageSection
+        title="Peer Feedback"
+        description="Collect and review peer feedback for this project."
+      >
+        <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+      </PageSection>
     </div>
   );
 }

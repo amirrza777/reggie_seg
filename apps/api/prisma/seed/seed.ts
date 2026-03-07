@@ -537,7 +537,7 @@ async function seedFeatureFlags(enterpriseId: string) {
   const defaults = [
     { key: 'peer_feedback', label: 'Peer feedback', enabled: true },
     { key: 'modules', label: 'Modules', enabled: true },
-    { key: 'repos', label: 'Repos', enabled: true },
+    { key: 'repos', label: 'Repositories', enabled: true },
   ];
 
   for (const flag of defaults) {

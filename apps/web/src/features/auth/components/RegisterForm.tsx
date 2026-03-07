@@ -7,6 +7,7 @@ import { signup } from "../api/client";
 import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
+import { useUser } from "../context";
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -20,6 +21,7 @@ export function RegisterForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "error" | "success">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
+  const { refresh } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +41,10 @@ export function RegisterForm() {
         lastName: formData.lastName,
         role: formData.role,
       });
+      await refresh();
       setStatus("success");
       setMessage("Account created. Redirecting...");
-      router.push("/modules");
+      router.push("/dashboard");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Signup failed");
@@ -53,13 +56,11 @@ export function RegisterForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: "100%" }}>
+    <form className="auth-form" onSubmit={handleSubmit}>
       {message ? (
         <div
-          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-          style={{ marginBottom: 12 }}
+          className={`${status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} auth-alert`}
         >
-          <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
           <span>{message}</span>
         </div>
       ) : null}
@@ -108,8 +109,8 @@ export function RegisterForm() {
         onChange={(name, value) => setFormData({ ...formData, [name]: value })}
       />
 
-      <fieldset style={{ margin: "12px 0", padding: 0, border: "none" }}>
-        <legend className="muted" style={{ fontSize: 14, marginBottom: 6 }}>
+      <fieldset className="auth-role-fieldset">
+        <legend className="muted auth-role-legend">
           Developer shortcut: choose temporary role (excludes super admin)
         </legend>
         <div role="radiogroup" aria-label="Select role" className="role-toggle">

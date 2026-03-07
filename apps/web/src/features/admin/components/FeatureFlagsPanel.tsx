@@ -17,14 +17,15 @@ export function FeatureFlagsPanel({ flags, onToggle, updating }: FeatureFlagsPan
     const statusClass = flag.enabled ? "status-chip status-chip--success" : "status-chip status-chip--danger";
     return [
       flag.label,
-      <div key={`${flag.key}-action`} style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "flex-start" }}>
+      <div key={`${flag.key}-action`} className="feature-flag-action">
         <span className={statusClass}>{statusLabel}</span>
         <Button
           type="button"
           variant={flag.enabled ? "ghost" : "primary"}
+          size="sm"
           onClick={() => onToggle(flag.key, nextState)}
           disabled={busy}
-          style={{ padding: "8px 12px", minWidth: 110 }}
+          className="feature-flag-action__btn"
         >
           {busy ? "Saving..." : flag.enabled ? "Disable" : "Enable"}
         </Button>

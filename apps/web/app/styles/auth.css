@@ -88,10 +88,54 @@
   margin-top: 8px;
 }
 
+.auth-form {
+  width: 100%;
+}
+
 .auth-button {
   width: 100%;
   border-radius: 999px;
   justify-content: center;
+}
+
+.auth-button--spaced {
+  margin-top: 8px;
+}
+
+.auth-alert {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.auth-alert--spacious {
+  margin-bottom: 24px;
+  padding: 16px;
+}
+
+.auth-center {
+  text-align: center;
+}
+
+.auth-link-reset {
+  text-decoration: none;
+}
+
+.auth-meta {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.auth-role-fieldset {
+  margin: 12px 0;
+  padding: 0;
+  border: none;
+}
+
+.auth-role-legend {
+  font-size: var(--fs-caption);
+  line-height: 1.4;
+  margin-bottom: 6px;
 }
 
 .role-toggle {

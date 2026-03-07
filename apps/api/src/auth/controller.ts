@@ -77,16 +77,27 @@ export async function refreshHandler(req: Request, res: Response) {
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
-    console.error("refresh error", e);
     if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
+    if (e.code === "INVALID_REFRESH_TOKEN") {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: "invalid refresh token" });
+    }
+    console.error("refresh error", e);
+    clearRefreshCookie(res);
     return res.status(401).json({ error: "invalid refresh token", detail: e?.message || e?.code || String(e) });
   }
 }
 
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
-  if (token) await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
-  res.clearCookie("refresh_token");
+  if (token) {
+    try {
+      await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
+    } catch {
+      // Token may already be expired/revoked; clear cookie and continue logout.
+    }
+  }
+  clearRefreshCookie(res);
   return res.json({ success: true });
 }
 
@@ -168,6 +179,16 @@ function setRefreshCookie(res: Response, token: string) {
     path: "/",
     domain: cookieDomain,
     maxAge: 1000 * 60 * 60 * 24 * 30,
+  });
+}
+
+function clearRefreshCookie(res: Response) {
+  res.clearCookie("refresh_token", {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
+    path: "/",
+    domain: cookieDomain,
   });
 }
 
