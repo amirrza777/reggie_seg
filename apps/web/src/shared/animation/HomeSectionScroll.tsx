@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 const HEADER_SCROLL_OFFSET = 12;
@@ -17,39 +17,87 @@ const scrollToSection = (id: string) => {
   return true;
 };
 
-const clearSectionQuery = () => {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("section");
-  const next = `${url.pathname}${url.search}${url.hash}`;
-  window.history.replaceState(window.history.state, "", next);
+const sectionFromAnchor = (anchor: HTMLAnchorElement) => {
+  const href = anchor.getAttribute("href");
+  if (!href) return null;
+  const url = new URL(href, window.location.href);
+  if (url.origin !== window.location.origin || url.pathname !== "/") return null;
+  return url.searchParams.get("section");
 };
 
 export function HomeSectionScroll() {
   const pathname = usePathname();
   const section = useSearchParams().get("section");
+  const rafIdRef = useRef<number | null>(null);
+
+  const scheduleScroll = (nextSection: string) => {
+    if (rafIdRef.current !== null) {
+      window.cancelAnimationFrame(rafIdRef.current);
+    }
+
+    let attempts = 0;
+
+    const tick = () => {
+      if (scrollToSection(nextSection)) {
+        rafIdRef.current = null;
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < MAX_SCROLL_ATTEMPTS) {
+        rafIdRef.current = window.requestAnimationFrame(tick);
+      } else {
+        rafIdRef.current = null;
+      }
+    };
+
+    rafIdRef.current = window.requestAnimationFrame(tick);
+  };
 
   useEffect(() => {
     if (pathname !== "/") return;
     if (!section) return;
 
-    let rafId = 0;
-    let attempts = 0;
+    scheduleScroll(section);
 
-    const tick = () => {
-      if (scrollToSection(section)) {
-        clearSectionQuery();
-        return;
-      }
-      attempts += 1;
-      if (attempts < MAX_SCROLL_ATTEMPTS) {
-        rafId = window.requestAnimationFrame(tick);
+    return () => {
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
       }
     };
-
-    rafId = window.requestAnimationFrame(tick);
-
-    return () => window.cancelAnimationFrame(rafId);
   }, [pathname, section]);
+
+  useEffect(() => {
+    if (pathname !== "/") return;
+
+    const onClick = (event: MouseEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return;
+      }
+
+      const target = event.target as HTMLElement | null;
+      const anchor = target?.closest("a");
+      if (!anchor) return;
+
+      const clickedSection = sectionFromAnchor(anchor);
+      if (!clickedSection) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      scheduleScroll(clickedSection);
+    };
+
+    document.addEventListener("click", onClick, { capture: true });
+    return () => document.removeEventListener("click", onClick, { capture: true });
+  }, [pathname]);
 
   return null;
 }
