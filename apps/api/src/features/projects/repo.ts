@@ -218,3 +218,81 @@ export async function getQuestionsForProject(projectId: number) {
     },
   });
 }
+
+type RawStaffMarking = {
+  mark: number | null;
+  formativeFeedback: string | null;
+  updatedAt: Date;
+  marker: { id: number; firstName: string; lastName: string };
+};
+
+function mapStaffMarking(marking: RawStaffMarking | null) {
+  if (!marking) return null;
+  return {
+    mark: marking.mark ?? null,
+    formativeFeedback: marking.formativeFeedback ?? null,
+    updatedAt: marking.updatedAt.toISOString(),
+    marker: {
+      id: marking.marker.id,
+      firstName: marking.marker.firstName,
+      lastName: marking.marker.lastName,
+    },
+  };
+}
+
+export async function getUserProjectMarking(userId: number, projectId: number) {
+  const enrollment = await prisma.teamAllocation.findFirst({
+    where: {
+      userId,
+      team: { projectId },
+    },
+    select: {
+      teamId: true,
+      team: {
+        select: {
+          staffTeamMarking: {
+            select: {
+              mark: true,
+              formativeFeedback: true,
+              updatedAt: true,
+              marker: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+          },
+          staffStudentMarkings: {
+            where: { studentUserId: userId },
+            select: {
+              mark: true,
+              formativeFeedback: true,
+              updatedAt: true,
+              marker: {
+                select: {
+                  id: true,
+                  firstName: true,
+                  lastName: true,
+                },
+              },
+            },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  if (!enrollment) {
+    return null;
+  }
+
+  const studentMarking = enrollment.team.staffStudentMarkings[0] ?? null;
+  return {
+    teamId: enrollment.teamId,
+    teamMarking: mapStaffMarking(enrollment.team.staffTeamMarking),
+    studentMarking: mapStaffMarking(studentMarking),
+  };
+}

@@ -28,7 +28,9 @@ export function ProgressCard({ title, submitted, expected, deadline, href, actio
             Progress
           </div>
           <h3 style={{ margin: 0 }}>{title}</h3>
-          <p className="muted" style={{ margin: "6px 0 0" }}>{deadline ?? "12D:4H to deadline"}</p>
+          <p className="muted" style={{ margin: "6px 0 0" }}>
+            {deadline ?? "Deadline not set"}
+          </p>
           <p> {submitted}/{expected} assessments submitted </p>
         </div>
       </div>
@@ -37,7 +39,6 @@ export function ProgressCard({ title, submitted, expected, deadline, href, actio
         <div className="progress-bar__label">
           <strong>{Math.round(pct)}%</strong>
         </div>
-        
         {action}
       </div>
     </div>

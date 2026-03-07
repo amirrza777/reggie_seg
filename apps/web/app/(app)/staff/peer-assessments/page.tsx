@@ -15,12 +15,11 @@ async function getStaffIdFromSession() {
 }
 
 export default async function StaffPeerAssessmentsPage() {
-  let staffId: number | null = null;
-  let modules;
+  let modules: Awaited<ReturnType<typeof getModulesSummary>> | null = null;
   let errorMessage: string | null = null;
 
   try {
-    staffId = await getStaffIdFromSession();
+    const staffId = await getStaffIdFromSession();
     modules = await getModulesSummary(staffId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
@@ -38,6 +37,17 @@ export default async function StaffPeerAssessmentsPage() {
     );
   }
 
+  if (modules.length === 0) {
+    return (
+      <div className="stack">
+        <Placeholder
+          title="All modules' peer assessments"
+          description="No modules are currently available for your enterprise."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
       <Placeholder
@@ -46,7 +56,9 @@ export default async function StaffPeerAssessmentsPage() {
       />
       <ProgressCardGrid
         items={modules}
-        getHref={(item) => `/staff/peer-assessments/module/${item.id ?? ""}`}
+        getHref={(item) =>
+          item.id == null ? undefined : `/staff/peer-assessments/module/${item.id}`
+        }
       />
     </div>
   );

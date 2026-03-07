@@ -1,22 +1,34 @@
 import { prisma } from "../../../shared/db.js";
 
-//TODO: surely this is ok nesting right?
-//TODO: replace with auth staff id
-export function getModuleDetailsIfAuthorised(moduleId: number, staffId: number) {
+async function findStaffScope(staffId: number) {
+  const user = await prisma.user.findUnique({
+    where: { id: staffId },
+    select: { enterpriseId: true, role: true, active: true },
+  });
+  if (!user || user.active === false || user.role === "STUDENT") {
+    return null;
+  }
+  return user;
+}
+
+export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: number) {
+  const staffScope = await findStaffScope(staffId);
+  if (!staffScope) return null;
   return prisma.module.findFirst({
     where: {
       id: moduleId,
-      //moduleLeads: { some: { userId: staffId } },
+      enterpriseId: staffScope.enterpriseId,
     },
     select: { id: true, name: true },
   });
 }
 
-export function findModulesForStaff(staffId: number) {
+export async function findModulesForStaff(staffId: number) {
+  const staffScope = await findStaffScope(staffId);
+  if (!staffScope) return [];
   return prisma.module.findMany({
-    where: {
-      // moduleLeads: { some: { userId: staffId } },
-    },
+    where: { enterpriseId: staffScope.enterpriseId },
+    orderBy: { name: "asc" },
   });
 }
 
@@ -89,7 +101,7 @@ export function findAssessmentsForRevieweeInTeam(teamId: number, revieweeUserId:
       id: true,
       reviewerUserId: true,
       answersJson: true,
-      questionnaireTemplateId: true,
+      templateId: true,
       reviewer: {
         select: { id: true, firstName: true, lastName: true },
       },
@@ -104,7 +116,111 @@ export function findTemplateWithQuestions(templateId: number) {
       id: true,
       questions: {
         orderBy: { order: "asc" as const },
-        select: { id: true, label: true, order: true },
+        select: { id: true, label: true, order: true, type: true, configs: true },
+      },
+    },
+  });
+}
+
+export function findTeamMarking(teamId: number) {
+  return prisma.staffTeamMarking.findUnique({
+    where: { teamId },
+    select: {
+      mark: true,
+      formativeFeedback: true,
+      updatedAt: true,
+      marker: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+  });
+}
+
+export function findStudentMarking(teamId: number, studentUserId: number) {
+  return prisma.staffStudentMarking.findUnique({
+    where: {
+      teamId_studentUserId: { teamId, studentUserId },
+    },
+    select: {
+      mark: true,
+      formativeFeedback: true,
+      updatedAt: true,
+      marker: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+  });
+}
+
+export async function isStudentInTeam(teamId: number, studentUserId: number) {
+  const count = await prisma.teamAllocation.count({
+    where: { teamId, userId: studentUserId },
+  });
+  return count > 0;
+}
+
+export function upsertTeamMarking(data: {
+  teamId: number;
+  markerUserId: number;
+  mark: number | null;
+  formativeFeedback: string | null;
+}) {
+  return prisma.staffTeamMarking.upsert({
+    where: { teamId: data.teamId },
+    create: {
+      teamId: data.teamId,
+      markerUserId: data.markerUserId,
+      mark: data.mark,
+      formativeFeedback: data.formativeFeedback,
+    },
+    update: {
+      markerUserId: data.markerUserId,
+      mark: data.mark,
+      formativeFeedback: data.formativeFeedback,
+    },
+    select: {
+      mark: true,
+      formativeFeedback: true,
+      updatedAt: true,
+      marker: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+  });
+}
+
+export function upsertStudentMarking(data: {
+  teamId: number;
+  studentUserId: number;
+  markerUserId: number;
+  mark: number | null;
+  formativeFeedback: string | null;
+}) {
+  return prisma.staffStudentMarking.upsert({
+    where: {
+      teamId_studentUserId: {
+        teamId: data.teamId,
+        studentUserId: data.studentUserId,
+      },
+    },
+    create: {
+      teamId: data.teamId,
+      studentUserId: data.studentUserId,
+      markerUserId: data.markerUserId,
+      mark: data.mark,
+      formativeFeedback: data.formativeFeedback,
+    },
+    update: {
+      markerUserId: data.markerUserId,
+      mark: data.mark,
+      formativeFeedback: data.formativeFeedback,
+    },
+    select: {
+      mark: true,
+      formativeFeedback: true,
+      updatedAt: true,
+      marker: {
+        select: { id: true, firstName: true, lastName: true },
       },
     },
   });

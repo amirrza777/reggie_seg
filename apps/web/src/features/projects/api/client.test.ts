@@ -9,6 +9,7 @@ vi.mock("@/shared/api/http", () => ({
 import {
   getProject,
   getProjectDeadline,
+  getProjectMarking,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
@@ -62,5 +63,12 @@ describe("projects api client", () => {
   it("gets team by user and project", async () => {
     await getTeamByUserAndProject(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team?userId=7");
+  });
+
+  it("gets project marking for the current user", async () => {
+    await getProjectMarking(7, 42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/marking?userId=7", {
+      cache: "no-store",
+    });
   });
 });
