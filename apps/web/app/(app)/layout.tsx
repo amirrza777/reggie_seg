@@ -25,12 +25,6 @@ type NavLink = {
   children?: NavChild[];
 };
 
-const FALLBACK_MODULES = [
-  { id: "MOD-3101", title: "Software Engineering" },
-  { id: "MOD-2240", title: "Data Structures" },
-  { id: "MOD-4120", title: "PEP" },
-];
-
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const [user, flagMap] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
   if (!user) redirect("/login");
@@ -55,22 +49,17 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
   try {
     const modules = await listModules();
-    const source = modules.length > 0 ? modules : FALLBACK_MODULES;
-    moduleChildren = [
-      { href: "/dashboard", label: "Overview" },
-      ...source.map((module) => ({
-        href: `/dashboard?module=${encodeURIComponent(module.id)}`,
-        label: module.title,
-      })),
-    ];
+    if (modules.length > 0) {
+      moduleChildren = [
+        { href: "/dashboard", label: "Overview" },
+        ...modules.map((module) => ({
+          href: `/dashboard?module=${encodeURIComponent(module.id)}`,
+          label: module.title,
+        })),
+      ];
+    }
   } catch {
-    moduleChildren = [
-      { href: "/dashboard", label: "Overview" },
-      ...FALLBACK_MODULES.map((module) => ({
-        href: `/dashboard?module=${encodeURIComponent(module.id)}`,
-        label: module.title,
-      })),
-    ];
+    // Keep base overview link if modules cannot be loaded.
   }
 
   let projectChildren: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
