@@ -47,7 +47,7 @@ export function GithubProjectReposBranchesTab({
       <div className="ui-row ui-row--between ui-row--wrap">
         <div className="github-repos-tab__title">
           <p className="github-repos-tab__kicker">Live repository data</p>
-          <strong>Branches</strong>
+          <h2 className="github-repos-tab__heading">Branches</h2>
         </div>
         <Button variant="ghost" onClick={() => void handleRefreshLiveBranches()} disabled={loading || liveBranchesRefreshing}>
           {liveBranchesRefreshing ? "Refreshing..." : "Refresh"}

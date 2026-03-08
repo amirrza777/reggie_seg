@@ -173,8 +173,14 @@ export function AdminWorkspaceSummary() {
                   Select a staff member to grant or revoke admin privileges.
                 </p>
               </div>
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                Close
+              <Button
+                type="button"
+                variant="ghost"
+                className="modal__close-btn"
+                aria-label="Close"
+                onClick={() => setModalOpen(false)}
+              >
+                ×
               </Button>
             </div>
 

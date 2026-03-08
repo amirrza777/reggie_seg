@@ -4,7 +4,7 @@
   background:
     radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
     linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%), var(--surface));
-  padding: 18px;
+  padding: var(--space-panel-content-inset);
   box-shadow: var(--shadow-sm);
 }
 
@@ -25,17 +25,11 @@
 }
 
 .github-hero__title {
-  margin: 4px 0 0;
-  font-size: 22px;
-  line-height: 1.1;
-  font-weight: 800;
   color: var(--ink);
 }
 
 .github-hero__blurb {
-  margin: 8px 0 0;
   max-width: 760px;
-  color: var(--muted);
 }
 
 .github-hero__badge {
@@ -138,7 +132,9 @@
 
 .github-chart-info__title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   font-weight: 700;
 }
 
@@ -147,10 +143,16 @@
   background: var(--surface);
   color: var(--ink);
   border-radius: 8px;
-  padding: 6px 10px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 10px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 1.35rem;
   font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .github-chart-info__body {
@@ -182,7 +184,7 @@
 }
 
 .github-repo-link-card {
-  padding: 14px;
+  padding: var(--space-panel-content-inset);
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--glass-surface);
@@ -198,9 +200,10 @@
 }
 
 .github-repo-link-card__title {
-  font-size: 24px;
+  font-size: var(--fs-panel-section-title);
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
   margin: 0;
 }
 
@@ -354,10 +357,6 @@
   height: 220px;
 }
 
-.github-project-repos-client {
-  gap: 16px;
-}
-
 .github-project-repos-status {
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -424,7 +423,7 @@
 
 .github-repos-tab__title {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 
 .github-repos-tab__kicker {
@@ -433,6 +432,13 @@
   font-size: 12px;
   letter-spacing: 0.35px;
   text-transform: uppercase;
+}
+
+.github-repos-tab__heading {
+  margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 .github-repos-tab__list {
@@ -554,4 +560,3 @@
   background: var(--surface);
   color: var(--ink);
 }
-

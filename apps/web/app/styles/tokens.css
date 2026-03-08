@@ -13,6 +13,8 @@
   --fs-h3: 1.2rem;
   --fs-title-sm: 1.25rem;
   --fs-project-hero-title: clamp(1.9rem, 2.7vw, 2.4rem);
+  --fs-panel-title: var(--fs-project-hero-title);
+  --fs-panel-section-title: clamp(1.35rem, 1.2vw + 1rem, 1.65rem);
   --fs-marketing-body: clamp(1.15rem, 1.5vw, 1.3rem);
   --fs-overview-title: calc(var(--fs-body) * 2);
   --fs-body-lg: 1.12rem;
@@ -25,6 +27,9 @@
   --fs-logo: 1.5rem;
   --fs-toggle: 1.375rem;
   --fs-auth-title: 2rem;
+  --space-panel-gap: 16px;
+  --space-panel-heading-gap: 8px;
+  --space-panel-content-inset: 16px;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;

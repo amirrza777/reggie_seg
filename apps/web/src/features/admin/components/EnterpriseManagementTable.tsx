@@ -535,8 +535,8 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                 <h3 id="create-enterprise-title">Create enterprise</h3>
                 <p className="muted">Create a new enterprise account space. You can provide a code or let it auto-generate.</p>
               </div>
-              <Button type="button" variant="ghost" onClick={closeCreateModal}>
-                Close
+              <Button type="button" variant="ghost" className="modal__close-btn" aria-label="Close" onClick={closeCreateModal}>
+                ×
               </Button>
             </div>
 
@@ -587,8 +587,14 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                   Enterprise code {selectedEnterprise.code}. Manage staff/student roles and account status for this enterprise.
                 </p>
               </div>
-              <Button type="button" variant="ghost" onClick={() => setSelectedEnterprise(null)}>
-                Close
+              <Button
+                type="button"
+                variant="ghost"
+                className="modal__close-btn"
+                aria-label="Close"
+                onClick={() => setSelectedEnterprise(null)}
+              >
+                ×
               </Button>
             </div>
 
