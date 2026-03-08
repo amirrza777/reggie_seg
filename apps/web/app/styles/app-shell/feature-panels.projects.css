@@ -1,7 +1,3 @@
-.projects-panel {
-  padding: 0;
-}
-
 .projects-panel__header {
   padding: 0;
 }
@@ -16,10 +12,4 @@
 
 .projects-panel .project-list__grid {
   margin-top: 0;
-}
-
-@media (max-width: 700px) {
-  .projects-panel {
-    padding: 0;
-  }
 }
