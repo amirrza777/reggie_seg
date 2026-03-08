@@ -46,7 +46,7 @@ export function GithubRepoLinkCard({
     <div key={link.id} className="github-repo-link-card">
       <div className="github-repo-link-card__header">
         <div>
-          <p className="github-repo-link-card__title">{link.repository.fullName}</p>
+          <h2 className="github-repo-link-card__title">{link.repository.fullName}</h2>
           <div className="github-repo-link-card__meta-row">
             <span className="github-repo-link-card__chip">{link.repository.isPrivate ? "Private repository" : "Public repository"}</span>
             <span className="github-repo-link-card__chip">Default branch {link.repository.defaultBranch || "unknown"}</span>

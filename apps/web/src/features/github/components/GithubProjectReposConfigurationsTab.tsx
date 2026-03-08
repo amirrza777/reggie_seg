@@ -27,7 +27,7 @@ export function GithubProjectReposConfigurationsTab({
       <div className="github-repos-tab__header">
         <div className="ui-stack-xs">
           <p className="github-repos-tab__kicker">Setup</p>
-          <strong>GitHub account</strong>
+          <h2 className="github-repos-tab__heading">GitHub account</h2>
           {loading ? (
             <p className="muted">Loading connection...</p>
           ) : connection?.connected ? (

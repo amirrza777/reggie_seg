@@ -16,9 +16,9 @@ export function GithubProjectReposHero({
   return (
     <section className="github-hero">
       <div className="github-hero__top">
-        <div>
+        <div className="github-hero__intro">
           <p className="github-hero__eyebrow">Project Repositories</p>
-          <p className="github-hero__title">GitHub Repository Insights</p>
+          <h2 className="github-hero__title">GitHub Repository Insights</h2>
           <p className="github-hero__blurb">
             Connect GitHub, install repository access if needed, and generate immutable snapshots for contribution evidence.
           </p>

@@ -127,8 +127,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
             <Button type="button" variant="ghost" onClick={downloadCsv} disabled={!logs.length}>
               Download CSV
             </Button>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Close
+            <Button type="button" variant="ghost" className="modal__close-btn" aria-label="Close" onClick={onClose}>
+              ×
             </Button>
           </div>
         </div>

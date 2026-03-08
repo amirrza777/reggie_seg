@@ -90,7 +90,7 @@ body {
   border-bottom: none;
   background: transparent;
   position: static;
-  z-index: 6;
+  z-index: 1;
   display: flex;
   align-items: center;
 }

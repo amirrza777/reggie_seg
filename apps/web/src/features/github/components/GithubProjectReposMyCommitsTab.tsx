@@ -34,7 +34,7 @@ export function GithubProjectReposMyCommitsTab({
     <section className="github-repos-tab">
       <div className="github-repos-tab__title">
         <p className="github-repos-tab__kicker">Personal activity</p>
-        <strong>My commits</strong>
+        <h2 className="github-repos-tab__heading">My commits</h2>
       </div>
       <div className="github-repos-tab__list">
         {loading ? <p className="muted">Loading commits...</p> : null}

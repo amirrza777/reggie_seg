@@ -12,11 +12,14 @@
 
 .card__header {
   position: relative;
-  padding: 14px 16px 10px;
+  padding: 14px var(--space-panel-content-inset) 10px;
 }
 
 .card__title {
   margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
 }
 
 .card__action {
@@ -31,7 +34,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px 12px;
+  padding: 14px var(--space-panel-content-inset) 12px;
 }
 
 .card--has-action .card__action {
@@ -50,7 +53,7 @@
 
 .card__body {
   color: var(--muted);
-  padding: 0 16px 12px;
+  padding: 0 var(--space-panel-content-inset) 12px;
 }
 
 @media (max-width: 820px) {
@@ -143,6 +146,9 @@
   justify-content: center;
   padding: 72px 24px 56px;
   z-index: 9000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal__dialog {
@@ -153,6 +159,7 @@
   max-height: min(78vh, 820px);
   position: relative;
   z-index: 9001;
+  margin: auto;
 }
 
 .modal__header,
@@ -168,6 +175,29 @@
 
 .modal__body {
   padding: 16px;
+}
+
+.modal__close-btn {
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0 10px;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-height: 760px) {
+  .modal {
+    align-items: flex-start;
+    padding: 14px 12px;
+  }
+
+  .modal__dialog {
+    margin: 0 auto;
+    max-height: none;
+  }
 }
 
 .workspace-shell .faq-section--left {
