@@ -9,7 +9,11 @@ import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/sessio
 
 export const dynamic = "force-dynamic";
 
-const enterpriseNav = [{ href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const }];
+const enterpriseNav = [
+  { href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const },
+  { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
+  { href: "/enterprise/groups", label: "Group management", space: "enterprise" as const },
+];
 
 export default async function EnterpriseLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -34,7 +38,7 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
   return (
     <AppShell
       sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      topbar={<Topbar title="Team Feedback" titleHref="/enterprise" actions={<UserMenu />} />}
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

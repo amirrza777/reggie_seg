@@ -352,6 +352,151 @@
   overflow-y: auto;
 }
 
+.enterprise-modules__card {
+  gap: 0;
+}
+
+.enterprise-modules__toolbar {
+  justify-content: space-between;
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.enterprise-modules__search {
+  width: min(520px, 100%);
+}
+
+.enterprise-modules__create-trigger {
+  margin-top: 2px;
+}
+
+.enterprise-modules__row {
+  align-items: center;
+}
+
+.enterprise-modules__row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.enterprise-modules__modal {
+  width: min(960px, 96vw);
+  max-height: min(90dvh, 920px);
+  display: flex;
+  flex-direction: column;
+}
+
+.enterprise-modules__modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: none;
+}
+
+.enterprise-modules__create-modal {
+  width: min(680px, 96vw);
+}
+
+.enterprise-modules__create-form {
+  display: grid;
+  gap: 12px;
+}
+
+.enterprise-modules__create-actions {
+  justify-content: flex-end;
+}
+
+.enterprise-modules__modal-toolbar {
+  gap: 10px;
+}
+
+.enterprise-modules__selection-row {
+  margin-top: -4px;
+}
+
+.enterprise-modules__bulk-actions {
+  justify-content: flex-end;
+}
+
+.enterprise-modules__student-list {
+  display: grid;
+  gap: 8px;
+  padding-right: 6px;
+}
+
+.enterprise-modules__student-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.enterprise-modules__student-item.is-enrolled {
+  border-color: var(--status-success-border);
+  background: var(--status-success-soft);
+}
+
+.enterprise-overview-page {
+  max-width: none;
+  gap: var(--space-panel-gap);
+}
+
+.enterprise-overview-page .ui-page__header {
+  gap: var(--space-panel-heading-gap);
+}
+
+.enterprise-overview__sections-card,
+.enterprise-overview__card {
+  gap: 0;
+}
+
+.enterprise-overview__sections-card .card__header,
+.enterprise-overview__card .card__header {
+  padding-bottom: 8px;
+}
+
+.enterprise-overview__sections-card .card__body,
+.enterprise-overview__card .card__body {
+  padding-top: 0;
+  padding-bottom: 14px;
+}
+
+.enterprise-overview__section-actions {
+  justify-content: flex-start;
+}
+
+.enterprise-overview__action-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.enterprise-overview__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.enterprise-overview__side {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+@media (max-width: 1220px) {
+  .enterprise-overview__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 960px) {
   .enterprise-management__create {
     grid-template-columns: 1fr;
@@ -367,5 +512,22 @@
 
   .enterprise-management__row-actions {
     justify-content: flex-start;
+  }
+
+  .enterprise-modules__bulk-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-modules__create-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-modules__student-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .enterprise-modules__student-item .status-chip {
+    grid-column: 1 / -1;
+    width: fit-content;
   }
 }
