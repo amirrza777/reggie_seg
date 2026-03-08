@@ -1,7 +1,6 @@
 import { getUserProjects } from "@/features/projects/api/client";
 import { ProjectList } from "@/features/projects/components/ProjectList";
 import { getCurrentUser } from "@/shared/auth/session";
-import { Placeholder } from "@/shared/ui/Placeholder";
 
 export default async function ProjectsListPage() {
   const user = await getCurrentUser();
@@ -17,14 +16,12 @@ export default async function ProjectsListPage() {
 
   return (
     <div className="stack ui-page projects-panel">
-      <Placeholder
-        title="Your Projects"
-        description={
-          projects.length > 0
-            ? "Select a project to view details, peer assessments, and more."
-            : "You have no projects assigned."
-        }
-      />
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">Your Projects</h1>
+        <p className="projects-panel__subtitle">
+          {projects.length > 0 ? "Select a project to view details, peer assessments, and more." : "You have no projects assigned."}
+        </p>
+      </header>
       {projects.length > 0 ? <ProjectList projects={projects} /> : null}
     </div>
   );
