@@ -85,6 +85,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/health", label: "Team Health", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
+    { href: "/staff/repos", label: "Repositories", space: "staff" },
     { href: "/staff/integrations", label: "Integrations", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
     { href: "/staff/peer-assessments", label: "Peer Assessments", space: "staff" },
