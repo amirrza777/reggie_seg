@@ -24,7 +24,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let errorMessage: string | null = null;
   try {
-    data = await getStaffProjectTeams(numericProjectId);
+    data = await getStaffProjectTeams(user.id, numericProjectId);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "Failed to load team data.";
   }

@@ -23,7 +23,7 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
   let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let projectLoadError: string | null = null;
   try {
-    projects = await getStaffProjects();
+    projects = await getStaffProjects(user.id);
   } catch (error) {
     projectLoadError = error instanceof Error ? error.message : "Failed to load your projects.";
   }

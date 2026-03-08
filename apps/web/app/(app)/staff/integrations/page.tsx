@@ -25,7 +25,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
   let projectLoadError: string | null = null;
 
   try {
-    projects = await getStaffProjects();
+    projects = await getStaffProjects(user.id);
   } catch (err) {
     projectLoadError = err instanceof Error ? err.message : "Failed to load your projects.";
   }
@@ -39,7 +39,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
     const numericProjectId = Number(selectedProjectId);
     if (!Number.isNaN(numericProjectId)) {
       try {
-        const projectTeams = await getStaffProjectTeams(numericProjectId);
+        const projectTeams = await getStaffProjectTeams(user.id, numericProjectId);
         team = projectTeams.teams[0] ?? null;
       } catch {
         team = null;

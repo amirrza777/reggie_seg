@@ -26,10 +26,10 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
   return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`);
 } 
 
-export async function getStaffProjects(): Promise<StaffProject[]> {
-  return apiFetch<StaffProject[]>("/projects/staff/mine");
+export async function getStaffProjects(userId: number): Promise<StaffProject[]> {
+  return apiFetch<StaffProject[]>(`/projects/staff/mine?userId=${userId}`);
 }
 
-export async function getStaffProjectTeams(projectId: number): Promise<StaffProjectTeamsResponse> {
-  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams`);
+export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
+  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
 }

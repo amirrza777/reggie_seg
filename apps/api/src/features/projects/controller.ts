@@ -1,5 +1,4 @@
 import type { Request, Response } from "express"
-import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createProject,
   fetchProjectById,
@@ -162,10 +161,10 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 }
 
-export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
-  const userId = req.user?.sub;
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+export async function getStaffProjectsHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
   }
 
   try {
@@ -177,11 +176,11 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   }
 }
 
-export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
-  const userId = req.user?.sub;
+export async function getStaffProjectTeamsHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
   const projectId = Number(req.params.projectId);
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
   }
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
