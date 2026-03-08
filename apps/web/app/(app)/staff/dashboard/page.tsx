@@ -10,7 +10,7 @@ export default async function StaffDashboardPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="Staff Overview"
         titleClassName="overview-title"

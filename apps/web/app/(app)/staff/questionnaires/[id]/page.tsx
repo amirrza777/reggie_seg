@@ -26,14 +26,14 @@ export default function QuestionnairePage() {
       });
   }, [id]);
 
-  if (error) return <p style={{ padding: 32 }}>{error}</p>;
-  if (!questionnaire) return <p style={{ padding: 32 }}>Loading...</p>;
+  if (error) return <div className="ui-page"><p>{error}</p></div>;
+  if (!questionnaire) return <div className="ui-page"><p>Loading...</p></div>;
 
   const canManage = questionnaire.canEdit === true;
   const canUse = questionnaire.isPublic === true && !canManage;
 
   return (
-    <div className="stack" style={{ padding: 32, gap: 40 }}>
+    <div className="stack ui-page" style={{ gap: 40 }}>
       <Placeholder
         title={`Questionnaire: ${questionnaire.templateName}`}
         description="View the questions and details of this template."

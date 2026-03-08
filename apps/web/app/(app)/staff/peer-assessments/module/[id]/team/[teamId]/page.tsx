@@ -46,14 +46,14 @@ export default async function TeamPage({ params }: PageProps) {
 
   if (errorMessage || !moduleInfo || !teamInfo) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title={`${moduleInfo.title} – ${teamInfo.title}`}
         description="Peer assessment progress for students in this team."
