@@ -15,6 +15,7 @@ import adminRouter from "./features/admin/router.js";
 import trelloRouter from "./features/trello/router.js";
 import githubRouter from "./features/github/router.js";
 import featureFlagsRouter from "./features/featureFlags/router.js";
+import notificationsRouter from "./features/notifications/router.js";
 
 const app = express();
 
@@ -53,5 +54,6 @@ app.use("/admin", adminRouter);
 app.use("/trello",trelloRouter)
 app.use("/github", githubRouter);
 app.use("/feature-flags", featureFlagsRouter);
+app.use("/notifications", notificationsRouter);
 
 export { app };
