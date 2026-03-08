@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
-import { getUserProjects } from "@/features/projects/api/client";
+import { getStaffProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Placeholder } from "@/shared/ui/Placeholder";
 
@@ -20,10 +20,10 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
     ? resolvedSearchParams.projectId[0]
     : resolvedSearchParams.projectId;
 
-  let projects: Awaited<ReturnType<typeof getUserProjects>> = [];
+  let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let projectLoadError: string | null = null;
   try {
-    projects = await getUserProjects(user.id);
+    projects = await getStaffProjects();
   } catch (error) {
     projectLoadError = error instanceof Error ? error.message : "Failed to load your projects.";
   }
@@ -87,4 +87,3 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
     </div>
   );
 }
-

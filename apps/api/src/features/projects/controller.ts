@@ -1,5 +1,17 @@
 import type { Request, Response } from "express"
-import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject, fetchTeamById, fetchTeamByUserAndProject, fetchQuestionsForProject } from "./service.js"
+import type { AuthRequest } from "../../auth/middleware.js";
+import {
+  createProject,
+  fetchProjectById,
+  fetchProjectsForUser,
+  fetchProjectDeadline,
+  fetchTeammatesForProject,
+  fetchTeamById,
+  fetchTeamByUserAndProject,
+  fetchQuestionsForProject,
+  fetchProjectsForStaff,
+  fetchProjectTeamsForStaff,
+} from "./service.js"
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -147,5 +159,42 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   } catch (error) {
     console.error("Error fetching questions for project:", error);
     res.status(500).json({ error: "Failed to fetch questions" });
+  }
+}
+
+export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const projects = await fetchProjectsForStaff(userId);
+    res.json(projects);
+  } catch (error) {
+    console.error("Error fetching staff projects:", error);
+    res.status(500).json({ error: "Failed to fetch staff projects" });
+  }
+}
+
+export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const result = await fetchProjectTeamsForStaff(userId, projectId);
+    if (!result) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching staff project teams:", error);
+    res.status(500).json({ error: "Failed to fetch staff project teams" });
   }
 }

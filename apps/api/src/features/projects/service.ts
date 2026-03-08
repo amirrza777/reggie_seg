@@ -1,4 +1,15 @@
-import { getProjectById, getUserProjects, createProject as createProjectInDb , getTeammatesInProject, getUserProjectDeadline, getTeamById, getTeamByUserAndProject , getQuestionsForProject} from "./repo.js";
+import {
+  getProjectById,
+  getUserProjects,
+  createProject as createProjectInDb,
+  getTeammatesInProject,
+  getUserProjectDeadline,
+  getTeamById,
+  getTeamByUserAndProject,
+  getQuestionsForProject,
+  getStaffProjects,
+  getStaffProjectTeams,
+} from "./repo.js";
 
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
   return createProjectInDb(name, moduleId, questionnaireTemplateId, teamIds);
@@ -35,4 +46,30 @@ export async function fetchTeamByUserAndProject(userId: number, projectId: numbe
 
 export async function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId); 
+}
+
+export async function fetchProjectsForStaff(userId: number) {
+  const projects = await getStaffProjects(userId);
+  return projects.map((project) => ({
+    id: project.id,
+    name: project.name,
+    moduleId: project.moduleId,
+    moduleName: project.module?.name ?? "",
+    teamCount: project._count.teams,
+  }));
+}
+
+export async function fetchProjectTeamsForStaff(userId: number, projectId: number) {
+  const project = await getStaffProjectTeams(userId, projectId);
+  if (!project) return null;
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.module?.name ?? "",
+    },
+    teams: project.teams,
+  };
 }
