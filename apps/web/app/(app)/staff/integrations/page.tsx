@@ -47,7 +47,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="Integrations"
         description="GitHub contributions and Trello activity."

@@ -11,7 +11,7 @@ export default async function TeamHealthPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="Team health & red flags"
         description="Identify variance, conflicts, and meeting needs."

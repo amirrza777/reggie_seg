@@ -11,7 +11,7 @@ export default async function StaffAnalyticsPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="Analytics"
         description="Radar charts, exports, and at-risk notifications."
