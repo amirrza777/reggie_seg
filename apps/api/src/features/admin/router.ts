@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
 import { EnterpriseCodeGeneratorService } from "../services/enterprise/enterpriseCodeGeneratorService.js";
+import { buildAdminUserSearchWhere, parseAdminUserSearchFilters } from "./userSearch.js";
 
 type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
 type AdminUser = Pick<User, "id" | "email" | "enterpriseId" | "role">;
@@ -83,6 +84,27 @@ router.get("/users", async (req, res) => {
     role: u.role as UserRole,
   }));
   res.json(payload);
+});
+
+router.get("/users/search", async (req, res) => {
+  const adminUser = (req as AdminRequest).adminUser as { enterpriseId: string };
+  const parsedFilters = parseAdminUserSearchFilters(req.query);
+  if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
+
+  const where = buildAdminUserSearchWhere(adminUser.enterpriseId, parsedFilters.value);
+  const offset = (parsedFilters.value.page - 1) * parsedFilters.value.pageSize;
+  const [total, records] = await prisma.$transaction([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      select: { id: true, email: true, firstName: true, lastName: true, role: true, active: true },
+      orderBy: [{ id: "asc" }],
+      skip: offset,
+      take: parsedFilters.value.pageSize,
+    }),
+  ]);
+
+  return res.json(toAdminUserSearchResponse(records, parsedFilters.value, total));
 });
 
 router.patch("/users/:id/role", async (req, res) => {
@@ -269,6 +291,32 @@ router.get("/enterprises/:enterpriseId/users", async (req, res) => {
   return res.json(users.map(toAdminUserPayload));
 });
 
+router.get("/enterprises/:enterpriseId/users/search", async (req, res) => {
+  const enterpriseId = String(req.params.enterpriseId || "");
+  if (!enterpriseId) return res.status(400).json({ error: "Enterprise id is required" });
+
+  const parsedFilters = parseAdminUserSearchFilters(req.query);
+  if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
+
+  const exists = await prisma.enterprise.findUnique({ where: { id: enterpriseId }, select: { id: true } });
+  if (!exists) return res.status(404).json({ error: "Enterprise not found" });
+
+  const where = buildAdminUserSearchWhere(enterpriseId, parsedFilters.value);
+  const offset = (parsedFilters.value.page - 1) * parsedFilters.value.pageSize;
+  const [total, records] = await prisma.$transaction([
+    prisma.user.count({ where }),
+    prisma.user.findMany({
+      where,
+      select: { id: true, email: true, firstName: true, lastName: true, role: true, active: true },
+      orderBy: [{ id: "asc" }],
+      skip: offset,
+      take: parsedFilters.value.pageSize,
+    }),
+  ]);
+
+  return res.json(toAdminUserSearchResponse(records, parsedFilters.value, total));
+});
+
 router.patch("/enterprises/:enterpriseId/users/:id", async (req, res) => {
   const enterpriseId = String(req.params.enterpriseId || "");
   const id = parsePositiveInt(req.params.id);
@@ -392,6 +440,33 @@ function toAdminUserPayload(user: {
     ...user,
     isStaff: user.role !== "STUDENT",
     role: user.role as UserRole,
+  };
+}
+
+function toAdminUserSearchResponse(
+  records: Array<{
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    active: boolean;
+  }>,
+  filters: { query: string | null; role: UserRole | null; active: boolean | null; page: number; pageSize: number },
+  total: number,
+) {
+  const totalPages = total === 0 ? 0 : Math.ceil(total / filters.pageSize);
+  return {
+    items: records.map(toAdminUserPayload),
+    total,
+    page: filters.page,
+    pageSize: filters.pageSize,
+    totalPages,
+    hasPreviousPage: filters.page > 1,
+    hasNextPage: filters.page < totalPages,
+    query: filters.query,
+    role: filters.role,
+    active: filters.active,
   };
 }
 
