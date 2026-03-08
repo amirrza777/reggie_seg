@@ -15,6 +15,7 @@ import adminRouter from "./features/admin/router.js";
 import trelloRouter from "./features/trello/router.js";
 import githubRouter from "./features/github/router.js";
 import featureFlagsRouter from "./features/featureFlags/router.js";
+import enterpriseAdminRouter from "./features/enterpriseAdmin/router.js";
 
 const app = express();
 
@@ -50,7 +51,8 @@ app.use("/staff/peer-assessments", staffPeerAssessmentsRouter);
 app.use("/meetings", meetingsRouter);
 app.use("/team-allocation", teamAllocationRouter);
 app.use("/admin", adminRouter);
-app.use("/trello",trelloRouter)
+app.use("/enterprise-admin", enterpriseAdminRouter);
+app.use("/trello", trelloRouter);
 app.use("/github", githubRouter);
 app.use("/feature-flags", featureFlagsRouter);
 
