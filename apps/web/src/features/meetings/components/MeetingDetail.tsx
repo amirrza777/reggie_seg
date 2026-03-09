@@ -40,7 +40,12 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
         </Card>
       )}
 
-      <CommentSection meetingId={meeting.id} initialComments={meeting.comments} />
+      <CommentSection
+        meetingId={meeting.id}
+        teamId={meeting.teamId}
+        members={meeting.attendances.map((a) => a.user)}
+        initialComments={meeting.comments}
+      />
     </div>
   );
 }
