@@ -1,12 +1,16 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { getMyBoards, getTeamBoard } from "@/features/trello/api/client";
+import { getMyBoards, getTeamBoard } from "../api/client";
 import { useTeamBoardState } from "./useTeamBoardState";
 
-vi.mock("@/features/trello/api/client", () => ({
-  getTeamBoard: vi.fn(),
-  getMyBoards: vi.fn(),
-}));
+vi.mock("../api/client", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../api/client")>();
+  return {
+    ...actual,
+    getTeamBoard: vi.fn(),
+    getMyBoards: vi.fn(),
+  };
+});
 
 const getTeamBoardMock = vi.mocked(getTeamBoard);
 const getMyBoardsMock = vi.mocked(getMyBoards);
@@ -24,7 +28,7 @@ describe("useTeamBoardState", () => {
   });
 
   it("starts in loading state and resolves to board when getTeamBoard returns ok", async () => {
-    getTeamBoardMock.mockResolvedValue({ ok: true, view: mockBoardView });
+    getTeamBoardMock.mockResolvedValue({ ok: true, view: mockBoardView, sectionConfig: {} });
 
     const { result } = renderHook(() => useTeamBoardState(10));
 
@@ -101,7 +105,7 @@ describe("useTeamBoardState", () => {
   });
 
   it("loadTeamBoard can be called to refetch", async () => {
-    getTeamBoardMock.mockResolvedValue({ ok: true, view: mockBoardView });
+    getTeamBoardMock.mockResolvedValue({ ok: true, view: mockBoardView, sectionConfig: {} });
 
     const { result } = renderHook(() => useTeamBoardState(10));
 

@@ -6,10 +6,12 @@ const router = Router()
 
 router.get("/link-token", requireAuth, TrelloController.getLinkToken)
 router.get("/me-member", requireAuth, TrelloController.getMyTrelloMemberId)
+router.get("/me-profile", requireAuth, TrelloController.getMyTrelloProfile)
 router.post("/callback-with-link-token", TrelloController.callbackWithLinkToken)
 
 router.post("/assign", requireAuth, TrelloController.assignBoardToTeam)
 router.get("/team-board", requireAuth, TrelloController.fetchAssignedTeamBoard)
+router.put("/team-section-config", requireAuth, TrelloController.putTrelloSectionConfig)
 router.get("/boards", requireAuth, TrelloController.fetchMyBoards)
 router.get("/boards/:boardId", requireAuth, TrelloController.fetchBoardById)
 
