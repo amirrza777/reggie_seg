@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
-import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
+import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -11,7 +11,7 @@ type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
 
-export default async function StaffPeerAssessmentSectionPage({ params }: PageProps) {
+export default async function StaffTeamGradingSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
 
   const user = await getCurrentUser();
@@ -45,22 +45,22 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
     );
   }
 
-  let students: Awaited<ReturnType<typeof getTeamDetails>>["students"] = [];
-  let detailError: string | null = null;
+  let teamMarking: Awaited<ReturnType<typeof getTeamDetails>>["teamMarking"] = null;
+  let gradingError: string | null = null;
   try {
-    const detailData = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
-    students = detailData.students;
+    const teamDetails = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
+    teamMarking = teamDetails.teamMarking;
   } catch (error) {
-    detailError = error instanceof Error ? error.message : "Failed to load peer assessment data.";
+    gradingError = error instanceof Error ? error.message : "Failed to load team grading details.";
   }
 
   return (
     <div className="staff-projects">
       <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Peer Assessment</p>
+        <p className="staff-projects__eyebrow">Grading</p>
         <h1 className="staff-projects__title">{team.teamName}</h1>
         <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Review submission progress for each student in this team.
+          Project: {projectData.project.name}. Manage team-level grading and formative feedback.
         </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
@@ -73,32 +73,20 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
-      <section className="staff-projects__team-card">
-        <h3 style={{ margin: 0 }}>Assessment progress by student</h3>
-        <p className="muted" style={{ margin: 0 }}>
-          Track submission progress here. For staff team marks and formative grading, use the{" "}
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/grading`} className="staff-projects__badge">
-            Grading
-          </Link>{" "}
-          section.
-        </p>
-        {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
-        {!detailError && students.length === 0 ? (
-          <p className="muted" style={{ marginTop: 8 }}>
-            No student allocation data is available for this team yet.
-          </p>
-        ) : null}
-        {!detailError && students.length > 0 ? (
-          <ProgressCardGrid
-            items={students}
-            getHref={(item) =>
-              item.id == null
-                ? undefined
-                : `/staff/peer-assessments/module/${projectData.project.moduleId}/team/${team.id}/student/${item.id}`
-            }
-          />
-        ) : null}
-      </section>
+      {gradingError ? (
+        <section className="staff-projects__team-card">
+          <p className="muted" style={{ margin: 0 }}>{gradingError}</p>
+        </section>
+      ) : (
+        <StaffMarkingCard
+          title="Team marking and formative feedback"
+          description="Set a shared team mark and formative guidance visible to all team members."
+          staffId={user.id}
+          moduleId={projectData.project.moduleId}
+          teamId={team.id}
+          initialMarking={teamMarking}
+        />
+      )}
     </div>
   );
 }

@@ -65,6 +65,29 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
+      <section className="staff-projects__grid" aria-label="Team section shortcuts">
+        <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/peer-assessment`} className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Peer assessment</h3>
+          <p className="staff-projects__card-sub">Review per-student submission progress.</p>
+          <p className="staff-projects__card-action">Open section</p>
+        </Link>
+        <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/grading`} className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Grading</h3>
+          <p className="staff-projects__card-sub">Set team-level marks and formative guidance.</p>
+          <p className="staff-projects__card-action">Open section</p>
+        </Link>
+        <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/peer-feedback`} className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Peer feedback</h3>
+          <p className="staff-projects__card-sub">Track review completion and follow up gaps.</p>
+          <p className="staff-projects__card-action">Open section</p>
+        </Link>
+        <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/repositories`} className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Repositories</h3>
+          <p className="staff-projects__card-sub">Inspect contribution snapshots and commit activity.</p>
+          <p className="staff-projects__card-action">Open section</p>
+        </Link>
+      </section>
+
       <section className="staff-projects__team-card" aria-label="Team members">
         <h3 style={{ margin: 0 }}>Team members</h3>
         {team.allocations.length === 0 ? <p className="muted" style={{ margin: 0 }}>No students assigned yet.</p> : null}
