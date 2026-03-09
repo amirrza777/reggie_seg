@@ -23,6 +23,7 @@ const navLinks: NavLink[] = [
 
   // Staff
   { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
+  { href: "/staff/projects", label: "Staff | Projects", space: "staff" },
   { href: "/staff/health", label: "Team Health", space: "staff" },
   { href: "/staff/analytics", label: "Analytics", space: "staff" },
   { href: "/staff/integrations", label: "Integrations", space: "staff" },
