@@ -1,6 +1,7 @@
 import {
   getProjectById,
   getUserProjects,
+  getModulesForUser,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -24,6 +25,16 @@ export async function fetchProjectsForUser(userId: number) {
     id: project.id,
     name: project.name,
     moduleName: project.module?.name ?? "",
+  }));
+}
+
+export async function fetchModulesForUser(userId: number) {
+  const modules = await getModulesForUser(userId);
+  return modules.map((module) => ({
+    id: String(module.id),
+    title: module.name,
+    teamCount: module.teamCount,
+    projectCount: module.projectCount,
   }));
 }
 

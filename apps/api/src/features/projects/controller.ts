@@ -3,6 +3,7 @@ import {
   createProject,
   fetchProjectById,
   fetchProjectsForUser,
+  fetchModulesForUser,
   fetchProjectDeadline,
   fetchTeammatesForProject,
   fetchTeamById,
@@ -65,6 +66,21 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching user projects:", error);
     res.status(500).json({ error: "Failed to fetch projects" });
+  }
+}
+
+export async function getUserModulesHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const modules = await fetchModulesForUser(userId);
+    res.json(modules);
+  } catch (error) {
+    console.error("Error fetching user modules:", error);
+    res.status(500).json({ error: "Failed to fetch modules" });
   }
 }
 

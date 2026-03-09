@@ -25,6 +25,58 @@ export async function getUserProjects(userId: number) {
   });
 }
 
+export async function getModulesForUser(userId: number) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, enterpriseId: true },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  const membershipFilter =
+    user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
+      ? { enterpriseId: user.enterpriseId }
+      : user.role === "STAFF"
+        ? {
+            enterpriseId: user.enterpriseId,
+            OR: [
+              { moduleLeads: { some: { userId: user.id } } },
+              { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } },
+            ],
+          }
+        : {
+            enterpriseId: user.enterpriseId,
+            userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
+          };
+
+  const modules = await prisma.module.findMany({
+    where: membershipFilter,
+    select: {
+      id: true,
+      name: true,
+      projects: {
+        select: {
+          _count: {
+            select: {
+              teams: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+  });
+
+  return modules.map((module) => ({
+    id: module.id,
+    name: module.name,
+    teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
+    projectCount: module.projects.length,
+  }));
+}
+
 export async function getProjectById(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },

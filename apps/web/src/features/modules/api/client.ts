@@ -1,6 +1,6 @@
 import { apiFetch } from "@/shared/api/http";
 import type { Module } from "../types";
 
-export async function listModules(): Promise<Module[]> {
-  return apiFetch<Module[]>("/modules");
+export async function listModules(userId: number): Promise<Module[]> {
+  return apiFetch<Module[]>(`/projects/modules?userId=${encodeURIComponent(String(userId))}`);
 }
