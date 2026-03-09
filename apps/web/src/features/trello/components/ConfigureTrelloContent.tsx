@@ -10,6 +10,7 @@ import {
   TRELLO_SECTION_STATUSES,
 } from "@/features/trello/api/client";
 import { SECTION_STATUS_LABELS } from "@/features/trello/lib/listStatus";
+import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 
 type Props = {
   projectId: string;
@@ -19,6 +20,7 @@ type Props = {
 
 export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
   const router = useRouter();
+  const trelloBoard = useTrelloBoard();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +64,8 @@ export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
     setError(null);
     try {
       await putTrelloSectionConfig(teamId, config);
+      // Refresh shared board state so summary/board/graphs show the new config without refetch on every page change
+      await trelloBoard?.loadTeamBoard?.();
       router.push(`/projects/${projectId}/trello`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save configuration.");
@@ -86,12 +90,14 @@ export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
         <h1>Configure Trello</h1>
         <p className="lede">
           Set a status for each list on your board. This is used for graphs and is shared within your team.
-        <ul>
+        </p>
+        <ul className="lede">
           <li><strong>Backlog </strong> a list of cards containing work that has not been started yet.</li>
           <li><strong>Work in progress </strong> a list of cards containing work that someone is working on while the card is in this list. You may use multiple "Work in progress" lists if processing your cards takes a number of different steps.</li>
           <li><strong>Completed </strong> a list of cards containing work that is finished.</li>
           <li><strong>For information only </strong> a list of cards that do not correspond to activities and are provided for information only. Cards in this list are not supposed to move to other lists to reflect progress in the project and will not be included in Trello board statistics.</li>
         </ul>
+        <p className="lede">
         Your board should contain a minimum of three lists - one for Backlog, Work in progress, and Completed.
         </p>
         {error ? (
@@ -99,6 +105,7 @@ export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
             {error}
           </p>
         ) : null}
+        <br />
         {listNames.length === 0 && !error ? (
           <p className="muted">No lists found on the board.</p>
         ) : (
@@ -132,9 +139,6 @@ export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
             </div>
           </div>
         )}
-        <Link href={`/projects/${projectId}/trello`} className="link-ghost">
-          ← Back to Trello
-        </Link>
       </div>
     </section>
   );

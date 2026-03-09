@@ -31,6 +31,11 @@ type ProjectTrelloContentProps = {
   viewComponent: ComponentType<TrelloBoardContentViewProps>;
 };
 
+const hasListsButNoSavedConfig = (state: { status: string; view?: { board?: { lists?: unknown[] } }; sectionConfig?: Record<string, string> }) =>
+  state.status === "board" &&
+  (state.view?.board?.lists?.length ?? 0) > 0 &&
+  Object.keys(state.sectionConfig ?? {}).length === 0;
+
 export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, viewComponent: View }: ProjectTrelloContentProps) {
   const router = useRouter();
   const ctx = useTrelloBoard();
@@ -40,7 +45,7 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
 
   useEffect(() => {
     if (state.status !== "board") return;
-    if (Object.keys(state.sectionConfig).length === 0 && (state.view.board.lists?.length ?? 0) > 0) {
+    if (hasListsButNoSavedConfig(state)) {
       router.replace(`/projects/${projectId}/trello/configure`);
     }
   }, [state, projectId, router]);
@@ -109,12 +114,21 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
     );
   }
 
+  // Don't render velocity/summary/graphs until section config is saved (avoid calculating with defaults)
+  if (hasListsButNoSavedConfig(state)) {
+    return (
+      <div className="stack">
+        <p className="muted">Redirecting to configure list statuses…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
       <TrelloNav
         projectId={projectId}
         boardName={state.view.board.name}
-        boardUrl={state.view.board.url}
+        boardUrl={state.view.board.url ?? ""}
       />
       <View
         projectId={projectId}
