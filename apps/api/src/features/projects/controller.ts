@@ -1,5 +1,15 @@
 import type { Request, Response } from "express"
-import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject, fetchTeamById, fetchTeamByUserAndProject, fetchQuestionsForProject } from "./service.js"
+import {
+  createProject,
+  fetchProjectById,
+  fetchProjectsForUser,
+  fetchModulesForUser,
+  fetchProjectDeadline,
+  fetchTeammatesForProject,
+  fetchTeamById,
+  fetchTeamByUserAndProject,
+  fetchQuestionsForProject
+} from "./service.js"
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -57,6 +67,21 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
     res.status(500).json({ error: "Failed to fetch projects" });
   }
 }               
+
+export async function getUserModulesHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const modules = await fetchModulesForUser(userId);
+    res.json(modules);
+  } catch (error) {
+    console.error("Error fetching user modules:", error);
+    res.status(500).json({ error: "Failed to fetch modules" });
+  }
+}
 
 export async function getProjectDeadlineHandler(req: Request, res: Response) {
   const userId = Number(req.query.userId);

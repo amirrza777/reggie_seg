@@ -17,9 +17,9 @@ describe("modules api client", () => {
     const payload = [{ id: "mod-1", title: "Foundations" }];
     apiFetchMock.mockResolvedValue(payload);
 
-    const result = await listModules();
+    const result = await listModules(42);
 
-    expect(apiFetchMock).toHaveBeenCalledWith("/modules");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42");
     expect(result).toEqual(payload);
   });
 });

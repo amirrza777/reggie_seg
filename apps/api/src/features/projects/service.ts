@@ -1,4 +1,14 @@
-import { getProjectById, getUserProjects, createProject as createProjectInDb , getTeammatesInProject, getUserProjectDeadline, getTeamById, getTeamByUserAndProject , getQuestionsForProject} from "./repo.js";
+import {
+  getProjectById,
+  getUserProjects,
+  getModulesForUser,
+  createProject as createProjectInDb,
+  getTeammatesInProject,
+  getUserProjectDeadline,
+  getTeamById,
+  getTeamByUserAndProject,
+  getQuestionsForProject,
+} from "./repo.js";
 
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
   return createProjectInDb(name, moduleId, questionnaireTemplateId, teamIds);
@@ -14,6 +24,16 @@ export async function fetchProjectsForUser(userId: number) {
     id: project.id,
     name: project.name,
     moduleName: project.module?.name ?? "",
+  }));
+}
+
+export async function fetchModulesForUser(userId: number) {
+  const modules = await getModulesForUser(userId);
+  return modules.map((module) => ({
+    id: String(module.id),
+    title: module.name,
+    teamCount: module.teamCount,
+    projectCount: module.projectCount,
   }));
 }
 
