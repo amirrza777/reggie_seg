@@ -3,7 +3,7 @@ import { ProgressCard } from "./ProgressCard";
 
 type ProgressCardGridProps = {
   items: ProgressCardData[];
-  getHref?: (item: ProgressCardData) => string;
+  getHref?: (item: ProgressCardData) => string | undefined;
 };
 
 export function ProgressCardGrid({ items, getHref }: ProgressCardGridProps) {

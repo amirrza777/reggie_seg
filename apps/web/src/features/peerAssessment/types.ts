@@ -19,12 +19,16 @@ export type TeamAllocation = {
 export type Question = {
   id: number;
   text: string;
-  type: "text" | "multiple-choice" | "rating";
+  type: "text" | "multiple-choice" | "rating" | "slider";
   order: number;
   configs?: {
     options?: string[];
     min?: number;
     max?: number;
+    step?: number;
+    left?: string;
+    right?: string;
+    helperText?: string;
   };
 };
 
@@ -47,7 +51,7 @@ export type PeerAssessment = {
   revieweeUserId: number;
   submittedAt: string;
   templateId: number;
-  answers: Record<string, string>;
+  answers: Record<string, string | number | boolean | null>;
   firstName: string; 
   lastName: string; 
 }

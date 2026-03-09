@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
-import type { Project, ProjectDeadline, Team } from "../types";
+import type { Project, ProjectDeadline, Team, ProjectMarkingSummary } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`);
@@ -24,4 +24,10 @@ export async function getTeamById(teamId: number): Promise<Team> {
 
 export async function getTeamByUserAndProject(userId: number, projectId: number): Promise<Team> {
   return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`);
-} 
+}
+
+export async function getProjectMarking(userId: number, projectId: number): Promise<ProjectMarkingSummary> {
+  return apiFetch<ProjectMarkingSummary>(`/projects/${projectId}/marking?userId=${userId}`, {
+    cache: "no-store",
+  });
+}

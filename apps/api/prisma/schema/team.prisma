@@ -12,6 +12,8 @@ model Team {
   deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments PeerAssessment[]
   peerFeedbacks   PeerFeedback[]
+  staffTeamMarking StaffTeamMarking?
+  staffStudentMarkings StaffStudentMarking[]
   meetings        Meeting[]
   
   trelloBoardId      String?

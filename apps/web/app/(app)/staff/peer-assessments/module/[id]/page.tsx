@@ -18,7 +18,14 @@ async function getStaffIdFromSession() {
 
 export default async function ModulePage({ params }: PageProps) {
   const { id } = await params;
-  const moduleId = parseInt(id);
+  const moduleId = Number.parseInt(id, 10);
+  if (Number.isNaN(moduleId)) {
+    return (
+      <div className="stack">
+        <p className="muted">Invalid module route. Please open the module from the staff list.</p>
+      </div>
+    );
+  }
   let staffId: number | null = null;
 
   let moduleInfo: Awaited<ReturnType<typeof getModuleDetails>>["module"] | null = null;
@@ -32,8 +39,9 @@ export default async function ModulePage({ params }: PageProps) {
     teams = data.teams;
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
-      errorMessage =
-        "You are not a module lead for this module. You don’t have permission to view this page.";
+      errorMessage = "You don’t have permission to view staff peer assessments.";
+    } else if (error instanceof ApiError && error.status === 404) {
+      errorMessage = "This module was not found.";
     } else {
       errorMessage = "Something went wrong loading this module. Please try again.";
     }
@@ -53,12 +61,18 @@ export default async function ModulePage({ params }: PageProps) {
         title={moduleInfo.title}
         description="Progress overview of this module's peer assessments."
       />
-      <ProgressCardGrid
-        items={teams}
-        getHref={(item) =>
-          `/staff/peer-assessments/module/${id}/team/${item.id ?? ""}`
-        }
-      />
+      {teams.length === 0 ? (
+        <p className="muted">
+          No teams are currently available in this module.
+        </p>
+      ) : (
+        <ProgressCardGrid
+          items={teams}
+          getHref={(item) =>
+            item.id == null ? undefined : `/staff/peer-assessments/module/${id}/team/${item.id}`
+          }
+        />
+      )}
     </div>
   );
 }
