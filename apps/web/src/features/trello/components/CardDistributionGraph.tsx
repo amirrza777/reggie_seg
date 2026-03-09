@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { formatDate } from "@/shared/lib/formatDate";
@@ -17,11 +18,25 @@ import { formatDate } from "@/shared/lib/formatDate";
 const BACKLOG_NAME = "backlog";
 const COMPLETED_NAME = "completed";
 
-function getStatus(listName: string): "backlog" | "inProgress" | "completed" {
+function getStatusFromName(listName: string): "backlog" | "inProgress" | "completed" {
   const lower = listName.toLowerCase();
   if (lower === BACKLOG_NAME) return "backlog";
   if (lower === COMPLETED_NAME) return "completed";
   return "inProgress";
+}
+
+function getStatus(
+  listName: string,
+  sectionConfig?: Record<string, string> | null
+): "backlog" | "inProgress" | "completed" | null {
+  if (sectionConfig && typeof sectionConfig[listName] === "string") {
+    const v = sectionConfig[listName].toLowerCase().replace(/\s+/g, "_");
+    if (v === "information_only") return null;
+    if (v === "backlog") return "backlog";
+    if (v === "work_in_progress" || v === "work in progress") return "inProgress";
+    if (v === "completed") return "completed";
+  }
+  return getStatusFromName(listName);
 }
 
 type CardDistributionGraphProps = {
@@ -29,11 +44,16 @@ type CardDistributionGraphProps = {
   listNamesById: Record<string, string>;
   cardsByList: Record<string, TrelloCard[]>;
   memberIdFilter?: string; /** when set, only cards assigned to this trello member id are included. */
+  sectionConfig?: Record<string, string> | null;
   title?: string;
+  projectStartDate?: string | null;
+  projectEndDate?: string | null;
 };
 
 type DataPoint = {
   date: string;
+  dateKey: string;
+  time: number;
   backlog: number;
   inProgress: number;
   completed: number;
@@ -55,7 +75,8 @@ function computeCountsAtDate(
   dateKey: string,
   allActionsDesc: TrelloBoardAction[],
   currentState: Record<string, string>,
-  listNamesById: Record<string, string>
+  listNamesById: Record<string, string>,
+  sectionConfig?: Record<string, string> | null
 ): { backlog: number; inProgress: number; completed: number } {
   const cutoffEnd = new Date(dateKey + "T23:59:59.999Z").getTime();
   const state = { ...currentState };
@@ -82,7 +103,9 @@ function computeCountsAtDate(
   let completed = 0;
   for (const listId of Object.values(state)) {
     const listName = listNamesById[listId] ?? "";
-    switch (getStatus(listName)) {
+    const status = getStatus(listName, sectionConfig);
+    if (status === null) continue;
+    switch (status) {
       case "backlog":
         backlog++;
         break;
@@ -134,7 +157,10 @@ export function CardDistributionGraph({
   listNamesById,
   cardsByList,
   memberIdFilter,
+  sectionConfig,
   title = "Card distribution over time",
+  projectStartDate,
+  projectEndDate,
 }: CardDistributionGraphProps) {
   const data = useMemo<DataPoint[]>(() => {
     const filteredCardsByList = memberIdFilter
@@ -162,16 +188,38 @@ export function CardDistributionGraph({
         dateKey,
         allActionsDesc,
         currentState,
-        listNamesById
+        listNamesById,
+        sectionConfig
       );
       return {
         date: formatDate(dateKey),
+        dateKey,
+        time: new Date(dateKey + "T12:00:00Z").getTime(),
         backlog,
         inProgress,
         completed,
       };
     });
-  }, [actionsByDate, listNamesById, cardsByList, memberIdFilter]);
+  }, [actionsByDate, listNamesById, cardsByList, memberIdFilter, sectionConfig]);
+
+  const projectStartTime = useMemo(
+    () => (projectStartDate ? new Date(projectStartDate + "T12:00:00Z").getTime() : null),
+    [projectStartDate]
+  );
+  const projectEndTime = useMemo(
+    () => (projectEndDate ? new Date(projectEndDate + "T12:00:00Z").getTime() : null),
+    [projectEndDate]
+  );
+
+  const xAxisDomain = useMemo((): [number, number] | undefined => {
+    if (data.length === 0) return undefined;
+    const firstTime = data[0].time;
+    const lastTime = data[data.length - 1].time;
+    return [
+      Math.min(firstTime, projectStartTime ?? firstTime),
+      Math.max(lastTime, projectEndTime ?? lastTime),
+    ];
+  }, [data, projectStartTime, projectEndTime]);
 
   const hasFilteredCards = useMemo(() => {
     if (!memberIdFilter) return true;
@@ -187,14 +235,67 @@ export function CardDistributionGraph({
   return (
     <section className="stack" style={{ marginTop: 32 }}>
       <h2>{title}</h2>
-      <div style={{ width: "100%", height: 320 }}>
+      <div style={{ width: "100%", height: 360 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+          <LineChart data={data} margin={{ top: 40, right: 24, left: 8, bottom: 24 }}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="date" />
+            <XAxis
+              type="number"
+              dataKey="time"
+              domain={xAxisDomain}
+              tickFormatter={(t: number) => formatDate(new Date(t).toISOString().slice(0, 10))}
+              padding={{ left: 24, right: 24 }}
+            />
             <YAxis allowDecimals={false} />
-            <Tooltip />
+            <Tooltip
+              labelFormatter={(t: number) => formatDate(new Date(t).toISOString().slice(0, 10))}
+            />
             <Legend />
+            {projectStartTime != null ? (
+              <ReferenceLine
+                x={projectStartTime}
+                stroke="#0079bf"
+                strokeDasharray="4 4"
+                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+                  const x = viewBox?.x ?? 0;
+                  const y = (viewBox?.y ?? 0) - 8;
+                  return (
+                    <text x={x} y={y} textAnchor="middle" fill="#0079bf" fontSize={11}>
+                      <tspan x={x} dy="0">
+                        Project starts
+                      </tspan>
+                      <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
+                        {projectStartDate ? formatDate(projectStartDate) : ""}
+                      </tspan>
+                    </text>
+                  );
+                }}
+              />
+            ) : null}
+            {projectEndTime != null && projectEndTime !== projectStartTime ? (
+              <ReferenceLine
+                x={projectEndTime}
+                stroke="#61bd4f"
+                strokeDasharray="4 4"
+                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
+                  const x = viewBox?.x ?? 0;
+                  const y = (viewBox?.y ?? 0) - 8;
+                  const endDateLabel = projectEndDate
+                    ? formatDate(projectEndDate)
+                    : formatDate(new Date(projectEndTime).toISOString().slice(0, 10));
+                  return (
+                    <text x={x} y={y} textAnchor="middle" fill="#61bd4f" fontSize={11}>
+                      <tspan x={x} dy="0">
+                        Project ends
+                      </tspan>
+                      <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
+                        {endDateLabel}
+                      </tspan>
+                    </text>
+                  );
+                }}
+              />
+            ) : null}
             <Line type="monotone" dataKey="backlog" stroke="#0079bf" name="Backlog" strokeWidth={2} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="inProgress" stroke="#f2d600" name="In progress" strokeWidth={2} dot={{ r: 3 }} />
             <Line type="monotone" dataKey="completed" stroke="#61bd4f" name="Completed" strokeWidth={2} dot={{ r: 3 }} />

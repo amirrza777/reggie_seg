@@ -73,32 +73,10 @@ function ProjectOverviewHero({
       <div className="stack" style={{ gap: 14 }}>
         <div className="stack" style={{ gap: 10 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                padding: "4px 10px",
-                fontSize: 12,
-                color: "var(--muted)",
-                background: "var(--surface)",
-              }}
-            >
+            <span className="pill pill-ghost">
               Project #{project.id}
             </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                borderRadius: 999,
-                border: "1px solid var(--border)",
-                padding: "4px 10px",
-                fontSize: 12,
-                background: deadline.isOverridden ? "rgba(245, 158, 11, 0.12)" : "rgba(16, 185, 129, 0.12)",
-                color: deadline.isOverridden ? "#b45309" : "#047857",
-              }}
-            >
+            <span className={`pill ${deadline.isOverridden ? "pill-amber" : "pill-green"}`}>
               {deadline.isOverridden ? "Deadlines overridden" : "Default deadlines"}
             </span>
           </div>

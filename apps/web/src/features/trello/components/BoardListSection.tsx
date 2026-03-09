@@ -3,13 +3,17 @@
 import React from "react";
 import { BoardCard } from "./BoardCard";
 import type { TrelloCard, TrelloList } from "../types";
+import { SECTION_STATUS_LABELS } from "../lib/listStatus";
 
 type BoardListSectionProps = {
   list: TrelloList;
   cards: TrelloCard[];
+  sectionStatus?: string;
 };
 
-export function BoardListSection({ list, cards }: BoardListSectionProps) {
+export function BoardListSection({ list, cards, sectionStatus }: BoardListSectionProps) {
+  const statusLabel = sectionStatus ? (SECTION_STATUS_LABELS[sectionStatus] ?? sectionStatus) : null;
+
   return (
     <div
       style={{
@@ -19,8 +23,11 @@ export function BoardListSection({ list, cards }: BoardListSectionProps) {
         padding: 12,
       }}
     >
-      <h3>{list.name}</h3>
-      <ul style={{ listStyle: "none", padding: 0 }}>
+      <h3 style={{ margin: 0 }}>{list.name}</h3>
+      {statusLabel ? (
+        <p className="muted eyebrow">{statusLabel}</p>
+      ) : null}
+      <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
         {cards.map((card) => (
           <BoardCard key={card.id} card={card} members={card.members ?? []} />
         ))}
