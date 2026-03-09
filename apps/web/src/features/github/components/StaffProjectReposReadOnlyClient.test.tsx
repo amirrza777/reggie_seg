@@ -7,12 +7,15 @@ const listProjectGithubRepoLinksMock = vi.fn();
 const getProjectGithubMappingCoverageMock = vi.fn();
 const getLatestProjectGithubSnapshotMock = vi.fn();
 const analyseProjectGithubRepoMock = vi.fn();
+const listLiveProjectGithubRepoBranchCommitsMock = vi.fn();
 
 vi.mock("../api/client", () => ({
   listProjectGithubRepoLinks: (...args: unknown[]) => listProjectGithubRepoLinksMock(...args),
   getProjectGithubMappingCoverage: (...args: unknown[]) => getProjectGithubMappingCoverageMock(...args),
   getLatestProjectGithubSnapshot: (...args: unknown[]) => getLatestProjectGithubSnapshotMock(...args),
   analyseProjectGithubRepo: (...args: unknown[]) => analyseProjectGithubRepoMock(...args),
+  listLiveProjectGithubRepoBranchCommits: (...args: unknown[]) =>
+    listLiveProjectGithubRepoBranchCommitsMock(...args),
 }));
 
 vi.mock("./GithubRepoLinkCard", () => ({
@@ -128,5 +131,61 @@ describe("StaffProjectReposReadOnlyClient", () => {
       expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(4);
     });
   });
-});
 
+  it("loads recent commits when commits tab is opened", async () => {
+    listProjectGithubRepoLinksMock.mockResolvedValue([makeLink(8, "org/repo-two")]);
+    getProjectGithubMappingCoverageMock.mockResolvedValue({
+      linkId: 8,
+      snapshotId: null,
+      analysedAt: null,
+      coverage: null,
+    });
+    getLatestProjectGithubSnapshotMock.mockResolvedValue({
+      snapshot: {
+        id: 1,
+        analysedAt: "2026-02-26T00:00:00.000Z",
+        data: null,
+        userStats: [],
+        repoStats: [],
+      },
+    });
+    listLiveProjectGithubRepoBranchCommitsMock.mockResolvedValue({
+      linkId: 8,
+      repository: {
+        id: 80,
+        fullName: "org/repo-two",
+        defaultBranch: "main",
+        htmlUrl: "https://github.com/org/repo-two",
+      },
+      branch: "main",
+      commits: [
+        {
+          sha: "abc",
+          message: "Initial commit",
+          date: "2026-02-26T00:00:00.000Z",
+          authorLogin: "alice",
+          authorEmail: "alice@example.com",
+          additions: 10,
+          deletions: 2,
+          htmlUrl: "https://github.com/org/repo-two/commit/abc",
+        },
+      ],
+    });
+
+    render(
+      <StaffProjectReposReadOnlyClient
+        projectId="1"
+        projectName="Small Group Project"
+        teamName="Team Alpha"
+      />
+    );
+
+    await screen.findByTestId("staff-repo-card");
+    fireEvent.click(screen.getByRole("button", { name: "Recent commits" }));
+
+    await waitFor(() => {
+      expect(listLiveProjectGithubRepoBranchCommitsMock).toHaveBeenCalledWith(8, "main", 20);
+    });
+    expect(await screen.findByText("Initial commit")).toBeInTheDocument();
+  });
+});

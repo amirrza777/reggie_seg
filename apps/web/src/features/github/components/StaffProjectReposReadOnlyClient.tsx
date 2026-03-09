@@ -1,15 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import {
   analyseProjectGithubRepo,
   getLatestProjectGithubSnapshot,
   getProjectGithubMappingCoverage,
+  listLiveProjectGithubRepoBranchCommits,
   listProjectGithubRepoLinks,
 } from "../api/client";
-import type { GithubLatestSnapshot, GithubMappingCoverage, ProjectGithubRepoLink } from "../types";
+import type {
+  GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
+  GithubMappingCoverage,
+  ProjectGithubRepoLink,
+} from "../types";
 
 type StaffProjectReposReadOnlyClientProps = {
   projectId: string;
@@ -17,21 +23,57 @@ type StaffProjectReposReadOnlyClientProps = {
   teamName: string;
 };
 
+type StaffRepoTabKey = "overview" | "commits" | "contributors";
+
+const staffRepoTabs: Array<{ key: StaffRepoTabKey; label: string }> = [
+  { key: "overview", label: "Overview" },
+  { key: "commits", label: "Recent commits" },
+  { key: "contributors", label: "Contributor drilldown" },
+];
+
+function formatShortDateTime(value: string | null | undefined) {
+  if (!value) return "Unknown date";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
+}
+
+function formatContributorMatch(stat: GithubLatestSnapshot["snapshot"]["userStats"][number]) {
+  if (!stat.isMatched) return "Unmatched";
+  if (stat.githubLogin) return "Matched";
+  return "Matched (no login)";
+}
+
+function contributorIdentityKey(
+  stat: GithubLatestSnapshot["snapshot"]["userStats"][number],
+  index: number
+) {
+  return stat.githubLogin?.toLowerCase() || `mapped-${stat.mappedUserId ?? "none"}-${index}`;
+}
+
 export function StaffProjectReposReadOnlyClient({
   projectId,
   projectName,
   teamName,
 }: StaffProjectReposReadOnlyClientProps) {
   const numericProjectId = Number(projectId);
+  const [activeTab, setActiveTab] = useState<StaffRepoTabKey>("overview");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [links, setLinks] = useState<ProjectGithubRepoLink[]>([]);
+  const [selectedLinkId, setSelectedLinkId] = useState<number | null>(null);
   const [coverageByLinkId, setCoverageByLinkId] = useState<Record<number, GithubMappingCoverage | null>>({});
   const [latestSnapshotByLinkId, setLatestSnapshotByLinkId] = useState<
     Record<number, GithubLatestSnapshot["snapshot"] | null>
   >({});
+  const [recentCommitsByLinkId, setRecentCommitsByLinkId] = useState<
+    Record<number, GithubLiveProjectRepoBranchCommits | null>
+  >({});
+  const [recentCommitsLoadingByLinkId, setRecentCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
+  const [recentCommitsErrorByLinkId, setRecentCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
+  const [selectedContributorKeyByLinkId, setSelectedContributorKeyByLinkId] = useState<Record<number, string>>({});
 
   const latestAnalysedAt = useMemo(() => {
     let latest: string | null = null;
@@ -43,6 +85,11 @@ export function StaffProjectReposReadOnlyClient({
     }
     return latest;
   }, [latestSnapshotByLinkId]);
+
+  const selectedLink =
+    (selectedLinkId != null ? links.find((link) => link.id === selectedLinkId) : null) ?? links[0] ?? null;
+  const selectedSnapshot = selectedLink ? latestSnapshotByLinkId[selectedLink.id] ?? null : null;
+  const selectedCoverage = selectedLink ? coverageByLinkId[selectedLink.id] ?? null : null;
 
   async function loadData() {
     if (Number.isNaN(numericProjectId)) {
@@ -57,10 +104,19 @@ export function StaffProjectReposReadOnlyClient({
     try {
       const repoLinks = await listProjectGithubRepoLinks(numericProjectId);
       setLinks(repoLinks);
+      setSelectedLinkId((prev) => {
+        if (repoLinks.length === 0) return null;
+        if (prev != null && repoLinks.some((link) => link.id === prev)) return prev;
+        return repoLinks[0].id;
+      });
 
       if (repoLinks.length === 0) {
         setCoverageByLinkId({});
         setLatestSnapshotByLinkId({});
+        setRecentCommitsByLinkId({});
+        setRecentCommitsLoadingByLinkId({});
+        setRecentCommitsErrorByLinkId({});
+        setSelectedContributorKeyByLinkId({});
         return;
       }
 
@@ -118,12 +174,57 @@ export function StaffProjectReposReadOnlyClient({
     void loadData();
   }, [projectId]);
 
+  const fetchRecentCommitsForSelectedLink = useCallback(async (link: ProjectGithubRepoLink) => {
+    const branch = link.repository.defaultBranch || "main";
+    setRecentCommitsLoadingByLinkId((prev) => ({ ...prev, [link.id]: true }));
+    setRecentCommitsErrorByLinkId((prev) => ({ ...prev, [link.id]: null }));
+    try {
+      const data = await listLiveProjectGithubRepoBranchCommits(link.id, branch, 20);
+      setRecentCommitsByLinkId((prev) => ({ ...prev, [link.id]: data }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load recent commits.";
+      setRecentCommitsErrorByLinkId((prev) => ({ ...prev, [link.id]: message }));
+    } finally {
+      setRecentCommitsLoadingByLinkId((prev) => ({ ...prev, [link.id]: false }));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "commits") return;
+    if (!selectedLink) return;
+    if (recentCommitsByLinkId[selectedLink.id] || recentCommitsLoadingByLinkId[selectedLink.id]) return;
+    void fetchRecentCommitsForSelectedLink(selectedLink);
+  }, [activeTab, selectedLink, recentCommitsByLinkId, recentCommitsLoadingByLinkId, fetchRecentCommitsForSelectedLink]);
+
+  const contributorRows =
+    selectedSnapshot?.userStats
+      ?.map((stat, index) => ({
+        key: contributorIdentityKey(stat, index),
+        githubLogin: stat.githubLogin || "Unknown contributor",
+        commits: Number(stat.commits ?? 0),
+        additions: Number(stat.additions ?? 0),
+        deletions: Number(stat.deletions ?? 0),
+        commitsByDay: stat.commitsByDay || null,
+        matchLabel: formatContributorMatch(stat),
+      }))
+      .filter((row) => row.commits > 0)
+      .sort((a, b) => b.commits - a.commits) ?? [];
+
+  const selectedContributor =
+    selectedLink && contributorRows.length > 0
+      ? contributorRows.find((row) => row.key === selectedContributorKeyByLinkId[selectedLink.id]) || contributorRows[0]
+      : null;
+
+  const selectedContributorDays = Object.entries(selectedContributor?.commitsByDay || {})
+    .map(([date, commits]) => ({ date, commits: Number(commits) || 0 }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
   return (
     <section className="github-repos-tab" aria-label="Staff repository analytics">
       <div className="github-repos-tab__header">
         <div className="github-repos-tab__title">
           <p className="github-repos-tab__kicker">Repositories</p>
-          <strong>Team repository analytics</strong>
+          <strong>Team repository analytics (staff view)</strong>
         </div>
         <Button
           variant="ghost"
@@ -156,7 +257,7 @@ export function StaffProjectReposReadOnlyClient({
       </div>
 
       <p className="muted github-repos-tab__helper">
-        Repository charts are project-level evidence and are shared across all teams in this project.
+        Staff mode is read-only. These repository charts are project-level evidence shared across all teams in this project.
       </p>
 
       {info ? (
@@ -176,19 +277,171 @@ export function StaffProjectReposReadOnlyClient({
         <p className="muted github-repos-tab__table-wrap">No repositories are linked to this project yet.</p>
       ) : null}
 
-      {!loading &&
-        links.map((link) => (
-          <GithubRepoLinkCard
-            key={link.id}
-            link={link}
-            coverage={coverageByLinkId[link.id] ?? null}
-            snapshot={latestSnapshotByLinkId[link.id] ?? null}
-            currentGithubLogin={null}
-            readOnly
-            viewerMode="staff"
-          />
-        ))}
+      {!loading && links.length > 0 ? (
+        <>
+          <section className="github-project-repos-tabs">
+            <div className="github-project-repos-tabs__row">
+              {staffRepoTabs.map((tab) => (
+                <Button
+                  key={tab.key}
+                  variant={activeTab === tab.key ? "primary" : "ghost"}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`github-project-repos-tabs__btn${activeTab === tab.key ? " is-active" : ""}`}
+                >
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+          </section>
+
+          {links.length > 1 ? (
+            <div className="stack" style={{ gap: 6, marginTop: 12 }}>
+              <label className="muted" htmlFor="staff-repo-link-select">
+                Repository scope
+              </label>
+              <select
+                id="staff-repo-link-select"
+                className="github-repos-tab__select"
+                value={String(selectedLink?.id ?? "")}
+                onChange={(event) => setSelectedLinkId(Number(event.target.value))}
+              >
+                {links.map((link) => (
+                  <option key={link.id} value={link.id}>
+                    {link.repository.fullName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+
+          {activeTab === "overview" && selectedLink ? (
+            <GithubRepoLinkCard
+              key={selectedLink.id}
+              link={selectedLink}
+              coverage={selectedCoverage}
+              snapshot={selectedSnapshot}
+              currentGithubLogin={null}
+              readOnly
+              viewerMode="staff"
+            />
+          ) : null}
+
+          {activeTab === "commits" && selectedLink ? (
+            <section className="github-repos-tab__subpanel">
+              <div className="github-repos-tab__title">
+                <p className="github-repos-tab__kicker">Recent commits</p>
+                <strong>{selectedLink.repository.fullName}</strong>
+              </div>
+              <p className="muted github-repos-tab__helper">
+                Latest commits from default branch <strong>{selectedLink.repository.defaultBranch || "main"}</strong>.
+              </p>
+              {recentCommitsLoadingByLinkId[selectedLink.id] ? (
+                <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
+              ) : null}
+              {recentCommitsErrorByLinkId[selectedLink.id] ? (
+                <p className="muted github-repos-tab__table-wrap">{recentCommitsErrorByLinkId[selectedLink.id]}</p>
+              ) : null}
+              {!recentCommitsLoadingByLinkId[selectedLink.id] &&
+              !recentCommitsErrorByLinkId[selectedLink.id] &&
+              (recentCommitsByLinkId[selectedLink.id]?.commits?.length ?? 0) === 0 ? (
+                <p className="muted github-repos-tab__table-wrap">No commits were returned for this branch.</p>
+              ) : null}
+              {(recentCommitsByLinkId[selectedLink.id]?.commits?.length ?? 0) > 0 ? (
+                <div className="github-repos-tab__table-wrap stack" style={{ gap: 10 }}>
+                  {recentCommitsByLinkId[selectedLink.id]?.commits.map((commit) => (
+                    <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                      <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
+                        {commit.message}
+                      </a>
+                      <div className="github-repos-tab__commit-meta-row">
+                        <span className="muted github-repos-tab__commit-meta">
+                          {commit.authorLogin || commit.authorEmail || "Unknown author"}
+                        </span>
+                        <span className="muted github-repos-tab__commit-meta">{formatShortDateTime(commit.date)}</span>
+                        {typeof commit.additions === "number" || typeof commit.deletions === "number" ? (
+                          <span className="muted github-repos-tab__commit-meta">
+                            +{commit.additions ?? 0} / -{commit.deletions ?? 0}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {activeTab === "contributors" && selectedLink ? (
+            <section className="github-repos-tab__subpanel">
+              <div className="github-repos-tab__title">
+                <p className="github-repos-tab__kicker">Student / contributor focus</p>
+                <strong>Contributor breakdown</strong>
+              </div>
+              {contributorRows.length === 0 ? (
+                <p className="muted github-repos-tab__table-wrap">No contributor snapshot data available yet.</p>
+              ) : (
+                <div className="stack" style={{ gap: 12 }}>
+                  <div className="github-repo-link-card__stats">
+                    {contributorRows.map((row) => (
+                      <button
+                        key={row.key}
+                        type="button"
+                        className="github-repo-link-card__stat"
+                        style={{
+                          textAlign: "left",
+                          cursor: "pointer",
+                          borderColor:
+                            selectedContributor?.key === row.key
+                              ? "color-mix(in srgb, var(--accent) 40%, var(--border))"
+                              : "var(--border)",
+                        }}
+                        onClick={() =>
+                          setSelectedContributorKeyByLinkId((prev) => ({
+                            ...prev,
+                            [selectedLink.id]: row.key,
+                          }))
+                        }
+                      >
+                        <div className="github-repo-link-card__stat-label">{row.matchLabel}</div>
+                        <div className="github-repo-link-card__stat-value">{row.githubLogin}</div>
+                        <div className="github-repo-link-card__stat-subtle">
+                          {row.commits} commits • +{row.additions} / -{row.deletions}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {selectedContributor ? (
+                    <div className="github-repo-link-card__overview">
+                      <p className="github-repo-link-card__section-label">Selected contributor details</p>
+                      <div className="github-repo-link-card__stats">
+                        <div className="github-repo-link-card__stat">
+                          <div className="github-repo-link-card__stat-label">Contributor</div>
+                          <div className="github-repo-link-card__stat-value">{selectedContributor.githubLogin}</div>
+                        </div>
+                        <div className="github-repo-link-card__stat">
+                          <div className="github-repo-link-card__stat-label">Commits</div>
+                          <div className="github-repo-link-card__stat-value">{selectedContributor.commits}</div>
+                        </div>
+                        <div className="github-repo-link-card__stat">
+                          <div className="github-repo-link-card__stat-label">Line changes</div>
+                          <div className="github-repo-link-card__stat-value">
+                            +{selectedContributor.additions} / -{selectedContributor.deletions}
+                          </div>
+                        </div>
+                        <div className="github-repo-link-card__stat">
+                          <div className="github-repo-link-card__stat-label">Active days in snapshot</div>
+                          <div className="github-repo-link-card__stat-value">{selectedContributorDays.length}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </section>
+          ) : null}
+        </>
+      ) : null}
     </section>
   );
 }
-
