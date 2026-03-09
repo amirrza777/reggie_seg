@@ -22,7 +22,7 @@ export default async function ProjectTrelloPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} />
       {!user ? (
         <div style={{ padding: 24 }}>
@@ -44,4 +44,3 @@ export default async function ProjectTrelloPage({ params }: ProjectPageProps) {
     </div>
   );
 }
-

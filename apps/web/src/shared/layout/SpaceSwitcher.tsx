@@ -125,9 +125,13 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
 
     const navRect = nav.getBoundingClientRect();
     const linkRect = link.getBoundingClientRect();
+    const navScaleX = nav.offsetWidth > 0 ? navRect.width / nav.offsetWidth : 1;
+    const safeScaleX = Number.isFinite(navScaleX) && navScaleX > 0 ? navScaleX : 1;
     const horizontalInset = 18;
-    const left = Math.max(linkRect.left - navRect.left + horizontalInset, 0);
-    const width = Math.max(linkRect.width - horizontalInset * 2, 16);
+    const linkLeftInNav = (linkRect.left - navRect.left) / safeScaleX;
+    const linkWidth = linkRect.width / safeScaleX;
+    const left = Math.max(linkLeftInNav + horizontalInset, 0);
+    const width = Math.max(linkWidth - horizontalInset * 2, 16);
 
     indicator.style.setProperty("--space-switcher-indicator-left", `${left}px`);
     indicator.style.setProperty("--space-switcher-indicator-width", `${width}px`);

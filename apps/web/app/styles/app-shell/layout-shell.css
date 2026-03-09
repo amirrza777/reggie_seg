@@ -1,6 +1,7 @@
 /* App shell layout, sidebar, topbar */
 :root {
   --topbar-title-size: var(--fs-logo, 1.6rem);
+  --app-shell-scale: 0.9;
   /* Shared selection background for sidebar and workspace/admin pills */
   --sidebar-active-bg: var(--selection-gray-bg, color-mix(in srgb, var(--sidebar-text) 12%, transparent));
   /* Underline for the space switcher tabs */
@@ -25,9 +26,10 @@ body {
 }
 
 .app-shell__content {
-  flex: 1;
-  height: 100%;
-  min-height: 0;
+  flex: 0 0 auto;
+  width: calc(100% / var(--app-shell-scale));
+  height: calc(100dvh / var(--app-shell-scale));
+  min-height: calc(100dvh / var(--app-shell-scale));
   position: relative;
   isolation: isolate;
   background: var(--bg);
@@ -35,6 +37,8 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform: scale(var(--app-shell-scale));
+  transform-origin: top left;
 }
 
 .app-shell__content > * {
@@ -89,8 +93,8 @@ body {
   padding: 12px 22px;
   border-bottom: none;
   background: transparent;
-  position: static;
-  z-index: 1;
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
 }

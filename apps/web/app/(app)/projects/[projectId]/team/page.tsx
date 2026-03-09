@@ -24,7 +24,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
       {team ? (
         <div style={{ padding: 20 }}>

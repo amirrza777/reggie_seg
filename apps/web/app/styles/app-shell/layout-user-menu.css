@@ -5,11 +5,11 @@
 .user-menu__trigger {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 6px 12px 6px 6px;
+  padding: 4px 12px 4px 4px;
   color: var(--ink);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
@@ -24,8 +24,8 @@
 }
 
 .user-menu__avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
   object-fit: cover;
   display: grid;

@@ -11,7 +11,7 @@ export default async function MeetingPage({ params }: MeetingPageProps) {
   const flagMap = await getFeatureFlagMap();
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       <MeetingDetailContent meetingId={Number(meetingId)} />
     </div>
