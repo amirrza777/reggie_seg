@@ -9,7 +9,7 @@ export default async function ProjectReposPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} />
       <GithubProjectReposClient projectId={projectId} />
     </div>

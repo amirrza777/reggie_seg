@@ -25,7 +25,7 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
   }
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       {team ? (
         <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />

@@ -40,8 +40,8 @@
   .user-menu__trigger {
     width: auto;
     height: auto;
-    padding: 6px 12px 6px 6px;
-    gap: 10px;
+    padding: 4px 12px 4px 4px;
+    gap: 8px;
     flex-shrink: 0;
     border-radius: 14px;
     display: inline-flex;

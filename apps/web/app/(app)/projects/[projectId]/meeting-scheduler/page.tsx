@@ -25,7 +25,7 @@ export default async function MeetingSchedulerPage({ params }: PageProps) {
   }
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       {team ? (
         <MeetingSchedulerContent teamId={team.id} projectId={numericProjectId} />
