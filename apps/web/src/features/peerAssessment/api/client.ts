@@ -30,7 +30,10 @@ export async function getPeerAssessment(
   return apiFetch(`/peer-assessments?${params.toString()}`);
 }
 
-export async function updatePeerAssessment(assessmentId: number, answersJson: Record<string, any>) {
+export async function updatePeerAssessment(
+  assessmentId: number,
+  answersJson: Record<string, string | number | boolean | null>
+) {
   // Convert Record to array format matching create format
   const answersArray = Object.entries(answersJson).map(([question, answer]) => ({
     question,

@@ -60,10 +60,28 @@ export type TeamMember = {
   role: string;
 };
 
+export type StaffMarkingSummary = {
+  mark: number | null;
+  formativeFeedback: string | null;
+  updatedAt: string;
+  marker: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+};
+
+export type ProjectMarkingSummary = {
+  teamId: number;
+  teamMarking: StaffMarkingSummary | null;
+  studentMarking: StaffMarkingSummary | null;
+};
+
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;
   team: Team;
+  marking: ProjectMarkingSummary | null;
 };
 
 export type DeadlineItem = {

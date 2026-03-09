@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -62,16 +63,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         </div>
       </section>
 
-      <nav className="pill-nav" aria-label="Team sections">
-        <span className="pill-nav__link pill-nav__link--active">Overview</span>
-        <span className="pill-nav__link">Team</span>
-        <span className="pill-nav__link">Team meetings</span>
-        <span className="pill-nav__link">Meeting scheduler</span>
-        <span className="pill-nav__link">Peer assessment</span>
-        <span className="pill-nav__link">Peer feedback</span>
-        <span className="pill-nav__link">Repositories</span>
-        <span className="pill-nav__link">Trello</span>
-      </nav>
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
       <section className="staff-projects__team-card" aria-label="Team members">
         <h3 style={{ margin: 0 }}>Team members</h3>

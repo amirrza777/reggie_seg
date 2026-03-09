@@ -4,6 +4,8 @@ import {
   getModuleDetailsIfLead,
   getTeamDetailsIfLead,
   getStudentDetailsIfLead,
+  saveTeamMarkingIfLead,
+  saveStudentMarkingIfLead,
 } from "./service.js";
 
 vi.mock("./repo.js", () => ({
@@ -18,6 +20,11 @@ vi.mock("./repo.js", () => ({
   getTeamWithAssessments: vi.fn(),
   findAssessmentsForRevieweeInTeam: vi.fn(),
   findTemplateWithQuestions: vi.fn(),
+  findTeamMarking: vi.fn(),
+  findStudentMarking: vi.fn(),
+  upsertTeamMarking: vi.fn(),
+  upsertStudentMarking: vi.fn(),
+  isStudentInTeam: vi.fn(),
 }));
 
 import * as repo from "./repo.js";
@@ -266,7 +273,7 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
         id: 1,
         reviewerUserId: 101,
         answersJson: { 1: 4, 2: 5 },
-        questionnaireTemplateId: 10,
+        templateId: 10,
         reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
       },
     ]);
@@ -328,7 +335,7 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
           id: 1,
           reviewerUserId: 101,
           answersJson: {},
-          questionnaireTemplateId: 10,
+          templateId: 10,
           reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
         },
       ],
@@ -366,14 +373,14 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
         id: 1,
         reviewerUserId: 101,
         answersJson: { 1: 3 },
-        questionnaireTemplateId: 10,
+        templateId: 10,
         reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
       },
       {
         id: 2,
         reviewerUserId: 102,
         answersJson: { 1: 5 },
-        questionnaireTemplateId: 10,
+        templateId: 10,
         reviewer: { id: 102, firstName: "Carol", lastName: "Lee" },
       },
     ]);
@@ -389,5 +396,173 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
     expect(q0?.averageScore).toBe(4);
     expect(q0?.totalReviews).toBe(2);
     expect(q0?.reviewerAnswers).toHaveLength(2);
+  });
+
+  it("parses scores from array-style answersJson payloads", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.getTeamWithAssessments.mockResolvedValue({
+      members: twoMembers,
+      assessments: [],
+    });
+    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
+      {
+        id: 1,
+        reviewerUserId: 101,
+        answersJson: [
+          { question: "1", answer: "4" },
+          { question: "2", answer: "5" },
+        ],
+        templateId: 10,
+        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
+      },
+    ]);
+    mockRepo.findTemplateWithQuestions.mockResolvedValue({
+      id: 10,
+      questions: [
+        { id: 1, label: "Q1", order: 0 },
+        { id: 2, label: "Q2", order: 1 },
+      ],
+    });
+
+    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+
+    expect(result!.performanceSummary.overallAverage).toBe(4.5);
+    expect(result!.performanceSummary.questionAverages[0]?.averageScore).toBe(4);
+    expect(result!.performanceSummary.questionAverages[1]?.averageScore).toBe(5);
+  });
+
+  it("parses scores from array-style answersJson payloads with questionId keys", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.getTeamWithAssessments.mockResolvedValue({
+      members: twoMembers,
+      assessments: [],
+    });
+    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
+      {
+        id: 1,
+        reviewerUserId: 101,
+        answersJson: [
+          { questionId: 1, answer: "3" },
+          { questionId: 2, answer: 4 },
+        ],
+        templateId: 10,
+        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
+      },
+    ]);
+    mockRepo.findTemplateWithQuestions.mockResolvedValue({
+      id: 10,
+      questions: [
+        { id: 1, label: "Q1", order: 0 },
+        { id: 2, label: "Q2", order: 1 },
+      ],
+    });
+
+    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+
+    expect(result!.performanceSummary.overallAverage).toBe(3.5);
+    expect(result!.performanceSummary.questionAverages[0]?.averageScore).toBe(3);
+    expect(result!.performanceSummary.questionAverages[1]?.averageScore).toBe(4);
+  });
+
+  it("excludes non-numeric answers from score averages", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.getTeamWithAssessments.mockResolvedValue({
+      members: twoMembers,
+      assessments: [],
+    });
+    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
+      {
+        id: 1,
+        reviewerUserId: 101,
+        answersJson: [
+          { question: "1", answer: "Great communication" },
+          { question: "2", answer: 5 },
+        ],
+        templateId: 10,
+        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
+      },
+    ]);
+    mockRepo.findTemplateWithQuestions.mockResolvedValue({
+      id: 10,
+      questions: [
+        { id: 1, label: "Comment", order: 0 },
+        { id: 2, label: "Teamwork", order: 1 },
+      ],
+    });
+
+    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+
+    expect(result!.performanceSummary.overallAverage).toBe(5);
+    expect(result!.performanceSummary.questionAverages).toHaveLength(1);
+    expect(result!.performanceSummary.questionAverages[0]).toMatchObject({
+      questionId: 2,
+      questionText: "Teamwork",
+      averageScore: 5,
+      totalReviews: 1,
+    });
+  });
+});
+
+describe("marking support", () => {
+  it("saves team marking when staff leads the module and team exists", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.upsertTeamMarking.mockResolvedValue({
+      mark: 72,
+      formativeFeedback: "Good collaboration and communication.",
+      updatedAt: new Date("2026-03-06T10:00:00.000Z"),
+      marker: { id: 1, firstName: "Tutor", lastName: "One" },
+    } as Awaited<ReturnType<typeof repo.upsertTeamMarking>>);
+
+    const result = await saveTeamMarkingIfLead(1, 1, 10, {
+      mark: 72,
+      formativeFeedback: "Good collaboration and communication.",
+    });
+
+    expect(result).toEqual({
+      mark: 72,
+      formativeFeedback: "Good collaboration and communication.",
+      updatedAt: "2026-03-06T10:00:00.000Z",
+      marker: { id: 1, firstName: "Tutor", lastName: "One" },
+    });
+  });
+
+  it("returns null for team marking when staff is not module lead", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(null);
+
+    const result = await saveTeamMarkingIfLead(99, 1, 10, {
+      mark: 60,
+      formativeFeedback: "Needs stronger planning.",
+    });
+
+    expect(result).toBeNull();
+    expect(mockRepo.upsertTeamMarking).not.toHaveBeenCalled();
+  });
+
+  it("saves student marking when student is in team and staff leads module", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.isStudentInTeam.mockResolvedValue(true);
+    mockRepo.upsertStudentMarking.mockResolvedValue({
+      mark: 78,
+      formativeFeedback: "Strong technical contribution.",
+      updatedAt: new Date("2026-03-06T11:00:00.000Z"),
+      marker: { id: 1, firstName: "Tutor", lastName: "One" },
+    } as Awaited<ReturnType<typeof repo.upsertStudentMarking>>);
+
+    const result = await saveStudentMarkingIfLead(1, 1, 10, 100, {
+      mark: 78,
+      formativeFeedback: "Strong technical contribution.",
+    });
+
+    expect(result).toEqual({
+      mark: 78,
+      formativeFeedback: "Strong technical contribution.",
+      updatedAt: "2026-03-06T11:00:00.000Z",
+      marker: { id: 1, firstName: "Tutor", lastName: "One" },
+    });
   });
 });

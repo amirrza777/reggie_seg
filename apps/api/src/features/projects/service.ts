@@ -9,6 +9,7 @@ import {
   getQuestionsForProject,
   getStaffProjects,
   getStaffProjectTeams,
+  getUserProjectMarking,
 } from "./repo.js";
 
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
@@ -45,7 +46,7 @@ export async function fetchTeamByUserAndProject(userId: number, projectId: numbe
 }
 
 export async function fetchQuestionsForProject(projectId: number) {
-  return getQuestionsForProject(projectId); 
+  return getQuestionsForProject(projectId);
 }
 
 export async function fetchProjectsForStaff(userId: number) {
@@ -72,4 +73,8 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
     },
     teams: project.teams,
   };
+}
+
+export async function fetchProjectMarking(userId: number, projectId: number) {
+  return getUserProjectMarking(userId, projectId);
 }

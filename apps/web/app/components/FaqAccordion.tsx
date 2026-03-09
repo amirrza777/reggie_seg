@@ -9,9 +9,10 @@ type FaqItem = {
 
 type FaqAccordionProps = {
   items: FaqItem[];
+  reveal?: boolean;
 };
 
-export function FaqAccordion({ items }: FaqAccordionProps) {
+export function FaqAccordion({ items, reveal = true }: FaqAccordionProps) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   const handleToggle = (index: number) => {
@@ -23,7 +24,7 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
       {items.map((item, index) => {
         const isOpen = openIndex === index;
         return (
-          <details key={item.question} className="faq__item" data-reveal open={isOpen}>
+          <details key={item.question} className="faq__item" data-reveal={reveal ? "" : undefined} open={isOpen}>
             <summary
               onClick={(event) => {
                 event.preventDefault();
