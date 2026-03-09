@@ -453,3 +453,34 @@
 .rich-editor__listitem {
   margin: 2px 0;
 }
+
+.mention-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  min-width: 200px;
+  max-height: 150px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 4px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  z-index: 20;
+}
+
+.mention-dropdown__item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+  color: var(--ink);
+  transition: background 0.15s ease;
+}
+
+.mention-dropdown__item:hover,
+.mention-dropdown__item--active {
+  background: var(--glass-hover);
+}
