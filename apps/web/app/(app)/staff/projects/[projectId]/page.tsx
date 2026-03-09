@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { Placeholder } from "@/shared/ui/Placeholder";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectTeamsPageProps = {
   params: Promise<{ projectId: string }>;
@@ -40,34 +40,30 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
   }
 
   return (
-    <div className="stack stack--loose">
-      <Placeholder
-        title={data.project.name}
-        description={`Module: ${data.project.moduleName}. Select a team to open team-level tabs.`}
-      />
-
-      <nav className="pill-nav" aria-label="Project-level actions">
-        <Link href={`/staff/repos?projectId=${data.project.id}`} className="pill-nav__link">
-          Repository insights
-        </Link>
-        <Link href={`/staff/integrations?projectId=${data.project.id}`} className="pill-nav__link">
-          Integrations
-        </Link>
-      </nav>
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Project</p>
+        <h1 className="staff-projects__title">{data.project.name}</h1>
+        <p className="staff-projects__desc">Module: {data.project.moduleName}. Choose a team to view team details.</p>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
+          <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
+        </div>
+      </section>
 
       {data.teams.length === 0 ? <p className="muted">No teams exist in this project yet.</p> : null}
-      <section className="stack" aria-label="Project teams">
+      <section className="staff-projects__team-list" aria-label="Project teams">
         {data.teams.map((team) => (
-          <article key={team.id} className="card stack" style={{ gap: 8 }}>
-            <h3 style={{ margin: 0 }}>{team.teamName}</h3>
-            <p className="muted" style={{ margin: 0 }}>
+          <article key={team.id} className="staff-projects__team-card">
+            <div className="staff-projects__team-top">
+              <h3 className="staff-projects__team-title">{team.teamName}</h3>
+            </div>
+            <p className="staff-projects__team-count">
               {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
             </p>
-            <div>
-              <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link pill-nav__link--active">
-                Open team tabs
-              </Link>
-            </div>
+            <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
+              View team
+            </Link>
           </article>
         ))}
       </section>

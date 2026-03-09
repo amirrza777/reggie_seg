@@ -2,11 +2,17 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { Placeholder } from "@/shared/ui/Placeholder";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
+
+function getInitials(firstName: string, lastName: string) {
+  const first = firstName?.trim()?.[0] ?? "";
+  const last = lastName?.trim()?.[0] ?? "";
+  return `${first}${last}`.toUpperCase() || "?";
+}
 
 export default async function StaffProjectTeamTabsPage({ params }: StaffProjectTeamTabsPageProps) {
   const user = await getCurrentUser();
@@ -43,33 +49,43 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   }
 
   return (
-    <div className="stack stack--loose">
-      <Placeholder
-        title={`${data.project.name} — ${team.teamName}`}
-        description="Use these team tabs to move into staff workflows for this team."
-      />
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Team</p>
+        <h1 className="staff-projects__title">{team.teamName}</h1>
+        <p className="staff-projects__desc">Project: {data.project.name}</p>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
+          <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
+            Back to teams
+          </Link>
+        </div>
+      </section>
 
-      <nav className="pill-nav" aria-label="Team tabs">
-        <Link href={`/staff/peer-assessments/module/${data.project.moduleId}/team/${team.id}`} className="pill-nav__link pill-nav__link--active">
+      <nav className="pill-nav" aria-label="Team tabs" style={{ width: "fit-content" }}>
+        <Link href={`/staff/peer-assessments/module/${data.project.moduleId}/team/${team.id}`} className="pill-nav__link">
           Peer assessments
-        </Link>
-        <Link href={`/staff/repos?projectId=${data.project.id}`} className="pill-nav__link">
-          Repository insights
-        </Link>
-        <Link href={`/staff/integrations?projectId=${data.project.id}`} className="pill-nav__link">
-          Integrations
         </Link>
       </nav>
 
-      <section className="card stack" aria-label="Team members" style={{ gap: 10 }}>
-        <h3 style={{ margin: 0 }}>Team Members</h3>
+      <section className="staff-projects__team-card" aria-label="Team members">
+        <h3 style={{ margin: 0 }}>Team members</h3>
         {team.allocations.length === 0 ? <p className="muted" style={{ margin: 0 }}>No students assigned yet.</p> : null}
+        <div className="staff-projects__members">
         {team.allocations.map((allocation) => (
-          <p key={allocation.userId} style={{ margin: 0 }}>
-            {allocation.user.firstName} {allocation.user.lastName}
-            <span className="muted"> ({allocation.user.email})</span>
-          </p>
+          <div key={allocation.userId} className="staff-projects__member">
+            <div className="staff-projects__avatar">
+              {getInitials(allocation.user.firstName, allocation.user.lastName)}
+            </div>
+            <div>
+              <p className="staff-projects__member-name">
+                {allocation.user.firstName} {allocation.user.lastName}
+              </p>
+              <p className="staff-projects__member-email">{allocation.user.email}</p>
+            </div>
+          </div>
         ))}
+        </div>
       </section>
     </div>
   );

@@ -2,8 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { Placeholder } from "@/shared/ui/Placeholder";
-import "@/features/projects/styles/project-list.css";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 export default async function StaffProjectsPage() {
   const user = await getCurrentUser();
@@ -20,34 +19,40 @@ export default async function StaffProjectsPage() {
   }
 
   return (
-    <div className="stack stack--loose">
-      <Placeholder
-        title="Staff Projects"
-        description="Projects where you have staff-level ownership. Open one to inspect teams and team-level views."
-      />
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Staff Workspace</p>
+        <h1 className="staff-projects__title">Projects</h1>
+        <p className="staff-projects__desc">
+          Select a project you own and drill down into its teams.
+        </p>
+        {!errorMessage ? (
+          <div className="staff-projects__meta">
+            <span className="staff-projects__badge">{projects.length} project{projects.length === 1 ? "" : "s"}</span>
+          </div>
+        ) : null}
+      </section>
 
       {errorMessage ? <p className="muted">{errorMessage}</p> : null}
       {!errorMessage && projects.length === 0 ? (
         <p className="muted">No staff projects found yet. Ask an admin to assign you as a module lead.</p>
       ) : null}
 
-      <section className="project-list" aria-label="Staff project list">
-        <div className="project-list__grid">
+      <section className="staff-projects__grid" aria-label="Staff project list">
           {projects.map((project) => (
-            <Link key={project.id} href={`/staff/projects/${project.id}`} className="project-card card">
-              <div className="project-card__header">
-                <h2 className="project-card__title">{project.name}</h2>
-                <p className="project-card__module">Module: {project.moduleName}</p>
+            <Link key={project.id} href={`/staff/projects/${project.id}`} className="staff-projects__card">
+              <div>
+                <h2 className="staff-projects__card-title">{project.name}</h2>
+                <p className="staff-projects__card-sub">Module: {project.moduleName}</p>
               </div>
-              <p className="project-card__summary">
+              <p className="staff-projects__card-sub">
                 {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
               </p>
-              <div className="project-card__footer">
-                <span className="project-card__cta">View Teams</span>
+              <div className="staff-projects__card-action">
+                <span>View teams</span>
               </div>
             </Link>
           ))}
-        </div>
       </section>
     </div>
   );
