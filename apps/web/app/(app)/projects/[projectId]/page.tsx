@@ -1,9 +1,15 @@
-import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getProjectMarking,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getCurrentUser } from "@/shared/auth/session";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 import Link from "next/link";
 import type { ProjectDeadline } from "@/features/projects/types";
+import type { ProjectMarkingSummary } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -62,10 +68,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     // Keep default empty deadline object if API is unavailable.
   }
 
+  let marking: ProjectMarkingSummary | null = null;
+  try {
+    marking = await getProjectMarking(user.id, numericProjectId);
+  } catch {
+    marking = null;
+  }
+
   return (
     <div className="stack" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
-      <ProjectOverviewDashboard project={project} deadline={deadline} team={team} />
+      <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} />
     </div>
   );
 }

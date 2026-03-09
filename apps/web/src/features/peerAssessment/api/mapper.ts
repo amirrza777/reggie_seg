@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Question , PeerAssessment} from "../types";
 
+function normalizeAnswerValue(value: unknown): string | number | boolean | null {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" || typeof value === "boolean") return value;
+    if (value == null) return null;
+    return String(value);
+}
+
 export function mapApiQuestionsToQuestions(raw: any): Question[] {
     let arr: any[] = [];
 
@@ -21,6 +28,10 @@ export function mapApiQuestionsToQuestions(raw: any): Question[] {
           options: Array.isArray(configs.options) ? configs.options.map(String) : undefined,
           min: typeof configs.min === "number" ? configs.min : undefined,
           max: typeof configs.max === "number" ? configs.max : undefined,
+          step: typeof configs.step === "number" ? configs.step : undefined,
+          left: typeof configs.left === "string" ? configs.left : undefined,
+          right: typeof configs.right === "string" ? configs.right : undefined,
+          helperText: typeof configs.helperText === "string" ? configs.helperText : undefined,
         }
       : undefined;
 
@@ -36,14 +47,16 @@ export function mapApiQuestionsToQuestions(raw: any): Question[] {
 
 export function mapApiAssessmentToPeerAssessment(raw: any) : PeerAssessment {
     // Convert answers array to Record if needed
-    const answers: Record<string, string> = {};
+    const answers: Record<string, string | number | boolean | null> = {};
     if (Array.isArray(raw.answersJson)) {
       raw.answersJson.forEach((item: any) => {
-        answers[item.question] = String(item.answer ?? "");
+        const key = item.question ?? item.questionId;
+        if (key == null) return;
+        answers[String(key)] = normalizeAnswerValue(item.answer);
       });
     } else if (typeof raw.answersJson === "object" && raw.answersJson !== null) {
       Object.entries(raw.answersJson).forEach(([k, v]) => {
-        answers[k] = String(v ?? "");
+        answers[k] = normalizeAnswerValue(v);
       });
     }
 

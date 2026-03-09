@@ -2,6 +2,7 @@ import type {
   DeadlineItem,
   Project,
   ProjectDeadline,
+  StaffMarkingSummary,
   ProjectOverviewDashboardProps,
 } from "../types";
 import { Card } from "@/shared/ui/Card";
@@ -172,7 +173,67 @@ function InformationBoardCard() {
   );
 }
 
-export function ProjectOverviewDashboard({ project, deadline, team }: ProjectOverviewDashboardProps) {
+function markerName(marking: StaffMarkingSummary | null) {
+  if (!marking) return "Staff";
+  const fullName = `${marking.marker.firstName} ${marking.marker.lastName}`.trim();
+  return fullName.length > 0 ? fullName : `Staff ${marking.marker.id}`;
+}
+
+function formatMarkingUpdatedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return formatDateTime(value);
+}
+
+function TutorMarkingCard({
+  teamMarking,
+  studentMarking,
+}: {
+  teamMarking: StaffMarkingSummary | null;
+  studentMarking: StaffMarkingSummary | null;
+}) {
+  return (
+    <Card title="Tutor marking and formative feedback">
+      <div className="stack" style={{ gap: 14 }}>
+        <section className="stack" style={{ gap: 6 }}>
+          <h4 style={{ margin: 0 }}>Team feedback</h4>
+          <p>
+            <strong>Team mark:</strong>{" "}
+            {teamMarking?.mark == null ? "Not yet published" : teamMarking.mark}
+          </p>
+          <p className="muted">
+            {teamMarking?.formativeFeedback ?? "No team-level formative feedback yet."}
+          </p>
+          {teamMarking ? (
+            <p className="ui-note ui-note--muted">
+              Updated by {markerName(teamMarking)} on{" "}
+              {formatMarkingUpdatedAt(teamMarking.updatedAt)}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="stack" style={{ gap: 6 }}>
+          <h4 style={{ margin: 0 }}>Your individual feedback</h4>
+          <p>
+            <strong>Your mark:</strong>{" "}
+            {studentMarking?.mark == null ? "Not yet published" : studentMarking.mark}
+          </p>
+          <p className="muted">
+            {studentMarking?.formativeFeedback ?? "No individual formative feedback yet."}
+          </p>
+          {studentMarking ? (
+            <p className="ui-note ui-note--muted">
+              Updated by {markerName(studentMarking)} on{" "}
+              {formatMarkingUpdatedAt(studentMarking.updatedAt)}
+            </p>
+          ) : null}
+        </section>
+      </div>
+    </Card>
+  );
+}
+
+export function ProjectOverviewDashboard({ project, deadline, team, marking }: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
   const nextDeadline = getNextDeadline(deadlineItems);
 
@@ -190,6 +251,11 @@ export function ProjectOverviewDashboard({ project, deadline, team }: ProjectOve
 
         <DeadlinesScheduleCard items={deadlineItems} />
       </div>
+
+      <TutorMarkingCard
+        teamMarking={marking?.teamMarking ?? null}
+        studentMarking={marking?.studentMarking ?? null}
+      />
     </div>
   );
 }
