@@ -83,9 +83,9 @@
 
 .github-chart-title__text {
   margin: 0;
-  color: var(--muted);
+  color: var(--ink);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .github-chart-title__info-btn {
@@ -103,6 +103,14 @@
   font-weight: 700;
   line-height: 1;
   padding: 0;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.github-chart-title__info-btn:hover,
+.github-chart-title__info-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent-strong);
 }
 
 .github-chart-info__overlay {
@@ -198,7 +206,7 @@
 }
 
 .github-repo-link-card__title {
-  font-size: 24px;
+  font-size: clamp(1.25rem, 2.1vw, 1.65rem);
   font-weight: 700;
   line-height: 1.15;
   margin: 0;
@@ -298,7 +306,13 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  background: var(--surface);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 94%, var(--accent) 6%) 0%,
+      var(--surface) 100%
+    );
+  min-height: 92px;
 }
 
 .github-chart-section__insight-label {
@@ -311,6 +325,7 @@
   font-size: 20px;
   font-weight: 700;
   line-height: 1.05;
+  font-variant-numeric: tabular-nums;
 }
 
 .github-chart-section__insight-subtext {
@@ -332,6 +347,7 @@
   border-radius: 10px;
   padding: 10px;
   background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .github-chart-section__panel--full {
@@ -554,4 +570,3 @@
   background: var(--surface);
   color: var(--ink);
 }
-
