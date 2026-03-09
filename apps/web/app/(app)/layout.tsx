@@ -48,12 +48,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
   try {
-    const modules = await listModules();
+    const modules = await listModules(user.id);
     if (modules.length > 0) {
       moduleChildren = [
         { href: "/dashboard", label: "Overview" },
         ...modules.map((module) => ({
-          href: `/dashboard?module=${encodeURIComponent(module.id)}`,
+          href: `/modules/${encodeURIComponent(module.id)}`,
           label: module.title,
         })),
       ];
@@ -105,7 +105,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
     }));
 
-  const workspaceAliases = ["/projects"];
+  const workspaceAliases = ["/dashboard", "/modules", "/projects"];
 
   const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
