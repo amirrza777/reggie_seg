@@ -34,10 +34,11 @@ type GithubRepositoryListItem = {
   isPrivate: boolean;
   ownerLogin: string | null;
   defaultBranch: string | null;
+  isAppInstalled: boolean;
 };
 
 async function fetchUserRepositories(accessToken: string) {
-  return fetchGitHubAppUserRepositories(accessToken);
+  return fetchUserCollaborativeRepositories(accessToken);
 }
 
 type GithubInstallationListResponse = {
@@ -48,7 +49,9 @@ type GithubInstallationReposResponse = {
   repositories: GithubRepoResponse[];
 };
 
-async function fetchGitHubAppUserRepositories(accessToken: string) {
+type GithubUserReposResponse = GithubRepoResponse[];
+
+async function fetchGitHubAppInstallationRepositories(accessToken: string) {
   const { baseUrl } = getGitHubApiConfig();
   const repositoryById = new Map<number, GithubRepoResponse>();
   let installationPage = 1;
@@ -123,11 +126,48 @@ async function fetchGitHubAppUserRepositories(accessToken: string) {
     }
   }
 
-  if (totalInstallations === 0) {
-    throw new GithubServiceError(
-      403,
-      "GitHub App is connected but not installed on any account or organization. Install the app, then try again."
+  return {
+    repositories: Array.from(repositoryById.values()),
+    totalInstallations,
+  };
+}
+
+async function fetchUserCollaborativeRepositories(accessToken: string) {
+  const { baseUrl } = getGitHubApiConfig();
+  const repositoryById = new Map<number, GithubRepoResponse>();
+  let page = 1;
+
+  while (true) {
+    const response = await fetch(
+      `${baseUrl}/user/repos?affiliation=owner,collaborator,organization_member&per_page=100&page=${page}`,
+      {
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+      }
     );
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+      }
+      throw new GithubServiceError(502, "Failed to fetch GitHub repositories");
+    }
+
+    const repositories = (await response.json()) as GithubUserReposResponse;
+    for (const repository of repositories || []) {
+      repositoryById.set(repository.id, repository);
+    }
+
+    if (!repositories || repositories.length < 100) {
+      break;
+    }
+    page += 1;
+    if (page > 10) {
+      break;
+    }
   }
 
   return Array.from(repositoryById.values());
@@ -140,17 +180,41 @@ export async function listGithubRepositoriesForUser(userId: number) {
   }
 
   const accessToken = await getValidGithubAccessToken(account);
-  const repositories = await fetchUserRepositories(accessToken);
+  const [userRepositories, appInstallationData] = await Promise.all([
+    fetchUserRepositories(accessToken),
+    fetchGitHubAppInstallationRepositories(accessToken),
+  ]);
+  const appInstalledRepoById = new Map<number, GithubRepoResponse>(
+    appInstallationData.repositories.map((repo) => [repo.id, repo])
+  );
 
-  return repositories.map((repo): GithubRepositoryListItem => ({
-    githubRepoId: repo.id,
-    name: repo.name,
-    fullName: repo.full_name,
-    htmlUrl: repo.html_url,
-    isPrivate: repo.private,
-    ownerLogin: repo.owner?.login || null,
-    defaultBranch: repo.default_branch || null,
-  }));
+  if (appInstallationData.totalInstallations === 0 && userRepositories.length === 0) {
+    throw new GithubServiceError(
+      403,
+      "GitHub App is connected but not installed on any account or organization. Install the app, then try again."
+    );
+  }
+
+  const allRepositoriesById = new Map<number, GithubRepoResponse>();
+  for (const repository of userRepositories) {
+    allRepositoriesById.set(repository.id, repository);
+  }
+  for (const repository of appInstallationData.repositories) {
+    allRepositoriesById.set(repository.id, repository);
+  }
+
+  return Array.from(allRepositoriesById.values())
+    .sort((a, b) => a.full_name.localeCompare(b.full_name))
+    .map((repo): GithubRepositoryListItem => ({
+      githubRepoId: repo.id,
+      name: repo.name,
+      fullName: repo.full_name,
+      htmlUrl: repo.html_url,
+      isPrivate: repo.private,
+      ownerLogin: repo.owner?.login || null,
+      defaultBranch: repo.default_branch || null,
+      isAppInstalled: appInstalledRepoById.has(repo.id),
+    }));
 }
 
 export async function getGithubConnectionStatus(userId: number) {
@@ -193,6 +257,20 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
   const isMember = await isUserInProject(userId, input.projectId);
   if (!isMember) {
     throw new GithubServiceError(403, "You are not a member of this project");
+  }
+
+  const account = await findGithubAccountByUserId(userId);
+  if (!account) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+  const accessToken = await getValidGithubAccessToken(account);
+  const appInstallationData = await fetchGitHubAppInstallationRepositories(accessToken);
+  const isRepoAccessibleViaApp = appInstallationData.repositories.some((repo) => repo.id === input.githubRepoId);
+  if (!isRepoAccessibleViaApp) {
+    throw new GithubServiceError(
+      409,
+      "GitHub App does not have access to this repository yet. Ask the owner or organization admin to grant access, then refresh."
+    );
   }
 
   const existingActiveLink = await findActiveProjectGithubRepositoryLink(input.projectId);

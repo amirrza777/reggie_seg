@@ -1,11 +1,15 @@
 import type { ButtonHTMLAttributes } from "react";
 
+type ButtonVariant = "primary" | "ghost" | "danger" | "quiet";
+type ButtonSize = "md" | "sm";
+
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "ghost";
+  variant?: ButtonVariant;
+  size?: ButtonSize;
 };
 
-export function Button({ variant = "primary", className, children, ...rest }: ButtonProps) {
-  const classes = ["btn", variant === "primary" ? "btn--primary" : "btn--ghost", className]
+export function Button({ variant = "primary", size = "md", className, children, ...rest }: ButtonProps) {
+  const classes = ["btn", `btn--${variant}`, size === "sm" ? "btn--sm" : null, className]
     .filter(Boolean)
     .join(" ");
   return (

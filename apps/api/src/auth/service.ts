@@ -20,7 +20,7 @@ type TokenPayload = { sub: number; email: string; admin?: boolean };
 const bootstrapAdminEmail = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
 const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
-type NewUserRole = Extract<Role, "STUDENT" | "STAFF">;
+type NewUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
 export async function signUp(data: {
   email: string;
@@ -124,11 +124,16 @@ export async function login(
 }
 
 export async function refreshTokens(refreshToken: string) {
-  const payload = verifyRefresh(refreshToken);
+  let payload: TokenPayload;
+  try {
+    payload = verifyRefresh(refreshToken);
+  } catch {
+    throw { code: "INVALID_REFRESH_TOKEN" };
+  }
   const valid = await validateRefreshToken(payload.sub, refreshToken);
-  if (!valid) throw new Error("invalid");
+  if (!valid) throw { code: "INVALID_REFRESH_TOKEN" };
   const user = await prisma.user.findUnique({ where: { id: payload.sub } });
-  if (!user) throw new Error("invalid");
+  if (!user) throw { code: "INVALID_REFRESH_TOKEN" };
   if (user.active === false) throw { code: "ACCOUNT_SUSPENDED" };
   const tokens = await issueTokens({ id: user.id, email: user.email, role: user.role });
   return tokens;
@@ -338,7 +343,7 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
 
 export async function issueTokensForUser(userId: number, email: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
-  if (!user) throw new Error("invalid");
+  if (!user) throw { code: "INVALID_REFRESH_TOKEN" };
   return issueTokens({ id: userId, email: email.toLowerCase(), role: user.role });
 }
 

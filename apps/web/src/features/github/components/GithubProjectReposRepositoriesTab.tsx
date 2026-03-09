@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
@@ -11,10 +10,7 @@ import type {
   ProjectGithubRepoLink,
 } from "../types";
 
-type StylesMap = Record<string, React.CSSProperties>;
-
 type Props = {
-  styles: StylesMap;
   loading: boolean;
   busy: boolean;
   linking: boolean;
@@ -34,7 +30,6 @@ type Props = {
 
 export function GithubProjectReposRepositoriesTab(props: Props) {
   const {
-    styles,
     loading,
     busy,
     linking,
@@ -51,27 +46,30 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
     onLinkSelected,
     onRemoveLink,
   } = props;
+  const selectedRepo = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
+  const selectedRepoNeedsAppAccess = Boolean(selectedRepo && !selectedRepo.isAppInstalled);
+  const hasReposMissingAppAccess = availableRepos.some((repo) => !repo.isAppInstalled);
 
   return (
-    <section style={styles.panel}>
-      <div style={styles.sectionHeader}>
-        <div style={styles.sectionTitleWrap}>
-          <p style={styles.sectionKicker}>Repositories</p>
+    <section className="github-repos-tab">
+      <div className="github-repos-tab__header">
+        <div className="github-repos-tab__title">
+          <p className="github-repos-tab__kicker">Repositories</p>
           <strong>Linked repositories</strong>
         </div>
         <Button variant="ghost" onClick={() => void onRefresh()} disabled={loading || busy}>
           {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div style={styles.list}>
+      <div className="github-repos-tab__list">
         {connection?.connected && links.length === 0 ? (
-          <div className="stack" style={{ gap: 8, marginBottom: 14 }}>
+          <div className="ui-stack-sm github-repos-tab__link-controls">
             <label className="muted" htmlFor="github-repo-select">
               Select repository to link
             </label>
             <select
               id="github-repo-select"
-              style={styles.select}
+              className="github-repos-tab__select"
               value={selectedRepoId}
               onChange={(e) => setSelectedRepoId(e.target.value)}
               disabled={loading || busy || availableRepos.length === 0}
@@ -79,18 +77,37 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
               {availableRepos.length === 0 ? <option value="">No accessible repositories found</option> : null}
               {availableRepos.map((repo) => (
                 <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
-                  {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
+                  {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}{" "}
+                  {repo.isAppInstalled ? "" : "- app access required"}
                 </option>
               ))}
             </select>
             <div>
               <Button
                 onClick={() => void onLinkSelected()}
-                disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
+                disabled={
+                  loading ||
+                  busy ||
+                  linking ||
+                  !selectedRepoId ||
+                  availableRepos.length === 0 ||
+                  selectedRepoNeedsAppAccess
+                }
               >
                 {linking ? "Linking and analysing..." : "Link selected repository"}
               </Button>
             </div>
+            {selectedRepoNeedsAppAccess ? (
+              <p className="muted github-repos-tab__helper">
+                GitHub App access is required before this repository can be linked.
+              </p>
+            ) : null}
+            {hasReposMissingAppAccess ? (
+              <p className="muted github-repos-tab__helper">
+                Some repositories are visible through collaboration access, but need GitHub App installation access
+                before linking.
+              </p>
+            ) : null}
           </div>
         ) : null}
         {connection?.connected && links.length > 0 ? (

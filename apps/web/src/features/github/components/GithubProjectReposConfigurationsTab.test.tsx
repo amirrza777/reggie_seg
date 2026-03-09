@@ -2,19 +2,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 
-const styles = {
-  panel: {},
-  sectionHeader: {},
-  sectionKicker: {},
-} as const;
-
 describe("GithubProjectReposConfigurationsTab", () => {
   it("shows connect state and calls onConnect when no account is connected", () => {
     const onConnect = vi.fn().mockResolvedValue(undefined);
 
     render(
       <GithubProjectReposConfigurationsTab
-        styles={styles}
         loading={false}
         busy={false}
         connection={{ connected: false, account: null }}
@@ -36,7 +29,6 @@ describe("GithubProjectReposConfigurationsTab", () => {
 
     render(
       <GithubProjectReposConfigurationsTab
-        styles={styles}
         loading={false}
         busy={false}
         connection={{
@@ -68,4 +60,3 @@ describe("GithubProjectReposConfigurationsTab", () => {
     expect(onDisconnect).toHaveBeenCalledTimes(1);
   });
 });
-

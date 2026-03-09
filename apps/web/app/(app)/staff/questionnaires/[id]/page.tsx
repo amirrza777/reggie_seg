@@ -36,7 +36,6 @@ export default function QuestionnairePage() {
     <div className="stack" style={{ padding: 32, gap: 40 }}>
       <Placeholder
         title={`Questionnaire: ${questionnaire.templateName}`}
-        path={`/staff/questionnaires/${id}`}
         description="View the questions and details of this template."
       />
       <QuestionnaireView questionnaire={questionnaire} />

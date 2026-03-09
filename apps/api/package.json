@@ -9,7 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx --watch src/index.ts",
     "db:seed": "prisma generate && tsx prisma/seed/seed.ts",
     "db:unseed": "tsx prisma/seed/unseed.ts"
   },
@@ -17,7 +17,8 @@
   "author": "",
   "license": "ISC",
   "overrides": {
-    "@jridgewell/sourcemap-codec": "1.4.15"
+    "@jridgewell/sourcemap-codec": "1.4.15",
+    "fast-check": "3.23.1"
   },
   "type": "module",
   "dependencies": {

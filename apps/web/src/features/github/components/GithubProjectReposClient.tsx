@@ -9,7 +9,6 @@ import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab
 import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
-import { githubProjectReposClientStyles as styles } from "./GithubProjectReposClient.styles";
 import {
   GITHUB_PROJECT_REPOS_TABS as tabs,
   type GithubProjectReposTabKey as TabKey,
@@ -57,10 +56,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
   const numericProjectId = Number(projectId);
   const activeLinkCount = links.filter((link) => link.isActive).length;
-  const needsGithubAppInstall =
+  const needsGithubAppInstall = Boolean(
     connection?.connected &&
-    typeof error === "string" &&
-    error.toLowerCase().includes("not installed on any account or organization");
+      typeof error === "string" &&
+      error.toLowerCase().includes("not installed on any account or organization")
+  );
 
   const {
     liveBranchesByLinkId,
@@ -107,8 +107,14 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       if (status.connected) {
         const repos = await listGithubRepositories();
         setAvailableRepos(repos);
-        if (!selectedRepoId && repos.length > 0) {
-          setSelectedRepoId(String(repos[0]?.githubRepoId || ""));
+        if (repos.length === 0) {
+          setSelectedRepoId("");
+        } else {
+          const selectedRepoStillExists = repos.some((repo) => String(repo.githubRepoId) === selectedRepoId);
+          if (!selectedRepoStillExists) {
+            const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
+            setSelectedRepoId(String(preferredRepo?.githubRepoId || ""));
+          }
         }
       } else {
         setAvailableRepos([]);
@@ -231,6 +237,12 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setError("Select a repository to link.");
       return;
     }
+    if (!chosen.isAppInstalled) {
+      setError(
+        "GitHub App does not have access to this repository yet. Ask the owner or organization admin to grant access, then refresh."
+      );
+      return;
+    }
 
     setLinking(true);
     setBusy(true);
@@ -289,7 +301,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }
   }
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack github-project-repos-client">
       <GithubProjectReposHero
         connectedLogin={connection?.account?.login ?? null}
         accessibleRepoCount={availableRepos.length}
@@ -297,26 +309,23 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         loading={loading}
       />
       {info ? (
-        <div style={{ ...styles.statusBanner, ...styles.statusInfo }}>
-          <p className="muted" style={{ margin: 0 }}>{info}</p>
+        <div className="github-project-repos-status github-project-repos-status--info">
+          <p className="muted github-project-repos-status__text">{info}</p>
         </div>
       ) : null}
       {error ? (
-        <div style={{ ...styles.statusBanner, ...styles.statusError }}>
-          <p className="muted" style={{ margin: 0 }}>{error}</p>
+        <div className="github-project-repos-status github-project-repos-status--error">
+          <p className="muted github-project-repos-status__text">{error}</p>
         </div>
       ) : null}
-      <section style={styles.tabBarPanel}>
-        <div style={styles.tabRow}>
+      <section className="github-project-repos-tabs">
+        <div className="github-project-repos-tabs__row">
           {tabs.map((tab) => (
             <Button
               key={tab.key}
               variant={activeTab === tab.key ? "primary" : "ghost"}
               onClick={() => setActiveTab(tab.key)}
-              style={{
-                ...styles.tabButton,
-                ...(activeTab === tab.key ? styles.tabButtonActive : null),
-              }}
+              className={`github-project-repos-tabs__btn${activeTab === tab.key ? " is-active" : ""}`}
             >
               {tab.label}
             </Button>
@@ -326,7 +335,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "repositories" ? (
         <GithubProjectReposRepositoriesTab
-          styles={styles}
           loading={loading}
           busy={busy}
           linking={linking}
@@ -347,7 +355,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "my-commits" ? (
         <GithubProjectReposMyCommitsTab
-          styles={styles}
           loading={loading}
           connection={connection}
           links={links}
@@ -361,7 +368,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "branches" ? (
         <GithubProjectReposBranchesTab
-          styles={styles}
           loading={loading}
           liveBranchesRefreshing={liveBranchesRefreshing}
           links={links}
@@ -384,7 +390,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
 
       {activeTab === "configurations" ? (
         <GithubProjectReposConfigurationsTab
-          styles={styles}
           loading={loading}
           busy={busy}
           connection={connection}

@@ -13,11 +13,11 @@ export default async function StaffDashboardPage() {
     <div className="stack">
       <Placeholder
         title="Staff Overview"
-        path="/staff/dashboard"
+        titleClassName="overview-title"
         description="At-a-glance metrics for submissions, engagement, and risk."
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-12">
+      <div className="stack stack--loose">
         <Card title="Grade distribution">
           <p className="muted">Bar chart placeholder.</p>
         </Card>

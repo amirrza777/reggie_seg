@@ -24,11 +24,16 @@ export async function signupHandler(req: Request, res: Response) {
   const { email, password, firstName, lastName, role } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   const normalizedRole =
-    typeof role === "string" ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ADMIN") : undefined;
-  if (normalizedRole && normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+    typeof role === "string"
+      ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN")
+      : undefined;
+  if (normalizedRole && !["STUDENT", "STAFF", "ENTERPRISE_ADMIN"].includes(normalizedRole)) {
     return res.status(400).json({ error: "Invalid role" });
   }
-  const requestedRole = normalizedRole === "STUDENT" || normalizedRole === "STAFF" ? normalizedRole : undefined;
+  const requestedRole =
+    normalizedRole === "STUDENT" || normalizedRole === "STAFF" || normalizedRole === "ENTERPRISE_ADMIN"
+      ? normalizedRole
+      : undefined;
   try {
     const tokens = await signUp({
       email,
@@ -72,16 +77,27 @@ export async function refreshHandler(req: Request, res: Response) {
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
-    console.error("refresh error", e);
     if (e.code === "ACCOUNT_SUSPENDED") return res.status(403).json({ error: "Account suspended" });
+    if (e.code === "INVALID_REFRESH_TOKEN") {
+      clearRefreshCookie(res);
+      return res.status(401).json({ error: "invalid refresh token" });
+    }
+    console.error("refresh error", e);
+    clearRefreshCookie(res);
     return res.status(401).json({ error: "invalid refresh token", detail: e?.message || e?.code || String(e) });
   }
 }
 
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
-  if (token) await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
-  res.clearCookie("refresh_token");
+  if (token) {
+    try {
+      await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
+    } catch {
+      // Token may already be expired/revoked; clear cookie and continue logout.
+    }
+  }
+  clearRefreshCookie(res);
   return res.json({ success: true });
 }
 
@@ -166,6 +182,16 @@ function setRefreshCookie(res: Response, token: string) {
   });
 }
 
+function clearRefreshCookie(res: Response) {
+  res.clearCookie("refresh_token", {
+    httpOnly: true,
+    secure: cookieSecure,
+    sameSite: cookieSameSite,
+    path: "/",
+    domain: cookieDomain,
+  });
+}
+
 export async function meHandler(req: AuthRequest, res: Response) {
   try {
     let userId = req.user?.sub ?? null;
@@ -187,6 +213,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     const role = user.role;
     const isStaff = role !== "STUDENT";
+    const isEnterpriseAdmin = role === "ENTERPRISE_ADMIN";
     const isAdmin = role === "ADMIN";
 
     const profile = await getProfile(user.id); // includes avatar fields
@@ -195,6 +222,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
       ...profile,
       isStaff,
       isAdmin,
+      isEnterpriseAdmin,
       role,
       active: user.active ?? true,
     });

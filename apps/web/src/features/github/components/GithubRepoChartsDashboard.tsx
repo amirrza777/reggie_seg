@@ -14,7 +14,6 @@ import {
 import { GithubDonutChartCard } from "./GithubDonutChartCard";
 import { GithubChartTitleWithInfo } from "./GithubChartInfo";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
-import { chartDashboardStyles as styles } from "./GithubRepoChartsDashboard.styles";
 import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
 
 type GithubRepoChartsDashboardProps = {
@@ -183,7 +182,7 @@ function buildDerivedSignals(params: {
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   coverage: GithubMappingCoverage | null;
   commitTimelineSeries: Array<{ date: string; commits: number; personalCommits: number }>;
-  weeklyCommitSeries: Array<{ week: string; commits: number }>;
+  weeklyCommitSeries: Array<{ commits: number }>;
 }) {
   const { snapshot, coverage, commitTimelineSeries, weeklyCommitSeries } = params;
 
@@ -242,44 +241,44 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
   }
 
   return (
-    <section style={styles.chartSection} aria-label="Repository charts">
-      <p style={styles.sectionLabel}>Charts</p>
-      <div style={styles.insightGrid}>
-        <div style={styles.insightCard}>
-          <div style={styles.insightLabel}>Overall contribution signal</div>
-          <div style={styles.insightValue}>{signals.overallSignal}/10</div>
-          <div style={styles.insightSubtext}>Heuristic only, not a grade</div>
+    <section className="github-chart-section" aria-label="Repository charts">
+      <p className="github-chart-section__label">Charts</p>
+      <div className="github-chart-section__insights">
+        <div className="github-chart-section__insight">
+          <div className="github-chart-section__insight-label">Overall contribution signal</div>
+          <div className="github-chart-section__insight-value">{signals.overallSignal}/10</div>
+          <div className="github-chart-section__insight-subtext">Heuristic only, not a grade</div>
         </div>
-        <div style={styles.insightCard}>
-          <div style={styles.insightLabel}>Consistency signal</div>
-          <div style={styles.insightValue}>{signals.consistencyScore}/10</div>
-          <div style={styles.insightSubtext}>
+        <div className="github-chart-section__insight">
+          <div className="github-chart-section__insight-label">Consistency signal</div>
+          <div className="github-chart-section__insight-value">{signals.consistencyScore}/10</div>
+          <div className="github-chart-section__insight-subtext">
             {signals.weeksWithCommits}/{signals.totalWeeks} active weeks
           </div>
         </div>
-        <div style={styles.insightCard}>
-          <div style={styles.insightLabel}>Mapping visibility</div>
-          <div style={styles.insightValue}>{signals.visibilityScore}/10</div>
-          <div style={styles.insightSubtext}>
+        <div className="github-chart-section__insight">
+          <div className="github-chart-section__insight-label">Mapping visibility</div>
+          <div className="github-chart-section__insight-value">{signals.visibilityScore}/10</div>
+          <div className="github-chart-section__insight-subtext">
             {coverage?.coverage?.unmatchedCommits ?? 0} unmatched commits
           </div>
         </div>
-        <div style={styles.insightCard}>
-          <div style={styles.insightLabel}>Personal activity share</div>
-          <div style={styles.insightValue}>{signals.participationScore}/10</div>
-          <div style={styles.insightSubtext}>
+        <div className="github-chart-section__insight">
+          <div className="github-chart-section__insight-label">Personal activity share</div>
+          <div className="github-chart-section__insight-value">{signals.participationScore}/10</div>
+          <div className="github-chart-section__insight-subtext">
             {signals.personalCommits}/{signals.totalCommits || 0} commits
           </div>
         </div>
       </div>
-      <div style={styles.chartGrid}>
+      <div className="github-chart-section__grid">
         {commitTimelineSeries.length > 0 ? (
-          <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
+          <div className="github-chart-section__panel github-chart-section__panel--full">
             <GithubChartTitleWithInfo
               title="Commits over time (total vs your commits)"
               info={chartInfo.commitsTimeline}
             />
-            <div style={{ width: "100%", height: 280 }}>
+            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={commitTimelineSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -295,19 +294,19 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
         ) : null}
 
         {lineChangesByDaySeries.length > 0 ? (
-          <div style={{ ...styles.chartWrap, ...styles.chartColFull }}>
+          <div className="github-chart-section__panel github-chart-section__panel--full">
             <GithubChartTitleWithInfo
               title="Additions and deletions over time (default branch)"
               info={chartInfo.lineChanges}
             />
-            <div style={{ width: "100%", height: 280 }}>
+            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
                   <YAxis tick={{ fill: "var(--muted)" }} />
                   <Tooltip
-                    formatter={(value: number, name: string) => [Math.abs(Number(value)), name]}
+                    formatter={(value, name) => [Math.abs(Number(value ?? 0)), name]}
                     contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
                   />
                   <Legend />
@@ -320,9 +319,9 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
         ) : null}
 
         {weeklyCommitSeries.length > 0 ? (
-          <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
+          <div className="github-chart-section__panel github-chart-section__panel--half">
             <GithubChartTitleWithInfo title="Weekly commit totals" info={chartInfo.weeklyCommits} />
-            <div style={{ width: "100%", height: 220 }}>
+            <div className="github-chart-section__canvas github-chart-section__canvas--md">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyCommitSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -345,9 +344,9 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
         ) : null}
 
         {topContributorsSeries.length > 0 ? (
-          <div style={{ ...styles.chartWrap, ...styles.chartColHalf }}>
+          <div className="github-chart-section__panel github-chart-section__panel--half">
             <GithubChartTitleWithInfo title="Top contributors by commits" info={chartInfo.topContributors} />
-            <div style={{ width: "100%", height: 220 }}>
+            <div className="github-chart-section__canvas github-chart-section__canvas--md">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topContributorsSeries} layout="vertical" margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -366,7 +365,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
             title="Default vs other branches (commit share)"
             data={branchScopeCommitShareSeries}
             info={chartInfo.branchScope}
-            style={{ ...styles.chartWrap, ...styles.chartColHalf }}
+            className="github-chart-section__panel github-chart-section__panel--half"
           />
         ) : null}
 
@@ -375,7 +374,7 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
             title="Mapping coverage (matched vs unmatched)"
             data={coverageShareSeries}
             info={chartInfo.mappingCoverage}
-            style={{ ...styles.chartWrap, ...styles.chartColHalf }}
+            className="github-chart-section__panel github-chart-section__panel--half"
           />
         ) : null}
       </div>

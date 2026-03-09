@@ -16,13 +16,13 @@ export function CardMovementHistory({ actionsByDate, listNamesById }: CardMoveme
   if (dateKeys.length === 0) return null;
 
   return (
-    <section className="stack">
-      <h2>Card movement history</h2>
-      <p className="muted">
+    <section className="stack trello-history">
+      <h2 className="trello-history__title">Card movement history</h2>
+      <p className="muted trello-history__hint">
         Grouped by date. Max 500 actions fetched from Trello.
       </p>
-      <div style={{maxHeight:"50vh", overflowY: "auto"}}>
-        <table>
+      <div className="trello-history__table-wrap">
+        <table className="trello-history__table">
           <thead>
             <tr>
               <th>Date</th>
@@ -45,7 +45,7 @@ export function CardMovementHistory({ actionsByDate, listNamesById }: CardMoveme
                   <td>{formatDate(dateKey)}</td>
                   <td>{summary.join(", ")}</td>
                   <td>
-                    <ul className="history-table__details">
+                    <ul className="trello-history__details">
                       {created.map((a) => (
                         <li key={a.id}>
                           <strong>{a.data?.card?.name ?? "Card"}</strong>

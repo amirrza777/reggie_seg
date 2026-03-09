@@ -7,6 +7,7 @@ type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
 
 const router = Router();
 const refreshSecret = process.env.JWT_REFRESH_SECRET || "";
+const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 const ensureAdmin = async (req: any, res: any, next: any) => {
   const token = req.cookies?.refresh_token;
@@ -54,7 +55,7 @@ router.get("/users", async (req, res) => {
   const payload = records.map((u) => ({
     ...u,
     isStaff: u.role !== "STUDENT",
-    role: u.role === "ENTERPRISE_ADMIN" ? "ADMIN" : (u.role as UserRole),
+    role: u.role as UserRole,
   }));
   res.json(payload);
 });
@@ -68,6 +69,9 @@ router.patch("/users/:id/role", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string };
   const user = await prisma.user.findFirst({ where: { id, enterpriseId: adminUser.enterpriseId } });
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+    return res.status(400).json({ error: "Cannot change role for super admin" });
+  }
 
   const updated = await prisma.user.update({ where: { id }, data: { role } });
   res.json({
@@ -81,6 +85,9 @@ router.patch("/users/:id", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string };
   const user = await prisma.user.findFirst({ where: { id, enterpriseId: adminUser.enterpriseId } });
   if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+    return res.status(400).json({ error: "Cannot modify super admin" });
+  }
 
   const nextActive = req.body?.active;
   const nextRole = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : undefined;
@@ -104,7 +111,7 @@ router.get("/feature-flags", async (_req, res) => {
     where: { enterpriseId: adminUser.enterpriseId },
     orderBy: { key: "asc" },
   });
-  res.json(flags);
+  res.json(flags.map(normalizeFeatureFlagLabel));
 });
 
 router.patch("/feature-flags/:key", async (req, res) => {
@@ -119,13 +126,20 @@ router.patch("/feature-flags/:key", async (req, res) => {
       where: { enterpriseId_key: { enterpriseId: adminUser.enterpriseId, key } },
       data: { enabled },
     });
-    res.json(updated);
+    res.json(normalizeFeatureFlagLabel(updated));
   } catch (err: any) {
     if (err.code === "P2025") return res.status(404).json({ error: "Feature flag not found" });
     console.error("update feature flag error", err);
     return res.status(500).json({ error: "Could not update feature flag" });
   }
 });
+
+function normalizeFeatureFlagLabel<T extends { key: string; label: string }>(flag: T): T {
+  if (flag.key === "repos" && flag.label === "Repos") {
+    return { ...flag, label: "Repositories" };
+  }
+  return flag;
+}
 
 router.get("/audit-logs", async (req, res) => {
   const adminUser = (req as any).adminUser as { enterpriseId: string } | undefined;
@@ -150,7 +164,7 @@ router.get("/audit-logs", async (req, res) => {
       email: entry.user.email,
       firstName: entry.user.firstName,
       lastName: entry.user.lastName,
-      role: entry.user.role === "ENTERPRISE_ADMIN" ? "ADMIN" : entry.user.role,
+      role: entry.user.role,
     },
   }));
 

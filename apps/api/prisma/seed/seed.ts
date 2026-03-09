@@ -3,6 +3,8 @@ import argon2 from 'argon2';
 import { randFirstName, randLastName } from '@ngneat/falso';
 
 const prisma = new PrismaClient();
+const seedPassword = process.env.SEED_USER_PASSWORD || "password123";
+let seedPasswordHash = "";
 
 function assertPrismaClientModels() {
   const client = prisma as unknown as Record<string, unknown>;
@@ -15,6 +17,7 @@ function assertPrismaClientModels() {
 
 async function main() {
   assertPrismaClientModels();
+  seedPasswordHash = await argon2.hash(seedPassword);
   const enterpriseId = await getDefaultEnterpriseId();
   await seedAdminUser(enterpriseId);
   const users = await seedUsers(enterpriseId);
@@ -30,6 +33,8 @@ async function main() {
   await seedProjectDeadlines();
   await seedPeerAssessments(projects, teams, templates);
   await seedFeatureFlags(enterpriseId);
+
+  console.log(`Seed users ready. Default password: ${seedPassword}`);
 }
 
 type SeedUser = { id: number; role: Role };
@@ -89,7 +94,6 @@ const randomStudents = Array.from({ length: generatedStudentCount }, (_, index) 
     firstName,
     lastName,
     email: `student${index + 1}@example.com`,
-    passwordHash: 'dev-hash',
     role: "STUDENT" as const,
   };
 });
@@ -102,15 +106,11 @@ const randomStaff = Array.from({ length: generatedStaffCount }, (_, index) => {
     firstName,
     lastName,
     email: `staff${index + 1}@example.com`,
-    passwordHash: 'dev-hash',
     role: "STAFF" as const,
   };
 });
 
-const userData = [
-  ...randomStaff,
-  ...randomStudents,
-];
+const userData = [...randomStaff, ...randomStudents];
 
 const moduleData = [{ name: 'Software Engineering Group Project' }, 
                     { name: 'Database Systems' }, 
@@ -135,11 +135,21 @@ const teamData = [
 ];
 
 async function seedUsers(enterpriseId: string): Promise<SeedUser[]> {
-  // Create a small set of staff and student users with a placeholder password hash.
+  // Create a small set of staff and student users with a shared dev password.
   await prisma.user.createMany({
-    data: userData.map((user) => ({ ...user, enterpriseId })),
+   data: userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash })),
     skipDuplicates: true,
   });
+
+   // Ensure any previously-seeded accounts get the current seed password hash.
+   await prisma.user.updateMany({
+     where: {
+       enterpriseId,
+       email: { in: userData.map((u) => u.email) },
+       OR: [{ passwordHash: 'dev-hash' }],
+     },
+     data: { passwordHash: seedPasswordHash },
+   });
 
   const allUsers = await prisma.user.findMany({
     select: { id: true, role: true, email: true },
@@ -527,7 +537,7 @@ async function seedFeatureFlags(enterpriseId: string) {
   const defaults = [
     { key: 'peer_feedback', label: 'Peer feedback', enabled: true },
     { key: 'modules', label: 'Modules', enabled: true },
-    { key: 'repos', label: 'Repos', enabled: true },
+    { key: 'repos', label: 'Repositories', enabled: true },
   ];
 
   for (const flag of defaults) {

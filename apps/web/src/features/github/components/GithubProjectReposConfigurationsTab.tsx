@@ -1,13 +1,9 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import type { GithubConnectionStatus } from "../types";
 
-type StylesMap = Record<string, React.CSSProperties>;
-
 type Props = {
-  styles: StylesMap;
   loading: boolean;
   busy: boolean;
   connection: GithubConnectionStatus | null;
@@ -18,7 +14,6 @@ type Props = {
 };
 
 export function GithubProjectReposConfigurationsTab({
-  styles,
   loading,
   busy,
   connection,
@@ -28,10 +23,10 @@ export function GithubProjectReposConfigurationsTab({
   onConnect,
 }: Props) {
   return (
-    <section style={styles.panel}>
-      <div style={styles.sectionHeader}>
-        <div className="stack" style={{ gap: 4 }}>
-          <p style={styles.sectionKicker}>Setup</p>
+    <section className="github-repos-tab">
+      <div className="github-repos-tab__header">
+        <div className="ui-stack-xs">
+          <p className="github-repos-tab__kicker">Setup</p>
           <strong>GitHub account</strong>
           {loading ? (
             <p className="muted">Loading connection...</p>
@@ -42,7 +37,7 @@ export function GithubProjectReposConfigurationsTab({
           )}
         </div>
         {connection?.connected ? (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div className="github-repos-tab__actions">
             {needsGithubAppInstall ? (
               <Button variant="ghost" onClick={onInstallGithubApp} disabled={busy || loading}>
                 Install GitHub App
@@ -58,7 +53,7 @@ export function GithubProjectReposConfigurationsTab({
           </Button>
         )}
       </div>
-      <p className="muted" style={{ marginTop: 10 }}>
+      <p className="muted github-repos-tab__helper">
         Connect GitHub first, then install or grant repository access to the GitHub App if repositories do not appear.
       </p>
     </section>

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
-import type { FeedbackSubmission, PeerAssessmentReviewPayload } from "../types";
+import type { FeedbackSubmission, PeerAssessmentReviewPayload, PeerFeedbackReview } from "../types";
 import { mapApiAssessmentToPeerFeedback, mapApiAssessmentsToPeerFeedbacks } from "./mapper";
 
 export async function submitFeedback(payload: FeedbackSubmission) {
@@ -23,7 +23,7 @@ export async function getPeerAssessmentsForUser(userId: string, projectId: strin
 
 export async function getFeedbackReview(feedbackId: string) {
   // fetch stored review (if any)
-  return apiFetch(`/peer-feedback/feedback/${feedbackId}/review`);
+  return apiFetch<PeerFeedbackReview>(`/peer-feedback/feedback/${feedbackId}/review`);
 }
 
 export async function submitPeerFeedback(feedbackId: string, payload: PeerAssessmentReviewPayload, reviewerUserId: string, revieweeUserId: string) {

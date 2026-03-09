@@ -43,6 +43,11 @@ export type PeerAssessmentReviewPayload = {
   agreements: AgreementsMap;
 };
 
+export type PeerFeedbackReview = {
+  reviewText?: string | null;
+  agreementsJson?: AgreementsMap | null;
+};
+
 export const AGREEMENT_OPTIONS: { label: AgreementOption; score: number }[] = [
   { label: 'Strongly Disagree', score: 1 },
   { label: 'Disagree', score: 2 },

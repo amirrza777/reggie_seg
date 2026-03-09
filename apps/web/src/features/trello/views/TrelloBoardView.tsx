@@ -1,12 +1,12 @@
 "use client";
 
 import { BoardListSection } from "@/features/trello/components/BoardListSection";
+import "@/features/trello/styles/board-view.css";
 import { CardMovementHistory } from "@/features/trello/components/CardMovementHistory";
 import type { BoardView } from "@/features/trello/api/client";
 import React from "react";
 
 type Props = {
-  projectId: string;
   view: BoardView;
   sectionConfig: Record<string, string>;
   onRequestChangeBoard: () => void;

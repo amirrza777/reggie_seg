@@ -4,6 +4,7 @@ import { RegisterForm } from "./RegisterForm";
 import type { MockedFunction } from "vitest";
 
 const push = vi.fn();
+const refresh = vi.fn();
 const originalLocation = window.location;
 
 vi.mock("next/navigation", () => ({
@@ -12,6 +13,10 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("../api/client", () => ({
   signup: vi.fn(),
+}));
+
+vi.mock("../context", () => ({
+  useUser: () => ({ refresh }),
 }));
 
 // Import after mocks so we get the mocked instances
@@ -41,6 +46,8 @@ afterAll(() => {
 describe("RegisterForm", () => {
   beforeEach(() => {
     push.mockReset();
+    refresh.mockReset();
+    refresh.mockResolvedValue(undefined);
     signupMock.mockReset();
     signupMock.mockResolvedValue(undefined);
     // jsdom allows reassignment
@@ -58,14 +65,18 @@ describe("RegisterForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /create account/i }));
 
-    expect(signupMock).toHaveBeenCalledWith({
-      email: "ada@example.com",
-      password: "supersecure",
-      firstName: "Ada",
-      lastName: "Lovelace",
-    });
+    await waitFor(() =>
+      expect(signupMock).toHaveBeenCalledWith({
+        email: "ada@example.com",
+        password: "supersecure",
+        firstName: "Ada",
+        lastName: "Lovelace",
+        role: "STUDENT",
+      })
+    );
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/modules"));
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
+    expect(refresh).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/account created/i)).toBeInTheDocument();
   });
 

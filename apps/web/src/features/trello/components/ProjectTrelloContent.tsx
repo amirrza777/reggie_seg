@@ -77,8 +77,10 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   if (state.status === "error") {
     return (
       <div className="stack">
-        <p>{state.message}</p>
         <Link href={`/projects/${projectId}`}>← Back to project</Link>
+        <div className="trello-error" role="alert">
+        <p className="trello-error__text">{state.message}</p>
+        </div>
       </div>
     );
   }
@@ -95,7 +97,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   if (state.status === "link-board") {
     return (
       <TrelloLinkBoardView
-        projectId={projectId}
         teamId={teamId}
         teamName={teamName}
         boards={state.boards}
@@ -114,7 +115,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
     );
   }
 
-  // Don't render velocity/summary/graphs until section config is saved (avoid calculating with defaults)
   if (hasListsButNoSavedConfig(state)) {
     return (
       <div className="stack">

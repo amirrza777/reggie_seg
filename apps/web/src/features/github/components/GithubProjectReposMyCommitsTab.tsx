@@ -1,6 +1,5 @@
 "use client";
 
-import type React from "react";
 import { Button } from "@/shared/ui/Button";
 import { Table } from "@/shared/ui/Table";
 import type {
@@ -10,10 +9,7 @@ import type {
   ProjectGithubRepoLink,
 } from "../types";
 
-type StylesMap = Record<string, React.CSSProperties>;
-
 type Props = {
-  styles: StylesMap;
   loading: boolean;
   connection: GithubConnectionStatus | null;
   links: ProjectGithubRepoLink[];
@@ -25,7 +21,6 @@ type Props = {
 };
 
 export function GithubProjectReposMyCommitsTab({
-  styles,
   loading,
   connection,
   links,
@@ -36,12 +31,12 @@ export function GithubProjectReposMyCommitsTab({
   fetchMyCommits,
 }: Props) {
   return (
-    <section style={styles.panel}>
-      <div style={styles.sectionTitleWrap}>
-        <p style={styles.sectionKicker}>Personal activity</p>
+    <section className="github-repos-tab">
+      <div className="github-repos-tab__title">
+        <p className="github-repos-tab__kicker">Personal activity</p>
         <strong>My commits</strong>
       </div>
-      <div style={styles.list}>
+      <div className="github-repos-tab__list">
         {loading ? <p className="muted">Loading commits...</p> : null}
         {!loading && !connection?.connected ? <p className="muted">Connect GitHub to view your commits.</p> : null}
         {!loading && connection?.connected && links.length === 0 ? (
@@ -56,54 +51,39 @@ export function GithubProjectReposMyCommitsTab({
             const totals = myCommitData?.totals;
 
             return (
-              <div key={link.id} style={{ ...styles.panel, marginTop: 12, padding: 12 }}>
-                <div style={styles.row}>
-                  <div className="stack" style={{ gap: 4 }}>
+              <div key={link.id} className="github-repos-tab__subpanel">
+                <div className="ui-row ui-row--between ui-row--wrap">
+                  <div className="ui-stack-xs">
                     <strong>{link.repository.fullName}</strong>
                     <p className="muted">
                       {connection?.account?.login ? `Showing commits for @${connection?.account?.login}` : "Showing your commits"}
                       {snapshot?.analysedAt ? ` • Snapshot: ${new Date(snapshot.analysedAt).toLocaleString()}` : ""}
                     </p>
                   </div>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-                      gap: 8,
-                      width: "100%",
-                      maxWidth: 760,
-                    }}
-                  >
-                    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px", background: "var(--surface)" }}>
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>Commits</p>
-                      <p style={{ margin: "4px 0 0", fontWeight: 700, fontSize: 18 }}>
+                  <div className="github-repos-tab__summary-grid">
+                    <div className="github-repos-tab__summary-card">
+                      <p className="muted github-repos-tab__summary-label">Commits</p>
+                      <p className="github-repos-tab__summary-value github-repos-tab__summary-value--lg">
                         {typeof totals?.commits === "number" ? totals.commits.toLocaleString() : "-"}
                       </p>
                     </div>
-                    <div
-                      style={{
-                        border: "1px solid color-mix(in srgb, var(--accent) 28%, var(--border))",
-                        borderRadius: 10,
-                        padding: "8px 10px",
-                        background: "color-mix(in srgb, var(--accent) 10%, var(--surface))",
-                      }}
-                    >
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>Lines (no merge PRs)</p>
-                      <p style={{ margin: "4px 0 0", fontWeight: 700 }}>
+                    <div className="github-repos-tab__summary-card github-repos-tab__summary-card--accent">
+                      <p className="muted github-repos-tab__summary-label">Lines (no merge PRs)</p>
+                      <p className="github-repos-tab__summary-value">
                         +{typeof totals?.additionsExcludingMergePullRequests === "number" ? totals.additionsExcludingMergePullRequests.toLocaleString() : "-"}{" "}
                         / -{typeof totals?.deletionsExcludingMergePullRequests === "number" ? totals.deletionsExcludingMergePullRequests.toLocaleString() : "-"}
                       </p>
                     </div>
-                    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px", background: "var(--surface)" }}>
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>With merges</p>
-                      <p style={{ margin: "4px 0 0", fontWeight: 700 }}>
+                    <div className="github-repos-tab__summary-card">
+                      <p className="muted github-repos-tab__summary-label">With merges</p>
+                      <p className="github-repos-tab__summary-value">
                         +{typeof totals?.additionsIncludingMergePullRequests === "number" ? totals.additionsIncludingMergePullRequests.toLocaleString() : "-"}{" "}
                         / -{typeof totals?.deletionsIncludingMergePullRequests === "number" ? totals.deletionsIncludingMergePullRequests.toLocaleString() : "-"}
                       </p>
                     </div>
-                    <div style={{ border: "1px solid var(--border)", borderRadius: 10, padding: "8px 10px", background: "var(--surface)" }}>
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>Merge PR commits</p>
-                      <p style={{ margin: "4px 0 0", fontWeight: 700 }}>
+                    <div className="github-repos-tab__summary-card">
+                      <p className="muted github-repos-tab__summary-label">Merge PR commits</p>
+                      <p className="github-repos-tab__summary-value">
                         {typeof totals?.mergePullRequestCommits === "number" ? totals.mergePullRequestCommits.toLocaleString() : "-"}
                       </p>
                     </div>
@@ -114,44 +94,35 @@ export function GithubProjectReposMyCommitsTab({
                 typeof totals.detailedCommitCount === "number" &&
                 typeof totals.requestedCommitCount === "number" &&
                 totals.detailedCommitCount < totals.requestedCommitCount ? (
-                  <p className="muted" style={{ marginTop: 8 }}>
+                  <p className="muted github-repos-tab__summary-coverage">
                     Line totals coverage: {totals.detailedCommitCount}/{totals.requestedCommitCount} commits
                   </p>
                 ) : null}
 
-                {myCommitsLoadingByLinkId[link.id] ? <p className="muted" style={{ marginTop: 10 }}>Loading your commits...</p> : null}
+                {myCommitsLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading your commits...</p> : null}
                 {myCommitsErrorByLinkId[link.id] ? (
-                  <p className="muted" style={{ marginTop: 10 }}>
+                  <p className="muted github-repos-tab__table-wrap">
                     Failed to load commits: {myCommitsErrorByLinkId[link.id]}
                   </p>
                 ) : null}
 
                 {myCommitData?.commits?.length ? (
                   <>
-                    <div style={{ marginTop: 10 }}>
+                    <div className="github-repos-tab__table-wrap">
                       <Table
                         headers={["Commit", "Date", "Additions", "Deletions"]}
                         columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
                         rows={myCommitData.commits.map((commit) => [
-                          <div key={commit.sha} className="stack" style={{ gap: 2 }}>
-                            <a href={commit.htmlUrl} target="_blank" rel="noreferrer" style={{ color: "var(--ink)" }}>
+                          <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                            <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
                               {commit.message || "(no message)"}
                             </a>
-                            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-                              <span className="muted" style={{ fontSize: 12 }}>
+                            <div className="github-repos-tab__commit-meta-row">
+                              <span className="muted github-repos-tab__commit-meta">
                                 {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
                               </span>
                               {commit.isMergePullRequest ? (
-                                <span
-                                  style={{
-                                    border: "1px solid var(--border)",
-                                    borderRadius: 999,
-                                    padding: "1px 8px",
-                                    fontSize: 11,
-                                    color: "var(--muted)",
-                                    background: "var(--surface)",
-                                  }}
-                                >
+                                <span className="github-repos-tab__merge-chip">
                                   Merge PR
                                 </span>
                               ) : null}
@@ -163,9 +134,9 @@ export function GithubProjectReposMyCommitsTab({
                         ])}
                       />
                     </div>
-                    <div style={{ ...styles.row, marginTop: 10 }}>
+                    <div className="ui-row ui-row--between ui-row--wrap github-repos-tab__pager">
                       <p className="muted">Page {currentPage}</p>
-                      <div style={{ display: "flex", gap: 8 }}>
+                      <div className="github-repos-tab__pager-actions">
                         <Button
                           variant="ghost"
                           onClick={() => void fetchMyCommits(link.id, currentPage - 1)}
@@ -184,7 +155,7 @@ export function GithubProjectReposMyCommitsTab({
                     </div>
                   </>
                 ) : !myCommitsLoadingByLinkId[link.id] && !myCommitsErrorByLinkId[link.id] ? (
-                  <p className="muted" style={{ marginTop: 10 }}>
+                  <p className="muted github-repos-tab__table-wrap">
                     No commits found for your GitHub account in this repository.
                   </p>
                 ) : null}

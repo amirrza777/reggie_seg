@@ -136,13 +136,20 @@ describe("TrelloService", () => {
 
   it("getBoardWithData fetches board data", async () => {
     const mockBoard = { id: "board1" };
+    const mockActions = [{ id: "act1", type: "createCard" }];
 
-    global.fetch = vi.fn()
+    const fetchMock = vi
+      .fn()
       .mockResolvedValueOnce({
         ok: true,
         json: async () => mockBoard,
       } as any)
-      .mockResolvedValueOnce({ ok: true, json: async () => [] } as any);
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockActions,
+      } as any);
+
+    global.fetch = fetchMock as any;
 
     const result = await TrelloService.getBoardWithData(
       "board1",

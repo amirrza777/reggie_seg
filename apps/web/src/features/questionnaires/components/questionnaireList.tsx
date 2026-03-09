@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@/shared/ui/Button";
 import {
   getMyQuestionnaires,
   getPublicQuestionnairesFromOthers,
 } from "../api/client";
-import { Questionnaire } from "../types";
+import type { Questionnaire } from "../types";
 import { EditQuestionnaireButton, DeleteQuestionnaireButton } from "./SharedQuestionnaireButtons";
 
 export function QuestionnaireList() {
@@ -55,26 +57,10 @@ export function QuestionnaireList() {
     };
   }, []);
 
-  if (loading) return <p style={{ opacity: 0.7 }}>Loading questionnaires...</p>;
-  if (error) return <p style={{ opacity: 0.7 }}>{error}</p>;
+  if (loading) return <p className="ui-note ui-note--muted">Loading questionnaires...</p>;
+  if (error) return <p className="ui-note ui-note--muted">{error}</p>;
 
-  const sectionTitleStyle: React.CSSProperties = {
-    marginBottom: 8,
-    fontSize: "clamp(1.8rem, 2.5vw, 2.2rem)",
-    lineHeight: "var(--lh-heading)",
-  };
-
-  const cardStyle: React.CSSProperties = {
-    padding: 16,
-    borderRadius: 14,
-    border: "1px solid var(--border)",
-    background: "var(--surface)",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  };
-
-  const scrollToSection = (sectionRef: React.RefObject<HTMLElement | null>) => {
+  const scrollToSection = (sectionRef: RefObject<HTMLElement | null>) => {
     const panel = listPanelRef.current;
     const section = sectionRef.current;
     if (!panel || !section) return;
@@ -88,21 +74,22 @@ export function QuestionnaireList() {
   };
 
   const renderCard = (q: Questionnaire, allowManage: boolean) => (
-    <div key={q.id} style={cardStyle}>
-      <div>
+    <div key={q.id} className="questionnaire-editor__list-card">
+      <div className="ui-stack-xs">
         <strong>{q.templateName}</strong>
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
+        <div className="questionnaire-editor__meta">
           Created {new Date(q.createdAt).toLocaleDateString()}
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button
-          className="btn"
+      <div className="questionnaire-editor__list-card-actions">
+        <Button
+          type="button"
+          variant="quiet"
           onClick={() => router.push(`/staff/questionnaires/${q.id}`)}
         >
           Preview
-        </button>
+        </Button>
         {allowManage && <EditQuestionnaireButton questionnaireId={q.id} />}
         {allowManage && (
           <DeleteQuestionnaireButton
@@ -117,33 +104,35 @@ export function QuestionnaireList() {
     </div>
   );
 
+  const renderEmptyState = (message: string) => (
+    <div className="questionnaire-editor__empty">
+      <p>{message}</p>
+    </div>
+  );
+
   return (
-    <div className="stack" style={{ gap: 20 }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button className="btn" onClick={() => scrollToSection(myQuestionnairesRef)}>
+    <div className="questionnaire-editor__list-shell">
+      <div className="questionnaire-editor__actions">
+        <Button type="button" variant="quiet" onClick={() => scrollToSection(myQuestionnairesRef)}>
           My Questionnaires
-        </button>
-        <button className="btn" onClick={() => scrollToSection(publicQuestionnairesRef)}>
+        </Button>
+        <Button type="button" variant="quiet" onClick={() => scrollToSection(publicQuestionnairesRef)}>
           Public Questionnaires
-        </button>
+        </Button>
       </div>
 
-      <div
-        ref={listPanelRef}
-        className="stack"
-        style={{ gap: 20, overflowY: "auto", maxHeight: "53vh", paddingRight: 4 }}
-      >
-        <section className="stack" style={{ gap: 12 }} ref={myQuestionnairesRef}>
-          <h2 style={sectionTitleStyle}>My Questionnaires</h2>
+      <div ref={listPanelRef} className="questionnaire-editor__list-sections">
+        <section className="stack" ref={myQuestionnairesRef}>
+          <h2 className="questionnaire-editor__section-title">My Questionnaires</h2>
           {myQuestionnaires.length === 0
-            ? <p style={{ opacity: 0.7 }}>You do not have any questionnaire templates. Create one to view it here.</p>
+            ? renderEmptyState("You do not have any questionnaire templates. Create one to view it here.")
             : myQuestionnaires.map((q) => renderCard(q, true))}
         </section>
 
-        <section className="stack" style={{ gap: 12 }} ref={publicQuestionnairesRef}>
-          <h2 style={sectionTitleStyle}>Public Questionnaires</h2>
+        <section className="stack" ref={publicQuestionnairesRef}>
+          <h2 className="questionnaire-editor__section-title">Public Questionnaires</h2>
           {publicQuestionnaires.length === 0
-            ? <p style={{ opacity: 0.7 }}>There are no public questionnaire templates yet.</p>
+            ? renderEmptyState("There are no public questionnaire templates yet.")
             : publicQuestionnaires.map((q) => renderCard(q, false))}
         </section>
       </div>

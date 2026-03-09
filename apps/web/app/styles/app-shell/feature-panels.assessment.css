@@ -1,0 +1,131 @@
+.performance-summary {
+  margin-bottom: 16px;
+}
+
+.performance-summary__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.performance-summary__score {
+  font-size: 1.5rem;
+}
+
+.performance-summary__score-max {
+  font-size: 1rem;
+  margin-left: 4px;
+}
+
+.performance-summary__questions {
+  gap: 12px;
+}
+
+.performance-summary__question {
+  padding: 8px 0;
+}
+
+.performance-summary__question-trigger {
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.performance-summary__question-trigger.is-static {
+  cursor: default;
+  margin-bottom: 0;
+}
+
+.performance-summary__question-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.performance-summary__question-title {
+  margin: 0;
+}
+
+.performance-summary__toggle {
+  margin-left: 8px;
+  font-size: 0.875rem;
+}
+
+.performance-summary__metric-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.performance-summary__metric-score {
+  min-width: fit-content;
+}
+
+.performance-summary__answers {
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 16px;
+  border-left: 2px solid var(--border);
+}
+
+.performance-summary__answer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.performance-summary__answer-name {
+  min-width: 100px;
+}
+
+.performance-summary__answer-score {
+  min-width: fit-content;
+}
+
+.assessment-summary {
+  gap: 16px;
+}
+
+.assessment-summary__description {
+  margin: 0;
+}
+
+.assessment-summary__list {
+  gap: 12px;
+}
+
+.assessment-summary__item {
+  padding: 12px;
+  border: 1px solid var(--accent-border);
+  border-radius: 8px;
+  background: var(--accent-soft);
+}
+
+.assessment-summary__question {
+  margin-bottom: 8px;
+}
+
+.assessment-summary__rating-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.assessment-summary__rating-bar {
+  flex: 1;
+}
+
+.assessment-summary__rating-value {
+  min-width: fit-content;
+  font-size: 0.9rem;
+}
+
+.assessment-summary__meta {
+  font-size: 0.9rem;
+}
+
+.assessment-summary__footer {
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
