@@ -13,10 +13,12 @@ type GithubRepoLinkCardProps = {
   coverage: GithubMappingCoverage | null;
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   currentGithubLogin: string | null;
-  busy: boolean;
-  loading: boolean;
-  removingLinkId: number | null;
-  onRemoveLink: (linkId: number) => void;
+  busy?: boolean;
+  loading?: boolean;
+  removingLinkId?: number | null;
+  onRemoveLink?: (linkId: number) => void;
+  readOnly?: boolean;
+  viewerMode?: "student" | "staff";
 };
 
 export function GithubRepoLinkCard({
@@ -24,10 +26,12 @@ export function GithubRepoLinkCard({
   coverage,
   snapshot,
   currentGithubLogin,
-  busy,
-  loading,
-  removingLinkId,
+  busy = false,
+  loading = false,
+  removingLinkId = null,
   onRemoveLink,
+  readOnly = false,
+  viewerMode = "student",
 }: GithubRepoLinkCardProps) {
   const defaultBranchTotals = snapshot?.data?.branchScopeStats?.defaultBranch;
   const allBranchesTotals = snapshot?.data?.branchScopeStats?.allBranches;
@@ -41,6 +45,8 @@ export function GithubRepoLinkCard({
   const allCommitCount = allBranchesTotals?.totalCommits ?? defaultCommitCount;
   const allAdditionCount = allBranchesTotals?.totalAdditions ?? defaultAdditionCount;
   const allDeletionCount = allBranchesTotals?.totalDeletions ?? defaultDeletionCount;
+
+  const canRemove = !readOnly && typeof onRemoveLink === "function";
 
   return (
     <div key={link.id} className="github-repo-link-card">
@@ -80,16 +86,23 @@ export function GithubRepoLinkCard({
           </div>
         </div>
       </section>
-      <GithubRepoChartsDashboard snapshot={snapshot} coverage={coverage} currentGithubLogin={currentGithubLogin} />
-      <div className="github-repo-link-card__actions">
-        <Button
-          variant="ghost"
-          onClick={() => onRemoveLink(link.id)}
-          disabled={busy || loading || removingLinkId === link.id}
-        >
-          {removingLinkId === link.id ? "Removing..." : "Remove link"}
-        </Button>
-      </div>
+      <GithubRepoChartsDashboard
+        snapshot={snapshot}
+        coverage={coverage}
+        currentGithubLogin={currentGithubLogin}
+        viewerMode={viewerMode}
+      />
+      {canRemove ? (
+        <div className="github-repo-link-card__actions">
+          <Button
+            variant="ghost"
+            onClick={() => onRemoveLink(link.id)}
+            disabled={busy || loading || removingLinkId === link.id}
+          >
+            {removingLinkId === link.id ? "Removing..." : "Remove link"}
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

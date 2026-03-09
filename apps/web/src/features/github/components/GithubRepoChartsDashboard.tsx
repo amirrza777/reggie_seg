@@ -20,6 +20,7 @@ type GithubRepoChartsDashboardProps = {
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   coverage: GithubMappingCoverage | null;
   currentGithubLogin: string | null;
+  viewerMode?: "student" | "staff";
 };
 
 const CHART_COLOR_PRIMARY = "#36c98f";
@@ -215,7 +216,13 @@ function buildDerivedSignals(params: {
   };
 }
 
-export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLogin }: GithubRepoChartsDashboardProps) {
+export function GithubRepoChartsDashboard({
+  snapshot,
+  coverage,
+  currentGithubLogin,
+  viewerMode = "student",
+}: GithubRepoChartsDashboardProps) {
+  const isStaffView = viewerMode === "staff";
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin);
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const weeklyCommitSeries = buildWeeklyCommitSeries(snapshot);
@@ -263,19 +270,27 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
             {coverage?.coverage?.unmatchedCommits ?? 0} unmatched commits
           </div>
         </div>
-        <div className="github-chart-section__insight">
-          <div className="github-chart-section__insight-label">Personal activity share</div>
-          <div className="github-chart-section__insight-value">{signals.participationScore}/10</div>
-          <div className="github-chart-section__insight-subtext">
-            {signals.personalCommits}/{signals.totalCommits || 0} commits
+        {isStaffView ? (
+          <div className="github-chart-section__insight">
+            <div className="github-chart-section__insight-label">Active coding days</div>
+            <div className="github-chart-section__insight-value">{signals.activeDays}</div>
+            <div className="github-chart-section__insight-subtext">Days with at least one commit</div>
           </div>
-        </div>
+        ) : (
+          <div className="github-chart-section__insight">
+            <div className="github-chart-section__insight-label">Personal activity share</div>
+            <div className="github-chart-section__insight-value">{signals.participationScore}/10</div>
+            <div className="github-chart-section__insight-subtext">
+              {signals.personalCommits}/{signals.totalCommits || 0} commits
+            </div>
+          </div>
+        )}
       </div>
       <div className="github-chart-section__grid">
         {commitTimelineSeries.length > 0 ? (
           <div className="github-chart-section__panel github-chart-section__panel--full">
             <GithubChartTitleWithInfo
-              title="Commits over time (total vs your commits)"
+              title={isStaffView ? "Commits over time (team total)" : "Commits over time (total vs your commits)"}
               info={chartInfo.commitsTimeline}
             />
             <div className="github-chart-section__canvas github-chart-section__canvas--xl">
@@ -286,7 +301,9 @@ export function GithubRepoChartsDashboard({ snapshot, coverage, currentGithubLog
                   <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
                   <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
                   <Line type="monotone" dataKey="commits" name="Total commits" stroke={CHART_COLOR_PRIMARY} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="personalCommits" name="Your commits" stroke={CHART_COLOR_SECONDARY} strokeWidth={2} dot={false} />
+                  {!isStaffView ? (
+                    <Line type="monotone" dataKey="personalCommits" name="Your commits" stroke={CHART_COLOR_SECONDARY} strokeWidth={2} dot={false} />
+                  ) : null}
                 </LineChart>
               </ResponsiveContainer>
             </div>

@@ -188,5 +188,23 @@ describe("GithubRepoLinkCard", () => {
 
     expect(screen.getByRole("button", { name: "Removing..." })).toBeDisabled();
   });
-});
 
+  it("hides remove action in read-only mode", () => {
+    const onRemoveLink = vi.fn();
+
+    render(
+      <GithubRepoLinkCard
+        link={makeLink({ id: 11 })}
+        coverage={makeCoverage()}
+        snapshot={makeSnapshot()}
+        currentGithubLogin={null}
+        readOnly
+        viewerMode="staff"
+        onRemoveLink={onRemoveLink}
+      />
+    );
+
+    expect(screen.queryByRole("button", { name: "Remove link" })).not.toBeInTheDocument();
+    expect(onRemoveLink).not.toHaveBeenCalled();
+  });
+});
