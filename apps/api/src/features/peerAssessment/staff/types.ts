@@ -5,6 +5,17 @@ export type ModuleSummary = {
   expected: number;
 };
 
+export type StaffMarkingSummary = {
+  mark: number | null;
+  formativeFeedback: string | null;
+  updatedAt: string;
+  marker: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+};
+
 export type ModuleDetailsResponse = {
   module: { id: number; title: string };
   teams: ModuleSummary[];
@@ -14,6 +25,7 @@ export type TeamDetailsResponse = {
   module: { id: number; title: string };
   team: { id: number; title: string };
   students: ModuleSummary[];
+  teamMarking: StaffMarkingSummary | null;
 };
 
 export type StudentTeamMember = {
@@ -36,6 +48,7 @@ export type QuestionAverage = {
   questionText: string;
   averageScore: number;
   totalReviews: number;
+  maxScore?: number;
   reviewerAnswers?: ReviewerAnswer[];
 };
 
@@ -43,6 +56,7 @@ export type PerformanceSummary = {
   overallAverage: number;
   totalReviews: number;
   questionAverages: QuestionAverage[];
+  maxScore?: number;
 };
 
 export type StudentDetailsResponse = {
@@ -51,4 +65,11 @@ export type StudentDetailsResponse = {
   student: { id: number; firstName: string; lastName: string };
   teamMembers: StudentTeamMember[];
   performanceSummary: PerformanceSummary;
+  teamMarking: StaffMarkingSummary | null;
+  studentMarking: StaffMarkingSummary | null;
+};
+
+export type MarkingInput = {
+  mark: number | null;
+  formativeFeedback: string | null;
 };
