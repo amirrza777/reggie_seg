@@ -62,10 +62,15 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         </div>
       </section>
 
-      <nav className="pill-nav" aria-label="Team tabs" style={{ width: "fit-content" }}>
-        <Link href={`/staff/peer-assessments/module/${data.project.moduleId}/team/${team.id}`} className="pill-nav__link">
-          Peer assessments
-        </Link>
+      <nav className="pill-nav" aria-label="Team sections">
+        <span className="pill-nav__link pill-nav__link--active">Overview</span>
+        <span className="pill-nav__link">Team</span>
+        <span className="pill-nav__link">Team meetings</span>
+        <span className="pill-nav__link">Meeting scheduler</span>
+        <span className="pill-nav__link">Peer assessment</span>
+        <span className="pill-nav__link">Peer feedback</span>
+        <span className="pill-nav__link">Repositories</span>
+        <span className="pill-nav__link">Trello</span>
       </nav>
 
       <section className="staff-projects__team-card" aria-label="Team members">
