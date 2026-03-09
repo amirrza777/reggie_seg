@@ -15,6 +15,7 @@ export function EnterpriseModuleManager() {
   const [modules, setModules] = useState<EnterpriseModuleRecord[]>([]);
   const [modulesStatus, setModulesStatus] = useState<RequestState>("idle");
   const [modulesMessage, setModulesMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [newModuleName, setNewModuleName] = useState("");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createMessage, setCreateMessage] = useState<string | null>(null);
@@ -45,6 +46,14 @@ export function EnterpriseModuleManager() {
     void loadModules();
   }, [loadModules]);
 
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timeoutId = window.setTimeout(() => {
+      setToastMessage(null);
+    }, 2500);
+    return () => window.clearTimeout(timeoutId);
+  }, [toastMessage]);
+
   const filteredModules = useMemo(
     () =>
       filterBySearchQuery(modules, moduleSearchQuery, {
@@ -70,6 +79,10 @@ export function EnterpriseModuleManager() {
     [students],
   );
 
+  const showSuccessToast = (message: string) => {
+    setToastMessage(message);
+  };
+
   const handleCreateModule = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = newModuleName.trim();
@@ -84,7 +97,8 @@ export function EnterpriseModuleManager() {
       const created = await createEnterpriseModule({ name });
       setModules((prev) => [created, ...prev]);
       setModulesStatus("success");
-      setModulesMessage(`Module "${created.name}" created.`);
+      setModulesMessage(null);
+      showSuccessToast(`Module "${created.name}" created.`);
       setNewModuleName("");
       setCreateModalOpen(false);
     } catch (err) {
@@ -118,9 +132,6 @@ export function EnterpriseModuleManager() {
       setSelectedModule(response.module);
       setStudents(response.students);
       setStudentsStatus("success");
-      if (response.students.length === 0) {
-        setStudentsMessage("No student accounts found in this enterprise.");
-      }
     } catch (err) {
       setStudentsStatus("error");
       setStudentsMessage(err instanceof Error ? err.message : "Could not load students.");
@@ -164,7 +175,8 @@ export function EnterpriseModuleManager() {
       );
       setSelectedModule((prev) => (prev ? { ...prev, studentCount: response.studentCount } : prev));
       setStudentsStatus("success");
-      setStudentsMessage("Student assignments saved.");
+      setStudentsMessage(null);
+      showSuccessToast("Student assignments saved.");
     } catch (err) {
       setStudentsStatus("error");
       setStudentsMessage(err instanceof Error ? err.message : "Could not save student assignments.");
@@ -189,6 +201,14 @@ export function EnterpriseModuleManager() {
 
   return (
     <>
+      {toastMessage ? (
+        <div className="ui-toast-layer" aria-live="polite" aria-atomic="true">
+          <div className="ui-toast ui-toast--success" role="status">
+            {toastMessage}
+          </div>
+        </div>
+      ) : null}
+
       <Card
         title={<span className="overview-title">Module management</span>}
         action={
@@ -214,12 +234,8 @@ export function EnterpriseModuleManager() {
           </span>
         </div>
 
-        {modulesMessage ? (
-          <div
-            className={
-              modulesStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"
-            }
-          >
+        {modulesMessage && modulesStatus === "error" ? (
+          <div className="status-alert status-alert--error">
             <span>{modulesMessage}</span>
           </div>
         ) : null}
@@ -347,6 +363,7 @@ export function EnterpriseModuleManager() {
                       type="button"
                       size="sm"
                       variant="ghost"
+                      className="enterprise-modules__bulk-action-btn"
                       onClick={() => setFilteredSelection(true)}
                       disabled={studentsStatus === "loading" || isSavingStudents}
                     >
@@ -356,6 +373,7 @@ export function EnterpriseModuleManager() {
                       type="button"
                       size="sm"
                       variant="ghost"
+                      className="enterprise-modules__bulk-action-btn"
                       onClick={() => setFilteredSelection(false)}
                       disabled={studentsStatus === "loading" || isSavingStudents}
                     >
@@ -365,12 +383,8 @@ export function EnterpriseModuleManager() {
                 ) : null}
               </div>
 
-              {studentsMessage ? (
-                <div
-                  className={
-                    studentsStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"
-                  }
-                >
+              {studentsMessage && studentsStatus === "error" ? (
+                <div className="status-alert status-alert--error">
                   <span>{studentsMessage}</span>
                 </div>
               ) : null}
@@ -396,7 +410,11 @@ export function EnterpriseModuleManager() {
                           {student.firstName} {student.lastName} • ID {student.id}
                         </span>
                       </div>
-                      <span className={student.active ? "status-chip status-chip--success" : "status-chip status-chip--danger"}>
+                      <span
+                        className={`enterprise-modules__student-status ${
+                          student.active ? "status-chip status-chip--success" : "status-chip status-chip--danger"
+                        }`}
+                      >
                         {student.active ? "Active" : "Suspended"}
                       </span>
                     </label>

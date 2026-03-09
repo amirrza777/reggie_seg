@@ -121,7 +121,6 @@ describe("enterpriseAdmin router", () => {
       .mockResolvedValueOnce(6)
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(1)
-      .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(2)
       .mockResolvedValueOnce(1)
       .mockResolvedValueOnce(3);
@@ -138,7 +137,6 @@ describe("enterpriseAdmin router", () => {
         students: 6,
         staff: 2,
         enterpriseAdmins: 1,
-        admins: 1,
         modules: 3,
         teams: 4,
         meetings: 9,

@@ -13,7 +13,6 @@ export type EnterpriseOverview = {
     students: number;
     staff: number;
     enterpriseAdmins: number;
-    admins: number;
     modules: number;
     teams: number;
     meetings: number;
