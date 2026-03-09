@@ -142,7 +142,7 @@ export async function getMinutesHandler(req: Request, res: Response) {
 
 export async function addCommentHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
-  const { userId, content } = req.body;
+  const { userId, content, teamId } = req.body;
 
   if (isNaN(meetingId)) {
     return res.status(400).json({ error: "Invalid meeting ID" });
@@ -153,7 +153,7 @@ export async function addCommentHandler(req: Request, res: Response) {
   }
 
   try {
-    const comment = await addComment(meetingId, userId, content);
+    const comment = await addComment(meetingId, userId, content, teamId);
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error adding comment:", error);

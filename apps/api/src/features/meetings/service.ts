@@ -7,7 +7,10 @@ import {
   upsertMinutes,
   createComment,
   deleteComment,
+  createMentions,
 } from "./repo.js";
+import { getTeamMembers } from "../teamAllocation/service.js";
+import { addNotification } from "../notifications/service.js";
 
 export function listMeetings(teamId: number) {
   return getMeetingsByTeamId(teamId);
@@ -41,8 +44,45 @@ export function saveMinutes(meetingId: number, writerId: number, content: string
   return upsertMinutes(meetingId, writerId, content);
 }
 
-export function addComment(meetingId: number, userId: number, content: string) {
-  return createComment(meetingId, userId, content);
+export function parseMentions(content: string): string[] {
+  const matches = content.match(/@([A-Za-z]+\s[A-Za-z]+)/g);
+  if (!matches) return [];
+  return matches.map((m) => m.slice(1));
+}
+
+async function processMentions(commentId: number, meetingId: number, userId: number, content: string, teamId: number) {
+  const mentionedNames = parseMentions(content);
+  if (mentionedNames.length === 0) return;
+
+  const members = await getTeamMembers(teamId);
+  const mentionedIds = members
+    .filter((m) => mentionedNames.includes(`${m.firstName} ${m.lastName}`))
+    .map((m) => m.id)
+    .filter((id) => id !== userId);
+
+  if (mentionedIds.length === 0) return;
+
+  await createMentions(commentId, mentionedIds);
+
+  const author = members.find((m) => m.id === userId);
+  const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
+
+  for (const mentionedId of mentionedIds) {
+    await addNotification({
+      userId: mentionedId,
+      type: "MENTION",
+      message: `${authorName} mentioned you in a comment`,
+      link: `/meetings/${meetingId}`,
+    });
+  }
+}
+
+export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
+  const comment = await createComment(meetingId, userId, content);
+  if (teamId) {
+    await processMentions(comment.id, meetingId, userId, content, teamId);
+  }
+  return comment;
 }
 
 export function removeComment(commentId: number) {

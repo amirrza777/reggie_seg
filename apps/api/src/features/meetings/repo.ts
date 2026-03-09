@@ -117,3 +117,14 @@ export function deleteComment(commentId: number) {
     where: { id: commentId },
   });
 }
+
+export function createMentions(sourceId: number, userIds: number[]) {
+  return prisma.mention.createMany({
+    data: userIds.map((userId) => ({
+      userId,
+      sourceType: "COMMENT",
+      sourceId,
+    })),
+    skipDuplicates: true,
+  });
+}
