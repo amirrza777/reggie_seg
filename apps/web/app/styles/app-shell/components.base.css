@@ -168,3 +168,81 @@
   padding: 16px;
 }
 
+.workspace-shell .faq-section--left {
+  padding: 0;
+}
+
+.workspace-shell .faq-section__container--left {
+  margin: 0;
+  max-width: none;
+  padding-inline: 0;
+}
+
+.workspace-shell .help-page {
+  position: relative;
+}
+
+.workspace-shell .help-page__content {
+  max-width: none;
+  padding-right: 0;
+}
+
+.workspace-shell .help-page__toc {
+  position: fixed;
+  top: 132px;
+  right: 44px;
+  width: 260px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 78%, var(--border) 22%);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-elevated) 90%, var(--accent-soft) 10%);
+  box-shadow: var(--shadow-sm);
+  z-index: 30;
+}
+
+.workspace-shell .help-page__toc-title {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-bold);
+  color: var(--ink-strong);
+  margin-bottom: 4px;
+}
+
+.workspace-shell .help-page__toc a {
+  color: var(--ink-subtle);
+  text-decoration: none;
+}
+
+.workspace-shell .help-page__toc a:hover {
+  color: var(--accent-strong);
+}
+
+.workspace-shell .help-page__subheading {
+  scroll-margin-top: 110px;
+}
+
+.workspace-shell .help-page [id] {
+  scroll-margin-top: 110px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .workspace-shell .help-page__toc {
+    background: color-mix(in srgb, var(--surface) 90%, black 10%);
+    border-color: color-mix(in srgb, var(--ink-strong) 28%, var(--border) 72%);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(226, 232, 240, 0.05);
+  }
+
+  .workspace-shell .help-page__toc-title {
+    color: var(--ink-strong);
+  }
+
+  .workspace-shell .help-page__toc a {
+    color: color-mix(in srgb, var(--ink-strong) 86%, var(--muted) 14%);
+  }
+
+  .workspace-shell .help-page__toc a:hover {
+    color: #ffffff;
+  }
+}
+
