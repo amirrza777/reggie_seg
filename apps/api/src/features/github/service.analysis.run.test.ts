@@ -71,13 +71,57 @@ describe("github service.analysis.run", () => {
     repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue({
       id: 5,
       projectId: 2,
+      linkedByUserId: 3,
       repository: { id: 7, fullName: "org/repo", htmlUrl: "", ownerLogin: "org", defaultBranch: "main" },
     });
     repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([]);
     repoMocks.findGithubAccountByUserId.mockResolvedValue(null);
     await expect(analyseProjectGithubRepository(1, 5)).rejects.toEqual(
       new GithubServiceError(404, "GitHub account is not connected")
     );
+  });
+
+  it("falls back to linked-by account when requester is not connected", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue({
+      id: 5,
+      projectId: 2,
+      linkedByUserId: 9,
+      syncIntervalMinutes: 60,
+      repository: {
+        id: 7,
+        fullName: "org/repo",
+        htmlUrl: "https://github.com/org/repo",
+        ownerLogin: "org",
+        defaultBranch: "main",
+      },
+    });
+    repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([]);
+    repoMocks.findGithubAccountByUserId.mockImplementation(async (candidateUserId: number) =>
+      candidateUserId === 9 ? { userId: 9 } : null
+    );
+    oauthMocks.getValidGithubAccessToken.mockResolvedValue("token");
+    repoMocks.findLatestGithubSnapshotByProjectLinkId.mockResolvedValue(null);
+    aggregateMocks.hasUsableRepoCommitsByDay.mockReturnValue(false);
+    fetchMocks.fetchCommitsForLinkedRepository.mockResolvedValue([]);
+    aggregateMocks.filterCommitsAfter.mockImplementation((x: any) => x);
+    fetchMocks.listRepositoryBranches.mockResolvedValue([]);
+    fetchMocks.fetchCommitStatsForRepository.mockResolvedValue(new Map());
+    aggregateMocks.aggregateCommitData.mockReturnValue({
+      contributors: [],
+      repoCommitsByDay: {},
+      repoCommitsByBranch: {},
+    });
+    aggregateMocks.mergeUserStats.mockImplementation((_prev: any, incoming: any) => incoming);
+    aggregateMocks.mergeCountMaps.mockReturnValue({});
+    aggregateMocks.mergeLineChangeMaps.mockReturnValue({});
+    aggregateMocks.mergeSampleCommits.mockReturnValue([]);
+    repoMocks.createGithubSnapshot.mockResolvedValue({ id: 202 });
+
+    await expect(analyseProjectGithubRepository(1, 5)).resolves.toEqual({ id: 202 });
+    expect(repoMocks.findGithubAccountByUserId).toHaveBeenCalledWith(1);
+    expect(repoMocks.findGithubAccountByUserId).toHaveBeenCalledWith(9);
   });
 
   it("builds and persists snapshot on success path", async () => {

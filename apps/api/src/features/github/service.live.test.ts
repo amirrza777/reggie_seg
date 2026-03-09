@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GithubServiceError } from "./errors.js";
 
 const repoMocks = vi.hoisted(() => ({
   deactivateProjectGithubRepositoryLink: vi.fn(),
   findGithubAccountByUserId: vi.fn(),
   findProjectGithubRepositoryLinkById: vi.fn(),
   isUserInProject: vi.fn(),
+  listProjectGithubIdentityCandidates: vi.fn(),
 }));
 
 const oauthMocks = vi.hoisted(() => ({
@@ -40,6 +42,7 @@ describe("service.live", () => {
   const link = {
     id: 4,
     projectId: 15,
+    linkedByUserId: 9,
     repository: {
       id: 21,
       fullName: "org/repo",
@@ -52,9 +55,23 @@ describe("service.live", () => {
     vi.clearAllMocks();
     repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue(link);
     repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([]);
     repoMocks.findGithubAccountByUserId.mockResolvedValue({ login: "alice" });
     oauthMocks.getValidGithubAccessToken.mockResolvedValue("token");
     aggregateMocks.isMergePullRequestCommit.mockReturnValue(false);
+  });
+
+  it("uses linked-by fallback account for branch reads when requester has no GitHub account", async () => {
+    repoMocks.findGithubAccountByUserId.mockImplementation(async (candidateUserId: number) =>
+      candidateUserId === 9 ? { userId: 9, login: "linked-by" } : null
+    );
+    fetchMocks.listRepositoryBranchesLive.mockResolvedValue([{ name: "main", protected: true, headSha: "sha-main" }]);
+    fetchMocks.getBranchAheadBehind.mockResolvedValue({ aheadBy: 0, behindBy: 0, status: "identical" });
+
+    const result = await listLiveProjectGithubRepositoryBranches(7, 4);
+    expect(result.branches).toHaveLength(1);
+    expect(repoMocks.findGithubAccountByUserId).toHaveBeenCalledWith(7);
+    expect(repoMocks.findGithubAccountByUserId).toHaveBeenCalledWith(9);
   });
 
   it("lists branches, compares to default branch, and sorts default first", async () => {
@@ -90,7 +107,7 @@ describe("service.live", () => {
 
     const result = await listLiveProjectGithubRepositoryBranchCommits(7, 4, "feature-a", 999);
 
-    expect(fetchMocks.fetchRecentCommitsForBranch).toHaveBeenCalledWith("token", "org/repo", "feature-a", 10);
+    expect(fetchMocks.fetchRecentCommitsForBranch).toHaveBeenCalledWith("token", "org/repo", "feature-a", 50);
     expect(result.branch).toBe("feature-a");
     expect(result.commits).toEqual([
       expect.objectContaining({
@@ -100,6 +117,29 @@ describe("service.live", () => {
         htmlUrl: "https://github.com/org/repo/commit/abc",
       }),
     ]);
+  });
+
+  it("falls back to a live branch when requested branch is stale", async () => {
+    fetchMocks.fetchRecentCommitsForBranch
+      .mockRejectedValueOnce(new GithubServiceError(404, "Linked GitHub repository or branch was not found"))
+      .mockResolvedValueOnce([
+        {
+          sha: "def",
+          commit: {
+            message: "Hotfix",
+            author: { date: "2026-02-27T10:00:00Z", email: "alice@example.com" },
+          },
+          author: { login: "alice" },
+        },
+      ]);
+    fetchMocks.listRepositoryBranchesLive.mockResolvedValue([{ name: "main", protected: true, headSha: "sha-main" }]);
+    fetchMocks.fetchCommitStatsForRepository.mockResolvedValue(new Map([["def", { additions: 2, deletions: 1 }]]));
+
+    const result = await listLiveProjectGithubRepositoryBranchCommits(7, 4, "stale-default", 20);
+
+    expect(fetchMocks.fetchRecentCommitsForBranch).toHaveBeenNthCalledWith(1, "token", "org/repo", "stale-default", 20);
+    expect(fetchMocks.fetchRecentCommitsForBranch).toHaveBeenNthCalledWith(2, "token", "org/repo", "main", 20);
+    expect(result.branch).toBe("main");
   });
 
   it("returns paged my commits and totals with merge/non-merge split", async () => {

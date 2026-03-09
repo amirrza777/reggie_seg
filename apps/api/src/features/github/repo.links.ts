@@ -215,6 +215,7 @@ export function findProjectGithubRepositoryLinkById(linkId: number) {
     select: {
       id: true,
       projectId: true,
+      linkedByUserId: true,
       githubRepositoryId: true,
       syncIntervalMinutes: true,
       repository: {

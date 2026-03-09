@@ -91,7 +91,7 @@ export function StaffProjectReposReadOnlyClient({
   const selectedSnapshot = selectedLink ? latestSnapshotByLinkId[selectedLink.id] ?? null : null;
   const selectedCoverage = selectedLink ? coverageByLinkId[selectedLink.id] ?? null : null;
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     if (Number.isNaN(numericProjectId)) {
       setError("Invalid project ID.");
       setLoading(false);
@@ -104,6 +104,9 @@ export function StaffProjectReposReadOnlyClient({
     try {
       const repoLinks = await listProjectGithubRepoLinks(numericProjectId);
       setLinks(repoLinks);
+      setRecentCommitsByLinkId({});
+      setRecentCommitsLoadingByLinkId({});
+      setRecentCommitsErrorByLinkId({});
       setSelectedLinkId((prev) => {
         if (repoLinks.length === 0) return null;
         if (prev != null && repoLinks.some((link) => link.id === prev)) return prev;
@@ -150,7 +153,7 @@ export function StaffProjectReposReadOnlyClient({
     } finally {
       setLoading(false);
     }
-  }
+  }, [numericProjectId]);
 
   async function handleRefreshSnapshots() {
     if (links.length === 0) return;
@@ -172,7 +175,7 @@ export function StaffProjectReposReadOnlyClient({
 
   useEffect(() => {
     void loadData();
-  }, [projectId]);
+  }, [loadData]);
 
   const fetchRecentCommitsForSelectedLink = useCallback(async (link: ProjectGithubRepoLink) => {
     const branch = link.repository.defaultBranch || "main";
@@ -332,9 +335,18 @@ export function StaffProjectReposReadOnlyClient({
                 <p className="github-repos-tab__kicker">Recent commits</p>
                 <strong>{selectedLink.repository.fullName}</strong>
               </div>
-              <p className="muted github-repos-tab__helper">
-                Latest commits from default branch <strong>{selectedLink.repository.defaultBranch || "main"}</strong>.
-              </p>
+              <div className="github-repos-tab__header">
+                <p className="muted github-repos-tab__helper">
+                  Latest commits from default branch <strong>{selectedLink.repository.defaultBranch || "main"}</strong>.
+                </p>
+                <Button
+                  variant="ghost"
+                  onClick={() => void fetchRecentCommitsForSelectedLink(selectedLink)}
+                  disabled={Boolean(recentCommitsLoadingByLinkId[selectedLink.id])}
+                >
+                  {recentCommitsLoadingByLinkId[selectedLink.id] ? "Refreshing..." : "Refresh commits"}
+                </Button>
+              </div>
               {recentCommitsLoadingByLinkId[selectedLink.id] ? (
                 <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
               ) : null}
@@ -386,15 +398,9 @@ export function StaffProjectReposReadOnlyClient({
                       <button
                         key={row.key}
                         type="button"
-                        className="github-repo-link-card__stat"
-                        style={{
-                          textAlign: "left",
-                          cursor: "pointer",
-                          borderColor:
-                            selectedContributor?.key === row.key
-                              ? "color-mix(in srgb, var(--accent) 40%, var(--border))"
-                              : "var(--border)",
-                        }}
+                        className={`github-repo-link-card__stat github-repo-link-card__stat--selectable${
+                          selectedContributor?.key === row.key ? " github-repo-link-card__stat--selected" : ""
+                        }`}
                         onClick={() =>
                           setSelectedContributorKeyByLinkId((prev) => ({
                             ...prev,
