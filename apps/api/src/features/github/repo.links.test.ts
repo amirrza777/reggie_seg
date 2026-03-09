@@ -14,7 +14,8 @@ import { prisma } from "../../shared/db.js";
 
 vi.mock("../../shared/db.js", () => ({
   prisma: {
-    teamAllocation: { findFirst: vi.fn(), findMany: vi.fn() },
+    project: { findFirst: vi.fn() },
+    teamAllocation: { findMany: vi.fn() },
     githubRepository: { upsert: vi.fn() },
     projectGithubRepository: { upsert: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), findUnique: vi.fn(), update: vi.fn() },
   },
@@ -24,7 +25,7 @@ describe("github repo.links", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("checks membership and maps identity candidates", async () => {
-    (prisma.teamAllocation.findFirst as any).mockResolvedValue({ userId: 1 });
+    (prisma.project.findFirst as any).mockResolvedValue({ id: 2 });
     await expect(isUserInProject(1, 2)).resolves.toBe(true);
 
     (prisma.teamAllocation.findMany as any).mockResolvedValue([
@@ -35,6 +36,11 @@ describe("github repo.links", () => {
       { userId: 1, githubLogin: "alice", githubEmail: "a@example.com" },
       { userId: 2, githubLogin: null, githubEmail: null },
     ]);
+  });
+
+  it("returns false when user has no access path to project", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue(null);
+    await expect(isUserInProject(9, 99)).resolves.toBe(false);
   });
 
   it("upserts repository and project link", async () => {
