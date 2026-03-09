@@ -9,6 +9,7 @@ vi.mock("./repo.js", () => ({
     getUserById: vi.fn(),
     getTeamWithOwner: vi.fn(),
     isUserInTeam: vi.fn(),
+    setTeamTrelloSectionConfig: vi.fn(),
   },
 }));
 
@@ -136,21 +137,28 @@ describe("TrelloService", () => {
   it("getBoardWithData fetches board data", async () => {
     const mockBoard = { id: "board1" };
 
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockBoard,
-    } as any);
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBoard,
+      } as any)
+      .mockResolvedValueOnce({ ok: true, json: async () => [] } as any);
 
     const result = await TrelloService.getBoardWithData(
       "board1",
       "token123"
     );
 
-    expect(global.fetch).toHaveBeenCalledWith(
-      `https://api.trello.com/1/boards/board1?lists=open&cards=open&key=${process.env.TRELLO_KEY}&token=token123`
-    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    const boardUrl = (global.fetch as any).mock.calls[0][0];
+    expect(boardUrl).toContain("https://api.trello.com/1/boards/board1?");
+    expect(boardUrl).toContain("lists=open");
+    expect(boardUrl).toContain("cards=open");
+    expect(boardUrl).toContain("members=all");
+    expect(boardUrl).toContain("key=test-key");
+    expect(boardUrl).toContain("token=token123");
 
-    expect(result).toEqual(mockBoard);
+    expect(result).toEqual({ ...mockBoard, actions: [] });
   });
 
   it("getBoardWithData throws on failure", async () => {
@@ -270,6 +278,7 @@ describe("TrelloService", () => {
     (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
       trelloBoardId: "board1",
       trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: null,
     });
 
     vi.spyOn(TrelloService, "getBoardWithData").mockResolvedValue({
@@ -278,7 +287,7 @@ describe("TrelloService", () => {
 
     const result = await TrelloService.fetchAssignedTeamBoard(2, 1);
 
-    expect(result).toEqual({ id: "board1" });
+    expect(result).toEqual({ board: { id: "board1" }, sectionConfig: {} });
   });
 
   it("throws if not team member", async () => {
@@ -385,5 +394,65 @@ describe("TrelloService", () => {
     await expect(
       TrelloService.fetchBoardById(1, "board1")
     ).rejects.toThrow("Board not found for this user");
+  });
+
+  // assertTeamMember
+
+  it("assertTeamMember does not throw when user is in team", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+
+    await expect(
+      TrelloService.assertTeamMember(2, 1)
+    ).resolves.toBeUndefined();
+    expect(TrelloRepo.isUserInTeam).toHaveBeenCalledWith(1, 2);
+  });
+
+  it("assertTeamMember throws when user is not in team", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(false);
+
+    await expect(
+      TrelloService.assertTeamMember(2, 1)
+    ).rejects.toThrow("Not a member of this team");
+  });
+
+  // updateTeamTrelloSectionConfig
+
+  it("updateTeamTrelloSectionConfig saves normalized config when user is member", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+    (TrelloRepo.setTeamTrelloSectionConfig as any).mockResolvedValue(undefined);
+
+    const config = { "To Do": "backlog", "Done": "completed" };
+    await TrelloService.updateTeamTrelloSectionConfig(2, 1, config);
+
+    expect(TrelloRepo.isUserInTeam).toHaveBeenCalledWith(1, 2);
+    expect(TrelloRepo.setTeamTrelloSectionConfig).toHaveBeenCalledWith(
+      2,
+      { "To Do": "backlog", "Done": "completed" }
+    );
+  });
+
+  it("updateTeamTrelloSectionConfig strips non-string values only", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+    (TrelloRepo.setTeamTrelloSectionConfig as any).mockResolvedValue(undefined);
+
+    await TrelloService.updateTeamTrelloSectionConfig(2, 1, {
+      "List A": "backlog",
+      "List B": 123 as any,
+      "List C": "work_in_progress",
+    });
+
+    expect(TrelloRepo.setTeamTrelloSectionConfig).toHaveBeenCalledWith(
+      2,
+      { "List A": "backlog", "List C": "work_in_progress" }
+    );
+  });
+
+  it("updateTeamTrelloSectionConfig throws when user is not team member", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(false);
+
+    await expect(
+      TrelloService.updateTeamTrelloSectionConfig(2, 1, { "To Do": "backlog" })
+    ).rejects.toThrow("Not a member of this team");
+    expect(TrelloRepo.setTeamTrelloSectionConfig).not.toHaveBeenCalled();
   });
 });
