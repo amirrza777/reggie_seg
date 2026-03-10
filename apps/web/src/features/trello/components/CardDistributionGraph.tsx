@@ -248,7 +248,7 @@ export function CardDistributionGraph({
             />
             <YAxis allowDecimals={false} />
             <Tooltip
-              labelFormatter={(t: number) => formatDate(new Date(t).toISOString().slice(0, 10))}
+              labelFormatter={(t) => formatDate(new Date(t as number).toISOString().slice(0, 10))}
               contentStyle={{
                 background: "var(--surface)",
                 border: "1px solid var(--border)",
