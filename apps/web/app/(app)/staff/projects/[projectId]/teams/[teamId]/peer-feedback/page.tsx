@@ -177,15 +177,7 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
 
           <section className="staff-projects__team-card">
             <p className="muted" style={{ margin: 0 }}>
-              Use{" "}
-              <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment`} className="staff-projects__badge">
-                Peer assessment
-              </Link>{" "}
-              for submission progress and{" "}
-              <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/grading`} className="staff-projects__badge">
-                Grading
-              </Link>{" "}
-              for marks.
+              This section is view-only for feedback completion tracking. No grading actions are available here.
             </p>
           </section>
 
@@ -208,10 +200,10 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
                   </p>
                   {row.studentId != null ? (
                     <Link
-                      href={`/staff/peer-assessments/module/${projectData.project.moduleId}/team/${team.id}/student/${row.studentId}`}
+                      href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-feedback/${row.studentId}`}
                       className="pill-nav__link staff-projects__team-action"
                     >
-                      Open student assessment detail
+                      Open feedback evidence
                     </Link>
                   ) : null}
                 </article>
