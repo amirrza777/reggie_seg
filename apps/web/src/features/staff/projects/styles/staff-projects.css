@@ -140,7 +140,7 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
@@ -175,4 +175,14 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--fs-caption);
+}
+
+.staff-projects__member-placeholder-btn {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  cursor: not-allowed;
 }

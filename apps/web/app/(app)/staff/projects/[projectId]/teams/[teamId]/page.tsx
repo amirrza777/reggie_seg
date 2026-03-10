@@ -104,6 +104,14 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               </p>
               <p className="staff-projects__member-email">{allocation.user.email}</p>
             </div>
+            <button
+              type="button"
+              className="staff-projects__member-placeholder-btn"
+              disabled
+              title="Notification workflow placeholder"
+            >
+              Notify student
+            </button>
           </div>
         ))}
         </div>
