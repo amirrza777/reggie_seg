@@ -28,9 +28,24 @@ app.use((req, _res, next) => {
   next();
 });
 
+const allowedOrigins = [
+  "http://localhost:3001",
+  "http://localhost:5173",
+  "http://127.0.0.1:3001",
+  "http://127.0.0.1:5173",
+  ...(process.env.APP_BASE_URL ? [process.env.APP_BASE_URL.replace(/\/$/, "")] : []),
+  ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()) : []),
+];
+
 app.use(
   cors({
-    origin: ["http://localhost:3001", "http://localhost:5173", "http://127.0.0.1:3001", "http://127.0.0.1:5173"],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
