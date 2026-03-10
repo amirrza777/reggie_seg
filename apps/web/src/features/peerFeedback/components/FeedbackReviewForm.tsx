@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
@@ -17,6 +18,133 @@ type FeedbackReviewFormProps = {
   currentUserId: string;
 };
 
+const radioInputStyle: CSSProperties = {
+  width: "auto",
+  minWidth: 0,
+  padding: 0,
+  margin: 0,
+  border: "none",
+  background: "transparent",
+  flex: "0 0 auto",
+};
+
+function getAnswerKey(answer: Answer) {
+  return answer.questionId ?? answer.id;
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+function renderAnswerPreview(answer: Answer) {
+  const type = answer.type ?? "text";
+
+  if (type === "multiple-choice") {
+    const options = Array.isArray(answer.configs?.options) ? answer.configs.options : [];
+    const selected = answer.answer == null ? "" : String(answer.answer);
+
+    if (options.length === 0) {
+      return <p className="answerText">{selected || "No response"}</p>;
+    }
+
+    return (
+      <div className="answerPreviewGroup">
+        {options.map((option) => (
+          <label
+            key={`${answer.id}-option-${option}`}
+            className="answerPreviewOption"
+          >
+            <input
+              type="radio"
+              style={radioInputStyle}
+              checked={selected === option}
+              readOnly
+              disabled
+            />
+            <span>{option}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "rating") {
+    const min = typeof answer.configs?.min === "number" ? answer.configs.min : 1;
+    const configuredMax = typeof answer.configs?.max === "number" ? answer.configs.max : min + 4;
+    const max = configuredMax >= min ? configuredMax : min;
+    const selected = toNumber(answer.answer);
+
+    return (
+      <div className="answerPreviewGroup answerPreviewGroup--rating">
+        {Array.from({ length: max - min + 1 }, (_, index) => min + index).map((value) => (
+          <label
+            key={`${answer.id}-rating-${value}`}
+            className="answerPreviewOption"
+          >
+            <input
+              type="radio"
+              style={radioInputStyle}
+              checked={selected === value}
+              readOnly
+              disabled
+            />
+            <span>{value}</span>
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "slider") {
+    const min = typeof answer.configs?.min === "number" ? answer.configs.min : 0;
+    const configuredMax = typeof answer.configs?.max === "number" ? answer.configs.max : min + 100;
+    const max = configuredMax >= min ? configuredMax : min;
+    const step = typeof answer.configs?.step === "number" && answer.configs.step > 0 ? answer.configs.step : 1;
+    const selected = toNumber(answer.answer);
+    const sliderValue = selected == null ? min : selected;
+
+    return (
+      <div className="answerPreviewSlider">
+        {answer.configs?.helperText ? (
+          <p className="muted" style={{ margin: 0 }}>{answer.configs.helperText}</p>
+        ) : null}
+        {answer.configs?.left || answer.configs?.right ? (
+          <div className="answerPreviewSliderLabels">
+            <span>{answer.configs?.left}</span>
+            <span>{answer.configs?.right}</span>
+          </div>
+        ) : null}
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={sliderValue}
+          data-slider-value={sliderValue}
+          readOnly
+          disabled
+        />
+      </div>
+    );
+  }
+
+  const textValue = answer.answer == null ? "" : String(answer.answer);
+  return (
+    <input
+      type="text"
+      className="answerPreviewInput"
+      value={textValue}
+      readOnly
+      placeholder={answer.configs?.placeholder}
+    />
+  );
+}
+
 export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialAgreements, redirectTo = 'back', currentUserId }: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
@@ -28,8 +156,8 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
     return Object.fromEntries(
       (feedback.answers ?? []).map((a) => [
-        a.id,
-        initialAgreements?.[a.id] ?? {
+        getAnswerKey(a),
+        initialAgreements?.[getAnswerKey(a)] ?? initialAgreements?.[a.id] ?? {
           selected: "Reasonable",
           score: 3,
         },
@@ -118,15 +246,15 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
             {(feedback.answers || []).map((a: Answer) => (
               <li key={a.id} className="answerItem">
                 <strong className="answerQuestion">{a.question}</strong>
-                <p className="answerText">{a.answer}</p>
+                {renderAnswerPreview(a)}
                 <label className="labelBlock">
                   {isEditing ? (
                     <select
-                      value={agreements[a.id]?.selected ?? 'Reasonable'}
+                      value={agreements[getAnswerKey(a)]?.selected ?? 'Reasonable'}
                       onChange={(e) => {
                         const selected = e.target.value as AgreementOption;
                         const score = AGREEMENT_OPTIONS.find(o => o.label === selected)?.score ?? 3;
-                        setAgreements((prev) => ({ ...prev, [a.id]: { selected, score } }));
+                        setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
                       }}
                       disabled={isLoading}
                       className="select"
@@ -139,7 +267,7 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
                     </select>
                   ) : (
                     <span className="agreementSpan">
-                      {agreements[a.id]?.score} — {agreements[a.id]?.selected ?? 'Not selected'}
+                      {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? 'Not selected'}
                     </span>
                   )}
                 </label>

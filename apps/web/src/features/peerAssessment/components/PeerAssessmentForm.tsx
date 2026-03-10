@@ -298,6 +298,7 @@ export function PeerAssessmentForm({
                 max={config.max}
                 step={config.step}
                 value={sliderValue}
+                data-slider-value={sliderValue}
                 required={required}
                 onChange={(event) =>
                   setAnswers((prev) => ({
@@ -306,7 +307,6 @@ export function PeerAssessmentForm({
                   }))
                 }
               />
-              <p className="muted" style={{ margin: 0 }}>Selected: {sliderValue}</p>
             </div>
           );
         }

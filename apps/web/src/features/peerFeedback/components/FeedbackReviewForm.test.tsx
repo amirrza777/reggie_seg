@@ -145,4 +145,37 @@ describe("FeedbackReviewForm", () => {
     expect(screen.getByRole("heading", { name: "Respond to Feedback" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Update Review" })).toBeInTheDocument();
   });
+
+  it("renders answer previews using question formats", () => {
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback({
+          answers: [
+            {
+              id: "mcq-1",
+              questionId: "mcq-1",
+              order: 1,
+              question: "Did they contribute?",
+              type: "multiple-choice",
+              configs: { options: ["Yes", "No"] },
+              answer: "Yes",
+            },
+            {
+              id: "slider-1",
+              questionId: "slider-1",
+              order: 2,
+              question: "How strongly do you agree?",
+              type: "slider",
+              configs: { min: 0, max: 100, step: 5, left: "Low", right: "High" },
+              answer: 75,
+            },
+          ],
+        })}
+        currentUserId="4"
+      />
+    );
+
+    expect(screen.getByRole("radio", { name: "Yes" })).toBeChecked();
+    expect(screen.getByRole("slider")).toHaveValue("75");
+  });
 });

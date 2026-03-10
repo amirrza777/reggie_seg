@@ -13,9 +13,24 @@ export type FeedbackSubmission = {
 
 export type Answer = {
   id: string;
+  questionId?: string;
   order: number;
   question: string;
-  answer: string | number;
+  answer: string | number | boolean | null;
+  type?: "text" | "multiple-choice" | "rating" | "slider";
+  configs?: {
+    required?: boolean;
+    helperText?: string;
+    placeholder?: string;
+    minLength?: number;
+    maxLength?: number;
+    options?: string[];
+    min?: number;
+    max?: number;
+    step?: number;
+    left?: string;
+    right?: string;
+  };
 };
 
 export type PeerFeedback = {
@@ -25,6 +40,7 @@ export type PeerFeedback = {
   revieweeId: string;
   submittedAt: string;
   answers: Answer[];
+  templateId?: number;
   firstName?: string;
   lastName?: string;
   reviewSubmitted?: boolean;
