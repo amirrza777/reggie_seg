@@ -41,7 +41,7 @@ async function loadStudentFeedbackProgress(
 
       try {
         const assessments = await getPeerAssessmentsForUser(String(studentId), projectId);
-        const completedFlags = await Promise.all(
+        const completedFlags: number[] = await Promise.all(
           assessments.map(async (assessment) => {
             try {
               await getFeedbackReview(String(assessment.id));

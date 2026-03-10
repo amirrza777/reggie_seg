@@ -76,11 +76,7 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
       <section className="staff-projects__team-card">
         <h3 style={{ margin: 0 }}>Assessment progress by student</h3>
         <p className="muted" style={{ margin: 0 }}>
-          Track submission progress here. For staff team marks and formative grading, use the{" "}
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/grading`} className="staff-projects__badge">
-            Grading
-          </Link>{" "}
-          section.
+          Track submission progress by student and open each student record for detailed review context.
         </p>
         {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
         {!detailError && students.length === 0 ? (
