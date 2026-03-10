@@ -4,6 +4,7 @@ import {
   getUnreadCount,
   markNotificationRead,
   markAllNotificationsRead,
+  dismissNotification,
 } from "../api/client";
 import type { Notification } from "../types";
 
@@ -52,5 +53,15 @@ export function useNotifications(userId: number | null) {
     setUnreadCount(0);
   }, [userId]);
 
-  return { notifications, unreadCount, fetchAll, markRead, markAllRead };
+  const dismiss = useCallback(async (notificationId: number) => {
+    if (!userId) return;
+    const notification = notifications.find((n) => n.id === notificationId);
+    await dismissNotification(notificationId, userId);
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+    if (notification && !notification.read) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+  }, [userId, notifications]);
+
+  return { notifications, unreadCount, fetchAll, markRead, markAllRead, dismiss };
 }

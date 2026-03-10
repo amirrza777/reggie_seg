@@ -5,6 +5,7 @@ import {
   createNotification,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
 } from "./repo.js";
 
 export function listNotifications(userId: number) {
@@ -30,4 +31,8 @@ export function readNotification(notificationId: number, userId: number) {
 
 export function readAllNotifications(userId: number) {
   return markAllAsRead(userId);
+}
+
+export function removeNotification(notificationId: number, userId: number) {
+  return deleteNotification(notificationId, userId);
 }

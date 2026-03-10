@@ -37,3 +37,9 @@ export function markAllAsRead(userId: number) {
     data: { read: true },
   });
 }
+
+export function deleteNotification(notificationId: number, userId: number) {
+  return prisma.notification.deleteMany({
+    where: { id: notificationId, userId },
+  });
+}

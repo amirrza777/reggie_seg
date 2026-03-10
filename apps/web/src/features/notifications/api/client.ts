@@ -22,3 +22,10 @@ export async function markAllNotificationsRead(userId: number) {
     body: JSON.stringify({ userId }),
   });
 }
+
+export async function dismissNotification(notificationId: number, userId: number) {
+  return apiFetch(`/notifications/${notificationId}`, {
+    method: "DELETE",
+    body: JSON.stringify({ userId }),
+  });
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell } from "lucide-react";
+import { Bell, X } from "lucide-react";
 import { useUser } from "@/features/auth/context";
 import { useNotifications } from "../hooks/useNotifications";
 import type { Notification } from "../types";
@@ -12,7 +12,7 @@ export function NotificationBell() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const { notifications, unreadCount, fetchAll, markRead, markAllRead } = useNotifications(user?.id ?? null);
+  const { notifications, unreadCount, fetchAll, markRead, markAllRead, dismiss } = useNotifications(user?.id ?? null);
 
   useEffect(() => {
     if (open) fetchAll();
@@ -74,21 +74,33 @@ export function NotificationBell() {
           ) : (
             <div className="notification-bell__list">
               {notifications.map((notification) => (
-                <button
+                <div
                   key={notification.id}
-                  type="button"
                   className={
                     notification.read
                       ? "notification-bell__item"
                       : "notification-bell__item notification-bell__item--unread"
                   }
-                  onClick={() => handleClick(notification)}
                 >
-                  <span className="notification-bell__message">{notification.message}</span>
-                  <span className="notification-bell__time">
-                    {new Date(notification.createdAt).toLocaleString()}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    className="notification-bell__item-content"
+                    onClick={() => handleClick(notification)}
+                  >
+                    <span className="notification-bell__message">{notification.message}</span>
+                    <span className="notification-bell__time">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="notification-bell__dismiss"
+                    onClick={() => dismiss(notification.id)}
+                    aria-label="Dismiss notification"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
               ))}
             </div>
           )}
