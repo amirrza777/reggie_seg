@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
@@ -9,11 +9,16 @@ import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 
 type AnswerValue = string | number;
 
-const toAnswersArray = (answers: Record<string, AnswerValue>) =>
-  Object.entries(answers).map(([question, answer]) => ({
-    question,
-    answer,
-  }));
+const toAnswersArray = (
+  answers: Record<string, AnswerValue>,
+  orderedQuestions: Question[]
+) =>
+  orderedQuestions
+    .filter((question) => Object.prototype.hasOwnProperty.call(answers, String(question.id)))
+    .map((question) => ({
+      question: String(question.id),
+      answer: answers[String(question.id)],
+    }));
 
 const questionContainerStyle: CSSProperties = { display: "grid", gap: 6 };
 const answerInputStyle: CSSProperties = {
@@ -24,6 +29,15 @@ const answerInputStyle: CSSProperties = {
   color: "var(--ink)",
   fontFamily: "inherit",
   fontSize: "inherit",
+};
+const radioInputStyle: CSSProperties = {
+  width: "auto",
+  minWidth: 0,
+  padding: 0,
+  margin: 0,
+  border: "none",
+  background: "transparent",
+  flex: "0 0 auto",
 };
 
 function isNumericQuestion(question: Question) {
@@ -46,9 +60,30 @@ function getSliderConfig(question: Question) {
     min,
     max,
     step,
-    left: question.configs?.left ?? "",
-    right: question.configs?.right ?? "",
-    helperText: question.configs?.helperText ?? "",
+    left: typeof question.configs?.left === "string" ? question.configs.left : undefined,
+    right: typeof question.configs?.right === "string" ? question.configs.right : undefined,
+    helperText:
+      typeof question.configs?.helperText === "string" ? question.configs.helperText : undefined,
+  };
+}
+
+function getTextConfig(question: Question) {
+  const minLength =
+    typeof question.configs?.minLength === "number" && question.configs.minLength >= 0
+      ? question.configs.minLength
+      : undefined;
+  const maxLength =
+    typeof question.configs?.maxLength === "number" && question.configs.maxLength >= 0
+      ? question.configs.maxLength
+      : undefined;
+
+  return {
+    helperText:
+      typeof question.configs?.helperText === "string" ? question.configs.helperText : undefined,
+    placeholder:
+      typeof question.configs?.placeholder === "string" ? question.configs.placeholder : undefined,
+    minLength,
+    maxLength,
   };
 }
 
@@ -83,6 +118,10 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  const orderedQuestions = useMemo(
+    () => [...questions].sort((a, b) => a.order - b.order),
+    [questions]
+  );
 
   const normalizeAnswers = (
     raw: Record<string, string | number | boolean | null> | undefined
@@ -90,7 +129,7 @@ export function PeerAssessmentForm({
     if (!raw || typeof raw !== "object") return {};
     const normalized: Record<string, AnswerValue> = {};
     Object.entries(raw).forEach(([k, v]) => {
-      const question = questions.find((item) => String(item.id) === k);
+      const question = orderedQuestions.find((item) => String(item.id) === k);
       if (question && isNumericQuestion(question)) {
         if (typeof v === "number" && Number.isFinite(v)) {
           normalized[k] = v;
@@ -104,16 +143,15 @@ export function PeerAssessmentForm({
           }
         }
       }
-      normalized[k] = String(v ?? "");
+      normalized[k] = v == null ? "" : String(v);
     });
     return normalized;
   };
 
-
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnswers(normalizeAnswers(initialAnswers));
-  }, [initialAnswers, questions]);
+  }, [initialAnswers, orderedQuestions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,7 +168,7 @@ export function PeerAssessmentForm({
           reviewerUserId: reviewerId,
           revieweeUserId: revieweeId,
           templateId,
-          answersJson: toAnswersArray(answers),
+          answersJson: toAnswersArray(answers, orderedQuestions),
         });
       }
       setStatus("success");
@@ -162,22 +200,32 @@ export function PeerAssessmentForm({
       <h3>
          You're reviewing {teammateName}
       </h3>
-      {questions.map((question) => {
+      {orderedQuestions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
+        const required = question.configs?.required === true;
+        const helperText = question.configs?.helperText;
 
         if (question.type === "multiple-choice") {
-          const options = question.configs?.options ?? [];
+          const options = Array.isArray(question.configs?.options) ? question.configs.options : [];
           return (
             <div key={question.id} style={questionContainerStyle}>
               <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+              {helperText ? (
+                <p className="muted" style={{ margin: 0 }}>{helperText}</p>
+              ) : null}
               {options.map((option) => (
-                <label key={option} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <label
+                  key={option}
+                  style={{ display: "inline-flex", gap: 8, alignItems: "center", justifyContent: "flex-start" }}
+                >
                   <input
                     type="radio"
                     name={`question-${question.id}`}
                     value={option}
                     checked={answer === option}
+                    required={required}
+                    style={radioInputStyle}
                     onChange={() =>
                       setAnswers((prev) => ({ ...prev, [key]: option }))
                     }
@@ -197,14 +245,22 @@ export function PeerAssessmentForm({
           return (
             <div key={question.id} style={questionContainerStyle}>
               <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+              {helperText ? (
+                <p className="muted" style={{ margin: 0 }}>{helperText}</p>
+              ) : null}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 {Array.from({ length: max - min + 1 }, (_, index) => min + index).map((value) => (
-                  <label key={value} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <label
+                    key={value}
+                    style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-start" }}
+                  >
                     <input
                       type="radio"
                       name={`question-${question.id}`}
                       value={value}
                       checked={answer === value}
+                      required={required}
+                      style={radioInputStyle}
                       onChange={() =>
                         setAnswers((prev) => ({ ...prev, [key]: value }))
                       }
@@ -242,6 +298,7 @@ export function PeerAssessmentForm({
                 max={config.max}
                 step={config.step}
                 value={sliderValue}
+                required={required}
                 onChange={(event) =>
                   setAnswers((prev) => ({
                     ...prev,
@@ -254,12 +311,20 @@ export function PeerAssessmentForm({
           );
         }
 
+        const textConfig = getTextConfig(question);
         return (
           <div key={question.id} style={questionContainerStyle}>
             <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+            {textConfig.helperText ? (
+              <p className="muted" style={{ margin: 0 }}>{textConfig.helperText}</p>
+            ) : null}
             <input
               type="text"
               value={typeof answer === "string" ? answer : String(answer ?? "")}
+              placeholder={textConfig.placeholder}
+              minLength={textConfig.minLength}
+              maxLength={textConfig.maxLength}
+              required={required}
               onChange={(event) =>
                 setAnswers((prev) => ({ ...prev, [key]: event.target.value }))
               }

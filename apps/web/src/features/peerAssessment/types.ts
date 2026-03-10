@@ -16,20 +16,28 @@ export type TeamAllocation = {
   };
 };
 
+export type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
+
+export type QuestionConfigs = {
+  required?: boolean;
+  helperText?: string;
+  placeholder?: string;
+  minLength?: number;
+  maxLength?: number;
+  options?: string[];
+  min?: number;
+  max?: number;
+  step?: number;
+  left?: string;
+  right?: string;
+};
+
 export type Question = {
   id: number;
   text: string;
-  type: "text" | "multiple-choice" | "rating" | "slider";
+  type: QuestionType;
   order: number;
-  configs?: {
-    options?: string[];
-    min?: number;
-    max?: number;
-    step?: number;
-    left?: string;
-    right?: string;
-    helperText?: string;
-  };
+  configs?: QuestionConfigs;
 };
 
 export type PeerAssessmentData = {
