@@ -1,6 +1,7 @@
 import type { Request, Response } from "express"
 import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
+import { AssessmentAnswerValidationError, normalizeAndValidateAssessmentAnswers } from "./answers.js";
 const peerService = new PeerAssessmentService();
 
 export async function getTeammatesHandler(req: Request, res: Response) {
@@ -30,21 +31,52 @@ export async function createAssessmentHandler(req: Request, res: Response) {
     answersJson
   } = req.body
 
-  if (!projectId ||!teamId || !reviewerUserId || !revieweeUserId || !templateId || !answersJson) {
+  const numericProjectId = Number(projectId);
+  const numericTeamId = Number(teamId);
+  const numericReviewerUserId = Number(reviewerUserId);
+  const numericRevieweeUserId = Number(revieweeUserId);
+  const numericTemplateId = Number(templateId);
+
+  if (
+    !Number.isInteger(numericProjectId) ||
+    !Number.isInteger(numericTeamId) ||
+    !Number.isInteger(numericReviewerUserId) ||
+    !Number.isInteger(numericRevieweeUserId) ||
+    !Number.isInteger(numericTemplateId) ||
+    answersJson == null
+  ) {
     return res.status(400).json({ error: "Invalid request body" })
   }
 
   try {
+    const project = await fetchProjectQuestionnaireTemplate(numericProjectId);
+    if (!project || !project.questionnaireTemplate) {
+      return res.status(404).json({ error: "Questionnaire template not found for this project" });
+    }
+    if (project.questionnaireTemplate.id !== numericTemplateId) {
+      return res.status(400).json({
+        error: "templateId does not match the project's questionnaire template",
+      });
+    }
+
+    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(
+      answersJson,
+      project.questionnaireTemplate.questions
+    );
+
     const assessment = await saveAssessment({ 
-      projectId,
-      teamId,
-      reviewerUserId,
-      revieweeUserId,
-      templateId,
-      answersJson
+      projectId: numericProjectId,
+      teamId: numericTeamId,
+      reviewerUserId: numericReviewerUserId,
+      revieweeUserId: numericRevieweeUserId,
+      templateId: numericTemplateId,
+      answersJson: normalizedAnswers
     })
     res.json({ ok: true, assessmentId: assessment.id })
-  } catch (error) {
+  } catch (error: unknown) {
+    if (error instanceof AssessmentAnswerValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error("Error creating peer assessment:", error)
     res.status(500).json({ error: "Internal server error" })
   }
@@ -83,14 +115,24 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid assessment ID" })
   }
 
-  if (!answersJson) {
+  if (answersJson == null) {
     return res.status(400).json({ error: "Invalid request body" })
   }
 
   try {
-    await updateAssessmentAnswers(assessmentId, answersJson)
+    const existingAssessment = await fetchAssessmentById(assessmentId);
+    if (!existingAssessment) {
+      return res.status(404).json({ error: "Peer assessment not found" });
+    }
+
+    const templateQuestions = existingAssessment.questionnaireTemplate?.questions ?? [];
+    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(answersJson, templateQuestions);
+    await updateAssessmentAnswers(assessmentId, normalizedAnswers)
     res.json({ ok: true })
   } catch (error: any) {
+    if (error instanceof AssessmentAnswerValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Peer assessment not found" })
     }
