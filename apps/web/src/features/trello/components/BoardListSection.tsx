@@ -3,19 +3,26 @@
 import React from "react";
 import { BoardCard } from "./BoardCard";
 import type { TrelloCard, TrelloList } from "../types";
+import { SECTION_STATUS_LABELS } from "../lib/listStatus";
 
 type BoardListSectionProps = {
   list: TrelloList;
   cards: TrelloCard[];
+  sectionStatus?: string;
 };
 
-export function BoardListSection({ list, cards }: BoardListSectionProps) {
+export function BoardListSection({ list, cards, sectionStatus }: BoardListSectionProps) {
+  const statusLabel = sectionStatus ? (SECTION_STATUS_LABELS[sectionStatus] ?? sectionStatus) : null;
+
   return (
     <section className="trello-lane">
       <header className="trello-lane__header">
         <h3 className="trello-lane__title">{list.name}</h3>
         <span className="trello-lane__count">{cards.length}</span>
       </header>
+      {statusLabel ? (
+        <p className="muted eyebrow">{statusLabel}</p>
+      ) : null}
       <ul className="trello-lane__cards">
         {cards.map((card) => (
           <BoardCard key={card.id} card={card} members={card.members ?? []} />

@@ -18,6 +18,14 @@ export const TrelloRepo = {
     })
   },
 
+  //Set a status for each section (backlog, in progress, completed)
+  async setTeamTrelloSectionConfig(teamId: number, config: Record<string, string>) {
+    await prisma.team.update({
+      where: { id: teamId },
+      data: { trelloSectionConfig: config as any }
+    })
+  },
+
   //Returns a team with its Trello owner
   async getTeamWithOwner(teamId: number) {
     return prisma.team.findUnique({

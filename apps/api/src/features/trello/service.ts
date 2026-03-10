@@ -107,9 +107,14 @@ export const TrelloService = {
     return TrelloRepo.assignBoard(teamId, boardId, ownerId)
   },
 
-  async fetchAssignedTeamBoard(teamId: number, userId: number) {
+  /** Throws if the user is not a member of the team */
+  async assertTeamMember(teamId: number, userId: number) {
     const isMember = await TrelloRepo.isUserInTeam(userId, teamId)
     if (!isMember) throw new Error("Not a member of this team")
+  },
+
+  async fetchAssignedTeamBoard(teamId: number, userId: number) {
+    await TrelloService.assertTeamMember(teamId, userId)
 
     const team = await TrelloRepo.getTeamWithOwner(teamId)
     if (!team?.trelloBoardId) throw new Error("No board assigned")
@@ -131,7 +136,20 @@ export const TrelloService = {
       }
     }
 
-    return board
+    const sectionConfig =
+      team.trelloSectionConfig && typeof team.trelloSectionConfig === "object" && !Array.isArray(team.trelloSectionConfig)
+        ? (team.trelloSectionConfig as Record<string, string>)
+        : {}
+    return { board, sectionConfig }
+  },
+
+  async updateTeamTrelloSectionConfig(teamId: number, userId: number, config: Record<string, string>) {
+    await TrelloService.assertTeamMember(teamId, userId)
+    const normalized: Record<string, string> = {}
+    for (const [key, value] of Object.entries(config)) {
+      if (typeof key === "string" && typeof value === "string") normalized[key] = value
+    }
+    await TrelloRepo.setTeamTrelloSectionConfig(teamId, normalized)
   },
 
   async fetchMyBoards(userId: number) {
