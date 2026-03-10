@@ -13,224 +13,13 @@ vi.mock("./repo.js", () => ({
   },
 }));
 
-describe("TrelloService", () => {
+describe("TrelloService team and board operations", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TRELLO_KEY = "test-key";
     process.env.APP_BASE_URL = "http://localhost:3001";
   });
 
-  //Authorisation URL generation
-
-  it("builds a valid authorise URL", () => {
-    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
-    const url = TrelloService.getAuthoriseUrl(callbackUrl);
-
-    expect(url).toContain("https://trello.com/1/authorize");
-    expect(url).toContain(`key=${process.env.TRELLO_KEY}`);
-    expect(url).toContain(encodeURIComponent(callbackUrl));
-  });
-
-  //Ensures fallback defaults are used if env vars are missing. Uses project callback URL (frontend should always pass this).
-  it("uses default app name and base URL when env vars are missing", () => {
-    process.env.TRELLO_KEY = "test-key";
-    delete process.env.TRELLO_APP_NAME;
-    delete process.env.APP_BASE_URL;
-
-    const projectCallbackUrl = "http://localhost:3001/projects/123/trello/callback";
-    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
-
-    expect(url).toContain("name=TeamFeedback2Keys");
-    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
-  });
-
-  //Ensures trailing slash is cleaned up correctly
-  it("removes trailing slash from APP_BASE_URL", () => {
-    process.env.TRELLO_KEY = "test-key";
-    process.env.TRELLO_APP_NAME = "MyApp";
-    process.env.APP_BASE_URL = "http://localhost:4000/";
-
-    const projectCallbackUrl = "http://localhost:4000/projects/1/trello/callback";
-    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
-
-    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
-  });
-
-  it("uses custom APP_BASE_URL and TRELLO_APP_NAME with project callback URL", () => {
-    process.env.TRELLO_KEY = "test-key";
-    process.env.TRELLO_APP_NAME = "CustomApp";
-    process.env.APP_BASE_URL = "https://myapp.com";
-
-    const projectCallbackUrl = "https://myapp.com/projects/99/trello/callback";
-    const url = TrelloService.getAuthoriseUrl(projectCallbackUrl);
-
-    expect(url).toContain("name=CustomApp");
-    expect(url).toContain(encodeURIComponent(projectCallbackUrl));
-  });
-
-  it("uses provided callbackUrl when valid", () => {
-    process.env.TRELLO_KEY = "test-key";
-    process.env.APP_BASE_URL = "https://myapp.com";
-
-    const customCallback = "https://myapp.com/projects/42/trello/callback";
-    const url = TrelloService.getAuthoriseUrl(customCallback);
-
-    expect(url).toContain(encodeURIComponent(customCallback));
-  });
-
-  it("throws if callbackUrl is missing or invalid", () => {
-    expect(() => TrelloService.getAuthoriseUrl(undefined as any)).toThrow(
-      "Valid callback URL is required"
-    );
-    expect(() => TrelloService.getAuthoriseUrl("")).toThrow(
-      "Valid callback URL is required"
-    );
-    expect(() => TrelloService.getAuthoriseUrl("/projects/1/trello/callback")).toThrow(
-      "Valid callback URL is required"
-    );
-  });
-
-  it("throws if TRELLO_KEY is missing", () => {
-    delete process.env.TRELLO_KEY;
-    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
-
-    expect(() => TrelloService.getAuthoriseUrl(callbackUrl)).toThrow(
-      "Trello is not configured on this server"
-    );
-  });
-
-  it("throws if requireTrelloKey returns empty string", () => {
-    process.env.TRELLO_KEY = "";
-    const callbackUrl = "http://localhost:3001/projects/1/trello/callback";
-
-    expect(() => TrelloService.getAuthoriseUrl(callbackUrl)).toThrow(
-      "Trello is not configured on this server."
-    );
-  });
-
-  //Directs Trello api calls
-  it("getUserBoards fetches boards successfully", async () => {
-    const mockBoards = [{ id: "1", name: "Board 1" }];
-
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockBoards,
-    } as any);
-
-    const result = await TrelloService.getUserBoards("token123");
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      `https://api.trello.com/1/members/me/boards?key=${process.env.TRELLO_KEY}&token=token123`
-    );
-
-    expect(result).toEqual(mockBoards);
-  });
-
-  it("getUserBoards throws on failure", async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
-
-    await expect(
-      TrelloService.getUserBoards("token123")
-    ).rejects.toThrow("Failed to fetch boards");
-  });
-
-  it("getBoardWithData fetches board data", async () => {
-    const mockBoard = { id: "board1" };
-    const mockActions = [{ id: "act1", type: "createCard" }];
-
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockBoard,
-      } as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => mockActions,
-      } as any);
-
-    global.fetch = fetchMock as any;
-
-    const result = await TrelloService.getBoardWithData(
-      "board1",
-      "token123"
-    );
-
-    expect(global.fetch).toHaveBeenCalledTimes(2);
-    const boardUrl = (global.fetch as any).mock.calls[0][0];
-    expect(boardUrl).toContain("https://api.trello.com/1/boards/board1?");
-    expect(boardUrl).toContain("lists=open");
-    expect(boardUrl).toContain("cards=open");
-    expect(boardUrl).toContain("members=all");
-    expect(boardUrl).toContain("key=test-key");
-    expect(boardUrl).toContain("token=token123");
-
-    expect(result).toEqual({ ...mockBoard, actions: [] });
-  });
-
-  it("getBoardWithData throws on failure", async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
-
-    await expect(
-      TrelloService.getBoardWithData("board1", "token123")
-    ).rejects.toThrow("Failed to fetch board");
-  });
-
-  it("fetches Trello member", async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ id: "member1" }),
-    } as any);
-
-    const result = await TrelloService.getTrelloMember("token123");
-
-    expect(result).toEqual({ id: "member1" });
-  });
-
-  it("throws if member fetch fails", async () => {
-    global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
-
-    await expect(
-      TrelloService.getTrelloMember("token123")
-    ).rejects.toThrow("Failed to fetch Trello member");
-  });
-
-  //OAuth completion
-  it("saves user token after OAuth", async () => {
-    vi.spyOn(TrelloService, "getTrelloMember").mockResolvedValue({
-      id: "member123",
-    } as any);
-
-    await TrelloService.completeOauthCallback(1, "token123");
-
-    expect(TrelloRepo.updateUserTrelloToken).toHaveBeenCalledWith(
-      1,
-      "token123",
-      "member123"
-    );
-  });
-
-  it("throws if OAuth token missing", async () => {
-    await expect(
-      TrelloService.completeOauthCallback(1, "")
-    ).rejects.toThrow("Missing token");
-  });
-
-  it("completeOauthCallback throws if userId missing", async () => {
-    await expect(
-      TrelloService.completeOauthCallback(0 as any, "token123")
-    ).rejects.toThrow("Missing userId");
-  });
-
-  it("completeOauthCallback throws if member id missing", async () => {
-    vi.spyOn(TrelloService, "getTrelloMember").mockResolvedValue({} as any);
-
-    await expect(
-      TrelloService.completeOauthCallback(1, "token123")
-    ).rejects.toThrow("Failed to fetch Trello member");
-  });
-
-  //Assign board to team
   it("assigns board if owner owns it", async () => {
     (TrelloRepo.getUserById as any).mockResolvedValue({
       id: 1,
@@ -278,7 +67,6 @@ describe("TrelloService", () => {
     ).rejects.toThrow("Owner is not connected to Trello");
   });
 
-  //Fetches assigned team board
   it("fetches team board if member", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
 
@@ -328,8 +116,6 @@ describe("TrelloService", () => {
     ).rejects.toThrow("Team owner not connected to Trello");
   });
 
-  // Fetches personal boards
-
   it("fetches boards for connected user", async () => {
     (TrelloRepo.getUserById as any).mockResolvedValue({
       trelloToken: "token123",
@@ -354,7 +140,6 @@ describe("TrelloService", () => {
     ).rejects.toThrow("User not connected to Trello");
   });
 
-  //fetches a board by ID
   it("fetches board if belongs to user", async () => {
     (TrelloRepo.getUserById as any).mockResolvedValue({
       trelloToken: "token123",
@@ -403,8 +188,6 @@ describe("TrelloService", () => {
     ).rejects.toThrow("Board not found for this user");
   });
 
-  // assertTeamMember
-
   it("assertTeamMember does not throw when user is in team", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
 
@@ -421,8 +204,6 @@ describe("TrelloService", () => {
       TrelloService.assertTeamMember(2, 1)
     ).rejects.toThrow("Not a member of this team");
   });
-
-  // updateTeamTrelloSectionConfig
 
   it("updateTeamTrelloSectionConfig saves normalized config when user is member", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
