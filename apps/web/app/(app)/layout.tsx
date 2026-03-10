@@ -5,7 +5,6 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
@@ -114,7 +113,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   return (
     <AppShell
       sidebar={<Sidebar title="Workspace" links={accessibleLinks} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<><NotificationBell /><UserMenu /></>} />}
+      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
     >
       <div className="workspace-shell">{children}</div>
