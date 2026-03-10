@@ -97,6 +97,7 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   if (state.status === "link-board") {
     return (
       <TrelloLinkBoardView
+        projectId={projectId}
         teamId={teamId}
         teamName={teamName}
         boards={state.boards}
