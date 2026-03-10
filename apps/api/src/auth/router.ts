@@ -52,7 +52,8 @@ if (googleEnabled) {
         maxAge: 1000 * 60 * 60 * 24 * 30,
       });
       const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
-      res.redirect(`${appBaseUrl}/modules`);
+      const destinationPath = user?.role === "ADMIN" ? "/admin" : "/modules";
+      res.redirect(`${appBaseUrl}${destinationPath}`);
     }
   );
 

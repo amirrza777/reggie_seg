@@ -209,7 +209,20 @@ export async function meHandler(req: AuthRequest, res: Response) {
       userId = refreshPayload.sub;
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        role: true,
+        active: true,
+        _count: {
+          select: {
+            moduleLeads: true,
+            moduleTeachingAssistants: true,
+          },
+        },
+      },
+    });
     if (!user) return res.status(401).json({ error: "Not authenticated" });
     if (user.active === false) {
       await prisma.refreshToken.updateMany({ where: { userId: user.id, revoked: false }, data: { revoked: true } });
@@ -217,7 +230,9 @@ export async function meHandler(req: AuthRequest, res: Response) {
     }
 
     const role = user.role;
-    const isStaff = role !== "STUDENT";
+    const hasModuleStaffAssignments =
+      (user._count?.moduleLeads ?? 0) > 0 || (user._count?.moduleTeachingAssistants ?? 0) > 0;
+    const isStaff = role !== "STUDENT" || hasModuleStaffAssignments;
     const isEnterpriseAdmin = role === "ENTERPRISE_ADMIN";
     const isAdmin = role === "ADMIN";
 

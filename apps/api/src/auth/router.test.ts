@@ -53,7 +53,7 @@ describe("auth router", () => {
     expect(res.status).toHaveBeenCalledWith(503);
   });
 
-  it("google callback issues tokens, sets cookie and redirects when oauth is enabled", async () => {
+  it("google callback issues tokens, sets cookie and redirects non-admin users to modules", async () => {
     vi.resetModules();
     vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
     const { issueTokensForUser } = await import("./service.js");
@@ -72,5 +72,19 @@ describe("auth router", () => {
       expect.objectContaining({ httpOnly: true, path: "/" })
     );
     expect(res.redirect).toHaveBeenCalledWith("http://localhost:3001/modules");
+  });
+
+  it("google callback redirects admin users to admin space", async () => {
+    vi.resetModules();
+    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
+    const { default: router } = await import("./router.js");
+
+    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
+    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
+    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
+
+    await callbackHandler({ user: { id: 5, email: "admin@test.com", role: "ADMIN" } } as any, res);
+
+    expect(res.redirect).toHaveBeenCalledWith("http://localhost:3001/admin");
   });
 });

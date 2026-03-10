@@ -336,6 +336,31 @@ describe("auth controller", () => {
     });
   });
 
+  it("meHandler treats student teaching assistants as staff-space users", async () => {
+    const res = mockResponse();
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 21,
+      role: "STUDENT",
+      active: true,
+      _count: { moduleLeads: 0, moduleTeachingAssistants: 1 },
+    });
+    (service.getProfile as any).mockResolvedValueOnce({ id: 21, email: "ta@student.com", firstName: "TA", lastName: "Student" });
+
+    await meHandler({ user: { sub: 21 } } as any, res as any);
+
+    expect(res.json).toHaveBeenCalledWith({
+      id: 21,
+      email: "ta@student.com",
+      firstName: "TA",
+      lastName: "Student",
+      isStaff: true,
+      isAdmin: false,
+      isEnterpriseAdmin: false,
+      role: "STUDENT",
+      active: true,
+    });
+  });
+
   it("meHandler catches refresh verification errors", async () => {
     const res = mockResponse();
     (service.verifyRefreshToken as any).mockImplementationOnce(() => {
