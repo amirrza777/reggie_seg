@@ -81,19 +81,68 @@ export async function getBoardById(boardId: string): Promise<BoardView> {
 export type TeamBoardSummary = { id: string; name: string; url?: string };
 
 export type TeamBoardResult =
-  | { ok: true; view: BoardView }
+  | { ok: true; view: BoardView; sectionConfig: Record<string, string> }
   | { ok: false; requireJoin: true; boardUrl: string };
 
-/** Fetches the board assigned to the team. Returns full board view, or requireJoin + boardUrl if the user must join the board on Trello first. */
+/** Fetches the board assigned to the team. Returns full board view + section config, or requireJoin + boardUrl if the user must join the board on Trello first. */
 export async function getTeamBoard(teamId: number): Promise<TeamBoardResult> {
-  const raw = await trelloFetch<TrelloBoardDetail | { requireJoin: true; boardUrl: string }>(
-    `/trello/team-board?teamId=${encodeURIComponent(String(teamId))}`,
-    { method: "GET" }
-  );
+  const raw = await trelloFetch<
+    | { requireJoin: true; boardUrl: string }
+    | { board: TrelloBoardDetail; sectionConfig?: Record<string, string> }
+  >(`/trello/team-board?teamId=${encodeURIComponent(String(teamId))}`, { method: "GET" });
   if (raw && typeof raw === "object" && "requireJoin" in raw && raw.requireJoin && raw.boardUrl) {
     return { ok: false, requireJoin: true, boardUrl: raw.boardUrl };
   }
-  return { ok: true, view: rawBoardToBoardView(raw as TrelloBoardDetail) };
+  const { board, sectionConfig } = raw as { board: TrelloBoardDetail; sectionConfig?: Record<string, string> };
+  return {
+    ok: true,
+    view: rawBoardToBoardView(board),
+    sectionConfig: sectionConfig && typeof sectionConfig === "object" ? sectionConfig : {},
+  };
+}
+
+export const TRELLO_SECTION_STATUSES = [
+  "information_only",
+  "backlog",
+  "work_in_progress",
+  "completed",
+] as const;
+export type TrelloSectionStatus = (typeof TRELLO_SECTION_STATUSES)[number];
+
+/** Default status from list name */
+export function getDefaultStatusForListName(listName: string): "backlog" | "work_in_progress" | "completed" {
+  const lower = listName.toLowerCase().trim();
+  if (lower === "backlog") return "backlog";
+  if (lower === "completed") return "completed";
+  return "work_in_progress";
+}
+
+export function mergeSectionConfigWithDefaults(
+  listNames: string[],
+  savedConfig: Record<string, string> | null | undefined
+): Record<string, string> {
+  const merged: Record<string, string> = {};
+  const config = savedConfig && typeof savedConfig === "object" ? savedConfig : {};
+  for (const name of listNames) {
+    const saved = config[name];
+    const valid =
+      saved &&
+      typeof saved === "string" &&
+      (TRELLO_SECTION_STATUSES as readonly string[]).includes(saved);
+    merged[name] = valid ? saved : getDefaultStatusForListName(name);
+  }
+  return merged;
+}
+
+export async function putTrelloSectionConfig(
+  teamId: number,
+  config: Record<string, string>
+): Promise<{ ok: boolean }> {
+  return trelloFetch<{ ok: boolean }>("/trello/team-section-config", {
+    method: "PUT",
+    body: JSON.stringify({ teamId, config }),
+    headers: { "Content-Type": "application/json" },
+  });
 }
 
 export async function getLinkToken(): Promise<{ linkToken: string }> {
@@ -133,4 +182,14 @@ export async function completeTrelloLinkWithToken(linkToken: string, trelloToken
 
 export async function getMyTrelloMemberId(): Promise<{ trelloMemberId: string | null }> {
   return trelloFetch<{ trelloMemberId: string | null }>("/trello/me-member", { method: "GET" });
+}
+
+export type TrelloProfile = {
+  trelloMemberId: string | null;
+  fullName: string | null;
+  username: string | null;
+};
+
+export async function getMyTrelloProfile(): Promise<TrelloProfile> {
+  return trelloFetch<TrelloProfile>("/trello/me-profile", { method: "GET" });
 }

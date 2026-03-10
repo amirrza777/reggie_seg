@@ -1,17 +1,50 @@
 import { prisma } from "../../shared/db.js";
 
 export async function isUserInProject(userId: number, projectId: number) {
-  const allocation = await prisma.teamAllocation.findFirst({
+  const project = await prisma.project.findFirst({
     where: {
-      userId,
-      team: {
-        projectId,
-      },
+      id: projectId,
+      OR: [
+        {
+          teams: {
+            some: {
+              allocations: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          },
+        },
+        {
+          module: {
+            moduleLeads: {
+              some: {
+                userId,
+              },
+            },
+          },
+        },
+        {
+          module: {
+            enterprise: {
+              users: {
+                some: {
+                  id: userId,
+                  role: {
+                    in: ["ADMIN", "ENTERPRISE_ADMIN"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
     },
-    select: { userId: true },
+    select: { id: true },
   });
 
-  return Boolean(allocation);
+  return Boolean(project);
 }
 
 export async function listProjectGithubIdentityCandidates(projectId: number) {
@@ -182,6 +215,7 @@ export function findProjectGithubRepositoryLinkById(linkId: number) {
     select: {
       id: true,
       projectId: true,
+      linkedByUserId: true,
       githubRepositoryId: true,
       syncIntervalMinutes: true,
       repository: {

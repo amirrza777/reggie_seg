@@ -176,4 +176,19 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("Matched commits:8")).toBeInTheDocument();
     expect(screen.getByText("Unmatched commits:2")).toBeInTheDocument();
   });
+
+  it("renders staff-focused labels and hides personal signal in staff mode", () => {
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={makeSnapshot()}
+        coverage={makeCoverage()}
+        currentGithubLogin={null}
+        viewerMode="staff"
+      />
+    );
+
+    expect(screen.getByText("Commits over time (team total)")).toBeInTheDocument();
+    expect(screen.getByText("Active coding days")).toBeInTheDocument();
+    expect(screen.queryByText("Personal activity share")).not.toBeInTheDocument();
+  });
 });

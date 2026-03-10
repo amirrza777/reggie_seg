@@ -34,7 +34,7 @@ export function ProjectList({ projects }: ProjectListProps) {
               <p className="project-card__summary">{project.summary}</p>
             )}
             <div className="project-card__footer">
-              <span className="project-card__cta">View Project</span>
+              <span className="project-card__cta">View Project →</span>
             </div>
           </Link>
         ))}

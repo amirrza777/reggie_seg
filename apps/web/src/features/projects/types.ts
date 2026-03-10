@@ -3,6 +3,8 @@ export type Project = {
   name: string;
   summary?: string;
   moduleName?: string;
+  moduleId?: number;
+  teamCount?: number;
   questionnaireTemplateId: number;
 };
 
@@ -32,6 +34,24 @@ export type Team = {
     userId: number;
     user: User;
   }>;
+};
+
+export type StaffProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  moduleName: string;
+  teamCount: number;
+};
+
+export type StaffProjectTeamsResponse = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  teams: Team[];
 };
 
 export type TeamMember = {

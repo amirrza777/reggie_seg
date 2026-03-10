@@ -10,11 +10,15 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
+  getStaffProjectsHandler,
+  getStaffProjectTeamsHandler,
 } from "./controller.js";
 
 const router = Router();
 router.post("/", createProjectHandler);
 router.get("/modules", getUserModulesHandler);
+router.get("/staff/mine", getStaffProjectsHandler);
+router.get("/staff/:projectId/teams", getStaffProjectTeamsHandler);
 router.get("/", getUserProjectsHandler);
 router.get("/:projectId", getProjectByIdHandler);
 router.get("/:projectId/teammates", getTeammatesForProjectHandler);

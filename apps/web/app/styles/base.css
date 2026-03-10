@@ -250,6 +250,38 @@ h3 {
     color: var(--accent-strong);
 }
 
+.pill-nav .nav-link--active {
+  font-weight: var(--fw-semibold);
+}
+
+.pill-nav .nav-link--inactive {
+  border-color: var(--accent-border);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.pill-ghost {
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.pill-green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #047857;
+}
+
+.pill-amber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
 input,
 textarea {
     width: 100%;
