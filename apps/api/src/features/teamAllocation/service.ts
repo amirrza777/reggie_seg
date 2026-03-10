@@ -6,7 +6,6 @@ import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
-  findPendingInvitesForEmail,
   getInvitesForTeam,
   TeamService,
   updateInviteStatusFromPending,
@@ -66,10 +65,6 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
 export async function listTeamInvites(teamId: number) {
   return getInvitesForTeam(teamId);
-}
-
-export async function getReceivedInvites(email: string) {
-  return findPendingInvitesForEmail(email);
 }
 
 export async function createTeam(userId: number, teamData: Parameters<typeof TeamService.createTeam>[1]) {

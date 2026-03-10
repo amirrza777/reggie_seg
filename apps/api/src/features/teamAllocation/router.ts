@@ -8,7 +8,6 @@ import {
   cancelTeamInviteHandler,
   expireTeamInviteHandler,
   listTeamInvitesHandler,
-  getReceivedInvitesHandler,
   createTeamHandler,
   createTeamForProjectHandler,
   getTeamByIdHandler,
@@ -19,7 +18,6 @@ import {
 const router = Router();
 
 router.post("/invites", createTeamInviteHandler);
-router.get("/invites/received", requireAuth, getReceivedInvitesHandler);
 router.patch("/invites/:inviteId/accept", requireAuth, acceptTeamInviteHandler);
 router.patch("/invites/:inviteId/decline", declineTeamInviteHandler);
 router.patch("/invites/:inviteId/reject", rejectTeamInviteHandler);
