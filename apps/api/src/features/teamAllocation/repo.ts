@@ -55,6 +55,20 @@ export async function getInvitesForTeam(teamId: number) {
   return prisma.teamInvite.findMany({
     where: { teamId },
     orderBy: { createdAt: "desc" },
+    include: {
+      inviter: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
+  });
+}
+
+export async function findPendingInvitesForEmail(email: string) {
+  return prisma.teamInvite.findMany({
+    where: { inviteeEmail: email, status: "PENDING", active: true },
+    include: {
+      team: { select: { id: true, teamName: true, projectId: true } },
+      inviter: { select: { id: true, firstName: true, lastName: true, email: true } },
+    },
+    orderBy: { createdAt: "desc" },
   });
 }
 

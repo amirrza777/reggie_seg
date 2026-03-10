@@ -39,7 +39,7 @@ export function SummaryCardsByStatusChart({ counts }: Props) {
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value: number, name: string) => [value, name]} />
+                <Tooltip formatter={(value, name) => [value, name]} />
               </PieChart>
             </ResponsiveContainer>
           </div>

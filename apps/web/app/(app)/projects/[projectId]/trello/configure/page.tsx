@@ -13,7 +13,6 @@ export default async function ConfigureTrelloPage({ params }: PageProps) {
       <TrelloProjectGate
         projectId={projectId}
         signInMessage="Please sign in to configure Trello."
-        redirectToLoginIfUnauthenticated
       >
         {({ projectId, teamId, teamName }) => (
           <ConfigureTrelloContent

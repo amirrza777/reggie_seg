@@ -1,13 +1,22 @@
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
-import { ProjectTeamList } from "@/features/projects/components/ProjectTeamList";
+import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
-import Link from "next/link";
+import { apiFetch } from "@/shared/api/http";
+import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
+
+async function getTeamInvites(teamId: number): Promise<TeamInvite[]> {
+  try {
+    return await apiFetch<TeamInvite[]>(`/team-allocation/teams/${teamId}/invites`);
+  } catch {
+    return [];
+  }
+}
 
 export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
@@ -23,21 +32,29 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
     }
   }
 
+  const initialInvites = team ? await getTeamInvites(team.id) : [];
+
+  const cardTitle = team
+    ? `Project Team${team.teamName ? ` — ${team.teamName}` : ""}`
+    : "Team Formation";
+
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
-      {team ? (
-        <div style={{ padding: 20 }}>
-          <Card title={`Project Team${team.teamName ? ` - ${team.teamName}` : ""}`}>
-            <ProjectTeamList team={team} />
-          </Card>
-        </div>
-      ) : (
-        <div style={{ padding: 24 }}>
-          <p>You are not in a team for this project.</p>
-          <Link href={`/projects/${projectId}`}>← Back to project</Link>
-        </div>
-      )}
+      <div style={{ padding: 20 }}>
+        <Card title={cardTitle}>
+          {user ? (
+            <TeamFormationPanel
+              team={team}
+              projectId={numericProjectId}
+              userId={user.id}
+              initialInvites={initialInvites}
+            />
+          ) : (
+            <p>Please sign in to manage your team.</p>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

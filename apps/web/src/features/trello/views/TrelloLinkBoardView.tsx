@@ -11,13 +11,14 @@ import "@/features/trello/styles/link-board.css";
 const MAX_PREVIEW_CARDS_PER_LIST = 5;
 
 type Props = {
+  projectId: string;
   teamId: number;
   teamName?: string;
   boards: OwnerBoard[];
   onAssigned: () => void;
 };
 
-export function TrelloLinkBoardView({ teamId, teamName, boards, onAssigned }: Props) {
+export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAssigned }: Props) {
   const router = useRouter();
   const [selectedBoardId, setSelectedBoardId] = useState(boards[0]?.id ?? "");
   const [loading, setLoading] = useState(false);

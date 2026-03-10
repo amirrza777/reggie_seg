@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createTeamInvite,
   listTeamInvites,
   createTeam,
+  createTeamForProject,
   getTeamById,
   addUserToTeam,
   getTeamMembers,
@@ -75,6 +77,27 @@ export async function createTeamHandler(req: Request, res: Response) {
     return res.status(201).json(team);
   } catch (error) {
     console.error("Error creating team:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function createTeamForProjectHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  const projectId = Number(req.body?.projectId);
+  const teamName = typeof req.body?.teamName === "string" ? req.body.teamName.trim() : "";
+
+  if (!userId || isNaN(projectId) || !teamName) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
+
+  try {
+    const team = await createTeamForProject(userId, projectId, teamName);
+    return res.status(201).json(team);
+  } catch (error: any) {
+    if (error?.code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.error("Error creating team for project:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -162,8 +185,27 @@ async function transitionInviteHandler(
   }
 }
 
-export async function acceptTeamInviteHandler(req: Request, res: Response) {
-  return transitionInviteHandler(req, res, acceptTeamInvite, "accepting");
+export async function acceptTeamInviteHandler(req: AuthRequest, res: Response) {
+  const inviteId = typeof req.params.inviteId === "string" ? req.params.inviteId.trim() : "";
+  const userId = req.user?.sub;
+
+  if (!inviteId) {
+    return res.status(400).json({ error: "Invalid invite ID" });
+  }
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const invite = await acceptTeamInvite(inviteId, userId);
+    return res.json({ ok: true, invite });
+  } catch (error: any) {
+    if (error?.code === "INVITE_NOT_PENDING") {
+      return res.status(409).json({ error: "Invite is not pending" });
+    }
+    console.error("Error accepting team invite:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 export async function declineTeamInviteHandler(req: Request, res: Response) {

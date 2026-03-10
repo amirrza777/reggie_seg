@@ -1,0 +1,181 @@
+.team-formation {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── No-team state ── */
+.team-formation__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 24px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  text-align: center;
+}
+
+.team-formation__empty-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.team-formation__empty h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.team-formation__empty p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  max-width: 360px;
+}
+
+/* ── Create team form ── */
+.team-formation__create-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.team-formation__create-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+}
+
+.team-formation__create-form input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* ── Section header ── */
+.team-formation__section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.team-formation__section-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+/* ── Invite form ── */
+.team-formation__invite-form {
+  display: flex;
+  gap: 8px;
+}
+
+.team-formation__invite-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.95rem;
+  background: var(--bg);
+  color: var(--ink);
+  outline: none;
+  min-width: 0;
+}
+
+.team-formation__invite-form input:focus {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+/* ── Pending invites list ── */
+.team-formation__invite-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.team-formation__invite-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.95rem;
+}
+
+.team-formation__invite-email {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.team-formation__invite-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.team-formation__invite-date {
+  font-size: 0.8rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ── Feedback message ── */
+.team-formation__feedback {
+  font-size: 0.875rem;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+}
+
+.team-formation__feedback--error {
+  color: var(--status-danger-text);
+  background: var(--status-danger-soft);
+  border: 1px solid var(--status-danger-border);
+}
+
+.team-formation__feedback--success {
+  color: var(--status-success-text);
+  background: var(--status-success-soft);
+  border: 1px solid var(--status-success-border);
+}
+
+/* ── Buttons ── */
+.btn--danger-ghost {
+  padding: 4px 10px;
+  border: 1px solid var(--status-danger-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--status-danger-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn--danger-ghost:hover {
+  background: var(--status-danger-soft);
+}
