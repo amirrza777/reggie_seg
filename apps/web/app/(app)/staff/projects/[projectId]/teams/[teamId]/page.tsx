@@ -65,6 +65,27 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
+      <section className="staff-projects__grid" aria-label="Team overview quick actions">
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Team health</h3>
+          <p className="staff-projects__card-sub">
+            Use peer-assessment completion, peer-feedback evidence, and repository activity together to spot risks early.
+          </p>
+          <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/peer-assessment`} className="staff-projects__card-action">
+            Open assessment signals
+          </Link>
+        </article>
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Coordination</h3>
+          <p className="staff-projects__card-sub">
+            Check meetings and scheduler data to track team operating rhythm and identify inactive periods.
+          </p>
+          <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/team-meetings`} className="staff-projects__card-action">
+            Open meeting timeline
+          </Link>
+        </article>
+      </section>
+
       <section className="staff-projects__team-card" aria-label="Team members">
         <h3 style={{ margin: 0 }}>Team members</h3>
         <p className="muted" style={{ margin: 0 }}>

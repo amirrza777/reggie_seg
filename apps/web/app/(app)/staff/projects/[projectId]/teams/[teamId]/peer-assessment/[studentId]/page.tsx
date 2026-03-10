@@ -3,7 +3,9 @@ import { redirect } from "next/navigation";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
-import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import {
+  getStudentDetails,
+} from "@/features/staff/peerAssessments/api/client";
 import {
   getPeerAssessmentsForUser,
   getQuestionsByProject,
@@ -51,19 +53,25 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
     return <p className="muted">Team not found in this project.</p>;
   }
 
-  let teamDetails: Awaited<ReturnType<typeof getTeamDetails>> | null = null;
-  try {
-    teamDetails = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load team assessment details.";
-    return <p className="muted">{message}</p>;
-  }
-
   const student = team.allocations.find((allocation) => allocation.userId === numericStudentId)?.user ?? null;
   const studentTitle =
     student != null ? fullName(student.firstName, student.lastName) : `Student ${studentId}`;
 
-  const reviewerRows = teamDetails.teamMembers.filter((member) => member.id !== numericStudentId);
+  let reviewerRows: Array<{ id: number; reviewedCurrentStudent: boolean }> = [];
+  let reviewerStatsError: string | null = null;
+  try {
+    const studentDetails = await getStudentDetails(
+      user.id,
+      projectData.project.moduleId,
+      numericTeamId,
+      numericStudentId
+    );
+    reviewerRows = studentDetails.teamMembers.filter((member) => member.id !== numericStudentId);
+  } catch (error) {
+    reviewerStatsError =
+      error instanceof Error ? error.message : "Failed to load received-assessment stats.";
+  }
+
   const receivedCount = reviewerRows.reduce(
     (count, member) => count + (member.reviewedCurrentStudent ? 1 : 0),
     0
@@ -115,10 +123,16 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
         <article className="staff-projects__card">
           <h3 className="staff-projects__card-title">Received from teammates</h3>
           <p className="staff-projects__card-sub">
-            {receivedCount}/{reviewerRows.length}
+            {reviewerStatsError ? "Unavailable" : `${receivedCount}/${reviewerRows.length}`}
           </p>
         </article>
       </section>
+
+      {reviewerStatsError ? (
+        <section className="staff-projects__team-card">
+          <p className="muted" style={{ margin: 0 }}>{reviewerStatsError}</p>
+        </section>
+      ) : null}
 
       {assessmentLoadError ? (
         <section className="staff-projects__team-card">

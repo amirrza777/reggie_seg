@@ -8,6 +8,12 @@ type StaffProjectTeamsPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
+function getInitials(firstName: string, lastName: string) {
+  const first = firstName?.trim()?.[0] ?? "";
+  const last = lastName?.trim()?.[0] ?? "";
+  return `${first}${last}`.toUpperCase() || "?";
+}
+
 export default async function StaffProjectTeamsPage({ params }: StaffProjectTeamsPageProps) {
   const user = await getCurrentUser();
   if (!user?.isStaff && user?.role !== "ADMIN") {
@@ -39,14 +45,19 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
     );
   }
 
+  const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
+
   return (
     <div className="staff-projects">
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Project</p>
         <h1 className="staff-projects__title">{data.project.name}</h1>
-        <p className="staff-projects__desc">Module: {data.project.moduleName}. Choose a team to view team details.</p>
+        <p className="staff-projects__desc">
+          Module: {data.project.moduleName}. Choose a team to inspect assessment progress, feedback evidence, repositories, and grading.
+        </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
           <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
         </div>
       </section>
@@ -57,12 +68,26 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
           <article key={team.id} className="staff-projects__team-card">
             <div className="staff-projects__team-top">
               <h3 className="staff-projects__team-title">{team.teamName}</h3>
+              <span className="staff-projects__badge">
+                {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
+              </span>
             </div>
-            <p className="staff-projects__team-count">
-              {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
-            </p>
+            {team.allocations.length > 0 ? (
+              <div className="staff-projects__team-avatars" aria-label={`Member preview for ${team.teamName}`}>
+                {team.allocations.slice(0, 5).map((allocation) => (
+                  <span key={allocation.userId} className="staff-projects__avatar staff-projects__avatar--sm">
+                    {getInitials(allocation.user.firstName, allocation.user.lastName)}
+                  </span>
+                ))}
+                {team.allocations.length > 5 ? (
+                  <span className="staff-projects__member-email">+{team.allocations.length - 5} more</span>
+                ) : null}
+              </div>
+            ) : (
+              <p className="staff-projects__team-count">No students assigned yet.</p>
+            )}
             <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
-              View team
+              Open team workspace
             </Link>
           </article>
         ))}

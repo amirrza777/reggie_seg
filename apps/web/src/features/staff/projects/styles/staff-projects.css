@@ -122,6 +122,13 @@
   color: var(--muted);
 }
 
+.staff-projects__team-avatars {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .staff-projects__team-action {
   width: fit-content;
 }
@@ -151,6 +158,12 @@
   font-size: 0.85rem;
   font-weight: var(--fw-semibold);
   background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.staff-projects__avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.72rem;
 }
 
 .staff-projects__member-name {
