@@ -9,19 +9,19 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StaffTeamSectionNav", () => {
-  it("renders repositories tab link", () => {
+  it("renders grading tab link", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
-    expect(screen.getByRole("link", { name: "Repositories" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Grading" })).toBeInTheDocument();
   });
 
-  it("marks repositories tab active on repositories route", () => {
-    usePathnameMock.mockReturnValue("/staff/projects/2/teams/3/repositories");
+  it("marks grading tab active on grading route", () => {
+    usePathnameMock.mockReturnValue("/staff/projects/2/teams/3/grading");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
-    const repositoriesLink = screen.getByRole("link", { name: "Repositories" });
-    expect(repositoriesLink.className).toContain("pill-nav__link--active");
-    expect(repositoriesLink).toHaveAttribute("aria-current", "page");
+    const gradingLink = screen.getByRole("link", { name: "Grading" });
+    expect(gradingLink.className).toContain("pill-nav__link--active");
+    expect(gradingLink).toHaveAttribute("aria-current", "page");
   });
 });

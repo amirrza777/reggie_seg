@@ -137,7 +137,7 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
         <p className="staff-projects__eyebrow">Peer Feedback</p>
         <h1 className="staff-projects__title">{team.teamName}</h1>
         <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Read-only view of feedback review completion for this team.
+          Project: {projectData.project.name}. Feedback-review completion for this team.
         </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
@@ -173,6 +173,20 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
               <h3 className="staff-projects__card-title">Pending reviews</h3>
               <p className="staff-projects__card-sub">{totals.pending}</p>
             </article>
+          </section>
+
+          <section className="staff-projects__team-card">
+            <p className="muted" style={{ margin: 0 }}>
+              Use{" "}
+              <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment`} className="staff-projects__badge">
+                Peer assessment
+              </Link>{" "}
+              for submission progress and{" "}
+              <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/grading`} className="staff-projects__badge">
+                Grading
+              </Link>{" "}
+              for marks.
+            </p>
           </section>
 
           <section className="staff-projects__team-list" aria-label="Peer feedback by student">

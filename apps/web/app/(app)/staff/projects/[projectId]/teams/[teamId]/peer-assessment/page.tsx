@@ -76,7 +76,15 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
       <section className="staff-projects__team-card">
         <h3 style={{ margin: 0 }}>Assessment progress by student</h3>
         <p className="muted" style={{ margin: 0 }}>
-          Track submission progress by student and open each student record for detailed review context.
+          This section is for peer-assessment completion tracking only. Use{" "}
+          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/grading`} className="staff-projects__badge">
+            Grading
+          </Link>{" "}
+          for marks and{" "}
+          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-feedback`} className="staff-projects__badge">
+            Peer feedback
+          </Link>{" "}
+          for review completion.
         </p>
         {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
         {!detailError && students.length === 0 ? (
