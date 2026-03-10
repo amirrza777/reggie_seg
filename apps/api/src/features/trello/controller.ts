@@ -18,6 +18,26 @@ export const TrelloController = {
     }
   },
 
+  /** Returns linked Trello profile (fullName, username) when user has connected Trello. */
+  async getMyTrelloProfile(req: Request, res: Response) {
+    try {
+      const userId = (req.user as any)?.sub
+      if (!userId) return res.status(401).json({ error: "Not authenticated" })
+      const user = await TrelloRepo.getUserById(userId)
+      if (!user?.trelloToken) {
+        return res.status(200).json({ trelloMemberId: null })
+      }
+      const member = await TrelloService.getTrelloMember(user.trelloToken)
+      return res.status(200).json({
+        trelloMemberId: member?.id ?? null,
+        fullName: member?.fullName ?? null,
+        username: member?.username ?? null,
+      })
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message })
+    }
+  },
+
   /** Returns a short-lived link token so the callback page can complete the flow without cookies. */
   getLinkToken(req: Request, res: Response) {
     try {
@@ -142,6 +162,23 @@ export const TrelloController = {
       res.status(200).json(boards)
     } catch (err: any) {
       res.status(400).json({ error: err.message })
+    }
+  },
+
+  /** Saves trello status config (list name -> status). */
+  async putTrelloSectionConfig(req: Request, res: Response) {
+    try {
+      const teamId = Number(req.body?.teamId)
+      const config = req.body?.config
+      if (!teamId || !config || typeof config !== "object" || Array.isArray(config)) {
+        return res.status(400).json({ error: "Missing or invalid teamId and config (object)" })
+      }
+      const userId = (req.user as any).sub
+      await TrelloService.updateTeamTrelloSectionConfig(teamId, userId, config)
+      return res.status(200).json({ ok: true })
+    } catch (err: any) {
+      if (err?.message === "Not a member of this team") return res.status(403).json({ error: err.message })
+      return res.status(500).json({ error: err.message })
     }
   },
 

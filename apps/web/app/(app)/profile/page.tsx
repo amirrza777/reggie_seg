@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { confirmEmailChange, requestEmailChange, updateProfile } from "@/features/auth/api/client";
 import { useUser } from "@/features/auth/context";
+import { getConnectUrl, getLinkToken, getMyTrelloProfile } from "@/features/trello/api/client";
+import type { TrelloProfile } from "@/features/trello/api/client";
 
 const otpLength = 4;
 
@@ -18,9 +20,37 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailStep, setEmailStep] = useState<"request" | "confirm">("request");
   const [otp, setOtp] = useState<string[]>(Array.from({ length: otpLength }, () => ""));
+  const [trelloProfile, setTrelloProfile] = useState<TrelloProfile | null>(null);
+  const [trelloLinkLoading, setTrelloLinkLoading] = useState(false);
 
   const profile = user;
 
+  useEffect(() => {
+    getMyTrelloProfile()
+      .then(setTrelloProfile)
+      .catch(() => setTrelloProfile({ trelloMemberId: null, fullName: null, username: null }));
+  }, []);
+
+  const handleTrelloConnect = async () => {
+    setTrelloLinkLoading(true);
+    try {
+      const { linkToken } = await getLinkToken();
+      const callbackUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/profile/trello/callback`
+          : undefined;
+      const { url } = await getConnectUrl(callbackUrl);
+      try {
+        sessionStorage.setItem("trello.linkToken", linkToken);
+        sessionStorage.setItem("trello.returnTo", "/profile");
+      } catch {
+        // ignore
+      }
+      window.location.href = url;
+    } catch {
+      setTrelloLinkLoading(false);
+    }
+  };
   const avatarInitials = useMemo(() => {
     if (!profile) return "";
     const first = profile.firstName?.[0] ?? "";
@@ -220,6 +250,31 @@ export default function ProfilePage() {
             </div>
             <Button variant="ghost" type="button" onClick={() => router.push("/forgot-password")}>
               Reset password
+            </Button>
+          </div>
+        </div>
+
+        <div className="profile-section">
+          <div className="profile-section__header">
+            <h3>Connected accounts</h3>
+            <p>Link your external accounts to track project progress.</p>
+          </div>
+          <div className="profile-row">
+            <div>
+              <div className="profile-row__label">Trello account</div>
+              <div className="profile-row__value">
+                {trelloProfile?.trelloMemberId
+                  ? trelloProfile.fullName || trelloProfile.username || "Connected"
+                  : "Not linked"}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={handleTrelloConnect}
+              disabled={trelloLinkLoading}
+            >
+              {trelloProfile?.trelloMemberId ? "Change account" : "Link Trello account"}
             </Button>
           </div>
         </div>
