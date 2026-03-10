@@ -52,5 +52,8 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "argon2", "esbuild", "prisma"]
   }
 }
