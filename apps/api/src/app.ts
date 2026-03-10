@@ -37,10 +37,13 @@ const allowedOrigins = [
   ...(process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim()) : []),
 ];
 
+// Allow Vercel preview deployment URLs for this project (e.g. reggie-abc123-amirrza777s-projects.vercel.app)
+const vercelPreviewPattern = /^https:\/\/[a-z0-9-]+-amirrza777s-projects\.vercel\.app$/;
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || (origin && vercelPreviewPattern.test(origin))) {
         callback(null, true);
       } else {
         callback(new Error(`CORS: origin ${origin} not allowed`));
