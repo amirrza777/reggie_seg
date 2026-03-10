@@ -2,6 +2,7 @@ import Link from "next/link";
 import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
 import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
 import { ProjectTrelloContent } from "@/features/trello/components/ProjectTrelloContent";
+import { StaffTrelloSummaryView } from "@/features/trello/views/StaffTrelloSummaryView";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -94,6 +95,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
                 projectId={selectedProjectId}
                 teamId={team.id}
                 teamName={team.teamName}
+                viewComponent={StaffTrelloSummaryView}
               />
             ) : (
               <div className="stack">
