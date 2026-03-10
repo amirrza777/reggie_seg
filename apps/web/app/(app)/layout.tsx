@@ -85,18 +85,21 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/modules", label: "My Modules", space: "staff" },
     { href: "/staff/projects", label: "Projects", space: "staff" },
-    { href: "/staff/health", label: "Team Health", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
-    { href: "/staff/integrations", label: "Integrations", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
-    { href: "/staff/peer-assessments", label: "Peer Assessments", space: "staff" },
 
     // Admin
     { href: "/admin", label: "Admin Home", space: "admin" },
   ];
 
   const limitedStaffUser = isModuleScopedStaff(user);
-  const moduleScopedStaffLinks = new Set(["/staff/dashboard", "/staff/modules", "/staff/projects", "/staff/peer-assessments"]);
+  const moduleScopedStaffLinks = new Set([
+    "/staff/dashboard",
+    "/staff/modules",
+    "/staff/projects",
+    "/staff/analytics",
+    "/staff/questionnaires",
+  ]);
 
   const accessibleLinks = navLinks
     .filter((link) => {

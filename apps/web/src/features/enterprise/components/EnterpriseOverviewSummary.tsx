@@ -178,8 +178,8 @@ export function EnterpriseOverviewSummary() {
         label: "Follow up inactive accounts",
         detail: `${inactiveUsers} users are inactive and may need access or onboarding support.`,
         tone: "attention",
-        href: "/staff/health",
-        cta: "Review health",
+        href: "/staff/analytics",
+        cta: "Review analytics",
         impact: inactiveUsers,
       });
     }
@@ -190,7 +190,7 @@ export function EnterpriseOverviewSummary() {
         label: "Lift account activation rate",
         detail: `Only ${formatPercent(activeUsers, users)} of users are active right now.`,
         tone: "attention",
-        href: "/staff/health",
+        href: "/staff/analytics",
         cta: "Investigate",
         impact: Math.max(users - activeUsers, 0),
       });

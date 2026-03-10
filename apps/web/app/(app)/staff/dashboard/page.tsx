@@ -61,8 +61,8 @@ export default async function StaffDashboardPage() {
           <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
           <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link href="/staff/projects" className="pill-nav__link">Open staff projects</Link>
-            <Link href="/staff/peer-assessments" className="pill-nav__link">Module peer assessments</Link>
-            <Link href="/staff/health" className="pill-nav__link">Team health</Link>
+            <Link href="/staff/analytics" className="pill-nav__link">Open analytics</Link>
+            <Link href="/staff/questionnaires" className="pill-nav__link">Open questionnaires</Link>
           </div>
         </Card>
         <Card title="Grade distribution">

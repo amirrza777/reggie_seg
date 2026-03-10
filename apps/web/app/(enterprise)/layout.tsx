@@ -35,7 +35,13 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
 
   const enterpriseHomeHref = canAccessEnterpriseAdmin ? "/enterprise" : "/enterprise/modules";
   const enterpriseNav = canAccessEnterpriseAdmin ? enterpriseAdminNav : enterpriseStaffNav;
-  const workspaceAliases = ["/staff/repos", "/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
+  const workspaceAliases = [
+    "/staff/dashboard",
+    "/staff/modules",
+    "/staff/projects",
+    "/staff/analytics",
+    "/staff/questionnaires",
+  ];
 
   const spaceLinks: SpaceLink[] = [
     { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
