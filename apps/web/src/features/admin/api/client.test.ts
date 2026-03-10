@@ -15,6 +15,9 @@ import {
   listAuditLogs,
   listFeatureFlags,
   listUsers,
+  searchEnterprises,
+  searchEnterpriseUsers,
+  searchUsers,
   updateEnterpriseUser,
   updateFeatureFlag,
   updateUser,
@@ -35,6 +38,16 @@ describe("admin api client", () => {
   it("lists users", async () => {
     await listUsers();
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/users");
+  });
+
+  it("searches users with filters and pagination", async () => {
+    await searchUsers({ q: "staff", role: "STAFF", active: true, page: 2, pageSize: 10 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/users/search?q=staff&role=STAFF&active=true&page=2&pageSize=10");
+  });
+
+  it("searches users with bare path when filters are empty", async () => {
+    await searchUsers();
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/users/search");
   });
 
   it("updates a user role", async () => {
@@ -81,6 +94,16 @@ describe("admin api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises");
   });
 
+  it("searches enterprises with query and pagination", async () => {
+    await searchEnterprises({ q: "kcl", page: 2, pageSize: 8 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/search?q=kcl&page=2&pageSize=8");
+  });
+
+  it("searches enterprises with bare path when filters are empty", async () => {
+    await searchEnterprises();
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/search");
+  });
+
   it("creates an enterprise", async () => {
     await createEnterprise({ name: "King's College London", code: "KCL" });
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises", {
@@ -99,6 +122,21 @@ describe("admin api client", () => {
   it("lists users for an enterprise", async () => {
     await listEnterpriseUsers("ent_123");
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users");
+  });
+
+  it("searches enterprise users with filters and pagination", async () => {
+    await searchEnterpriseUsers("ent_123", { q: "student", page: 3, pageSize: 25 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/search?q=student&page=3&pageSize=25");
+  });
+
+  it("searches enterprise users with role and active filters", async () => {
+    await searchEnterpriseUsers("ent_123", { role: "STAFF", active: false });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/search?role=STAFF&active=false");
+  });
+
+  it("searches enterprise users with bare path when filters are empty", async () => {
+    await searchEnterpriseUsers("ent_123");
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/search");
   });
 
   it("updates an enterprise user", async () => {
