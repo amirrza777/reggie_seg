@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { setAccessToken } from "@/features/auth/api/session";
 import { Suspense } from "react";
 
 function GoogleSuccessContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -17,7 +16,9 @@ function GoogleSuccessContent() {
       setAccessToken(token);
     }
 
-    router.replace(redirect);
+    // Full page reload ensures the cookie is included in the server request
+    // so getCurrentUser() can authenticate the user server-side
+    window.location.href = redirect;
   }, []);
 
   return (
