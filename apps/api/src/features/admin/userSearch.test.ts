@@ -36,6 +36,20 @@ describe("parseAdminUserSearchFilters", () => {
     });
   });
 
+  it("parses active=true via numeric shorthand", () => {
+    const parsed = parseAdminUserSearchFilters({ active: "1" });
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        query: null,
+        role: null,
+        active: true,
+        page: 1,
+        pageSize: 25,
+      },
+    });
+  });
+
   it("rejects invalid role filter", () => {
     const parsed = parseAdminUserSearchFilters({ role: "owner" });
     expect(parsed).toEqual({ ok: false, error: "Invalid role filter" });
@@ -58,6 +72,14 @@ describe("parseAdminUserSearchFilters", () => {
     expect(parseAdminUserSearchFilters({ pageSize: "101" })).toEqual({
       ok: false,
       error: "pageSize must be 100 or less",
+    });
+  });
+
+  it("rejects overly long query text", () => {
+    const long = "a".repeat(121);
+    expect(parseAdminUserSearchFilters({ q: long })).toEqual({
+      ok: false,
+      error: "q must be 120 characters or fewer",
     });
   });
 });
@@ -86,5 +108,94 @@ describe("buildAdminUserSearchWhere", () => {
       ],
     });
   });
-});
 
+  it("maps role and status query hints into OR conditions", () => {
+    expect(buildAdminUserSearchWhere("ent_1", { query: "staff", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "staff" } },
+            { firstName: { contains: "staff" } },
+            { lastName: { contains: "staff" } },
+            { role: "STAFF" },
+          ],
+        },
+      ],
+    });
+
+    expect(buildAdminUserSearchWhere("ent_1", { query: "suspended", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "suspended" } },
+            { firstName: { contains: "suspended" } },
+            { lastName: { contains: "suspended" } },
+            { active: false },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("maps enterprise-admin query hints", () => {
+    expect(buildAdminUserSearchWhere("ent_1", { query: "enterprise-admin", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "enterprise-admin" } },
+            { firstName: { contains: "enterprise-admin" } },
+            { lastName: { contains: "enterprise-admin" } },
+            { role: "ENTERPRISE_ADMIN" },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("maps student/admin role hints and active status query hints", () => {
+    expect(buildAdminUserSearchWhere("ent_1", { query: "students", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "students" } },
+            { firstName: { contains: "students" } },
+            { lastName: { contains: "students" } },
+            { role: "STUDENT" },
+          ],
+        },
+      ],
+    });
+
+    expect(buildAdminUserSearchWhere("ent_1", { query: "admin", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "admin" } },
+            { firstName: { contains: "admin" } },
+            { lastName: { contains: "admin" } },
+            { role: "ADMIN" },
+          ],
+        },
+      ],
+    });
+
+    expect(buildAdminUserSearchWhere("ent_1", { query: "active", role: null, active: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        {
+          OR: [
+            { email: { contains: "active" } },
+            { firstName: { contains: "active" } },
+            { lastName: { contains: "active" } },
+            { active: true },
+          ],
+        },
+      ],
+    });
+  });
+});

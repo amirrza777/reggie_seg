@@ -16,7 +16,7 @@ vi.mock("../../shared/db.js", () => ({
     meeting: { count: vi.fn() },
     refreshToken: { updateMany: vi.fn() },
     featureFlag: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    enterprise: { findMany: vi.fn(), findUnique: vi.fn(), delete: vi.fn(), create: vi.fn() },
+    enterprise: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn(), delete: vi.fn(), create: vi.fn() },
     auditLog: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -77,6 +77,7 @@ beforeEach(() => {
 
   (prisma.enterprise.findMany as any).mockResolvedValue([]);
   (prisma.enterprise.findUnique as any).mockResolvedValue(null);
+  (prisma.enterprise.count as any).mockResolvedValue(0);
   (prisma.enterprise.delete as any).mockResolvedValue({ id: "ent-1" });
   (prisma.enterprise.create as any).mockResolvedValue({ id: "ent-2", code: "ENT2", name: "Enterprise 2", createdAt: new Date() });
 
@@ -323,6 +324,7 @@ describe("admin router", () => {
 
   it("enterprise routes cover listing, creation, user management and deletion", async () => {
     const listEnterprises = getRouteHandler("get", "/enterprises");
+    const searchEnterprises = getRouteHandler("get", "/enterprises/search");
     const createEnterprise = getRouteHandler("post", "/enterprises");
     const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
     const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
@@ -343,6 +345,33 @@ describe("admin router", () => {
     expect((res.json as any)).toHaveBeenCalledWith([
       expect.objectContaining({ admins: 1, enterpriseAdmins: 1, staff: 1, students: 1 }),
     ]);
+
+    res = mockRes();
+    await searchEnterprises({ query: { page: "0" } } as any, res);
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+
+    (prisma.enterprise.count as any).mockResolvedValueOnce(2);
+    (prisma.enterprise.findMany as any).mockResolvedValueOnce([
+      {
+        id: "ent-3",
+        code: "ENT3",
+        name: "Enterprise Three",
+        createdAt: new Date("2026-01-03"),
+        users: [{ role: "STAFF" }],
+        _count: { users: 1, modules: 0, teams: 0 },
+      },
+    ]);
+    res = mockRes();
+    await searchEnterprises({ query: { q: "staff", page: "1", pageSize: "1" } } as any, res);
+    expect((res.json as any)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        total: 2,
+        page: 1,
+        pageSize: 1,
+        totalPages: 2,
+        items: [expect.objectContaining({ id: "ent-3", staff: 1 })],
+      }),
+    );
 
     res = mockRes();
     await createEnterprise({ body: {} } as any, res);

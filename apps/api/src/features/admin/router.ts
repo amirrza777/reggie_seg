@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
 import { EnterpriseCodeGeneratorService } from "../services/enterprise/enterpriseCodeGeneratorService.js";
+import { buildAdminEnterpriseSearchWhere, parseAdminEnterpriseSearchFilters } from "./enterpriseSearch.js";
 import { buildAdminUserSearchWhere, parseAdminUserSearchFilters } from "./userSearch.js";
 
 type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
@@ -196,31 +197,34 @@ router.get("/enterprises", async (_req, res) => {
     orderBy: [{ createdAt: "desc" }, { name: "asc" }],
   });
 
-  res.json(
-    enterprises.map((enterprise) => {
-      const roleCount = enterprise.users.reduce(
-        (acc, user) => {
-          if (user.role === "ADMIN") acc.admins += 1;
-          else if (user.role === "ENTERPRISE_ADMIN") acc.enterpriseAdmins += 1;
-          else if (user.role === "STAFF") acc.staff += 1;
-          else acc.students += 1;
-          return acc;
-        },
-        { admins: 0, enterpriseAdmins: 0, staff: 0, students: 0 },
-      );
+  res.json(enterprises.map(toAdminEnterprisePayload));
+});
 
-      return {
-        id: enterprise.id,
-        code: enterprise.code,
-        name: enterprise.name,
-        createdAt: enterprise.createdAt,
-        users: enterprise._count.users,
-        modules: enterprise._count.modules,
-        teams: enterprise._count.teams,
-        ...roleCount,
-      };
+router.get("/enterprises/search", async (req, res) => {
+  const parsedFilters = parseAdminEnterpriseSearchFilters(req.query);
+  if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
+
+  const where = buildAdminEnterpriseSearchWhere(parsedFilters.value);
+  const offset = (parsedFilters.value.page - 1) * parsedFilters.value.pageSize;
+  const [total, records] = await prisma.$transaction([
+    prisma.enterprise.count({ where }),
+    prisma.enterprise.findMany({
+      where,
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        createdAt: true,
+        users: { select: { role: true } },
+        _count: { select: { users: true, modules: true, teams: true } },
+      },
+      orderBy: [{ createdAt: "desc" }, { name: "asc" }],
+      skip: offset,
+      take: parsedFilters.value.pageSize,
     }),
-  );
+  ]);
+
+  return res.json(toAdminEnterpriseSearchResponse(records.map(toAdminEnterprisePayload), parsedFilters.value, total));
 });
 
 router.post("/enterprises", async (req, res) => {
@@ -467,6 +471,67 @@ function toAdminUserSearchResponse(
     query: filters.query,
     role: filters.role,
     active: filters.active,
+  };
+}
+
+function toAdminEnterprisePayload(enterprise: {
+  id: string;
+  code: string;
+  name: string;
+  createdAt: Date;
+  users: Array<{ role: UserRole }>;
+  _count: { users: number; modules: number; teams: number };
+}) {
+  const roleCount = enterprise.users.reduce(
+    (acc, user) => {
+      if (user.role === "ADMIN") acc.admins += 1;
+      else if (user.role === "ENTERPRISE_ADMIN") acc.enterpriseAdmins += 1;
+      else if (user.role === "STAFF") acc.staff += 1;
+      else acc.students += 1;
+      return acc;
+    },
+    { admins: 0, enterpriseAdmins: 0, staff: 0, students: 0 },
+  );
+
+  return {
+    id: enterprise.id,
+    code: enterprise.code,
+    name: enterprise.name,
+    createdAt: enterprise.createdAt,
+    users: enterprise._count.users,
+    modules: enterprise._count.modules,
+    teams: enterprise._count.teams,
+    ...roleCount,
+  };
+}
+
+function toAdminEnterpriseSearchResponse(
+  items: Array<{
+    id: string;
+    code: string;
+    name: string;
+    createdAt: Date;
+    users: number;
+    admins: number;
+    enterpriseAdmins: number;
+    staff: number;
+    students: number;
+    modules: number;
+    teams: number;
+  }>,
+  filters: { query: string | null; page: number; pageSize: number },
+  total: number,
+) {
+  const totalPages = total === 0 ? 0 : Math.ceil(total / filters.pageSize);
+  return {
+    items,
+    total,
+    page: filters.page,
+    pageSize: filters.pageSize,
+    totalPages,
+    hasPreviousPage: filters.page > 1,
+    hasNextPage: filters.page < totalPages,
+    query: filters.query,
   };
 }
 
