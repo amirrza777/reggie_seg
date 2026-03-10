@@ -117,3 +117,12 @@
 .mention-dropdown__item--active {
   background: var(--glass-hover);
 }
+
+.mention-node {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-weight: var(--fw-medium);
+  font-size: 0.9em;
+}
