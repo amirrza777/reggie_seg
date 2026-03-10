@@ -49,10 +49,12 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
   const teamCount = module.teamCount ?? 0;
   const projectCount = module.projectCount ?? 0;
 
-  const expectationRows = buildExpectationRows(module);
   const marksRows = buildMarksRows(module);
   const projectPlans = buildProjectPlans(module);
-  const timelineRows = buildTimelineRows(projectPlans);
+  const timelineRows = parseTimelineRows(module.timelineText) ?? buildTimelineRows(projectPlans);
+  const expectationRows = parseExpectationRows(module.expectationsText) ?? buildExpectationRows(module);
+  const briefParagraphs = parseParagraphs(module.briefText);
+  const readinessParagraphs = parseParagraphs(module.readinessNotesText);
   const hasLinkedProjects = projectCount > 0;
 
   return (
@@ -86,21 +88,31 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
       {activeTab === "expectations" ? (
         <>
           <Card title="Module brief" className="module-dashboard__panel">
-            <div className="module-dashboard__brief">
-              <p className="muted">
-                Project work in this module contributes 100.0% of the overall module mark and is split across{" "}
-                {projectPlans.length} project{projectPlans.length === 1 ? "" : "s"}.
-              </p>
-              <ol className="module-dashboard__project-list">
-                {projectPlans.map((plan) => (
-                  <li key={plan.name}>
-                    <strong>{plan.name}</strong> runs from {formatLongDate(plan.startAt)} to {formatLongDate(plan.endAt)} and
-                    contributes {plan.weight.toFixed(1)}% of the final module mark.
-                  </li>
+            {briefParagraphs.length > 0 ? (
+              <div className="module-dashboard__brief">
+                {briefParagraphs.map((paragraph, index) => (
+                  <p key={`brief-${index}`} className="muted">
+                    {paragraph}
+                  </p>
                 ))}
-              </ol>
-              <p className="muted">Use the timeline below to track module events and key assessment checkpoints.</p>
-            </div>
+              </div>
+            ) : (
+              <div className="module-dashboard__brief">
+                <p className="muted">
+                  Project work in this module contributes 100.0% of the overall module mark and is split across{" "}
+                  {projectPlans.length} project{projectPlans.length === 1 ? "" : "s"}.
+                </p>
+                <ol className="module-dashboard__project-list">
+                  {projectPlans.map((plan) => (
+                    <li key={plan.name}>
+                      <strong>{plan.name}</strong> runs from {formatLongDate(plan.startAt)} to {formatLongDate(plan.endAt)} and
+                      contributes {plan.weight.toFixed(1)}% of the final module mark.
+                    </li>
+                  ))}
+                </ol>
+                <p className="muted">Use the timeline below to track module events and key assessment checkpoints.</p>
+              </div>
+            )}
           </Card>
 
           <Card title="Timeline" className="module-dashboard__panel module-dashboard__panel--timeline">
@@ -122,10 +134,18 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
             <Table headers={["Expectation", "Target", "Owner"]} rows={expectationRows} />
           </Card>
           <Card title="Readiness notes" className="module-dashboard__panel">
-            <p className="muted">
-              Keep module expectations current each week so teams can align around submissions, minutes, and review
-              cycles.
-            </p>
+            {readinessParagraphs.length > 0 ? (
+              readinessParagraphs.map((paragraph, index) => (
+                <p key={`readiness-${index}`} className="muted">
+                  {paragraph}
+                </p>
+              ))
+            ) : (
+              <p className="muted">
+                Keep module expectations current each week so teams can align around submissions, minutes, and review
+                cycles.
+              </p>
+            )}
           </Card>
         </>
       ) : (
@@ -148,6 +168,58 @@ function toModuleCode(moduleId: string): string {
   const numeric = Number(moduleId);
   if (Number.isFinite(numeric)) return `MOD-${numeric}`;
   return moduleId;
+}
+
+function parseParagraphs(value: string | undefined): string[] {
+  if (!value) return [];
+  return value
+    .split(/\n+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+function parseExpectationRows(value: string | undefined): Array<[string, string, string]> | null {
+  if (!value) return null;
+
+  const rows = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [expectation = "", target = "", owner = ""] = line.split("|").map((entry) => entry.trim());
+      return [expectation, target, owner] as [string, string, string];
+    })
+    .filter(([expectation]) => expectation.length > 0);
+
+  return rows.length > 0 ? rows : null;
+}
+
+function parseTimelineRows(value: string | undefined): ModuleTimelineItem[] | null {
+  if (!value) return null;
+
+  const now = new Date();
+  const rows = value
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [whenRaw = "", projectName = "", activity = ""] = line.split("|").map((entry) => entry.trim());
+      const parsedTime = Date.parse(whenRaw);
+      const hasValidTime = Number.isFinite(parsedTime);
+      const occursAt = hasValidTime ? new Date(parsedTime) : now;
+
+      return {
+        whenLabel: hasValidTime ? formatRelativeLabel(occursAt, now) : "Scheduled",
+        whenTone: hasValidTime ? getTimelineTone(occursAt, now) : "upcoming",
+        dateLabel: hasValidTime ? formatTimelineDate(occursAt) : whenRaw,
+        projectName,
+        activity,
+        occursAt,
+      } satisfies ModuleTimelineItem;
+    })
+    .filter((item) => item.dateLabel.length > 0 || item.projectName.length > 0 || item.activity.length > 0);
+
+  return rows.length > 0 ? rows : null;
 }
 
 function buildExpectationRows(module: Module): Array<[string, string, string]> {

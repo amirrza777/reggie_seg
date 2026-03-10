@@ -22,4 +22,9 @@ describe("modules api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42");
     expect(result).toEqual(payload);
   });
+
+  it("fetches staff-scoped module list", async () => {
+    await listModules(42, { scope: "staff" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&scope=staff");
+  });
 });
