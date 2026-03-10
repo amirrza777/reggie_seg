@@ -1,7 +1,11 @@
 import { apiFetch } from "@/shared/api/http";
 import type {
   AdminUser,
+  AdminEnterpriseSearchParams,
+  AdminEnterpriseSearchResponse,
   AdminUserRecord,
+  AdminUserSearchParams,
+  AdminUserSearchResponse,
   AdminUserUpdate,
   AuditLogEntry,
   CreateEnterprisePayload,
@@ -17,6 +21,18 @@ export async function listFeatureFlags(): Promise<FeatureFlag[]> {
 
 export async function listUsers(): Promise<AdminUserRecord[]> {
   return apiFetch<AdminUserRecord[]>("/admin/users");
+}
+
+export async function searchUsers(params: AdminUserSearchParams = {}): Promise<AdminUserSearchResponse> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.role) search.set("role", params.role);
+  if (typeof params.active === "boolean") search.set("active", String(params.active));
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  const path = qs ? `/admin/users/search?${qs}` : "/admin/users/search";
+  return apiFetch<AdminUserSearchResponse>(path);
 }
 
 export async function updateUserRole(userId: number, role: UserRole) {
@@ -58,6 +74,18 @@ export async function listEnterprises() {
   return apiFetch<EnterpriseRecord[]>("/admin/enterprises");
 }
 
+export async function searchEnterprises(
+  params: AdminEnterpriseSearchParams = {},
+): Promise<AdminEnterpriseSearchResponse> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  const path = qs ? `/admin/enterprises/search?${qs}` : "/admin/enterprises/search";
+  return apiFetch<AdminEnterpriseSearchResponse>(path);
+}
+
 export async function createEnterprise(payload: CreateEnterprisePayload) {
   return apiFetch<EnterpriseRecord>("/admin/enterprises", {
     method: "POST",
@@ -73,6 +101,22 @@ export async function deleteEnterprise(enterpriseId: string) {
 
 export async function listEnterpriseUsers(enterpriseId: string) {
   return apiFetch<AdminUserRecord[]>(`/admin/enterprises/${encodeURIComponent(enterpriseId)}/users`);
+}
+
+export async function searchEnterpriseUsers(
+  enterpriseId: string,
+  params: AdminUserSearchParams = {},
+): Promise<AdminUserSearchResponse> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.role) search.set("role", params.role);
+  if (typeof params.active === "boolean") search.set("active", String(params.active));
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  const basePath = `/admin/enterprises/${encodeURIComponent(enterpriseId)}/users/search`;
+  const path = qs ? `${basePath}?${qs}` : basePath;
+  return apiFetch<AdminUserSearchResponse>(path);
 }
 
 export async function updateEnterpriseUser(enterpriseId: string, userId: number, payload: AdminUserUpdate) {

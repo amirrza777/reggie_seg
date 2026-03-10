@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { filterBySearchQuery, normalizeSearchQuery } from "@/shared/lib/search";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
@@ -10,8 +10,8 @@ import type { AdminUser, AdminUserRecord, EnterpriseRecord, UserRole } from "../
 import {
   createEnterprise,
   deleteEnterprise,
-  listEnterpriseUsers,
-  listEnterprises,
+  searchEnterpriseUsers,
+  searchEnterprises,
   updateEnterpriseUser,
 } from "../api/client";
 
@@ -34,11 +34,15 @@ type EnterpriseManagementTableProps = {
 export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagementTableProps) {
   const [enterprises, setEnterprises] = useState<EnterpriseRecord[]>([]);
   const [status, setStatus] = useState<RequestState>("idle");
+  const [enterpriseTableStatus, setEnterpriseTableStatus] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
+  const [enterpriseTotal, setEnterpriseTotal] = useState(0);
+  const [enterpriseTotalPages, setEnterpriseTotalPages] = useState(0);
+  const latestEnterpriseRequestId = useRef(0);
 
   const [nameInput, setNameInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
@@ -54,11 +58,93 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
   const [enterpriseUserSearchQuery, setEnterpriseUserSearchQuery] = useState("");
   const [enterpriseUserPage, setEnterpriseUserPage] = useState(1);
   const [enterpriseUserPageInput, setEnterpriseUserPageInput] = useState("1");
+  const [enterpriseUserTotal, setEnterpriseUserTotal] = useState(0);
+  const [enterpriseUserTotalPages, setEnterpriseUserTotalPages] = useState(0);
+  const latestEnterpriseUsersRequestId = useRef(0);
+
+  const normalizedEnterpriseSearch = normalizeSearchQuery(searchQuery);
+  const normalizedEnterpriseUserSearch = normalizeSearchQuery(enterpriseUserSearchQuery);
+  const effectiveEnterpriseTotalPages = Math.max(1, enterpriseTotalPages);
+  const effectiveEnterpriseUserTotalPages = Math.max(1, enterpriseUserTotalPages);
+
+  const loadEnterprises = useCallback(async (query: string, page: number) => {
+    const requestId = latestEnterpriseRequestId.current + 1;
+    latestEnterpriseRequestId.current = requestId;
+    setEnterpriseTableStatus("loading");
+
+    try {
+      const response = await searchEnterprises({
+        q: query.trim() || undefined,
+        page,
+        pageSize: ENTERPRISES_PER_PAGE,
+      });
+      if (latestEnterpriseRequestId.current !== requestId) return;
+
+      if (response.totalPages > 0 && response.page > response.totalPages) {
+        setCurrentPage(response.totalPages);
+        return;
+      }
+
+      setEnterprises(response.items);
+      setEnterpriseTotal(response.total);
+      setEnterpriseTotalPages(response.totalPages);
+      setEnterpriseTableStatus("success");
+    } catch (err) {
+      if (latestEnterpriseRequestId.current !== requestId) return;
+      setEnterprises([]);
+      setEnterpriseTotal(0);
+      setEnterpriseTotalPages(0);
+      setEnterpriseTableStatus("error");
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Could not load enterprises.");
+    }
+  }, []);
+
+  const loadEnterpriseUsers = useCallback(async (enterpriseId: string, query: string, page: number) => {
+    const requestId = latestEnterpriseUsersRequestId.current + 1;
+    latestEnterpriseUsersRequestId.current = requestId;
+    setEnterpriseUsersStatus("loading");
+    setEnterpriseUsersMessage(null);
+
+    try {
+      const response = await searchEnterpriseUsers(enterpriseId, {
+        q: query.trim() || undefined,
+        page,
+        pageSize: ENTERPRISE_USERS_PER_PAGE,
+      });
+      if (latestEnterpriseUsersRequestId.current !== requestId) return;
+
+      if (response.totalPages > 0 && response.page > response.totalPages) {
+        setEnterpriseUserPage(response.totalPages);
+        return;
+      }
+
+      setEnterpriseUsers(response.items.map(normalizeUser));
+      setEnterpriseUserTotal(response.total);
+      setEnterpriseUserTotalPages(response.totalPages);
+      setEnterpriseUsersStatus("success");
+      if (response.total === 0) {
+        setEnterpriseUsersMessage("No user accounts found in this enterprise.");
+      }
+    } catch (err) {
+      if (latestEnterpriseUsersRequestId.current !== requestId) return;
+      setEnterpriseUsers([]);
+      setEnterpriseUserTotal(0);
+      setEnterpriseUserTotalPages(0);
+      setEnterpriseUsersStatus("error");
+      setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not load enterprise users.");
+    }
+  }, []);
 
   useEffect(() => {
     if (!isSuperAdmin) return;
-    void loadEnterprises();
-  }, [isSuperAdmin]);
+    void loadEnterprises(searchQuery, currentPage);
+  }, [isSuperAdmin, searchQuery, currentPage, loadEnterprises]);
+
+  useEffect(() => {
+    if (!selectedEnterprise) return;
+    void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
+  }, [selectedEnterprise, enterpriseUserSearchQuery, enterpriseUserPage, loadEnterpriseUsers]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -70,99 +156,24 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [normalizeSearchQuery(searchQuery)]);
-
-  const filteredEnterprises = useMemo(
-    () =>
-      filterBySearchQuery(enterprises, searchQuery, {
-        fields: ["name", "code", "id"],
-        selectors: [
-          (enterprise) => `${enterprise.admins} admins ${enterprise.enterpriseAdmins} enterprise admins`,
-          (enterprise) => `${enterprise.staff} staff ${enterprise.students} students`,
-        ],
-      }),
-    [enterprises, searchQuery],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredEnterprises.length / ENTERPRISES_PER_PAGE));
-
-  useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
+  }, [normalizedEnterpriseSearch]);
 
   useEffect(() => {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  const pageStart = (currentPage - 1) * ENTERPRISES_PER_PAGE;
-  const paginatedEnterprises = filteredEnterprises.slice(pageStart, pageStart + ENTERPRISES_PER_PAGE);
-  const pageEnd = Math.min(pageStart + ENTERPRISES_PER_PAGE, filteredEnterprises.length);
-
-  const filteredEnterpriseUsers = useMemo(
-    () =>
-      filterBySearchQuery(enterpriseUsers, enterpriseUserSearchQuery, {
-        fields: ["id", "email", "firstName", "lastName", "role"],
-      }),
-    [enterpriseUsers, enterpriseUserSearchQuery],
-  );
-
-  const enterpriseUserTotalPages = Math.max(1, Math.ceil(filteredEnterpriseUsers.length / ENTERPRISE_USERS_PER_PAGE));
-
   useEffect(() => {
     setEnterpriseUserPage(1);
-  }, [normalizeSearchQuery(enterpriseUserSearchQuery), selectedEnterprise?.id]);
-
-  useEffect(() => {
-    setEnterpriseUserPage((prev) => Math.min(prev, enterpriseUserTotalPages));
-  }, [enterpriseUserTotalPages]);
+  }, [normalizedEnterpriseUserSearch, selectedEnterprise?.id]);
 
   useEffect(() => {
     setEnterpriseUserPageInput(String(enterpriseUserPage));
   }, [enterpriseUserPage]);
 
-  const enterpriseUserStart = (enterpriseUserPage - 1) * ENTERPRISE_USERS_PER_PAGE;
-  const paginatedEnterpriseUsers = filteredEnterpriseUsers.slice(
-    enterpriseUserStart,
-    enterpriseUserStart + ENTERPRISE_USERS_PER_PAGE,
-  );
-  const enterpriseUserEnd = Math.min(
-    enterpriseUserStart + ENTERPRISE_USERS_PER_PAGE,
-    filteredEnterpriseUsers.length,
-  );
-
   if (!isSuperAdmin) return null;
 
   const showSuccessToast = (nextMessage: string) => {
     setToastMessage(nextMessage);
-  };
-
-  const loadEnterprises = async () => {
-    setStatus("loading");
-    setMessage(null);
-    try {
-      const response = await listEnterprises();
-      setEnterprises(response);
-      setStatus("success");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not load enterprises.");
-    }
-  };
-
-  const loadEnterpriseUsers = async (enterprise: EnterpriseRecord) => {
-    setEnterpriseUsersStatus("loading");
-    setEnterpriseUsersMessage(null);
-    try {
-      const response = await listEnterpriseUsers(enterprise.id);
-      setEnterpriseUsers(response.map(normalizeUser));
-      setEnterpriseUsersStatus("success");
-      if (response.length === 0) {
-        setEnterpriseUsersMessage("No user accounts found in this enterprise.");
-      }
-    } catch (err) {
-      setEnterpriseUsersStatus("error");
-      setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not load enterprise users.");
-    }
   };
 
   const handleCreateEnterprise = async (event: FormEvent<HTMLFormElement>) => {
@@ -179,13 +190,13 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     setMessage(null);
     try {
       const created = await createEnterprise({ name, ...(code ? { code } : {}) });
-      setEnterprises((prev) => [created, ...prev]);
       setStatus("success");
       showSuccessToast(`Enterprise "${created.name}" created with code ${created.code}.`);
       setNameInput("");
       setCodeInput("");
       setCreateModalOpen(false);
       setCurrentPage(1);
+      void loadEnterprises(searchQuery, 1);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not create enterprise.");
@@ -201,13 +212,13 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     setMessage(null);
     try {
       await deleteEnterprise(enterprise.id);
-      setEnterprises((prev) => prev.filter((item) => item.id !== enterprise.id));
       setStatus("success");
       showSuccessToast(`Enterprise "${enterprise.name}" deleted.`);
       if (selectedEnterprise?.id === enterprise.id) {
         setSelectedEnterprise(null);
         setEnterpriseUsers([]);
       }
+      void loadEnterprises(searchQuery, currentPage);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not delete enterprise.");
@@ -216,13 +227,15 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     }
   };
 
-  const openEnterpriseAccounts = async (enterprise: EnterpriseRecord) => {
+  const openEnterpriseAccounts = (enterprise: EnterpriseRecord) => {
     setSelectedEnterprise(enterprise);
     setEnterpriseUsers([]);
+    setEnterpriseUserTotal(0);
+    setEnterpriseUserTotalPages(0);
+    setEnterpriseUsersMessage(null);
     setEnterpriseUserSearchQuery("");
     setEnterpriseUserPage(1);
     setEnterpriseUserActionState({});
-    await loadEnterpriseUsers(enterprise);
   };
 
   const setEnterpriseUserRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
@@ -240,6 +253,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
       const updated = await updateEnterpriseUser(selectedEnterprise.id, userId, { role });
       setEnterpriseUserRow(userId, () => normalizeUser(updated));
       showSuccessToast(`Updated role to ${role.toLowerCase()}.`);
+      void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
     } catch (err) {
       setEnterpriseUsers(previous);
       setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not update role.");
@@ -259,6 +273,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
       const updated = await updateEnterpriseUser(selectedEnterprise.id, userId, { active: nextStatus });
       setEnterpriseUserRow(userId, () => normalizeUser(updated));
       showSuccessToast(nextStatus ? "Account activated." : "Account suspended.");
+      void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
     } catch (err) {
       setEnterpriseUsers(previous);
       setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not update account status.");
@@ -269,7 +284,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
 
   const applyPageInput = (value: string) => {
     const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > totalPages) {
+    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveEnterpriseTotalPages) {
       setPageInput(String(currentPage));
       return;
     }
@@ -278,7 +293,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
 
   const applyEnterpriseUserPageInput = (value: string) => {
     const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > enterpriseUserTotalPages) {
+    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveEnterpriseUserTotalPages) {
       setEnterpriseUserPageInput(String(enterpriseUserPage));
       return;
     }
@@ -301,7 +316,17 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     setCodeInput("");
   };
 
-  const rows = paginatedEnterprises.map((enterprise) => [
+  const enterpriseStart = enterpriseTotal === 0 ? 0 : (currentPage - 1) * ENTERPRISES_PER_PAGE + 1;
+  const enterpriseEnd =
+    enterpriseTotal === 0 ? 0 : Math.min((currentPage - 1) * ENTERPRISES_PER_PAGE + enterprises.length, enterpriseTotal);
+
+  const enterpriseUserStart = enterpriseUserTotal === 0 ? 0 : (enterpriseUserPage - 1) * ENTERPRISE_USERS_PER_PAGE + 1;
+  const enterpriseUserEnd =
+    enterpriseUserTotal === 0
+      ? 0
+      : Math.min((enterpriseUserPage - 1) * ENTERPRISE_USERS_PER_PAGE + enterpriseUsers.length, enterpriseUserTotal);
+
+  const rows = enterprises.map((enterprise) => [
     <div key={`${enterprise.id}-name`} className="ui-stack-xs">
       <strong>{enterprise.name}</strong>
       <span className="muted">Code: {enterprise.code}</span>
@@ -319,7 +344,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     </div>,
     <span key={`${enterprise.id}-created`}>{formatDate(enterprise.createdAt)}</span>,
     <div key={`${enterprise.id}-actions`} className="enterprise-management__row-actions">
-      <Button type="button" variant="ghost" onClick={() => void openEnterpriseAccounts(enterprise)}>
+      <Button type="button" variant="ghost" onClick={() => openEnterpriseAccounts(enterprise)}>
         Manage accounts
       </Button>
       <Button
@@ -333,7 +358,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     </div>,
   ]);
 
-  const enterpriseUserRows = paginatedEnterpriseUsers.map((user) => {
+  const enterpriseUserRows = enterpriseUsers.map((user) => {
     const isAdmin = user.role === "ADMIN";
     const isEnterpriseAdmin = user.role === "ENTERPRISE_ADMIN";
     const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
@@ -448,11 +473,13 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
 
         <div className="user-management__toolbar">
           <span className="ui-note ui-note--muted">
-            {filteredEnterprises.length === 0
-              ? `Showing 0 of ${enterprises.length} enterprise${enterprises.length === 1 ? "" : "s"}.`
-              : `Showing ${pageStart + 1}-${pageEnd} of ${filteredEnterprises.length} enterprise${
-                  filteredEnterprises.length === 1 ? "" : "s"
-                }${filteredEnterprises.length !== enterprises.length ? ` (filtered from ${enterprises.length})` : ""}.`}
+            {enterpriseTableStatus === "loading" && enterpriseTotal === 0
+              ? "Loading enterprises..."
+              : enterpriseTotal === 0
+                ? "Showing 0 enterprises."
+                : `Showing ${enterpriseStart}-${enterpriseEnd} of ${enterpriseTotal} enterprise${
+                    enterpriseTotal === 1 ? "" : "s"
+                  }.`}
           </span>
         </div>
 
@@ -465,7 +492,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
               rowClassName="enterprise-management__row"
               columnTemplate="1.3fr 1.55fr 1fr 0.82fr 1.05fr"
             />
-            {totalPages > 1 ? (
+            {enterpriseTotalPages > 1 ? (
               <div className="user-management__pagination" aria-label="Enterprise pagination">
                 <Button
                   type="button"
@@ -484,7 +511,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                     id="enterprise-page-input"
                     type="number"
                     min={1}
-                    max={totalPages}
+                    max={effectiveEnterpriseTotalPages}
                     step={1}
                     inputMode="numeric"
                     value={pageInput}
@@ -493,14 +520,14 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                     className="user-management__page-jump-input"
                     aria-label="Go to enterprise page number"
                   />
-                  <span className="muted user-management__page-total">of {totalPages}</span>
+                  <span className="muted user-management__page-total">of {effectiveEnterpriseTotalPages}</span>
                 </form>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(effectiveEnterpriseTotalPages, prev + 1))}
+                  disabled={currentPage === effectiveEnterpriseTotalPages}
                 >
                   Next
                 </Button>
@@ -510,9 +537,11 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
         ) : (
           <div className="ui-empty-state">
             <p>
-              {normalizeSearchQuery(searchQuery)
-                ? `No enterprises match "${searchQuery.trim()}".`
-                : "No enterprises found."}
+              {enterpriseTableStatus === "loading"
+                ? "Loading enterprises..."
+                : normalizeSearchQuery(searchQuery)
+                  ? `No enterprises match "${searchQuery.trim()}".`
+                  : "No enterprises found."}
             </p>
           </div>
         )}
@@ -617,15 +646,13 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
               ) : null}
 
               <span className="ui-note ui-note--muted">
-                {filteredEnterpriseUsers.length === 0
-                  ? `Showing 0 of ${enterpriseUsers.length} account${enterpriseUsers.length === 1 ? "" : "s"}.`
-                  : `Showing ${enterpriseUserStart + 1}-${enterpriseUserEnd} of ${filteredEnterpriseUsers.length} account${
-                      filteredEnterpriseUsers.length === 1 ? "" : "s"
-                    }${
-                      filteredEnterpriseUsers.length !== enterpriseUsers.length
-                        ? ` (filtered from ${enterpriseUsers.length})`
-                        : ""
-                    }.`}
+                {enterpriseUsersStatus === "loading" && enterpriseUserTotal === 0
+                  ? "Loading accounts..."
+                  : enterpriseUserTotal === 0
+                    ? "Showing 0 accounts."
+                    : `Showing ${enterpriseUserStart}-${enterpriseUserEnd} of ${enterpriseUserTotal} account${
+                        enterpriseUserTotal === 1 ? "" : "s"
+                      }.`}
               </span>
 
               {enterpriseUserRows.length > 0 ? (
@@ -657,7 +684,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                           id="enterprise-user-page-input"
                           type="number"
                           min={1}
-                          max={enterpriseUserTotalPages}
+                          max={effectiveEnterpriseUserTotalPages}
                           step={1}
                           inputMode="numeric"
                           value={enterpriseUserPageInput}
@@ -666,14 +693,14 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                           className="user-management__page-jump-input"
                           aria-label="Go to enterprise user page number"
                         />
-                        <span className="muted user-management__page-total">of {enterpriseUserTotalPages}</span>
+                        <span className="muted user-management__page-total">of {effectiveEnterpriseUserTotalPages}</span>
                       </form>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => setEnterpriseUserPage((prev) => Math.min(enterpriseUserTotalPages, prev + 1))}
-                        disabled={enterpriseUserPage === enterpriseUserTotalPages}
+                        onClick={() => setEnterpriseUserPage((prev) => Math.min(effectiveEnterpriseUserTotalPages, prev + 1))}
+                        disabled={enterpriseUserPage === effectiveEnterpriseUserTotalPages}
                       >
                         Next
                       </Button>
@@ -683,9 +710,11 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
               ) : (
                 <div className="ui-empty-state">
                   <p>
-                    {normalizeSearchQuery(enterpriseUserSearchQuery)
-                      ? `No accounts match "${enterpriseUserSearchQuery.trim()}".`
-                      : "No accounts found in this enterprise."}
+                    {enterpriseUsersStatus === "loading"
+                      ? "Loading accounts..."
+                      : normalizeSearchQuery(enterpriseUserSearchQuery)
+                        ? `No accounts match "${enterpriseUserSearchQuery.trim()}".`
+                        : "No accounts found in this enterprise."}
                   </p>
                 </div>
               )}
