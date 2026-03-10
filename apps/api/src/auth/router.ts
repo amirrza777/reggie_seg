@@ -53,7 +53,7 @@ if (googleEnabled) {
       });
       const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
       const destination = user?.role === "ADMIN" ? "/admin" : "/dashboard";
-      res.redirect(`${appBaseUrl}/google/success?token=${encodeURIComponent(accessToken)}&redirect=${encodeURIComponent(destination)}`);
+      res.redirect(`${appBaseUrl}/api/auth/google-callback?token=${encodeURIComponent(accessToken)}&redirect=${encodeURIComponent(destination)}`);
     }
   );
 
