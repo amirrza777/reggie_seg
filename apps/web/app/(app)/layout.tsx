@@ -7,7 +7,7 @@ import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
-import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
@@ -83,6 +83,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
     // Staff
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
+    { href: "/staff/modules", label: "My Modules", space: "staff" },
     { href: "/staff/health", label: "Team Health", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/integrations", label: "Integrations", space: "staff" },
@@ -93,10 +94,16 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/admin", label: "Admin Home", space: "admin" },
   ];
 
+  const limitedStaffUser = isModuleScopedStaff(user);
+  const moduleScopedStaffLinks = new Set(["/staff/dashboard", "/staff/modules", "/staff/peer-assessments"]);
+
   const accessibleLinks = navLinks
     .filter((link) => {
       if (link.flag && flagMap[link.flag] === false) return false;
-      if (link.space === "staff" && !(user?.isStaff || isAdmin(user))) return false;
+      if (link.space === "staff") {
+        if (!(user?.isStaff || isAdmin(user))) return false;
+        if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
+      }
       if (link.space === "admin" && !isAdmin(user)) return false;
       return true;
     })

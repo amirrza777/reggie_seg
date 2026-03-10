@@ -2,11 +2,11 @@ import { Card } from "@/shared/ui/Card";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { Button } from "@/shared/ui/Button";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/shared/auth/session";
+import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
 
 export default async function TeamHealthPage() {
   const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
+  if (!isElevatedStaff(user)) {
     redirect("/dashboard");
   }
 

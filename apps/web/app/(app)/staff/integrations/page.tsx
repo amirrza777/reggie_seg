@@ -4,7 +4,7 @@ import { getTeamByUserAndProject, getUserProjects } from "@/features/projects/ap
 import { ProjectTrelloContent } from "@/features/trello/components/ProjectTrelloContent";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/shared/auth/session";
+import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
 
 type StaffIntegrationsPageProps = {
   searchParams: Promise<{ projectId?: string | string[] }>;
@@ -12,7 +12,7 @@ type StaffIntegrationsPageProps = {
 
 export default async function StaffIntegrationsPage({ searchParams }: StaffIntegrationsPageProps) {
   const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
+  if (!isElevatedStaff(user)) {
     redirect("/dashboard");
   }
 
