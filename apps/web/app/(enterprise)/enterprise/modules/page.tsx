@@ -5,7 +5,7 @@ export default function EnterpriseModulesPage() {
     <div className="ui-page enterprise-modules-page">
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Module management</h1>
-        <p className="ui-page__description">Create modules and assign student enrollments for this enterprise.</p>
+        <p className="ui-page__description">Create and manage modules for this enterprise.</p>
       </header>
 
       <EnterpriseModuleManager />

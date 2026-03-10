@@ -9,10 +9,14 @@ import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/sessio
 
 export const dynamic = "force-dynamic";
 
-const enterpriseNav = [
+const enterpriseAdminNav = [
   { href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const },
   { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
   { href: "/enterprise/groups", label: "Group management", space: "enterprise" as const },
+];
+
+const enterpriseStaffNav = [
+  { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
 ];
 
 export default async function EnterpriseLayout({ children }: { children: ReactNode }) {
@@ -22,23 +26,28 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     redirect("/login");
   }
 
-  if (!isEnterpriseAdmin(user) && !isAdmin(user)) {
+  const canAccessEnterpriseAdmin = isEnterpriseAdmin(user) || isAdmin(user);
+  const canAccessModuleManagement = canAccessEnterpriseAdmin || user.role === "STAFF";
+
+  if (!canAccessModuleManagement) {
     redirect("/dashboard");
   }
 
+  const enterpriseHomeHref = canAccessEnterpriseAdmin ? "/enterprise" : "/enterprise/modules";
+  const enterpriseNav = canAccessEnterpriseAdmin ? enterpriseAdminNav : enterpriseStaffNav;
   const workspaceAliases = ["/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
 
   const spaceLinks: SpaceLink[] = [
     { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
     { href: "/staff/dashboard", label: "Staff" },
-    { href: "/enterprise", label: "Enterprise" },
+    { href: enterpriseHomeHref, label: "Enterprise" },
   ];
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
     <AppShell
       sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/enterprise" actions={<UserMenu />} />}
+      topbar={<Topbar title="Team Feedback" titleHref={enterpriseHomeHref} actions={<UserMenu />} />}
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>
