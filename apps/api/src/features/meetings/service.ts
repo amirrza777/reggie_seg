@@ -9,7 +9,7 @@ import {
   deleteComment,
   createMentions,
 } from "./repo.js";
-import { getTeamMembers } from "../teamAllocation/service.js";
+import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 
 export function listMeetings(teamId: number) {
@@ -64,6 +64,7 @@ async function processMentions(commentId: number, meetingId: number, userId: num
 
   await createMentions(commentId, mentionedIds);
 
+  const team = await getTeamById(teamId);
   const author = members.find((m) => m.id === userId);
   const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
 
@@ -72,7 +73,7 @@ async function processMentions(commentId: number, meetingId: number, userId: num
       userId: mentionedId,
       type: "MENTION",
       message: `${authorName} mentioned you in a comment`,
-      link: `/meetings/${meetingId}`,
+      link: `/projects/${team.projectId}/meetings/${meetingId}`,
     });
   }
 }
