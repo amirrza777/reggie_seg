@@ -34,6 +34,17 @@ export function getMeetingById(meetingId: number) {
       organiser: {
         select: { id: true, firstName: true, lastName: true },
       },
+      team: {
+        include: {
+          allocations: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {

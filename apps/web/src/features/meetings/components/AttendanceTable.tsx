@@ -6,13 +6,37 @@ import { Button } from "@/shared/ui/Button";
 import { markAttendance } from "../api/client";
 import type { MeetingAttendanceRecord } from "../types";
 
+type Member = {
+  id: number;
+  firstName: string;
+  lastName: string;
+};
+
 type AttendanceTableProps = {
   meetingId: number;
+  members: Member[];
   initialAttendances: MeetingAttendanceRecord[];
 };
 
-export function AttendanceTable({ meetingId, initialAttendances }: AttendanceTableProps) {
-  const [attendances, setAttendances] = useState(initialAttendances);
+function buildAttendanceList(members: Member[], initialAttendances: MeetingAttendanceRecord[]): MeetingAttendanceRecord[] {
+  const existingByUserId = new Map(initialAttendances.map((a) => [a.userId, a]));
+
+  return members.map((member) => {
+    const existing = existingByUserId.get(member.id);
+    if (existing) return existing;
+
+    return {
+      id: 0,
+      meetingId: 0,
+      userId: member.id,
+      status: "absent",
+      user: member,
+    };
+  });
+}
+
+export function AttendanceTable({ meetingId, members, initialAttendances }: AttendanceTableProps) {
+  const [attendances, setAttendances] = useState(() => buildAttendanceList(members, initialAttendances));
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
