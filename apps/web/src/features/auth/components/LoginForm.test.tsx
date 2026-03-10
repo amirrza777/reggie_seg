@@ -38,8 +38,9 @@ beforeEach(() => {
 });
 
 describe("LoginForm", () => {
-  it("submits credentials and redirects to dashboard", async () => {
+  it("submits credentials and redirects non-admin users to dashboard", async () => {
     loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    refresh.mockResolvedValue({ role: "STUDENT" });
     render(<LoginForm />);
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
@@ -47,6 +48,16 @@ describe("LoginForm", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled());
     await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
     expect(screen.queryByText(/logged in/i)).not.toBeInTheDocument();
+  });
+
+  it("redirects admin users to admin space", async () => {
+    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    refresh.mockResolvedValue({ role: "ADMIN" });
+    render(<LoginForm />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/admin"));
   });
 
   it("shows an error message when login fails", async () => {
