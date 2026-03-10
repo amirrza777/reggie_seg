@@ -24,6 +24,7 @@
 }
 
 .app-shell__workspace {
+  --workspace-radius: 10px;
   width: 100%;
   min-width: 0;
   display: grid;
@@ -33,7 +34,11 @@
   overflow: auto;
   min-height: 0;
   background: var(--surface);
-  border-radius: 10px;
+  border-radius: var(--workspace-radius);
+  background-clip: padding-box;
+  clip-path: inset(0 round var(--workspace-radius));
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   padding: 8px 10px 10px;
 }
 

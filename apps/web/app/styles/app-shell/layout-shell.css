@@ -49,18 +49,15 @@ body {
 .app-shell__content::before {
   content: "";
   position: absolute;
-  inset: -18%;
+  inset: -10%;
   pointer-events: none;
   background:
     var(--marketing-glow-1),
     var(--marketing-glow-2),
     var(--marketing-glow-3);
-  opacity: 0.78;
-  filter: blur(26px);
-  mix-blend-mode: screen;
-  transform: translate3d(0, 0, 0);
-  backface-visibility: hidden;
-  will-change: transform, opacity, filter;
+  opacity: 0.52;
+  filter: none;
+  mix-blend-mode: normal;
   z-index: 0;
 }
 
@@ -69,23 +66,19 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    var(--marketing-noise-gradient),
-    var(--marketing-noise-pattern);
-  background-repeat: no-repeat, repeat;
-  background-size: 100% 100%, 90px 90px;
-  background-position: center, center;
-  opacity: var(--marketing-noise-opacity);
-  mix-blend-mode: normal;
-  will-change: transform, opacity;
+  background: var(--marketing-noise-gradient);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  background-position: center;
+  opacity: 0.18;
   z-index: 0;
 }
 
 @media (prefers-color-scheme: light) {
   .app-shell__content::before {
-    opacity: 0.88;
-    filter: blur(26px);
-    mix-blend-mode: multiply;
+    opacity: 0.58;
+    filter: none;
+    mix-blend-mode: normal;
   }
 }
 
