@@ -1,0 +1,59 @@
+@media (max-width: 1220px) {
+  .enterprise-overview__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  .enterprise-management__create {
+    grid-template-columns: 1fr;
+  }
+
+  .enterprise-management__actions {
+    flex-wrap: wrap;
+  }
+
+  .enterprise-management__create-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-management__row-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-overview__role-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .enterprise-overview__action-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .enterprise-overview__action-link {
+    width: fit-content;
+    min-width: 0;
+  }
+
+  .enterprise-modules__bulk-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-modules__bulk-action-btn {
+    min-width: 0;
+  }
+
+  .enterprise-modules__create-actions {
+    justify-content: flex-start;
+  }
+
+  .enterprise-modules__student-item {
+    grid-template-columns: auto 1fr;
+  }
+
+  .enterprise-modules__student-item .status-chip {
+    grid-column: 1 / -1;
+    width: fit-content;
+  }
+}
