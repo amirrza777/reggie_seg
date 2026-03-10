@@ -69,20 +69,20 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <article className="staff-projects__card">
           <h3 className="staff-projects__card-title">Team health</h3>
           <p className="staff-projects__card-sub">
-            Use peer-assessment completion, peer-feedback evidence, and repository activity together to spot risks early.
+            Placeholder for flagged-risk indicators and team-health metrics.
           </p>
-          <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/peer-assessment`} className="staff-projects__card-action">
-            Open assessment signals
-          </Link>
+          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+            View team health
+          </button>
         </article>
         <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Coordination</h3>
+          <h3 className="staff-projects__card-title">Schedule meeting with team</h3>
           <p className="staff-projects__card-sub">
-            Check meetings and scheduler data to track team operating rhythm and identify inactive periods.
+            Placeholder for meeting scheduling workflow and notifications.
           </p>
-          <Link href={`/staff/projects/${data.project.id}/teams/${team.id}/team-meetings`} className="staff-projects__card-action">
-            Open meeting timeline
-          </Link>
+          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+            Schedule meeting
+          </button>
         </article>
       </section>
 
