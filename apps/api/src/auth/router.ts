@@ -52,8 +52,8 @@ if (googleEnabled) {
         maxAge: 1000 * 60 * 60 * 24 * 30,
       });
       const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
-      const destinationPath = user?.role === "ADMIN" ? "/admin" : "/modules";
-      res.redirect(`${appBaseUrl}${destinationPath}`);
+      const destination = user?.role === "ADMIN" ? "/admin" : "/dashboard";
+      res.redirect(`${appBaseUrl}/auth/google/success?token=${encodeURIComponent(accessToken)}&redirect=${encodeURIComponent(destination)}`);
     }
   );
 
