@@ -14,3 +14,4 @@ coverage/
 apps/web/.next/
 apps/web/.next-dev/
 .zed/
+.claude/
