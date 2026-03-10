@@ -9,6 +9,7 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
+  getUserModulesHandler,
   getUserProjectsHandler,
 } from "./controller.js";
 
@@ -16,6 +17,7 @@ vi.mock("./service.js", () => ({
   createProject: vi.fn(),
   fetchProjectById: vi.fn(),
   fetchProjectsForUser: vi.fn(),
+  fetchModulesForUser: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
   fetchTeamById: vi.fn(),
@@ -81,6 +83,21 @@ describe("projects controller", () => {
     await getUserProjectsHandler({ query: { userId: "7" } } as any, res);
     expect(service.fetchProjectsForUser).toHaveBeenCalledWith(7);
     expect(res.json).toHaveBeenCalled();
+  });
+
+  it("getUserModulesHandler maps query scope to module fetch scope", async () => {
+    const badRes = mockResponse();
+    await getUserModulesHandler({ query: { userId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchModulesForUser as any).mockResolvedValue([{ id: "1", title: "M1" }]);
+    const workspaceRes = mockResponse();
+    await getUserModulesHandler({ query: { userId: "7" } } as any, workspaceRes);
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: false });
+
+    const staffRes = mockResponse();
+    await getUserModulesHandler({ query: { userId: "7", scope: "staff" } } as any, staffRes);
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true });
   });
 
   it("getProjectDeadlineHandler validates ids and returns deadline", async () => {

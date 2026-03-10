@@ -28,13 +28,18 @@ export async function fetchProjectsForUser(userId: number) {
   }));
 }
 
-export async function fetchModulesForUser(userId: number) {
-  const modules = await getModulesForUser(userId);
+export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+  const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
     title: module.name,
+    briefText: module.briefText ?? undefined,
+    timelineText: module.timelineText ?? undefined,
+    expectationsText: module.expectationsText ?? undefined,
+    readinessNotesText: module.readinessNotesText ?? undefined,
     teamCount: module.teamCount,
     projectCount: module.projectCount,
+    accountRole: module.accessRole,
   }));
 }
 

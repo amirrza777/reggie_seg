@@ -25,7 +25,7 @@ export async function getUserProjects(userId: number) {
   });
 }
 
-export async function getModulesForUser(userId: number) {
+export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true, enterpriseId: true },
@@ -43,12 +43,19 @@ export async function getModulesForUser(userId: number) {
             enterpriseId: user.enterpriseId,
             OR: [
               { moduleLeads: { some: { userId: user.id } } },
+              { moduleTeachingAssistants: { some: { userId: user.id } } },
               { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } },
             ],
           }
         : {
             enterpriseId: user.enterpriseId,
-            userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
+            ...(options?.staffOnly
+              ? {
+                  moduleTeachingAssistants: { some: { userId: user.id } },
+                }
+              : {
+                  userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
+                }),
           };
 
   const modules = await prisma.module.findMany({
@@ -56,6 +63,25 @@ export async function getModulesForUser(userId: number) {
     select: {
       id: true,
       name: true,
+      briefText: true,
+      timelineText: true,
+      expectationsText: true,
+      readinessNotesText: true,
+      moduleLeads: {
+        where: { userId: user.id },
+        select: { userId: true },
+        take: 1,
+      },
+      moduleTeachingAssistants: {
+        where: { userId: user.id },
+        select: { userId: true },
+        take: 1,
+      },
+      userModules: {
+        where: { userId: user.id, enterpriseId: user.enterpriseId },
+        select: { userId: true },
+        take: 1,
+      },
       projects: {
         select: {
           _count: {
@@ -69,12 +95,33 @@ export async function getModulesForUser(userId: number) {
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
 
-  return modules.map((module) => ({
-    id: module.id,
-    name: module.name,
-    teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
-    projectCount: module.projects.length,
-  }));
+  return modules.map((module) => {
+    const isOwner = module.moduleLeads.length > 0;
+    const isTeachingAssistant = module.moduleTeachingAssistants.length > 0;
+    const isEnrolled = module.userModules.length > 0;
+
+    const accessRole = isOwner
+      ? "OWNER"
+      : isTeachingAssistant
+        ? "TEACHING_ASSISTANT"
+        : isEnrolled
+          ? "ENROLLED"
+          : user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
+            ? "ADMIN_ACCESS"
+            : "ENROLLED";
+
+    return {
+      id: module.id,
+      name: module.name,
+      briefText: module.briefText,
+      timelineText: module.timelineText,
+      expectationsText: module.expectationsText,
+      readinessNotesText: module.readinessNotesText,
+      teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
+      projectCount: module.projects.length,
+      accessRole,
+    };
+  });
 }
 
 export async function getProjectById(projectId: number) {

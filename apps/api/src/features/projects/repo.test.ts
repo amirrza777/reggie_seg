@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createProject,
+  getModulesForUser,
   getProjectById,
   getQuestionsForProject,
   getTeamById,
@@ -25,6 +26,12 @@ vi.mock("../../shared/db.js", () => ({
     team: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+    },
+    module: {
+      findMany: vi.fn(),
     },
   },
 }));
@@ -53,6 +60,46 @@ describe("projects repo", () => {
         module: { select: { name: true } },
       },
     });
+  });
+
+  it("getModulesForUser keeps teaching-assistant modules out of workspace scope for students", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 21,
+      role: "STUDENT",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findMany as any).mockResolvedValue([]);
+
+    await getModulesForUser(21);
+
+    expect(prisma.module.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          enterpriseId: "ent-1",
+          userModules: { some: { userId: 21, enterpriseId: "ent-1" } },
+        },
+      })
+    );
+  });
+
+  it("getModulesForUser returns teaching-assistant modules in staff scope for students", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 21,
+      role: "STUDENT",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findMany as any).mockResolvedValue([]);
+
+    await getModulesForUser(21, { staffOnly: true });
+
+    expect(prisma.module.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          enterpriseId: "ent-1",
+          moduleTeachingAssistants: { some: { userId: 21 } },
+        },
+      })
+    );
   });
 
   it("getProjectById queries selected fields", async () => {

@@ -75,8 +75,10 @@ export async function getUserModulesHandler(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid user ID" });
   }
 
+  const scope = req.query.scope === "staff" ? "staff" : "workspace";
+
   try {
-    const modules = await fetchModulesForUser(userId);
+    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff" });
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
