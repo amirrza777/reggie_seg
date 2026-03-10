@@ -5,6 +5,7 @@ import {
   findGithubAccountByUserId,
   findProjectGithubRepositoryLinkById,
   isUserInProject,
+  listProjectGithubIdentityCandidates,
 } from "./repo.js";
 import {
   fetchAllUserCommitsForRepository,
@@ -15,6 +16,56 @@ import {
   listRepositoryBranchesLive,
 } from "./service.analysis.fetch.js";
 import { isMergePullRequestCommit } from "./service.analysis.aggregate.js";
+
+type IdentityCandidate = {
+  userId: number;
+};
+
+function addUniqueUserId(userIds: number[], value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value) || userIds.includes(value)) {
+    return;
+  }
+  userIds.push(value);
+}
+
+async function resolveProjectLinkAccessToken(params: {
+  requesterUserId: number;
+  linkedByUserId: number | null | undefined;
+  identityCandidates: IdentityCandidate[];
+}) {
+  const candidateUserIds: number[] = [];
+  addUniqueUserId(candidateUserIds, params.requesterUserId);
+  addUniqueUserId(candidateUserIds, params.linkedByUserId);
+  for (const identity of params.identityCandidates) {
+    addUniqueUserId(candidateUserIds, identity.userId);
+  }
+
+  let hasConnectedAccount = false;
+  for (const candidateUserId of candidateUserIds) {
+    const account = await findGithubAccountByUserId(candidateUserId);
+    if (!account) {
+      continue;
+    }
+
+    hasConnectedAccount = true;
+    try {
+      return await getValidGithubAccessToken(account);
+    } catch (error) {
+      if (error instanceof GithubServiceError && error.status === 401) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (!hasConnectedAccount) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+  throw new GithubServiceError(
+    401,
+    "No valid GitHub access token is available for this project. Ask a team member to reconnect GitHub."
+  );
+}
 
 export async function listLiveProjectGithubRepositoryBranches(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
@@ -27,12 +78,13 @@ export async function listLiveProjectGithubRepositoryBranches(userId: number, li
     throw new GithubServiceError(403, "You are not a member of this project");
   }
 
-  const account = await findGithubAccountByUserId(userId);
-  if (!account) {
-    throw new GithubServiceError(404, "GitHub account is not connected");
-  }
+  const identities = await listProjectGithubIdentityCandidates(link.projectId);
+  const accessToken = await resolveProjectLinkAccessToken({
+    requesterUserId: userId,
+    linkedByUserId: link.linkedByUserId,
+    identityCandidates: identities,
+  });
 
-  const accessToken = await getValidGithubAccessToken(account);
   const defaultBranch = link.repository.defaultBranch || "main";
   const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
 
@@ -90,14 +142,32 @@ export async function listLiveProjectGithubRepositoryBranchCommits(
     throw new GithubServiceError(403, "You are not a member of this project");
   }
 
-  const account = await findGithubAccountByUserId(userId);
-  if (!account) {
-    throw new GithubServiceError(404, "GitHub account is not connected");
-  }
+  const identities = await listProjectGithubIdentityCandidates(link.projectId);
+  const accessToken = await resolveProjectLinkAccessToken({
+    requesterUserId: userId,
+    linkedByUserId: link.linkedByUserId,
+    identityCandidates: identities,
+  });
 
-  const accessToken = await getValidGithubAccessToken(account);
-  const safeLimit = Math.max(1, Math.min(10, limit));
-  const commits = await fetchRecentCommitsForBranch(accessToken, link.repository.fullName, branchName, safeLimit);
+  const safeLimit = Math.max(1, Math.min(50, limit));
+  let resolvedBranch = branchName;
+  let commits = await fetchRecentCommitsForBranch(accessToken, link.repository.fullName, branchName, safeLimit).catch(
+    async (error) => {
+      if (!(error instanceof GithubServiceError) || error.status !== 404) {
+        throw error;
+      }
+
+      const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
+      const fallbackBranch =
+        liveBranches.find((branch) => branch.name === link.repository.defaultBranch)?.name || liveBranches[0]?.name;
+      if (!fallbackBranch || fallbackBranch === branchName) {
+        throw error;
+      }
+
+      resolvedBranch = fallbackBranch;
+      return fetchRecentCommitsForBranch(accessToken, link.repository.fullName, fallbackBranch, safeLimit);
+    }
+  );
   const commitStatsBySha = await fetchCommitStatsForRepository(
     accessToken,
     link.repository.fullName,
@@ -112,7 +182,7 @@ export async function listLiveProjectGithubRepositoryBranchCommits(
       defaultBranch: link.repository.defaultBranch || "main",
       htmlUrl: link.repository.htmlUrl,
     },
-    branch: branchName,
+    branch: resolvedBranch,
     commits: commits.map((commit) => {
       const stats = commitStatsBySha.get(commit.sha);
       return {

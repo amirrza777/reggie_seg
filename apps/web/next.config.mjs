@@ -6,8 +6,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   eslint: {
     ignoreDuringBuilds: true,
+  },
+  experimental: {
+    // Work around intermittent React Client Manifest errors in Next DevTools segment explorer.
+    devtoolSegmentExplorer: false,
   },
   // Allow both localhost and 127.0.0.1 during dev to avoid cross-origin _next warnings
   allowedDevOrigins: [

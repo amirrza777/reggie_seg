@@ -2,7 +2,7 @@
 :root {
   --topbar-title-size: var(--fs-logo, 1.6rem);
   /* Shared selection background for sidebar and workspace/admin pills */
-  --sidebar-active-bg: color-mix(in srgb, var(--sidebar-text) 12%, transparent);
+  --sidebar-active-bg: var(--selection-gray-bg, color-mix(in srgb, var(--sidebar-text) 12%, transparent));
   /* Underline for the space switcher tabs */
   --space-switcher-underline: #22c55e;
 }

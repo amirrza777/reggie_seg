@@ -133,7 +133,8 @@
 }
 
 .auth-role-legend {
-  font-size: 14px;
+  font-size: var(--fs-caption);
+  line-height: 1.4;
   margin-bottom: 6px;
 }
 

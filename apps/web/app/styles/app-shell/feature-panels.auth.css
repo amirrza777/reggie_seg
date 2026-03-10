@@ -1,0 +1,34 @@
+.auth-reset-wrap {
+  width: 100%;
+}
+
+.auth-reset-wrap--center {
+  text-align: center;
+}
+
+.auth-reset-alert {
+  padding: 16px;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.auth-reset-message {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.auth-reset-actions {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.full-width-btn {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .github-chart-section__panel--half {
+    grid-column: 1 / -1;
+  }
+}

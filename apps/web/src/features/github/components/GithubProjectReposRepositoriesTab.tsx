@@ -46,6 +46,9 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
     onLinkSelected,
     onRemoveLink,
   } = props;
+  const selectedRepo = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
+  const selectedRepoNeedsAppAccess = Boolean(selectedRepo && !selectedRepo.isAppInstalled);
+  const hasReposMissingAppAccess = availableRepos.some((repo) => !repo.isAppInstalled);
 
   return (
     <section className="github-repos-tab">
@@ -74,18 +77,37 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
               {availableRepos.length === 0 ? <option value="">No accessible repositories found</option> : null}
               {availableRepos.map((repo) => (
                 <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
-                  {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}
+                  {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}{" "}
+                  {repo.isAppInstalled ? "" : "- app access required"}
                 </option>
               ))}
             </select>
             <div>
               <Button
                 onClick={() => void onLinkSelected()}
-                disabled={loading || busy || linking || !selectedRepoId || availableRepos.length === 0}
+                disabled={
+                  loading ||
+                  busy ||
+                  linking ||
+                  !selectedRepoId ||
+                  availableRepos.length === 0 ||
+                  selectedRepoNeedsAppAccess
+                }
               >
                 {linking ? "Linking and analysing..." : "Link selected repository"}
               </Button>
             </div>
+            {selectedRepoNeedsAppAccess ? (
+              <p className="muted github-repos-tab__helper">
+                GitHub App access is required before this repository can be linked.
+              </p>
+            ) : null}
+            {hasReposMissingAppAccess ? (
+              <p className="muted github-repos-tab__helper">
+                Some repositories are visible through collaboration access, but need GitHub App installation access
+                before linking.
+              </p>
+            ) : null}
           </div>
         ) : null}
         {connection?.connected && links.length > 0 ? (

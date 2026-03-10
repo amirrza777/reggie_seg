@@ -159,6 +159,7 @@
 
 .trello-card {
   margin: 0;
+  list-style: none;
 }
 
 .trello-card__surface {

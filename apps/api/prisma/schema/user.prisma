@@ -39,6 +39,9 @@ model User {
   questionnaires          QuestionnaireTemplate[]
   reviewerFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewer")
   revieweeFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewee")
+  staffTeamMarkingsGiven  StaffTeamMarking[]            @relation("StaffTeamMarker")
+  staffStudentMarkingsGiven StaffStudentMarking[]       @relation("StaffStudentMarker")
+  staffStudentMarkingsReceived StaffStudentMarking[]    @relation("StaffStudentMarkingStudent")
   githubAccount           GithubAccount?
   linkedGithubRepos       ProjectGithubRepository[]     @relation("ProjectGithubRepositoryLinkedBy")
   analysedGithubSnapshots GithubRepoSnapshot[]          @relation("GithubRepoSnapshotAnalysedBy")

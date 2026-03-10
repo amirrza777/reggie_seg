@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
-import { getTeamByUserAndProject, getUserProjects } from "@/features/projects/api/client";
+import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
 import { ProjectTrelloContent } from "@/features/trello/components/ProjectTrelloContent";
+import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -21,11 +22,11 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
     ? resolvedSearchParams.projectId[0]
     : resolvedSearchParams.projectId;
 
-  let projects: Awaited<ReturnType<typeof getUserProjects>> = [];
+  let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let projectLoadError: string | null = null;
 
   try {
-    projects = await getUserProjects(user.id);
+    projects = await getStaffProjects(user.id);
   } catch (err) {
     projectLoadError = err instanceof Error ? err.message : "Failed to load your projects.";
   }
@@ -34,12 +35,13 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
     projects.find((project) => String(project.id) === String(requestedProjectId)) ?? projects[0] ?? null;
   const selectedProjectId = selectedProject ? String(selectedProject.id) : null;
 
-  let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
+  let team: Awaited<ReturnType<typeof getStaffProjectTeams>>["teams"][number] | null = null;
   if (selectedProjectId) {
     const numericProjectId = Number(selectedProjectId);
     if (!Number.isNaN(numericProjectId)) {
       try {
-        team = await getTeamByUserAndProject(user.id, numericProjectId);
+        const projectTeams = await getStaffProjectTeams(user.id, numericProjectId);
+        team = projectTeams.teams[0] ?? null;
       } catch {
         team = null;
       }
@@ -93,6 +95,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
                 projectId={selectedProjectId}
                 teamId={team.id}
                 teamName={team.teamName}
+                viewComponent={StaffTrelloSummaryView}
               />
             ) : (
               <div className="stack">

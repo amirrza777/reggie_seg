@@ -8,7 +8,7 @@ describe("FeatureFlagsPanel", () => {
     render(
       <FeatureFlagsPanel
         flags={[
-          { key: "repos", label: "Repos", enabled: true },
+          { key: "repos", label: "Repositories", enabled: true },
           { key: "trello", label: "Trello", enabled: false },
         ]}
         onToggle={onToggle}

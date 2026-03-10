@@ -12,12 +12,15 @@ model Team {
   deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments PeerAssessment[]
   peerFeedbacks   PeerFeedback[]
+  staffTeamMarking StaffTeamMarking?
+  staffStudentMarkings StaffStudentMarking[]
   meetings        Meeting[]
   
-  trelloBoardId String?
-  trelloOwnerId Int?
-  trelloOwner User? @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
-  invites         TeamInvite[]
+  trelloBoardId      String?
+  trelloOwnerId      Int?
+  trelloOwner        User?   @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
+  trelloSectionConfig Json? 
+  invites            TeamInvite[]
 
   @@unique([projectId, teamName])
   @@index([projectId])

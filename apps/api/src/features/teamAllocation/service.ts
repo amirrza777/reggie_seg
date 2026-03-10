@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
+import { prisma } from "../../shared/db.js";
 import {
   createTeamInviteRecord,
   findActiveInvite,
@@ -70,6 +71,12 @@ export async function createTeam(userId: number, teamData: Parameters<typeof Tea
   return TeamService.createTeam(userId, teamData);
 }
 
+export async function createTeamForProject(userId: number, projectId: number, teamName: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { enterpriseId: true } });
+  if (!user) throw { code: "USER_NOT_FOUND" };
+  return TeamService.createTeam(userId, { enterpriseId: user.enterpriseId, projectId, teamName });
+}
+
 export async function getTeamById(teamId: number) {
   return TeamService.getTeamById(teamId);
 }
@@ -92,8 +99,13 @@ async function transitionInviteFromPending(inviteId: string, status: TeamInviteS
   return invite;
 }
 
-export async function acceptTeamInvite(inviteId: string) {
-  return transitionInviteFromPending(inviteId, "ACCEPTED");
+export async function acceptTeamInvite(inviteId: string, userId: number) {
+  const invite = await transitionInviteFromPending(inviteId, "ACCEPTED");
+  // Add the accepting user to the team; ignore if already a member.
+  await TeamService.addUserToTeam(invite.teamId, userId).catch((err: any) => {
+    if (err?.code !== "MEMBER_ALREADY_EXISTS") throw err;
+  });
+  return invite;
 }
 
 export async function declineTeamInvite(inviteId: string) {

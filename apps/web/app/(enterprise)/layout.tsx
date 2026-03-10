@@ -22,14 +22,14 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     redirect("/dashboard");
   }
 
-  const workspaceAliases = ["/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
+  const workspaceAliases = ["/staff/repos", "/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
 
   const spaceLinks: SpaceLink[] = [
     { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
     { href: "/staff/dashboard", label: "Staff" },
     { href: "/enterprise", label: "Enterprise" },
-    { href: "/admin", label: "Admin" },
   ];
+  if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
     <AppShell

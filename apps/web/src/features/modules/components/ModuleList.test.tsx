@@ -3,10 +3,9 @@ import { describe, expect, it } from "vitest";
 import { ModuleList } from "./ModuleList";
 
 describe("ModuleList", () => {
-  it("renders demo modules by default", () => {
+  it("renders an empty state by default", () => {
     render(<ModuleList />);
-    expect(screen.getByText("Foundations")).toBeInTheDocument();
-    expect(screen.getByText("Team Dynamics")).toBeInTheDocument();
+    expect(screen.getByText("No modules assigned yet.")).toBeInTheDocument();
   });
 
   it("renders provided modules and empty fallback descriptions", () => {

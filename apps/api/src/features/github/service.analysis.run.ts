@@ -30,6 +30,56 @@ import {
   type SnapshotUserStatRow,
 } from "./service.analysis.aggregate.js";
 
+type IdentityCandidate = {
+  userId: number;
+};
+
+function addUniqueUserId(userIds: number[], value: number | null | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value) || userIds.includes(value)) {
+    return;
+  }
+  userIds.push(value);
+}
+
+async function resolveProjectLinkAccessToken(params: {
+  requesterUserId: number;
+  linkedByUserId: number | null | undefined;
+  identityCandidates: IdentityCandidate[];
+}) {
+  const candidateUserIds: number[] = [];
+  addUniqueUserId(candidateUserIds, params.requesterUserId);
+  addUniqueUserId(candidateUserIds, params.linkedByUserId);
+  for (const identity of params.identityCandidates) {
+    addUniqueUserId(candidateUserIds, identity.userId);
+  }
+
+  let hasConnectedAccount = false;
+  for (const candidateUserId of candidateUserIds) {
+    const account = await findGithubAccountByUserId(candidateUserId);
+    if (!account) {
+      continue;
+    }
+
+    hasConnectedAccount = true;
+    try {
+      return await getValidGithubAccessToken(account);
+    } catch (error) {
+      if (error instanceof GithubServiceError && error.status === 401) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  if (!hasConnectedAccount) {
+    throw new GithubServiceError(404, "GitHub account is not connected");
+  }
+  throw new GithubServiceError(
+    401,
+    "No valid GitHub access token is available for this project. Ask a team member to reconnect GitHub."
+  );
+}
+
 export async function analyseProjectGithubRepository(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -41,12 +91,13 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     throw new GithubServiceError(403, "You are not a member of this project");
   }
 
-  const account = await findGithubAccountByUserId(userId);
-  if (!account) {
-    throw new GithubServiceError(404, "GitHub account is not connected");
-  }
+  const identities = await listProjectGithubIdentityCandidates(link.projectId);
+  const accessToken = await resolveProjectLinkAccessToken({
+    requesterUserId: userId,
+    linkedByUserId: link.linkedByUserId,
+    identityCandidates: identities,
+  });
 
-  const accessToken = await getValidGithubAccessToken(account);
   const defaultBranch = link.repository.defaultBranch || "main";
   const latestSnapshot = await findLatestGithubSnapshotByProjectLinkId(link.id);
   const useLatestSnapshotAsBaseline = hasUsableRepoCommitsByDay(latestSnapshot);
@@ -96,7 +147,6 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const defaultBranchLineChangesByDay = aggregateLineChangesByDay(commits, commitStatsBySha);
   const allBranchesLineChangesByDay = aggregateLineChangesByDay(allBranchCommits, allBranchCommitStatsBySha);
 
-  const identities = await listProjectGithubIdentityCandidates(link.projectId);
   const byLogin = new Map<string, number>();
   const byEmail = new Map<string, number>();
   for (const identity of identities) {

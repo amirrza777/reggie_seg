@@ -119,4 +119,18 @@ describe("TrelloRepo", () => {
       expect(result).toEqual(mockUser);
     });
   });
+
+  describe("setTeamTrelloSectionConfig", () => {
+    it("updates team trelloSectionConfig with list name -> status map", async () => {
+      const config = { "To Do": "backlog", "Done": "completed" };
+      (prisma.team.update as any).mockResolvedValue({ id: 2, trelloSectionConfig: config });
+
+      await TrelloRepo.setTeamTrelloSectionConfig(2, config);
+
+      expect(prisma.team.update).toHaveBeenCalledWith({
+        where: { id: 2 },
+        data: { trelloSectionConfig: config },
+      });
+    });
+  });
 });

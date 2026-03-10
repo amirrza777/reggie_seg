@@ -12,4 +12,6 @@ coverage/
 .vscode/
 .next/
 apps/web/.next/
+apps/web/.next-dev/
 .zed/
+.claude/

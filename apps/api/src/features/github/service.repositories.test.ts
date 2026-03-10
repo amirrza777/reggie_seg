@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GithubServiceError } from "./errors.js";
 
 const repoMocks = vi.hoisted(() => ({
@@ -39,10 +39,37 @@ import {
   listProjectGithubRepositories,
 } from "./service.repositories.js";
 
+function mockFetchResponse(body: unknown, status = 200) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    json: vi.fn().mockResolvedValue(body),
+  } as any;
+}
+
+function mockInstalledRepos(githubRepoIds: number[]) {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(mockFetchResponse({ installations: [{ id: 101 }] }))
+    .mockResolvedValueOnce(
+      mockFetchResponse({
+        repositories: githubRepoIds.map((id) => ({ id })),
+      })
+    );
+  vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
 describe("service.repositories", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     repoMocks.deactivateProjectGithubRepositoryLink.mockResolvedValue(undefined);
+    repoMocks.findGithubAccountByUserId.mockResolvedValue({ userId: 10, login: "alice" });
+    oauthMocks.getValidGithubAccessToken.mockResolvedValue("token");
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it("returns disconnected connection status when no account exists", async () => {
@@ -81,6 +108,7 @@ describe("service.repositories", () => {
   });
 
   it("links a repository and auto-analyses a snapshot on success", async () => {
+    const fetchMock = mockInstalledRepos([123]);
     repoMocks.isUserInProject.mockResolvedValue(true);
     repoMocks.findActiveProjectGithubRepositoryLink.mockResolvedValue(null);
     repoMocks.upsertGithubRepository.mockResolvedValue({ id: 77, fullName: "team/repo" });
@@ -101,6 +129,7 @@ describe("service.repositories", () => {
     expect(repoMocks.upsertGithubRepository).toHaveBeenCalledWith(
       expect.objectContaining({ githubRepoId: BigInt(123), fullName: "team/repo" })
     );
+    expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(repoMocks.upsertProjectGithubRepositoryLink).toHaveBeenCalledWith(1, 77, 10);
     expect(analysisMocks.analyseProjectGithubRepository).toHaveBeenCalledWith(10, 55);
     expect(result).toEqual({
@@ -111,6 +140,7 @@ describe("service.repositories", () => {
   });
 
   it("rolls back the fresh link when auto-analysis fails", async () => {
+    mockInstalledRepos([123]);
     repoMocks.isUserInProject.mockResolvedValue(true);
     repoMocks.findActiveProjectGithubRepositoryLink.mockResolvedValue(null);
     repoMocks.upsertGithubRepository.mockResolvedValue({ id: 77, fullName: "team/repo" });
@@ -131,5 +161,31 @@ describe("service.repositories", () => {
     ).rejects.toEqual(new GithubServiceError(502, "Repository linked but analysis failed. Please try linking again."));
 
     expect(repoMocks.deactivateProjectGithubRepositoryLink).toHaveBeenCalledWith(55);
+  });
+
+  it("blocks linking when app access to the selected repository is missing", async () => {
+    mockInstalledRepos([999]);
+    repoMocks.isUserInProject.mockResolvedValue(true);
+
+    await expect(
+      linkGithubRepositoryToProject(10, {
+        projectId: 1,
+        githubRepoId: 123,
+        name: "repo",
+        fullName: "team/repo",
+        htmlUrl: "https://github.com/team/repo",
+        isPrivate: false,
+        ownerLogin: "team",
+        defaultBranch: "main",
+      })
+    ).rejects.toEqual(
+      new GithubServiceError(
+        409,
+        "GitHub App does not have access to this repository yet. Ask the owner or organization admin to grant access, then refresh."
+      )
+    );
+
+    expect(repoMocks.upsertGithubRepository).not.toHaveBeenCalled();
+    expect(repoMocks.upsertProjectGithubRepositoryLink).not.toHaveBeenCalled();
   });
 });

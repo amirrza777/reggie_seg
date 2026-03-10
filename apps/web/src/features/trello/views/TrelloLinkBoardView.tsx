@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { assignBoardToTeam, getBoardById } from "@/features/trello/api/client";
 import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
@@ -9,13 +11,15 @@ import "@/features/trello/styles/link-board.css";
 const MAX_PREVIEW_CARDS_PER_LIST = 5;
 
 type Props = {
+  projectId: string;
   teamId: number;
   teamName?: string;
   boards: OwnerBoard[];
   onAssigned: () => void;
 };
 
-export function TrelloLinkBoardView({ teamId, teamName, boards, onAssigned }: Props) {
+export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAssigned }: Props) {
+  const router = useRouter();
   const [selectedBoardId, setSelectedBoardId] = useState(boards[0]?.id ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +60,7 @@ export function TrelloLinkBoardView({ teamId, teamName, boards, onAssigned }: Pr
     try {
       await assignBoardToTeam(teamId, selectedBoardId);
       onAssigned();
+      router.push(`/projects/${projectId}/trello/configure`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to assign board.");
     } finally {

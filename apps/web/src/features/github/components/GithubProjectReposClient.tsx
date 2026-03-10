@@ -107,8 +107,14 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       if (status.connected) {
         const repos = await listGithubRepositories();
         setAvailableRepos(repos);
-        if (!selectedRepoId && repos.length > 0) {
-          setSelectedRepoId(String(repos[0]?.githubRepoId || ""));
+        if (repos.length === 0) {
+          setSelectedRepoId("");
+        } else {
+          const selectedRepoStillExists = repos.some((repo) => String(repo.githubRepoId) === selectedRepoId);
+          if (!selectedRepoStillExists) {
+            const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
+            setSelectedRepoId(String(preferredRepo?.githubRepoId || ""));
+          }
         }
       } else {
         setAvailableRepos([]);
@@ -229,6 +235,12 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     const chosen = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
     if (!chosen) {
       setError("Select a repository to link.");
+      return;
+    }
+    if (!chosen.isAppInstalled) {
+      setError(
+        "GitHub App does not have access to this repository yet. Ask the owner or organization admin to grant access, then refresh."
+      );
       return;
     }
 

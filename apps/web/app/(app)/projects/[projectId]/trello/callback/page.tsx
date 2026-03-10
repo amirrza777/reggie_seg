@@ -54,7 +54,7 @@ export default function TrelloCallbackPage() {
 
   return (
     <div style={{ padding: 24 }}>
-      <h1>Trello Callback</h1>
+      <h1>Connecting to Trello...</h1>
       <p>{status}</p>
     </div>
   );

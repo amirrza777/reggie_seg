@@ -24,6 +24,7 @@ function baseProps() {
         isPrivate: false,
         ownerLogin: "team",
         defaultBranch: "main",
+        isAppInstalled: true,
       },
     ],
     selectedRepoId: "1",
@@ -78,5 +79,32 @@ describe("GithubProjectReposRepositoriesTab", () => {
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Select repository to link")).not.toBeInTheDocument();
     expect(screen.getByTestId("repo-link-card")).toHaveTextContent("team/already-linked");
+  });
+
+  it("disables linking when selected repository needs app access", () => {
+    const props = baseProps();
+    props.availableRepos = [
+      {
+        githubRepoId: 2,
+        name: "repo-collab",
+        fullName: "org/repo-collab",
+        htmlUrl: "https://github.com/org/repo-collab",
+        isPrivate: true,
+        ownerLogin: "org",
+        defaultBranch: "main",
+        isAppInstalled: false,
+      },
+    ];
+    props.selectedRepoId = "2";
+
+    render(<GithubProjectReposRepositoriesTab {...props} />);
+
+    expect(screen.getByRole("button", { name: "Link selected repository" })).toBeDisabled();
+    expect(screen.getByText("GitHub App access is required before this repository can be linked.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Some repositories are visible through collaboration access, but need GitHub App installation access before linking."
+      )
+    ).toBeInTheDocument();
   });
 });

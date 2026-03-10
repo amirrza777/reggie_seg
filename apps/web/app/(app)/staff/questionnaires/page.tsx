@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { QuestionnaireList } from "@/features/questionnaires/components/QuestionnaireList";
+import { QuestionnaireList } from "@/features/questionnaires/components/questionnaireList";
 
 export default function QuestionnairesPage() {
   return (
@@ -53,4 +53,3 @@ export default function QuestionnairesPage() {
     </div>
   );
 }
-
