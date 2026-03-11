@@ -1,6 +1,7 @@
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedProject, SeedTeam, SeedTemplate } from "./types";
+import { SEED_FEATURE_FLAG_COUNT, SEED_PEER_REVIEWS_PER_MEMBER } from "./volumes";
 
 export async function seedProjectDeadlines(projects: SeedProject[]) {
   return withSeedLogging("seedProjectDeadlines", async () => {
@@ -83,7 +84,7 @@ export async function seedPeerAssessments(projects: SeedProject[], teams: SeedTe
       if (teamMembers.length < 2) continue;
 
       const teamMemberIds = teamMembers.map((member) => member.user.id);
-      const reviewSpan = Math.min(2, teamMemberIds.length - 1);
+      const reviewSpan = Math.min(SEED_PEER_REVIEWS_PER_MEMBER, teamMemberIds.length - 1);
 
       for (let reviewerIndex = 0; reviewerIndex < teamMemberIds.length; reviewerIndex += 1) {
         const reviewerId = teamMemberIds[reviewerIndex];
@@ -177,7 +178,12 @@ export async function seedFeatureFlags(enterpriseId: string) {
       { key: "peer_feedback", label: "Peer feedback", enabled: true },
       { key: "modules", label: "Modules", enabled: true },
       { key: "repos", label: "Repositories", enabled: true },
-    ];
+      { key: "dashboards", label: "Dashboards", enabled: true },
+      { key: "meetings", label: "Meetings", enabled: true },
+      { key: "questionnaires", label: "Questionnaires", enabled: true },
+      { key: "github_sync", label: "Github Sync", enabled: true },
+      { key: "team_overrides", label: "Team Overrides", enabled: true },
+    ].slice(0, SEED_FEATURE_FLAG_COUNT);
 
     const existing = await prisma.featureFlag.findMany({
       where: {

@@ -1,0 +1,9 @@
+export const SEED_MODULE_COUNT = 6;
+export const SEED_STUDENT_COUNT = 180;
+export const SEED_STAFF_COUNT = 17;
+export const SEED_TEMPLATE_COUNT = 5;
+export const SEED_QUESTIONS_PER_TEMPLATE = 5;
+export const SEED_PROJECT_COUNT = 18;
+export const SEED_TEAMS_PER_PROJECT = 3;
+export const SEED_PEER_REVIEWS_PER_MEMBER = 2;
+export const SEED_FEATURE_FLAG_COUNT = 3;
