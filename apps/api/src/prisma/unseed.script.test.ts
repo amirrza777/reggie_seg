@@ -39,6 +39,9 @@ describe("prisma unseed script", () => {
 
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `RefreshToken`;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `FeatureFlag`;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `Project`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `User`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `Enterprise`;");
     expect(prismaMock.$disconnect).toHaveBeenCalled();

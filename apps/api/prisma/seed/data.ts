@@ -1,7 +1,8 @@
-import { randFirstName, randLastName } from "@ngneat/falso";
+import { randFirstName, randLastName, randSentence } from "@ngneat/falso";
 
-const generatedStudentCount = 5;
-const generatedStaffCount = Math.ceil(generatedStudentCount / 10);
+const generatedStudentCount = 180;
+const generatedStaffCount = 17;
+const teamsPerProject = 3;
 
 const randomStudents = Array.from({ length: generatedStudentCount }, (_, index) => {
   const firstName = randFirstName();
@@ -38,16 +39,56 @@ export const moduleData = [
   { name: "Internet Systems" },
 ];
 
-export const projectData = [
-  { name: "Small Group Project", moduleIndex: 0 },
-  { name: "Large Group Project", moduleIndex: 0 },
-  { name: "Data Project", moduleIndex: 2 },
-  { name: "Database Project", moduleIndex: 1 },
-];
+function randomQuestionLabel() {
+  const generated = randSentence();
+  const sentence = (Array.isArray(generated) ? generated[0] : generated).replace(/\s+/g, " ").trim();
+  const withoutTrailingPunctuation = sentence.replace(/[.?!]+$/, "");
+  const maxLabelLength = 120;
+  const trimmed = withoutTrailingPunctuation.slice(0, maxLabelLength - 1).trim();
+  const safeLabel = trimmed.length > 0 ? trimmed : "Random question";
+  return `${safeLabel}?`;
+}
 
-export const teamData = [
-  { teamName: "Team Alpha", projectIndex: 0 },
-  { teamName: "Team Beta", projectIndex: 0 },
-  { teamName: "Team Beta", projectIndex: 1 },
-  { teamName: "Team Gamma", projectIndex: 2 },
-];
+export const questionnaireTemplateData = [
+  {
+    templateName: "Default Peer Assessment Template",
+    isPublic: true,
+    questions: Array.from({ length: 5 }, () => randomQuestionLabel()),
+  },
+  {
+    templateName: "Sprint Retrospective Template",
+    isPublic: true,
+    questions: Array.from({ length: 5 }, () => randomQuestionLabel()),
+  },
+  {
+    templateName: "Presentation Readiness Template",
+    isPublic: true,
+    questions: Array.from({ length: 5 }, () => randomQuestionLabel()),
+  },
+  {
+    templateName: "Repository Contribution Template",
+    isPublic: true,
+    questions: Array.from({ length: 5 }, () => randomQuestionLabel()),
+  },
+  {
+    templateName: "End of Module Review Template",
+    isPublic: true,
+    questions: Array.from({ length: 5 }, () => randomQuestionLabel()),
+  },
+] as const;
+
+export const projectData = Array.from({ length: 18 }, (_, index) => {
+  const module = moduleData[index % moduleData.length];
+  const cycle = Math.floor(index / moduleData.length) + 1;
+  return {
+    name: `${module.name} Project ${cycle}`,
+    moduleIndex: index % moduleData.length,
+  };
+});
+
+export const teamData = projectData.flatMap((project, projectIndex) =>
+  Array.from({ length: teamsPerProject }, (_, teamIndex) => ({
+    teamName: `${project.name} Team ${teamIndex + 1}`,
+    projectIndex,
+  }))
+);

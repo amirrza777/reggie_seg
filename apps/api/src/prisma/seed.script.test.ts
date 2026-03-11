@@ -22,10 +22,16 @@ type PrismaMock = {
   team: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn> };
   moduleLead: { createMany: ReturnType<typeof vi.fn> };
   userModule: { createMany: ReturnType<typeof vi.fn> };
-  teamAllocation: { createMany: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
-  peerAssessment: { upsert: ReturnType<typeof vi.fn> };
-  projectDeadline: { upsert: ReturnType<typeof vi.fn> };
-  featureFlag: { upsert: ReturnType<typeof vi.fn> };
+  teamAllocation: {
+    createMany: ReturnType<typeof vi.fn>;
+    upsert: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+  };
+  peerAssessment: { upsert: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
+  peerFeedback: { upsert: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
+  projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  featureFlag: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   $disconnect: ReturnType<typeof vi.fn>;
 };
 
@@ -36,7 +42,13 @@ function buildPrismaMock(): PrismaMock {
       create: vi.fn().mockResolvedValue({ id: "ent-1" }),
     },
     user: {
-      findUnique: vi.fn().mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 999 }),
+      findUnique: vi.fn().mockImplementation((args: any) => {
+        const email = args?.where?.enterpriseId_email?.email;
+        if (email === "admin@kcl.ac.uk" || email === "github.staff@example.com" || email === "github.student@example.com") {
+          return Promise.resolve(null);
+        }
+        return Promise.resolve({ id: 999 });
+      }),
       create: vi.fn().mockResolvedValue({ id: 999 }),
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -52,11 +64,18 @@ function buildPrismaMock(): PrismaMock {
       ]),
     },
     questionnaireTemplate: {
-      upsert: vi.fn().mockResolvedValue({ id: 1, questions: [] }),
+      upsert: vi
+        .fn()
+        .mockResolvedValue({ id: 1, questions: [{ label: "Technical contribution" }, { label: "Communication" }] }),
     },
     project: {
       createMany: vi.fn().mockResolvedValue({ count: 4 }),
-      findMany: vi.fn().mockResolvedValue([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]),
+      findMany: vi.fn().mockResolvedValue([
+        { id: 1, questionnaireTemplateId: 1 },
+        { id: 2, questionnaireTemplateId: 1 },
+        { id: 3, questionnaireTemplateId: 1 },
+        { id: 4, questionnaireTemplateId: 1 },
+      ]),
       findFirst: vi.fn().mockResolvedValue({ id: 1 }),
       findUnique: vi.fn().mockResolvedValue({ moduleId: 1 }),
     },
@@ -81,15 +100,23 @@ function buildPrismaMock(): PrismaMock {
         { user: { id: 1 } },
         { user: { id: 2 } },
       ]),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     peerAssessment: {
+      upsert: vi.fn().mockResolvedValue({ id: 100 }),
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
+    peerFeedback: {
       upsert: vi.fn().mockResolvedValue({}),
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     projectDeadline: {
       upsert: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     featureFlag: {
       upsert: vi.fn().mockResolvedValue({}),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     $disconnect: vi.fn().mockResolvedValue(undefined),
   };
@@ -129,6 +156,7 @@ describe("prisma seed script", () => {
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
         peerAssessment: prismaMock.peerAssessment,
+        peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
         $disconnect: prismaMock.$disconnect,
@@ -142,6 +170,7 @@ describe("prisma seed script", () => {
     vi.doMock("@ngneat/falso", () => ({
       randFirstName: vi.fn().mockReturnValue("First"),
       randLastName: vi.fn().mockReturnValue("Last"),
+      randSentence: vi.fn().mockReturnValue("Random generated question."),
     }));
 
     process.env.ADMIN_BOOTSTRAP_EMAIL = "admin@kcl.ac.uk";
@@ -174,6 +203,7 @@ describe("prisma seed script", () => {
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
         peerAssessment: prismaMock.peerAssessment,
+        peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
         $disconnect: prismaMock.$disconnect,
@@ -186,6 +216,7 @@ describe("prisma seed script", () => {
     vi.doMock("@ngneat/falso", () => ({
       randFirstName: vi.fn().mockReturnValue("First"),
       randLastName: vi.fn().mockReturnValue("Last"),
+      randSentence: vi.fn().mockReturnValue("Random generated question."),
     }));
 
     delete process.env.ADMIN_BOOTSTRAP_EMAIL;
