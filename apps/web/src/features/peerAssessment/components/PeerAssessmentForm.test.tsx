@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import type { ComponentProps } from "react";
 import type { Question } from "../types";
@@ -65,8 +65,8 @@ function renderForm(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  createPeerAssessmentMock.mockResolvedValue({ ok: true } as any);
-  updatePeerAssessmentMock.mockResolvedValue({ ok: true } as any);
+  createPeerAssessmentMock.mockResolvedValue({ ok: true } as unknown);
+  updatePeerAssessmentMock.mockResolvedValue({ ok: true } as unknown);
 });
 
 describe("PeerAssessmentForm", () => {
@@ -163,5 +163,23 @@ describe("PeerAssessmentForm", () => {
         })
       )
     );
+  });
+
+  it("shows a live countdown until assessment deadline", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-11T12:00:00.000Z"));
+
+    renderForm({
+      assessmentDeadline: "2026-03-11T12:00:01.000Z",
+    });
+
+    expect(screen.getByText("Time left until deadline: 00d : 00h : 00m : 01s")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText("Assessment deadline reached.")).toBeInTheDocument();
+    vi.useRealTimers();
   });
 });

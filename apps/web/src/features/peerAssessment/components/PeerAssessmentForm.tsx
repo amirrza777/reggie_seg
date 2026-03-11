@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
@@ -110,9 +110,21 @@ type PeerAssessmentFormProps = {
   reviewerId: number;
   revieweeId: number;
   templateId: number;
+  assessmentDeadline?: string | null;
   initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
 };
+
+function formatRemainingDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const days = Math.floor(safeSeconds / 86400);
+  const hours = Math.floor((safeSeconds % 86400) / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(days)}d : ${two(hours)}h : ${two(minutes)}m : ${two(seconds)}s`;
+}
 
 export function PeerAssessmentForm({
   teammateName,
@@ -122,6 +134,7 @@ export function PeerAssessmentForm({
   reviewerId,
   revieweeId,
   templateId,
+  assessmentDeadline,
   initialAnswers,
   assessmentId,
 }: PeerAssessmentFormProps) {
@@ -142,8 +155,19 @@ export function PeerAssessmentForm({
     [orderedQuestions, answers]
   );
   const allQuestionsAnswered = unansweredQuestions.length === 0;
+  const deadlineTimestamp = useMemo(() => {
+    if (!assessmentDeadline) return null;
+    const timestamp = new Date(assessmentDeadline).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }, [assessmentDeadline]);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
+  const remainingSeconds = useMemo(() => {
+    if (deadlineTimestamp == null || currentTimestamp == null) return null;
+    return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
+  }, [deadlineTimestamp, currentTimestamp]);
+  const hasPassedDeadline = remainingSeconds != null && remainingSeconds <= 0;
 
-  const normalizeAnswers = (
+  const normalizeAnswers = useCallback((
     raw: Record<string, string | number | boolean | null> | undefined
   ): Record<string, AnswerValue> => {
     if (!raw || typeof raw !== "object") return {};
@@ -166,12 +190,24 @@ export function PeerAssessmentForm({
       normalized[k] = v == null ? "" : String(v);
     });
     return normalized;
-  };
+  }, [orderedQuestions]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnswers(normalizeAnswers(initialAnswers));
-  }, [initialAnswers, orderedQuestions]);
+  }, [initialAnswers, normalizeAnswers]);
+
+  useEffect(() => {
+    if (deadlineTimestamp == null) return;
+    const tick = () => {
+      setCurrentTimestamp(Date.now());
+    };
+    tick();
+    const interval = window.setInterval(() => {
+      tick();
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [deadlineTimestamp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,6 +262,13 @@ export function PeerAssessmentForm({
       <h3>
          You're reviewing {teammateName}
       </h3>
+      {remainingSeconds != null ? (
+        <p className={hasPassedDeadline ? "error" : "muted"}>
+          {hasPassedDeadline
+            ? "Assessment deadline reached."
+            : `Time left until deadline: ${formatRemainingDuration(remainingSeconds)}`}
+        </p>
+      ) : null}
       {orderedQuestions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
