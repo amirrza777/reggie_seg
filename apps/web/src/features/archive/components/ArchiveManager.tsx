@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ArchivableModule, ArchivableProject, ArchivableTeam, ArchiveTab } from "../types";
-import { archiveItem, unarchiveItem } from "../api/client";
+import { getArchiveModules, getArchiveProjects, getArchiveTeams, archiveItem, unarchiveItem } from "../api/client";
 
-type Props = {
-  modules: ArchivableModule[];
-  projects: ArchivableProject[];
-  teams: ArchivableTeam[];
-};
-
-export function ArchiveManager({ modules: initialModules, projects: initialProjects, teams: initialTeams }: Props) {
+export function ArchiveManager() {
   const [activeTab, setActiveTab] = useState<ArchiveTab>("modules");
-  const [modules, setModules] = useState(initialModules);
-  const [projects, setProjects] = useState(initialProjects);
-  const [teams, setTeams] = useState(initialTeams);
+  const [modules, setModules] = useState<ArchivableModule[]>([]);
+  const [projects, setProjects] = useState<ArchivableProject[]>([]);
+  const [teams, setTeams] = useState<ArchivableTeam[]>([]);
+  const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([getArchiveModules(), getArchiveProjects(), getArchiveTeams()])
+      .then(([m, p, t]) => {
+        setModules(m);
+        setProjects(p);
+        setTeams(t);
+      })
+      .finally(() => setFetching(false));
+  }, []);
 
   async function toggle(type: ArchiveTab, id: number, isArchived: boolean) {
     const key = `${type}-${id}`;
@@ -45,6 +50,10 @@ export function ArchiveManager({ modules: initialModules, projects: initialProje
     { key: "projects", label: "Projects" },
     { key: "teams", label: "Teams" },
   ];
+
+  if (fetching) {
+    return <p className="archive-empty">Loading…</p>;
+  }
 
   return (
     <div className="archive-manager">

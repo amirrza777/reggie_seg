@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, isAdmin } from "@/shared/auth/session";
 import { ArchiveManager } from "@/features/archive/components/ArchiveManager";
-import { getArchiveModules, getArchiveProjects, getArchiveTeams } from "@/features/archive/api/client";
 import "../../../styles/archive.css";
 
 export const dynamic = "force-dynamic";
@@ -9,12 +8,6 @@ export const dynamic = "force-dynamic";
 export default async function ArchivePage() {
   const user = await getCurrentUser();
   if (!user || (!user.isStaff && !isAdmin(user))) redirect("/dashboard");
-
-  const [modules, projects, teams] = await Promise.all([
-    getArchiveModules(),
-    getArchiveProjects(),
-    getArchiveTeams(),
-  ]);
 
   return (
     <div className="staff-projects" style={{ maxWidth: 900 }}>
@@ -25,7 +18,7 @@ export default async function ArchivePage() {
         </p>
       </div>
       <div className="card" style={{ padding: "8px 0" }}>
-        <ArchiveManager modules={modules} projects={projects} teams={teams} />
+        <ArchiveManager />
       </div>
     </div>
   );
