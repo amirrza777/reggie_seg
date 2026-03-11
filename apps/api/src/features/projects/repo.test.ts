@@ -9,6 +9,10 @@ import {
   getTeammatesInProject,
   getUserProjectDeadline,
   getUserProjects,
+  createMcfRequest,
+  getMcfRequestsForUserInProject,
+  getMcfRequestsForTeamInProject,
+  canStaffAccessTeamInProject,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
 
@@ -18,6 +22,7 @@ vi.mock("../../shared/db.js", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      findFirst: vi.fn(),
     },
     teamAllocation: {
       findMany: vi.fn(),
@@ -31,6 +36,10 @@ vi.mock("../../shared/db.js", () => ({
       findUnique: vi.fn(),
     },
     module: {
+      findMany: vi.fn(),
+    },
+    mCFRequest: {
+      create: vi.fn(),
       findMany: vi.fn(),
     },
   },
@@ -262,5 +271,84 @@ describe("projects repo", () => {
         },
       },
     });
+  });
+
+  it("createMcfRequest persists request with expected selected fields", async () => {
+    await createMcfRequest(3, 4, 7, "Need support", "Please review team dynamics");
+
+    expect(prisma.mCFRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          projectId: 3,
+          teamId: 4,
+          requesterUserId: 7,
+          subject: "Need support",
+          details: "Please review team dynamics",
+        },
+        select: expect.objectContaining({
+          id: true,
+          status: true,
+          requester: expect.any(Object),
+          reviewedBy: expect.any(Object),
+        }),
+      })
+    );
+  });
+
+  it("lists MCF requests for requester and staff team with descending createdAt order", async () => {
+    await getMcfRequestsForUserInProject(3, 7);
+    expect(prisma.mCFRequest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { projectId: 3, requesterUserId: 7 },
+        orderBy: { createdAt: "desc" },
+      })
+    );
+
+    await getMcfRequestsForTeamInProject(3, 4);
+    expect(prisma.mCFRequest.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { projectId: 3, teamId: 4 },
+        orderBy: { createdAt: "desc" },
+      })
+    );
+  });
+
+  it("canStaffAccessTeamInProject verifies role scoped staff access", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 7,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 3 });
+
+    await expect(canStaffAccessTeamInProject(7, 3, 4)).resolves.toBe(true);
+    expect(prisma.project.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 3,
+          teams: { some: { id: 4 } },
+          module: expect.objectContaining({
+            enterpriseId: "ent-1",
+            OR: expect.any(Array),
+          }),
+        }),
+      })
+    );
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 8,
+      role: "ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 3 });
+
+    await expect(canStaffAccessTeamInProject(8, 3, 4)).resolves.toBe(true);
+    expect(prisma.project.findFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          module: { enterpriseId: "ent-1" },
+        }),
+      })
+    );
   });
 });

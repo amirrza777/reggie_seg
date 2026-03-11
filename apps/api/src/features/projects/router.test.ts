@@ -17,7 +17,10 @@ describe("projects router", () => {
         { path: "/", methods: { get: true } },
         { path: "/:projectId/teammates", methods: { get: true } },
         { path: "/:projectId/deadline", methods: { get: true } },
+        { path: "/:projectId/mcf-requests", methods: { post: true } },
+        { path: "/:projectId/mcf-requests/me", methods: { get: true } },
         { path: "/:projectId/team", methods: { get: true } },
+        { path: "/staff/:projectId/teams/:teamId/mcf-requests", methods: { get: true } },
         { path: "/teams/:teamId", methods: { get: true } },
         { path: "/:projectId/questions", methods: { get: true } },
       ])

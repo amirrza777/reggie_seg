@@ -1,0 +1,31 @@
+enum MCFRequestStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model MCFRequest {
+  id              Int              @id @default(autoincrement())
+  projectId       Int
+  teamId          Int
+  requesterUserId Int
+  reviewedByUserId Int?
+  subject         String
+  details         String           @db.Text
+  status          MCFRequestStatus @default(OPEN)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  reviewedAt      DateTime?
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  requester User    @relation("MCFRequestRequester", fields: [requesterUserId], references: [id], onDelete: Cascade)
+  reviewedBy User?  @relation("MCFRequestReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([projectId])
+  @@index([teamId])
+  @@index([requesterUserId])
+  @@index([status, createdAt])
+  @@index([projectId, teamId, status])
+}

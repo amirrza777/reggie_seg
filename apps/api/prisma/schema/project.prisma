@@ -10,6 +10,7 @@ model Project {
   questionnaireTemplate QuestionnaireTemplate @relation("ProjectTemplate", fields: [questionnaireTemplateId], references: [id])
   teams                 Team[]
   peerAssessments       PeerAssessment[]
+  mcfRequests           MCFRequest[]
   deadline              ProjectDeadline?
   githubRepositories    ProjectGithubRepository[]
 

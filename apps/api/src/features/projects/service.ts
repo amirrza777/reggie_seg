@@ -11,6 +11,10 @@ import {
   getStaffProjects,
   getStaffProjectTeams,
   getUserProjectMarking,
+  createMcfRequest,
+  getMcfRequestsForUserInProject,
+  getMcfRequestsForTeamInProject,
+  canStaffAccessTeamInProject,
 } from "./repo.js";
 
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
@@ -93,4 +97,30 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
 
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
+}
+
+export async function submitMcfRequest(
+  userId: number,
+  projectId: number,
+  subject: string,
+  details: string
+) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  return createMcfRequest(projectId, team.id, userId, subject, details);
+}
+
+export async function fetchMyMcfRequests(userId: number, projectId: number) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  return getMcfRequestsForUserInProject(projectId, userId);
+}
+
+export async function fetchTeamMcfRequestsForStaff(userId: number, projectId: number, teamId: number) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  return getMcfRequestsForTeamInProject(projectId, teamId);
 }

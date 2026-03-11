@@ -505,3 +505,103 @@ export async function getUserProjectMarking(userId: number, projectId: number) {
     studentMarking: mapStaffMarking(studentMarking),
   };
 }
+
+const mcfRequestSelect = {
+  id: true,
+  projectId: true,
+  teamId: true,
+  requesterUserId: true,
+  reviewedByUserId: true,
+  subject: true,
+  details: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  reviewedAt: true,
+  requester: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  },
+  reviewedBy: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  },
+} as const;
+
+export async function createMcfRequest(
+  projectId: number,
+  teamId: number,
+  requesterUserId: number,
+  subject: string,
+  details: string
+) {
+  return prisma.mCFRequest.create({
+    data: {
+      projectId,
+      teamId,
+      requesterUserId,
+      subject,
+      details,
+    },
+    select: mcfRequestSelect,
+  });
+}
+
+export async function getMcfRequestsForUserInProject(projectId: number, requesterUserId: number) {
+  return prisma.mCFRequest.findMany({
+    where: {
+      projectId,
+      requesterUserId,
+    },
+    orderBy: { createdAt: "desc" },
+    select: mcfRequestSelect,
+  });
+}
+
+export async function getMcfRequestsForTeamInProject(projectId: number, teamId: number) {
+  return prisma.mCFRequest.findMany({
+    where: {
+      projectId,
+      teamId,
+    },
+    orderBy: { createdAt: "desc" },
+    select: mcfRequestSelect,
+  });
+}
+
+export async function canStaffAccessTeamInProject(userId: number, projectId: number, teamId: number) {
+  const user = await getScopedStaffUser(userId);
+  if (!user) return false;
+
+  const roleCanAccessAll = user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN";
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      teams: {
+        some: { id: teamId },
+      },
+      module: {
+        enterpriseId: user.enterpriseId,
+        ...(roleCanAccessAll
+          ? {}
+          : {
+              OR: [
+                { moduleLeads: { some: { userId } } },
+                { moduleTeachingAssistants: { some: { userId } } },
+              ],
+            }),
+      },
+    },
+    select: { id: true },
+  });
+
+  return Boolean(project);
+}
