@@ -605,3 +605,192 @@ export async function canStaffAccessTeamInProject(userId: number, projectId: num
 
   return Boolean(project);
 }
+
+type DeadlineSnapshot = {
+  taskOpenDate: Date | null;
+  taskDueDate: Date | null;
+  assessmentOpenDate: Date | null;
+  assessmentDueDate: Date | null;
+  feedbackOpenDate: Date | null;
+  feedbackDueDate: Date | null;
+  isOverridden: boolean;
+};
+
+function mergeDeadlinesForTeam(
+  projectDeadline: {
+    taskOpenDate: Date;
+    taskDueDate: Date;
+    assessmentOpenDate: Date;
+    assessmentDueDate: Date;
+    feedbackOpenDate: Date;
+    feedbackDueDate: Date;
+  } | null,
+  teamOverride: {
+    taskOpenDate: Date | null;
+    taskDueDate: Date | null;
+    assessmentOpenDate: Date | null;
+    assessmentDueDate: Date | null;
+    feedbackOpenDate: Date | null;
+    feedbackDueDate: Date | null;
+  } | null
+): DeadlineSnapshot | null {
+  if (!projectDeadline) return null;
+  return {
+    taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline.taskOpenDate,
+    taskDueDate: teamOverride?.taskDueDate ?? projectDeadline.taskDueDate,
+    assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline.assessmentOpenDate,
+    assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline.assessmentDueDate,
+    feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline.feedbackOpenDate,
+    feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline.feedbackDueDate,
+    isOverridden: Boolean(teamOverride),
+  };
+}
+
+export async function getTeamCurrentDeadlineInProject(projectId: number, teamId: number) {
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, projectId },
+    select: {
+      project: {
+        select: {
+          deadline: {
+            select: {
+              taskOpenDate: true,
+              taskDueDate: true,
+              assessmentOpenDate: true,
+              assessmentDueDate: true,
+              feedbackOpenDate: true,
+              feedbackDueDate: true,
+            },
+          },
+        },
+      },
+      deadlineOverride: {
+        select: {
+          taskOpenDate: true,
+          taskDueDate: true,
+          assessmentOpenDate: true,
+          assessmentDueDate: true,
+          feedbackOpenDate: true,
+          feedbackDueDate: true,
+        },
+      },
+    },
+  });
+  if (!team) return null;
+  return mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
+}
+
+export async function reviewMcfRequest(
+  projectId: number,
+  teamId: number,
+  requestId: number,
+  reviewerUserId: number,
+  status: "REJECTED" | "IN_REVIEW"
+) {
+  const existing = await prisma.mCFRequest.findFirst({
+    where: { id: requestId, projectId, teamId },
+    select: { id: true },
+  });
+  if (!existing) return null;
+
+  return prisma.mCFRequest.update({
+    where: { id: requestId },
+    data: {
+      status,
+      reviewedByUserId: reviewerUserId,
+      reviewedAt: new Date(),
+    },
+    select: mcfRequestSelect,
+  });
+}
+
+export async function resolveMcfRequestWithDeadlineOverride(
+  projectId: number,
+  teamId: number,
+  requestId: number,
+  reviewerUserId: number,
+  overrides: {
+    taskOpenDate: Date | null;
+    taskDueDate: Date | null;
+    assessmentOpenDate: Date | null;
+    assessmentDueDate: Date | null;
+    feedbackOpenDate: Date | null;
+    feedbackDueDate: Date | null;
+  }
+) {
+  return prisma.$transaction(async (tx) => {
+    const existingRequest = await tx.mCFRequest.findFirst({
+      where: { id: requestId, projectId, teamId },
+      select: { id: true },
+    });
+    if (!existingRequest) return null;
+
+    const team = await tx.team.findFirst({
+      where: { id: teamId, projectId },
+      select: {
+        project: {
+          select: {
+            deadline: {
+              select: {
+                id: true,
+                taskOpenDate: true,
+                taskDueDate: true,
+                assessmentOpenDate: true,
+                assessmentDueDate: true,
+                feedbackOpenDate: true,
+                feedbackDueDate: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    const projectDeadline = team?.project.deadline ?? null;
+    if (!projectDeadline) return null;
+
+    const deadlineOverride = await tx.teamDeadlineOverride.upsert({
+      where: { teamId },
+      update: {
+        projectDeadlineId: projectDeadline.id,
+        taskOpenDate: overrides.taskOpenDate,
+        taskDueDate: overrides.taskDueDate,
+        assessmentOpenDate: overrides.assessmentOpenDate,
+        assessmentDueDate: overrides.assessmentDueDate,
+        feedbackOpenDate: overrides.feedbackOpenDate,
+        feedbackDueDate: overrides.feedbackDueDate,
+      },
+      create: {
+        teamId,
+        projectDeadlineId: projectDeadline.id,
+        taskOpenDate: overrides.taskOpenDate,
+        taskDueDate: overrides.taskDueDate,
+        assessmentOpenDate: overrides.assessmentOpenDate,
+        assessmentDueDate: overrides.assessmentDueDate,
+        feedbackOpenDate: overrides.feedbackOpenDate,
+        feedbackDueDate: overrides.feedbackDueDate,
+      },
+      select: {
+        taskOpenDate: true,
+        taskDueDate: true,
+        assessmentOpenDate: true,
+        assessmentDueDate: true,
+        feedbackOpenDate: true,
+        feedbackDueDate: true,
+      },
+    });
+
+    const request = await tx.mCFRequest.update({
+      where: { id: requestId },
+      data: {
+        status: "RESOLVED",
+        reviewedByUserId: reviewerUserId,
+        reviewedAt: new Date(),
+      },
+      select: mcfRequestSelect,
+    });
+
+    const deadline = mergeDeadlinesForTeam(projectDeadline, deadlineOverride);
+    if (!deadline) return null;
+    return { request, deadline };
+  });
+}

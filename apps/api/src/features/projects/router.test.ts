@@ -21,6 +21,12 @@ describe("projects router", () => {
         { path: "/:projectId/mcf-requests/me", methods: { get: true } },
         { path: "/:projectId/team", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/mcf-requests", methods: { get: true } },
+        { path: "/staff/:projectId/teams/:teamId/deadline", methods: { get: true } },
+        { path: "/staff/:projectId/teams/:teamId/mcf-requests/:requestId/review", methods: { patch: true } },
+        {
+          path: "/staff/:projectId/teams/:teamId/mcf-requests/:requestId/deadline-override",
+          methods: { post: true },
+        },
         { path: "/teams/:teamId", methods: { get: true } },
         { path: "/:projectId/questions", methods: { get: true } },
       ])
