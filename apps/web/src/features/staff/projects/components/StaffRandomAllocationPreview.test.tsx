@@ -105,7 +105,13 @@ describe("StaffRandomAllocationPreview", () => {
       expect(screen.getByText("Random Team 1")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /apply allocation/i }));
+    const applyButton = screen.getByRole("button", { name: /apply allocation/i });
+    expect(applyButton).toBeDisabled();
+    fireEvent.click(applyButton);
+    expect(applyRandomAllocationMock).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: /replace current team assignments/i }));
+    fireEvent.click(applyButton);
 
     await waitFor(() => {
       expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, 101);
@@ -114,6 +120,41 @@ describe("StaffRandomAllocationPreview", () => {
       expect(refreshMock).toHaveBeenCalledTimes(1);
     });
     expect(screen.getByText("Applied random allocation across 2 teams.")).toBeInTheDocument();
+  });
+
+  it("requires a fresh preview when inputs change", async () => {
+    getRandomAllocationPreviewMock.mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 2, moduleName: "Module A" },
+      studentCount: 4,
+      teamCount: 2,
+      existingTeams: [],
+      previewTeams: [
+        {
+          index: 0,
+          suggestedName: "Random Team 1",
+          members: [{ id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" }],
+        },
+        {
+          index: 1,
+          suggestedName: "Random Team 2",
+          members: [{ id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" }],
+        },
+      ],
+    });
+
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+
+    fireEvent.change(screen.getByLabelText("Team count"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    await waitFor(() => {
+      expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, undefined);
+    });
+
+    fireEvent.change(screen.getByLabelText("Team count"), { target: { value: "3" } });
+    expect(screen.getByText("Inputs changed since last preview. Generate a new preview before applying.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /apply allocation/i }));
+    expect(applyRandomAllocationMock).not.toHaveBeenCalled();
   });
 
   it("shows validation error for invalid team count", async () => {

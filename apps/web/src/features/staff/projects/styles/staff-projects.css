@@ -158,9 +158,23 @@
   font-size: var(--fs-body-sm);
 }
 
+.staff-projects__allocation-warning {
+  margin: 0;
+  color: rgb(161, 120, 0);
+  font-size: var(--fs-body-sm);
+}
+
 .staff-projects__allocation-results {
   display: grid;
   gap: 12px;
+}
+
+.staff-projects__allocation-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--fs-body-sm);
 }
 
 .staff-projects__allocation-members {
