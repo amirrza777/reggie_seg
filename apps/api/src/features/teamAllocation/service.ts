@@ -68,6 +68,54 @@ export type RandomAllocationApplied = {
   }>;
 };
 
+async function notifyStudentsAboutRandomAllocation(
+  projectName: string,
+  plannedTeams: Array<{
+    members: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    }>;
+  }>,
+  appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>,
+) {
+  const assignments = plannedTeams.flatMap((team, index) => {
+    const teamName = appliedTeams[index]?.teamName ?? `Team ${index + 1}`;
+    return team.members.map((member) => ({ member, teamName }));
+  });
+
+  const results = await Promise.allSettled(
+    assignments.map(({ member, teamName }) => {
+      const firstName = member.firstName?.trim() || "there";
+      const subject = `Team allocation updated - ${projectName}`;
+      const text = [
+        `Hi ${firstName},`,
+        "",
+        `Your team allocation for ${projectName} has been updated.`,
+        `You are now assigned to: ${teamName}.`,
+        "",
+        "Log in to view your updated team workspace.",
+      ].join("\n");
+
+      return sendEmail({
+        to: member.email,
+        subject,
+        text,
+      });
+    }),
+  );
+
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length > 0) {
+    console.error(`Random allocation email notifications failed for ${failures.length} student(s).`);
+  }
+}
+
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
@@ -216,6 +264,7 @@ export async function applyRandomAllocationForProject(
 
   const plannedTeams = planRandomTeams(students, teamCount, { seed: options.seed });
   const appliedTeams = await applyRandomAllocationPlan(projectId, project.enterpriseId, plannedTeams);
+  await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 
   return {
     project: {

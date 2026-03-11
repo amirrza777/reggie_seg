@@ -281,5 +281,48 @@ describe("teamAllocation service", () => {
         { id: 9, teamName: "Project 42 Random Team 2", memberCount: 2 },
       ],
     });
+    expect(sendEmail).toHaveBeenCalledTimes(4);
+    const recipients = (sendEmail as any).mock.calls.map((call: any[]) => call[0]?.to).sort();
+    expect(recipients).toEqual(["a@example.com", "b@example.com", "c@example.com", "d@example.com"]);
+    expect((sendEmail as any).mock.calls[0][0]?.subject).toBe("Team allocation updated - Project A");
+  });
+
+  it("applyRandomAllocationForProject does not fail when notification email sending fails", async () => {
+    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findModuleStudents as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    (repo.applyRandomAllocationPlan as any).mockResolvedValue([
+      { id: 8, teamName: "Project 42 Random Team 1", memberCount: 1 },
+      { id: 9, teamName: "Project 42 Random Team 2", memberCount: 1 },
+    ]);
+    (sendEmail as any).mockRejectedValueOnce(new Error("smtp"));
+    (sendEmail as any).mockResolvedValueOnce({ suppressed: false });
+
+    await expect(applyRandomAllocationForProject(3, 42, 2, { seed: 999 })).resolves.toEqual({
+      project: {
+        id: 42,
+        name: "Project A",
+        moduleId: 11,
+        moduleName: "Module A",
+      },
+      studentCount: 2,
+      teamCount: 2,
+      appliedTeams: [
+        { id: 8, teamName: "Project 42 Random Team 1", memberCount: 1 },
+        { id: 9, teamName: "Project 42 Random Team 2", memberCount: 1 },
+      ],
+    });
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    logSpy.mockRestore();
   });
 });
