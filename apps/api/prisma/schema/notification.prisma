@@ -1,5 +1,6 @@
 enum NotificationType {
   MENTION
+  TEAM_INVITE
 }
 
 model Notification {

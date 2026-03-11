@@ -40,7 +40,7 @@ export async function findInviteContext(teamId: number, inviterId: number) {
   const [team, inviter] = await Promise.all([
     prisma.team.findUnique({
       where: { id: teamId },
-      select: { teamName: true },
+      select: { teamName: true, projectId: true },
     }),
     prisma.user.findUnique({
       where: { id: inviterId },

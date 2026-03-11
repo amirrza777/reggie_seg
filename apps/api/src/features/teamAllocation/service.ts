@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
+import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 import {
   createTeamInviteRecord,
@@ -59,6 +60,20 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
     subject: "Team invitation",
     text: textLines.join("\n"),
   });
+
+  const inviteeUserId = params.inviteeId ?? (
+    await prisma.user.findFirst({ where: { email: normalizedEmail }, select: { id: true } })
+  )?.id;
+
+  if (inviteeUserId) {
+    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : "A teammate";
+    await addNotification({
+      userId: inviteeUserId,
+      type: "TEAM_INVITE",
+      message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
+      link: `/projects/${team?.projectId}/team`,
+    });
+  }
 
   return { invite, rawToken };
 }
