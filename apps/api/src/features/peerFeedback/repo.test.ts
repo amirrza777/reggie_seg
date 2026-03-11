@@ -79,17 +79,21 @@ describe("peerFeedback repo", () => {
         peerAssessment: {
           select: {
             id: true,
+            templateId: true,
             reviewerUserId: true,
             revieweeUserId: true,
             projectId: true,
             answersJson: true,
             questionnaireTemplate: {
               select: {
+                id: true,
                 questions: {
                   select: {
                     id: true,
                     label: true,
+                    type: true,
                     order: true,
+                    configs: true,
                   },
                 },
               },
@@ -134,17 +138,21 @@ describe("peerFeedback repo", () => {
         peerAssessment: {
           select: {
             id: true,
+            templateId: true,
             reviewerUserId: true,
             revieweeUserId: true,
             projectId: true,
             answersJson: true,
             questionnaireTemplate: {
               select: {
+                id: true,
                 questions: {
                   select: {
                     id: true,
                     label: true,
+                    type: true,
                     order: true,
+                    configs: true,
                   },
                 },
               },
