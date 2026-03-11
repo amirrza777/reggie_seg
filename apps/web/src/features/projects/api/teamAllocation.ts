@@ -42,6 +42,22 @@ export type RandomAllocationPreview = {
   }>;
 };
 
+export type RandomAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  studentCount: number;
+  teamCount: number;
+  appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+};
+
 export async function sendTeamInvite(teamId: number, inviterId: number, inviteeEmail: string, message?: string) {
   return apiFetch<{ ok: boolean; inviteId: string }>("/team-allocation/invites", {
     method: "POST",
@@ -92,4 +108,14 @@ export async function getRandomAllocationPreview(projectId: number, teamCount: n
     `/team-allocation/projects/${projectId}/random-preview?${params.toString()}`,
     { cache: "no-store" }
   );
+}
+
+export async function applyRandomAllocation(projectId: number, teamCount: number, seed?: number) {
+  return apiFetch<RandomAllocationApplied>(`/team-allocation/projects/${projectId}/random-allocate`, {
+    method: "POST",
+    body: JSON.stringify({
+      teamCount,
+      ...(seed !== undefined ? { seed } : {}),
+    }),
+  });
 }

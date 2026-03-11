@@ -3,14 +3,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 
 const getRandomAllocationPreviewMock = vi.fn();
+const applyRandomAllocationMock = vi.fn();
+const refreshMock = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: refreshMock,
+  }),
+}));
 
 vi.mock("@/features/projects/api/teamAllocation", () => ({
   getRandomAllocationPreview: (...args: unknown[]) => getRandomAllocationPreviewMock(...args),
+  applyRandomAllocation: (...args: unknown[]) => applyRandomAllocationMock(...args),
 }));
 
 describe("StaffRandomAllocationPreview", () => {
   beforeEach(() => {
     getRandomAllocationPreviewMock.mockReset();
+    applyRandomAllocationMock.mockReset();
+    refreshMock.mockReset();
   });
 
   it("requests and renders random preview results", async () => {
@@ -50,6 +61,59 @@ describe("StaffRandomAllocationPreview", () => {
     });
     expect(screen.getByText("Random Team 1")).toBeInTheDocument();
     expect(screen.getByText("Jin Johannesdottir")).toBeInTheDocument();
+  });
+
+  it("applies allocation and refreshes route", async () => {
+    getRandomAllocationPreviewMock.mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 2, moduleName: "Module A" },
+      studentCount: 4,
+      teamCount: 2,
+      existingTeams: [],
+      previewTeams: [
+        {
+          index: 0,
+          suggestedName: "Random Team 1",
+          members: [{ id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" }],
+        },
+        {
+          index: 1,
+          suggestedName: "Random Team 2",
+          members: [{ id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" }],
+        },
+      ],
+    });
+    applyRandomAllocationMock.mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 2, moduleName: "Module A" },
+      studentCount: 4,
+      teamCount: 2,
+      appliedTeams: [
+        { id: 1, teamName: "Team A", memberCount: 2 },
+        { id: 2, teamName: "Team B", memberCount: 2 },
+      ],
+    });
+
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+
+    fireEvent.change(screen.getByLabelText("Team count"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Seed"), { target: { value: "101" } });
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+
+    await waitFor(() => {
+      expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, 101);
+    });
+    await waitFor(() => {
+      expect(screen.getByText("Random Team 1")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /apply allocation/i }));
+
+    await waitFor(() => {
+      expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, 101);
+    });
+    await waitFor(() => {
+      expect(refreshMock).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByText("Applied random allocation across 2 teams.")).toBeInTheDocument();
   });
 
   it("shows validation error for invalid team count", async () => {

@@ -152,6 +152,12 @@
   font-size: var(--fs-body-sm);
 }
 
+.staff-projects__allocation-success {
+  margin: 0;
+  color: rgb(21, 128, 61);
+  font-size: var(--fs-body-sm);
+}
+
 .staff-projects__allocation-results {
   display: grid;
   gap: 12px;

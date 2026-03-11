@@ -8,6 +8,7 @@ vi.mock("@/shared/api/http", () => ({
 
 import {
   acceptInvite,
+  applyRandomAllocation,
   cancelTeamInvite,
   createTeamForProject,
   declineInvite,
@@ -77,6 +78,20 @@ describe("team allocation api client", () => {
     await getRandomAllocationPreview(91, 3);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/random-preview?teamCount=3", {
       cache: "no-store",
+    });
+  });
+
+  it("applies random allocation with team count and optional seed", async () => {
+    await applyRandomAllocation(55, 4, 1234);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamCount: 4, seed: 1234 }),
+    });
+
+    await applyRandomAllocation(55, 4);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamCount: 4 }),
     });
   });
 });

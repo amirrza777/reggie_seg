@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
+  applyRandomAllocation,
   getRandomAllocationPreview,
   type RandomAllocationPreview,
 } from "@/features/projects/api/teamAllocation";
@@ -21,35 +23,67 @@ export function StaffRandomAllocationPreview({
   projectId,
   initialTeamCount,
 }: StaffRandomAllocationPreviewProps) {
+  const router = useRouter();
   const defaultTeamCount = Math.max(1, initialTeamCount || 2);
   const [teamCountInput, setTeamCountInput] = useState(String(defaultTeamCount));
   const [seedInput, setSeedInput] = useState("");
   const [preview, setPreview] = useState<RandomAllocationPreview | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isPreviewPending, startPreviewTransition] = useTransition();
+  const [isApplyPending, startApplyTransition] = useTransition();
 
-  function runPreview() {
+  function parseInputs() {
     const parsedTeamCount = Number(teamCountInput);
     if (!Number.isInteger(parsedTeamCount) || parsedTeamCount < 1) {
       setErrorMessage("Team count must be a positive integer.");
-      return;
+      return null;
     }
 
     const trimmedSeed = seedInput.trim();
     const parsedSeed = trimmedSeed.length > 0 ? Number(trimmedSeed) : undefined;
     if (trimmedSeed.length > 0 && Number.isNaN(parsedSeed)) {
       setErrorMessage("Seed must be a number.");
+      return null;
+    }
+
+    return { parsedTeamCount, parsedSeed };
+  }
+
+  function runPreview() {
+    const parsed = parseInputs();
+    if (!parsed) {
       return;
     }
 
     setErrorMessage("");
-    startTransition(async () => {
+    setSuccessMessage("");
+    startPreviewTransition(async () => {
       try {
-        const result = await getRandomAllocationPreview(projectId, parsedTeamCount, parsedSeed);
+        const result = await getRandomAllocationPreview(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
         setPreview(result);
       } catch (error) {
         setPreview(null);
         setErrorMessage(error instanceof Error ? error.message : "Failed to preview random allocation.");
+      }
+    });
+  }
+
+  function runApplyAllocation() {
+    const parsed = parseInputs();
+    if (!parsed) {
+      return;
+    }
+
+    setErrorMessage("");
+    setSuccessMessage("");
+    startApplyTransition(async () => {
+      try {
+        const result = await applyRandomAllocation(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
+        setSuccessMessage(`Applied random allocation across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`);
+        router.refresh();
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Failed to apply random allocation.");
       }
     });
   }
@@ -91,13 +125,22 @@ export function StaffRandomAllocationPreview({
           type="button"
           className="staff-projects__allocation-btn"
           onClick={runPreview}
-          disabled={isPending}
+          disabled={isPreviewPending || isApplyPending}
         >
-          {isPending ? "Generating preview..." : "Preview random teams"}
+          {isPreviewPending ? "Generating preview..." : "Preview random teams"}
+        </button>
+        <button
+          type="button"
+          className="staff-projects__allocation-btn"
+          onClick={runApplyAllocation}
+          disabled={!preview || isPreviewPending || isApplyPending}
+        >
+          {isApplyPending ? "Applying..." : "Apply allocation"}
         </button>
       </div>
 
       {errorMessage ? <p className="staff-projects__allocation-error">{errorMessage}</p> : null}
+      {successMessage ? <p className="staff-projects__allocation-success">{successMessage}</p> : null}
 
       {preview ? (
         <div className="staff-projects__allocation-results">
