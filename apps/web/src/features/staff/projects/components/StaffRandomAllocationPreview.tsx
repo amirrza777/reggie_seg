@@ -187,16 +187,6 @@ export function StaffRandomAllocationPreview({
         </button>
       </div>
 
-      <label className="staff-projects__allocation-confirm">
-        <input
-          type="checkbox"
-          checked={confirmApply}
-          onChange={(event) => setConfirmApply(event.target.checked)}
-          disabled={!isPreviewCurrent || isPreviewPending || isApplyPending}
-        />
-        <span>This will replace current team assignments for this project.</span>
-      </label>
-
       {errorMessage ? <p className="staff-projects__allocation-error">{errorMessage}</p> : null}
       {successMessage ? <p className="staff-projects__allocation-success">{successMessage}</p> : null}
       {preview && !isPreviewCurrent ? (
@@ -207,6 +197,21 @@ export function StaffRandomAllocationPreview({
 
       {preview ? (
         <div className="staff-projects__allocation-results">
+          <div className="staff-projects__allocation-confirm">
+            <button
+              type="button"
+              className={`staff-projects__allocation-confirm-btn${confirmApply ? " staff-projects__allocation-confirm-btn--active" : ""}`}
+              onClick={() => setConfirmApply((value) => !value)}
+              aria-pressed={confirmApply}
+              disabled={!isPreviewCurrent || isPreviewPending || isApplyPending}
+            >
+              {confirmApply ? "Confirmed" : "Confirm overwrite"}
+            </button>
+            <p className="staff-projects__allocation-confirm-text">
+              This will replace current team assignments for this project.
+            </p>
+          </div>
+
           <div className="staff-projects__meta">
             <span className="staff-projects__badge">{preview.studentCount} students in module</span>
             <span className="staff-projects__badge">{preview.teamCount} planned teams</span>
