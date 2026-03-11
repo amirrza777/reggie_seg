@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
+import { StaffRandomAllocationPreview } from "@/features/staff/projects/components/StaffRandomAllocationPreview";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -63,9 +64,11 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
       <section className="staff-projects__team-card" aria-label="Current team distribution">
         <h2 className="staff-projects__card-title">Current team distribution</h2>
         <p className="staff-projects__card-sub">
-          Use this snapshot before running allocation. Random allocation controls are added in the next step.
+          Use this snapshot before running allocation.
         </p>
       </section>
+
+      <StaffRandomAllocationPreview projectId={data.project.id} initialTeamCount={Math.max(1, data.teams.length)} />
 
       <section className="staff-projects__team-list" aria-label="Project teams">
         {data.teams.map((team) => (
