@@ -5,6 +5,7 @@ model Team {
   teamName        String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  archivedAt      DateTime?
 
   allocations     TeamAllocation[]
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)

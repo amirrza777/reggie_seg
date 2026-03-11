@@ -6,6 +6,7 @@ export type Project = {
   moduleId?: number;
   teamCount?: number;
   questionnaireTemplateId: number;
+  archivedAt?: string | null;
 };
 
 export type ProjectDeadline = {

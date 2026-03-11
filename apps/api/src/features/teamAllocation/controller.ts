@@ -41,6 +41,9 @@ export async function createTeamInviteHandler(req: Request, res: Response) {
     });
     return res.json({ ok: true, inviteId: result.invite.id });
   } catch (error: any) {
+    if (error?.code === "TEAM_ARCHIVED") {
+      return res.status(409).json({ error: "This team is archived and cannot accept new invites" });
+    }
     if (error?.code === "INVITE_ALREADY_PENDING") {
       return res.status(409).json({ error: "Invite already pending" });
     }

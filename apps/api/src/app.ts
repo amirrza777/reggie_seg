@@ -17,6 +17,7 @@ import githubRouter from "./features/github/router.js";
 import featureFlagsRouter from "./features/featureFlags/router.js";
 import enterpriseAdminRouter from "./features/enterpriseAdmin/router.js";
 import calendarRouter from "./features/calendar/router.js";
+import archiveRouter from "./features/archive/router.js";
 
 const app = express();
 
@@ -75,5 +76,6 @@ app.use("/trello", trelloRouter);
 app.use("/github", githubRouter);
 app.use("/feature-flags", featureFlagsRouter);
 app.use("/calendar", calendarRouter);
+app.use("/archive", archiveRouter);
 
 export { app };

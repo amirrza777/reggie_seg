@@ -88,6 +88,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     { href: "/staff/projects", label: "Projects", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
+    { href: "/staff/archive", label: "Archive", space: "staff" },
 
     // Admin
     { href: "/admin", label: "Admin Home", space: "admin" },
@@ -100,6 +101,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     "/staff/projects",
     "/staff/analytics",
     "/staff/questionnaires",
+    "/staff/archive",
   ]);
 
   const accessibleLinks = navLinks

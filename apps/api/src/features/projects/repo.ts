@@ -16,6 +16,7 @@ export async function getUserProjects(userId: number) {
     select: {
       id: true,
       name: true,
+      archivedAt: true,
       module: {
         select: {
           name: true,
@@ -162,6 +163,7 @@ export async function getStaffProjects(userId: number) {
       id: true,
       name: true,
       moduleId: true,
+      archivedAt: true,
       module: {
         select: {
           name: true,

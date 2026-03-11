@@ -23,8 +23,11 @@ type CreateTeamInviteParams = {
 
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
-  const existing = await findActiveInvite(params.teamId, normalizedEmail);
 
+  const teamRecord = await prisma.team.findUnique({ where: { id: params.teamId }, select: { archivedAt: true } });
+  if (teamRecord?.archivedAt) throw { code: "TEAM_ARCHIVED" };
+
+  const existing = await findActiveInvite(params.teamId, normalizedEmail);
   if (existing) {
     throw { code: "INVITE_ALREADY_PENDING" };
   }

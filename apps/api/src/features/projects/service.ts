@@ -27,6 +27,7 @@ export async function fetchProjectsForUser(userId: number) {
     id: project.id,
     name: project.name,
     moduleName: project.module?.name ?? "",
+    archivedAt: project.archivedAt ?? null,
   }));
 }
 

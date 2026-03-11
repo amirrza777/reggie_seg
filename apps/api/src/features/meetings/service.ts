@@ -1,3 +1,4 @@
+import { prisma } from "../../shared/db.js";
 import {
   getMeetingsByTeamId,
   getMeetingById,
@@ -17,7 +18,7 @@ export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
-export function addMeeting(data: {
+export async function addMeeting(data: {
   teamId: number;
   organiserId: number;
   title: string;
@@ -26,6 +27,8 @@ export function addMeeting(data: {
   location?: string;
   agenda?: string;
 }) {
+  const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true } });
+  if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
   return createMeeting(data);
 }
 

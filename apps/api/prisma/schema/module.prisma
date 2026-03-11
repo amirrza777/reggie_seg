@@ -8,6 +8,7 @@ model Module {
   readinessNotesText String? @db.Text
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  archivedAt   DateTime?
   enterprise   Enterprise @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
 
   projects    Project[]

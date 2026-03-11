@@ -35,7 +35,7 @@ export async function createAssessmentHandler(req: Request, res: Response) {
   }
 
   try {
-    const assessment = await saveAssessment({ 
+    const assessment = await saveAssessment({
       projectId,
       teamId,
       reviewerUserId,
@@ -44,7 +44,10 @@ export async function createAssessmentHandler(req: Request, res: Response) {
       answersJson
     })
     res.json({ ok: true, assessmentId: assessment.id })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "This project is archived and cannot accept new assessments" })
+    }
     console.error("Error creating peer assessment:", error)
     res.status(500).json({ error: "Internal server error" })
   }
