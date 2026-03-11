@@ -170,11 +170,25 @@
 }
 
 .staff-projects__allocation-confirm {
-  display: flex;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
   gap: 8px;
+  width: 100%;
   color: var(--muted);
   font-size: var(--fs-body-sm);
+}
+
+.staff-projects__allocation-confirm input {
+  margin-top: 2px;
+}
+
+.staff-projects__allocation-confirm span {
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  line-height: 1.35;
 }
 
 .staff-projects__allocation-members {

@@ -194,7 +194,7 @@ export function StaffRandomAllocationPreview({
           onChange={(event) => setConfirmApply(event.target.checked)}
           disabled={!isPreviewCurrent || isPreviewPending || isApplyPending}
         />
-        This will replace current team assignments for this project.
+        <span>This will replace current team assignments for this project.</span>
       </label>
 
       {errorMessage ? <p className="staff-projects__allocation-error">{errorMessage}</p> : null}
