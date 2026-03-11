@@ -56,6 +56,19 @@ export type StaffProjectTeamsResponse = {
   teams: Team[];
 };
 
+export type CreateStaffProjectPayload = {
+  name: string;
+  moduleId: number;
+  questionnaireTemplateId: number;
+};
+
+export type CreatedStaffProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  questionnaireTemplateId: number;
+};
+
 export type TeamMember = {
   id: string;
   name: string;

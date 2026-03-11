@@ -33,8 +33,8 @@ describe("projects service", () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
     (repo.getProjectById as any).mockResolvedValue({ id: 9 });
 
-    await expect(createProject("P1", 2, 3, [4])).resolves.toEqual({ id: 9 });
-    expect(repo.createProject).toHaveBeenCalledWith("P1", 2, 3, [4]);
+    await expect(createProject(7, "P1", 2, 3)).resolves.toEqual({ id: 9 });
+    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3);
 
     await expect(fetchProjectById(9)).resolves.toEqual({ id: 9 });
     expect(repo.getProjectById).toHaveBeenCalledWith(9);
@@ -47,8 +47,8 @@ describe("projects service", () => {
     ]);
 
     await expect(fetchProjectsForUser(7)).resolves.toEqual([
-      { id: 1, name: "A", moduleName: "SEGP" },
-      { id: 2, name: "B", moduleName: "" },
+      { id: 1, name: "A", moduleName: "SEGP", archivedAt: null },
+      { id: 2, name: "B", moduleName: "", archivedAt: null },
     ]);
   });
 

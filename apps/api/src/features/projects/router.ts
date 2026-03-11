@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireAuth } from "../../auth/middleware.js";
 import {
   createProjectHandler,
   getProjectByIdHandler,
@@ -15,7 +16,7 @@ import {
 } from "./controller.js";
 
 const router = Router();
-router.post("/", createProjectHandler);
+router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", getUserModulesHandler);
 router.get("/staff/mine", getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", getStaffProjectTeamsHandler);

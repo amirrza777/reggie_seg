@@ -13,8 +13,13 @@ import {
   getUserProjectMarking,
 } from "./repo.js";
 
-export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
-  return createProjectInDb(name, moduleId, questionnaireTemplateId, teamIds);
+export async function createProject(
+  actorUserId: number,
+  name: string,
+  moduleId: number,
+  questionnaireTemplateId: number
+) {
+  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId);
 }
 
 export async function fetchProjectById(projectId: number) {

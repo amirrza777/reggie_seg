@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createProject,
   fetchProjectById,
@@ -14,25 +15,51 @@ import {
   fetchProjectMarking,
 } from "./service.js";
 
-export async function createProjectHandler(req: Request, res: Response) {
-  const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
+function parsePositiveInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
 
-  if (!name || typeof name !== "string") {
+export async function createProjectHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { name, moduleId, questionnaireTemplateId } = req.body as {
+    name?: unknown;
+    moduleId?: unknown;
+    questionnaireTemplateId?: unknown;
+  };
+
+  const normalizedName = typeof name === "string" ? name.trim() : "";
+  if (!normalizedName) {
     return res.status(400).json({ error: "Project name is required and must be a string" });
   }
 
-  if (typeof moduleId !== "number" || typeof questionnaireTemplateId !== "number") {
-    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be numbers" });
+  if (normalizedName.length > 160) {
+    return res.status(400).json({ error: "Project name must be 160 characters or fewer" });
   }
 
-  if (!Array.isArray(teamIds) || !teamIds.every((id) => typeof id === "number")) {
-    return res.status(400).json({ error: "teamIds must be an array of numbers" });
+  const parsedModuleId = parsePositiveInt(moduleId);
+  const parsedTemplateId = parsePositiveInt(questionnaireTemplateId);
+  if (!parsedModuleId || !parsedTemplateId) {
+    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
   }
 
   try {
-    const project = await createProject(name, moduleId, questionnaireTemplateId, teamIds);
+    const project = await createProject(actorUserId, normalizedName, parsedModuleId, parsedTemplateId);
     res.status(201).json(project);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "MODULE_NOT_FOUND") {
+      return res.status(404).json({ error: "Module not found" });
+    }
+    if (error?.code === "TEMPLATE_NOT_FOUND") {
+      return res.status(404).json({ error: "Questionnaire template not found" });
+    }
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });
   }

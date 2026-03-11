@@ -7,6 +7,7 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 import {
+  createStaffProject,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -69,6 +70,22 @@ describe("projects api client", () => {
     await getProjectMarking(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/marking?userId=7", {
       cache: "no-store",
+    });
+  });
+
+  it("creates a staff project", async () => {
+    await createStaffProject({
+      name: "Project A",
+      moduleId: 2,
+      questionnaireTemplateId: 9,
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Project A",
+        moduleId: 2,
+        questionnaireTemplateId: 9,
+      }),
     });
   });
 });

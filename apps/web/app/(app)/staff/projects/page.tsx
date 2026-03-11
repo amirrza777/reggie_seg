@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjects } from "@/features/projects/api/client";
+import { listModules } from "@/features/modules/api/client";
+import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -12,10 +14,17 @@ export default async function StaffProjectsPage() {
 
   let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let errorMessage: string | null = null;
+  let modules: Awaited<ReturnType<typeof listModules>> = [];
+  let modulesError: string | null = null;
   try {
     projects = await getStaffProjects(user.id);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "Failed to load staff projects.";
+  }
+  try {
+    modules = await listModules(user.id, { scope: "staff" });
+  } catch (error) {
+    modulesError = error instanceof Error ? error.message : "Failed to load staff modules.";
   }
 
   return (
@@ -32,6 +41,7 @@ export default async function StaffProjectsPage() {
           </div>
         ) : null}
       </section>
+      <StaffProjectCreatePanel modules={modules} modulesError={modulesError} />
 
       {errorMessage ? <p className="muted">{errorMessage}</p> : null}
       {!errorMessage && projects.length === 0 ? (

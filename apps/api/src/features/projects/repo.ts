@@ -249,8 +249,52 @@ export async function getProjectById(projectId: number) {
   });
 }
 
-export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
-  const project = await prisma.project.create({
+export async function createProject(
+  actorUserId: number,
+  name: string,
+  moduleId: number,
+  questionnaireTemplateId: number
+) {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    throw { code: "FORBIDDEN", message: "User not found" };
+  }
+
+  const hasElevatedStaffAccess = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+  if (!hasElevatedStaffAccess && actor.role !== "STAFF") {
+    throw { code: "FORBIDDEN", message: "Only staff can create projects" };
+  }
+
+  const moduleRecord = await prisma.module.findFirst({
+    where: { id: moduleId, enterpriseId: actor.enterpriseId },
+    select: { id: true },
+  });
+  if (!moduleRecord) {
+    throw { code: "MODULE_NOT_FOUND" };
+  }
+
+  if (!hasElevatedStaffAccess) {
+    const isModuleLead = await prisma.moduleLead.findFirst({
+      where: { moduleId, userId: actor.id },
+      select: { moduleId: true },
+    });
+    if (!isModuleLead) {
+      throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
+    }
+  }
+
+  const templateRecord = await prisma.questionnaireTemplate.findFirst({
+    where: {
+      id: questionnaireTemplateId,
+      owner: { enterpriseId: actor.enterpriseId },
+    },
+    select: { id: true },
+  });
+  if (!templateRecord) {
+    throw { code: "TEMPLATE_NOT_FOUND" };
+  }
+
+  return prisma.project.create({
     data: {
       name,
       moduleId,
@@ -263,8 +307,6 @@ export async function createProject(name: string, moduleId: number, questionnair
       questionnaireTemplateId: true,
     },
   });
-
-  return project;
 }
 
 export async function getTeammatesInProject(userId: number, projectId: number) {

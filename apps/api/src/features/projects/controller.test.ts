@@ -39,20 +39,27 @@ describe("projects controller", () => {
 
   it("createProjectHandler validates payload", async () => {
     const res = mockResponse();
-    await createProjectHandler({ body: {} } as any, res);
+    await createProjectHandler({ user: { sub: 1 }, body: {} } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("createProjectHandler requires authenticated user", async () => {
+    const res = mockResponse();
+    await createProjectHandler({ body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3 } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 
   it("createProjectHandler creates project and returns 201", async () => {
     (service.createProject as any).mockResolvedValue({ id: 1, name: "P1" });
     const req: any = {
-      body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, teamIds: [4, 5] },
+      user: { sub: 42 },
+      body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3 },
     };
     const res = mockResponse();
 
     await createProjectHandler(req, res);
 
-    expect(service.createProject).toHaveBeenCalledWith("P1", 2, 3, [4, 5]);
+    expect(service.createProject).toHaveBeenCalledWith(42, "P1", 2, 3);
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ id: 1, name: "P1" });
   });

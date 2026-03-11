@@ -1,5 +1,7 @@
 import { apiFetch } from "@/shared/api/http";
 import type {
+  CreateStaffProjectPayload,
+  CreatedStaffProject,
   Project,
   ProjectDeadline,
   Team,
@@ -45,6 +47,13 @@ export async function getStaffProjects(userId: number): Promise<StaffProject[]> 
 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
+}
+
+export async function createStaffProject(payload: CreateStaffProjectPayload): Promise<CreatedStaffProject> {
+  return apiFetch<CreatedStaffProject>("/projects", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function dismissTeamFlag(teamId: number): Promise<void> {

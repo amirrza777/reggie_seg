@@ -32,6 +32,13 @@ vi.mock("../../shared/db.js", () => ({
     },
     module: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    moduleLead: {
+      findFirst: vi.fn(),
+    },
+    questionnaireTemplate: {
+      findFirst: vi.fn(),
     },
   },
 }));
@@ -57,6 +64,7 @@ describe("projects repo", () => {
       select: {
         id: true,
         name: true,
+        archivedAt: true,
         module: { select: { name: true } },
       },
     });
@@ -115,14 +123,22 @@ describe("projects repo", () => {
     });
   });
 
-  it("createProject creates and selects persisted project", async () => {
+  it("createProject creates and selects persisted project for an authorised module lead", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 99,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 2 });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
+    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
     (prisma.project.create as any).mockResolvedValue({
       id: 1,
       name: "P1",
       moduleId: 2,
       questionnaireTemplateId: 3,
     });
-    const result = await createProject("P1", 2, 3, [10, 11]);
+    const result = await createProject(99, "P1", 2, 3);
 
     expect(prisma.project.create).toHaveBeenCalledWith({
       data: {
@@ -143,6 +159,21 @@ describe("projects repo", () => {
       moduleId: 2,
       questionnaireTemplateId: 3,
     });
+  });
+
+  it("createProject rejects staff who are not module leads", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 44,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
+
+    await expect(createProject(44, "Blocked", 7, 3)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(prisma.project.create).not.toHaveBeenCalled();
   });
 
   it("getTeammatesInProject filters by shared team and project", async () => {
