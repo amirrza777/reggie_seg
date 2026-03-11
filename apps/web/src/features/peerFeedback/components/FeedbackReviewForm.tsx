@@ -189,11 +189,18 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
       setMessage("Peer feedback submitted successfully.");
 
       if (redirectTo === "back") {
-        router.back();
+        if (feedback.projectId) {
+          router.push(`/projects/${feedback.projectId}/peer-feedback`);
+          router.refresh();
+        } else {
+          router.back();
+        }
       } else if (redirectTo) {
         router.push(redirectTo);
+        router.refresh();
       } else if (feedback.projectId) {
         router.push(`/projects/${feedback.projectId}/peer-feedback`);
+        router.refresh();
       }
     } catch (err) {
       setMessage(

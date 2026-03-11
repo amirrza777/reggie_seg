@@ -127,6 +127,7 @@ describe("peerAssessment controller core handlers", () => {
           templateId: 10,
           answersJson: [
             { question: "1", answer: "Strong contribution" },
+            { question: "2", answer: "Excellent" },
             { question: "3", answer: "4" },
             { question: "4", answer: 80 },
           ],
@@ -147,6 +148,7 @@ describe("peerAssessment controller core handlers", () => {
         templateId: 10,
         answersJson: [
           { question: "1", answer: "Strong contribution" },
+          { question: "2", answer: "Excellent" },
           { question: "3", answer: 4 },
           { question: "4", answer: 80 },
         ],
@@ -162,7 +164,12 @@ describe("peerAssessment controller core handlers", () => {
           reviewerUserId: 4,
           revieweeUserId: 2,
           templateId: 10,
-          answersJson: [{ question: "2", answer: "Maybe" }],
+          answersJson: [
+            { question: "1", answer: "Strong contribution" },
+            { question: "2", answer: "Maybe" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
         },
       } as any;
       const res = createMockResponse();
@@ -173,6 +180,33 @@ describe("peerAssessment controller core handlers", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         error: "Question 2 answer is not one of the configured options.",
+      });
+      expect(serviceMocks.saveAssessment).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when one or more questions are not answered", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 10,
+          answersJson: [
+            { question: "1", answer: "Strong contribution" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 is required.",
       });
       expect(serviceMocks.saveAssessment).not.toHaveBeenCalled();
     });
@@ -208,7 +242,12 @@ describe("peerAssessment controller core handlers", () => {
           reviewerUserId: 4,
           revieweeUserId: 2,
           templateId: 10,
-          answersJson: [{ question: "1", answer: "x" }],
+          answersJson: [
+            { question: "1", answer: "x" },
+            { question: "2", answer: "Excellent" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
         },
       } as any;
       const res = createMockResponse();
@@ -304,7 +343,10 @@ describe("peerAssessment controller core handlers", () => {
     });
 
     it("returns ok on success", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
       serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockResolvedValue(undefined);
@@ -312,12 +354,20 @@ describe("peerAssessment controller core handlers", () => {
       await updateAssessmentHandler(req, res);
 
       expect(serviceMocks.fetchAssessmentById).toHaveBeenCalledWith(9);
-      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, [{ question: "1", answer: "Updated" }]);
+      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, [
+        { question: "1", answer: "Updated" },
+        { question: "2", answer: "Excellent" },
+        { question: "3", answer: 4 },
+        { question: "4", answer: 75 },
+      ]);
       expect(res.json).toHaveBeenCalledWith({ ok: true });
     });
 
     it("returns 400 for answers that fail template validation", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 2: "Unknown option" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Unknown option", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
       serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
 
@@ -330,8 +380,25 @@ describe("peerAssessment controller core handlers", () => {
       expect(serviceMocks.updateAssessmentAnswers).not.toHaveBeenCalled();
     });
 
+    it("returns 400 for incomplete updates", async () => {
+      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated", 3: 4, 4: 75 } } } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
+
+      await updateAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 is required.",
+      });
+      expect(serviceMocks.updateAssessmentAnswers).not.toHaveBeenCalled();
+    });
+
     it("maps Prisma P2025 to 404", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
       serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue({ code: "P2025" });
@@ -343,7 +410,10 @@ describe("peerAssessment controller core handlers", () => {
     });
 
     it("returns 500 for non-Prisma error", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
       serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });

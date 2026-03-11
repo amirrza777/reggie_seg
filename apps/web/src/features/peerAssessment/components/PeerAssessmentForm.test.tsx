@@ -112,6 +112,30 @@ describe("PeerAssessmentForm", () => {
     );
   });
 
+  it("does not allow submission until all questions are answered", async () => {
+    renderForm();
+
+    const submitButton = screen.getByRole("button", { name: /save assessment/i });
+    expect(submitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Clear coding and communication." },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Excellent" }));
+    fireEvent.click(screen.getByRole("radio", { name: "4" }));
+
+    expect(submitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("slider"), {
+      target: { value: "80" },
+    });
+
+    expect(submitButton).not.toBeDisabled();
+    fireEvent.click(submitButton);
+
+    await waitFor(() => expect(createPeerAssessmentMock).toHaveBeenCalledTimes(1));
+  });
+
   it("normalizes numeric edit answers and sends numbers on update", async () => {
     renderForm({
       assessmentId: 91,

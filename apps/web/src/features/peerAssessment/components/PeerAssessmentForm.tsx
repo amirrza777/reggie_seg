@@ -44,6 +44,21 @@ function isNumericQuestion(question: Question) {
   return question.type === "rating" || question.type === "slider";
 }
 
+function isQuestionAnswered(question: Question, answer: AnswerValue | undefined) {
+  if (question.type === "rating" || question.type === "slider") {
+    return typeof answer === "number" && Number.isFinite(answer);
+  }
+
+  if (question.type === "multiple-choice") {
+    if (typeof answer !== "string" || answer.trim().length === 0) return false;
+    const options = Array.isArray(question.configs?.options) ? question.configs.options : [];
+    if (options.length === 0) return false;
+    return options.includes(answer);
+  }
+
+  return typeof answer === "string" && answer.trim().length > 0;
+}
+
 function getRatingBounds(question: Question) {
   const min = typeof question.configs?.min === "number" ? question.configs.min : 1;
   const configuredMax = typeof question.configs?.max === "number" ? question.configs.max : min + 4;
@@ -122,6 +137,11 @@ export function PeerAssessmentForm({
     () => [...questions].sort((a, b) => a.order - b.order),
     [questions]
   );
+  const unansweredQuestions = useMemo(
+    () => orderedQuestions.filter((question) => !isQuestionAnswered(question, answers[String(question.id)])),
+    [orderedQuestions, answers]
+  );
+  const allQuestionsAnswered = unansweredQuestions.length === 0;
 
   const normalizeAnswers = (
     raw: Record<string, string | number | boolean | null> | undefined
@@ -155,6 +175,12 @@ export function PeerAssessmentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!allQuestionsAnswered) {
+      setStatus("error");
+      setMessage("Please answer every question before submitting.");
+      return;
+    }
+
     setStatus("loading");
     setMessage(null);
 
@@ -337,7 +363,7 @@ export function PeerAssessmentForm({
         <Button type="button" onClick={handleDiscard}>
           {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
-        <Button type="submit" disabled={status === "loading"}>
+        <Button type="submit" disabled={status === "loading" || !allQuestionsAnswered}>
           {status === "loading"
             ? "Saving..."
             : isEditMode

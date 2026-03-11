@@ -5,9 +5,10 @@ import type { PeerFeedback, PeerAssessmentReviewPayload } from "../types";
 
 const push = vi.fn();
 const back = vi.fn();
+const refresh = vi.fn();
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push, back }),
+  useRouter: () => ({ push, back, refresh }),
 }));
 
 vi.mock("../api/client", () => ({
@@ -43,6 +44,7 @@ describe("FeedbackReviewForm", () => {
   beforeEach(() => {
     push.mockReset();
     back.mockReset();
+    refresh.mockReset();
     submitPeerFeedbackMock.mockReset();
     submitPeerFeedbackMock.mockResolvedValue({ ok: true } as any);
   });
@@ -56,7 +58,7 @@ describe("FeedbackReviewForm", () => {
     expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
   });
 
-  it("submits peer feedback and navigates back by default", async () => {
+  it("submits peer feedback and navigates to feedback list by default", async () => {
     render(<FeedbackReviewForm feedback={makeFeedback()} currentUserId="4" />);
 
     fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
@@ -78,7 +80,8 @@ describe("FeedbackReviewForm", () => {
       );
     });
 
-    expect(back).toHaveBeenCalled();
+    expect(push).toHaveBeenCalledWith("/projects/1/peer-feedback");
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("navigates to explicit redirect path when provided", async () => {
@@ -98,6 +101,7 @@ describe("FeedbackReviewForm", () => {
     await waitFor(() => {
       expect(push).toHaveBeenCalledWith("/projects/1/peer-feedback");
     });
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("uses custom onSubmit handler when provided", async () => {

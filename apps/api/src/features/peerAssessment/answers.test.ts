@@ -32,14 +32,18 @@ describe("normalizeAndValidateAssessmentAnswers", () => {
     const normalized = normalizeAndValidateAssessmentAnswers(
       [
         { questionId: 1, answer: "Solid contribution" },
+        { questionId: 2, answer: "Excellent" },
         { questionId: 3, answer: 5 },
+        { questionId: 4, answer: 70 },
       ],
       templateQuestions
     );
 
     expect(normalized).toEqual([
       { question: "1", answer: "Solid contribution" },
+      { question: "2", answer: "Excellent" },
       { question: "3", answer: 5 },
+      { question: "4", answer: 70 },
     ]);
   });
 
@@ -51,13 +55,56 @@ describe("normalizeAndValidateAssessmentAnswers", () => {
 
   it("throws for invalid multiple-choice options", () => {
     expect(() =>
-      normalizeAndValidateAssessmentAnswers([{ question: "2", answer: "Maybe" }], templateQuestions)
+      normalizeAndValidateAssessmentAnswers(
+        [
+          { question: "1", answer: "Great communicator" },
+          { question: "2", answer: "Maybe" },
+          { question: "3", answer: 4 },
+          { question: "4", answer: 80 },
+        ],
+        templateQuestions
+      )
     ).toThrow("Question 2 answer is not one of the configured options.");
   });
 
   it("throws for slider answers not aligned to step", () => {
     expect(() =>
-      normalizeAndValidateAssessmentAnswers([{ question: "4", answer: 83 }], templateQuestions)
+      normalizeAndValidateAssessmentAnswers(
+        [
+          { question: "1", answer: "Strong work" },
+          { question: "2", answer: "Excellent" },
+          { question: "3", answer: 4 },
+          { question: "4", answer: 83 },
+        ],
+        templateQuestions
+      )
     ).toThrow("Question 4 answer must align with slider step 5.");
+  });
+
+  it("throws when any template question is missing", () => {
+    expect(() =>
+      normalizeAndValidateAssessmentAnswers(
+        [
+          { question: "1", answer: "Strong work" },
+          { question: "3", answer: 4 },
+          { question: "4", answer: 80 },
+        ],
+        templateQuestions
+      )
+    ).toThrow("Question 2 is required.");
+  });
+
+  it("throws when question answer is empty", () => {
+    expect(() =>
+      normalizeAndValidateAssessmentAnswers(
+        [
+          { question: "1", answer: "Strong work" },
+          { question: "2", answer: "" },
+          { question: "3", answer: 4 },
+          { question: "4", answer: 80 },
+        ],
+        templateQuestions
+      )
+    ).toThrow("Question 2 is required.");
   });
 });

@@ -99,43 +99,51 @@ export function normalizeAndValidateAssessmentAnswers(
   templateQuestions: TemplateQuestion[]
 ): NormalizedAnswer[] {
   const incomingAnswers = parseIncomingAnswers(payload);
-  const questionById = new Map<string, TemplateQuestion>(
-    templateQuestions.map((question) => [String(question.id), question])
-  );
+  const questionById = new Map<string, TemplateQuestion>(templateQuestions.map((question) => [String(question.id), question]));
+  const incomingByQuestionId = new Map<string, PrimitiveAnswer>();
 
-  return incomingAnswers.map(({ question, answer }) => {
+  for (const { question, answer } of incomingAnswers) {
     const templateQuestion = questionById.get(question);
     if (!templateQuestion) {
       throw new AssessmentAnswerValidationError(`Question ${question} is not part of the questionnaire template.`);
     }
+    incomingByQuestionId.set(question, answer);
+  }
 
+  return templateQuestions.map((templateQuestion) => {
+    const questionId = String(templateQuestion.id);
+    if (!incomingByQuestionId.has(questionId)) {
+      throw new AssessmentAnswerValidationError(`Question ${questionId} is required.`);
+    }
+
+    const answer = incomingByQuestionId.get(questionId);
     const questionType = normalizeQuestionType(templateQuestion.type);
-    if (answer == null || answer === "") {
-      return { question, answer: null };
+    if (answer == null || (typeof answer === "string" && answer.trim() === "")) {
+      throw new AssessmentAnswerValidationError(`Question ${questionId} is required.`);
     }
 
     if (questionType === "text") {
-      return { question, answer: String(answer) };
+      return { question: questionId, answer: String(answer) };
     }
 
     if (questionType === "multiple-choice") {
       const normalizedAnswer = String(answer);
       const options = getMultipleChoiceOptions(templateQuestion.configs);
       if (options.length > 0 && !options.includes(normalizedAnswer)) {
-        throw new AssessmentAnswerValidationError(`Question ${question} answer is not one of the configured options.`);
+        throw new AssessmentAnswerValidationError(`Question ${questionId} answer is not one of the configured options.`);
       }
-      return { question, answer: normalizedAnswer };
+      return { question: questionId, answer: normalizedAnswer };
     }
 
     const numericValue = toNumber(answer);
     if (numericValue == null) {
-      throw new AssessmentAnswerValidationError(`Question ${question} requires a numeric answer.`);
+      throw new AssessmentAnswerValidationError(`Question ${questionId} requires a numeric answer.`);
     }
 
     const min = getNumberConfig(templateQuestion.configs, "min", questionType === "slider" ? 0 : 1);
     const max = getNumberConfig(templateQuestion.configs, "max", questionType === "slider" ? min + 100 : min + 4);
     if (numericValue < min || numericValue > max) {
-      throw new AssessmentAnswerValidationError(`Question ${question} answer must be between ${min} and ${max}.`);
+      throw new AssessmentAnswerValidationError(`Question ${questionId} answer must be between ${min} and ${max}.`);
     }
 
     if (questionType === "slider") {
@@ -144,11 +152,11 @@ export function normalizeAndValidateAssessmentAnswers(
         const stepsFromMin = (numericValue - min) / step;
         const isAlignedToStep = Math.abs(stepsFromMin - Math.round(stepsFromMin)) < 1e-9;
         if (!isAlignedToStep) {
-          throw new AssessmentAnswerValidationError(`Question ${question} answer must align with slider step ${step}.`);
+          throw new AssessmentAnswerValidationError(`Question ${questionId} answer must align with slider step ${step}.`);
         }
       }
     }
 
-    return { question, answer: numericValue };
+    return { question: questionId, answer: numericValue };
   });
 }
