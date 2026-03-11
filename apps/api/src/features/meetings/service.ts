@@ -27,9 +27,13 @@ export async function addMeeting(data: {
   location?: string;
   agenda?: string;
 }) {
-  const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true } });
+  const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true, inactivityFlag: true } });
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
-  return createMeeting(data);
+  const meeting = await createMeeting(data);
+  if (team?.inactivityFlag === "YELLOW") {
+    await prisma.team.update({ where: { id: data.teamId }, data: { inactivityFlag: "NONE" } });
+  }
+  return meeting;
 }
 
 export function removeMeeting(meetingId: number) {

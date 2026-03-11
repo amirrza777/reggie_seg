@@ -108,12 +108,97 @@ async function sendDeadlineReminders() {
   }
 }
 
+const YELLOW_THRESHOLD_DAYS = 7;
+const RED_THRESHOLD_DAYS = 14;
+
+async function sendInactivityAlerts() {
+  const now = new Date();
+
+  const teams = await prisma.team.findMany({
+    where: { archivedAt: null },
+    select: {
+      id: true,
+      teamName: true,
+      inactivityFlag: true,
+      createdAt: true,
+      project: { select: { name: true } },
+      meetings: {
+        orderBy: { date: "desc" },
+        take: 1,
+        select: { date: true },
+      },
+    },
+  });
+
+  const toYellow: number[] = [];
+  const toRed: number[] = [];
+
+  type FlaggedTeam = { teamName: string; projectName: string; daysInactive: number };
+  const yellowTeams: FlaggedTeam[] = [];
+  const redTeams: FlaggedTeam[] = [];
+
+  for (const team of teams) {
+    const lastActivity = team.meetings[0]?.date ?? team.createdAt;
+    const daysInactive = Math.floor((now.getTime() - lastActivity.getTime()) / 86_400_000);
+
+    if (daysInactive >= RED_THRESHOLD_DAYS && team.inactivityFlag !== "RED") {
+      toRed.push(team.id);
+      redTeams.push({ teamName: team.teamName, projectName: team.project.name, daysInactive });
+    } else if (daysInactive >= YELLOW_THRESHOLD_DAYS && team.inactivityFlag === "NONE") {
+      toYellow.push(team.id);
+      yellowTeams.push({ teamName: team.teamName, projectName: team.project.name, daysInactive });
+    }
+  }
+
+  if (toYellow.length > 0) {
+    await prisma.team.updateMany({ where: { id: { in: toYellow } }, data: { inactivityFlag: "YELLOW" } });
+  }
+  if (toRed.length > 0) {
+    await prisma.team.updateMany({ where: { id: { in: toRed } }, data: { inactivityFlag: "RED" } });
+  }
+
+  const totalFlagged = yellowTeams.length + redTeams.length;
+  if (totalFlagged === 0) return;
+
+  const staffUsers = await prisma.user.findMany({
+    where: { role: "STAFF" },
+    select: { email: true, firstName: true },
+  });
+
+  for (const { email, firstName } of staffUsers) {
+    const subject = `Team inactivity alert – ${totalFlagged} team${totalFlagged === 1 ? "" : "s"} require attention`;
+
+    let text = `Hi ${firstName},\n\nThe following teams have had no meeting activity:\n`;
+    let html = `<p>Hi ${firstName},</p><p>The following teams have had no meeting activity:</p>`;
+
+    if (redTeams.length > 0) {
+      text += `\nRED FLAG (14+ days inactive):\n${redTeams.map((t) => `• ${t.teamName} (${t.projectName}) – ${t.daysInactive} days`).join("\n")}\n`;
+      html += `<p><strong>🚩 RED FLAG – 14+ days inactive</strong></p><ul>${redTeams.map((t) => `<li>${t.teamName} (${t.projectName}) – ${t.daysInactive} days</li>`).join("")}</ul>`;
+    }
+
+    if (yellowTeams.length > 0) {
+      text += `\nYELLOW FLAG (7+ days inactive):\n${yellowTeams.map((t) => `• ${t.teamName} (${t.projectName}) – ${t.daysInactive} days`).join("\n")}\n`;
+      html += `<p><strong>⚠️ YELLOW FLAG – 7+ days inactive</strong></p><ul>${yellowTeams.map((t) => `<li>${t.teamName} (${t.projectName}) – ${t.daysInactive} days</li>`).join("")}</ul>`;
+    }
+
+    text += `\nLog in to review and dismiss flags where appropriate.\n`;
+    html += `<p>Log in to review and dismiss flags where appropriate.</p>`;
+
+    await sendEmail({ to: email, subject, text, html });
+  }
+}
+
 export function startNotificationJob() {
   cron.schedule("0 8 * * *", async () => {
     try {
       await sendDeadlineReminders();
     } catch (err) {
       console.error("Notification job error:", err);
+    }
+    try {
+      await sendInactivityAlerts();
+    } catch (err) {
+      console.error("Inactivity alert job error:", err);
     }
   });
 }

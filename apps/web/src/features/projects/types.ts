@@ -31,6 +31,7 @@ export type Team = {
   teamName: string;
   projectId: number;
   createdAt: string;
+  inactivityFlag: "NONE" | "YELLOW" | "RED";
   allocations: Array<{
     userId: number;
     user: User;

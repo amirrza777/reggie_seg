@@ -46,3 +46,7 @@ export async function getStaffProjects(userId: number): Promise<StaffProject[]> 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
 }
+
+export async function dismissTeamFlag(teamId: number): Promise<void> {
+  await apiFetch(`/teams/${teamId}/dismiss-flag`, { method: "PATCH" });
+}

@@ -215,6 +215,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
           teamName: true,
           projectId: true,
           createdAt: true,
+          inactivityFlag: true,
           allocations: {
             select: {
               userId: true,

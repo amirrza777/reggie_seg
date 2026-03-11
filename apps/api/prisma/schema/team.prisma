@@ -1,3 +1,9 @@
+enum InactivityFlag {
+  NONE
+  YELLOW
+  RED
+}
+
 model Team {
   id              Int              @id @default(autoincrement())
   enterpriseId    String
@@ -6,6 +12,7 @@ model Team {
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   archivedAt      DateTime?
+  inactivityFlag  InactivityFlag   @default(NONE)
 
   allocations     TeamAllocation[]
   project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)

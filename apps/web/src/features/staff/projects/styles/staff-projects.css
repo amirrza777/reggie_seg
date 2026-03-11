@@ -198,3 +198,45 @@
   font-size: var(--fs-caption);
   cursor: not-allowed;
 }
+
+.team-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+
+.team-flag--yellow {
+  background: rgba(234, 179, 8, 0.15);
+  color: rgb(161, 120, 0);
+  border: 1px solid rgba(234, 179, 8, 0.4);
+}
+
+.team-flag--red {
+  background: rgba(220, 38, 38, 0.12);
+  color: rgb(185, 28, 28);
+  border: 1px solid rgba(220, 38, 38, 0.35);
+}
+
+.team-flag__dismiss {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(220, 38, 38, 0.4);
+  background: rgba(220, 38, 38, 0.08);
+  color: rgb(185, 28, 28);
+  font-size: var(--fs-body-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.team-flag__dismiss:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.18);
+}
+
+.team-flag__dismiss:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
