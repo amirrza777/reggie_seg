@@ -18,6 +18,23 @@ export type ProjectDeadline = {
   isOverridden: boolean;
 };
 
+export type DeadlineFieldKey =
+  | "taskOpenDate"
+  | "taskDueDate"
+  | "assessmentOpenDate"
+  | "assessmentDueDate"
+  | "feedbackOpenDate"
+  | "feedbackDueDate";
+
+export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
+
+export type StaffTeamDeadlineDetails = {
+  baseDeadline: ProjectDeadline;
+  effectiveDeadline: ProjectDeadline;
+  deadlineInputMode: DeadlineInputMode | null;
+  shiftDays: Partial<Record<DeadlineFieldKey, number>> | null;
+};
+
 export type User = {
   id: number;
   firstName: string;

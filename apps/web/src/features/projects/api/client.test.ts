@@ -8,7 +8,10 @@ vi.mock("@/shared/api/http", () => ({
 
 import {
   createMcfRequest,
+  getStaffTeamDeadline,
   getMyMcfRequests,
+  resolveStaffTeamMcfRequestWithDeadlineOverride,
+  reviewStaffTeamMcfRequest,
   getStaffTeamMcfRequests,
   getProject,
   getProjectDeadline,
@@ -108,5 +111,81 @@ describe("projects api client", () => {
       cache: "no-store",
     });
     expect(result).toEqual([{ id: 3 }]);
+  });
+
+  it("gets team deadline for staff view", async () => {
+    const deadline = {
+      baseDeadline: {
+        taskOpenDate: "2026-03-10T08:00:00.000Z",
+        taskDueDate: "2026-03-12T17:00:00.000Z",
+        assessmentOpenDate: null,
+        assessmentDueDate: null,
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+      },
+      effectiveDeadline: {
+        taskOpenDate: "2026-03-12T08:00:00.000Z",
+        taskDueDate: "2026-03-14T17:00:00.000Z",
+        assessmentOpenDate: null,
+        assessmentDueDate: null,
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: true,
+      },
+      deadlineInputMode: "SHIFT_DAYS",
+      shiftDays: {
+        taskOpenDate: 2,
+        taskDueDate: 2,
+      },
+    };
+    apiFetchMock.mockResolvedValue({ deadline });
+
+    const result = await getStaffTeamDeadline(9, 42, 5);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/deadline?userId=9", {
+      cache: "no-store",
+    });
+    expect(result).toEqual(deadline);
+  });
+
+  it("reviews a team MCF request for staff", async () => {
+    const request = { id: 3, status: "REJECTED" };
+    apiFetchMock.mockResolvedValue({ request });
+
+    const result = await reviewStaffTeamMcfRequest(42, 5, 3, 9, "REJECTED");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/mcf-requests/3/review", {
+      method: "PATCH",
+      body: JSON.stringify({ userId: 9, status: "REJECTED" }),
+    });
+    expect(result).toEqual(request);
+  });
+
+  it("resolves a team MCF request with deadline override", async () => {
+    const response = {
+      request: { id: 3, status: "RESOLVED" },
+      deadline: { taskDueDate: "2026-03-15T12:00:00.000Z", isOverridden: true },
+    };
+    apiFetchMock.mockResolvedValue(response);
+
+    const result = await resolveStaffTeamMcfRequestWithDeadlineOverride(42, 5, 3, 9, {
+      taskDueDate: "2026-03-15T12:00:00.000Z",
+      feedbackDueDate: null,
+      deadlineInputMode: "SHIFT_DAYS",
+      shiftDays: { taskDueDate: 3 },
+    });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/mcf-requests/3/deadline-override", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: 9,
+        taskDueDate: "2026-03-15T12:00:00.000Z",
+        feedbackDueDate: null,
+        deadlineInputMode: "SHIFT_DAYS",
+        shiftDays: { taskDueDate: 3 },
+      }),
+    });
+    expect(result).toEqual(response);
   });
 });

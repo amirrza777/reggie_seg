@@ -2,11 +2,15 @@ import { apiFetch } from "@/shared/api/http";
 import type {
   Project,
   ProjectDeadline,
+  StaffTeamDeadlineDetails,
+  DeadlineFieldKey,
+  DeadlineInputMode,
   Team,
   ProjectMarkingSummary,
   StaffProject,
   StaffProjectTeamsResponse,
   MCFRequest,
+  MCFRequestStatus,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -79,4 +83,63 @@ export async function getStaffTeamMcfRequests(
     { cache: "no-store" }
   );
   return Array.isArray(response.requests) ? response.requests : [];
+}
+
+export async function getStaffTeamDeadline(
+  userId: number,
+  projectId: number,
+  teamId: number
+): Promise<StaffTeamDeadlineDetails> {
+  const response = await apiFetch<{ deadline: StaffTeamDeadlineDetails }>(
+    `/projects/staff/${projectId}/teams/${teamId}/deadline?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return response.deadline;
+}
+
+export async function reviewStaffTeamMcfRequest(
+  projectId: number,
+  teamId: number,
+  requestId: number,
+  userId: number,
+  status: Extract<MCFRequestStatus, "IN_REVIEW" | "REJECTED">
+): Promise<MCFRequest> {
+  const response = await apiFetch<{ request: MCFRequest }>(
+    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests/${requestId}/review`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ userId, status }),
+    }
+  );
+  return response.request;
+}
+
+export type StaffTeamDeadlineOverridePayload = {
+  taskOpenDate?: string | null;
+  taskDueDate?: string | null;
+  assessmentOpenDate?: string | null;
+  assessmentDueDate?: string | null;
+  feedbackOpenDate?: string | null;
+  feedbackDueDate?: string | null;
+  deadlineInputMode?: DeadlineInputMode;
+  shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
+};
+
+export async function resolveStaffTeamMcfRequestWithDeadlineOverride(
+  projectId: number,
+  teamId: number,
+  requestId: number,
+  userId: number,
+  overrides: StaffTeamDeadlineOverridePayload
+): Promise<{ request: MCFRequest; deadline: ProjectDeadline }> {
+  return apiFetch<{ request: MCFRequest; deadline: ProjectDeadline }>(
+    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests/${requestId}/deadline-override`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        userId,
+        ...overrides,
+      }),
+    }
+  );
 }
