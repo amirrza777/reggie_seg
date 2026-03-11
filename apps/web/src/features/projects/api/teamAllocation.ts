@@ -16,6 +16,32 @@ export type TeamInvite = {
   inviter?: { id: number; firstName: string; lastName: string; email: string };
 };
 
+export type RandomAllocationPreview = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  studentCount: number;
+  teamCount: number;
+  existingTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+  previewTeams: Array<{
+    index: number;
+    suggestedName: string;
+    members: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    }>;
+  }>;
+};
+
 export async function sendTeamInvite(teamId: number, inviterId: number, inviteeEmail: string, message?: string) {
   return apiFetch<{ ok: boolean; inviteId: string }>("/team-allocation/invites", {
     method: "POST",
@@ -54,4 +80,16 @@ export async function createTeamForProject(projectId: number, teamName: string) 
     method: "POST",
     body: JSON.stringify({ projectId, teamName }),
   });
+}
+
+export async function getRandomAllocationPreview(projectId: number, teamCount: number, seed?: number) {
+  const params = new URLSearchParams({ teamCount: String(teamCount) });
+  if (seed !== undefined) {
+    params.set("seed", String(seed));
+  }
+
+  return apiFetch<RandomAllocationPreview>(
+    `/team-allocation/projects/${projectId}/random-preview?${params.toString()}`,
+    { cache: "no-store" }
+  );
 }
