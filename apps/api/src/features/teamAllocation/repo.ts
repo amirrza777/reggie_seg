@@ -188,9 +188,10 @@ export async function findStaffScopedProject(
   };
 }
 
-export async function findModuleStudents(
+export async function findVacantModuleStudentsForProject(
   enterpriseId: string,
   moduleId: number,
+  projectId: number,
 ): Promise<ModuleStudent[]> {
   return prisma.user.findMany({
     where: {
@@ -201,6 +202,13 @@ export async function findModuleStudents(
         some: {
           enterpriseId,
           moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId,
+          },
         },
       },
     },
@@ -277,12 +285,6 @@ export async function applyRandomAllocationPlan(
         targetTeams.push(createdTeam);
       }
     }
-
-    await tx.teamAllocation.deleteMany({
-      where: {
-        team: { projectId },
-      },
-    });
 
     for (let index = 0; index < plannedTeams.length; index += 1) {
       const team = targetTeams[index];

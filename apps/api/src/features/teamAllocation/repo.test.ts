@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyRandomAllocationPlan,
   createTeamInviteRecord,
-  findModuleStudents,
+  findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
   findStaffScopedProject,
   findActiveInvite,
@@ -210,10 +210,10 @@ describe("teamAllocation repo", () => {
     });
   });
 
-  it("findModuleStudents returns active students in module", async () => {
+  it("findVacantModuleStudentsForProject returns active unallocated students in module", async () => {
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 1 }]);
 
-    await findModuleStudents("ent-3", 22);
+    await findVacantModuleStudentsForProject("ent-3", 22, 5);
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: {
@@ -224,6 +224,13 @@ describe("teamAllocation repo", () => {
           some: {
             enterpriseId: "ent-3",
             moduleId: 22,
+          },
+        },
+        teamAllocations: {
+          none: {
+            team: {
+              projectId: 5,
+            },
           },
         },
       },
@@ -249,7 +256,7 @@ describe("teamAllocation repo", () => {
     ]);
   });
 
-  it("applyRandomAllocationPlan reuses existing project teams and rewrites allocations", async () => {
+  it("applyRandomAllocationPlan reuses existing project teams and creates new allocations", async () => {
     const tx = {
       team: {
         findMany: vi.fn().mockResolvedValue([
@@ -274,11 +281,6 @@ describe("teamAllocation repo", () => {
       where: { projectId: 5 },
       select: { id: true, teamName: true },
       orderBy: [{ id: "asc" }],
-    });
-    expect(tx.teamAllocation.deleteMany).toHaveBeenCalledWith({
-      where: {
-        team: { projectId: 5 },
-      },
     });
     expect(tx.teamAllocation.createMany).toHaveBeenNthCalledWith(1, {
       data: [

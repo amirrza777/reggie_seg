@@ -143,8 +143,8 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
     }
-    if (error?.code === "NO_STUDENTS_AVAILABLE") {
-      return res.status(409).json({ error: "No active students are available for this project module" });
+    if (error?.code === "NO_VACANT_STUDENTS" || error?.code === "NO_STUDENTS_AVAILABLE") {
+      return res.status(409).json({ error: "No vacant students are available for this project module" });
     }
     console.error("Error previewing random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -187,8 +187,8 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
     }
-    if (error?.code === "NO_STUDENTS_AVAILABLE") {
-      return res.status(409).json({ error: "No active students are available for this project module" });
+    if (error?.code === "NO_VACANT_STUDENTS" || error?.code === "NO_STUDENTS_AVAILABLE") {
+      return res.status(409).json({ error: "No vacant students are available for this project module" });
     }
     console.error("Error applying random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });

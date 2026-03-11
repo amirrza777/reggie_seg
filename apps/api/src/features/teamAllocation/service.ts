@@ -8,7 +8,7 @@ import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
-  findModuleStudents,
+  findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
   findStaffScopedProject,
   getInvitesForTeam,
@@ -205,9 +205,13 @@ export async function previewRandomAllocationForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
-  const students = await findModuleStudents(project.enterpriseId, project.moduleId);
+  const students = await findVacantModuleStudentsForProject(
+    project.enterpriseId,
+    project.moduleId,
+    projectId,
+  );
   if (students.length === 0) {
-    throw { code: "NO_STUDENTS_AVAILABLE" };
+    throw { code: "NO_VACANT_STUDENTS" };
   }
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
@@ -254,9 +258,13 @@ export async function applyRandomAllocationForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
-  const students = await findModuleStudents(project.enterpriseId, project.moduleId);
+  const students = await findVacantModuleStudentsForProject(
+    project.enterpriseId,
+    project.moduleId,
+    projectId,
+  );
   if (students.length === 0) {
-    throw { code: "NO_STUDENTS_AVAILABLE" };
+    throw { code: "NO_VACANT_STUDENTS" };
   }
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };

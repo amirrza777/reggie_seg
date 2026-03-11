@@ -23,7 +23,7 @@ vi.mock("./repo.js", () => ({
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
-  findModuleStudents: vi.fn(),
+  findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
   findStaffScopedProject: vi.fn(),
   getInvitesForTeam: vi.fn(),
@@ -183,12 +183,12 @@ describe("teamAllocation service", () => {
       archivedAt: null,
       enterpriseId: "ent-1",
     });
-    (repo.findModuleStudents as any).mockResolvedValueOnce([]);
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValueOnce([]);
     await expect(previewRandomAllocationForProject(3, 9, 2)).rejects.toEqual({
-      code: "NO_STUDENTS_AVAILABLE",
+      code: "NO_VACANT_STUDENTS",
     });
 
-    (repo.findModuleStudents as any).mockResolvedValueOnce([
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValueOnce([
       { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
       { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
     ]);
@@ -206,7 +206,7 @@ describe("teamAllocation service", () => {
       archivedAt: null,
       enterpriseId: "ent-9",
     });
-    (repo.findModuleStudents as any).mockResolvedValue([
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
       { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
       { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
       { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
@@ -219,6 +219,7 @@ describe("teamAllocation service", () => {
 
     const preview = await previewRandomAllocationForProject(3, 42, 2, { seed: 123 });
 
+    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11, 42);
     expect(preview.project).toEqual({
       id: 42,
       name: "Project A",
@@ -248,7 +249,7 @@ describe("teamAllocation service", () => {
       archivedAt: null,
       enterpriseId: "ent-9",
     });
-    (repo.findModuleStudents as any).mockResolvedValue([
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
       { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
       { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
       { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
@@ -261,6 +262,7 @@ describe("teamAllocation service", () => {
 
     const result = await applyRandomAllocationForProject(3, 42, 2, { seed: 999 });
 
+    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11, 42);
     expect(repo.applyRandomAllocationPlan).toHaveBeenCalledWith(42, "ent-9", expect.any(Array));
     const planned = (repo.applyRandomAllocationPlan as any).mock.calls[0][2];
     expect(planned).toHaveLength(2);
@@ -297,7 +299,7 @@ describe("teamAllocation service", () => {
       archivedAt: null,
       enterpriseId: "ent-9",
     });
-    (repo.findModuleStudents as any).mockResolvedValue([
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
       { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
       { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
     ]);
