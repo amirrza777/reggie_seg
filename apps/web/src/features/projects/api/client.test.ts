@@ -9,6 +9,7 @@ vi.mock("@/shared/api/http", () => ({
 import {
   createMcfRequest,
   getMyMcfRequests,
+  getStaffTeamMcfRequests,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -96,5 +97,16 @@ describe("projects api client", () => {
       cache: "no-store",
     });
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it("gets team MCF requests for staff view", async () => {
+    apiFetchMock.mockResolvedValue({ requests: [{ id: 3 }] });
+
+    const result = await getStaffTeamMcfRequests(9, 42, 5);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/mcf-requests?userId=9", {
+      cache: "no-store",
+    });
+    expect(result).toEqual([{ id: 3 }]);
   });
 });

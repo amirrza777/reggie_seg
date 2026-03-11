@@ -68,3 +68,15 @@ export async function getMyMcfRequests(projectId: number, userId: number): Promi
   );
   return Array.isArray(response.requests) ? response.requests : [];
 }
+
+export async function getStaffTeamMcfRequests(
+  userId: number,
+  projectId: number,
+  teamId: number
+): Promise<MCFRequest[]> {
+  const response = await apiFetch<{ requests: MCFRequest[] }>(
+    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.requests) ? response.requests : [];
+}
