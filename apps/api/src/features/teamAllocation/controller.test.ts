@@ -12,6 +12,7 @@ import {
   getTeamByIdHandler,
   getTeamMembersHandler,
   listTeamInvitesHandler,
+  previewRandomAllocationHandler,
   rejectTeamInviteHandler,
 } from "./controller.js";
 
@@ -27,6 +28,7 @@ vi.mock("./service.js", () => ({
   rejectTeamInvite: vi.fn(),
   cancelTeamInvite: vi.fn(),
   expireTeamInvite: vi.fn(),
+  previewRandomAllocationForProject: vi.fn(),
 }));
 
 function mockResponse() {
@@ -163,6 +165,75 @@ describe("teamAllocation controller", () => {
     await getTeamMembersHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
   });
+
+  it("previewRandomAllocationHandler validates auth and input", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "3" }, query: { teamCount: "2" } };
+    const unauthorizedRes = mockResponse();
+    await previewRandomAllocationHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 9 }, params: { projectId: "x" }, query: { teamCount: "2" } };
+    const badProjectRes = mockResponse();
+    await previewRandomAllocationHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badCountReq: any = { user: { sub: 9 }, params: { projectId: "4" }, query: { teamCount: "0" } };
+    const badCountRes = mockResponse();
+    await previewRandomAllocationHandler(badCountReq, badCountRes);
+    expect(badCountRes.status).toHaveBeenCalledWith(400);
+
+    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "abc" } };
+    const badSeedRes = mockResponse();
+    await previewRandomAllocationHandler(badSeedReq, badSeedRes);
+    expect(badSeedRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("previewRandomAllocationHandler returns preview payload", async () => {
+    (service.previewRandomAllocationForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      studentCount: 6,
+      teamCount: 2,
+      existingTeams: [],
+      previewTeams: [],
+    });
+
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "99" } };
+    const res = mockResponse();
+
+    await previewRandomAllocationHandler(req, res);
+
+    expect(service.previewRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, { seed: 99 });
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({ id: 4 }),
+        teamCount: 2,
+      })
+    );
+  });
+
+  it("previewRandomAllocationHandler maps service errors", async () => {
+    const req: any = { user: { sub: 3 }, params: { projectId: "5" }, query: { teamCount: "2" } };
+
+    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" });
+    const teamCountRes = mockResponse();
+    await previewRandomAllocationHandler(req, teamCountRes);
+    expect(teamCountRes.status).toHaveBeenCalledWith(400);
+
+    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" });
+    const missingRes = mockResponse();
+    await previewRandomAllocationHandler(req, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    const archivedRes = mockResponse();
+    await previewRandomAllocationHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
+
+    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_STUDENTS_AVAILABLE" });
+    const noStudentsRes = mockResponse();
+    await previewRandomAllocationHandler(req, noStudentsRes);
+    expect(noStudentsRes.status).toHaveBeenCalledWith(409);
+  });
 });
 
 describe("teamAllocation invite transition handlers", () => {
@@ -181,12 +252,12 @@ describe("teamAllocation invite transition handlers", () => {
 
   it("acceptTeamInviteHandler returns success payload", async () => {
     (service.acceptTeamInvite as any).mockResolvedValue({ id: "i1", status: "ACCEPTED" });
-    const req: any = { params: { inviteId: "i1" } };
+    const req: any = { user: { sub: 44 }, params: { inviteId: "i1" } };
     const res = mockResponse();
 
     await acceptTeamInviteHandler(req, res);
 
-    expect(service.acceptTeamInvite).toHaveBeenCalledWith("i1");
+    expect(service.acceptTeamInvite).toHaveBeenCalledWith("i1", 44);
     expect(res.json).toHaveBeenCalledWith({ ok: true, invite: { id: "i1", status: "ACCEPTED" } });
   });
 
