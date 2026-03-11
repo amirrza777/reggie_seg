@@ -1,25 +1,59 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
 import { listModules } from "@/features/modules/api/client";
+import { getCalendarEvents } from "@/features/calendar/api/client";
 import type { Module } from "@/features/modules/types";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 
-const upcomingItems = [
-  { label: "Peer assessment submissions", due: "Fri 5 PM", owner: "ModuleLead" },
-  { label: "Meeting minutes", due: "Today 6 PM", owner: "MeetingMinutes" },
-  { label: "Team allocations sync", due: "Tomorrow", owner: "TeamAllocation" },
-];
+const TYPE_LABEL: Record<string, string> = {
+  task_open: "Task Opens",
+  task_due: "Task Due",
+  assessment_open: "Assessment Opens",
+  assessment_due: "Assessment Due",
+  feedback_open: "Feedback Opens",
+  feedback_due: "Feedback Due",
+  meeting: "Meeting",
+};
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   let modules: Module[] = [];
+  let upcomingRows: (string | ReactNode)[][] = [];
+
   if (user) {
-    try {
-      modules = await listModules(user.id);
-    } catch {
-      modules = [];
+    const [fetchedModules, events] = await Promise.allSettled([
+      listModules(user.id),
+      getCalendarEvents(user.id),
+    ]);
+
+    if (fetchedModules.status === "fulfilled") modules = fetchedModules.value;
+
+    if (events.status === "fulfilled") {
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() + 14);
+      upcomingRows = events.value
+        .filter((e) => {
+          const d = new Date(e.date);
+          return d >= now && d <= cutoff;
+        })
+        .slice(0, 8)
+        .map((e) => [
+          e.projectName ?? e.title,
+          TYPE_LABEL[e.type] ?? e.type,
+          formatDate(e.date),
+        ]);
     }
+  }
+
+  if (upcomingRows.length === 0) {
+    upcomingRows = [["-", "No upcoming deadlines in the next 14 days", "-"]];
   }
 
   const moduleRows =
@@ -37,7 +71,6 @@ export default async function DashboardPage() {
           ];
         })
       : [["-", "No modules assigned", "-"]];
-  const scheduleRows = upcomingItems.map((item) => [item.label, item.due, item.owner]);
 
   return (
     <div className="stack stack--tabbed">
@@ -51,8 +84,11 @@ export default async function DashboardPage() {
         <Table headers={["Code", "Title", "Teams"]} rows={moduleRows} />
       </Card>
 
-      <Card title="Upcoming deadlines">
-        <Table headers={["Item", "Due", "Model"]} rows={scheduleRows} />
+      <Card
+        title="Upcoming deadlines"
+        action={<Link href="/calendar" className="btn btn--sm btn--ghost">View calendar →</Link>}
+      >
+        <Table headers={["Project", "Type", "Due"]} rows={upcomingRows} />
       </Card>
     </div>
   );

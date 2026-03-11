@@ -80,6 +80,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     // Workspace
     { href: "/dashboard", label: "Modules", space: "workspace", children: moduleChildren },
     { href: "/projects", label: "Projects", space: "workspace", children: projectChildren },
+    { href: "/calendar", label: "Calendar", space: "workspace" },
 
     // Staff
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
@@ -116,7 +117,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
     }));
 
-  const workspaceAliases = ["/dashboard", "/modules", "/projects"];
+  const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
 
   const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
