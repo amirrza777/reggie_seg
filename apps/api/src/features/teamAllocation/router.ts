@@ -10,6 +10,7 @@ import {
   listTeamInvitesHandler,
   createTeamHandler,
   createTeamForProjectHandler,
+  applyRandomAllocationHandler,
   previewRandomAllocationHandler,
   getTeamByIdHandler,
   addUserToTeamHandler,
@@ -27,6 +28,7 @@ router.patch("/invites/:inviteId/expire", expireTeamInviteHandler);
 router.get("/teams/:teamId/invites", listTeamInvitesHandler);
 router.post("/teams", createTeamHandler);
 router.post("/teams/for-project", requireAuth, createTeamForProjectHandler);
+router.post("/projects/:projectId/random-allocate", requireAuth, applyRandomAllocationHandler);
 router.get("/projects/:projectId/random-preview", requireAuth, previewRandomAllocationHandler);
 router.get("/teams/:teamId", getTeamByIdHandler);
 router.post("/teams/:teamId/members", addUserToTeamHandler);

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  applyRandomAllocationPlan,
   createTeamInviteRecord,
   findModuleStudents,
   findProjectTeamSummaries,
@@ -36,6 +37,8 @@ vi.mock("../../shared/db.js", () => ({
     teamAllocation: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
       findMany: vi.fn(),
     },
     $transaction: vi.fn(),
@@ -243,6 +246,103 @@ describe("teamAllocation repo", () => {
     await expect(findProjectTeamSummaries(10)).resolves.toEqual([
       { id: 2, teamName: "A", memberCount: 3 },
       { id: 4, teamName: "B", memberCount: 5 },
+    ]);
+  });
+
+  it("applyRandomAllocationPlan reuses existing project teams and rewrites allocations", async () => {
+    const tx = {
+      team: {
+        findMany: vi.fn().mockResolvedValue([
+          { id: 11, teamName: "Team A" },
+          { id: 22, teamName: "Team B" },
+        ]),
+        create: vi.fn(),
+      },
+      teamAllocation: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 4 }),
+        createMany: vi.fn().mockResolvedValue({ count: 2 }),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    const result = await applyRandomAllocationPlan(5, "ent-1", [
+      { members: [{ id: 1 }, { id: 2 }] },
+      { members: [{ id: 3 }] },
+    ]);
+
+    expect(tx.team.findMany).toHaveBeenCalledWith({
+      where: { projectId: 5 },
+      select: { id: true, teamName: true },
+      orderBy: [{ id: "asc" }],
+    });
+    expect(tx.teamAllocation.deleteMany).toHaveBeenCalledWith({
+      where: {
+        team: { projectId: 5 },
+      },
+    });
+    expect(tx.teamAllocation.createMany).toHaveBeenNthCalledWith(1, {
+      data: [
+        { teamId: 11, userId: 1 },
+        { teamId: 11, userId: 2 },
+      ],
+      skipDuplicates: true,
+    });
+    expect(tx.teamAllocation.createMany).toHaveBeenNthCalledWith(2, {
+      data: [{ teamId: 22, userId: 3 }],
+      skipDuplicates: true,
+    });
+    expect(result).toEqual([
+      { id: 11, teamName: "Team A", memberCount: 2 },
+      { id: 22, teamName: "Team B", memberCount: 1 },
+    ]);
+  });
+
+  it("applyRandomAllocationPlan creates extra teams with unique names when required", async () => {
+    const tx = {
+      team: {
+        findMany: vi.fn()
+          .mockResolvedValueOnce([{ id: 11, teamName: "Team A" }])
+          .mockResolvedValueOnce([
+            { teamName: "Team A" },
+            { teamName: "Project 5 Random Team 1" },
+          ]),
+        create: vi.fn()
+          .mockResolvedValueOnce({ id: 22, teamName: "Project 5 Random Team 2" })
+          .mockResolvedValueOnce({ id: 33, teamName: "Project 5 Random Team 3" }),
+      },
+      teamAllocation: {
+        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    const result = await applyRandomAllocationPlan(5, "ent-1", [
+      { members: [{ id: 1 }] },
+      { members: [{ id: 2 }] },
+      { members: [{ id: 3 }] },
+    ]);
+
+    expect(tx.team.create).toHaveBeenNthCalledWith(1, {
+      data: {
+        enterpriseId: "ent-1",
+        projectId: 5,
+        teamName: "Project 5 Random Team 2",
+      },
+      select: { id: true, teamName: true },
+    });
+    expect(tx.team.create).toHaveBeenNthCalledWith(2, {
+      data: {
+        enterpriseId: "ent-1",
+        projectId: 5,
+        teamName: "Project 5 Random Team 3",
+      },
+      select: { id: true, teamName: true },
+    });
+    expect(result).toEqual([
+      { id: 11, teamName: "Team A", memberCount: 1 },
+      { id: 22, teamName: "Project 5 Random Team 2", memberCount: 1 },
+      { id: 33, teamName: "Project 5 Random Team 3", memberCount: 1 },
     ]);
   });
 

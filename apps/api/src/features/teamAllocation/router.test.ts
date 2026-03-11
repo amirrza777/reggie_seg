@@ -20,6 +20,7 @@ describe("teamAllocation router", () => {
         { path: "/invites/:inviteId/expire", methods: { patch: true } },
         { path: "/teams/:teamId/invites", methods: { get: true } },
         { path: "/teams", methods: { post: true } },
+        { path: "/projects/:projectId/random-allocate", methods: { post: true } },
         { path: "/projects/:projectId/random-preview", methods: { get: true } },
         { path: "/teams/:teamId", methods: { get: true } },
         { path: "/teams/:teamId/members", methods: { post: true } },

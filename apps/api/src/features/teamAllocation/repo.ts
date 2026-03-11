@@ -25,6 +25,12 @@ export type ProjectTeamSummary = {
   memberCount: number;
 };
 
+export type AppliedRandomTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -226,6 +232,79 @@ export async function findProjectTeamSummaries(projectId: number): Promise<Proje
     teamName: team.teamName,
     memberCount: team._count.allocations,
   }));
+}
+
+export async function applyRandomAllocationPlan(
+  projectId: number,
+  enterpriseId: string,
+  plannedTeams: Array<{ members: Array<{ id: number }> }>,
+): Promise<AppliedRandomTeam[]> {
+  return prisma.$transaction(async (tx) => {
+    const existingProjectTeams = await tx.team.findMany({
+      where: { projectId },
+      select: { id: true, teamName: true },
+      orderBy: [{ id: "asc" }],
+    });
+
+    const targetTeams = existingProjectTeams.slice(0, plannedTeams.length);
+
+    if (targetTeams.length < plannedTeams.length) {
+      const enterpriseNames = await tx.team.findMany({
+        where: { enterpriseId },
+        select: { teamName: true },
+      });
+      const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
+
+      let sequence = 1;
+      while (targetTeams.length < plannedTeams.length) {
+        let candidateName = `Project ${projectId} Random Team ${sequence}`;
+        sequence += 1;
+        while (usedNames.has(candidateName)) {
+          candidateName = `Project ${projectId} Random Team ${sequence}`;
+          sequence += 1;
+        }
+
+        const createdTeam = await tx.team.create({
+          data: {
+            enterpriseId,
+            projectId,
+            teamName: candidateName,
+          },
+          select: { id: true, teamName: true },
+        });
+
+        usedNames.add(createdTeam.teamName);
+        targetTeams.push(createdTeam);
+      }
+    }
+
+    await tx.teamAllocation.deleteMany({
+      where: {
+        team: { projectId },
+      },
+    });
+
+    for (let index = 0; index < plannedTeams.length; index += 1) {
+      const team = targetTeams[index];
+      const allocations = plannedTeams[index].members.map((member) => ({
+        teamId: team.id,
+        userId: member.id,
+      }));
+
+      if (allocations.length > 0) {
+        await tx.teamAllocation.createMany({
+          data: allocations,
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return plannedTeams.map((plan, index) => ({
+      id: targetTeams[index].id,
+      teamName: targetTeams[index].teamName,
+      memberCount: plan.members.length,
+    }));
+  });
 }
 
 export const TeamService = {

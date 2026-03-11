@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   acceptTeamInvite,
   addUserToTeam,
+  applyRandomAllocationForProject,
   cancelTeamInvite,
   createTeam,
   createTeamInvite,
@@ -18,6 +19,7 @@ import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
@@ -231,5 +233,53 @@ describe("teamAllocation service", () => {
     expect(preview.previewTeams.flatMap((team) => team.members).map((student) => student.id).sort((a, b) => a - b)).toEqual([
       1, 2, 3, 4, 5,
     ]);
+  });
+
+  it("applyRandomAllocationForProject validates team count", async () => {
+    await expect(applyRandomAllocationForProject(1, 2, 0)).rejects.toEqual({ code: "INVALID_TEAM_COUNT" });
+  });
+
+  it("applyRandomAllocationForProject applies planned teams and returns summary", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findModuleStudents as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
+      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+    ]);
+    (repo.applyRandomAllocationPlan as any).mockResolvedValue([
+      { id: 8, teamName: "Project 42 Random Team 1", memberCount: 2 },
+      { id: 9, teamName: "Project 42 Random Team 2", memberCount: 2 },
+    ]);
+
+    const result = await applyRandomAllocationForProject(3, 42, 2, { seed: 999 });
+
+    expect(repo.applyRandomAllocationPlan).toHaveBeenCalledWith(42, "ent-9", expect.any(Array));
+    const planned = (repo.applyRandomAllocationPlan as any).mock.calls[0][2];
+    expect(planned).toHaveLength(2);
+    expect(planned.flatMap((team: any) => team.members).map((student: any) => student.id).sort((a: number, b: number) => a - b)).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(result).toEqual({
+      project: {
+        id: 42,
+        name: "Project A",
+        moduleId: 11,
+        moduleName: "Module A",
+      },
+      studentCount: 4,
+      teamCount: 2,
+      appliedTeams: [
+        { id: 8, teamName: "Project 42 Random Team 1", memberCount: 2 },
+        { id: 9, teamName: "Project 42 Random Team 2", memberCount: 2 },
+      ],
+    });
   });
 });

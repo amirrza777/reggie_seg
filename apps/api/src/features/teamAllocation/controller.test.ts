@@ -4,6 +4,7 @@ import * as service from "./service.js";
 import {
   acceptTeamInviteHandler,
   addUserToTeamHandler,
+  applyRandomAllocationHandler,
   cancelTeamInviteHandler,
   createTeamHandler,
   createTeamInviteHandler,
@@ -28,6 +29,7 @@ vi.mock("./service.js", () => ({
   rejectTeamInvite: vi.fn(),
   cancelTeamInvite: vi.fn(),
   expireTeamInvite: vi.fn(),
+  applyRandomAllocationForProject: vi.fn(),
   previewRandomAllocationForProject: vi.fn(),
 }));
 
@@ -232,6 +234,75 @@ describe("teamAllocation controller", () => {
     (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_STUDENTS_AVAILABLE" });
     const noStudentsRes = mockResponse();
     await previewRandomAllocationHandler(req, noStudentsRes);
+    expect(noStudentsRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("applyRandomAllocationHandler validates auth and input", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "3" }, body: { teamCount: 2 } };
+    const unauthorizedRes = mockResponse();
+    await applyRandomAllocationHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 9 }, params: { projectId: "x" }, body: { teamCount: 2 } };
+    const badProjectRes = mockResponse();
+    await applyRandomAllocationHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badCountReq: any = { user: { sub: 9 }, params: { projectId: "4" }, body: { teamCount: 0 } };
+    const badCountRes = mockResponse();
+    await applyRandomAllocationHandler(badCountReq, badCountRes);
+    expect(badCountRes.status).toHaveBeenCalledWith(400);
+
+    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, body: { teamCount: 2, seed: "abc" } };
+    const badSeedRes = mockResponse();
+    await applyRandomAllocationHandler(badSeedReq, badSeedRes);
+    expect(badSeedRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("applyRandomAllocationHandler returns applied payload", async () => {
+    (service.applyRandomAllocationForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      studentCount: 6,
+      teamCount: 2,
+      appliedTeams: [{ id: 20, teamName: "Project 4 Random Team 1", memberCount: 3 }],
+    });
+
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, body: { teamCount: 2, seed: 99 } };
+    const res = mockResponse();
+
+    await applyRandomAllocationHandler(req, res);
+
+    expect(service.applyRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, { seed: 99 });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({ id: 4 }),
+        teamCount: 2,
+      })
+    );
+  });
+
+  it("applyRandomAllocationHandler maps service errors", async () => {
+    const req: any = { user: { sub: 3 }, params: { projectId: "5" }, body: { teamCount: 2 } };
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" });
+    const teamCountRes = mockResponse();
+    await applyRandomAllocationHandler(req, teamCountRes);
+    expect(teamCountRes.status).toHaveBeenCalledWith(400);
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" });
+    const missingRes = mockResponse();
+    await applyRandomAllocationHandler(req, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    const archivedRes = mockResponse();
+    await applyRandomAllocationHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_STUDENTS_AVAILABLE" });
+    const noStudentsRes = mockResponse();
+    await applyRandomAllocationHandler(req, noStudentsRes);
     expect(noStudentsRes.status).toHaveBeenCalledWith(409);
   });
 });

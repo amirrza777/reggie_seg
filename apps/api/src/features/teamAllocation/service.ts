@@ -4,6 +4,7 @@ import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
+  applyRandomAllocationPlan,
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
@@ -48,6 +49,22 @@ export type RandomAllocationPreview = {
       lastName: string;
       email: string;
     }>;
+  }>;
+};
+
+export type RandomAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  studentCount: number;
+  teamCount: number;
+  appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
   }>;
 };
 
@@ -168,6 +185,48 @@ export async function previewRandomAllocationForProject(
       suggestedName: `Random Team ${index + 1}`,
       members: team.members,
     })),
+  };
+}
+
+export async function applyRandomAllocationForProject(
+  staffId: number,
+  projectId: number,
+  teamCount: number,
+  options: { seed?: number } = {},
+): Promise<RandomAllocationApplied> {
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    throw { code: "INVALID_TEAM_COUNT" };
+  }
+
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const students = await findModuleStudents(project.enterpriseId, project.moduleId);
+  if (students.length === 0) {
+    throw { code: "NO_STUDENTS_AVAILABLE" };
+  }
+  if (teamCount > students.length) {
+    throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
+  }
+
+  const plannedTeams = planRandomTeams(students, teamCount, { seed: options.seed });
+  const appliedTeams = await applyRandomAllocationPlan(projectId, project.enterpriseId, plannedTeams);
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    studentCount: students.length,
+    teamCount,
+    appliedTeams,
   };
 }
 
