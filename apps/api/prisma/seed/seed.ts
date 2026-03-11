@@ -31,7 +31,7 @@ async function main() {
   await seedTeamAllocations(users, teams);
   await seedAdminTeamAllocation(enterpriseId); // TODO: only for testing Trello integration, remove later
   await seedGithubE2EUsers(enterpriseId, projects, teams);
-  await seedProjectDeadlines();
+  await seedProjectDeadlines(projects);
   await seedPeerAssessments(projects, teams, templates);
   await seedFeatureFlags(enterpriseId);
 
