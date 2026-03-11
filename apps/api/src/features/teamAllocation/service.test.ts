@@ -10,15 +10,20 @@ import {
   getTeamById,
   getTeamMembers,
   listTeamInvites,
+  previewRandomAllocationForProject,
   rejectTeamInvite,
 } from "./service.js";
 import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
+import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findModuleStudents: vi.fn(),
+  findProjectTeamSummaries: vi.fn(),
+  findStaffScopedProject: vi.fn(),
   getInvitesForTeam: vi.fn(),
   updateInviteStatusFromPending: vi.fn(),
   TeamService: {
@@ -33,9 +38,21 @@ vi.mock("../../shared/email.js", () => ({
   sendEmail: vi.fn(),
 }));
 
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    team: {
+      findUnique: vi.fn(),
+    },
+    user: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
 describe("teamAllocation service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.team.findUnique as any).mockResolvedValue(null);
   });
 
   it("createTeamInvite throws when invite already pending", async () => {
@@ -130,5 +147,89 @@ describe("teamAllocation service", () => {
     (repo.updateInviteStatusFromPending as any).mockResolvedValue(null);
 
     await expect(acceptTeamInvite("missing")).rejects.toEqual({ code: "INVITE_NOT_PENDING" });
+  });
+
+  it("previewRandomAllocationForProject validates team count", async () => {
+    await expect(previewRandomAllocationForProject(1, 2, 0)).rejects.toEqual({ code: "INVALID_TEAM_COUNT" });
+  });
+
+  it("previewRandomAllocationForProject enforces staff project scope and archived guard", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);
+    await expect(previewRandomAllocationForProject(3, 9, 2)).rejects.toEqual({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce({
+      id: 9,
+      name: "Project",
+      moduleId: 2,
+      moduleName: "Module",
+      archivedAt: new Date(),
+      enterpriseId: "ent-1",
+    });
+    await expect(previewRandomAllocationForProject(3, 9, 2)).rejects.toEqual({
+      code: "PROJECT_ARCHIVED",
+    });
+  });
+
+  it("previewRandomAllocationForProject validates available students", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 9,
+      name: "Project",
+      moduleId: 2,
+      moduleName: "Module",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+    });
+    (repo.findModuleStudents as any).mockResolvedValueOnce([]);
+    await expect(previewRandomAllocationForProject(3, 9, 2)).rejects.toEqual({
+      code: "NO_STUDENTS_AVAILABLE",
+    });
+
+    (repo.findModuleStudents as any).mockResolvedValueOnce([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    await expect(previewRandomAllocationForProject(3, 9, 3)).rejects.toEqual({
+      code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT",
+    });
+  });
+
+  it("previewRandomAllocationForProject returns random preview payload", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findModuleStudents as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
+      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+      { id: 5, firstName: "E", lastName: "E", email: "e@example.com" },
+    ]);
+    (repo.findProjectTeamSummaries as any).mockResolvedValue([
+      { id: 7, teamName: "Team Alpha", memberCount: 3 },
+    ]);
+
+    const preview = await previewRandomAllocationForProject(3, 42, 2, { seed: 123 });
+
+    expect(preview.project).toEqual({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+    });
+    expect(preview.teamCount).toBe(2);
+    expect(preview.studentCount).toBe(5);
+    expect(preview.existingTeams).toEqual([{ id: 7, teamName: "Team Alpha", memberCount: 3 }]);
+    expect(preview.previewTeams).toHaveLength(2);
+    expect(preview.previewTeams.map((team) => team.members.length).sort((a, b) => a - b)).toEqual([2, 3]);
+    expect(preview.previewTeams.flatMap((team) => team.members).map((student) => student.id).sort((a, b) => a - b)).toEqual([
+      1, 2, 3, 4, 5,
+    ]);
   });
 });

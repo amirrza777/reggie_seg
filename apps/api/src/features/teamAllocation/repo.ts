@@ -1,6 +1,30 @@
 import type { Prisma, TeamInviteStatus } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
 
+type StaffUserRole = "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+
+export type StaffScopedProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  moduleName: string;
+  archivedAt: Date | null;
+  enterpriseId: string;
+};
+
+export type ModuleStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type ProjectTeamSummary = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -97,6 +121,111 @@ export async function updateInviteStatusFromPending(
   return prisma.teamInvite.findUnique({
     where: { id: inviteId },
   });
+}
+
+export async function findStaffScopedProject(
+  staffId: number,
+  projectId: number,
+): Promise<StaffScopedProject | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: staffId },
+    select: { enterpriseId: true, role: true, active: true },
+  });
+
+  if (!user || user.active === false) {
+    return null;
+  }
+
+  const role = user.role as StaffUserRole | "STUDENT";
+  if (role === "STUDENT") {
+    return null;
+  }
+
+  const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId: user.enterpriseId,
+        ...(hasEnterpriseWideAccess
+          ? {}
+          : {
+              OR: [
+                { moduleLeads: { some: { userId: staffId } } },
+                { moduleTeachingAssistants: { some: { userId: staffId } } },
+              ],
+            }),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      moduleId: true,
+      archivedAt: true,
+      module: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    id: project.id,
+    name: project.name,
+    moduleId: project.moduleId,
+    moduleName: project.module.name,
+    archivedAt: project.archivedAt,
+    enterpriseId: user.enterpriseId,
+  };
+}
+
+export async function findModuleStudents(
+  enterpriseId: string,
+  moduleId: number,
+): Promise<ModuleStudent[]> {
+  return prisma.user.findMany({
+    where: {
+      enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId,
+          moduleId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findProjectTeamSummaries(projectId: number): Promise<ProjectTeamSummary[]> {
+  const teams = await prisma.team.findMany({
+    where: { projectId },
+    select: {
+      id: true,
+      teamName: true,
+      _count: {
+        select: { allocations: true },
+      },
+    },
+    orderBy: [{ teamName: "asc" }, { id: "asc" }],
+  });
+
+  return teams.map((team) => ({
+    id: team.id,
+    teamName: team.teamName,
+    memberCount: team._count.allocations,
+  }));
 }
 
 export const TeamService = {

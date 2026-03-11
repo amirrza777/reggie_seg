@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createTeamInviteRecord,
+  findModuleStudents,
+  findProjectTeamSummaries,
+  findStaffScopedProject,
   findActiveInvite,
   findInviteContext,
   getInvitesForTeam,
@@ -21,9 +24,14 @@ vi.mock("../../shared/db.js", () => ({
     team: {
       findUnique: vi.fn(),
       create: vi.fn(),
+      findMany: vi.fn(),
+    },
+    project: {
+      findFirst: vi.fn(),
     },
     user: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
     },
     teamAllocation: {
       findUnique: vi.fn(),
@@ -99,7 +107,143 @@ describe("teamAllocation repo", () => {
     expect(prisma.teamInvite.findMany).toHaveBeenCalledWith({
       where: { teamId: 12 },
       orderBy: { createdAt: "desc" },
+      include: {
+        inviter: { select: { id: true, firstName: true, lastName: true, email: true } },
+      },
     });
+  });
+
+  it("findStaffScopedProject returns null when user is missing/inactive/student", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce(null);
+    await expect(findStaffScopedProject(9, 3)).resolves.toBeNull();
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: false,
+    });
+    await expect(findStaffScopedProject(9, 3)).resolves.toBeNull();
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STUDENT",
+      active: true,
+    });
+    await expect(findStaffScopedProject(9, 3)).resolves.toBeNull();
+  });
+
+  it("findStaffScopedProject enforces scoped access for staff roles", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      archivedAt: null,
+      module: { name: "Module A" },
+    });
+
+    await expect(findStaffScopedProject(12, 4)).resolves.toEqual({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+    });
+
+    expect(prisma.project.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 4,
+        module: {
+          enterpriseId: "ent-1",
+          OR: [
+            { moduleLeads: { some: { userId: 12 } } },
+            { moduleTeachingAssistants: { some: { userId: 12 } } },
+          ],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        moduleId: true,
+        archivedAt: true,
+        module: {
+          select: { name: true },
+        },
+      },
+    });
+  });
+
+  it("findStaffScopedProject allows admin enterprise-wide scope", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-2",
+      role: "ADMIN",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce(null);
+
+    await findStaffScopedProject(1, 99);
+
+    expect(prisma.project.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 99,
+        module: {
+          enterpriseId: "ent-2",
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        moduleId: true,
+        archivedAt: true,
+        module: {
+          select: { name: true },
+        },
+      },
+    });
+  });
+
+  it("findModuleStudents returns active students in module", async () => {
+    (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 1 }]);
+
+    await findModuleStudents("ent-3", 22);
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith({
+      where: {
+        enterpriseId: "ent-3",
+        active: true,
+        role: "STUDENT",
+        userModules: {
+          some: {
+            enterpriseId: "ent-3",
+            moduleId: 22,
+          },
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+      orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+    });
+  });
+
+  it("findProjectTeamSummaries maps member counts", async () => {
+    (prisma.team.findMany as any).mockResolvedValueOnce([
+      { id: 2, teamName: "A", _count: { allocations: 3 } },
+      { id: 4, teamName: "B", _count: { allocations: 5 } },
+    ]);
+
+    await expect(findProjectTeamSummaries(10)).resolves.toEqual([
+      { id: 2, teamName: "A", memberCount: 3 },
+      { id: 4, teamName: "B", memberCount: 5 },
+    ]);
   });
 
   it("updateInviteStatusFromPending returns null when no rows updated", async () => {
