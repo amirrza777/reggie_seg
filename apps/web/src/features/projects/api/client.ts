@@ -6,6 +6,7 @@ import type {
   ProjectMarkingSummary,
   StaffProject,
   StaffProjectTeamsResponse,
+  MCFRequest,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -45,4 +46,25 @@ export async function getStaffProjects(userId: number): Promise<StaffProject[]> 
 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
+}
+
+export async function createMcfRequest(
+  projectId: number,
+  userId: number,
+  subject: string,
+  details: string
+): Promise<MCFRequest> {
+  const response = await apiFetch<{ request: MCFRequest }>(`/projects/${projectId}/mcf-requests`, {
+    method: "POST",
+    body: JSON.stringify({ userId, subject, details }),
+  });
+  return response.request;
+}
+
+export async function getMyMcfRequests(projectId: number, userId: number): Promise<MCFRequest[]> {
+  const response = await apiFetch<{ requests: MCFRequest[] }>(
+    `/projects/${projectId}/mcf-requests/me?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.requests) ? response.requests : [];
 }

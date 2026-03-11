@@ -36,6 +36,31 @@ export type Team = {
   }>;
 };
 
+export type MCFRequestStatus = "OPEN" | "IN_REVIEW" | "RESOLVED" | "REJECTED";
+
+export type MCFRequest = {
+  id: number;
+  projectId: number;
+  teamId: number;
+  requesterUserId: number;
+  reviewedByUserId: number | null;
+  subject: string;
+  details: string;
+  status: MCFRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  requester: User;
+  reviewedBy:
+    | {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+      }
+    | null;
+};
+
 export type StaffProject = {
   id: number;
   name: string;

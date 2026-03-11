@@ -7,6 +7,8 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 import {
+  createMcfRequest,
+  getMyMcfRequests,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -70,5 +72,29 @@ describe("projects api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/marking?userId=7", {
       cache: "no-store",
     });
+  });
+
+  it("creates an MCF request", async () => {
+    const request = { id: 1, status: "OPEN" };
+    apiFetchMock.mockResolvedValue({ request });
+
+    const result = await createMcfRequest(42, 7, "Need help", "Something happened");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/mcf-requests", {
+      method: "POST",
+      body: JSON.stringify({ userId: 7, subject: "Need help", details: "Something happened" }),
+    });
+    expect(result).toEqual(request);
+  });
+
+  it("gets current user's MCF requests", async () => {
+    apiFetchMock.mockResolvedValue({ requests: [{ id: 1 }, { id: 2 }] });
+
+    const result = await getMyMcfRequests(42, 7);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/mcf-requests/me?userId=7", {
+      cache: "no-store",
+    });
+    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
   });
 });
