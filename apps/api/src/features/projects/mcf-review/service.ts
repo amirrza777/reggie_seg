@@ -1,6 +1,9 @@
 import {
   canStaffAccessTeamInProject,
+  type DeadlineInputMode,
+  getTeamDeadlineDetailsInProject,
   getTeamCurrentDeadlineInProject,
+  hasAnotherResolvedMcfRequest,
   resolveMcfRequestWithDeadlineOverride,
   reviewMcfRequest,
 } from "../repo.js";
@@ -16,11 +19,47 @@ export type DeadlineOverrideInput = {
   feedbackDueDate?: Date | null;
 };
 
+export type DeadlineOverrideMetadataInput = {
+  inputMode?: DeadlineInputMode;
+  shiftDays?: Partial<
+    Record<
+      "taskOpenDate" | "taskDueDate" | "assessmentOpenDate" | "assessmentDueDate" | "feedbackOpenDate" | "feedbackDueDate",
+      number
+    >
+  >;
+};
+
+const deadlineFields = [
+  "taskOpenDate",
+  "taskDueDate",
+  "assessmentOpenDate",
+  "assessmentDueDate",
+  "feedbackOpenDate",
+  "feedbackDueDate",
+] as const;
+
+type DeadlineField = (typeof deadlineFields)[number];
+type DeadlineValues = Record<DeadlineField, Date | null>;
+
+export class InvalidDeadlineOverrideError extends Error {
+  constructor(field: DeadlineField) {
+    super(`${field} cannot be earlier than the current deadline`);
+    this.name = "InvalidDeadlineOverrideError";
+  }
+}
+
+export class ResolvedMcfAlreadyExistsError extends Error {
+  constructor() {
+    super("A resolved MCF request already exists for this team. Edit that request instead.");
+    this.name = "ResolvedMcfAlreadyExistsError";
+  }
+}
+
 export async function fetchTeamDeadlineForStaff(userId: number, projectId: number, teamId: number) {
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
 
-  return getTeamCurrentDeadlineInProject(projectId, teamId);
+  return getTeamDeadlineDetailsInProject(projectId, teamId);
 }
 
 export async function reviewTeamMcfRequestForStaff(
@@ -41,7 +80,8 @@ export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
   projectId: number,
   teamId: number,
   requestId: number,
-  overrides: DeadlineOverrideInput
+  overrides: DeadlineOverrideInput,
+  metadata?: DeadlineOverrideMetadataInput
 ) {
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
@@ -49,7 +89,12 @@ export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
   const currentDeadline = await getTeamCurrentDeadlineInProject(projectId, teamId);
   if (!currentDeadline) return null;
 
-  return resolveMcfRequestWithDeadlineOverride(projectId, teamId, requestId, userId, {
+  const hasResolvedMcf = await hasAnotherResolvedMcfRequest(projectId, teamId, requestId);
+  if (hasResolvedMcf) {
+    throw new ResolvedMcfAlreadyExistsError();
+  }
+
+  const resolvedOverrides: DeadlineValues = {
     taskOpenDate: overrides.taskOpenDate === undefined ? currentDeadline.taskOpenDate : overrides.taskOpenDate,
     taskDueDate: overrides.taskDueDate === undefined ? currentDeadline.taskDueDate : overrides.taskDueDate,
     assessmentOpenDate:
@@ -59,5 +104,15 @@ export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
     feedbackOpenDate:
       overrides.feedbackOpenDate === undefined ? currentDeadline.feedbackOpenDate : overrides.feedbackOpenDate,
     feedbackDueDate: overrides.feedbackDueDate === undefined ? currentDeadline.feedbackDueDate : overrides.feedbackDueDate,
-  });
+  };
+
+  for (const field of deadlineFields) {
+    const current = currentDeadline[field];
+    const next = resolvedOverrides[field];
+    if (current && next && next.getTime() < current.getTime()) {
+      throw new InvalidDeadlineOverrideError(field);
+    }
+  }
+
+  return resolveMcfRequestWithDeadlineOverride(projectId, teamId, requestId, userId, resolvedOverrides, metadata);
 }

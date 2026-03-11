@@ -8,6 +8,16 @@ import {
 import * as service from "./service.js";
 
 vi.mock("./service.js", () => ({
+  InvalidDeadlineOverrideError: class InvalidDeadlineOverrideError extends Error {
+    constructor(field: string) {
+      super(`${field} cannot be earlier than the current deadline`);
+    }
+  },
+  ResolvedMcfAlreadyExistsError: class ResolvedMcfAlreadyExistsError extends Error {
+    constructor() {
+      super("A resolved MCF request already exists for this team. Edit that request instead.");
+    }
+  },
   fetchTeamDeadlineForStaff: vi.fn(),
   reviewTeamMcfRequestForStaff: vi.fn(),
   resolveTeamMcfRequestWithDeadlineOverrideForStaff: vi.fn(),
@@ -33,14 +43,26 @@ describe("mcf-review controller", () => {
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.fetchTeamDeadlineForStaff as any).mockResolvedValueOnce({ taskDueDate: "2026-03-12" });
+    (service.fetchTeamDeadlineForStaff as any).mockResolvedValueOnce({
+      baseDeadline: { taskDueDate: "2026-03-10" },
+      effectiveDeadline: { taskDueDate: "2026-03-12" },
+      deadlineInputMode: "SHIFT_DAYS",
+      shiftDays: { taskDueDate: 2 },
+    });
     const okRes = mockResponse();
     await getStaffTeamDeadlineHandler(
       { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
       okRes
     );
     expect(service.fetchTeamDeadlineForStaff).toHaveBeenCalledWith(7, 3, 2);
-    expect(okRes.json).toHaveBeenCalledWith({ deadline: { taskDueDate: "2026-03-12" } });
+    expect(okRes.json).toHaveBeenCalledWith({
+      deadline: {
+        baseDeadline: { taskDueDate: "2026-03-10" },
+        effectiveDeadline: { taskDueDate: "2026-03-12" },
+        deadlineInputMode: "SHIFT_DAYS",
+        shiftDays: { taskDueDate: 2 },
+      },
+    });
   });
 
   it("reviewStaffTeamMcfRequestHandler validates status and delegates", async () => {
@@ -89,6 +111,8 @@ describe("mcf-review controller", () => {
         body: {
           userId: 7,
           taskDueDate: "2026-03-15T12:00:00.000Z",
+          deadlineInputMode: "SHIFT_DAYS",
+          shiftDays: { taskDueDate: 3 },
         },
       } as any,
       okRes
@@ -100,11 +124,61 @@ describe("mcf-review controller", () => {
       11,
       expect.objectContaining({
         taskDueDate: new Date("2026-03-15T12:00:00.000Z"),
-      })
+      }),
+      {
+        inputMode: "SHIFT_DAYS",
+        shiftDays: { taskDueDate: 3 },
+      }
     );
     expect(okRes.json).toHaveBeenCalledWith({
       request: { id: 11, status: "RESOLVED" },
       deadline: { taskDueDate: "2026-03-15T12:00:00.000Z" },
+    });
+  });
+
+  it("resolveStaffTeamMcfRequestHandler maps invalid deadline override to 400", async () => {
+    const res = mockResponse();
+    (service.resolveTeamMcfRequestWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
+      new (service as any).InvalidDeadlineOverrideError("taskDueDate")
+    );
+
+    await resolveStaffTeamMcfRequestHandler(
+      {
+        params: { projectId: "3", teamId: "2", requestId: "11" },
+        body: {
+          userId: 7,
+          taskDueDate: "2026-03-15T12:00:00.000Z",
+        },
+      } as any,
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "taskDueDate cannot be earlier than the current deadline",
+    });
+  });
+
+  it("resolveStaffTeamMcfRequestHandler maps duplicate resolved MCF conflict to 409", async () => {
+    const res = mockResponse();
+    (service.resolveTeamMcfRequestWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
+      new (service as any).ResolvedMcfAlreadyExistsError()
+    );
+
+    await resolveStaffTeamMcfRequestHandler(
+      {
+        params: { projectId: "3", teamId: "2", requestId: "11" },
+        body: {
+          userId: 7,
+          taskDueDate: "2026-03-15T12:00:00.000Z",
+        },
+      } as any,
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "A resolved MCF request already exists for this team. Edit that request instead.",
     });
   });
 });

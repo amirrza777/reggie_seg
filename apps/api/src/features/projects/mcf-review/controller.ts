@@ -1,6 +1,8 @@
 import type { Request, Response } from "express";
 import {
   fetchTeamDeadlineForStaff,
+  InvalidDeadlineOverrideError,
+  ResolvedMcfAlreadyExistsError,
   reviewTeamMcfRequestForStaff,
   resolveTeamMcfRequestWithDeadlineOverrideForStaff,
   type McfReviewStatus,
@@ -13,6 +15,15 @@ type DateField =
   | "assessmentDueDate"
   | "feedbackOpenDate"
   | "feedbackDueDate";
+
+const deadlineFields: DateField[] = [
+  "taskOpenDate",
+  "taskDueDate",
+  "assessmentOpenDate",
+  "assessmentDueDate",
+  "feedbackOpenDate",
+  "feedbackDueDate",
+];
 
 function parseDateField(value: unknown, fieldName: DateField) {
   if (value === undefined) return { ok: true as const, value: undefined };
@@ -123,6 +134,33 @@ export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Respo
   );
   if (!feedbackDueDateParsed.ok) return res.status(400).json({ error: feedbackDueDateParsed.error });
 
+  const deadlineInputModeRaw = (req.body as { deadlineInputMode?: unknown }).deadlineInputMode;
+  const deadlineInputMode =
+    deadlineInputModeRaw === "SHIFT_DAYS" || deadlineInputModeRaw === "SELECT_DATE"
+      ? deadlineInputModeRaw
+      : undefined;
+  if (deadlineInputModeRaw !== undefined && deadlineInputMode === undefined) {
+    return res.status(400).json({ error: "deadlineInputMode must be SHIFT_DAYS or SELECT_DATE when provided" });
+  }
+
+  const shiftDaysRaw = (req.body as { shiftDays?: unknown }).shiftDays;
+  let shiftDays: Partial<Record<DateField, number>> | undefined;
+  if (shiftDaysRaw !== undefined) {
+    if (!shiftDaysRaw || typeof shiftDaysRaw !== "object" || Array.isArray(shiftDaysRaw)) {
+      return res.status(400).json({ error: "shiftDays must be an object when provided" });
+    }
+    shiftDays = {};
+    const candidate = shiftDaysRaw as Record<string, unknown>;
+    for (const field of deadlineFields) {
+      const value = candidate[field];
+      if (value === undefined) continue;
+      if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+        return res.status(400).json({ error: `${field} shift must be a whole number of 0 or greater` });
+      }
+      shiftDays[field] = value;
+    }
+  }
+
   try {
     const result = await resolveTeamMcfRequestWithDeadlineOverrideForStaff(userId, projectId, teamId, requestId, {
       taskOpenDate: taskOpenDateParsed.value,
@@ -131,6 +169,9 @@ export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Respo
       assessmentDueDate: assessmentDueDateParsed.value,
       feedbackOpenDate: feedbackOpenDateParsed.value,
       feedbackDueDate: feedbackDueDateParsed.value,
+    }, {
+      inputMode: deadlineInputMode,
+      shiftDays,
     });
 
     if (!result) {
@@ -138,6 +179,12 @@ export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Respo
     }
     return res.json(result);
   } catch (error) {
+    if (error instanceof InvalidDeadlineOverrideError) {
+      return res.status(400).json({ error: error.message });
+    }
+    if (error instanceof ResolvedMcfAlreadyExistsError) {
+      return res.status(409).json({ error: error.message });
+    }
     console.error("Error resolving MCF request with deadline override:", error);
     return res.status(500).json({ error: "Failed to resolve MCF request" });
   }

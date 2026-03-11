@@ -577,6 +577,20 @@ export async function getMcfRequestsForTeamInProject(projectId: number, teamId: 
   });
 }
 
+export async function hasAnotherResolvedMcfRequest(projectId: number, teamId: number, requestId: number) {
+  const existing = await prisma.mCFRequest.findFirst({
+    where: {
+      projectId,
+      teamId,
+      status: "RESOLVED",
+      NOT: { id: requestId },
+    },
+    select: { id: true },
+  });
+
+  return Boolean(existing);
+}
+
 export async function canStaffAccessTeamInProject(userId: number, projectId: number, teamId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return false;
@@ -615,6 +629,100 @@ type DeadlineSnapshot = {
   feedbackDueDate: Date | null;
   isOverridden: boolean;
 };
+
+type DeadlineFieldKey =
+  | "taskOpenDate"
+  | "taskDueDate"
+  | "assessmentOpenDate"
+  | "assessmentDueDate"
+  | "feedbackOpenDate"
+  | "feedbackDueDate";
+
+export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
+
+type DeadlineOverrideMetadata = {
+  inputMode: DeadlineInputMode;
+  shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
+};
+
+function parseDeadlineOverrideMetadata(reason: string | null | undefined): DeadlineOverrideMetadata | null {
+  if (!reason) return null;
+  try {
+    const parsed = JSON.parse(reason) as {
+      inputMode?: unknown;
+      shiftDays?: unknown;
+    };
+    if (parsed.inputMode !== "SHIFT_DAYS" && parsed.inputMode !== "SELECT_DATE") {
+      return null;
+    }
+
+    const shiftDays: Partial<Record<DeadlineFieldKey, number>> = {};
+    if (parsed.shiftDays && typeof parsed.shiftDays === "object" && !Array.isArray(parsed.shiftDays)) {
+      const candidate = parsed.shiftDays as Record<string, unknown>;
+      const fields: DeadlineFieldKey[] = [
+        "taskOpenDate",
+        "taskDueDate",
+        "assessmentOpenDate",
+        "assessmentDueDate",
+        "feedbackOpenDate",
+        "feedbackDueDate",
+      ];
+
+      for (const field of fields) {
+        const value = candidate[field];
+        if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+          shiftDays[field] = value;
+        }
+      }
+    }
+
+    return {
+      inputMode: parsed.inputMode,
+      shiftDays: Object.keys(shiftDays).length > 0 ? shiftDays : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function serializeDeadlineOverrideMetadata(
+  metadata?:
+    | {
+        inputMode?: DeadlineInputMode;
+        shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
+      }
+    | null
+) {
+  if (!metadata?.inputMode) return undefined;
+
+  const payload: DeadlineOverrideMetadata = {
+    inputMode: metadata.inputMode,
+  };
+
+  if (metadata.inputMode === "SHIFT_DAYS" && metadata.shiftDays) {
+    const sanitized: Partial<Record<DeadlineFieldKey, number>> = {};
+    const fields: DeadlineFieldKey[] = [
+      "taskOpenDate",
+      "taskDueDate",
+      "assessmentOpenDate",
+      "assessmentDueDate",
+      "feedbackOpenDate",
+      "feedbackDueDate",
+    ];
+
+    for (const field of fields) {
+      const value = metadata.shiftDays[field];
+      if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
+        sanitized[field] = value;
+      }
+    }
+    if (Object.keys(sanitized).length > 0) {
+      payload.shiftDays = sanitized;
+    }
+  }
+
+  return JSON.stringify(payload);
+}
 
 function mergeDeadlinesForTeam(
   projectDeadline: {
@@ -680,6 +788,59 @@ export async function getTeamCurrentDeadlineInProject(projectId: number, teamId:
   return mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
 }
 
+export async function getTeamDeadlineDetailsInProject(projectId: number, teamId: number) {
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, projectId },
+    select: {
+      project: {
+        select: {
+          deadline: {
+            select: {
+              taskOpenDate: true,
+              taskDueDate: true,
+              assessmentOpenDate: true,
+              assessmentDueDate: true,
+              feedbackOpenDate: true,
+              feedbackDueDate: true,
+            },
+          },
+        },
+      },
+      deadlineOverride: {
+        select: {
+          taskOpenDate: true,
+          taskDueDate: true,
+          assessmentOpenDate: true,
+          assessmentDueDate: true,
+          feedbackOpenDate: true,
+          feedbackDueDate: true,
+          reason: true,
+        },
+      },
+    },
+  });
+  if (!team?.project.deadline) return null;
+
+  const effectiveDeadline = mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
+  if (!effectiveDeadline) return null;
+
+  const metadata = parseDeadlineOverrideMetadata(team.deadlineOverride?.reason);
+  return {
+    baseDeadline: {
+      taskOpenDate: team.project.deadline.taskOpenDate,
+      taskDueDate: team.project.deadline.taskDueDate,
+      assessmentOpenDate: team.project.deadline.assessmentOpenDate,
+      assessmentDueDate: team.project.deadline.assessmentDueDate,
+      feedbackOpenDate: team.project.deadline.feedbackOpenDate,
+      feedbackDueDate: team.project.deadline.feedbackDueDate,
+      isOverridden: false,
+    },
+    effectiveDeadline,
+    deadlineInputMode: metadata?.inputMode ?? null,
+    shiftDays: metadata?.shiftDays ?? null,
+  };
+}
+
 export async function reviewMcfRequest(
   projectId: number,
   teamId: number,
@@ -716,6 +877,10 @@ export async function resolveMcfRequestWithDeadlineOverride(
     assessmentDueDate: Date | null;
     feedbackOpenDate: Date | null;
     feedbackDueDate: Date | null;
+  },
+  metadata?: {
+    inputMode?: DeadlineInputMode;
+    shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
   }
 ) {
   return prisma.$transaction(async (tx) => {
@@ -748,6 +913,8 @@ export async function resolveMcfRequestWithDeadlineOverride(
     const projectDeadline = team?.project.deadline ?? null;
     if (!projectDeadline) return null;
 
+    const reason = serializeDeadlineOverrideMetadata(metadata);
+
     const deadlineOverride = await tx.teamDeadlineOverride.upsert({
       where: { teamId },
       update: {
@@ -758,6 +925,7 @@ export async function resolveMcfRequestWithDeadlineOverride(
         assessmentDueDate: overrides.assessmentDueDate,
         feedbackOpenDate: overrides.feedbackOpenDate,
         feedbackDueDate: overrides.feedbackDueDate,
+        ...(reason !== undefined ? { reason } : {}),
       },
       create: {
         teamId,
@@ -768,6 +936,7 @@ export async function resolveMcfRequestWithDeadlineOverride(
         assessmentDueDate: overrides.assessmentDueDate,
         feedbackOpenDate: overrides.feedbackOpenDate,
         feedbackDueDate: overrides.feedbackDueDate,
+        reason: reason ?? null,
       },
       select: {
         taskOpenDate: true,
