@@ -71,9 +71,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
           <p className="staff-projects__card-sub">
             Placeholder for flagged-risk indicators and team-health metrics.
           </p>
-          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+          <Link
+            href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
+            className="staff-projects__card-action"
+          >
             View team health
-          </button>
+          </Link>
         </article>
         <article className="staff-projects__card">
           <h3 className="staff-projects__card-title">Schedule meeting with team</h3>
