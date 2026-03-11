@@ -43,3 +43,11 @@ export function deleteNotification(notificationId: number, userId: number) {
     where: { id: notificationId, userId },
   });
 }
+
+export async function getUserEmail(userId: number): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  return user?.email ?? null;
+}

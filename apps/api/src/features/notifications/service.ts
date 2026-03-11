@@ -6,7 +6,13 @@ import {
   markAsRead,
   markAllAsRead,
   deleteNotification,
+  getUserEmail,
 } from "./repo.js";
+import { sendEmail } from "../../shared/email.js";
+
+const NOTIFICATION_SUBJECTS: Record<NotificationType, string> = {
+  MENTION: "You were mentioned in a comment",
+};
 
 export function listNotifications(userId: number) {
   return getNotificationsByUserId(userId);
@@ -16,13 +22,27 @@ export function countUnread(userId: number) {
   return getUnreadCount(userId);
 }
 
-export function addNotification(data: {
+export async function addNotification(data: {
   userId: number;
   type: NotificationType;
   message: string;
   link?: string;
 }) {
-  return createNotification(data);
+  const notification = await createNotification(data);
+
+  const email = await getUserEmail(data.userId);
+  if (email) {
+    const subject = NOTIFICATION_SUBJECTS[data.type] ?? "New notification";
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const lines = [data.message];
+    if (data.link) lines.push(`\nView it here: ${baseUrl}${data.link}`);
+
+    await sendEmail({ to: email, subject, text: lines.join("\n") }).catch((err) =>
+      console.error("Failed to send notification email:", err)
+    );
+  }
+
+  return notification;
 }
 
 export function readNotification(notificationId: number, userId: number) {
