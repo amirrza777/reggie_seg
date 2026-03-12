@@ -134,6 +134,23 @@
   gap: 12px;
 }
 
+.staff-projects__allocation-content {
+  display: grid;
+  gap: 14px;
+}
+
+.staff-projects__allocation-content--embedded .staff-projects__allocation-actions {
+  margin-top: 2px;
+}
+
+.staff-projects__allocation-content--embedded .staff-projects__allocation-results {
+  margin-top: 8px;
+}
+
+.staff-projects__allocation-content--embedded .staff-projects__allocation-confirm {
+  margin-top: 2px;
+}
+
 .staff-projects__allocation-note {
   margin: 0;
   color: var(--muted);
@@ -197,7 +214,7 @@
 
 .staff-projects__allocation-results {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .staff-projects__allocation-confirm {
@@ -315,7 +332,9 @@
 }
 
 .staff-projects__allocation-mode-body {
-  margin-top: 4px;
+  margin-top: 10px;
+  display: grid;
+  gap: 10px;
 }
 
 .staff-projects__team-top {
