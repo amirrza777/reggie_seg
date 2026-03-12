@@ -6,10 +6,25 @@ import "@/features/staff/projects/styles/staff-projects.css";
 
 type AllocationMode = "random" | "manual" | "custom";
 
-const MODES: Array<{ key: AllocationMode; title: string }> = [
-  { key: "random", title: "Random allocation" },
-  { key: "manual", title: "Manual allocation" },
-  { key: "custom", title: "Customised allocation" },
+const MODES: Array<{ key: AllocationMode; title: string; subtitle: string }> = [
+  {
+    key: "random",
+    title: "Random Allocation",
+    subtitle:
+      "Randomly distribute students into teams. Preview the distribution before applying.",
+  },
+  {
+    key: "manual",
+    title: "Manual Allocation",
+    subtitle:
+      "Manually assign students to teams. Select and place each student where needed.",
+  },
+  {
+    key: "custom",
+    title: "Customised Allocation",
+    subtitle:
+      "Distribute students into teams based on selected criteria. Results are randomised within your chosen parameters.",
+  },
 ];
 
 type StaffAllocationModesPanelProps = {
@@ -43,6 +58,7 @@ export function StaffAllocationModesPanel({
                   {isOpen ? "Collapse" : "Expand"}
                 </button>
               </div>
+              <p className="staff-projects__allocation-mode-subtitle">{mode.subtitle}</p>
               {isOpen ? (
                 <div className="staff-projects__allocation-mode-body">
                   {mode.key === "random" ? (
