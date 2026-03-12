@@ -25,7 +25,7 @@ export default async function StaffCreateProjectPage() {
         <p className="staff-projects__eyebrow">Staff Workspace</p>
         <h1 className="staff-projects__title">Create Project</h1>
         <p className="staff-projects__desc">
-          Create a project under a module you lead and attach the questionnaire template students will complete.
+          Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.
         </p>
         <div className="staff-projects__meta">
           <Link href="/staff/projects" className="staff-projects__badge">
@@ -34,7 +34,20 @@ export default async function StaffCreateProjectPage() {
         </div>
       </section>
 
-      <StaffProjectCreatePanel modules={modules} modulesError={modulesError} />
+      <section className="staff-projects__create-layout">
+        <StaffProjectCreatePanel modules={modules} modulesError={modulesError} />
+        <aside className="staff-projects__create-guide" aria-label="Project creation guidance">
+          <h2 className="staff-projects__create-title">Before you publish</h2>
+          <ol className="staff-projects__guide-list">
+            <li>Use a template that already matches the rubric for this module.</li>
+            <li>Check deadline sequencing and timezone assumptions with co-leads.</li>
+            <li>Create the project first, then review teams and overrides if needed.</li>
+          </ol>
+          <p className="staff-projects__hint">
+            Module leads can create projects. Students and teaching assistants can still view project timelines once published.
+          </p>
+        </aside>
+      </section>
     </div>
   );
 }

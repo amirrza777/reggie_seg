@@ -114,6 +114,30 @@
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 94%, white 6%) 0%, var(--surface) 100%);
 }
 
+.staff-projects__create-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.8fr) minmax(260px, 1fr);
+  align-items: start;
+}
+
+.staff-projects__create-guide {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  background: var(--surface);
+  display: grid;
+  gap: 10px;
+}
+
+.staff-projects__guide-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+}
+
 .staff-projects__create-head {
   display: flex;
   align-items: flex-start;
@@ -151,6 +175,32 @@
 .staff-projects__deadline-grid {
   display: grid;
   gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.staff-projects__deadline-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.staff-projects__deadline-preview {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__deadline-preview-title {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+
+.staff-projects__deadline-preview-grid {
+  display: grid;
+  gap: 10px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -363,11 +413,19 @@
 }
 
 @media (max-width: 980px) {
+  .staff-projects__create-layout {
+    grid-template-columns: 1fr;
+  }
+
   .staff-projects__create-form {
     grid-template-columns: 1fr;
   }
 
   .staff-projects__deadline-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__deadline-preview-grid {
     grid-template-columns: 1fr;
   }
 }

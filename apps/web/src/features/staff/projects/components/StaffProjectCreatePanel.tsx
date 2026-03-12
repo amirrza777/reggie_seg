@@ -57,6 +57,35 @@ function parseLocalDateTime(value: string): Date | null {
   return parsed;
 }
 
+function formatDateTime(date: Date | null): string {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
+  const taskOpen = new Date();
+  taskOpen.setMinutes(0, 0, 0);
+  taskOpen.setHours(taskOpen.getHours() + 1);
+
+  const taskDue = new Date(taskOpen.getTime() + totalWeeks * 7 * 24 * 60 * 60 * 1000);
+  const assessmentOpen = new Date(taskDue.getTime() + 24 * 60 * 60 * 1000);
+  const assessmentDue = new Date(assessmentOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
+  const feedbackOpen = new Date(assessmentDue.getTime() + 24 * 60 * 60 * 1000);
+  const feedbackDue = new Date(feedbackOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
+
+  return {
+    taskOpenDate: toLocalDateTimeInputValue(taskOpen),
+    taskDueDate: toLocalDateTimeInputValue(taskDue),
+    assessmentOpenDate: toLocalDateTimeInputValue(assessmentOpen),
+    assessmentDueDate: toLocalDateTimeInputValue(assessmentDue),
+    feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
+    feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
+  };
+}
+
 export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectCreatePanelProps) {
   const router = useRouter();
   const [templates, setTemplates] = useState<Questionnaire[]>([]);
@@ -116,6 +145,30 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
     deadline.assessmentDueDate.trim().length > 0 &&
     deadline.feedbackOpenDate.trim().length > 0 &&
     deadline.feedbackDueDate.trim().length > 0;
+
+  const deadlinePreview = useMemo(() => {
+    const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
+    const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const assessmentOpenDate = parseLocalDateTime(deadline.assessmentOpenDate);
+    const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
+    const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+
+    const rangeStart = taskOpenDate;
+    const rangeEnd = feedbackDueDate;
+    const totalDays =
+      rangeStart && rangeEnd ? Math.max(1, Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (24 * 60 * 60 * 1000))) : null;
+
+    return {
+      taskOpenDate,
+      taskDueDate,
+      assessmentOpenDate,
+      assessmentDueDate,
+      feedbackOpenDate,
+      feedbackDueDate,
+      totalDays,
+    };
+  }, [deadline]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -182,6 +235,7 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
       setProjectName("");
       setDeadline(buildDefaultDeadlineState());
       setSubmitSuccess(`Project "${created.name}" created.`);
+      router.push(`/staff/projects/${created.id}`);
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create project.");
@@ -256,6 +310,29 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
           <p className="staff-projects__hint">
             Deadlines are set when creating the project. Team-specific overrides can be applied later if needed.
           </p>
+          <div className="staff-projects__deadline-presets">
+            <button
+              type="button"
+              className="staff-projects__badge"
+              onClick={() => setDeadline(buildPresetDeadlineState(6))}
+            >
+              Use 6-week schedule
+            </button>
+            <button
+              type="button"
+              className="staff-projects__badge"
+              onClick={() => setDeadline(buildPresetDeadlineState(8))}
+            >
+              Use 8-week schedule
+            </button>
+            <button
+              type="button"
+              className="staff-projects__badge"
+              onClick={() => setDeadline(buildDefaultDeadlineState())}
+            >
+              Reset dates
+            </button>
+          </div>
           <div className="staff-projects__deadline-grid">
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Task opens</span>
@@ -311,6 +388,32 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
                 onChange={(event) => setDeadline((prev) => ({ ...prev, feedbackDueDate: event.target.value }))}
               />
             </label>
+          </div>
+          <div className="staff-projects__deadline-preview">
+            <h3 className="staff-projects__deadline-preview-title">Timeline preview</h3>
+            <p className="staff-projects__hint">
+              Total project window: {deadlinePreview.totalDays ? `${deadlinePreview.totalDays} day${deadlinePreview.totalDays === 1 ? "" : "s"}` : "-"}
+            </p>
+            <div className="staff-projects__deadline-preview-grid">
+              <div>
+                <p className="staff-projects__field-label">Task phase</p>
+                <p className="staff-projects__card-sub">
+                  {formatDateTime(deadlinePreview.taskOpenDate)} → {formatDateTime(deadlinePreview.taskDueDate)}
+                </p>
+              </div>
+              <div>
+                <p className="staff-projects__field-label">Assessment phase</p>
+                <p className="staff-projects__card-sub">
+                  {formatDateTime(deadlinePreview.assessmentOpenDate)} → {formatDateTime(deadlinePreview.assessmentDueDate)}
+                </p>
+              </div>
+              <div>
+                <p className="staff-projects__field-label">Feedback phase</p>
+                <p className="staff-projects__card-sub">
+                  {formatDateTime(deadlinePreview.feedbackOpenDate)} → {formatDateTime(deadlinePreview.feedbackDueDate)}
+                </p>
+              </div>
+            </div>
           </div>
         </fieldset>
 
