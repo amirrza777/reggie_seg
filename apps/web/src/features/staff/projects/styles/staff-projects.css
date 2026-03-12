@@ -362,6 +362,73 @@
   font-weight: var(--fw-semibold);
 }
 
+.staff-projects__manual-student-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: grid;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.staff-projects__manual-student-row {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.staff-projects__manual-student-main {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.staff-projects__manual-student-name {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__manual-student-email {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__manual-student-side {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.staff-projects__manual-status {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__manual-status--available {
+  border-color: var(--status-success-border);
+  background: var(--status-success-soft);
+  color: var(--status-success-text);
+}
+
+.staff-projects__manual-status--assigned {
+  border-color: var(--status-warning-border);
+  background: var(--status-warning-soft);
+  color: var(--status-warning-text);
+}
+
+.staff-projects__manual-student-team {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
 .staff-projects__team-top {
   display: flex;
   justify-content: space-between;
