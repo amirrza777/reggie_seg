@@ -51,6 +51,9 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         <p className="staff-projects__desc">
           Module: {data.project.moduleName}. Review current team distribution and prepare random allocation for this project.
         </p>
+        <p className="staff-projects__desc">
+          Random allocation includes only vacant students. Students already in a team for this project are not reallocated here.
+        </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} allocated student{totalStudents === 1 ? "" : "s"}</span>

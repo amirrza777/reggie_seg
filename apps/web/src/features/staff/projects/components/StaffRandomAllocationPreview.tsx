@@ -134,6 +134,9 @@ export function StaffRandomAllocationPreview({
       <p className="staff-projects__card-sub">
         Choose how many teams to generate, preview the random distribution, and review before applying.
       </p>
+      <p className="staff-projects__allocation-note">
+        Only vacant students are included here. Students already assigned to a team in this project are excluded.
+      </p>
 
       <div className="staff-projects__allocation-form">
         <label className="staff-projects__allocation-field">
@@ -213,7 +216,7 @@ export function StaffRandomAllocationPreview({
           </div>
 
           <div className="staff-projects__meta">
-            <span className="staff-projects__badge">{preview.studentCount} students in module</span>
+            <span className="staff-projects__badge">{preview.studentCount} vacant student{preview.studentCount === 1 ? "" : "s"}</span>
             <span className="staff-projects__badge">{preview.teamCount} planned teams</span>
             <span className="staff-projects__badge">{preview.existingTeams.length} existing teams</span>
           </div>

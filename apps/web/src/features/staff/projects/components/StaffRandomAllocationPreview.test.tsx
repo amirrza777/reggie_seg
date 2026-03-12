@@ -51,6 +51,9 @@ describe("StaffRandomAllocationPreview", () => {
     });
 
     render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+    expect(
+      screen.getByText("Only vacant students are included here. Students already assigned to a team in this project are excluded.")
+    ).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Team count"), { target: { value: "2" } });
     fireEvent.change(screen.getByLabelText("Seed"), { target: { value: "101" } });
@@ -61,6 +64,7 @@ describe("StaffRandomAllocationPreview", () => {
     });
     expect(screen.getByText("Random Team 1")).toBeInTheDocument();
     expect(screen.getByText("Jin Johannesdottir")).toBeInTheDocument();
+    expect(screen.getByText("4 vacant students")).toBeInTheDocument();
   });
 
   it("applies allocation and refreshes route", async () => {
