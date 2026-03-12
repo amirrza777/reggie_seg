@@ -6,6 +6,7 @@ import { FaqAccordion } from "../components/FaqAccordion";
 type FaqItem = {
   question: string;
   answer: string;
+  links?: Array<{ label: string; href: string }>;
 };
 
 type FaqGroup = {
@@ -23,6 +24,7 @@ const normalize = (value: string) => value.toLowerCase().trim();
 
 export function HelpFaqSearch({ groups }: HelpFaqSearchProps) {
   const [query, setQuery] = useState("");
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   const filteredGroups = useMemo(() => {
     const needle = normalize(query);
@@ -57,15 +59,41 @@ export function HelpFaqSearch({ groups }: HelpFaqSearchProps) {
         <p className="muted help-faq__empty">No FAQs match "{query}".</p>
       ) : (
         <div className="help-faq__groups">
-          {filteredGroups.map((group) => (
-            <section className="help-faq__group" aria-labelledby={group.id} key={group.id}>
-              <h3 className="help-page__subheading help-faq__heading" id={group.id}>
-                {group.title}
-              </h3>
-              <p className="help-faq__lede muted">{group.description}</p>
-              <FaqAccordion items={group.items} reveal={false} />
-            </section>
-          ))}
+          {filteredGroups.map((group) => {
+            const isOpen = openGroups[group.id] ?? true;
+            return (
+              <section className="help-faq__group" aria-labelledby={group.id} key={group.id}>
+                <details className="help-faq__group-shell" open={isOpen}>
+                  <summary
+                    className="help-faq__group-toggle"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      setOpenGroups((current) => ({
+                        ...current,
+                        [group.id]: !(current[group.id] ?? true),
+                      }));
+                    }}
+                    aria-controls={`${group.id}-panel`}
+                    aria-expanded={isOpen}
+                  >
+                    <span className="help-faq__group-title" id={group.id}>
+                      {group.title}
+                    </span>
+                    <span className="help-faq__group-indicator" aria-hidden="true" />
+                  </summary>
+                  <div
+                    id={`${group.id}-panel`}
+                    className="help-faq__group-panel"
+                    role="region"
+                    aria-labelledby={group.id}
+                  >
+                    <p className="help-faq__lede muted">{group.description}</p>
+                    <FaqAccordion items={group.items} reveal={false} />
+                  </div>
+                </details>
+              </section>
+            );
+          })}
         </div>
       )}
     </div>

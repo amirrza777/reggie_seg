@@ -5,6 +5,7 @@ import { useState } from "react";
 type FaqItem = {
   question: string;
   answer: string;
+  links?: Array<{ label: string; href: string }>;
 };
 
 type FaqAccordionProps = {
@@ -34,6 +35,15 @@ export function FaqAccordion({ items, reveal = true }: FaqAccordionProps) {
               {item.question}
             </summary>
             <p className="faq__answer">{item.answer}</p>
+            {item.links && item.links.length > 0 ? (
+              <div className="faq__links">
+                {item.links.map((link) => (
+                  <a key={link.href} href={link.href} className="link-ghost">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </details>
         );
       })}

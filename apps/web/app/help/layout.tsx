@@ -3,6 +3,7 @@ import { AppShell } from "@/shared/layout/AppShell";
 import { Topbar } from "@/shared/layout/Topbar";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser } from "@/shared/auth/session";
+import { HelpNav } from "./HelpNav";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,19 @@ export default async function HelpLayout({ children }: { children: ReactNode }) 
 
   return (
     <AppShell topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}>
-      <div className="workspace-shell">{children}</div>
+      <div className="workspace-shell">
+        <div className="help-page">
+          <div className="help-page__content stack">
+            <div className="help-hub__hero">
+              <p className="eyebrow">Help Center</p>
+              <h1>Help</h1>
+              <p className="lede">Find guidance by topic or jump straight to common tasks.</p>
+            </div>
+            <HelpNav />
+            {children}
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 }

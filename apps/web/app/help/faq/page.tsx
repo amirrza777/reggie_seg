@@ -1,6 +1,5 @@
 import { faqItems } from "../../content/marketing";
 import { HelpFaqSearch } from "../HelpFaqSearch";
-import { HelpNav } from "../HelpNav";
 
 const additionalHelpFaqs = [
   {
@@ -14,14 +13,20 @@ const additionalHelpFaqs = [
   {
     question: "Where can I see my projects?",
     answer: "Go to Projects in the sidebar to view all projects you are assigned to.",
+    links: [{ label: "Open Projects", href: "/projects" }],
   },
   {
     question: "How do I view my team's meeting schedule?",
     answer: "Open Projects, select your project, then go to Meetings or the Meeting scheduler to see upcoming sessions.",
+    links: [
+      { label: "Open Projects", href: "/projects" },
+      { label: "View Calendar", href: "/calendar" },
+    ],
   },
   {
     question: "Where do I see my peer assessment?",
     answer: "Open your project and go to Peer Assessments to view your submissions and required reviews.",
+    links: [{ label: "Open Projects", href: "/projects" }],
   },
   {
     question: "I cannot access a module or project.",
@@ -46,10 +51,12 @@ const additionalHelpFaqs = [
   {
     question: "How do I create and schedule a questionnaire?",
     answer: "Go to Staff -> Questionnaires to create or reuse a template, then apply it to a module or project when setting up assessments.",
+    links: [{ label: "Open Staff Questionnaires", href: "/staff/questionnaires" }],
   },
   {
     question: "How do I manage team allocations?",
     answer: "Open Staff -> Projects, choose a project, then use the Team allocation page to review and adjust teams.",
+    links: [{ label: "Open Staff Projects", href: "/staff/projects" }],
   },
   {
     question: "What do the different user roles allow?",
@@ -204,17 +211,13 @@ export default function HelpFaqPage() {
   ];
 
   return (
-    <div className="help-page">
-      <div className="help-page__content stack">
-        <div>
-          <h1>FAQs</h1>
-          <p className="lede">Search by keyword or browse by role.</p>
-        </div>
-
-        <HelpNav />
-
-        <HelpFaqSearch groups={faqGroups} />
+    <section className="help-section stack" aria-label="FAQs">
+      <div>
+        <h2>FAQs</h2>
+        <p className="lede">Search by keyword or browse by role.</p>
       </div>
-    </div>
+
+      <HelpFaqSearch groups={faqGroups} />
+    </section>
   );
 }
