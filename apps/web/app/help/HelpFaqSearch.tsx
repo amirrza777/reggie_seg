@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FaqAccordion } from "../components/FaqAccordion";
 
 type FaqItem = {
@@ -52,6 +52,10 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
       }))
       .filter((group) => group.items.length > 0);
   }, [groups, query]);
+
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   return (
     <div className="help-faq">

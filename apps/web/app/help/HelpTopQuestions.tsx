@@ -4,8 +4,16 @@ import Link from "next/link";
 
 const topQuestions = [
   { id: "reset-password", label: "Reset password", href: "/help/account-access" },
-  { id: "find-meeting-schedules", label: "Find meeting schedules", href: "/help/faq" },
-  { id: "complete-peer-assessment", label: "Complete peer assessment", href: "/help/faq" },
+  {
+    id: "find-meeting-schedules",
+    label: "Find meeting schedules",
+    href: "/help/faqs?q=meeting&open=How%20do%20I%20view%20my%20team%27s%20meeting%20schedule%3F",
+  },
+  {
+    id: "complete-peer-assessment",
+    label: "Complete peer assessment",
+    href: "/help/faqs?q=peer%20assessment&open=Where%20do%20I%20see%20my%20peer%20assessment%3F",
+  },
   { id: "check-my-role", label: "Check my role", href: "/help/roles-permissions" },
 ];
 

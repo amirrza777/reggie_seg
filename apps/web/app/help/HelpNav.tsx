@@ -5,7 +5,7 @@ const navItems = [
   { href: "/help/getting-started", label: "Getting Started" },
   { href: "/help/account-access", label: "Account & Access" },
   { href: "/help/roles-permissions", label: "Roles & Permissions" },
-  { href: "/help/faq", label: "FAQs" },
+  { href: "/help/faqs", label: "FAQs" },
   { href: "/help/support", label: "Support" },
 ];
 

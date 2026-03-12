@@ -23,7 +23,7 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
 
   const buildHref = (item: HelpSearchItem) => {
     if (item.kind === "faq") {
-      return `/help/faq?q=${encodeURIComponent(query)}&open=${encodeURIComponent(item.title)}`;
+      return `/help/faqs?q=${encodeURIComponent(query)}&open=${encodeURIComponent(item.title)}`;
     }
     return item.href;
   };

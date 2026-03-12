@@ -107,6 +107,21 @@ const additionalHelpFaqs: HelpFaqItem[] = [
     answer: "Admins can manage enterprises in the Admin -> Enterprises area.",
   },
   {
+    question: "How do I access the enterprise admin area?",
+    answer: "Use the Enterprise space in the top bar to open enterprise management.",
+    links: [{ label: "Open Enterprise", href: "/enterprise" }],
+  },
+  {
+    question: "How do I manage enterprise modules?",
+    answer: "Open Enterprise -> Module management to create or edit enterprise modules.",
+    links: [{ label: "Open Module Management", href: "/enterprise/modules" }],
+  },
+  {
+    question: "How do I manage enterprise groups?",
+    answer: "Open Enterprise -> Group management to review and update enterprise group access.",
+    links: [{ label: "Open Group Management", href: "/enterprise/groups" }],
+  },
+  {
     question: "Why am I seeing \"Account suspended\"?",
     answer: "Your account was suspended by an administrator. Contact support or your admin to restore access.",
   },
@@ -146,12 +161,10 @@ const staffHelpQuestions = new Set([
   "Can I export feedback, marks, or attendance records?",
 ]);
 
-const adminHelpQuestions = new Set([
-  "How is my data stored and who can view it?",
-  "How do I manage staff vs student permissions?",
-  "How do I audit changes or activity?",
-  "How do I configure feature flags?",
-  "How do I add or remove an enterprise workspace?",
+const enterpriseAdminHelpQuestions = new Set([
+  "How do I access the enterprise admin area?",
+  "How do I manage enterprise modules?",
+  "How do I manage enterprise groups?",
   "Why am I seeing \"Account suspended\"?",
   "What should I do if data looks out of date?",
 ]);
@@ -174,9 +187,7 @@ const staffMarketingQuestions = new Set([
   "How do roles and permissions work?",
 ]);
 
-const adminMarketingQuestions = new Set([
-  "How does data archiving and GDPR compliance work?",
-]);
+const adminMarketingQuestions = new Set<string>([]);
 
 const generalMarketingQuestions = new Set<string>([]);
 
@@ -185,9 +196,9 @@ const staffFaqs = [
   ...faqItems.filter((item) => staffMarketingQuestions.has(item.question)),
   ...additionalHelpFaqs.filter((item) => staffHelpQuestions.has(item.question)),
 ];
-const adminFaqs = [
+const enterpriseAdminFaqs = [
   ...faqItems.filter((item) => adminMarketingQuestions.has(item.question)),
-  ...additionalHelpFaqs.filter((item) => adminHelpQuestions.has(item.question)),
+  ...additionalHelpFaqs.filter((item) => enterpriseAdminHelpQuestions.has(item.question)),
 ];
 const generalFaqs = [
   ...faqItems.filter((item) => generalMarketingQuestions.has(item.question)),
@@ -215,9 +226,9 @@ export const faqGroups: HelpFaqGroup[] = [
   },
   {
     id: "faq-admin",
-    title: "Admin FAQs",
-    description: "Compliance, permissions, and platform governance.",
-    items: adminFaqs,
+    title: "Enterprise Admin FAQs",
+    description: "Enterprise access, module management, and group management.",
+    items: enterpriseAdminFaqs,
   },
 ];
 
@@ -235,7 +246,7 @@ const faqSearchItems = faqGroups.flatMap((group) =>
     id: `faq-${item.question}`,
     title: item.question,
     description: item.answer,
-    href: item.links?.[0]?.href ?? "/help/faq",
+    href: item.links?.[0]?.href ?? "/help/faqs",
     kind: "faq" as const,
     group: group.title,
   })),
@@ -267,7 +278,7 @@ export const helpOverviewSearchItems: HelpSearchItem[] = [
     id: "help-faqs",
     title: "FAQs",
     description: "Search and browse the full knowledge base.",
-    href: "/help/faq",
+    href: "/help/faqs",
     kind: "task",
   },
   {
@@ -288,14 +299,14 @@ export const helpOverviewSearchItems: HelpSearchItem[] = [
     id: "help-task-meeting-schedules",
     title: "Find meeting schedules",
     description: "Where to view upcoming team meetings.",
-    href: "/help/faq",
+    href: "/help/faqs",
     kind: "task",
   },
   {
     id: "help-task-peer-assessment",
     title: "Complete peer assessment",
     description: "How to submit and review peer feedback.",
-    href: "/help/faq",
+    href: "/help/faqs",
     kind: "task",
   },
   {

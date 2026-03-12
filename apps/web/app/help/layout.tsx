@@ -3,7 +3,8 @@ import { AppShell } from "@/shared/layout/AppShell";
 import { Topbar } from "@/shared/layout/Topbar";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser } from "@/shared/auth/session";
-import { HelpNav } from "./HelpNav";
+import { HelpNavGate } from "./HelpNavGate";
+import { Footer } from "@/shared/layout/Footer";
 
 export const dynamic = "force-dynamic";
 
@@ -38,9 +39,10 @@ export default async function HelpLayout({ children }: { children: ReactNode }) 
               <h1>Help</h1>
               <p className="lede">Find guidance by topic or jump straight to common tasks.</p>
             </div>
-            <HelpNav />
+            <HelpNavGate />
             {children}
           </div>
+          <Footer />
         </div>
       </div>
     </AppShell>

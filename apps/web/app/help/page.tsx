@@ -6,13 +6,13 @@ import { HelpTopQuestions } from "./HelpTopQuestions";
 export default function HelpPage() {
   return (
     <section className="help-hub__overview stack" aria-label="Help overview">
+      <HelpOverviewSearch items={helpOverviewSearchItems} />
+
       <h2>Overview</h2>
       <p className="muted">
         This help center is organized by topic. Use the tabs above to switch between Getting Started, Account & Access,
         Roles & Permissions, FAQs, and Support.
       </p>
-
-      <HelpOverviewSearch items={helpOverviewSearchItems} />
 
       <section className="help-hub__grid" aria-label="Help sections">
         <Link className="card help-hub__card" href="/help/getting-started">
@@ -33,7 +33,7 @@ export default function HelpPage() {
             <p className="muted">What students, staff, and admins can do.</p>
           </div>
         </Link>
-        <Link className="card help-hub__card" href="/help/faq">
+        <Link className="card help-hub__card" href="/help/faqs">
           <div>
             <h3>FAQs</h3>
             <p className="muted">Search and browse the full knowledge base.</p>
