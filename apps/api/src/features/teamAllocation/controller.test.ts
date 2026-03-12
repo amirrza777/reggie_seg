@@ -10,6 +10,7 @@ import {
   createTeamInviteHandler,
   declineTeamInviteHandler,
   expireTeamInviteHandler,
+  getManualAllocationWorkspaceHandler,
   getTeamByIdHandler,
   getTeamMembersHandler,
   listTeamInvitesHandler,
@@ -30,6 +31,7 @@ vi.mock("./service.js", () => ({
   cancelTeamInvite: vi.fn(),
   expireTeamInvite: vi.fn(),
   applyRandomAllocationForProject: vi.fn(),
+  getManualAllocationWorkspaceForProject: vi.fn(),
   previewRandomAllocationForProject: vi.fn(),
 }));
 
@@ -235,6 +237,61 @@ describe("teamAllocation controller", () => {
     const noStudentsRes = mockResponse();
     await previewRandomAllocationHandler(req, noStudentsRes);
     expect(noStudentsRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("getManualAllocationWorkspaceHandler validates auth and project id", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "4" } };
+    const unauthorizedRes = mockResponse();
+    await getManualAllocationWorkspaceHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 9 }, params: { projectId: "x" } };
+    const badProjectRes = mockResponse();
+    await getManualAllocationWorkspaceHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("getManualAllocationWorkspaceHandler returns workspace payload", async () => {
+    (service.getManualAllocationWorkspaceForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      existingTeams: [],
+      students: [],
+      counts: {
+        totalStudents: 0,
+        availableStudents: 0,
+        alreadyInTeamStudents: 0,
+      },
+    });
+
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" } };
+    const res = mockResponse();
+
+    await getManualAllocationWorkspaceHandler(req, res);
+
+    expect(service.getManualAllocationWorkspaceForProject).toHaveBeenCalledWith(7, 4);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({ id: 4 }),
+      })
+    );
+  });
+
+  it("getManualAllocationWorkspaceHandler maps service errors", async () => {
+    const req: any = { user: { sub: 3 }, params: { projectId: "5" } };
+
+    (service.getManualAllocationWorkspaceForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+    const missingRes = mockResponse();
+    await getManualAllocationWorkspaceHandler(req, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.getManualAllocationWorkspaceForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_ARCHIVED",
+    });
+    const archivedRes = mockResponse();
+    await getManualAllocationWorkspaceHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
   });
 
   it("applyRandomAllocationHandler validates auth and input", async () => {

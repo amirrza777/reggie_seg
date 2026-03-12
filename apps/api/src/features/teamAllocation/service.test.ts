@@ -8,6 +8,7 @@ import {
   createTeamInvite,
   declineTeamInvite,
   expireTeamInvite,
+  getManualAllocationWorkspaceForProject,
   getTeamById,
   getTeamMembers,
   listTeamInvites,
@@ -23,6 +24,7 @@ vi.mock("./repo.js", () => ({
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findModuleStudentsForManualAllocation: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
   findStaffScopedProject: vi.fn(),
@@ -153,6 +155,91 @@ describe("teamAllocation service", () => {
 
   it("previewRandomAllocationForProject validates team count", async () => {
     await expect(previewRandomAllocationForProject(1, 2, 0)).rejects.toEqual({ code: "INVALID_TEAM_COUNT" });
+  });
+
+  it("getManualAllocationWorkspaceForProject enforces staff scope and archived guard", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);
+    await expect(getManualAllocationWorkspaceForProject(3, 9)).rejects.toEqual({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce({
+      id: 9,
+      name: "Project",
+      moduleId: 2,
+      moduleName: "Module",
+      archivedAt: new Date(),
+      enterpriseId: "ent-1",
+    });
+    await expect(getManualAllocationWorkspaceForProject(3, 9)).rejects.toEqual({
+      code: "PROJECT_ARCHIVED",
+    });
+  });
+
+  it("getManualAllocationWorkspaceForProject returns students with statuses and counts", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
+      {
+        id: 1,
+        firstName: "A",
+        lastName: "A",
+        email: "a@example.com",
+        currentTeamId: 91,
+        currentTeamName: "Team Alpha",
+      },
+      {
+        id: 2,
+        firstName: "B",
+        lastName: "B",
+        email: "b@example.com",
+        currentTeamId: null,
+        currentTeamName: null,
+      },
+    ]);
+    (repo.findProjectTeamSummaries as any).mockResolvedValue([
+      { id: 91, teamName: "Team Alpha", memberCount: 4 },
+    ]);
+
+    const result = await getManualAllocationWorkspaceForProject(3, 42);
+
+    expect(repo.findModuleStudentsForManualAllocation).toHaveBeenCalledWith("ent-9", 11, 42);
+    expect(repo.findProjectTeamSummaries).toHaveBeenCalledWith(42);
+    expect(result.project).toEqual({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+    });
+    expect(result.students).toEqual([
+      {
+        id: 1,
+        firstName: "A",
+        lastName: "A",
+        email: "a@example.com",
+        status: "ALREADY_IN_TEAM",
+        currentTeam: { id: 91, teamName: "Team Alpha" },
+      },
+      {
+        id: 2,
+        firstName: "B",
+        lastName: "B",
+        email: "b@example.com",
+        status: "AVAILABLE",
+        currentTeam: null,
+      },
+    ]);
+    expect(result.counts).toEqual({
+      totalStudents: 2,
+      availableStudents: 1,
+      alreadyInTeamStudents: 1,
+    });
   });
 
   it("previewRandomAllocationForProject enforces staff project scope and archived guard", async () => {
