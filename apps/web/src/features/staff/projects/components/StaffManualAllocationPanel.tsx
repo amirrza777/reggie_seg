@@ -8,6 +8,11 @@ type StaffManualAllocationPanelProps = {
   projectId: number;
 };
 
+function toStudentName(student: { firstName: string; lastName: string; email: string }) {
+  const fullName = `${student.firstName} ${student.lastName}`.trim();
+  return fullName.length > 0 ? fullName : student.email;
+}
+
 export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationPanelProps) {
   const [workspace, setWorkspace] = useState<ManualAllocationWorkspace | null>(null);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
@@ -67,6 +72,34 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       {isWorkspaceOpen && workspace ? (
         <div className="staff-projects__manual-workspace-card" aria-label="Manual allocation workspace">
           <h4 className="staff-projects__manual-workspace-title">Manual allocation workspace</h4>
+          {workspace.students.length === 0 ? (
+            <p className="staff-projects__card-sub">No students found in this module.</p>
+          ) : (
+            <div className="staff-projects__manual-student-list" role="list" aria-label="Manual allocation student list">
+              {workspace.students.map((student) => (
+                <article key={student.id} className="staff-projects__manual-student-row" role="listitem">
+                  <div className="staff-projects__manual-student-main">
+                    <p className="staff-projects__manual-student-name">{toStudentName(student)}</p>
+                    <p className="staff-projects__manual-student-email">{student.email}</p>
+                  </div>
+                  <div className="staff-projects__manual-student-side">
+                    <span
+                      className={
+                        student.status === "ALREADY_IN_TEAM"
+                          ? "staff-projects__manual-status staff-projects__manual-status--assigned"
+                          : "staff-projects__manual-status staff-projects__manual-status--available"
+                      }
+                    >
+                      {student.status === "ALREADY_IN_TEAM" ? "Already in a team" : "Available"}
+                    </span>
+                    {student.currentTeam ? (
+                      <p className="staff-projects__manual-student-team">Team: {student.currentTeam.teamName}</p>
+                    ) : null}
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </div>
       ) : null}
     </section>

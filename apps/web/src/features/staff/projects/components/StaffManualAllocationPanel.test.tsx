@@ -16,7 +16,24 @@ describe("StaffManualAllocationPanel", () => {
     (getManualAllocationWorkspace as any).mockResolvedValue({
       project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
       existingTeams: [],
-      students: [],
+      students: [
+        {
+          id: 10,
+          firstName: "Jin",
+          lastName: "Johannesdottir",
+          email: "jin@example.com",
+          status: "ALREADY_IN_TEAM",
+          currentTeam: { id: 7, teamName: "Team Alpha" },
+        },
+        {
+          id: 11,
+          firstName: "Pricha",
+          lastName: "Lee",
+          email: "pricha@example.com",
+          status: "AVAILABLE",
+          currentTeam: null,
+        },
+      ],
       counts: {
         totalStudents: 12,
         availableStudents: 8,
@@ -40,5 +57,9 @@ describe("StaffManualAllocationPanel", () => {
     expect(screen.getByText("8 available")).toBeInTheDocument();
     expect(screen.getByText("4 already in a team")).toBeInTheDocument();
     expect(screen.getByLabelText("Manual allocation workspace")).toBeInTheDocument();
+    expect(screen.getByLabelText("Manual allocation student list")).toBeInTheDocument();
+    expect(screen.getByText("Already in a team")).toBeInTheDocument();
+    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.getByText("Team: Team Alpha")).toBeInTheDocument();
   });
 });
