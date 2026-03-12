@@ -336,6 +336,35 @@
   scroll-margin-top: 110px;
 }
 
+.workspace-shell .help-faq__search {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.workspace-shell .help-faq__search-label {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--ink-strong);
+}
+
+.workspace-shell .help-faq__search-input {
+  width: min(520px, 100%);
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.workspace-shell .help-faq__search-input:focus {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+}
+
+.workspace-shell .help-faq__empty {
+  margin: 4px 0 0;
+}
 .workspace-shell .help-faq__groups {
   display: grid;
   gap: 28px;
