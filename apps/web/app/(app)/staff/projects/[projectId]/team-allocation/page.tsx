@@ -64,13 +64,6 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         </div>
       </section>
 
-      <section className="staff-projects__team-card" aria-label="Current team distribution">
-        <h2 className="staff-projects__card-title">Current team distribution</h2>
-        <p className="staff-projects__card-sub">
-          Use this snapshot before running allocation.
-        </p>
-      </section>
-
       <StaffAllocationModesPanel
         projectId={data.project.id}
         initialTeamCount={Math.max(1, data.teams.length)}
