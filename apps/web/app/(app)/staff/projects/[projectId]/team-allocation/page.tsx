@@ -69,20 +69,23 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         initialTeamCount={Math.max(1, data.teams.length)}
       />
 
-      <section className="staff-projects__team-list" aria-label="Project teams">
-        {data.teams.map((team) => (
-          <article key={team.id} className="staff-projects__team-card">
-            <div className="staff-projects__team-top">
-              <h3 className="staff-projects__team-title">{team.teamName}</h3>
-              <span className="staff-projects__badge">
-                {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
-              Open team workspace
-            </Link>
-          </article>
-        ))}
+      <section className="staff-projects__team-card staff-projects__allocation-methods" aria-label="Project teams">
+        <h2 className="staff-projects__card-title">Teams</h2>
+        <section className="staff-projects__team-list" aria-label="Project teams list">
+          {data.teams.map((team) => (
+            <article key={team.id} className="staff-projects__team-card">
+              <div className="staff-projects__team-top">
+                <h3 className="staff-projects__team-title">{team.teamName}</h3>
+                <span className="staff-projects__badge">
+                  {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
+                Open team workspace
+              </Link>
+            </article>
+          ))}
+        </section>
       </section>
     </div>
   );
