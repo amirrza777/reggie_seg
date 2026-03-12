@@ -143,13 +143,17 @@ export function StaffRandomAllocationPreview({
       className={embedded ? undefined : "staff-projects__team-card"}
       aria-label="Random allocation preview"
     >
-      <h2 className="staff-projects__card-title">Random allocation preview</h2>
-      <p className="staff-projects__card-sub">
-        Choose how many teams to generate, preview the random distribution, and review before applying.
-      </p>
-      <p className="staff-projects__allocation-note">
-        Only vacant students are included here. Students already assigned to a team in this project are excluded.
-      </p>
+      {!embedded ? (
+        <>
+          <h2 className="staff-projects__card-title">Random allocation preview</h2>
+          <p className="staff-projects__card-sub">
+            Choose how many teams to generate, preview the random distribution, and review before applying.
+          </p>
+          <p className="staff-projects__allocation-note">
+            Only vacant students are included here. Students already assigned to a team in this project are excluded.
+          </p>
+        </>
+      ) : null}
 
       <div className="staff-projects__allocation-form">
         <label className="staff-projects__allocation-field">
