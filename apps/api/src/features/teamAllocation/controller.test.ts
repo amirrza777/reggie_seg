@@ -12,12 +12,14 @@ import {
   getTeamByIdHandler,
   getTeamMembersHandler,
   listTeamInvitesHandler,
+  listReceivedInvitesHandler,
   rejectTeamInviteHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
   createTeamInvite: vi.fn(),
   listTeamInvites: vi.fn(),
+  listReceivedInvites: vi.fn(),
   createTeam: vi.fn(),
   getTeamById: vi.fn(),
   addUserToTeam: vi.fn(),
@@ -108,6 +110,20 @@ describe("teamAllocation controller", () => {
     expect(res.json).toHaveBeenCalledWith([{ id: "i1" }]);
   });
 
+  it("listReceivedInvitesHandler returns 401 without auth and returns data", async () => {
+    const noAuthReq: any = { user: undefined };
+    const noAuthRes = mockResponse();
+    await listReceivedInvitesHandler(noAuthReq, noAuthRes);
+    expect(noAuthRes.status).toHaveBeenCalledWith(401);
+
+    (service.listReceivedInvites as any).mockResolvedValue([{ id: "inv-1" }]);
+    const req: any = { user: { sub: 5 } };
+    const res = mockResponse();
+    await listReceivedInvitesHandler(req, res);
+    expect(service.listReceivedInvites).toHaveBeenCalledWith(5);
+    expect(res.json).toHaveBeenCalledWith([{ id: "inv-1" }]);
+  });
+
   it("createTeamHandler validates body and returns 201", async () => {
     const badReq: any = { body: { userId: "x" } };
     const badRes = mockResponse();
@@ -181,12 +197,12 @@ describe("teamAllocation invite transition handlers", () => {
 
   it("acceptTeamInviteHandler returns success payload", async () => {
     (service.acceptTeamInvite as any).mockResolvedValue({ id: "i1", status: "ACCEPTED" });
-    const req: any = { params: { inviteId: "i1" } };
+    const req: any = { params: { inviteId: "i1" }, user: { sub: 7 } };
     const res = mockResponse();
 
     await acceptTeamInviteHandler(req, res);
 
-    expect(service.acceptTeamInvite).toHaveBeenCalledWith("i1");
+    expect(service.acceptTeamInvite).toHaveBeenCalledWith("i1", 7);
     expect(res.json).toHaveBeenCalledWith({ ok: true, invite: { id: "i1", status: "ACCEPTED" } });
   });
 

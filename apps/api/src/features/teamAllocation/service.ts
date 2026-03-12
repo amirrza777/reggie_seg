@@ -7,6 +7,7 @@ import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
+  findPendingInvitesForEmail,
   getInvitesForTeam,
   TeamService,
   updateInviteStatusFromPending,
@@ -80,6 +81,12 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
 export async function listTeamInvites(teamId: number) {
   return getInvitesForTeam(teamId);
+}
+
+export async function listReceivedInvites(userId: number) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user) throw { code: "USER_NOT_FOUND" };
+  return findPendingInvitesForEmail(user.email);
 }
 
 export async function createTeam(userId: number, teamData: Parameters<typeof TeamService.createTeam>[1]) {

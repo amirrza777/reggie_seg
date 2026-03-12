@@ -3,6 +3,7 @@ import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createTeamInvite,
   listTeamInvites,
+  listReceivedInvites,
   createTeam,
   createTeamForProject,
   getTeamById,
@@ -60,6 +61,24 @@ export async function listTeamInvitesHandler(req: Request, res: Response) {
     return res.json(invites);
   } catch (error) {
     console.error("Error fetching team invites:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function listReceivedInvitesHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const invites = await listReceivedInvites(userId);
+    return res.json(invites);
+  } catch (error: any) {
+    if (error?.code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.error("Error fetching received invites:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

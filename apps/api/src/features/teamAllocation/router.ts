@@ -8,6 +8,7 @@ import {
   cancelTeamInviteHandler,
   expireTeamInviteHandler,
   listTeamInvitesHandler,
+  listReceivedInvitesHandler,
   createTeamHandler,
   createTeamForProjectHandler,
   getTeamByIdHandler,
@@ -23,6 +24,7 @@ router.patch("/invites/:inviteId/decline", declineTeamInviteHandler);
 router.patch("/invites/:inviteId/reject", rejectTeamInviteHandler);
 router.patch("/invites/:inviteId/cancel", cancelTeamInviteHandler);
 router.patch("/invites/:inviteId/expire", expireTeamInviteHandler);
+router.get("/invites/received", requireAuth, listReceivedInvitesHandler);
 router.get("/teams/:teamId/invites", listTeamInvitesHandler);
 router.post("/teams", createTeamHandler);
 router.post("/teams/for-project", requireAuth, createTeamForProjectHandler);
