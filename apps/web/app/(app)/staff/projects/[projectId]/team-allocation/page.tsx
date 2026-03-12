@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffRandomAllocationPreview } from "@/features/staff/projects/components/StaffRandomAllocationPreview";
+import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -70,6 +71,8 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
           Use this snapshot before running allocation.
         </p>
       </section>
+
+      <StaffAllocationModesPanel />
 
       <StaffRandomAllocationPreview projectId={data.project.id} initialTeamCount={Math.max(1, data.teams.length)} />
 
