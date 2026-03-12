@@ -231,7 +231,7 @@ describe("teamAllocation controller", () => {
     await previewRandomAllocationHandler(req, archivedRes);
     expect(archivedRes.status).toHaveBeenCalledWith(409);
 
-    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_STUDENTS_AVAILABLE" });
+    (service.previewRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_VACANT_STUDENTS" });
     const noStudentsRes = mockResponse();
     await previewRandomAllocationHandler(req, noStudentsRes);
     expect(noStudentsRes.status).toHaveBeenCalledWith(409);
@@ -300,7 +300,7 @@ describe("teamAllocation controller", () => {
     await applyRandomAllocationHandler(req, archivedRes);
     expect(archivedRes.status).toHaveBeenCalledWith(409);
 
-    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_STUDENTS_AVAILABLE" });
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "NO_VACANT_STUDENTS" });
     const noStudentsRes = mockResponse();
     await applyRandomAllocationHandler(req, noStudentsRes);
     expect(noStudentsRes.status).toHaveBeenCalledWith(409);
