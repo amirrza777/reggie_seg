@@ -3,25 +3,13 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams, getStaffTeamMcfRequests } from "@/features/projects/api/client";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { StaffTeamMcfReviewPanel } from "@/features/staff/projects/components/StaffTeamMcfReviewPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 import type { MCFRequest } from "@/features/projects/types";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
-
-function formatStatus(status: string) {
-  return status
-    .split("_")
-    .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown time";
-  return date.toLocaleString();
-}
 
 export default async function StaffTeamHealthPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
@@ -65,10 +53,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     requestsError = error instanceof Error ? error.message : "Failed to load MCF requests.";
   }
 
-  const openCount = requests.filter((item) => item.status === "OPEN").length;
-  const inReviewCount = requests.filter((item) => item.status === "IN_REVIEW").length;
-  const resolvedCount = requests.filter((item) => item.status === "RESOLVED").length;
-
   return (
     <div className="staff-projects">
       <section className="staff-projects__hero">
@@ -88,58 +72,13 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
-      <section className="staff-projects__grid" aria-label="MCF summary">
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Total requests</h3>
-          <p className="staff-projects__card-sub">{requests.length}</p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Open</h3>
-          <p className="staff-projects__card-sub">{openCount}</p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">In review</h3>
-          <p className="staff-projects__card-sub">{inReviewCount}</p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Resolved</h3>
-          <p className="staff-projects__card-sub">{resolvedCount}</p>
-        </article>
-      </section>
-
-      <section className="staff-projects__team-list" aria-label="Team MCF requests">
-        {requestsError ? (
-          <article className="staff-projects__team-card">
-            <p className="muted" style={{ margin: 0 }}>{requestsError}</p>
-          </article>
-        ) : requests.length === 0 ? (
-          <article className="staff-projects__team-card">
-            <p className="muted" style={{ margin: 0 }}>
-              No MCF requests have been submitted for this team yet.
-            </p>
-          </article>
-        ) : (
-          requests.map((request) => (
-            <article key={request.id} className="staff-projects__team-card">
-              <div className="staff-projects__team-top">
-                <h3 className="staff-projects__team-title">{request.subject}</h3>
-                <span>{formatStatus(request.status)}</span>
-              </div>
-              <p style={{ margin: 0 }}>{request.details}</p>
-              <p className="staff-projects__team-count">
-                Submitted by {request.requester.firstName} {request.requester.lastName} on{" "}
-                {formatDate(request.createdAt)}
-              </p>
-              {request.reviewedBy ? (
-                <p className="muted" style={{ margin: 0 }}>
-                  Reviewed by {request.reviewedBy.firstName} {request.reviewedBy.lastName}
-                  {request.reviewedAt ? ` on ${formatDate(request.reviewedAt)}` : ""}
-                </p>
-              ) : null}
-            </article>
-          ))
-        )}
-      </section>
+      <StaffTeamMcfReviewPanel
+        userId={user.id}
+        projectId={numericProjectId}
+        teamId={numericTeamId}
+        initialRequests={requests}
+        initialError={requestsError}
+      />
     </div>
   );
 }
