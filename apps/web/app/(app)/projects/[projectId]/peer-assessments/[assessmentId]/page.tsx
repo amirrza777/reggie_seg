@@ -36,9 +36,9 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
     <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
-        <h2>Edit Peer Assessment </h2>
         {questions.length > 0 ? (
           <PeerAssessmentForm
+            title="Edit Peer Assessment"
             teammateName={teammateName}
             questions={questions}
             projectId={Number(projectId)}

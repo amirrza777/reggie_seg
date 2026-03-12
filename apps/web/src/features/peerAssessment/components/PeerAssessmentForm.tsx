@@ -39,6 +39,15 @@ const radioInputStyle: CSSProperties = {
   background: "transparent",
   flex: "0 0 auto",
 };
+const countdownBoxStyle: CSSProperties = {
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  padding: "8px 10px",
+  background: "var(--surface)",
+  fontWeight: 600,
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+};
 
 function isNumericQuestion(question: Question) {
   return question.type === "rating" || question.type === "slider";
@@ -113,6 +122,7 @@ type PeerAssessmentFormProps = {
   assessmentDeadline?: string | null;
   initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
+  title?: string;
 };
 
 function formatRemainingDuration(totalSeconds: number) {
@@ -137,6 +147,7 @@ export function PeerAssessmentForm({
   assessmentDeadline,
   initialAnswers,
   assessmentId,
+  title,
 }: PeerAssessmentFormProps) {
   const router = useRouter();
   const peerAssessmentsPath = `/projects/${projectId}/peer-assessments`;
@@ -146,6 +157,7 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  const resolvedTitle = title ?? (isEditMode ? "Edit Peer Assessment" : "Create Peer Assessment");
   const orderedQuestions = useMemo(
     () => [...questions].sort((a, b) => a.order - b.order),
     [questions]
@@ -165,7 +177,6 @@ export function PeerAssessmentForm({
     if (deadlineTimestamp == null || currentTimestamp == null) return null;
     return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
   }, [deadlineTimestamp, currentTimestamp]);
-  const hasPassedDeadline = remainingSeconds != null && remainingSeconds <= 0;
 
   const normalizeAnswers = useCallback((
     raw: Record<string, string | number | boolean | null> | undefined
@@ -259,16 +270,17 @@ export function PeerAssessmentForm({
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <h3>
-         You're reviewing {teammateName}
-      </h3>
-      {remainingSeconds != null ? (
-        <p className={hasPassedDeadline ? "error" : "muted"}>
-          {hasPassedDeadline
-            ? "Assessment deadline reached."
-            : `Time left until deadline: ${formatRemainingDuration(remainingSeconds)}`}
-        </p>
-      ) : null}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <h3 style={{ margin: 0 }}>{resolvedTitle}</h3>
+          <p className="muted" style={{ margin: 0 }}>
+            You&apos;re reviewing {teammateName}
+          </p>
+        </div>
+        {remainingSeconds != null ? (
+          <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div>
+        ) : null}
+      </div>
       {orderedQuestions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];

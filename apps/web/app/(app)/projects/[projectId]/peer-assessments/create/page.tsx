@@ -55,9 +55,9 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
     <div className="stack stack--tabbed">
       <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
-        <h2>Create Peer Assessment</h2>
         {questions.length > 0 && (
           <PeerAssessmentForm
+            title="Create Peer Assessment"
             teammateName={String(teammateName)}
             questions={questions}
             projectId={projectId}

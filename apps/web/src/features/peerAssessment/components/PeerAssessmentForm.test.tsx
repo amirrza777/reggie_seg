@@ -173,13 +173,13 @@ describe("PeerAssessmentForm", () => {
       assessmentDeadline: "2026-03-11T12:00:01.000Z",
     });
 
-    expect(screen.getByText("Time left until deadline: 00d : 00h : 00m : 01s")).toBeInTheDocument();
+    expect(screen.getByText("00d : 00h : 00m : 01s")).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(1000);
     });
 
-    expect(screen.getByText("Assessment deadline reached.")).toBeInTheDocument();
+    expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
     vi.useRealTimers();
   });
 });

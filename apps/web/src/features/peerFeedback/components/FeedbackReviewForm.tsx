@@ -28,6 +28,15 @@ const radioInputStyle: CSSProperties = {
   background: "transparent",
   flex: "0 0 auto",
 };
+const countdownBoxStyle: CSSProperties = {
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  padding: "8px 10px",
+  background: "var(--surface)",
+  fontWeight: 600,
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+};
 
 function getAnswerKey(answer: Answer) {
   return answer.questionId ?? answer.id;
@@ -181,7 +190,6 @@ export function FeedbackReviewForm({
     if (deadlineTimestamp == null || currentTimestamp == null) return null;
     return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
   }, [deadlineTimestamp, currentTimestamp]);
-  const hasPassedDeadline = remainingSeconds != null && remainingSeconds <= 0;
 
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
     return Object.fromEntries(
@@ -266,23 +274,23 @@ export function FeedbackReviewForm({
   return (
     <div className="stack">
       <div className="headerContainer">
-        <h3>{editingMode && !isEditing ? 'View Review' : 'Respond to Feedback'}</h3>
-        {editingMode && !isEditing && (
-          <Button onClick={() => setIsEditing(true)} disabled={isLoading}>
-            Edit
-          </Button>
-        )}
+        <div style={{ display: "grid", gap: 4 }}>
+          <h3 style={{ margin: 0 }}>{editingMode && !isEditing ? "View Review" : "Respond to Feedback"}</h3>
+          <p className="muted" style={{ margin: 0 }}>
+            Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
+          </p>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {remainingSeconds != null ? (
+            <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div>
+          ) : null}
+          {editingMode && !isEditing && (
+            <Button onClick={() => setIsEditing(true)} disabled={isLoading}>
+              Edit
+            </Button>
+          )}
+        </div>
       </div>
-      <p className="muted">
-        Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
-      </p>
-      {remainingSeconds != null ? (
-        <p className={hasPassedDeadline ? "error" : "muted"}>
-          {hasPassedDeadline
-            ? "Feedback deadline reached."
-            : `Time left until deadline: ${formatRemainingDuration(remainingSeconds)}`}
-        </p>
-      ) : null}
       <form className="stack" onSubmit={handleSubmit}>
         <label className="stack reviewLabel">
           <span>Your Review</span>
