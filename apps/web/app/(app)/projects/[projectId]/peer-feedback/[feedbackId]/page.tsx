@@ -2,6 +2,7 @@ import type { PeerFeedback } from "@/features/peerFeedback/types";
 import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackReviewForm";
 import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
 import { getProjectDeadline } from "@/features/projects/api/client";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getCurrentUser } from "@/shared/auth/session";
 
 type ProjectPageProps = {
@@ -34,7 +35,8 @@ export default async function PeerFeedbackReview(props : ProjectPageProps) {
   const currentUserId = user ? String(user.id) : feedback.revieweeId;
 
   return (
-    <div>
+    <div className="stack stack--tabbed">
+      <ProjectNav projectId={projectId} />
       {existingReview ? (
         <FeedbackReviewForm
           feedback={feedback}
