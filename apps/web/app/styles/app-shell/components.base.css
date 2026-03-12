@@ -365,6 +365,50 @@
 .workspace-shell .help-faq__empty {
   margin: 4px 0 0;
 }
+
+.workspace-shell .help-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workspace-shell .help-nav__link {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  color: var(--ink);
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body-sm);
+}
+
+.workspace-shell .help-hub__hero {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-shell .help-hub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.workspace-shell .help-hub__card {
+  padding: 16px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.workspace-shell .help-hub__tasks {
+  display: grid;
+  gap: 10px;
+}
+
+.workspace-shell .help-hub__tasks-grid {
+  display: grid;
+  gap: 8px;
+}
 .workspace-shell .help-faq__groups {
   display: grid;
   gap: 28px;
