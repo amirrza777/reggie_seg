@@ -403,6 +403,11 @@
   align-content: start;
   gap: 8px;
   container-type: inline-size;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent 30%);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--surface) 92%, white 8%), var(--surface));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .workspace-shell .help-hub__card h3 {
@@ -414,6 +419,12 @@
   font-size: clamp(0.78rem, 3.2cqi, 1rem);
   line-height: 1.4;
   margin: 12% 0 0;
+}
+
+.workspace-shell .help-hub__card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14);
+  border-color: color-mix(in srgb, var(--accent-border) 65%, var(--border) 35%);
 }
 
 .workspace-shell .help-hub__tasks {
