@@ -140,7 +140,11 @@ export function StaffRandomAllocationPreview({
 
   return (
     <section
-      className={embedded ? undefined : "staff-projects__team-card"}
+      className={
+        embedded
+          ? "staff-projects__allocation-content staff-projects__allocation-content--embedded"
+          : "staff-projects__team-card staff-projects__allocation-content"
+      }
       aria-label="Random allocation preview"
     >
       {!embedded ? (
