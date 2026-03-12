@@ -267,10 +267,20 @@
 .staff-projects__allocation-modes {
   display: grid;
   gap: 12px;
+  margin-top: 6px;
 }
 
 .staff-projects__allocation-mode-card {
   padding: 16px;
+}
+
+.staff-projects__allocation-methods {
+  padding: 18px;
+}
+
+.staff-projects__allocation-mode-title {
+  margin: 0;
+  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
 }
 
 .staff-projects__allocation-mode-head {
