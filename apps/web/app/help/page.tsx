@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { HelpOverviewSearch } from "./HelpOverviewSearch";
+import { helpOverviewSearchItems } from "./helpFaqData";
 
 export default function HelpPage() {
   return (
@@ -8,6 +10,8 @@ export default function HelpPage() {
         This help center is organized by topic. Use the tabs above to switch between Getting Started, Account & Access,
         Roles & Permissions, FAQs, and Support.
       </p>
+
+      <HelpOverviewSearch items={helpOverviewSearchItems} />
 
       <section className="help-hub__grid" aria-label="Help sections">
         <Link className="card help-hub__card" href="/help/getting-started">

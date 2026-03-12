@@ -423,6 +423,8 @@
 
 .workspace-shell .help-faq__heading {
   margin: 0 0 6px;
+  font-size: var(--fs-panel-section-title);
+  font-weight: var(--fw-bold);
 }
 
 .workspace-shell .help-faq__lede {

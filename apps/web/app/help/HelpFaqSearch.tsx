@@ -18,13 +18,27 @@ type FaqGroup = {
 
 type HelpFaqSearchProps = {
   groups: FaqGroup[];
+  initialQuery?: string;
+  initialOpenQuestion?: string;
 };
 
 const normalize = (value: string) => value.toLowerCase().trim();
 
-export function HelpFaqSearch({ groups }: HelpFaqSearchProps) {
-  const [query, setQuery] = useState("");
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }: HelpFaqSearchProps) {
+  const [query, setQuery] = useState(initialQuery);
+  const groupWithOpenQuestion = useMemo(() => {
+    if (!initialOpenQuestion) return undefined;
+    return groups.find((group) =>
+      group.items.some((item) => item.question === initialOpenQuestion),
+    )?.id;
+  }, [groups, initialOpenQuestion]);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    if (!groupWithOpenQuestion) return {};
+    return groups.reduce<Record<string, boolean>>((acc, group) => {
+      acc[group.id] = group.id === groupWithOpenQuestion;
+      return acc;
+    }, {});
+  });
 
   const filteredGroups = useMemo(() => {
     const needle = normalize(query);
@@ -61,6 +75,7 @@ export function HelpFaqSearch({ groups }: HelpFaqSearchProps) {
         <div className="help-faq__groups">
           {filteredGroups.map((group) => {
             const isOpen = openGroups[group.id] ?? true;
+            const groupOpenQuestion = group.id === groupWithOpenQuestion ? initialOpenQuestion : undefined;
             return (
               <section className="help-faq__group" aria-labelledby={group.id} key={group.id}>
                 <details className="help-faq__group-shell" open={isOpen}>
@@ -88,7 +103,11 @@ export function HelpFaqSearch({ groups }: HelpFaqSearchProps) {
                     aria-labelledby={group.id}
                   >
                     <p className="help-faq__lede muted">{group.description}</p>
-                    <FaqAccordion items={group.items} reveal={false} />
+                    <FaqAccordion
+                      items={group.items}
+                      reveal={false}
+                      initialOpenQuestion={groupOpenQuestion}
+                    />
                   </div>
                 </details>
               </section>
