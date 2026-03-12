@@ -278,6 +278,13 @@ textarea {
     color: inherit;
 }
 
+@media (prefers-color-scheme: dark) {
+    input,
+    textarea {
+        color-scheme: dark;
+    }
+}
+
 textarea {
     resize: vertical;
 }
