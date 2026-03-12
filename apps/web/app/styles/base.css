@@ -230,6 +230,10 @@ h3 {
     color: var(--accent-strong);
 }
 
+.pill-nav__link--action {
+    border-style: dashed;
+}
+
 .pill-nav .nav-link--active {
   font-weight: var(--fw-semibold);
 }
