@@ -12,6 +12,7 @@ import {
   cancelTeamInvite,
   createTeamForProject,
   declineInvite,
+  getManualAllocationWorkspace,
   getRandomAllocationPreview,
   getReceivedInvites,
   getTeamInvites,
@@ -77,6 +78,13 @@ describe("team allocation api client", () => {
   it("fetches random allocation preview without seed", async () => {
     await getRandomAllocationPreview(91, 3);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/random-preview?teamCount=3", {
+      cache: "no-store",
+    });
+  });
+
+  it("fetches manual allocation workspace", async () => {
+    await getManualAllocationWorkspace(91);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/manual-workspace", {
       cache: "no-store",
     });
   });
