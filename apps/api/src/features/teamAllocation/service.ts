@@ -8,6 +8,7 @@ import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
+  findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
   findStaffScopedProject,
@@ -66,6 +67,36 @@ export type RandomAllocationApplied = {
     teamName: string;
     memberCount: number;
   }>;
+};
+
+export type ManualAllocationWorkspace = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  existingTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+  students: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    status: "AVAILABLE" | "ALREADY_IN_TEAM";
+    currentTeam: {
+      id: number;
+      teamName: string;
+    } | null;
+  }>;
+  counts: {
+    totalStudents: number;
+    availableStudents: number;
+    alreadyInTeamStudents: number;
+  };
 };
 
 async function notifyStudentsAboutRandomAllocation(
@@ -185,6 +216,63 @@ export async function addUserToTeam(teamId: number, userId: number, role: "OWNER
 
 export async function getTeamMembers(teamId: number) {
   return TeamService.getTeamMembers(teamId);
+}
+
+export async function getManualAllocationWorkspaceForProject(
+  staffId: number,
+  projectId: number,
+): Promise<ManualAllocationWorkspace> {
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const [students, existingTeams] = await Promise.all([
+    findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
+    findProjectTeamSummaries(project.id),
+  ]);
+
+  const studentsWithStatus = students.map((student) => {
+    const isAssigned = student.currentTeamId !== null;
+    const currentTeam =
+      isAssigned && student.currentTeamName
+        ? {
+            id: student.currentTeamId,
+            teamName: student.currentTeamName,
+          }
+        : null;
+
+    return {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      status: isAssigned ? "ALREADY_IN_TEAM" : "AVAILABLE",
+      currentTeam,
+    };
+  });
+
+  const alreadyInTeamStudents = studentsWithStatus.filter((student) => student.status === "ALREADY_IN_TEAM").length;
+  const availableStudents = studentsWithStatus.length - alreadyInTeamStudents;
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    existingTeams,
+    students: studentsWithStatus,
+    counts: {
+      totalStudents: studentsWithStatus.length,
+      availableStudents,
+      alreadyInTeamStudents,
+    },
+  };
 }
 
 export async function previewRandomAllocationForProject(
