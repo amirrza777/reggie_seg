@@ -190,6 +190,9 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
     if (error?.code === "NO_VACANT_STUDENTS" || error?.code === "NO_STUDENTS_AVAILABLE") {
       return res.status(409).json({ error: "No vacant students are available for this project module" });
     }
+    if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
+      return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
+    }
     console.error("Error applying random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
   }

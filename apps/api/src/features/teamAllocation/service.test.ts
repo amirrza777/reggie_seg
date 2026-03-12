@@ -327,4 +327,25 @@ describe("teamAllocation service", () => {
     expect(sendEmail).toHaveBeenCalledTimes(2);
     logSpy.mockRestore();
   });
+
+  it("applyRandomAllocationForProject surfaces stale preview conflicts", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    (repo.applyRandomAllocationPlan as any).mockRejectedValue({ code: "STUDENTS_NO_LONGER_VACANT" });
+
+    await expect(applyRandomAllocationForProject(3, 42, 2, { seed: 999 })).rejects.toEqual({
+      code: "STUDENTS_NO_LONGER_VACANT",
+    });
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
 });

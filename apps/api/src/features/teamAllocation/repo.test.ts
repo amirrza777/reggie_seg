@@ -266,7 +266,7 @@ describe("teamAllocation repo", () => {
         create: vi.fn(),
       },
       teamAllocation: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 4 }),
+        findMany: vi.fn().mockResolvedValue([]),
         createMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
     };
@@ -277,6 +277,13 @@ describe("teamAllocation repo", () => {
       { members: [{ id: 3 }] },
     ]);
 
+    expect(tx.teamAllocation.findMany).toHaveBeenCalledWith({
+      where: {
+        userId: { in: [1, 2, 3] },
+        team: { projectId: 5 },
+      },
+      select: { userId: true },
+    });
     expect(tx.team.findMany).toHaveBeenCalledWith({
       where: { projectId: 5 },
       select: { id: true, teamName: true },
@@ -313,7 +320,7 @@ describe("teamAllocation repo", () => {
           .mockResolvedValueOnce({ id: 33, teamName: "Project 5 Random Team 3" }),
       },
       teamAllocation: {
-        deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findMany: vi.fn().mockResolvedValue([]),
         createMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
@@ -346,6 +353,30 @@ describe("teamAllocation repo", () => {
       { id: 22, teamName: "Project 5 Random Team 2", memberCount: 1 },
       { id: 33, teamName: "Project 5 Random Team 3", memberCount: 1 },
     ]);
+  });
+
+  it("applyRandomAllocationPlan throws when planned students are no longer vacant", async () => {
+    const tx = {
+      team: {
+        findMany: vi.fn(),
+        create: vi.fn(),
+      },
+      teamAllocation: {
+        findMany: vi.fn().mockResolvedValue([{ userId: 2 }]),
+        createMany: vi.fn(),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    await expect(
+      applyRandomAllocationPlan(5, "ent-1", [
+        { members: [{ id: 1 }, { id: 2 }] },
+        { members: [{ id: 3 }] },
+      ]),
+    ).rejects.toEqual({ code: "STUDENTS_NO_LONGER_VACANT" });
+
+    expect(tx.teamAllocation.createMany).not.toHaveBeenCalled();
+    expect(tx.team.findMany).not.toHaveBeenCalled();
   });
 
   it("updateInviteStatusFromPending returns null when no rows updated", async () => {

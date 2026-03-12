@@ -248,6 +248,21 @@ export async function applyRandomAllocationPlan(
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
 ): Promise<AppliedRandomTeam[]> {
   return prisma.$transaction(async (tx) => {
+    const plannedStudentIds = plannedTeams.flatMap((team) => team.members.map((member) => member.id));
+    if (plannedStudentIds.length > 0) {
+      const alreadyAllocatedStudents = await tx.teamAllocation.findMany({
+        where: {
+          userId: { in: plannedStudentIds },
+          team: { projectId },
+        },
+        select: { userId: true },
+      });
+
+      if (alreadyAllocatedStudents.length > 0) {
+        throw { code: "STUDENTS_NO_LONGER_VACANT" };
+      }
+    }
+
     const existingProjectTeams = await tx.team.findMany({
       where: { projectId },
       select: { id: true, teamName: true },

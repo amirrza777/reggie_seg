@@ -304,6 +304,14 @@ describe("teamAllocation controller", () => {
     const noStudentsRes = mockResponse();
     await applyRandomAllocationHandler(req, noStudentsRes);
     expect(noStudentsRes.status).toHaveBeenCalledWith(409);
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "STUDENTS_NO_LONGER_VACANT" });
+    const stalePreviewRes = mockResponse();
+    await applyRandomAllocationHandler(req, stalePreviewRes);
+    expect(stalePreviewRes.status).toHaveBeenCalledWith(409);
+    expect(stalePreviewRes.json).toHaveBeenCalledWith({
+      error: "Some students are no longer vacant. Regenerate preview and try again.",
+    });
   });
 });
 
