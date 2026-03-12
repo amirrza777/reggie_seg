@@ -53,10 +53,12 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
-          <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__badge">
+          <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
+        </div>
+        <div className="staff-projects__hero-actions">
+          <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
             Team allocation
           </Link>
-          <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
         </div>
       </section>
 
