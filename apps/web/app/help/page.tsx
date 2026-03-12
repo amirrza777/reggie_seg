@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HelpOverviewSearch } from "./HelpOverviewSearch";
 import { helpOverviewSearchItems } from "./helpFaqData";
+import { HelpTopQuestions } from "./HelpTopQuestions";
 
 export default function HelpPage() {
   return (
@@ -46,15 +47,7 @@ export default function HelpPage() {
         </Link>
       </section>
 
-      <section className="help-hub__tasks" aria-label="Top tasks">
-        <h3>Top questions</h3>
-        <div className="help-hub__tasks-grid">
-          <Link href="/help/account-access" className="link-ghost">Reset password</Link>
-          <Link href="/help/faq" className="link-ghost">Find meeting schedules</Link>
-          <Link href="/help/faq" className="link-ghost">Complete peer assessment</Link>
-          <Link href="/help/roles-permissions" className="link-ghost">Check my role</Link>
-        </div>
-      </section>
+      <HelpTopQuestions />
     </section>
   );
 }

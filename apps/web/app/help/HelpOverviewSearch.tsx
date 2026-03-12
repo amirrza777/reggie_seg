@@ -50,7 +50,11 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
             <h3>Results</h3>
             <div className="help-hub__tasks-grid">
               {results.slice(0, 12).map((item) => (
-                <Link key={item.id} href={buildHref(item)} className="link-ghost">
+                <Link
+                  key={item.id}
+                  href={buildHref(item)}
+                  className="link-ghost"
+                >
                   {item.title}
                 </Link>
               ))}

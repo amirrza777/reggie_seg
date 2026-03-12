@@ -390,14 +390,30 @@
 
 .workspace-shell .help-hub__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 16px;
 }
 
 .workspace-shell .help-hub__card {
-  padding: 16px;
+  padding: 14px;
   text-decoration: none;
   color: inherit;
+  aspect-ratio: 1 / 1;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  container-type: inline-size;
+}
+
+.workspace-shell .help-hub__card h3 {
+  font-size: clamp(1rem, 4.6cqi, 1.35rem);
+  margin: 0;
+}
+
+.workspace-shell .help-hub__card p {
+  font-size: clamp(0.78rem, 3.2cqi, 1rem);
+  line-height: 1.4;
+  margin: 12% 0 0;
 }
 
 .workspace-shell .help-hub__tasks {
@@ -408,6 +424,15 @@
 .workspace-shell .help-hub__tasks-grid {
   display: grid;
   gap: 8px;
+  max-width: 540px;
+}
+
+.workspace-shell .help-hub__tasks {
+  max-width: 540px;
+}
+
+.workspace-shell .help-hub__search {
+  max-width: 540px;
 }
 .workspace-shell .help-faq__groups {
   display: grid;
@@ -434,6 +459,20 @@
 
 .workspace-shell .help-faq__group .faq {
   gap: 8px;
+}
+
+.workspace-shell .help-support__cta-wrap {
+  width: fit-content;
+}
+
+.workspace-shell .help-support__cta {
+  width: auto;
+  font-size: var(--fs-body-sm);
+  padding: 8px 12px;
+}
+
+.workspace-shell .help-support__heading {
+  font-size: var(--fs-h3);
 }
 
 @media (prefers-color-scheme: dark) {
