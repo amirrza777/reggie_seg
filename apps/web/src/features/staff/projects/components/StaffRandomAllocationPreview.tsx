@@ -108,7 +108,7 @@ export function StaffRandomAllocationPreview({
       return;
     }
     if (!confirmApply) {
-      setErrorMessage("Please confirm that this will replace current team assignments.");
+      setErrorMessage("Please confirm that this allocation should proceed.");
       return;
     }
 
@@ -117,13 +117,21 @@ export function StaffRandomAllocationPreview({
     startApplyTransition(async () => {
       try {
         const result = await applyRandomAllocation(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
-        setSuccessMessage(`Applied random allocation across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`);
+        setSuccessMessage(
+          `Applied random allocation for vacant students across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
+        );
         setConfirmApply(false);
         setPreview(null);
         setPreviewInput(null);
         router.refresh();
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Failed to apply random allocation.");
+        const message = error instanceof Error ? error.message : "Failed to apply random allocation.";
+        if (message.includes("no longer vacant")) {
+          setConfirmApply(false);
+          setPreview(null);
+          setPreviewInput(null);
+        }
+        setErrorMessage(message);
       }
     });
   }
@@ -208,10 +216,10 @@ export function StaffRandomAllocationPreview({
               aria-pressed={confirmApply}
               disabled={!isPreviewCurrent || isPreviewPending || isApplyPending}
             >
-              {confirmApply ? "Confirmed" : "Confirm overwrite"}
+              {confirmApply ? "Confirmed" : "Confirm allocation"}
             </button>
             <p className="staff-projects__allocation-confirm-text">
-              This will replace current team assignments for this project.
+              This assigns vacant students only. Existing team memberships in this project stay unchanged.
             </p>
           </div>
 

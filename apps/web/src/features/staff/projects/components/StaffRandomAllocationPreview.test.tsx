@@ -114,7 +114,7 @@ describe("StaffRandomAllocationPreview", () => {
     fireEvent.click(applyButton);
     expect(applyRandomAllocationMock).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: /confirm overwrite/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
     expect(screen.getByRole("button", { name: /confirmed/i })).toBeInTheDocument();
     fireEvent.click(applyButton);
 
@@ -124,8 +124,10 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(refreshMock).toHaveBeenCalledTimes(1);
     });
-    expect(screen.getByText("Applied random allocation across 2 teams.")).toBeInTheDocument();
-    expect(screen.queryByText("This will replace current team assignments for this project.")).not.toBeInTheDocument();
+    expect(screen.getByText("Applied random allocation for vacant students across 2 teams.")).toBeInTheDocument();
+    expect(
+      screen.queryByText("This assigns vacant students only. Existing team memberships in this project stay unchanged.")
+    ).not.toBeInTheDocument();
   });
 
   it("requires a fresh preview when inputs change", async () => {
