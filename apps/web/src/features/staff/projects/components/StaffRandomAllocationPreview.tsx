@@ -12,6 +12,7 @@ import "@/features/staff/projects/styles/staff-projects.css";
 type StaffRandomAllocationPreviewProps = {
   projectId: number;
   initialTeamCount: number;
+  embedded?: boolean;
 };
 
 function toFullName(member: { firstName: string; lastName: string; email: string }) {
@@ -22,6 +23,7 @@ function toFullName(member: { firstName: string; lastName: string; email: string
 export function StaffRandomAllocationPreview({
   projectId,
   initialTeamCount,
+  embedded = false,
 }: StaffRandomAllocationPreviewProps) {
   const router = useRouter();
   const defaultTeamCount = Math.max(1, initialTeamCount || 2);
@@ -137,7 +139,10 @@ export function StaffRandomAllocationPreview({
   }
 
   return (
-    <section className="staff-projects__team-card" aria-label="Random allocation preview">
+    <section
+      className={embedded ? undefined : "staff-projects__team-card"}
+      aria-label="Random allocation preview"
+    >
       <h2 className="staff-projects__card-title">Random allocation preview</h2>
       <p className="staff-projects__card-sub">
         Choose how many teams to generate, preview the random distribution, and review before applying.

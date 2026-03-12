@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { StaffRandomAllocationPreview } from "@/features/staff/projects/components/StaffRandomAllocationPreview";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -72,9 +71,10 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         </p>
       </section>
 
-      <StaffAllocationModesPanel />
-
-      <StaffRandomAllocationPreview projectId={data.project.id} initialTeamCount={Math.max(1, data.teams.length)} />
+      <StaffAllocationModesPanel
+        projectId={data.project.id}
+        initialTeamCount={Math.max(1, data.teams.length)}
+      />
 
       <section className="staff-projects__team-list" aria-label="Project teams">
         {data.teams.map((team) => (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type AllocationMode = "random" | "manual" | "custom";
@@ -11,7 +12,15 @@ const MODES: Array<{ key: AllocationMode; title: string }> = [
   { key: "custom", title: "Customised allocation" },
 ];
 
-export function StaffAllocationModesPanel() {
+type StaffAllocationModesPanelProps = {
+  projectId: number;
+  initialTeamCount: number;
+};
+
+export function StaffAllocationModesPanel({
+  projectId,
+  initialTeamCount,
+}: StaffAllocationModesPanelProps) {
   const [openMode, setOpenMode] = useState<AllocationMode | null>(null);
 
   return (
@@ -32,7 +41,17 @@ export function StaffAllocationModesPanel() {
                 {isOpen ? "Collapse" : "Expand"}
               </button>
             </div>
-            {isOpen ? <div className="staff-projects__allocation-mode-body" /> : null}
+            {isOpen ? (
+              <div className="staff-projects__allocation-mode-body">
+                {mode.key === "random" ? (
+                  <StaffRandomAllocationPreview
+                    projectId={projectId}
+                    initialTeamCount={initialTeamCount}
+                    embedded
+                  />
+                ) : null}
+              </div>
+            ) : null}
           </article>
         );
       })}
