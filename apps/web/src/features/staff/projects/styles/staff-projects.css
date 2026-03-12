@@ -264,6 +264,43 @@
   gap: 10px;
 }
 
+.staff-projects__allocation-modes {
+  display: grid;
+  gap: 12px;
+}
+
+.staff-projects__allocation-mode-card {
+  padding: 16px;
+}
+
+.staff-projects__allocation-mode-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.staff-projects__allocation-mode-toggle {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 7px 12px;
+  min-width: 94px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  color: inherit;
+  font-size: var(--fs-body-sm);
+  cursor: pointer;
+}
+
+.staff-projects__allocation-mode-toggle:hover,
+.staff-projects__allocation-mode-toggle:focus-visible {
+  border-color: color-mix(in srgb, var(--border) 140%, transparent);
+  color: var(--accent-strong);
+}
+
+.staff-projects__allocation-mode-body {
+  margin-top: 4px;
+}
+
 .staff-projects__team-top {
   display: flex;
   justify-content: space-between;
