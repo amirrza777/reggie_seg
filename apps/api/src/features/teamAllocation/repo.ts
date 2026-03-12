@@ -25,6 +25,15 @@ export type ProjectTeamSummary = {
   memberCount: number;
 };
 
+export type ManualAllocationStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentTeamId: number | null;
+  currentTeamName: string | null;
+};
+
 export type AppliedRandomTeam = {
   id: number;
   teamName: string;
@@ -219,6 +228,65 @@ export async function findVacantModuleStudentsForProject(
       email: true,
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findModuleStudentsForManualAllocation(
+  enterpriseId: string,
+  moduleId: number,
+  projectId: number,
+): Promise<ManualAllocationStudent[]> {
+  const students = await prisma.user.findMany({
+    where: {
+      enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId,
+          moduleId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      teamAllocations: {
+        where: {
+          team: {
+            projectId,
+          },
+        },
+        select: {
+          team: {
+            select: {
+              id: true,
+              teamName: true,
+            },
+          },
+        },
+        orderBy: {
+          teamId: "asc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+
+  return students.map((student) => {
+    const currentTeam = student.teamAllocations[0]?.team ?? null;
+
+    return {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      currentTeamId: currentTeam?.id ?? null,
+      currentTeamName: currentTeam?.teamName ?? null,
+    };
   });
 }
 
