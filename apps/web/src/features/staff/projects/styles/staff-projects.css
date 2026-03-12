@@ -337,6 +337,31 @@
   gap: 10px;
 }
 
+.staff-projects__manual-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.staff-projects__manual-toolbar {
+  display: grid;
+  gap: 10px;
+}
+
+.staff-projects__manual-workspace-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__manual-workspace-title {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+}
+
 .staff-projects__team-top {
   display: flex;
   justify-content: space-between;

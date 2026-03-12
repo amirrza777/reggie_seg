@@ -8,6 +8,12 @@ vi.mock("./StaffRandomAllocationPreview", () => ({
   ),
 }));
 
+vi.mock("./StaffManualAllocationPanel", () => ({
+  StaffManualAllocationPanel: () => (
+    <div data-testid="manual-allocation-content">Manual allocation content</div>
+  ),
+}));
+
 describe("StaffAllocationModesPanel", () => {
   it("renders wrapper and all allocation mode cards", () => {
     render(<StaffAllocationModesPanel projectId={4} initialTeamCount={2} />);
@@ -26,10 +32,12 @@ describe("StaffAllocationModesPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Expand Random Allocation" }));
     expect(screen.getByTestId("random-allocation-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("manual-allocation-content")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse Random Allocation" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Expand Manual Allocation" }));
     expect(screen.queryByTestId("random-allocation-content")).not.toBeInTheDocument();
+    expect(screen.getByTestId("manual-allocation-content")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse Manual Allocation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Expand Customised Allocation" })).toBeInTheDocument();
   });
