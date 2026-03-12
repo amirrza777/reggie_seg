@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
@@ -16,6 +16,7 @@ type FeedbackReviewFormProps = {
   initialAgreements?: AgreementsMap | null;
   redirectTo?: "back" | string;
   currentUserId: string;
+  feedbackDeadline?: string | null;
 };
 
 const radioInputStyle: CSSProperties = {
@@ -145,13 +146,42 @@ function renderAnswerPreview(answer: Answer) {
   );
 }
 
-export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialAgreements, redirectTo = 'back', currentUserId }: FeedbackReviewFormProps) {
+function formatRemainingDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const days = Math.floor(safeSeconds / 86400);
+  const hours = Math.floor((safeSeconds % 86400) / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(days)}d : ${two(hours)}h : ${two(minutes)}m : ${two(seconds)}s`;
+}
+
+export function FeedbackReviewForm({
+  feedback,
+  onSubmit,
+  initialReview,
+  initialAgreements,
+  redirectTo = "back",
+  currentUserId,
+  feedbackDeadline,
+}: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!initialReview);
   const editingMode = !!initialReview;
+  const deadlineTimestamp = useMemo(() => {
+    if (!feedbackDeadline) return null;
+    const timestamp = new Date(feedbackDeadline).getTime();
+    return Number.isFinite(timestamp) ? timestamp : null;
+  }, [feedbackDeadline]);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
+  const remainingSeconds = useMemo(() => {
+    if (deadlineTimestamp == null || currentTimestamp == null) return null;
+    return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
+  }, [deadlineTimestamp, currentTimestamp]);
+  const hasPassedDeadline = remainingSeconds != null && remainingSeconds <= 0;
 
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
     return Object.fromEntries(
@@ -164,6 +194,18 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
       ])
     );
   });
+
+  useEffect(() => {
+    if (deadlineTimestamp == null) return;
+    const tick = () => {
+      setCurrentTimestamp(Date.now());
+    };
+    tick();
+    const interval = window.setInterval(() => {
+      tick();
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [deadlineTimestamp]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -234,6 +276,13 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
       <p className="muted">
         Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
       </p>
+      {remainingSeconds != null ? (
+        <p className={hasPassedDeadline ? "error" : "muted"}>
+          {hasPassedDeadline
+            ? "Feedback deadline reached."
+            : `Time left until deadline: ${formatRemainingDuration(remainingSeconds)}`}
+        </p>
+      ) : null}
       <form className="stack" onSubmit={handleSubmit}>
         <label className="stack reviewLabel">
           <span>Your Review</span>

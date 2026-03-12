@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 import { FeedbackReviewForm } from "./FeedbackReviewForm";
 import type { PeerFeedback, PeerAssessmentReviewPayload } from "../types";
@@ -181,5 +181,27 @@ describe("FeedbackReviewForm", () => {
 
     expect(screen.getByRole("radio", { name: "Yes" })).toBeChecked();
     expect(screen.getByRole("slider")).toHaveValue("75");
+  });
+
+  it("shows a live countdown until feedback deadline", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-12T12:00:00.000Z"));
+
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackDeadline="2026-03-12T12:00:01.000Z"
+      />
+    );
+
+    expect(screen.getByText("Time left until deadline: 00d : 00h : 00m : 01s")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText("Feedback deadline reached.")).toBeInTheDocument();
+    vi.useRealTimers();
   });
 });
