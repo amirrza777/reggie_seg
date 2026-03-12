@@ -33,6 +33,15 @@ function mockResponse() {
 }
 
 describe("projects controller", () => {
+  const deadlinePayload = {
+    taskOpenDate: "2026-03-01T09:00:00.000Z",
+    taskDueDate: "2026-03-08T17:00:00.000Z",
+    assessmentOpenDate: "2026-03-09T09:00:00.000Z",
+    assessmentDueDate: "2026-03-12T17:00:00.000Z",
+    feedbackOpenDate: "2026-03-13T09:00:00.000Z",
+    feedbackDueDate: "2026-03-16T17:00:00.000Z",
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -45,7 +54,7 @@ describe("projects controller", () => {
 
   it("createProjectHandler requires authenticated user", async () => {
     const res = mockResponse();
-    await createProjectHandler({ body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3 } } as any, res);
+    await createProjectHandler({ body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, deadline: deadlinePayload } } as any, res);
     expect(res.status).toHaveBeenCalledWith(401);
   });
 
@@ -53,15 +62,55 @@ describe("projects controller", () => {
     (service.createProject as any).mockResolvedValue({ id: 1, name: "P1" });
     const req: any = {
       user: { sub: 42 },
-      body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3 },
+      body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, deadline: deadlinePayload },
     };
     const res = mockResponse();
 
     await createProjectHandler(req, res);
 
-    expect(service.createProject).toHaveBeenCalledWith(42, "P1", 2, 3);
+    expect(service.createProject).toHaveBeenCalledWith(
+      42,
+      "P1",
+      2,
+      3,
+      expect.objectContaining({
+        taskOpenDate: expect.any(Date),
+        taskDueDate: expect.any(Date),
+        assessmentOpenDate: expect.any(Date),
+        assessmentDueDate: expect.any(Date),
+        feedbackOpenDate: expect.any(Date),
+        feedbackDueDate: expect.any(Date),
+      }),
+    );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ id: 1, name: "P1" });
+  });
+
+  it("createProjectHandler validates deadline payload", async () => {
+    const resMissing = mockResponse();
+    await createProjectHandler(
+      { user: { sub: 1 }, body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3 } } as any,
+      resMissing,
+    );
+    expect(resMissing.status).toHaveBeenCalledWith(400);
+
+    const resOrder = mockResponse();
+    await createProjectHandler(
+      {
+        user: { sub: 1 },
+        body: {
+          name: "P1",
+          moduleId: 2,
+          questionnaireTemplateId: 3,
+          deadline: {
+            ...deadlinePayload,
+            taskOpenDate: deadlinePayload.taskDueDate,
+          },
+        },
+      } as any,
+      resOrder,
+    );
+    expect(resOrder.status).toHaveBeenCalledWith(400);
   });
 
   it("getProjectByIdHandler validates id, maps not found, returns project", async () => {

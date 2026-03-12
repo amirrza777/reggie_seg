@@ -11,15 +11,17 @@ import {
   getStaffProjects,
   getStaffProjectTeams,
   getUserProjectMarking,
+  type ProjectDeadlineInput,
 } from "./repo.js";
 
 export async function createProject(
   actorUserId: number,
   name: string,
   moduleId: number,
-  questionnaireTemplateId: number
+  questionnaireTemplateId: number,
+  deadline: ProjectDeadlineInput,
 ) {
-  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId);
+  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId, deadline);
 }
 
 export async function fetchProjectById(projectId: number) {

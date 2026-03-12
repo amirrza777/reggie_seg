@@ -20,16 +20,81 @@ function parsePositiveInt(value: unknown): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+type ParsedProjectDeadline = {
+  taskOpenDate: Date;
+  taskDueDate: Date;
+  assessmentOpenDate: Date;
+  assessmentDueDate: Date;
+  feedbackOpenDate: Date;
+  feedbackDueDate: Date;
+};
+
+function parseIsoDate(value: unknown, field: keyof ParsedProjectDeadline): Date | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function parseProjectDeadline(value: unknown): { ok: true; value: ParsedProjectDeadline } | { ok: false; error: string } {
+  if (typeof value !== "object" || value === null) {
+    return { ok: false, error: "deadline is required" };
+  }
+
+  const taskOpenDate = parseIsoDate((value as any).taskOpenDate, "taskOpenDate");
+  const taskDueDate = parseIsoDate((value as any).taskDueDate, "taskDueDate");
+  const assessmentOpenDate = parseIsoDate((value as any).assessmentOpenDate, "assessmentOpenDate");
+  const assessmentDueDate = parseIsoDate((value as any).assessmentDueDate, "assessmentDueDate");
+  const feedbackOpenDate = parseIsoDate((value as any).feedbackOpenDate, "feedbackOpenDate");
+  const feedbackDueDate = parseIsoDate((value as any).feedbackDueDate, "feedbackDueDate");
+
+  if (!taskOpenDate) return { ok: false, error: "deadline.taskOpenDate must be a valid date string" };
+  if (!taskDueDate) return { ok: false, error: "deadline.taskDueDate must be a valid date string" };
+  if (!assessmentOpenDate) return { ok: false, error: "deadline.assessmentOpenDate must be a valid date string" };
+  if (!assessmentDueDate) return { ok: false, error: "deadline.assessmentDueDate must be a valid date string" };
+  if (!feedbackOpenDate) return { ok: false, error: "deadline.feedbackOpenDate must be a valid date string" };
+  if (!feedbackDueDate) return { ok: false, error: "deadline.feedbackDueDate must be a valid date string" };
+
+  if (taskOpenDate >= taskDueDate) {
+    return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
+  }
+  if (taskDueDate > assessmentOpenDate) {
+    return { ok: false, error: "deadline.assessmentOpenDate must be on or after deadline.taskDueDate" };
+  }
+  if (assessmentOpenDate >= assessmentDueDate) {
+    return { ok: false, error: "deadline.assessmentOpenDate must be before deadline.assessmentDueDate" };
+  }
+  if (assessmentDueDate > feedbackOpenDate) {
+    return { ok: false, error: "deadline.feedbackOpenDate must be on or after deadline.assessmentDueDate" };
+  }
+  if (feedbackOpenDate >= feedbackDueDate) {
+    return { ok: false, error: "deadline.feedbackOpenDate must be before deadline.feedbackDueDate" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      taskOpenDate,
+      taskDueDate,
+      assessmentOpenDate,
+      assessmentDueDate,
+      feedbackOpenDate,
+      feedbackDueDate,
+    },
+  };
+}
+
 export async function createProjectHandler(req: AuthRequest, res: Response) {
   const actorUserId = req.user?.sub;
   if (!actorUserId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { name, moduleId, questionnaireTemplateId } = req.body as {
+  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
     name?: unknown;
     moduleId?: unknown;
     questionnaireTemplateId?: unknown;
+    deadline?: unknown;
   };
 
   const normalizedName = typeof name === "string" ? name.trim() : "";
@@ -47,8 +112,19 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
   }
 
+  const parsedDeadline = parseProjectDeadline(deadline);
+  if (!parsedDeadline.ok) {
+    return res.status(400).json({ error: parsedDeadline.error });
+  }
+
   try {
-    const project = await createProject(actorUserId, normalizedName, parsedModuleId, parsedTemplateId);
+    const project = await createProject(
+      actorUserId,
+      normalizedName,
+      parsedModuleId,
+      parsedTemplateId,
+      parsedDeadline.value,
+    );
     res.status(201).json(project);
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {

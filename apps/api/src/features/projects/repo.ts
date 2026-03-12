@@ -1,5 +1,14 @@
 import { prisma } from "../../shared/db.js";
 
+export type ProjectDeadlineInput = {
+  taskOpenDate: Date;
+  taskDueDate: Date;
+  assessmentOpenDate: Date;
+  assessmentDueDate: Date;
+  feedbackOpenDate: Date;
+  feedbackDueDate: Date;
+};
+
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
@@ -253,15 +262,16 @@ export async function createProject(
   actorUserId: number,
   name: string,
   moduleId: number,
-  questionnaireTemplateId: number
+  questionnaireTemplateId: number,
+  deadline: ProjectDeadlineInput
 ) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
     throw { code: "FORBIDDEN", message: "User not found" };
   }
 
-  const hasElevatedStaffAccess = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
-  if (!hasElevatedStaffAccess && actor.role !== "STAFF") {
+  const isStaffRole = actor.role === "STAFF" || actor.role === "ENTERPRISE_ADMIN" || actor.role === "ADMIN";
+  if (!isStaffRole) {
     throw { code: "FORBIDDEN", message: "Only staff can create projects" };
   }
 
@@ -273,14 +283,12 @@ export async function createProject(
     throw { code: "MODULE_NOT_FOUND" };
   }
 
-  if (!hasElevatedStaffAccess) {
-    const isModuleLead = await prisma.moduleLead.findFirst({
-      where: { moduleId, userId: actor.id },
-      select: { moduleId: true },
-    });
-    if (!isModuleLead) {
-      throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
-    }
+  const isModuleLead = await prisma.moduleLead.findFirst({
+    where: { moduleId, userId: actor.id },
+    select: { moduleId: true },
+  });
+  if (!isModuleLead) {
+    throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
   }
 
   const templateRecord = await prisma.questionnaireTemplate.findFirst({
@@ -299,12 +307,32 @@ export async function createProject(
       name,
       moduleId,
       questionnaireTemplateId,
+      deadline: {
+        create: {
+          taskOpenDate: deadline.taskOpenDate,
+          taskDueDate: deadline.taskDueDate,
+          assessmentOpenDate: deadline.assessmentOpenDate,
+          assessmentDueDate: deadline.assessmentDueDate,
+          feedbackOpenDate: deadline.feedbackOpenDate,
+          feedbackDueDate: deadline.feedbackDueDate,
+        },
+      },
     },
     select: {
       id: true,
       name: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      deadline: {
+        select: {
+          taskOpenDate: true,
+          taskDueDate: true,
+          assessmentOpenDate: true,
+          assessmentDueDate: true,
+          feedbackOpenDate: true,
+          feedbackDueDate: true,
+        },
+      },
     },
   });
 }

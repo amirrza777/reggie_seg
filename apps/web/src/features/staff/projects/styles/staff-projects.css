@@ -137,6 +137,23 @@
   gap: 6px;
 }
 
+.staff-projects__deadline {
+  grid-column: 1 / -1;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+
+.staff-projects__deadline-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .staff-projects__field-label {
   font-size: var(--fs-label);
   color: var(--muted);
@@ -347,6 +364,10 @@
 
 @media (max-width: 980px) {
   .staff-projects__create-form {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__deadline-grid {
     grid-template-columns: 1fr;
   }
 }

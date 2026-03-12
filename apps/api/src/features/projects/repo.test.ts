@@ -44,6 +44,15 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 describe("projects repo", () => {
+  const deadlineInput = {
+    taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+    taskDueDate: new Date("2026-03-08T17:00:00.000Z"),
+    assessmentOpenDate: new Date("2026-03-09T09:00:00.000Z"),
+    assessmentDueDate: new Date("2026-03-12T17:00:00.000Z"),
+    feedbackOpenDate: new Date("2026-03-13T09:00:00.000Z"),
+    feedbackDueDate: new Date("2026-03-16T17:00:00.000Z"),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -137,20 +146,43 @@ describe("projects repo", () => {
       name: "P1",
       moduleId: 2,
       questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
     });
-    const result = await createProject(99, "P1", 2, 3);
+    const result = await createProject(99, "P1", 2, 3, deadlineInput);
 
     expect(prisma.project.create).toHaveBeenCalledWith({
       data: {
         name: "P1",
         moduleId: 2,
         questionnaireTemplateId: 3,
+        deadline: {
+          create: {
+            taskOpenDate: deadlineInput.taskOpenDate,
+            taskDueDate: deadlineInput.taskDueDate,
+            assessmentOpenDate: deadlineInput.assessmentOpenDate,
+            assessmentDueDate: deadlineInput.assessmentDueDate,
+            feedbackOpenDate: deadlineInput.feedbackOpenDate,
+            feedbackDueDate: deadlineInput.feedbackDueDate,
+          },
+        },
       },
       select: {
         id: true,
         name: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        deadline: {
+          select: {
+            taskOpenDate: true,
+            taskDueDate: true,
+            assessmentOpenDate: true,
+            assessmentDueDate: true,
+            feedbackOpenDate: true,
+            feedbackDueDate: true,
+          },
+        },
       },
     });
     expect(result).toEqual({
@@ -158,6 +190,9 @@ describe("projects repo", () => {
       name: "P1",
       moduleId: 2,
       questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
     });
   });
 
@@ -170,7 +205,22 @@ describe("projects repo", () => {
     (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
     (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
 
-    await expect(createProject(44, "Blocked", 7, 3)).rejects.toMatchObject({
+    await expect(createProject(44, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(prisma.project.create).not.toHaveBeenCalled();
+  });
+
+  it("createProject rejects enterprise admins who are not module leads", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 45,
+      role: "ENTERPRISE_ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
+
+    await expect(createProject(45, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     expect(prisma.project.create).not.toHaveBeenCalled();

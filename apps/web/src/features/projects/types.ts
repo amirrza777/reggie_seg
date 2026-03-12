@@ -60,6 +60,14 @@ export type CreateStaffProjectPayload = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  deadline: {
+    taskOpenDate: string;
+    taskDueDate: string;
+    assessmentOpenDate: string;
+    assessmentDueDate: string;
+    feedbackOpenDate: string;
+    feedbackDueDate: string;
+  };
 };
 
 export type CreatedStaffProject = {
@@ -67,6 +75,14 @@ export type CreatedStaffProject = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  deadline?: {
+    taskOpenDate: string;
+    taskDueDate: string;
+    assessmentOpenDate: string;
+    assessmentDueDate: string;
+    feedbackOpenDate: string;
+    feedbackDueDate: string;
+  } | null;
 };
 
 export type TeamMember = {

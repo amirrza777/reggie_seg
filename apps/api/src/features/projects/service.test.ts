@@ -25,6 +25,15 @@ vi.mock("./repo.js", () => ({
 }));
 
 describe("projects service", () => {
+  const deadlineInput = {
+    taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+    taskDueDate: new Date("2026-03-08T17:00:00.000Z"),
+    assessmentOpenDate: new Date("2026-03-09T09:00:00.000Z"),
+    assessmentDueDate: new Date("2026-03-12T17:00:00.000Z"),
+    feedbackOpenDate: new Date("2026-03-13T09:00:00.000Z"),
+    feedbackDueDate: new Date("2026-03-16T17:00:00.000Z"),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -33,8 +42,8 @@ describe("projects service", () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
     (repo.getProjectById as any).mockResolvedValue({ id: 9 });
 
-    await expect(createProject(7, "P1", 2, 3)).resolves.toEqual({ id: 9 });
-    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3);
+    await expect(createProject(7, "P1", 2, 3, deadlineInput)).resolves.toEqual({ id: 9 });
+    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, deadlineInput);
 
     await expect(fetchProjectById(9)).resolves.toEqual({ id: 9 });
     expect(repo.getProjectById).toHaveBeenCalledWith(9);
