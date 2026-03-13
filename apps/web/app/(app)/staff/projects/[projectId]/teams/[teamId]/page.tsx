@@ -58,26 +58,34 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <p className="staff-projects__desc">Project: {data.project.name}</p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">
-            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
-          </span>
-          {team.hasDeadlineOverride ? (
-            <span className="staff-projects__badge">Team override active</span>
-          ) : (
-            <span className="staff-projects__badge">No team override</span>
-          )}
           <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
             Back to teams
           </Link>
         </div>
-        <div className="staff-projects__meta">
-          <StaffTeamDeadlineProfileControl
-            teamId={team.id}
-            initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
-          />
-          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
-            Manage per-student overrides
-          </button>
+        <div className="staff-projects__team-policy">
+          <div className="staff-projects__team-policy-top">
+            <div>
+              <h2 className="staff-projects__team-policy-title">Deadline policy</h2>
+              <p className="staff-projects__team-policy-desc">
+                This team is currently using{" "}
+                <strong>{team.deadlineProfile === "MCF" ? "MCF extended deadlines" : "standard deadlines"}</strong>.
+              </p>
+            </div>
+            {team.hasDeadlineOverride ? (
+              <span className="staff-projects__badge">Team override active</span>
+            ) : (
+              <span className="staff-projects__badge">No team override</span>
+            )}
+          </div>
+          <div className="staff-projects__team-policy-actions">
+            <StaffTeamDeadlineProfileControl
+              teamId={team.id}
+              initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
+            />
+            <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+              Manage per-student overrides
+            </button>
+          </div>
         </div>
       </section>
 
