@@ -4,6 +4,7 @@ import * as service from "./service.js";
 import {
   acceptTeamInviteHandler,
   addUserToTeamHandler,
+  applyManualAllocationHandler,
   applyRandomAllocationHandler,
   cancelTeamInviteHandler,
   createTeamHandler,
@@ -30,6 +31,7 @@ vi.mock("./service.js", () => ({
   rejectTeamInvite: vi.fn(),
   cancelTeamInvite: vi.fn(),
   expireTeamInvite: vi.fn(),
+  applyManualAllocationForProject: vi.fn(),
   applyRandomAllocationForProject: vi.fn(),
   getManualAllocationWorkspaceForProject: vi.fn(),
   previewRandomAllocationForProject: vi.fn(),
@@ -291,6 +293,103 @@ describe("teamAllocation controller", () => {
     });
     const archivedRes = mockResponse();
     await getManualAllocationWorkspaceHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("applyManualAllocationHandler validates auth and input", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "3" }, body: { teamName: "Team A", studentIds: [1] } };
+    const unauthorizedRes = mockResponse();
+    await applyManualAllocationHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 9 }, params: { projectId: "x" }, body: { teamName: "Team A", studentIds: [1] } };
+    const badProjectRes = mockResponse();
+    await applyManualAllocationHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badStudentIdsReq: any = { user: { sub: 9 }, params: { projectId: "4" }, body: { teamName: "Team A", studentIds: "abc" } };
+    const badStudentIdsRes = mockResponse();
+    await applyManualAllocationHandler(badStudentIdsReq, badStudentIdsRes);
+    expect(badStudentIdsRes.status).toHaveBeenCalledWith(400);
+
+    const badStudentIdValueReq: any = {
+      user: { sub: 9 },
+      params: { projectId: "4" },
+      body: { teamName: "Team A", studentIds: [1, "x"] },
+    };
+    const badStudentIdValueRes = mockResponse();
+    await applyManualAllocationHandler(badStudentIdValueReq, badStudentIdValueRes);
+    expect(badStudentIdValueRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("applyManualAllocationHandler returns applied payload", async () => {
+    (service.applyManualAllocationForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      team: { id: 31, teamName: "Team Gamma", memberCount: 3 },
+    });
+
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, body: { teamName: "Team Gamma", studentIds: [3, 4, 5] } };
+    const res = mockResponse();
+
+    await applyManualAllocationHandler(req, res);
+
+    expect(service.applyManualAllocationForProject).toHaveBeenCalledWith(7, 4, {
+      teamName: "Team Gamma",
+      studentIds: [3, 4, 5],
+    });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({ id: 4 }),
+        team: expect.objectContaining({ id: 31 }),
+      })
+    );
+  });
+
+  it("applyManualAllocationHandler maps service errors", async () => {
+    const req: any = { user: { sub: 3 }, params: { projectId: "5" }, body: { teamName: "Team A", studentIds: [1, 2] } };
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "INVALID_TEAM_NAME" });
+    const badNameRes = mockResponse();
+    await applyManualAllocationHandler(req, badNameRes);
+    expect(badNameRes.status).toHaveBeenCalledWith(400);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "INVALID_STUDENT_IDS" });
+    const badIdsRes = mockResponse();
+    await applyManualAllocationHandler(req, badIdsRes);
+    expect(badIdsRes.status).toHaveBeenCalledWith(400);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "STUDENT_NOT_IN_MODULE" });
+    const notInModuleRes = mockResponse();
+    await applyManualAllocationHandler(req, notInModuleRes);
+    expect(notInModuleRes.status).toHaveBeenCalledWith(400);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "STUDENT_ALREADY_ASSIGNED" });
+    const assignedRes = mockResponse();
+    await applyManualAllocationHandler(req, assignedRes);
+    expect(assignedRes.status).toHaveBeenCalledWith(409);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "TEAM_NAME_ALREADY_EXISTS" });
+    const duplicateNameRes = mockResponse();
+    await applyManualAllocationHandler(req, duplicateNameRes);
+    expect(duplicateNameRes.status).toHaveBeenCalledWith(409);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "STUDENTS_NO_LONGER_AVAILABLE" });
+    const staleRes = mockResponse();
+    await applyManualAllocationHandler(req, staleRes);
+    expect(staleRes.status).toHaveBeenCalledWith(409);
+    expect(staleRes.json).toHaveBeenCalledWith({
+      error: "Some selected students are no longer available. Refresh and try again.",
+    });
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" });
+    const missingRes = mockResponse();
+    await applyManualAllocationHandler(req, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.applyManualAllocationForProject as any).mockRejectedValueOnce({ code: "PROJECT_ARCHIVED" });
+    const archivedRes = mockResponse();
+    await applyManualAllocationHandler(req, archivedRes);
     expect(archivedRes.status).toHaveBeenCalledWith(409);
   });
 
