@@ -65,8 +65,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   } catch (error) {
     loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
   }
-  const activeWarnings = initialRequests.filter((request) => !request.resolved);
-
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
@@ -74,20 +72,9 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
         <Card title="Team Health">
           <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
             <h3 style={{ margin: 0 }}>Warnings</h3>
-            {activeWarnings.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                No active warnings for your team right now.
-              </p>
-            ) : (
-              <ul style={{ margin: 0, paddingLeft: 20 }}>
-                {activeWarnings.map((warning) => (
-                  <li key={warning.id}>
-                    <strong>{warning.subject}</strong>
-                    <p className="muted" style={{ margin: "4px 0 0" }}>{warning.details}</p>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <p className="muted" style={{ margin: 0 }}>
+              No warnings for your team right now.
+            </p>
           </div>
 
           <TeamHealthMessagePanel

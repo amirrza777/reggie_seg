@@ -35,7 +35,7 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
       {links.map((link) => {
         const isActive = link.href === base
           ? pathname === base
-          : pathname?.startsWith(link.href);
+          : pathname === link.href || pathname?.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.href}
