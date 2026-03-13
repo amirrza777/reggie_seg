@@ -40,6 +40,12 @@ export type AppliedRandomTeam = {
   memberCount: number;
 };
 
+export type AppliedManualTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -389,6 +395,71 @@ export async function applyRandomAllocationPlan(
       teamName: targetTeams[index].teamName,
       memberCount: plan.members.length,
     }));
+  });
+}
+
+export async function applyManualAllocationTeam(
+  projectId: number,
+  enterpriseId: string,
+  teamName: string,
+  studentIds: number[],
+): Promise<AppliedManualTeam> {
+  return prisma.$transaction(async (tx) => {
+    const existingName = await tx.team.findFirst({
+      where: {
+        enterpriseId,
+        teamName,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingName) {
+      throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+    }
+
+    const conflictingAllocations = await tx.teamAllocation.findMany({
+      where: {
+        userId: { in: studentIds },
+        team: {
+          projectId,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (conflictingAllocations.length > 0) {
+      throw { code: "STUDENTS_NO_LONGER_AVAILABLE" };
+    }
+
+    const team = await tx.team.create({
+      data: {
+        enterpriseId,
+        projectId,
+        teamName,
+      },
+      select: {
+        id: true,
+        teamName: true,
+      },
+    });
+
+    await tx.teamAllocation.createMany({
+      data: studentIds.map((studentId) => ({
+        teamId: team.id,
+        userId: studentId,
+      })),
+      skipDuplicates: true,
+    });
+
+    return {
+      id: team.id,
+      teamName: team.teamName,
+      memberCount: studentIds.length,
+    };
   });
 }
 
