@@ -1,0 +1,23 @@
+model StudentDeadlineOverride {
+  id                 Int       @id @default(autoincrement())
+  userId             Int
+  projectDeadlineId  Int
+  createdByUserId    Int?
+  taskOpenDate       DateTime?
+  taskDueDate        DateTime?
+  assessmentOpenDate DateTime?
+  assessmentDueDate  DateTime?
+  feedbackOpenDate   DateTime?
+  feedbackDueDate    DateTime?
+  reason             String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  user            User            @relation("StudentDeadlineOverrideStudent", fields: [userId], references: [id], onDelete: Cascade)
+  projectDeadline ProjectDeadline @relation(fields: [projectDeadlineId], references: [id], onDelete: Cascade)
+  createdBy       User?           @relation("StudentDeadlineOverrideCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, projectDeadlineId])
+  @@index([projectDeadlineId])
+  @@index([createdByUserId])
+}

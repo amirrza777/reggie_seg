@@ -6,50 +6,52 @@ enum Role {
 }
 
 model User {
-  id                  Int                  @id @default(autoincrement())
-  enterpriseId        String
-  email               String
-  createdAt           DateTime             @default(now())
-  avatarData          Bytes?
-  avatarMime          String?
-  firstName           String
-  role                Role                 @default(STUDENT)
-  lastName            String
-  passwordHash        String
-  active              Boolean              @default(true)
-  updatedAt           DateTime             @updatedAt
-  enterprise          Enterprise           @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
-  moduleLeads         ModuleLead[]
+  id                       Int                       @id @default(autoincrement())
+  enterpriseId             String
+  email                    String
+  createdAt                DateTime                  @default(now())
+  avatarData               Bytes?
+  avatarMime               String?
+  firstName                String
+  role                     Role                      @default(STUDENT)
+  lastName                 String
+  passwordHash             String
+  active                   Boolean                   @default(true)
+  updatedAt                DateTime                  @updatedAt
+  enterprise               Enterprise                @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
+  moduleLeads              ModuleLead[]
   moduleTeachingAssistants ModuleTeachingAssistant[]
-  revieweeAssessments PeerAssessment[]     @relation("PeerAssessmentReviewee")
-  reviewerAssessments PeerAssessment[]     @relation("PeerAssessmentReviewer")
-  teamAllocations     TeamAllocation[]
-  userModules         UserModule[]
-  meetingOrganisers   Meeting[]            @relation("MeetingOrganiser")
-  meetingAttendances  MeetingAttendance[]  @relation("MeetingAttendance")
-  meetingMinutes      MeetingMinutes[]     @relation("MeetingMinutesWriter")
-  meetingComments     MeetingComment[]     @relation("MeetingComment")
-  refreshTokens       RefreshToken[]
-  passwordResetTokens PasswordResetToken[]
-  emailChangeTokens   EmailChangeToken[]
+  revieweeAssessments      PeerAssessment[]          @relation("PeerAssessmentReviewee")
+  reviewerAssessments      PeerAssessment[]          @relation("PeerAssessmentReviewer")
+  teamAllocations          TeamAllocation[]
+  userModules              UserModule[]
+  meetingOrganisers        Meeting[]                 @relation("MeetingOrganiser")
+  meetingAttendances       MeetingAttendance[]       @relation("MeetingAttendance")
+  meetingMinutes           MeetingMinutes[]          @relation("MeetingMinutesWriter")
+  meetingComments          MeetingComment[]          @relation("MeetingComment")
+  refreshTokens            RefreshToken[]
+  passwordResetTokens      PasswordResetToken[]
+  emailChangeTokens        EmailChangeToken[]
 
-  trelloToken String?
-  trelloMemberId String?
-  ownedTeamTrelloBoards Team[] @relation("TrelloOwner")
-  
-  questionnaires          QuestionnaireTemplate[]
-  reviewerFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks       PeerFeedback[]                @relation("PeerFeedbackReviewee")
-  staffTeamMarkingsGiven  StaffTeamMarking[]            @relation("StaffTeamMarker")
-  staffStudentMarkingsGiven StaffStudentMarking[]       @relation("StaffStudentMarker")
-  staffStudentMarkingsReceived StaffStudentMarking[]    @relation("StaffStudentMarkingStudent")
-  githubAccount           GithubAccount?
-  linkedGithubRepos       ProjectGithubRepository[]     @relation("ProjectGithubRepositoryLinkedBy")
-  analysedGithubSnapshots GithubRepoSnapshot[]          @relation("GithubRepoSnapshotAnalysedBy")
-  mappedGithubStats       GithubRepoSnapshotUserStat[]  @relation("GithubRepoSnapshotUserStatMappedUser")
-  teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
-  teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
-  auditLogs           AuditLog[]
+  trelloToken           String?
+  trelloMemberId        String?
+  ownedTeamTrelloBoards Team[]  @relation("TrelloOwner")
+
+  questionnaires               QuestionnaireTemplate[]
+  reviewerFeedbacks            PeerFeedback[]               @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks            PeerFeedback[]               @relation("PeerFeedbackReviewee")
+  staffTeamMarkingsGiven       StaffTeamMarking[]           @relation("StaffTeamMarker")
+  staffStudentMarkingsGiven    StaffStudentMarking[]        @relation("StaffStudentMarker")
+  staffStudentMarkingsReceived StaffStudentMarking[]        @relation("StaffStudentMarkingStudent")
+  githubAccount                GithubAccount?
+  linkedGithubRepos            ProjectGithubRepository[]    @relation("ProjectGithubRepositoryLinkedBy")
+  analysedGithubSnapshots      GithubRepoSnapshot[]         @relation("GithubRepoSnapshotAnalysedBy")
+  mappedGithubStats            GithubRepoSnapshotUserStat[] @relation("GithubRepoSnapshotUserStatMappedUser")
+  studentDeadlineOverrides     StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideStudent")
+  createdDeadlineOverrides     StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideCreatedBy")
+  teamInvitesSent              TeamInvite[]                 @relation("TeamInvitesSent")
+  teamInvitesReceived          TeamInvite[]                 @relation("TeamInvitesReceived")
+  auditLogs                    AuditLog[]
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])
