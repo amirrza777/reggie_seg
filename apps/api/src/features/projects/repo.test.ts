@@ -4,6 +4,7 @@ import {
   getModulesForUser,
   getProjectById,
   getQuestionsForProject,
+  reviewMcfRequest,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
@@ -18,6 +19,7 @@ import { prisma } from "../../shared/db.js";
 
 vi.mock("../../shared/db.js", () => ({
   prisma: {
+    $transaction: vi.fn(),
     project: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -41,6 +43,12 @@ vi.mock("../../shared/db.js", () => ({
     mCFRequest: {
       create: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+    },
+    teamDeadlineOverride: {
+      deleteMany: vi.fn(),
     },
   },
 }));
@@ -311,6 +319,53 @@ describe("projects repo", () => {
         orderBy: { createdAt: "desc" },
       })
     );
+  });
+
+  it("reviewMcfRequest marks request as in review without deleting override", async () => {
+    (prisma.mCFRequest.findFirst as any).mockResolvedValueOnce({ id: 11, status: "OPEN" });
+    (prisma.mCFRequest.update as any).mockResolvedValueOnce({ id: 11, status: "IN_REVIEW" });
+
+    await reviewMcfRequest(3, 4, 11, 7, "IN_REVIEW");
+
+    expect(prisma.mCFRequest.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 11 },
+        data: expect.objectContaining({
+          status: "IN_REVIEW",
+          reviewedByUserId: 7,
+          reviewedAt: expect.any(Date),
+        }),
+      })
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("reviewMcfRequest marks resolved request as rejected and removes team deadline override", async () => {
+    (prisma.mCFRequest.findFirst as any).mockResolvedValueOnce({ id: 11, status: "RESOLVED" });
+    const deleteMany = vi.fn().mockResolvedValueOnce({ count: 1 });
+    const updateRequest = vi.fn().mockResolvedValueOnce({ id: 11, status: "REJECTED" });
+    (prisma.$transaction as any).mockImplementationOnce(async (cb: any) =>
+      cb({
+        teamDeadlineOverride: { deleteMany },
+        mCFRequest: { update: updateRequest },
+      })
+    );
+
+    const result = await reviewMcfRequest(3, 4, 11, 7, "REJECTED");
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(deleteMany).toHaveBeenCalledWith({ where: { teamId: 4 } });
+    expect(updateRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 11 },
+        data: expect.objectContaining({
+          status: "REJECTED",
+          reviewedByUserId: 7,
+          reviewedAt: expect.any(Date),
+        }),
+      })
+    );
+    expect(result).toEqual({ id: 11, status: "REJECTED" });
   });
 
   it("canStaffAccessTeamInProject verifies role scoped staff access", async () => {

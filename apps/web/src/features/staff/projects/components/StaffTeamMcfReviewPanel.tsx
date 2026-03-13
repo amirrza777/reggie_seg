@@ -70,6 +70,19 @@ function toIsoOrNull(value: string) {
   return date.toISOString();
 }
 
+function normalizeIsoForMinutePrecision(proposedIso: string | null, currentIso: string | null) {
+  if (!proposedIso || !currentIso) return proposedIso;
+
+  const proposed = new Date(proposedIso);
+  const current = new Date(currentIso);
+  if (Number.isNaN(proposed.getTime()) || Number.isNaN(current.getTime())) return proposedIso;
+  if (proposed.getTime() >= current.getTime()) return proposedIso;
+
+  const proposedMinute = Math.floor(proposed.getTime() / 60_000);
+  const currentMinute = Math.floor(current.getTime() / 60_000);
+  return proposedMinute === currentMinute ? current.toISOString() : proposedIso;
+}
+
 function toDeadlineForm(deadline: ProjectDeadline): DeadlineFormState {
   return {
     taskOpenDate: toInputDateTime(deadline.taskOpenDate),
@@ -165,7 +178,11 @@ function isEarlierThanCurrent(proposedIso: string | null, currentIso: string | n
   const proposed = new Date(proposedIso);
   const current = new Date(currentIso);
   if (Number.isNaN(proposed.getTime()) || Number.isNaN(current.getTime())) return false;
-  return proposed.getTime() < current.getTime();
+  if (proposed.getTime() >= current.getTime()) return false;
+
+  const proposedMinute = Math.floor(proposed.getTime() / 60_000);
+  const currentMinute = Math.floor(current.getTime() / 60_000);
+  return proposedMinute < currentMinute;
 }
 
 export function StaffTeamMcfReviewPanel({
@@ -360,9 +377,24 @@ export function StaffTeamMcfReviewPanel({
   };
 
   const handleResolve = async (requestId: number) => {
+    const proposedDeadlines: Record<DeadlineFieldKey, string | null> = {
+      taskOpenDate: normalizeIsoForMinutePrecision(toIsoOrNull(deadlineForm.taskOpenDate), currentDeadline?.taskOpenDate ?? null),
+      taskDueDate: normalizeIsoForMinutePrecision(toIsoOrNull(deadlineForm.taskDueDate), currentDeadline?.taskDueDate ?? null),
+      assessmentOpenDate: normalizeIsoForMinutePrecision(
+        toIsoOrNull(deadlineForm.assessmentOpenDate),
+        currentDeadline?.assessmentOpenDate ?? null
+      ),
+      assessmentDueDate: normalizeIsoForMinutePrecision(
+        toIsoOrNull(deadlineForm.assessmentDueDate),
+        currentDeadline?.assessmentDueDate ?? null
+      ),
+      feedbackOpenDate: normalizeIsoForMinutePrecision(toIsoOrNull(deadlineForm.feedbackOpenDate), currentDeadline?.feedbackOpenDate ?? null),
+      feedbackDueDate: normalizeIsoForMinutePrecision(toIsoOrNull(deadlineForm.feedbackDueDate), currentDeadline?.feedbackDueDate ?? null),
+    };
+
     if (currentDeadline) {
       for (const field of deadlineFields) {
-        const proposedIso = toIsoOrNull(deadlineForm[field.key]);
+        const proposedIso = proposedDeadlines[field.key];
         const currentIso = currentDeadline[field.key];
         if (isEarlierThanCurrent(proposedIso, currentIso)) {
           setReviewError(`${field.label} cannot be earlier than the current deadline.`);
@@ -378,12 +410,12 @@ export function StaffTeamMcfReviewPanel({
     try {
       const shiftDays = parseShiftFormToNumbers(shiftForm);
       const result = await resolveStaffTeamMcfRequestWithDeadlineOverride(projectId, teamId, requestId, userId, {
-        taskOpenDate: toIsoOrNull(deadlineForm.taskOpenDate),
-        taskDueDate: toIsoOrNull(deadlineForm.taskDueDate),
-        assessmentOpenDate: toIsoOrNull(deadlineForm.assessmentOpenDate),
-        assessmentDueDate: toIsoOrNull(deadlineForm.assessmentDueDate),
-        feedbackOpenDate: toIsoOrNull(deadlineForm.feedbackOpenDate),
-        feedbackDueDate: toIsoOrNull(deadlineForm.feedbackDueDate),
+        taskOpenDate: proposedDeadlines.taskOpenDate,
+        taskDueDate: proposedDeadlines.taskDueDate,
+        assessmentOpenDate: proposedDeadlines.assessmentOpenDate,
+        assessmentDueDate: proposedDeadlines.assessmentDueDate,
+        feedbackOpenDate: proposedDeadlines.feedbackOpenDate,
+        feedbackDueDate: proposedDeadlines.feedbackDueDate,
         deadlineInputMode: useShiftMode ? "SHIFT_DAYS" : "SELECT_DATE",
         shiftDays: useShiftMode ? shiftDays : undefined,
       });

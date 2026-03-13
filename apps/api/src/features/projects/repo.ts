@@ -850,9 +850,27 @@ export async function reviewMcfRequest(
 ) {
   const existing = await prisma.mCFRequest.findFirst({
     where: { id: requestId, projectId, teamId },
-    select: { id: true },
+    select: { id: true, status: true },
   });
   if (!existing) return null;
+
+  if (status === "REJECTED" && existing.status === "RESOLVED") {
+    return prisma.$transaction(async (tx) => {
+      await tx.teamDeadlineOverride.deleteMany({
+        where: { teamId },
+      });
+
+      return tx.mCFRequest.update({
+        where: { id: requestId },
+        data: {
+          status,
+          reviewedByUserId: reviewerUserId,
+          reviewedAt: new Date(),
+        },
+        select: mcfRequestSelect,
+      });
+    });
+  }
 
   return prisma.mCFRequest.update({
     where: { id: requestId },
