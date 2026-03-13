@@ -144,7 +144,7 @@ router.get("/modules", async (req, res) => {
   return res.json(
     modules.map((module) => ({
       ...mapModuleRecord(module),
-      canManageAccess: module.moduleLeads.length > 0,
+      canManageAccess: isEnterpriseAdminRole(enterpriseUser.role) || module.moduleLeads.length > 0,
     })),
   );
 });
@@ -191,7 +191,7 @@ router.get("/modules/search", async (req, res) => {
     toEnterpriseModuleSearchResponse(
       modules.map((module) => ({
         ...mapModuleRecord(module),
-        canManageAccess: module.moduleLeads.length > 0,
+        canManageAccess: isEnterpriseAdminRole(enterpriseUser.role) || module.moduleLeads.length > 0,
       })),
       parsedFilters.value,
       total,
