@@ -1,7 +1,12 @@
 "use client";
 
 import { type FormEvent, useState, useTransition } from "react";
-import { getManualAllocationWorkspace, type ManualAllocationWorkspace } from "@/features/projects/api/teamAllocation";
+import { useRouter } from "next/navigation";
+import {
+  applyManualAllocation,
+  getManualAllocationWorkspace,
+  type ManualAllocationWorkspace,
+} from "@/features/projects/api/teamAllocation";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffManualAllocationPanelProps = {
@@ -14,6 +19,7 @@ function toStudentName(student: { firstName: string; lastName: string; email: st
 }
 
 export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationPanelProps) {
+  const router = useRouter();
   const [workspace, setWorkspace] = useState<ManualAllocationWorkspace | null>(null);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
@@ -21,6 +27,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
   const [formNotice, setFormNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, startTransition] = useTransition();
+  const [isSubmitting, startSubmitTransition] = useTransition();
 
   function loadWorkspace(openAfterLoad: boolean) {
     setErrorMessage("");
@@ -51,6 +58,8 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
     }
     loadWorkspace(true);
   }
+
+  const isBusy = isLoading || isSubmitting;
 
   const availableStudentIds = workspace
     ? workspace.students.filter((student) => student.status === "AVAILABLE").map((student) => student.id)
@@ -86,9 +95,38 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       return;
     }
 
-    setFormNotice({
-      type: "success",
-      text: `Ready to create "${trimmedTeamName}" with ${selectedStudentIds.length} selected student${selectedStudentIds.length === 1 ? "" : "s"}.`,
+    const submissionStudentIds = [...selectedStudentIds];
+    setFormNotice(null);
+    setErrorMessage("");
+
+    startSubmitTransition(async () => {
+      try {
+        const applied = await applyManualAllocation(projectId, trimmedTeamName, submissionStudentIds);
+        setSelectedStudentIds([]);
+        setTeamNameInput("");
+        setFormNotice({
+          type: "success",
+          text: `Created "${applied.team.teamName}" with ${applied.team.memberCount} student${applied.team.memberCount === 1 ? "" : "s"}.`,
+        });
+
+        try {
+          const refreshedWorkspace = await getManualAllocationWorkspace(projectId);
+          setWorkspace(refreshedWorkspace);
+        } catch (error) {
+          setErrorMessage(
+            error instanceof Error
+              ? `Team created, but workspace refresh failed: ${error.message}`
+              : "Team created, but workspace refresh failed.",
+          );
+        }
+
+        router.refresh();
+      } catch (error) {
+        setFormNotice({
+          type: "error",
+          text: error instanceof Error ? error.message : "Failed to create team.",
+        });
+      }
     });
   }
 
@@ -105,7 +143,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
           type="button"
           className="staff-projects__allocation-btn"
           onClick={handleToggleWorkspace}
-          disabled={isLoading}
+          disabled={isBusy}
         >
           {isLoading ? "Loading..." : isWorkspaceOpen ? "Close manual allocation" : "Open manual allocation"}
         </button>
@@ -131,7 +169,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                 type="button"
                 className="staff-projects__allocation-btn"
                 onClick={selectAllAvailableStudents}
-                disabled={availableStudentIds.length === 0}
+                disabled={isBusy || availableStudentIds.length === 0}
               >
                 Select all available
               </button>
@@ -139,7 +177,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                 type="button"
                 className="staff-projects__allocation-btn"
                 onClick={clearSelectedStudents}
-                disabled={selectedStudentIds.length === 0}
+                disabled={isBusy || selectedStudentIds.length === 0}
               >
                 Clear selection
               </button>
@@ -156,15 +194,16 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                   setTeamNameInput(event.target.value);
                   setFormNotice(null);
                 }}
+                disabled={isBusy}
                 placeholder="e.g. Team Gamma"
                 aria-label="Manual team name"
               />
             </label>
             <div className="staff-projects__manual-create-actions">
-              <button type="submit" className="staff-projects__allocation-btn">
-                Create team
+              <button type="submit" className="staff-projects__allocation-btn" disabled={isBusy}>
+                {isSubmitting ? "Creating..." : "Create team"}
               </button>
-              <button type="button" className="staff-projects__allocation-btn" onClick={resetManualForm}>
+              <button type="button" className="staff-projects__allocation-btn" onClick={resetManualForm} disabled={isBusy}>
                 Reset form
               </button>
             </div>
@@ -207,7 +246,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                           : "staff-projects__manual-select-btn"
                       }
                       onClick={() => toggleStudentSelection(student.id)}
-                      disabled={student.status !== "AVAILABLE"}
+                      disabled={isBusy || student.status !== "AVAILABLE"}
                       aria-pressed={selectedStudentIds.includes(student.id)}
                     >
                       {selectedStudentIds.includes(student.id) ? "Selected" : "Select"}

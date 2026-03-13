@@ -90,6 +90,20 @@ export type ManualAllocationWorkspace = {
   };
 };
 
+export type ManualAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  team: {
+    id: number;
+    teamName: string;
+    memberCount: number;
+  };
+};
+
 export async function sendTeamInvite(teamId: number, inviterId: number, inviteeEmail: string, message?: string) {
   return apiFetch<{ ok: boolean; inviteId: string }>("/team-allocation/invites", {
     method: "POST",
@@ -155,5 +169,12 @@ export async function applyRandomAllocation(projectId: number, teamCount: number
 export async function getManualAllocationWorkspace(projectId: number) {
   return apiFetch<ManualAllocationWorkspace>(`/team-allocation/projects/${projectId}/manual-workspace`, {
     cache: "no-store",
+  });
+}
+
+export async function applyManualAllocation(projectId: number, teamName: string, studentIds: number[]) {
+  return apiFetch<ManualAllocationApplied>(`/team-allocation/projects/${projectId}/manual-allocate`, {
+    method: "POST",
+    body: JSON.stringify({ teamName, studentIds }),
   });
 }

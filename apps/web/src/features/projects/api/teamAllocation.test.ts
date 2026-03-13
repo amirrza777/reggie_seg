@@ -8,6 +8,7 @@ vi.mock("@/shared/api/http", () => ({
 
 import {
   acceptInvite,
+  applyManualAllocation,
   applyRandomAllocation,
   cancelTeamInvite,
   createTeamForProject,
@@ -86,6 +87,14 @@ describe("team allocation api client", () => {
     await getManualAllocationWorkspace(91);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/manual-workspace", {
       cache: "no-store",
+    });
+  });
+
+  it("applies manual allocation with team name and selected students", async () => {
+    await applyManualAllocation(55, "Team Gamma", [4, 8, 11]);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/manual-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamName: "Team Gamma", studentIds: [4, 8, 11] }),
     });
   });
 
