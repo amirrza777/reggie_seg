@@ -53,9 +53,7 @@ export type Team = {
   }>;
 };
 
-export type MCFRequestStatus = "OPEN" | "IN_REVIEW" | "RESOLVED" | "REJECTED";
-
-export type MCFRequest = {
+export type TeamHealthMessage = {
   id: number;
   projectId: number;
   teamId: number;
@@ -63,7 +61,8 @@ export type MCFRequest = {
   reviewedByUserId: number | null;
   subject: string;
   details: string;
-  status: MCFRequestStatus;
+  responseText: string | null;
+  resolved: boolean;
   createdAt: string;
   updatedAt: string;
   reviewedAt: string | null;

@@ -9,8 +9,7 @@ import type {
   ProjectMarkingSummary,
   StaffProject,
   StaffProjectTeamsResponse,
-  MCFRequest,
-  MCFRequestStatus,
+  TeamHealthMessage,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -52,34 +51,34 @@ export async function getStaffProjectTeams(userId: number, projectId: number): P
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
 }
 
-export async function createMcfRequest(
+export async function createTeamHealthMessage(
   projectId: number,
   userId: number,
   subject: string,
   details: string
-): Promise<MCFRequest> {
-  const response = await apiFetch<{ request: MCFRequest }>(`/projects/${projectId}/mcf-requests`, {
+): Promise<TeamHealthMessage> {
+  const response = await apiFetch<{ request: TeamHealthMessage }>(`/projects/${projectId}/team-health-messages`, {
     method: "POST",
     body: JSON.stringify({ userId, subject, details }),
   });
   return response.request;
 }
 
-export async function getMyMcfRequests(projectId: number, userId: number): Promise<MCFRequest[]> {
-  const response = await apiFetch<{ requests: MCFRequest[] }>(
-    `/projects/${projectId}/mcf-requests/me?userId=${userId}`,
+export async function getMyTeamHealthMessages(projectId: number, userId: number): Promise<TeamHealthMessage[]> {
+  const response = await apiFetch<{ requests: TeamHealthMessage[] }>(
+    `/projects/${projectId}/team-health-messages/me?userId=${userId}`,
     { cache: "no-store" }
   );
   return Array.isArray(response.requests) ? response.requests : [];
 }
 
-export async function getStaffTeamMcfRequests(
+export async function getStaffTeamHealthMessages(
   userId: number,
   projectId: number,
   teamId: number
-): Promise<MCFRequest[]> {
-  const response = await apiFetch<{ requests: MCFRequest[] }>(
-    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests?userId=${userId}`,
+): Promise<TeamHealthMessage[]> {
+  const response = await apiFetch<{ requests: TeamHealthMessage[] }>(
+    `/projects/staff/${projectId}/teams/${teamId}/team-health-messages?userId=${userId}`,
     { cache: "no-store" }
   );
   return Array.isArray(response.requests) ? response.requests : [];
@@ -97,18 +96,22 @@ export async function getStaffTeamDeadline(
   return response.deadline;
 }
 
-export async function reviewStaffTeamMcfRequest(
+export async function reviewStaffTeamHealthMessage(
   projectId: number,
   teamId: number,
   requestId: number,
   userId: number,
-  status: Extract<MCFRequestStatus, "IN_REVIEW" | "REJECTED">
-): Promise<MCFRequest> {
-  const response = await apiFetch<{ request: MCFRequest }>(
-    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests/${requestId}/review`,
+  resolved: boolean,
+  responseText?: string
+): Promise<TeamHealthMessage> {
+  const payload: { userId: number; resolved: boolean; responseText?: string } = { userId, resolved };
+  if (responseText !== undefined) payload.responseText = responseText;
+
+  const response = await apiFetch<{ request: TeamHealthMessage }>(
+    `/projects/staff/${projectId}/teams/${teamId}/team-health-messages/${requestId}/review`,
     {
       method: "PATCH",
-      body: JSON.stringify({ userId, status }),
+      body: JSON.stringify(payload),
     }
   );
   return response.request;
@@ -125,15 +128,15 @@ export type StaffTeamDeadlineOverridePayload = {
   shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
 };
 
-export async function resolveStaffTeamMcfRequestWithDeadlineOverride(
+export async function resolveStaffTeamHealthMessageWithDeadlineOverride(
   projectId: number,
   teamId: number,
   requestId: number,
   userId: number,
   overrides: StaffTeamDeadlineOverridePayload
-): Promise<{ request: MCFRequest; deadline: ProjectDeadline }> {
-  return apiFetch<{ request: MCFRequest; deadline: ProjectDeadline }>(
-    `/projects/staff/${projectId}/teams/${teamId}/mcf-requests/${requestId}/deadline-override`,
+): Promise<{ request: TeamHealthMessage; deadline: ProjectDeadline }> {
+  return apiFetch<{ request: TeamHealthMessage; deadline: ProjectDeadline }>(
+    `/projects/staff/${projectId}/teams/${teamId}/team-health-messages/${requestId}/deadline-override`,
     {
       method: "POST",
       body: JSON.stringify({

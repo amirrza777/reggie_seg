@@ -2,14 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { createMcfRequest } from "../api/client";
-import type { MCFRequest, MCFRequestStatus } from "../types";
+import { createTeamHealthMessage } from "../api/client";
+import type { TeamHealthMessage } from "../types";
 
-type McfRequestPanelProps = {
+type TeamHealthMessagePanelProps = {
   projectId: number;
   userId: number;
-  teamName: string;
-  initialRequests: MCFRequest[];
+  initialRequests: TeamHealthMessage[];
 };
 
 const textInputStyle = {
@@ -22,18 +21,8 @@ const textInputStyle = {
   font: "inherit",
 } as const;
 
-function formatStatus(status: MCFRequestStatus) {
-  return status
-    .split("_")
-    .map((token) => token.charAt(0) + token.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function getStatusTone(status: MCFRequestStatus) {
-  if (status === "RESOLVED") return "var(--status-success-text)";
-  if (status === "REJECTED") return "var(--status-danger-text)";
-  if (status === "IN_REVIEW") return "var(--status-warning-text, #b45309)";
-  return "var(--status-info-text, var(--ink))";
+function getResolvedTone(resolved: boolean) {
+  return resolved ? "var(--status-success-text)" : "var(--status-info-text, var(--ink))";
 }
 
 function formatDate(value: string) {
@@ -42,12 +31,12 @@ function formatDate(value: string) {
   return date.toLocaleString();
 }
 
-export function McfRequestPanel({ projectId, userId, teamName, initialRequests }: McfRequestPanelProps) {
+export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: TeamHealthMessagePanelProps) {
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const [requests, setRequests] = useState<MCFRequest[]>(initialRequests);
+  const [requests, setRequests] = useState<TeamHealthMessage[]>(initialRequests);
 
   const canSubmit = useMemo(
     () => subject.trim().length > 0 && details.trim().length > 0 && status !== "loading",
@@ -67,24 +56,20 @@ export function McfRequestPanel({ projectId, userId, teamName, initialRequests }
     setStatus("loading");
     setMessage(null);
     try {
-      const created = await createMcfRequest(projectId, userId, trimmedSubject, trimmedDetails);
+      const created = await createTeamHealthMessage(projectId, userId, trimmedSubject, trimmedDetails);
       setRequests((prev) => [created, ...prev]);
       setSubject("");
       setDetails("");
       setStatus("success");
-      setMessage("MCF request submitted.");
+      setMessage("Team health message submitted.");
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Failed to submit MCF request.");
+      setMessage(error instanceof Error ? error.message : "Failed to submit team health message.");
     }
   };
 
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <p className="muted" style={{ margin: 0 }}>
-        Team: {teamName}
-      </p>
-
       <form className="stack" style={{ gap: 12 }} onSubmit={handleSubmit}>
         <label className="stack" style={{ gap: 6 }}>
           <span>Subject</span>
@@ -118,7 +103,7 @@ export function McfRequestPanel({ projectId, userId, teamName, initialRequests }
           }}
         >
           <Button type="submit" disabled={!canSubmit}>
-            {status === "loading" ? "Submitting..." : "Submit MCF Request"}
+            {status === "loading" ? "Submitting..." : "Submit Team Health Message"}
           </Button>
         </div>
       </form>
@@ -126,36 +111,53 @@ export function McfRequestPanel({ projectId, userId, teamName, initialRequests }
       {message ? <p className={status === "error" ? "error" : "muted"}>{message}</p> : null}
 
       <div className="stack" style={{ gap: 10 }}>
-        <h4 style={{ margin: 0 }}>My MCF Requests</h4>
+        <h4 style={{ margin: 0 }}>My Team Health Messages</h4>
         {requests.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
-            No requests submitted yet.
+            No messages submitted yet.
           </p>
         ) : (
-          requests.map((request) => (
-            <article
-              key={request.id}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                padding: 12,
-                background: "var(--surface)",
-                display: "grid",
-                gap: 8,
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
-                <strong>{request.subject}</strong>
-                <span style={{ color: getStatusTone(request.status), fontWeight: 600 }}>
-                  {formatStatus(request.status)}
-                </span>
-              </div>
-              <p style={{ margin: 0 }}>{request.details}</p>
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                Submitted: {formatDate(request.createdAt)}
-              </p>
-            </article>
-          ))
+          requests.map((request) => {
+            const hasResponse = Boolean(request.responseText);
+            return (
+              <article
+                key={request.id}
+                style={{
+                  border: hasResponse ? "1px solid var(--status-success-border)" : "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: 12,
+                  background: hasResponse ? "var(--status-success-soft)" : "var(--surface)",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <strong>{request.subject}</strong>
+                  <span style={{ color: getResolvedTone(request.resolved), fontWeight: 600 }}>
+                    {request.resolved ? "Resolved" : "Open"}
+                  </span>
+                </div>
+                <p style={{ margin: 0 }}>{request.details}</p>
+                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                  Submitted: {formatDate(request.createdAt)}
+                </p>
+
+                {hasResponse ? (
+                  <div
+                    style={{
+                      border: "1px solid var(--status-success-border)",
+                      borderRadius: 8,
+                      padding: "10px 12px",
+                      background: "var(--surface)",
+                    }}
+                  >
+                    <p style={{ margin: "0 0 6px", fontWeight: 600 }}>Staff response</p>
+                    <p style={{ margin: 0 }}>{request.responseText}</p>
+                  </div>
+                ) : null}
+              </article>
+            );
+          })
         )}
       </div>
     </div>

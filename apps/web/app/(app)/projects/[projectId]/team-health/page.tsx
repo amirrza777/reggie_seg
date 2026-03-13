@@ -1,16 +1,16 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getMyMcfRequests, getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getMyTeamHealthMessages, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { Card } from "@/shared/ui/Card";
-import { McfRequestPanel } from "@/features/projects/components/McfRequestPanel";
-import type { MCFRequest } from "@/features/projects/types";
+import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
+import type { TeamHealthMessage } from "@/features/projects/types";
 
-type ProjectMcfPageProps = {
+type ProjectTeamHealthPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
-export default async function ProjectMcfPage({ params }: ProjectMcfPageProps) {
+export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealthPageProps) {
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export default async function ProjectMcfPage({ params }: ProjectMcfPageProps) {
       <div className="stack stack--tabbed" style={{ gap: 16 }}>
         <ProjectNav projectId={projectId} />
         <div style={{ padding: 24 }}>
-          <p>Please sign in to submit an MCF request.</p>
+          <p>Please sign in to submit a team health message.</p>
           <Link href="/login">Go to login</Link>
         </div>
       </div>
@@ -58,23 +58,41 @@ export default async function ProjectMcfPage({ params }: ProjectMcfPageProps) {
     );
   }
 
-  let initialRequests: MCFRequest[] = [];
+  let initialRequests: TeamHealthMessage[] = [];
   let loadError: string | null = null;
   try {
-    initialRequests = await getMyMcfRequests(numericProjectId, user.id);
+    initialRequests = await getMyTeamHealthMessages(numericProjectId, user.id);
   } catch (error) {
-    loadError = error instanceof Error ? error.message : "Failed to load existing MCF requests.";
+    loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
   }
+  const activeWarnings = initialRequests.filter((request) => !request.resolved);
 
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
       <div style={{ padding: 20 }}>
-        <Card title="MCF Request">
-          <McfRequestPanel
+        <Card title="Team Health">
+          <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
+            <h3 style={{ margin: 0 }}>Warnings</h3>
+            {activeWarnings.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>
+                No active warnings for your team right now.
+              </p>
+            ) : (
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {activeWarnings.map((warning) => (
+                  <li key={warning.id}>
+                    <strong>{warning.subject}</strong>
+                    <p className="muted" style={{ margin: "4px 0 0" }}>{warning.details}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <TeamHealthMessagePanel
             projectId={numericProjectId}
             userId={user.id}
-            teamName={team.teamName}
             initialRequests={initialRequests}
           />
           {loadError ? <p className="error">{loadError}</p> : null}

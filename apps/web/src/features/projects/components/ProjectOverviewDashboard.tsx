@@ -84,8 +84,8 @@ function ProjectOverviewHero({
               </span>
             </div>
             <div className="project-overview-hero__actions">
-              <Link href={`/projects/${project.id}/mcf`} className="project-overview-hero__action-link">
-                MCF
+              <Link href={`/projects/${project.id}/team-health`} className="project-overview-hero__action-link">
+                Team Health
               </Link>
             </div>
           </div>
