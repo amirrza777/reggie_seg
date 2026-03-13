@@ -1,4 +1,4 @@
-import { DiscussionForumClient } from "@/features/projects/components/DiscussionForumClient";
+import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
 
 export const metadata = { title: "Discussion Forum" };
 
