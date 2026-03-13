@@ -9,15 +9,60 @@ type FetchOptions = RequestInit & {
   retryOn401?: boolean;
 };
 
+function hasHeader(headers: HeadersInit | undefined, name: string) {
+  if (!headers) return false;
+  const lowerName = name.toLowerCase();
+
+  if (headers instanceof Headers) {
+    return headers.has(name);
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.some(([key]) => key.toLowerCase() === lowerName);
+  }
+
+  return Object.keys(headers).some((key) => key.toLowerCase() === lowerName);
+}
+
+async function getServerAuthHeaders(headers: HeadersInit | undefined): Promise<Record<string, string>> {
+  if (typeof window !== "undefined") {
+    return {};
+  }
+
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join("; ");
+    const accessToken = cookieStore.get("tf_access_token")?.value?.trim() || null;
+
+    const authHeaders: Record<string, string> = {};
+    if (!hasHeader(headers, "Authorization") && accessToken) {
+      authHeaders.Authorization = `Bearer ${accessToken}`;
+    }
+    if (!hasHeader(headers, "Cookie") && cookieHeader) {
+      authHeaders.Cookie = cookieHeader;
+    }
+
+    return authHeaders;
+  } catch {
+    return {};
+  }
+}
+
 export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {}): Promise<T> {
   const { parse = "json", headers, auth = true, baseUrl, retryOn401 = true, ...rest } = init;
   const token = auth ? getAccessToken() : null;
+  const serverAuthHeaders = auth ? await getServerAuthHeaders(headers) : {};
   const requestUrl = `${baseUrl ?? API_BASE_URL}${path}`;
   const res = await fetch(requestUrl, {
     ...rest,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...serverAuthHeaders,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
