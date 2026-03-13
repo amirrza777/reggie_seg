@@ -79,6 +79,18 @@ export type ProjectMarkingSummary = {
   studentMarking: StaffMarkingSummary | null;
 };
 
+export type DiscussionPost = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: string;
+  author: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
+};
+
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;

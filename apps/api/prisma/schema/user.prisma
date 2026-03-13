@@ -50,6 +50,7 @@ model User {
   teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
   teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
   auditLogs           AuditLog[]
+  discussionPosts     DiscussionPost[]
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

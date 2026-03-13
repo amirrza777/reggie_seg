@@ -6,6 +6,7 @@ import type {
   ProjectMarkingSummary,
   StaffProject,
   StaffProjectTeamsResponse,
+  DiscussionPost,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -53,4 +54,21 @@ export async function getStaffProjectTeams(userId: number, projectId: number): P
 
 export async function dismissTeamFlag(teamId: number): Promise<void> {
   await apiFetch(`/teams/${teamId}/dismiss-flag`, { method: "PATCH" });
+}
+
+export async function getDiscussionPosts(userId: number, projectId: number): Promise<DiscussionPost[]> {
+  return apiFetch<DiscussionPost[]>(`/forum/projects/${projectId}/posts?userId=${userId}`, {
+    cache: "no-store",
+  });
+}
+
+export async function createDiscussionPost(
+  userId: number,
+  projectId: number,
+  payload: { title: string; body: string }
+): Promise<DiscussionPost> {
+  return apiFetch<DiscussionPost>(`/forum/projects/${projectId}/posts`, {
+    method: "POST",
+    body: JSON.stringify({ userId, ...payload }),
+  });
 }
