@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { type FormEvent, useState, useTransition } from "react";
 import { getManualAllocationWorkspace, type ManualAllocationWorkspace } from "@/features/projects/api/teamAllocation";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -16,6 +16,9 @@ function toStudentName(student: { firstName: string; lastName: string; email: st
 export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationPanelProps) {
   const [workspace, setWorkspace] = useState<ManualAllocationWorkspace | null>(null);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+  const [teamNameInput, setTeamNameInput] = useState("");
+  const [formNotice, setFormNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, startTransition] = useTransition();
 
@@ -25,6 +28,9 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       try {
         const result = await getManualAllocationWorkspace(projectId);
         setWorkspace(result);
+        setSelectedStudentIds([]);
+        setTeamNameInput("");
+        setFormNotice(null);
         if (openAfterLoad) {
           setIsWorkspaceOpen(true);
         }
@@ -44,6 +50,52 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       return;
     }
     loadWorkspace(true);
+  }
+
+  const availableStudentIds = workspace
+    ? workspace.students.filter((student) => student.status === "AVAILABLE").map((student) => student.id)
+    : [];
+
+  function selectAllAvailableStudents() {
+    setSelectedStudentIds(availableStudentIds);
+    setFormNotice(null);
+  }
+
+  function clearSelectedStudents() {
+    setSelectedStudentIds([]);
+    setFormNotice(null);
+  }
+
+  function toggleStudentSelection(studentId: number) {
+    setSelectedStudentIds((current) =>
+      current.includes(studentId) ? current.filter((id) => id !== studentId) : [...current, studentId]
+    );
+    setFormNotice(null);
+  }
+
+  function handlePrepareTeamSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedTeamName = teamNameInput.trim();
+    if (trimmedTeamName.length === 0) {
+      setFormNotice({ type: "error", text: "Enter a team name." });
+      return;
+    }
+    if (selectedStudentIds.length === 0) {
+      setFormNotice({ type: "error", text: "Select at least one available student." });
+      return;
+    }
+
+    setFormNotice({
+      type: "success",
+      text: `Ready to create "${trimmedTeamName}" with ${selectedStudentIds.length} selected student${selectedStudentIds.length === 1 ? "" : "s"}.`,
+    });
+  }
+
+  function resetManualForm() {
+    setTeamNameInput("");
+    setSelectedStudentIds([]);
+    setFormNotice(null);
   }
 
   return (
@@ -72,6 +124,58 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       {isWorkspaceOpen && workspace ? (
         <div className="staff-projects__manual-workspace-card" aria-label="Manual allocation workspace">
           <h4 className="staff-projects__manual-workspace-title">Manual allocation workspace</h4>
+          <div className="staff-projects__manual-selection-toolbar">
+            <span className="staff-projects__badge">{selectedStudentIds.length} selected</span>
+            <div className="staff-projects__manual-selection-actions">
+              <button
+                type="button"
+                className="staff-projects__allocation-btn"
+                onClick={selectAllAvailableStudents}
+                disabled={availableStudentIds.length === 0}
+              >
+                Select all available
+              </button>
+              <button
+                type="button"
+                className="staff-projects__allocation-btn"
+                onClick={clearSelectedStudents}
+                disabled={selectedStudentIds.length === 0}
+              >
+                Clear selection
+              </button>
+            </div>
+          </div>
+
+          <form className="staff-projects__manual-create-form" onSubmit={handlePrepareTeamSubmit}>
+            <label className="staff-projects__manual-create-field">
+              Team name
+              <input
+                type="text"
+                value={teamNameInput}
+                onChange={(event) => {
+                  setTeamNameInput(event.target.value);
+                  setFormNotice(null);
+                }}
+                placeholder="e.g. Team Gamma"
+                aria-label="Manual team name"
+              />
+            </label>
+            <div className="staff-projects__manual-create-actions">
+              <button type="submit" className="staff-projects__allocation-btn">
+                Create team
+              </button>
+              <button type="button" className="staff-projects__allocation-btn" onClick={resetManualForm}>
+                Reset form
+              </button>
+            </div>
+          </form>
+
+          {formNotice ? (
+            <p className={formNotice.type === "error" ? "staff-projects__allocation-error" : "staff-projects__allocation-success"}>
+              {formNotice.text}
+            </p>
+          ) : null}
+
           {workspace.students.length === 0 ? (
             <p className="staff-projects__card-sub">No students found in this module.</p>
           ) : (
@@ -95,6 +199,19 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                     {student.currentTeam ? (
                       <p className="staff-projects__manual-student-team">Team: {student.currentTeam.teamName}</p>
                     ) : null}
+                    <button
+                      type="button"
+                      className={
+                        selectedStudentIds.includes(student.id)
+                          ? "staff-projects__manual-select-btn staff-projects__manual-select-btn--active"
+                          : "staff-projects__manual-select-btn"
+                      }
+                      onClick={() => toggleStudentSelection(student.id)}
+                      disabled={student.status !== "AVAILABLE"}
+                      aria-pressed={selectedStudentIds.includes(student.id)}
+                    >
+                      {selectedStudentIds.includes(student.id) ? "Selected" : "Select"}
+                    </button>
                   </div>
                 </article>
               ))}
