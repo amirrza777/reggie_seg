@@ -1,0 +1,215 @@
+.github-project-repos-status {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.github-project-repos-status--info {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.github-project-repos-status--error {
+  border-color: color-mix(in srgb, #ef4444 35%, var(--border));
+  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+}
+
+.github-project-repos-status__text {
+  margin: 0;
+}
+
+.github-project-repos-tabs {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
+  padding: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.github-project-repos-tabs__row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.github-project-repos-tabs__btn {
+  border-radius: 10px;
+  min-height: 38px;
+  padding-inline: 12px;
+}
+
+.github-project-repos-tabs__btn.is-active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.github-repos-tab {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.github-repos-tab__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.github-repos-tab__title {
+  display: grid;
+  gap: 4px;
+}
+
+.github-repos-tab__kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.github-repos-tab__heading {
+  margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+}
+
+.github-repos-tab__list {
+  margin-top: 10px;
+}
+
+.github-repos-tab__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.github-repos-tab__helper {
+  margin-top: 10px;
+}
+
+.github-repos-tab__subpanel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+  margin-top: 12px;
+}
+
+.github-repos-tab__subpanel .github-repos-tab__header {
+  margin-bottom: 10px;
+}
+
+.github-repos-tab__subpanel .github-repos-tab__helper {
+  margin: 0;
+}
+
+.github-repos-tab__summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.github-repos-tab__summary-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+}
+
+.github-repos-tab__summary-card--accent {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.github-repos-tab__summary-label {
+  margin: 0;
+  font-size: 12px;
+}
+
+.github-repos-tab__summary-value {
+  margin: 4px 0 0;
+  font-weight: 700;
+}
+
+.github-repos-tab__summary-value--lg {
+  font-size: 18px;
+}
+
+.github-repos-tab__summary-coverage {
+  margin-top: 8px;
+}
+
+.github-repos-tab__table-wrap {
+  margin-top: 10px;
+}
+
+.github-repos-tab__commit-cell {
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 94%, white 6%);
+}
+
+.github-repos-tab__commit-link {
+  color: var(--ink);
+}
+
+.github-repos-tab__commit-meta-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.github-repos-tab__commit-meta {
+  font-size: 12px;
+}
+
+.github-repos-tab__merge-chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface);
+}
+
+.github-repos-tab__pager {
+  margin-top: 10px;
+}
+
+.github-repos-tab__pager-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.github-repos-tab__select-wrap {
+  margin-top: 12px;
+}
+
+.github-repos-tab__link-controls {
+  margin-bottom: 14px;
+}
+
+.github-repos-tab__select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: var(--surface);
+  color: var(--ink);
+}

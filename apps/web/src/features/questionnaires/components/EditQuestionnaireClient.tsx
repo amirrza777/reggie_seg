@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/shared/ui/Button";
+import { FormField } from "@/shared/ui/FormField";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
@@ -13,49 +15,6 @@ import {
   CancelQuestionnaireButton,
   QuestionnaireVisibilityButtons,
 } from "./SharedQuestionnaireButtons";
-
-const styles = {
-  page: { padding: 32, maxWidth: 900 },
-  hint: { opacity: 0.75 },
-  input: {
-    width: "100%",
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid var(--border)",
-    background: "var(--glass-surface)",
-    color: "var(--ink)",
-    WebkitTextFillColor: "var(--ink)",
-    outline: "none",
-  } as React.CSSProperties,
-  card: {
-    marginTop: 20,
-    padding: 16,
-    border: "1px solid var(--border)",
-    borderRadius: 14,
-    background: "var(--surface)",
-    boxShadow: "var(--shadow-sm)",
-  } as React.CSSProperties,
-  row: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" } as React.CSSProperties,
-  btnRow: { marginTop: 16, display: "flex", gap: 8, alignItems: "center" } as React.CSSProperties,
-  btn: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid var(--border)",
-    background: "var(--glass-hover)",
-    color: "var(--ink)",
-    cursor: "pointer",
-  } as React.CSSProperties,
-  btnPrimary: {
-    padding: "10px 12px",
-    borderRadius: 12,
-    border: "1px solid var(--btn-primary-border)",
-    background: "var(--btn-primary-bg)",
-    color: "var(--btn-primary-text)",
-    cursor: "pointer",
-  } as React.CSSProperties,
-  errors: { marginTop: 12, color: "var(--accent-warm)", fontSize: 14 } as React.CSSProperties,
-  small: { fontSize: 12, opacity: 0.75 } as React.CSSProperties,
-};
 
 export default function EditQuestionnairePage() {
   const { id } = useParams<{ id: string }>();
@@ -74,10 +33,8 @@ export default function EditQuestionnairePage() {
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-
   useEffect(() => {
     if (Number.isNaN(templateId)) return;
-
 
     const load = async () => {
       try {
@@ -138,6 +95,7 @@ export default function EditQuestionnairePage() {
     }
 
     setQuestions((qs) => [...qs, q]);
+    setHasUnsavedChanges(true);
   };
 
   const validationErrors = useMemo(() => {
@@ -212,7 +170,6 @@ export default function EditQuestionnairePage() {
       });
 
       setHasUnsavedChanges(false);
-
       router.back();
     } catch (err) {
       console.error(err);
@@ -222,39 +179,35 @@ export default function EditQuestionnairePage() {
     }
   };
 
-  if (Number.isNaN(templateId)) return <p style={{ padding: 32 }}>Invalid questionnaire ID</p>;
-  if (!loaded) return <p style={{ padding: 32 }}>Loading…</p>;
+  if (Number.isNaN(templateId)) return <p className="ui-note ui-note--muted ui-page">Invalid questionnaire ID</p>;
+  if (!loaded) return <p className="ui-note ui-note--muted ui-page">Loading…</p>;
+
   if (!canEdit && !isUseMode && !isCopyMode) {
     return (
-      <div style={{ padding: 32 }}>
-        <p style={{ marginBottom: 12 }}>You do not have permission to edit this questionnaire.</p>
-        <button
-          className="btn"
-          style={styles.btn}
-          onClick={() => router.back()}
-        >
+      <div className="ui-page">
+        <p className="ui-note ui-note--muted">You do not have permission to edit this questionnaire.</p>
+        <Button type="button" variant="quiet" onClick={() => router.back()}>
           Back
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <h1 style={{ marginBottom: 6 }}>Edit questionnaire</h1>
-      <p style={styles.hint}>{preview ? "Student preview (not saved)" : "Editor mode"}</p>
-
+    <div className="questionnaire-editor">
+      <h1>Edit questionnaire</h1>
+      <p className="questionnaire-editor__hint">{preview ? "Student preview (not saved)" : "Editor mode"}</p>
 
       {!preview ? (
         <>
-          <input
+          <FormField
+            subtle
             placeholder="Questionnaire name"
             value={templateName}
             onChange={(e) => {
               setTemplateName(e.target.value);
               setHasUnsavedChanges(true);
             }}
-            style={styles.input}
           />
           <QuestionnaireVisibilityButtons
             isPublic={isPublic}
@@ -264,30 +217,26 @@ export default function EditQuestionnairePage() {
             }}
           />
         </>
-      )
-        : (<h2 style={{ marginBottom: 10 }}>{templateName ? templateName : "Please name your questionnaire"}</h2>)}
+      ) : (
+        <h2>{templateName ? templateName : "Please name your questionnaire"}</h2>
+      )}
 
-      <div style={styles.btnRow}>
-        <button style={styles.btn} onClick={() => setPreview((p) => !p)}>
+      <div className="questionnaire-editor__actions">
+        <Button type="button" variant="quiet" onClick={() => setPreview((p) => !p)}>
           {preview ? "Back to editor" : "Student preview"}
-        </button>
+        </Button>
 
         {!preview && (
           <>
-            <button
-              style={{
-                ...styles.btnPrimary,
-                opacity: !isValid || saving ? 0.6 : 1,
-                cursor: !isValid || saving ? "not-allowed" : "pointer",
-              }}
+            <Button
+              type="button"
               onClick={saveTemplate}
               disabled={!isValid || saving}
             >
               {saving ? "Saving..." : "Save changes"}
-            </button>
+            </Button>
 
             <CancelQuestionnaireButton
-              style={styles.btn}
               onCancel={() => router.back()}
               confirmWhen={hasUnsavedChanges}
             />
@@ -295,9 +244,8 @@ export default function EditQuestionnairePage() {
         )}
       </div>
 
-
       {!preview && !isValid && (
-        <ul style={styles.errors}>
+        <ul className="questionnaire-editor__errors">
           {validationErrors.map((e, i) => (
             <li key={i}>{e}</li>
           ))}
@@ -305,19 +253,16 @@ export default function EditQuestionnairePage() {
       )}
 
       {questions.map((q, i) => (
-        <div key={q.uiId} style={styles.card}>
-          {!preview && (
-            <div style={{ marginBottom: 12, opacity: 0.6 }}>
-              {q.type}
-            </div>
-          )}
-          <div style={styles.row}>
-            <strong>
-              {i + 1}.
-            </strong>
+        <article key={q.uiId} className="questionnaire-editor__question">
+          {!preview && <div className="questionnaire-editor__question-type">{q.type}</div>}
 
-            {!preview && (
-              <input
+          <div className="questionnaire-editor__question-row">
+            <strong>{i + 1}.</strong>
+
+            {!preview ? (
+              <FormField
+                subtle
+                className="questionnaire-editor__question-main"
                 placeholder="Enter your question"
                 value={q.label}
                 onChange={(e) => {
@@ -325,75 +270,68 @@ export default function EditQuestionnairePage() {
                     qs.map((x) => (x.uiId === q.uiId ? { ...x, label: e.target.value } : x))
                   );
                   setHasUnsavedChanges(true);
-                }
-                }
-                style={{ ...styles.input }}
-              />)}
+                }}
+              />
+            ) : (
+              <div className="questionnaire-editor__question-main">
+                <strong>{q.label || "Untitled question"}</strong>
+              </div>
+            )}
 
-
-            {!preview ? (
-              <button
-                style={styles.btn}
-                onClick={() => setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId))}
+            {!preview && (
+              <Button
+                type="button"
+                size="sm"
+                variant="quiet"
+                onClick={() => {
+                  setQuestions((qs) => qs.filter((x) => x.uiId !== q.uiId));
+                  setHasUnsavedChanges(true);
+                }}
               >
                 Remove
-              </button>
-            ) : (<div style={{ flex: 1 }}>
-              <strong>
-                {q.label || "Untitled question"}
-              </strong>
-            </div>)
-
-            }
+              </Button>
+            )}
           </div>
 
           {preview ? (
             <>
-
-
               {q.type === "slider" && (q.configs as SliderConfigs | undefined)?.helperText && (
-                <p style={{ marginTop: 6 }}>
+                <p className="questionnaire-editor__helper">
                   {(q.configs as SliderConfigs).helperText}
                 </p>
               )}
 
               {q.type === "text" && (
-                <input
-                  style={{ ...styles.input, marginTop: 10 }}
-                  value={answers[q.uiId] || ""}
-                  onChange={(e) => {
-                    setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }));
-                    setHasUnsavedChanges(true);
-                  }}
+                <FormField
+                  subtle
+                  value={String(answers[q.uiId] ?? "")}
+                  onChange={(e) => setAnswers((a) => ({ ...a, [q.uiId]: e.target.value }))}
                 />
               )}
 
-              {q.type === "multiple-choice" &&
-                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
-                  <label key={o} style={{ display: "block", marginTop: 8 }}>
-                    <input
-                      type="radio"
-                      checked={answers[q.uiId] === o}
-                      onChange={() => {
-                        setAnswers((a) => ({ ...a, [q.uiId]: o }));
-                        setHasUnsavedChanges(true);
-                      }}
-                    />{" "}
-                    {o}
-                  </label>
-                ))}
+              {q.type === "multiple-choice" && (
+                <div className="questionnaire-editor__choices">
+                  {((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string) => (
+                    <label key={o}>
+                      <input
+                        type="radio"
+                        checked={answers[q.uiId] === o}
+                        onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: o }))}
+                      />{" "}
+                      {o}
+                    </label>
+                  ))}
+                </div>
+              )}
 
               {q.type === "rating" && (
-                <div style={{ display: "flex", gap: 14, marginTop: 10, flexWrap: "wrap" }}>
+                <div className="questionnaire-editor__radio-grid">
                   {Array.from({ length: 10 }, (_, n) => n + 1).map((n) => (
-                    <label key={n} style={{ fontSize: 12 }}>
+                    <label key={n} className="questionnaire-editor__radio-option">
                       <input
                         type="radio"
                         checked={answers[q.uiId] === n}
-                        onChange={() => {
-                          setAnswers((a) => ({ ...a, [q.uiId]: n }));
-                          setHasUnsavedChanges(true);
-                        }}
+                        onChange={() => setAnswers((a) => ({ ...a, [q.uiId]: n }))}
                       />{" "}
                       {n}
                     </label>
@@ -403,36 +341,34 @@ export default function EditQuestionnairePage() {
 
               {q.type === "slider" && (
                 <>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, ...styles.small }}>
+                  <div className="questionnaire-editor__slider-meta">
                     <span>{(q.configs as SliderConfigs | undefined)?.left}</span>
                     <span>{(q.configs as SliderConfigs | undefined)?.right}</span>
                   </div>
 
                   <input
+                    className="questionnaire-editor__range"
                     type="range"
                     min={(q.configs as SliderConfigs | undefined)?.min}
                     max={(q.configs as SliderConfigs | undefined)?.max}
                     step={(q.configs as SliderConfigs | undefined)?.step}
-                    value={answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
+                    value={Number(answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0)}
                     onChange={(e) => {
                       setAnswers((a) => ({ ...a, [q.uiId]: Number(e.target.value) }));
-                      setHasUnsavedChanges(true);
                     }}
-                    style={{ width: "100%", marginTop: 8 }}
                   />
 
-                  <div style={styles.small}>
+                  <p className="questionnaire-editor__helper">
                     Selected: {answers[q.uiId] ?? (q.configs as SliderConfigs | undefined)?.min ?? 0}
-                  </div>
+                  </p>
                 </>
               )}
             </>
           ) : (
             <>
-
-
               {q.type === "slider" && (
-                <input
+                <FormField
+                  subtle
                   placeholder="Helper text shown to students"
                   value={(q.configs as SliderConfigs | undefined)?.helperText ?? ""}
                   onChange={(e) => {
@@ -442,111 +378,116 @@ export default function EditQuestionnairePage() {
                           ? { ...x, configs: { ...x.configs, helperText: e.target.value } }
                           : x
                       )
-
                     );
                     setHasUnsavedChanges(true);
-                  }
-                  }
-                  style={{ ...styles.input, marginTop: 8, opacity: 0.9 }}
+                  }}
                 />
               )}
 
-              {q.type === "multiple-choice" &&
-                ((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
-                  <div key={idx} style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                    <input
-                      value={o}
-                      onChange={(e) => {
-                        setQuestions((qs) =>
-                          qs.map((x) =>
-                            x.uiId === q.uiId
-                              ? {
-                                ...x,
-                                configs: {
-                                  ...x.configs,
-                                  options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
-                                    i === idx ? e.target.value : opt
-                                  ),
-                                },
-                              }
-                              : x
-                          )
-                        );
-                        setHasUnsavedChanges(true);
-                      }
-                      }
-                      style={{ ...styles.input, flex: 1 }}
-                    />
+              {q.type === "multiple-choice" && (
+                <div className="questionnaire-editor__choices">
+                  {((q.configs as MultipleChoiceConfigs | undefined)?.options ?? []).map((o: string, idx: number) => (
+                    <div key={idx} className="questionnaire-editor__choice-row">
+                      <FormField
+                        subtle
+                        value={o}
+                        onChange={(e) => {
+                          setQuestions((qs) =>
+                            qs.map((x) =>
+                              x.uiId === q.uiId
+                                ? {
+                                    ...x,
+                                    configs: {
+                                      ...x.configs,
+                                      options: (x.configs as MultipleChoiceConfigs).options.map((opt: string, i: number) =>
+                                        i === idx ? e.target.value : opt
+                                      ),
+                                    },
+                                  }
+                                : x
+                            )
+                          );
+                          setHasUnsavedChanges(true);
+                        }}
+                      />
 
-                    <button
-                      style={styles.btn}
-                      onClick={() =>
-                        setQuestions((qs) =>
-                          qs.map((x) =>
-                            x.uiId === q.uiId
-                              ? {
-                                ...x,
-                                configs: {
-                                  ...x.configs,
-                                  options: (x.configs as MultipleChoiceConfigs).options.filter(
-                                    (_: string, i: number) => i !== idx
-                                  ),
-                                },
-                              }
-                              : x
-                          )
-                        )
-                      }
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="quiet"
+                        onClick={() => {
+                          setQuestions((qs) =>
+                            qs.map((x) =>
+                              x.uiId === q.uiId
+                                ? {
+                                    ...x,
+                                    configs: {
+                                      ...x.configs,
+                                      options: (x.configs as MultipleChoiceConfigs).options.filter(
+                                        (_: string, i: number) => i !== idx
+                                      ),
+                                    },
+                                  }
+                                : x
+                            )
+                          );
+                          setHasUnsavedChanges(true);
+                        }}
+                      >
+                        Remove
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {q.type === "multiple-choice" && (
-                <button
-                  style={{ ...styles.btn, marginTop: 10 }}
-                  onClick={() =>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="quiet"
+                  onClick={() => {
                     setQuestions((qs) =>
                       qs.map((x) =>
                         x.uiId === q.uiId
                           ? {
-                            ...x,
-                            configs: {
-                              ...x.configs,
-                              options: [
-                                ...((x.configs as MultipleChoiceConfigs).options ?? []),
-                                "New option",
-                              ],
-                            },
-                          }
+                              ...x,
+                              configs: {
+                                ...x.configs,
+                                options: [
+                                  ...((x.configs as MultipleChoiceConfigs).options ?? []),
+                                  "New option",
+                                ],
+                              },
+                            }
                           : x
                       )
-                    )
-                  }
+                    );
+                    setHasUnsavedChanges(true);
+                  }}
                 >
                   Add option
-                </button>
+                </Button>
               )}
             </>
           )}
-        </div>
+        </article>
       ))}
 
       {!preview && (
-        <div style={{ marginTop: 20, display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <button style={styles.btn} onClick={() => addQuestion("text")}>
+        <div className="questionnaire-editor__add-row">
+          <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
             Add text
-          </button>
-          <button style={styles.btn} onClick={() => addQuestion("multiple-choice")}>
+          </Button>
+          <Button type="button" variant="quiet" onClick={() => addQuestion("multiple-choice")}>
             Add multiple choice
-          </button>
-          <button style={styles.btn} onClick={() => addQuestion("rating")}>
+          </Button>
+          <Button type="button" variant="quiet" onClick={() => addQuestion("rating")}>
             Add rating
-          </button>
-          <button style={styles.btn} onClick={() => addQuestion("slider")}>
+          </Button>
+          <Button type="button" variant="quiet" onClick={() => addQuestion("slider")}>
             Add slider
-          </button>
+          </Button>
         </div>
       )}
     </div>

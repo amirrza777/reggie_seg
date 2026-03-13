@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { ResetPasswordForm } from "@/features/auth/components/ResetPasswordForm";
 
@@ -12,7 +13,7 @@ const AuthHeader = () => (
   </div>
 );
 
-export default function ResetPasswordPage() {
+function ResetPasswordContent() {
   const searchParams = useSearchParams();
   const rawToken = searchParams.get("token");
   const tokenMatch = rawToken?.match(/[a-f0-9]{64}/i);
@@ -23,5 +24,13 @@ export default function ResetPasswordPage() {
       <AuthHeader />
       <ResetPasswordForm token={token} />
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={null}>
+      <ResetPasswordContent />
+    </Suspense>
   );
 }

@@ -25,7 +25,26 @@ export function ProjectList({ projects }: ProjectListProps) {
             className="project-card card"
           >
             <div className="project-card__header">
-              <h2 className="project-card__title">{project.name}</h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 className="project-card__title">{project.name}</h2>
+                {project.archivedAt && (
+                  <span style={{
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    padding: "2px 8px",
+                    borderRadius: 999,
+                    background: "var(--border)",
+                    color: "var(--muted)",
+                    letterSpacing: "0.03em",
+                    whiteSpace: "nowrap",
+                  }}>
+                    Archived
+                  </span>
+                )}
+              </div>
+              <p className="project-card__module">
+                Module: {project.moduleName || "Module not assigned"}
+              </p>
             </div>
             {project.summary && (
               <p className="project-card__summary">{project.summary}</p>

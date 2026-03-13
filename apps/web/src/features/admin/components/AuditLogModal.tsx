@@ -60,7 +60,7 @@ function toCsv(logs: AuditLogEntry[]) {
     entry.ip ?? "",
     (entry.userAgent ?? "").replace(/\\s+/g, " "),
   ]);
-  return [header, ...rows].map((row) => row.map((v) => `"${String(v).replace(/\"/g, '""')}"`).join(",")).join("\\n");
+  return [header, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\\n");
 }
 
 export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -90,7 +90,12 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   }, [open, activeRange.from, activeRange.to]);
 
   useEffect(() => {
-    fetchLogs();
+    const timeoutId = window.setTimeout(() => {
+      void fetchLogs();
+    }, 0);
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [fetchLogs]);
 
   const downloadCsv = () => {
@@ -107,23 +112,23 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   if (!open) return null;
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title">
-      <div className="modal__dialog admin-modal" style={{ width: "min(980px, 100%)" }}>
-        <div className="modal__header" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-          <div className="stack" style={{ gap: 6 }}>
-            <h3 id="audit-log-title" style={{ margin: 0 }}>
+    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title" onClick={onClose}>
+      <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
+        <div className="modal__header ui-modal-header">
+          <div className="ui-stack-sm">
+            <h3 id="audit-log-title">
               Audit log
             </h3>
-            <p className="muted" style={{ margin: 0 }}>
+            <p className="muted">
               Login and logout events filtered by time range.
             </p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="ui-row ui-row--wrap">
             <Button type="button" variant="ghost" onClick={downloadCsv} disabled={!logs.length}>
               Download CSV
             </Button>
-            <Button type="button" variant="ghost" onClick={onClose}>
-              Close
+            <Button type="button" variant="ghost" className="modal__close-btn" aria-label="Close" onClick={onClose}>
+              ×
             </Button>
           </div>
         </div>
@@ -148,22 +153,12 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                 );
               })}
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={fetchLogs}
-              disabled={status === "loading"}
-            >
-              {status === "loading" ? "Loading..." : "Refresh"}
-            </Button>
           </div>
 
           {message ? (
             <div
               className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-              style={{ padding: "10px 12px" }}
             >
-              <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
               <span>{message}</span>
             </div>
           ) : null}
@@ -179,7 +174,7 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
             <div className="audit-modal__rows">
               {logs.length === 0 ? (
                 <div className="table__row audit-modal__row">
-                  <div className="muted" style={{ gridColumn: "1 / -1" }}>
+                  <div className="muted admin-modal__full-span">
                     No events in this range.
                   </div>
                 </div>
@@ -188,29 +183,29 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                   const createdAt = new Date(entry.createdAt);
                   return (
                     <div key={entry.id} className="table__row audit-modal__row">
-                      <div className="stack" style={{ gap: 4 }}>
+                      <div className="ui-stack-xs">
                         <strong>{formatRelative(createdAt)}</strong>
                         <span className="muted">{formatAbsolute(createdAt)}</span>
                       </div>
-                      <div className="stack" style={{ gap: 4 }}>
+                      <div className="ui-stack-xs">
                         <strong>{`${entry.user.firstName} ${entry.user.lastName}`}</strong>
                         <span className="muted">{entry.user.role}</span>
-                        <span className="muted" style={{ fontSize: "0.95rem" }}>
+                        <span className="ui-note ui-note--muted">
                           {entry.user.email}
                         </span>
                       </div>
-                      <div className="stack" style={{ gap: 6 }}>
+                      <div className="ui-stack-sm">
                         <span className={`audit-badge audit-badge--${entry.action.toLowerCase()}`}>
                           {entry.action}
                         </span>
                       </div>
-                      <div className="stack" style={{ gap: 6 }}>
-                        <span style={{ fontWeight: 600 }}>{entry.ip ?? "—"}</span>
-                        <span className="muted" style={{ whiteSpace: "pre-wrap", fontSize: "0.95rem" }}>
+                      <div className="ui-stack-sm">
+                        <strong>{entry.ip ?? "—"}</strong>
+                        <span className="muted audit-modal__agent">
                           {entry.userAgent ?? "—"}
                         </span>
                       </div>
-                      <div className="stack" style={{ gap: 4 }}>
+                      <div className="ui-stack-xs">
                         <span className="muted">Login/logout record</span>
                       </div>
                     </div>

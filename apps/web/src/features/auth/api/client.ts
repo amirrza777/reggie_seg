@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/shared/api/http";
-import type { AuthResponse, LoginCredentials, UserProfile } from "../types";
+import type { AuthResponse, LoginCredentials, SignupPayload, UserProfile } from "../types";
 import { setAccessToken, clearAccessToken } from "./session";
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
@@ -13,13 +13,7 @@ export async function login(credentials: LoginCredentials): Promise<AuthResponse
   return res;
 }
 
-export async function signup(payload: {
-  email: string;
-  password: string;
-  firstName?: string;
-  lastName?: string;
-  role?: "STUDENT" | "STAFF";
-}) {
+export async function signup(payload: SignupPayload) {
   const res = await apiFetch<AuthResponse>("/auth/signup", {
     method: "POST",
     auth: false,

@@ -5,11 +5,12 @@
   "main": "index.js",
   "scripts": {
     "predev": "prisma generate",
-    "prestart": "prisma generate",
+    "prestart": "prisma generate && prisma migrate deploy",
+    "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "dev": "tsx watch src/index.ts",
+    "dev": "tsx --watch src/index.ts",
     "db:seed": "prisma generate && tsx prisma/seed/seed.ts",
     "db:unseed": "tsx prisma/seed/unseed.ts"
   },
@@ -17,7 +18,8 @@
   "author": "",
   "license": "ISC",
   "overrides": {
-    "@jridgewell/sourcemap-codec": "1.4.15"
+    "@jridgewell/sourcemap-codec": "1.4.15",
+    "fast-check": "3.23.1"
   },
   "type": "module",
   "dependencies": {
@@ -29,26 +31,31 @@
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^6.9.15",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.1",
     "passport": "^0.7.0",
-    "passport-google-oauth20": "^2.0.0"
+    "passport-google-oauth20": "^2.0.0",
+    "prisma": "^6.19.2",
+    "tsx": "^4.21.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
+    "@types/node-cron": "^3.0.11",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.0.9",
     "@types/passport": "^1.0.17",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^2.1.2",
-    "prisma": "^6.19.2",
     "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
-    "vitest": "^2.1.2"
+    "vitest": "^2.1.9"
   },
   "prisma": {
     "seed": "tsx prisma/seed/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "argon2", "esbuild", "prisma"]
   }
 }

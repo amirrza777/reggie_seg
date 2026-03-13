@@ -1,7 +1,15 @@
-import { getProject, getProjectDeadline , getTeamByUserAndProject} from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getProjectMarking,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { formatDateTime } from "@/shared/lib/dateFormatter";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { getCurrentUser } from "@/shared/auth/session";
+import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
+import Link from "next/link";
+import type { ProjectDeadline } from "@/features/projects/types";
+import type { ProjectMarkingSummary } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -9,32 +17,68 @@ type ProjectPageProps = {
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  
-  const flagMap = await getFeatureFlagMap();
-  
-  const project = await getProject(projectId);
-  const deadline = await getProjectDeadline(4, Number(projectId));
-  const team = await getTeamByUserAndProject(4, Number(projectId)); 
-  
-  return (
-    <div className="stack">
-      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
-      <div style={{ padding: "20px" }}>
-        <h1>{project?.name || "Project"}</h1>
-        <p style={{ color: "#666", marginTop: "8px" }}>
-          Team Name : {team.teamName}
-          <br />
-          Project deadline: {formatDateTime(deadline.taskDueDate)}
-          <br />
-          Assessment opening: {formatDateTime(deadline.assessmentOpenDate)}
-          <br />
-          Assessment deadline: {formatDateTime(deadline.assessmentDueDate)}
-          <br />
-          Feedback opening: {formatDateTime(deadline.feedbackOpenDate)}
-          <br />
-          Feedback deadline: {formatDateTime(deadline.feedbackDueDate)}
-        </p>
+  const numericProjectId = Number(projectId);
+  const user = await getCurrentUser();
+
+  if (!user) {
+    return (
+      <div className="stack stack--tabbed" style={{ gap: 16 }}>
+        <ProjectNav projectId={projectId} />
+        <div style={{ padding: 24 }}>
+          <p>Please sign in to view this project.</p>
+          <Link href="/login">Go to login</Link>
+        </div>
       </div>
+    );
+  }
+
+  let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
+  try {
+    team = await getTeamByUserAndProject(user.id, numericProjectId);
+  } catch {
+    team = null;
+  }
+
+  if (!team) {
+    return (
+      <div className="stack stack--tabbed" style={{ gap: 16 }}>
+        <ProjectNav projectId={projectId} />
+        <div style={{ padding: 24 }}>
+          <p>You are not in a team for this project.</p>
+          <Link href="/projects">← Back to projects</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const project = await getProject(projectId);
+
+  let deadline: ProjectDeadline = {
+    taskOpenDate: null,
+    taskDueDate: null,
+    assessmentOpenDate: null,
+    assessmentDueDate: null,
+    feedbackOpenDate: null,
+    feedbackDueDate: null,
+    isOverridden: false,
+  };
+  try {
+    deadline = await getProjectDeadline(user.id, numericProjectId);
+  } catch {
+    // Keep default empty deadline object if API is unavailable.
+  }
+
+  let marking: ProjectMarkingSummary | null = null;
+  try {
+    marking = await getProjectMarking(user.id, numericProjectId);
+  } catch {
+    marking = null;
+  }
+
+  return (
+    <div className="stack stack--tabbed" style={{ gap: 16 }}>
+      <ProjectNav projectId={projectId} />
+      <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} />
     </div>
   );
 }

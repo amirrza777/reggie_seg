@@ -1,17 +1,19 @@
 import { API_BASE_URL } from "./env";
-import { getAccessToken } from "@/features/auth/api/session";
+import { clearAccessToken, getAccessToken, setAccessToken } from "@/features/auth/api/session";
 import { ApiError } from "./errors";
 
 type FetchOptions = RequestInit & {
   parse?: "json" | "text";
   auth?: boolean;
   baseUrl?: string;
+  retryOn401?: boolean;
 };
 
 export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {}): Promise<T> {
-  const { parse = "json", headers, auth = true, baseUrl, ...rest } = init;
+  const { parse = "json", headers, auth = true, baseUrl, retryOn401 = true, ...rest } = init;
   const token = auth ? getAccessToken() : null;
-  const res = await fetch(`${baseUrl ?? API_BASE_URL}${path}`, {
+  const requestUrl = `${baseUrl ?? API_BASE_URL}${path}`;
+  const res = await fetch(requestUrl, {
     ...rest,
     credentials: "include",
     headers: {
@@ -20,6 +22,19 @@ export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {
       ...headers,
     },
   });
+
+  if (
+    res.status === 401 &&
+    auth &&
+    retryOn401 &&
+    path !== "/auth/refresh" &&
+    !path.startsWith("/auth/")
+  ) {
+    const refreshedToken = await tryRefreshAccessToken(baseUrl);
+    if (refreshedToken) {
+      return apiFetch<T>(path, { ...init, retryOn401: false });
+    }
+  }
 
   if (!res.ok) {
     const text = await res.text();
@@ -35,4 +50,41 @@ export async function apiFetch<T = unknown>(path: string, init: FetchOptions = {
 
   if (parse === "text") return (await res.text()) as T;
   return (await res.json()) as T;
+}
+
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function tryRefreshAccessToken(baseUrl?: string): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  const refreshUrl = `${baseUrl ?? API_BASE_URL}/auth/refresh`;
+  refreshInFlight = (async () => {
+    try {
+      const refreshRes = await fetch(refreshUrl, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!refreshRes.ok) {
+        clearAccessToken();
+        return null;
+      }
+
+      const data = (await refreshRes.json()) as { accessToken?: string };
+      if (!data.accessToken) {
+        clearAccessToken();
+        return null;
+      }
+
+      setAccessToken(data.accessToken);
+      return data.accessToken;
+    } catch {
+      clearAccessToken();
+      return null;
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
 }

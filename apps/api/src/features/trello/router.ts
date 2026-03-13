@@ -1,0 +1,23 @@
+import { Router } from "express"
+import { TrelloController } from "./controller.js"
+import { requireAuth } from "../../auth/middleware.js"
+
+const router = Router()
+
+router.get("/link-token", requireAuth, TrelloController.getLinkToken)
+router.get("/me-member", requireAuth, TrelloController.getMyTrelloMemberId)
+router.get("/me-profile", requireAuth, TrelloController.getMyTrelloProfile)
+router.post("/callback-with-link-token", TrelloController.callbackWithLinkToken)
+
+router.post("/assign", requireAuth, TrelloController.assignBoardToTeam)
+router.get("/team-board", requireAuth, TrelloController.fetchAssignedTeamBoard)
+router.put("/team-section-config", requireAuth, TrelloController.putTrelloSectionConfig)
+router.get("/boards", requireAuth, TrelloController.fetchMyBoards)
+router.get("/boards/:boardId", requireAuth, TrelloController.fetchBoardById)
+
+router.get("/connect-url", requireAuth, TrelloController.getConnectUrl)
+router.get("/connect", requireAuth, TrelloController.connect)
+router.post("/callback", requireAuth, TrelloController.callback)
+router.get("/callback", TrelloController.callbackGetUnsupported)
+
+export default router

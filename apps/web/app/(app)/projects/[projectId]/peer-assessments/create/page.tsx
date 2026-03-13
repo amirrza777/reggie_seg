@@ -8,8 +8,8 @@ import { ApiError } from "@/shared/api/errors";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type CreatePageProps = {
-  params: { projectId: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export default async function CreateAssessmentPage({ params, searchParams }: CreatePageProps) {
@@ -41,7 +41,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const questions = await getQuestionsByProject(String(projectId));
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
         <h2>Create Peer Assessment</h2>

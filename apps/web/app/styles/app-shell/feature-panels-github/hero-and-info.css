@@ -1,0 +1,192 @@
+.github-hero {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
+    linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%), var(--surface));
+  padding: var(--space-panel-content-inset);
+  box-shadow: var(--shadow-sm);
+}
+
+.github-hero__top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.github-hero__eyebrow {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.github-hero__title {
+  color: var(--ink);
+}
+
+.github-hero__blurb {
+  max-width: 760px;
+}
+
+.github-hero__badge {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.github-hero__chips {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.github-hero__chip {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--glass-surface);
+}
+
+.github-hero__chip-label {
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.github-hero__chip-value {
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.1;
+}
+
+.github-chart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.github-chart-title__text {
+  margin: 0;
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.github-chart-title__info-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.github-chart-title__info-btn:hover,
+.github-chart-title__info-btn:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  color: var(--accent-strong);
+}
+
+.github-chart-info__overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--backdrop-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.github-chart-info__modal {
+  width: min(740px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-strong);
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.github-chart-info__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.github-chart-info__title {
+  margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+.github-chart-info__close {
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.github-chart-info__body {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.github-chart-info__block {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 12px;
+}
+
+.github-chart-info__label {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.35px;
+  color: var(--muted);
+}
+
+.github-chart-info__text {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--ink);
+}
+

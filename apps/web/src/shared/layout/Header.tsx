@@ -6,8 +6,8 @@ import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 
 const navLinks = [
-  { href: "/", label: "Product" },
-  { href: "/?section=features", label: "Features" },
+  { href: "/?section=product", label: "Product" },
+  { href: "/?section=toolkit", label: "Features" },
   { href: "/?section=resources", label: "Resources" },
   { href: "/?section=about", label: "About" },
   { href: "/?section=faq", label: "FAQ" },

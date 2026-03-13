@@ -30,7 +30,10 @@ export async function getPeerAssessment(
   return apiFetch(`/peer-assessments?${params.toString()}`);
 }
 
-export async function updatePeerAssessment(assessmentId: number, answersJson: Record<string, any>) {
+export async function updatePeerAssessment(
+  assessmentId: number,
+  answersJson: Record<string, string | number | boolean | null>
+) {
   // Convert Record to array format matching create format
   const answersArray = Object.entries(answersJson).map(([question, answer]) => ({
     question,
@@ -50,6 +53,11 @@ export async function getPeerAssessmentData(
 ) {
   const raw = await getPeerAssessment(projectId, teamId, reviewerId, revieweeId);
   return mapApiAssessmentToPeerAssessment(raw);
+}
+
+export async function getPeerAssessmentsForUser(userId: number, projectId: number) {
+  const raw = await apiFetch<any[]>(`/peer-assessments/projects/${projectId}/user/${userId}`);
+  return Array.isArray(raw) ? raw.map(mapApiAssessmentToPeerAssessment) : [];
 }
 /*
 export async function getQuestionsByAssessment(projectId: string): Promise<Question[]> {

@@ -57,8 +57,6 @@ export function AdminWorkspaceSummary() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [summaryStatus, setSummaryStatus] = useState<RequestState>("idle");
 
-  const gridTemplate = "1.3fr 1fr 1fr";
-
   const staffDirectory = useMemo(() => staff.filter(isStaffAccount), [staff]);
 
   const setStaffRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
@@ -128,9 +126,9 @@ export function AdminWorkspaceSummary() {
   return (
     <>
       <Card
-        title="Admin workspace"
+        title={<span className="overview-title">Admin workspace</span>}
         action={
-          <div style={{ display: "flex", gap: 8 }}>
+          <div className="ui-row ui-row--wrap">
             <Button type="button" onClick={() => setModalOpen(true)}>
               Invite admin
             </Button>
@@ -140,32 +138,16 @@ export function AdminWorkspaceSummary() {
           </div>
         }
       >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: 12,
-          }}
-        >
+        <div className="ui-grid-metrics">
           {[
             { label: "Users", value: summary?.users },
             { label: "Modules", value: summary?.modules },
             { label: "Teams", value: summary?.teams },
             { label: "Meetings", value: summary?.meetings },
           ].map((item) => (
-            <div
-              key={item.label}
-              className="stack"
-              style={{
-                gap: 4,
-                padding: "12px 14px",
-                borderRadius: 12,
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-              }}
-            >
+            <div key={item.label} className="ui-metric-card">
               <span className="eyebrow">{item.label}</span>
-              <strong style={{ fontSize: 22, letterSpacing: "-0.02em" }}>
+              <strong className="ui-metric-value">
                 {item.value ?? (summaryStatus === "loading" ? "…" : 0)}
               </strong>
             </div>
@@ -174,54 +156,61 @@ export function AdminWorkspaceSummary() {
       </Card>
 
       {modalOpen ? (
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="invite-admin-title">
-          <div className="modal__dialog admin-modal" style={{ width: "min(880px, 100%)" }}>
-            <div className="modal__header" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-              <div className="stack" style={{ gap: 6 }}>
-                <h3 id="invite-admin-title" style={{ margin: 0 }}>
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-admin-title"
+          onClick={() => setModalOpen(false)}
+        >
+          <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
+            <div className="modal__header ui-modal-header">
+              <div className="ui-stack-sm">
+                <h3 id="invite-admin-title">
                   Invite admin
                 </h3>
-                <p className="muted" style={{ margin: 0 }}>
+                <p className="muted">
                   Select a staff member to grant or revoke admin privileges.
                 </p>
               </div>
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                Close
+              <Button
+                type="button"
+                variant="ghost"
+                className="modal__close-btn"
+                aria-label="Close"
+                onClick={() => setModalOpen(false)}
+              >
+                ×
               </Button>
             </div>
 
             <div className="modal__body admin-modal__body">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-                <span className="muted" style={{ fontSize: "0.95rem" }}>
+              <div className="ui-toolbar">
+                <span className="ui-note ui-note--muted">
                   {status === "loading"
                     ? "Loading staff directory..."
                     : `Showing ${staffDirectory.length} staff ${staffDirectory.length === 1 ? "account" : "accounts"}.`}
                 </span>
-                <Button type="button" variant="ghost" onClick={loadStaff} disabled={status === "loading"}>
-                  {status === "loading" ? "Refreshing..." : "Refresh list"}
-                </Button>
               </div>
 
               {notice ? (
                 <div
                   className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-                  style={{ padding: "10px 12px" }}
                 >
-                  <span style={{ fontSize: 16 }}>{status === "error" ? "⚠️" : "✅"}</span>
                   <span>{notice}</span>
                 </div>
               ) : null}
 
               <div className="table admin-modal__list">
-                <div className="table__head" style={{ gridTemplateColumns: gridTemplate }}>
+                <div className="table__head admin-modal__head">
                   <div>Email</div>
                   <div>Name</div>
-                  <div style={{ textAlign: "right" }}>Actions</div>
+                  <div className="ui-inline-end">Actions</div>
                 </div>
                 <div className="admin-modal__table" role="presentation">
                   {staffDirectory.length === 0 ? (
-                    <div className="table__row" style={{ gridTemplateColumns: gridTemplate }}>
-                      <div className="muted" style={{ gridColumn: "1 / -1" }}>
+                    <div className="table__row admin-modal__row">
+                      <div className="muted admin-modal__full-span">
                         No staff accounts found. Promote a user to Staff to manage admin access here.
                       </div>
                     </div>
@@ -232,14 +221,13 @@ export function AdminWorkspaceSummary() {
                       return (
                         <div
                           key={user.id}
-                          className="table__row"
-                          style={{ gridTemplateColumns: gridTemplate, alignItems: "center" }}
+                          className="table__row admin-modal__row"
                         >
-                          <div className="stack" style={{ gap: 4 }}>
+                          <div className="ui-stack-xs">
                             <strong>{user.email}</strong>
                             <span className="muted">{isAdmin ? "Admin" : "Staff"}</span>
                           </div>
-                          <div className="stack" style={{ gap: 4 }}>
+                          <div className="ui-stack-xs">
                             <span>{`${user.firstName} ${user.lastName}`}</span>
                             <span className="muted">ID {user.id}</span>
                           </div>
@@ -250,7 +238,6 @@ export function AdminWorkspaceSummary() {
                               onClick={() => changeRole(user.id, isAdmin ? "STAFF" : "ADMIN")}
                               disabled={busy}
                               className={`admin-toggle ${isAdmin ? "admin-toggle--remove" : "admin-toggle--make"}`}
-                              style={{ minWidth: 118, fontSize: "0.98rem" }}
                             >
                               {isAdmin ? "Remove admin" : "Make admin"}
                             </Button>

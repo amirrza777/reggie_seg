@@ -1,5 +1,18 @@
-import type { Request, Response } from "express"
-import { createProject, fetchProjectById, fetchProjectsForUser , fetchProjectDeadline, fetchTeammatesForProject, fetchTeamById, fetchTeamByUserAndProject, fetchQuestionsForProject } from "./service.js"
+import type { Request, Response } from "express";
+import {
+  createProject,
+  fetchProjectById,
+  fetchProjectsForUser,
+  fetchModulesForUser,
+  fetchProjectDeadline,
+  fetchTeammatesForProject,
+  fetchTeamById,
+  fetchTeamByUserAndProject,
+  fetchQuestionsForProject,
+  fetchProjectsForStaff,
+  fetchProjectTeamsForStaff,
+  fetchProjectMarking,
+} from "./service.js";
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -19,10 +32,10 @@ export async function createProjectHandler(req: Request, res: Response) {
   try {
     const project = await createProject(name, moduleId, questionnaireTemplateId, teamIds);
     res.status(201).json(project);
-  } catch   (error) {
+  } catch (error) {
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });
-  }         
+  }
 }
 
 export async function getProjectByIdHandler(req: Request, res: Response) {
@@ -56,12 +69,29 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
     console.error("Error fetching user projects:", error);
     res.status(500).json({ error: "Failed to fetch projects" });
   }
-}               
+}
+
+export async function getUserModulesHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  const scope = req.query.scope === "staff" ? "staff" : "workspace";
+
+  try {
+    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff" });
+    res.json(modules);
+  } catch (error) {
+    console.error("Error fetching user modules:", error);
+    res.status(500).json({ error: "Failed to fetch modules" });
+  }
+}
 
 export async function getProjectDeadlineHandler(req: Request, res: Response) {
   const userId = Number(req.query.userId);
   const projectId = Number(req.params.projectId);
-  
+
   if (isNaN(userId) || isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid user ID or project ID" });
   }
@@ -129,13 +159,13 @@ export async function getTeamByUserAndProjectHandler(req: Request, res: Response
     console.error("Error fetching team:", error);
     res.status(500).json({ error: "Failed to fetch team" });
   }
-} 
+}
 
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
 
   if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" }); 
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
@@ -147,5 +177,62 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   } catch (error) {
     console.error("Error fetching questions for project:", error);
     res.status(500).json({ error: "Failed to fetch questions" });
+  }
+}
+
+export async function getStaffProjectsHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const projects = await fetchProjectsForStaff(userId);
+    res.json(projects);
+  } catch (error) {
+    console.error("Error fetching staff projects:", error);
+    res.status(500).json({ error: "Failed to fetch staff projects" });
+  }
+}
+
+export async function getStaffProjectTeamsHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  const projectId = Number(req.params.projectId);
+  if (Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const result = await fetchProjectTeamsForStaff(userId, projectId);
+    if (!result) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching staff project teams:", error);
+    res.status(500).json({ error: "Failed to fetch staff project teams" });
+  }
+}
+
+export async function getProjectMarkingHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const marking = await fetchProjectMarking(userId, projectId);
+    if (!marking) {
+      return res.status(404).json({ error: "Team not found for user in this project" });
+    }
+    res.json(marking);
+  } catch (error) {
+    console.error("Error fetching project marking:", error);
+    res.status(500).json({ error: "Failed to fetch project marking" });
   }
 }

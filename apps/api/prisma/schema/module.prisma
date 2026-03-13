@@ -2,12 +2,18 @@ model Module {
   id           Int        @id @default(autoincrement())
   enterpriseId String
   name         String
+  briefText    String?    @db.Text
+  timelineText String?    @db.Text
+  expectationsText  String?    @db.Text
+  readinessNotesText String? @db.Text
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
+  archivedAt   DateTime?
   enterprise   Enterprise @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
 
   projects    Project[]
   moduleLeads ModuleLead[]
+  moduleTeachingAssistants ModuleTeachingAssistant[]
   userModules UserModule[]
 
   @@unique([id, enterpriseId])

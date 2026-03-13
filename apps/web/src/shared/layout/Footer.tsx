@@ -6,12 +6,12 @@ const columns = [
   {
     title: "Product",
     links: [
-      { href: "/", label: "Peer assessment" },
-      { href: "/", label: "Questionnaires" },
-      { href: "/?section=meetings", label: "Meetings" },
+      { href: "/?section=product", label: "Peer assessment" },
+      { href: "/?section=toolkit", label: "Questionnaires" },
+      { href: "/?section=health", label: "Meetings" },
       { href: "/?section=integrations", label: "Integrations" },
-      { href: "/?section=roles", label: "Roles and permissions" },
-      { href: "/?section=analytics", label: "Analytics" },
+      { href: "/?section=about", label: "Roles and permissions" },
+      { href: "/?section=showcase", label: "Analytics" },
     ],
   },
   {
@@ -25,8 +25,8 @@ const columns = [
   {
     title: "Integrations",
     links: [
-      { href: "/?section=integrations", label: "GitHub" },
-      { href: "/?section=integrations", label: "Trello" },
+      { href: "/?section=sync", label: "GitHub" },
+      { href: "/?section=sync", label: "Trello" },
       { href: "/?section=integrations", label: "VLE (placeholder)" },
     ],
   },

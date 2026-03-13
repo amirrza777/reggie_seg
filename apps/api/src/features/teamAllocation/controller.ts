@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createTeamInvite,
   listTeamInvites,
   createTeam,
+  createTeamForProject,
   getTeamById,
   addUserToTeam,
   getTeamMembers,
@@ -11,6 +13,8 @@ import {
   rejectTeamInvite,
   cancelTeamInvite,
   expireTeamInvite,
+  applyRandomAllocationForProject,
+  previewRandomAllocationForProject,
 } from "./service.js";
 
 export async function createTeamInviteHandler(req: Request, res: Response) {
@@ -39,6 +43,9 @@ export async function createTeamInviteHandler(req: Request, res: Response) {
     });
     return res.json({ ok: true, inviteId: result.invite.id });
   } catch (error: any) {
+    if (error?.code === "TEAM_ARCHIVED") {
+      return res.status(409).json({ error: "This team is archived and cannot accept new invites" });
+    }
     if (error?.code === "INVITE_ALREADY_PENDING") {
       return res.status(409).json({ error: "Invite already pending" });
     }
@@ -75,6 +82,118 @@ export async function createTeamHandler(req: Request, res: Response) {
     return res.status(201).json(team);
   } catch (error) {
     console.error("Error creating team:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function createTeamForProjectHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  const projectId = Number(req.body?.projectId);
+  const teamName = typeof req.body?.teamName === "string" ? req.body.teamName.trim() : "";
+
+  if (!userId || isNaN(projectId) || !teamName) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
+
+  try {
+    const team = await createTeamForProject(userId, projectId, teamName);
+    return res.status(201).json(team);
+  } catch (error: any) {
+    if (error?.code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    console.error("Error creating team for project:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function previewRandomAllocationHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamCount = Number(req.query.teamCount);
+  const seedQuery = req.query.seed;
+  const seed = typeof seedQuery === "string" ? Number(seedQuery) : undefined;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (seed !== undefined && Number.isNaN(seed)) {
+    return res.status(400).json({ error: "seed must be a number when provided" });
+  }
+
+  try {
+    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount, { seed });
+    return res.json(preview);
+  } catch (error: any) {
+    if (error?.code === "INVALID_TEAM_COUNT") {
+      return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
+      return res.status(400).json({ error: "teamCount cannot be greater than available students" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "NO_VACANT_STUDENTS") {
+      return res.status(409).json({ error: "No vacant students are available for this project module" });
+    }
+    console.error("Error previewing random team allocation:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function applyRandomAllocationHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamCount = Number(req.body?.teamCount);
+  const rawSeed = req.body?.seed;
+  const seed = rawSeed === undefined || rawSeed === null || rawSeed === "" ? undefined : Number(rawSeed);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (seed !== undefined && Number.isNaN(seed)) {
+    return res.status(400).json({ error: "seed must be a number when provided" });
+  }
+
+  try {
+    const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, { seed });
+    return res.status(201).json(result);
+  } catch (error: any) {
+    if (error?.code === "INVALID_TEAM_COUNT") {
+      return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
+      return res.status(400).json({ error: "teamCount cannot be greater than available students" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "NO_VACANT_STUDENTS") {
+      return res.status(409).json({ error: "No vacant students are available for this project module" });
+    }
+    if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
+      return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
+    }
+    console.error("Error applying random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -162,8 +281,27 @@ async function transitionInviteHandler(
   }
 }
 
-export async function acceptTeamInviteHandler(req: Request, res: Response) {
-  return transitionInviteHandler(req, res, acceptTeamInvite, "accepting");
+export async function acceptTeamInviteHandler(req: AuthRequest, res: Response) {
+  const inviteId = typeof req.params.inviteId === "string" ? req.params.inviteId.trim() : "";
+  const userId = req.user?.sub;
+
+  if (!inviteId) {
+    return res.status(400).json({ error: "Invalid invite ID" });
+  }
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const invite = await acceptTeamInvite(inviteId, userId);
+    return res.json({ ok: true, invite });
+  } catch (error: any) {
+    if (error?.code === "INVITE_NOT_PENDING") {
+      return res.status(409).json({ error: "Invite is not pending" });
+    }
+    console.error("Error accepting team invite:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 export async function declineTeamInviteHandler(req: Request, res: Response) {

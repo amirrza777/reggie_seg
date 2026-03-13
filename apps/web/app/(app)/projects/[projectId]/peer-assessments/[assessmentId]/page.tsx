@@ -21,7 +21,7 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
         <h2>Edit Peer Assessment </h2>

@@ -1,7 +1,7 @@
 model TeamAllocation {
   teamId Int
   userId Int
-  team   Team @relation(fields: [teamId], references: [id])
+  team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   user   User @relation(fields: [userId], references: [id])
 
   @@id([teamId, userId])

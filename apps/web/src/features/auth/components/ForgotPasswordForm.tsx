@@ -30,22 +30,21 @@ export function ForgotPasswordForm() {
 
   if (status === "success") {
     return (
-      <div style={{ textAlign: "center", width: "100%" }}>
-        <div className={alertClass} style={{ padding: 16, marginBottom: 24, fontSize: 14 }}>
-          ✅ {message}
+      <div className="auth-form auth-center">
+        <div className={`${alertClass} auth-alert auth-alert--spacious`}>
+          {message}
         </div>
-        <Link href="/login" style={{ textDecoration: "none" }}>
-          <Button style={{ width: "100%" }}>Back to Log in</Button>
+        <Link href="/login" className="auth-link-reset">
+          <Button className="auth-button">Back to Log in</Button>
         </Link>
       </div>
     );
   }
 
   return (
-    <form style={{ width: "100%" }} onSubmit={handleSubmit}>
+    <form className="auth-form" onSubmit={handleSubmit}>
       {message ? (
-        <div className={alertClass} style={{ padding: "10px 12px", marginBottom: 12, fontSize: 14 }}>
-          <span>⚠️</span>
+        <div className={`${alertClass} auth-alert`}>
           <span>{message}</span>
         </div>
       ) : null}
@@ -60,11 +59,11 @@ export function ForgotPasswordForm() {
         onChange={(_, val) => setEmail(val)}
       />
 
-      <Button type="submit" disabled={status === "loading"} style={{ width: "100%", marginTop: 8 }}>
+      <Button type="submit" disabled={status === "loading"} className="auth-button auth-button--spaced">
         {status === "loading" ? "Sending..." : "Send Reset Link"}
       </Button>
 
-      <div style={{ marginTop: 16, textAlign: "center" }}>
+      <div className="auth-meta">
         <Link href="/login" className="auth-link auth-link--subtle">
           ← Back to Log in
         </Link>

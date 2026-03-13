@@ -26,7 +26,8 @@ export type PeerFeedback = {
   submittedAt: string;
   answers: Answer[];
   firstName?: string;
-  lastName?: string;  
+  lastName?: string;
+  reviewSubmitted?: boolean;
 }
 export type AgreementOption = 'Strongly Disagree' | 'Disagree' | 'Reasonable' | 'Agree' | 'Strongly Agree';
 
@@ -40,6 +41,11 @@ export type AgreementsMap = Record<string, AgreementValue>;
 export type PeerAssessmentReviewPayload = {
   reviewText?: string;
   agreements: AgreementsMap;
+};
+
+export type PeerFeedbackReview = {
+  reviewText?: string | null;
+  agreementsJson?: AgreementsMap | null;
 };
 
 export const AGREEMENT_OPTIONS: { label: AgreementOption; score: number }[] = [

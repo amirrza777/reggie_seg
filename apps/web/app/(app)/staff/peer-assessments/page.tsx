@@ -4,17 +4,22 @@ import { Placeholder } from "@/shared/ui/Placeholder";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
 import { getModulesSummary } from "@/features/staff/peerAssessments/api/client";
 import { ApiError } from "@/shared/api/errors";
+import { getCurrentUser } from "@/shared/auth/session";
 
-// TODO: Get staffId from authentication
-async function getStaffId(): Promise<number> {
-  return 1;
+async function getStaffIdFromSession() {
+  const user = await getCurrentUser();
+  if (!user || (!user.isStaff && !user.isAdmin)) {
+    throw new ApiError("You don’t have permission to view staff peer assessments.", { status: 403 });
+  }
+  return user.id;
 }
 
 export default async function StaffPeerAssessmentsPage() {
-  const staffId = await getStaffId();
-  let modules;
+  let modules: Awaited<ReturnType<typeof getModulesSummary>> | null = null;
   let errorMessage: string | null = null;
+
   try {
+    const staffId = await getStaffIdFromSession();
     modules = await getModulesSummary(staffId);
   } catch (error) {
     if (error instanceof ApiError && error.status === 403) {
@@ -26,22 +31,34 @@ export default async function StaffPeerAssessmentsPage() {
 
   if (errorMessage || !modules) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
       </div>
     );
   }
 
+  if (modules.length === 0) {
+    return (
+      <div className="stack">
+        <Placeholder
+          title="All modules' peer assessments"
+          description="No modules are currently available for your enterprise."
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="All modules' peer assessments"
-        path="/staff/peer-assessments"
         description="Progress overview of peer assessments."
       />
       <ProgressCardGrid
         items={modules}
-        getHref={(item) => `/staff/peer-assessments/module/${item.id ?? ""}`}
+        getHref={(item) =>
+          item.id == null ? undefined : `/staff/peer-assessments/module/${item.id}`
+        }
       />
     </div>
   );

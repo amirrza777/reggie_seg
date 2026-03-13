@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { confirmEmailChange, requestEmailChange, updateProfile } from "@/features/auth/api/client";
 import { useUser } from "@/features/auth/context";
+import { getConnectUrl, getLinkToken, getMyTrelloProfile } from "@/features/trello/api/client";
+import type { TrelloProfile } from "@/features/trello/api/client";
 
 const otpLength = 4;
 
@@ -18,8 +20,44 @@ export default function ProfilePage() {
   const [newEmail, setNewEmail] = useState("");
   const [emailStep, setEmailStep] = useState<"request" | "confirm">("request");
   const [otp, setOtp] = useState<string[]>(Array.from({ length: otpLength }, () => ""));
+  const [trelloProfile, setTrelloProfile] = useState<TrelloProfile | null>(null);
+  const [trelloLinkLoading, setTrelloLinkLoading] = useState(false);
 
   const profile = user;
+
+  useEffect(() => {
+    getMyTrelloProfile()
+      .then(setTrelloProfile)
+      .catch(() => setTrelloProfile({ trelloMemberId: null, fullName: null, username: null }));
+  }, []);
+
+  const handleTrelloConnect = async () => {
+    setTrelloLinkLoading(true);
+    try {
+      const { linkToken } = await getLinkToken();
+      const callbackUrl =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/profile/trello/callback`
+          : undefined;
+      const { url } = await getConnectUrl(callbackUrl);
+      try {
+        sessionStorage.setItem("trello.linkToken", linkToken);
+        sessionStorage.setItem("trello.returnTo", "/profile");
+      } catch {
+        // ignore
+      }
+      window.location.href = url;
+    } catch {
+      setTrelloLinkLoading(false);
+    }
+  };
+  const avatarInitials = useMemo(() => {
+    if (!profile) return "";
+    const first = profile.firstName?.[0] ?? "";
+    const last = profile.lastName?.[0] ?? "";
+    const value = `${first}${last}`.trim();
+    return value.length > 0 ? value.toUpperCase() : profile.email.slice(0, 2).toUpperCase();
+  }, [profile]);
 
   const avatarSrc = useMemo(() => {
     if (!profile?.avatarBase64 || !profile.avatarMime) return null;
@@ -145,7 +183,7 @@ export default function ProfilePage() {
             {avatarSrc ? (
               <img src={avatarSrc} alt="Avatar" />
             ) : (
-              <div className="profile-avatar__fallback">{profile.firstName?.[0] ?? profile.email[0]}</div>
+              <div className="profile-avatar__fallback">{avatarInitials}</div>
             )}
             <div className="profile-avatar__actions">
               <label className="profile-file">
@@ -156,7 +194,12 @@ export default function ProfilePage() {
                 />
                 Choose file
               </label>
-              <Button variant="ghost" type="button" onClick={() => handleAvatarChange(null)}>
+              <Button
+                variant="ghost"
+                className="profile-avatar__remove"
+                type="button"
+                onClick={() => handleAvatarChange(null)}
+              >
                 Remove avatar
               </Button>
             </div>
@@ -210,11 +253,36 @@ export default function ProfilePage() {
             </Button>
           </div>
         </div>
+
+        <div className="profile-section">
+          <div className="profile-section__header">
+            <h3>Connected accounts</h3>
+            <p>Link your external accounts to track project progress.</p>
+          </div>
+          <div className="profile-row">
+            <div>
+              <div className="profile-row__label">Trello account</div>
+              <div className="profile-row__value">
+                {trelloProfile?.trelloMemberId
+                  ? trelloProfile.fullName || trelloProfile.username || "Connected"
+                  : "Not linked"}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={handleTrelloConnect}
+              disabled={trelloLinkLoading}
+            >
+              {trelloProfile?.trelloMemberId ? "Change account" : "Link Trello account"}
+            </Button>
+          </div>
+        </div>
       </div>
 
       {emailModalOpen ? (
-        <div className="modal" role="dialog" aria-modal="true">
-          <div className="modal__dialog profile-modal">
+        <div className="modal" role="dialog" aria-modal="true" onClick={() => setEmailModalOpen(false)}>
+          <div className="modal__dialog profile-modal" onClick={(event) => event.stopPropagation()}>
             <div className="profile-modal__icon">✉️</div>
             <h3>Verify it’s you</h3>
             <p>

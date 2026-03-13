@@ -1,25 +1,80 @@
+import type { ReactNode } from "react";
+import Link from "next/link";
+import { getCurrentUser } from "@/shared/auth/session";
+import { listModules } from "@/features/modules/api/client";
+import { getCalendarEvents } from "@/features/calendar/api/client";
+import type { Module } from "@/features/modules/types";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 
-const activeModules = [
-  { id: "MOD-3101", title: "Software Engineering", teams: 8 },
-  { id: "MOD-2240", title: "Data Structures", teams: 5 },
-  { id: "MOD-4120", title: "PEP", teams: 4 },
-];
+const TYPE_LABEL: Record<string, string> = {
+  task_open: "Task Opens",
+  task_due: "Task Due",
+  assessment_open: "Assessment Opens",
+  assessment_due: "Assessment Due",
+  feedback_open: "Feedback Opens",
+  feedback_due: "Feedback Due",
+  meeting: "Meeting",
+};
 
-const upcomingItems = [
-  { label: "Peer assessment submissions", due: "Fri 5 PM", owner: "ModuleLead" },
-  { label: "Meeting minutes", due: "Today 6 PM", owner: "MeetingMinutes" },
-  { label: "Team allocations sync", due: "Tomorrow", owner: "TeamAllocation" },
-];
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
 
-export default function DashboardPage() {
-  const moduleRows = activeModules.map((mod) => [mod.id, mod.title, `${mod.teams} teams`]);
-  const scheduleRows = upcomingItems.map((item) => [item.label, item.due, item.owner]);
+export default async function DashboardPage() {
+  const user = await getCurrentUser();
+  let modules: Module[] = [];
+  let upcomingRows: (string | ReactNode)[][] = [];
+
+  if (user) {
+    const [fetchedModules, events] = await Promise.allSettled([
+      listModules(user.id),
+      getCalendarEvents(user.id),
+    ]);
+
+    if (fetchedModules.status === "fulfilled") modules = fetchedModules.value;
+
+    if (events.status === "fulfilled") {
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setDate(cutoff.getDate() + 14);
+      upcomingRows = events.value
+        .filter((e) => {
+          const d = new Date(e.date);
+          return d >= now && d <= cutoff;
+        })
+        .slice(0, 8)
+        .map((e) => [
+          e.projectName ?? e.title,
+          TYPE_LABEL[e.type] ?? e.type,
+          formatDate(e.date),
+        ]);
+    }
+  }
+
+  if (upcomingRows.length === 0) {
+    upcomingRows = [["-", "No upcoming deadlines in the next 14 days", "-"]];
+  }
+
+  const moduleRows =
+    modules.length > 0
+      ? modules.map((module) => {
+          const code = Number(module.id);
+          const moduleCode = Number.isFinite(code) ? `MOD-${code}` : module.id;
+          const teams = module.teamCount ?? 0;
+          return [
+            moduleCode,
+            <Link key={module.id} href={`/modules/${encodeURIComponent(module.id)}`} className="ui-link-reset">
+              {module.title}
+            </Link>,
+            `${teams} team${teams === 1 ? "" : "s"}`,
+          ];
+        })
+      : [["-", "No modules assigned", "-"]];
 
   return (
-    <div className="stack">
-      <Card title="Dashboard overview">
+    <div className="stack stack--tabbed">
+      <Card title={<span className="overview-title">Modules overview</span>}>
         <p className="muted">
           Quick view across modules, teams, meetings, and peer assessments.
         </p>
@@ -29,8 +84,11 @@ export default function DashboardPage() {
         <Table headers={["Code", "Title", "Teams"]} rows={moduleRows} />
       </Card>
 
-      <Card title="Upcoming deadlines">
-        <Table headers={["Item", "Due", "Model"]} rows={scheduleRows} />
+      <Card
+        title="Upcoming deadlines"
+        action={<Link href="/calendar" className="btn btn--sm btn--ghost">View calendar →</Link>}
+      >
+        <Table headers={["Project", "Type", "Due"]} rows={upcomingRows} />
       </Card>
     </div>
   );

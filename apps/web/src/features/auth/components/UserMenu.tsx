@@ -90,7 +90,7 @@ export function UserMenu() {
             <Link className="user-menu__link" href="/profile">Profile</Link>
           </div>
           <div className="user-menu__links">
-            <a className="user-menu__link" href="mailto:support@teamfeedback.app">Contact support</a>
+            <Link className="user-menu__link" href="/help">Help</Link>
           </div>
           <div className="user-menu__links">
             <button className="user-menu__link user-menu__link--danger" type="button" onClick={handleLogout}>
