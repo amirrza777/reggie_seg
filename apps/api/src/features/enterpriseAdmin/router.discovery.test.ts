@@ -194,7 +194,6 @@ describe("enterpriseAdmin router discovery", () => {
 
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([
-      { id: 99, role: "ENTERPRISE_ADMIN" },
       { id: 11, role: "STAFF" },
       { id: 12, role: "STUDENT" },
       { id: 31, role: "STUDENT" },
@@ -229,7 +228,6 @@ describe("enterpriseAdmin router discovery", () => {
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
-        { moduleId: 7, userId: 99 },
       ],
       skipDuplicates: true,
     });

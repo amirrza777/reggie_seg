@@ -269,11 +269,14 @@ router.get("/modules/access-users/search", async (req, res) => {
 router.post("/modules", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
   if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {
+    return res.status(403).json({ error: "Only enterprise admins can create modules" });
+  }
 
   const payload = parseModulePayload(req.body);
   if (!payload.ok) return res.status(400).json({ error: payload.error });
 
-  const leaderIds = ensureCreatorLeader(payload.value.leaderIds, enterpriseUser);
+  const leaderIds = payload.value.leaderIds;
   if (leaderIds.length === 0) {
     return res.status(400).json({ error: "At least one module leader is required" });
   }
@@ -655,6 +658,10 @@ async function resolveEnterpriseUser(req: EnterpriseRequest, res: Response, next
 }
 
 async function canManageModuleAccess(user: EnterpriseUser, moduleId: number): Promise<boolean> {
+  if (isEnterpriseAdminRole(user.role)) {
+    return true;
+  }
+
   const membership = await prisma.moduleLead.findFirst({
     where: {
       moduleId,
@@ -772,11 +779,6 @@ function parseModulePayload(body: unknown): { ok: true; value: ParsedModulePaylo
       studentIds: studentIds.value,
     },
   };
-}
-
-function ensureCreatorLeader(leaderIds: number[], user: EnterpriseUser): number[] {
-  if (leaderIds.includes(user.id)) return leaderIds;
-  return [...leaderIds, user.id];
 }
 
 async function validateAssignmentUsers(input: {
