@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Underline, Strikethrough, Superscript, Subscript, Code, List, ListOrdered, Quote, AlignLeft, AlignCenter, AlignRight, AlignJustify, Outdent, Indent } from "lucide-react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -57,8 +57,27 @@ const TOOLBAR_GROUPS: ToolbarButton[][] = [
   ],
 ];
 
+const FORMAT_KEYS = ["bold", "italic", "underline", "strikethrough", "superscript", "subscript", "code"] as const;
+
 function Toolbar() {
   const [editor] = useLexicalComposerContext();
+  const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
+
+  const updateToolbar = useCallback(() => {
+    const selection = $getSelection();
+    if (!$isRangeSelection(selection)) return;
+    const formats = new Set<string>();
+    for (const fmt of FORMAT_KEYS) {
+      if (selection.hasFormat(fmt)) formats.add(fmt);
+    }
+    setActiveFormats(formats);
+  }, []);
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(updateToolbar);
+    });
+  }, [editor, updateToolbar]);
 
   return (
     <div className="rich-editor__toolbar">
@@ -68,7 +87,7 @@ function Toolbar() {
             <button
               key={key}
               type="button"
-              className="rich-editor__tool"
+              className={`rich-editor__tool${activeFormats.has(key) ? " rich-editor__tool--active" : ""}`}
               onMouseDown={(e) => { e.preventDefault(); action(editor); }}
             >
               {label}

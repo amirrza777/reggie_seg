@@ -63,7 +63,7 @@ export function AttendanceTable({ meetingId, members, initialAttendances }: Atte
   }
 
   return (
-    <Card title="Attendance">
+    <Card title="Attendance" bodyClassName="stack">
       <div className="table">
         <div className="table__head">
           <div>Name</div>
@@ -86,12 +86,12 @@ export function AttendanceTable({ meetingId, members, initialAttendances }: Atte
           </div>
         ))}
       </div>
-      <div>
+      <div className="ui-row">
         <Button type="button" onClick={handleSave} disabled={status === "loading"}>
           {status === "loading" ? "Saving..." : "Save Attendance"}
         </Button>
+        {message && <span className={status === "error" ? "error" : "muted"}>{message}</span>}
       </div>
-      {message && <p className={status === "error" ? "error" : "muted"}>{message}</p>}
     </Card>
   );
 }

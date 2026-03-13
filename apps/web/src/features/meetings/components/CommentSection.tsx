@@ -62,19 +62,19 @@ export function CommentSection({ meetingId, teamId, members, initialComments }: 
       <div className="stack">
         {comments.length === 0 && <p className="muted">No comments yet.</p>}
         {comments.map((comment) => (
-          <div key={comment.id} className="table__row">
-            <div>
-              <strong>{comment.user.firstName} {comment.user.lastName}</strong>
-              <span className="muted"> — {new Date(comment.createdAt).toLocaleString()}</span>
-            </div>
-            <div>{comment.content}</div>
-            {user && user.id === comment.userId && (
-              <div>
+          <div key={comment.id} className="comment">
+            <div className="comment__header">
+              <div className="comment__meta">
+                <strong>{comment.user.firstName} {comment.user.lastName}</strong>
+                <span className="muted"> — {new Date(comment.createdAt).toLocaleString()}</span>
+              </div>
+              {user && user.id === comment.userId && (
                 <Button type="button" variant="ghost" onClick={() => handleDeleteComment(comment.id)}>
                   Delete
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
+            <div className="comment__body">{comment.content}</div>
           </div>
         ))}
         {user && <CommentInput members={members} onPost={handlePost} />}
