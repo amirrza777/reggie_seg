@@ -592,6 +592,96 @@ router.get("/modules/:moduleId/students", async (req, res) => {
   });
 });
 
+router.get("/forum-reports", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+
+  const reports = await prisma.forumReport.findMany({
+    where: {
+      project: {
+        module: {
+          enterpriseId: enterpriseUser.enterpriseId,
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      createdAt: true,
+      reason: true,
+      title: true,
+      body: true,
+      project: {
+        select: {
+          id: true,
+          name: true,
+          module: { select: { name: true } },
+        },
+      },
+      reporter: {
+        select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      },
+      author: {
+        select: { id: true, email: true, firstName: true, lastName: true, role: true },
+      },
+    },
+  });
+
+  res.json(reports);
+});
+
+router.delete("/forum-reports/:id", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+
+  const id = parsePositiveInt(req.params.id);
+  if (!id) return res.status(400).json({ error: "Invalid report id" });
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      const report = await tx.forumReport.findFirst({
+        where: {
+          id,
+          project: { module: { enterpriseId: enterpriseUser.enterpriseId } },
+        },
+        select: {
+          id: true,
+          projectId: true,
+          authorId: true,
+          title: true,
+          body: true,
+          postCreatedAt: true,
+          postUpdatedAt: true,
+        },
+      });
+
+      if (!report) {
+        throw Object.assign(new Error("Report not found"), { code: "P2025" });
+      }
+
+      await tx.discussionPost.create({
+        data: {
+          projectId: report.projectId,
+          authorId: report.authorId,
+          title: report.title,
+          body: report.body,
+          createdAt: report.postCreatedAt,
+          updatedAt: report.postUpdatedAt,
+        },
+      });
+
+      await tx.forumReport.delete({ where: { id: report.id } });
+    });
+    res.json({ ok: true });
+  } catch (err: any) {
+    if (err?.code === "P2025") return res.status(404).json({ error: "Report not found" });
+    console.error("delete forum report error", err);
+    return res.status(500).json({ error: "Could not delete report" });
+  }
+});
+
 router.put("/modules/:moduleId/students", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
   if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });

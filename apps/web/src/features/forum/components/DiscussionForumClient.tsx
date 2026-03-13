@@ -7,6 +7,7 @@ import {
   createDiscussionPost,
   deleteDiscussionPost,
   getDiscussionPosts,
+  reportDiscussionPost,
   updateDiscussionPost,
 } from "@/features/forum/api/client";
 import type { DiscussionPost } from "@/features/forum/types";
@@ -27,6 +28,15 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [editingBody, setEditingBody] = useState("");
   const [savingPostId, setSavingPostId] = useState<number | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
+  const [reportingPostId, setReportingPostId] = useState<number | null>(null);
+
+  const isStaff =
+    Boolean(user?.isStaff) ||
+    Boolean(user?.isAdmin) ||
+    Boolean(user?.isEnterpriseAdmin) ||
+    user?.role === "STAFF" ||
+    user?.role === "ADMIN" ||
+    user?.role === "ENTERPRISE_ADMIN";
 
   const canSubmit = title.trim().length > 0 && body.trim().length > 0;
   const emptyState = useMemo(
@@ -117,6 +127,20 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       setError("Failed to delete post.");
     } finally {
       setDeletingPostId(null);
+    }
+  };
+
+  const handleReport = async (postId: number) => {
+    if (!user) return;
+    setReportingPostId(postId);
+    try {
+      await reportDiscussionPost(user.id, Number(projectId), postId);
+      setPosts((prev) => prev.filter((post) => post.id !== postId));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to report post.");
+    } finally {
+      setReportingPostId(null);
     }
   };
 
@@ -213,9 +237,14 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                       <>
                         <strong>{post.title}</strong>
                         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                          {post.author.firstName} {post.author.lastName} •{" "}
-                          {new Date(post.createdAt).toLocaleString()}
+                          {post.author.firstName} {post.author.lastName}
+                          {isAuthor ? " (You)" : ""} • {new Date(post.createdAt).toLocaleString()}
                         </p>
+                        {post.updatedAt !== post.createdAt ? (
+                          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                            Edited: {new Date(post.updatedAt).toLocaleString()}
+                          </p>
+                        ) : null}
                       </>
                     )}
                   </div>
@@ -262,6 +291,19 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                           </button>
                         </>
                       )}
+                    </div>
+                  ) : null}
+
+                  {isStaff && post.author.role === "STUDENT" ? (
+                    <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => handleReport(post.id)}
+                        disabled={reportingPostId === post.id}
+                      >
+                        {reportingPostId === post.id ? "Reporting…" : "Report"}
+                      </button>
                     </div>
                   ) : null}
                 </article>

@@ -51,6 +51,8 @@ model User {
   teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
   auditLogs           AuditLog[]
   discussionPosts     DiscussionPost[]
+  forumReportsFiled   ForumReport[]           @relation("ForumReportReporter")
+  forumReportsAgainst ForumReport[]           @relation("ForumReportAuthor")
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

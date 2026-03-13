@@ -12,6 +12,7 @@ import type {
   EnterpriseModuleSearchResponse,
   EnterpriseModuleStudentsResponse,
   EnterpriseOverview,
+  ForumReportEntry,
   UpdateEnterpriseModulePayload,
   UpdateEnterpriseModuleStudentsPayload,
   UpdateEnterpriseModuleStudentsResponse,
@@ -99,4 +100,12 @@ export async function updateEnterpriseModuleStudents(
     method: "PUT",
     body: JSON.stringify(payload),
   });
+}
+
+export async function getForumReports(): Promise<ForumReportEntry[]> {
+  return apiFetch<ForumReportEntry[]>("/enterprise-admin/forum-reports");
+}
+
+export async function dismissForumReport(reportId: number): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>(`/enterprise-admin/forum-reports/${reportId}`, { method: "DELETE" });
 }

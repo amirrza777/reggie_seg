@@ -13,7 +13,9 @@ model Project {
   peerAssessments       PeerAssessment[]
   deadline              ProjectDeadline?
   githubRepositories    ProjectGithubRepository[]
+  forumIsAnonymous Boolean @default(false)
   discussionPosts       DiscussionPost[]
+  forumReports         ForumReport[]
 
   @@index([moduleId])
   @@index([questionnaireTemplateId])

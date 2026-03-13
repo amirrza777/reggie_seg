@@ -13,6 +13,7 @@ const enterpriseAdminNav = [
   { href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const },
   { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
   { href: "/enterprise/groups", label: "Group management", space: "enterprise" as const },
+  { href: "/enterprise/forum-reports", label: "Forum reports", space: "enterprise" as const },
 ];
 
 const enterpriseStaffNav = [

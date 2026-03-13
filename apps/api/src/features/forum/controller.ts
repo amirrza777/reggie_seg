@@ -5,6 +5,9 @@ import {
   createDiscussionPost,
   updateDiscussionPost,
   deleteDiscussionPost,
+  fetchForumSettings,
+  setForumSettings,
+  reportForumPost,
 } from "./service.js";
 
 export async function getProjectDiscussionPostsHandler(req: Request, res: Response) {
@@ -125,5 +128,73 @@ export async function deleteProjectDiscussionPostHandler(req: Request, res: Resp
   } catch (error) {
     console.error("Error deleting discussion post:", error);
     res.status(500).json({ error: "Failed to delete discussion post" });
+  }
+}
+
+export async function getForumSettingsHandler(req: Request, res: Response) {
+  const userId = Number(req.query.userId);
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const settings = await fetchForumSettings(userId, projectId);
+    if (!settings) return res.status(403).json({ error: "Forbidden" });
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching forum settings:", error);
+    res.status(500).json({ error: "Failed to fetch forum settings" });
+  }
+}
+
+export async function updateForumSettingsHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const { userId, forumIsAnonymous } = req.body as {
+    userId?: number;
+    forumIsAnonymous?: boolean;
+  };
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (typeof userId !== "number") {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+  if (typeof forumIsAnonymous !== "boolean") {
+    return res.status(400).json({ error: "forumIsAnonymous must be boolean" });
+  }
+
+  try {
+    const settings = await setForumSettings(userId, projectId, forumIsAnonymous);
+    if (!settings) return res.status(403).json({ error: "Forbidden" });
+    res.json(settings);
+  } catch (error) {
+    console.error("Error updating forum settings:", error);
+    res.status(500).json({ error: "Failed to update forum settings" });
+  }
+}
+
+export async function reportDiscussionPostHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const postId = Number(req.params.postId);
+  const { userId, reason } = req.body as { userId?: number; reason?: string };
+
+  if (isNaN(projectId) || isNaN(postId)) {
+    return res.status(400).json({ error: "Invalid project ID or post ID" });
+  }
+  if (typeof userId !== "number") {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const result = await reportForumPost(userId, projectId, postId, reason);
+    if (result.status === "forbidden") return res.status(403).json({ error: "Forbidden" });
+    if (result.status === "not_found") return res.status(404).json({ error: "Post not found" });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error("Error reporting discussion post:", error);
+    res.status(500).json({ error: "Failed to report discussion post" });
   }
 }

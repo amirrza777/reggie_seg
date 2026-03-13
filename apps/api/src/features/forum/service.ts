@@ -4,6 +4,9 @@ import {
   getDiscussionPostById,
   updateDiscussionPostForProject,
   deleteDiscussionPostForProject,
+  getForumSettings,
+  updateForumSettings,
+  reportDiscussionPost,
 } from "./repo.js";
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
@@ -35,4 +38,21 @@ export async function updateDiscussionPost(
 
 export async function deleteDiscussionPost(userId: number, projectId: number, postId: number) {
   return deleteDiscussionPostForProject(userId, projectId, postId);
+}
+
+export async function fetchForumSettings(userId: number, projectId: number) {
+  return getForumSettings(userId, projectId);
+}
+
+export async function setForumSettings(userId: number, projectId: number, anonymousStudents: boolean) {
+  return updateForumSettings(userId, projectId, anonymousStudents);
+}
+
+export async function reportForumPost(
+  userId: number,
+  projectId: number,
+  postId: number,
+  reason?: string | null
+) {
+  return reportDiscussionPost(userId, projectId, postId, reason);
 }

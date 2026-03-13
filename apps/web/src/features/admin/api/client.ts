@@ -70,6 +70,7 @@ export async function updateFeatureFlag(key: string, enabled: boolean) {
   });
 }
 
+
 export async function listEnterprises() {
   return apiFetch<EnterpriseRecord[]>("/admin/enterprises");
 }

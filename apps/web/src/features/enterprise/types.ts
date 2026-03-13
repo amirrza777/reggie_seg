@@ -73,6 +73,33 @@ export type EnterpriseOverview = {
   };
 };
 
+export type ForumReportEntry = {
+  id: number;
+  createdAt: string;
+  reason: string | null;
+  title: string;
+  body: string;
+  project: {
+    id: number;
+    name: string;
+    module: { name: string };
+  };
+  reporter: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+  };
+  author: {
+    id: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+  };
+};
+
 export type EnterpriseModuleStudent = {
   id: number;
   email: string;
