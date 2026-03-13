@@ -29,6 +29,7 @@ type AccessBucket = "staff" | "ta" | "students";
 
 export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: EnterpriseModuleCreateFormProps) {
   const router = useRouter();
+  const isEditMode = mode === "edit";
 
   const [moduleName, setModuleName] = useState("");
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
@@ -212,26 +213,30 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
   }, [canEditModule, isLoadingAccess, mode, staffSearchQuery, staffPage]);
 
   useEffect(() => {
-    if (isLoadingAccess || (mode === "edit" && !canEditModule)) return;
+    if (isLoadingAccess || !isEditMode || !canEditModule) return;
     void loadAccessUsers("ta", taSearchQuery, taPage);
-  }, [canEditModule, isLoadingAccess, mode, taSearchQuery, taPage]);
+  }, [canEditModule, isEditMode, isLoadingAccess, taSearchQuery, taPage]);
 
   useEffect(() => {
-    if (isLoadingAccess || (mode === "edit" && !canEditModule)) return;
+    if (isLoadingAccess || !isEditMode || !canEditModule) return;
     void loadAccessUsers("students", studentSearchQuery, studentPage);
-  }, [canEditModule, isLoadingAccess, mode, studentSearchQuery, studentPage]);
+  }, [canEditModule, isEditMode, isLoadingAccess, studentSearchQuery, studentPage]);
+
+  const normalizedStaffSearchQuery = normalizeSearchQuery(staffSearchQuery);
+  const normalizedTaSearchQuery = normalizeSearchQuery(taSearchQuery);
+  const normalizedStudentSearchQuery = normalizeSearchQuery(studentSearchQuery);
 
   useEffect(() => {
     setStaffPage(1);
-  }, [normalizeSearchQuery(staffSearchQuery)]);
+  }, [normalizedStaffSearchQuery]);
 
   useEffect(() => {
     setTaPage(1);
-  }, [normalizeSearchQuery(taSearchQuery)]);
+  }, [normalizedTaSearchQuery]);
 
   useEffect(() => {
     setStudentPage(1);
-  }, [normalizeSearchQuery(studentSearchQuery)]);
+  }, [normalizedStudentSearchQuery]);
 
   useEffect(() => {
     setStaffPageInput(String(staffPage));
@@ -261,29 +266,30 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
     setIsSubmitting(true);
     setErrorMessage(null);
 
-    const payload = {
-      name,
-      briefText: normalizeOptionalMultilineText(briefText),
-      timelineText: normalizeOptionalMultilineText(timelineText),
-      expectationsText: normalizeOptionalMultilineText(expectationsText),
-      readinessNotesText: normalizeOptionalMultilineText(readinessNotesText),
-      leaderIds,
-      taIds,
-      studentIds,
-    };
-
     try {
-      if (mode === "edit") {
+      if (isEditMode) {
         if (!moduleId) throw new Error("Module id is required for edit mode.");
-        await updateEnterpriseModule(moduleId, payload);
+        await updateEnterpriseModule(moduleId, {
+          name,
+          briefText: normalizeOptionalMultilineText(briefText),
+          timelineText: normalizeOptionalMultilineText(timelineText),
+          expectationsText: normalizeOptionalMultilineText(expectationsText),
+          readinessNotesText: normalizeOptionalMultilineText(readinessNotesText),
+          leaderIds,
+          taIds,
+          studentIds,
+        });
       } else {
-        await createEnterpriseModule(payload);
+        await createEnterpriseModule({
+          name,
+          leaderIds,
+        });
       }
 
       router.push("/enterprise/modules");
       router.refresh();
     } catch (err) {
-      setErrorMessage(resolveModuleActionError(err, mode === "edit" ? "update" : "create"));
+      setErrorMessage(resolveModuleActionError(err, isEditMode ? "update" : "create"));
       setIsSubmitting(false);
     }
   };
@@ -360,7 +366,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
     return <p className="muted">Loading module access options...</p>;
   }
 
-  if (mode === "edit" && !canEditModule) {
+  if (isEditMode && !canEditModule) {
     return (
       <div className="ui-stack-sm">
         <div className="status-alert status-alert--error enterprise-module-create__error">
@@ -406,73 +412,81 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
         <CharacterCount value={moduleName} limit={MODULE_NAME_MAX_LENGTH} />
       </div>
 
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--brief">
-        <label htmlFor="module-brief-input" className="enterprise-modules__create-field-label">
-          Module brief
-        </label>
-        <AutoGrowTextarea
-          id="module-brief-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={briefText}
-          onChange={(event) => setBriefText(event.target.value)}
-          placeholder="Add the key context that should appear under Module brief."
-          aria-label="Module brief"
-          rows={5}
-        />
-        <CharacterCount value={briefText} limit={MODULE_SECTION_MAX_LENGTH} />
-      </div>
+      {isEditMode ? (
+        <>
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--brief">
+            <label htmlFor="module-brief-input" className="enterprise-modules__create-field-label">
+              Module brief
+            </label>
+            <AutoGrowTextarea
+              id="module-brief-input"
+              className="ui-input enterprise-modules__create-textarea"
+              value={briefText}
+              onChange={(event) => setBriefText(event.target.value)}
+              placeholder="Add the key context that should appear under Module brief."
+              aria-label="Module brief"
+              rows={5}
+            />
+            <CharacterCount value={briefText} limit={MODULE_SECTION_MAX_LENGTH} />
+          </div>
 
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--timeline">
-        <label htmlFor="module-timeline-input" className="enterprise-modules__create-field-label">
-          Timeline
-        </label>
-        <AutoGrowTextarea
-          id="module-timeline-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={timelineText}
-          onChange={(event) => setTimelineText(event.target.value)}
-          placeholder={
-            "One line per event. Format: YYYY-MM-DD HH:mm | Project | Activity\n2026-09-15 09:00 | Foundation sprint | Project start"
-          }
-          aria-label="Timeline"
-          rows={5}
-        />
-        <CharacterCount value={timelineText} limit={MODULE_SECTION_MAX_LENGTH} />
-      </div>
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--timeline">
+            <label htmlFor="module-timeline-input" className="enterprise-modules__create-field-label">
+              Timeline
+            </label>
+            <AutoGrowTextarea
+              id="module-timeline-input"
+              className="ui-input enterprise-modules__create-textarea"
+              value={timelineText}
+              onChange={(event) => setTimelineText(event.target.value)}
+              placeholder={
+                "One line per event. Format: YYYY-MM-DD HH:mm | Project | Activity\n2026-09-15 09:00 | Foundation sprint | Project start"
+              }
+              aria-label="Timeline"
+              rows={5}
+            />
+            <CharacterCount value={timelineText} limit={MODULE_SECTION_MAX_LENGTH} />
+          </div>
 
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--expectations">
-        <label htmlFor="module-expectations-input" className="enterprise-modules__create-field-label">
-          Module expectations
-        </label>
-        <AutoGrowTextarea
-          id="module-expectations-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={expectationsText}
-          onChange={(event) => setExpectationsText(event.target.value)}
-          placeholder={
-            "One line per row. Format: Expectation | Target | Owner\nPeer assessment submissions | Fri 5 PM | Module lead"
-          }
-          aria-label="Module expectations"
-          rows={5}
-        />
-        <CharacterCount value={expectationsText} limit={MODULE_SECTION_MAX_LENGTH} />
-      </div>
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--expectations">
+            <label htmlFor="module-expectations-input" className="enterprise-modules__create-field-label">
+              Module expectations
+            </label>
+            <AutoGrowTextarea
+              id="module-expectations-input"
+              className="ui-input enterprise-modules__create-textarea"
+              value={expectationsText}
+              onChange={(event) => setExpectationsText(event.target.value)}
+              placeholder={
+                "One line per row. Format: Expectation | Target | Owner\nPeer assessment submissions | Fri 5 PM | Module lead"
+              }
+              aria-label="Module expectations"
+              rows={5}
+            />
+            <CharacterCount value={expectationsText} limit={MODULE_SECTION_MAX_LENGTH} />
+          </div>
 
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--readiness">
-        <label htmlFor="module-readiness-input" className="enterprise-modules__create-field-label">
-          Readiness notes
-        </label>
-        <AutoGrowTextarea
-          id="module-readiness-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={readinessNotesText}
-          onChange={(event) => setReadinessNotesText(event.target.value)}
-          placeholder="Capture any operational reminders for this module."
-          aria-label="Readiness notes"
-          rows={4}
-        />
-        <CharacterCount value={readinessNotesText} limit={MODULE_SECTION_MAX_LENGTH} />
-      </div>
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--readiness">
+            <label htmlFor="module-readiness-input" className="enterprise-modules__create-field-label">
+              Readiness notes
+            </label>
+            <AutoGrowTextarea
+              id="module-readiness-input"
+              className="ui-input enterprise-modules__create-textarea"
+              value={readinessNotesText}
+              onChange={(event) => setReadinessNotesText(event.target.value)}
+              placeholder="Capture any operational reminders for this module."
+              aria-label="Readiness notes"
+              rows={4}
+            />
+            <CharacterCount value={readinessNotesText} limit={MODULE_SECTION_MAX_LENGTH} />
+          </div>
+        </>
+      ) : (
+        <p className="ui-note ui-note--muted">
+          You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating the module.
+        </p>
+      )}
 
       <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--leaders">
         <label htmlFor="module-staff-search" className="enterprise-modules__create-field-label">
@@ -567,193 +581,197 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
         <span className="ui-note ui-note--muted">{leaderIds.length} selected</span>
       </div>
 
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--tas">
-        <label className="enterprise-modules__create-field-label">Teaching assistants</label>
-        <p className="ui-note ui-note--muted">
-          TAs can be any account type and can access module workflows, but cannot manage role assignments.
-        </p>
-        <FormField
-          id="module-ta-search"
-          type="search"
-          value={taSearchQuery}
-          onChange={(event) => setTaSearchQuery(event.target.value)}
-          placeholder="Search accounts by name, email, or ID"
-          aria-label="Search teaching assistant accounts"
-        />
-        <span className="ui-note ui-note--muted">
-          {taStatus === "loading" && taTotal === 0
-            ? "Loading accounts..."
-            : taTotal === 0
-              ? "Showing 0 accounts"
-              : `Showing ${taStart}-${taEnd} of ${taTotal} accounts`}
-        </span>
-        <div className="enterprise-module-create__access-list" role="group" aria-label="Teaching assistants">
-          {taUsers.map((user) => (
-            <label key={`ta-${user.id}`} className={`enterprise-module-create__access-item ${taSet.has(user.id) ? "is-selected" : ""}`}>
-              <input
-                type="checkbox"
-                checked={taSet.has(user.id)}
-                onChange={(event) => toggleTeachingAssistant(user.id, event.target.checked)}
-                disabled={isSubmitting || isDeleting || leaderSet.has(user.id)}
-              />
-              <div className="ui-stack-xs">
-                <strong>{user.firstName} {user.lastName}</strong>
-                <span className="muted">{user.email} • ID {user.id}</span>
-              </div>
-              <span className={`status-chip ${user.active ? "status-chip--success" : "status-chip--danger"}`}>
-                {user.active ? "Active" : "Inactive"}
+      {isEditMode ? (
+        <>
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--tas">
+            <label className="enterprise-modules__create-field-label">Teaching assistants</label>
+            <p className="ui-note ui-note--muted">
+              TAs can be any account type and can access module workflows, but cannot manage role assignments.
+            </p>
+            <FormField
+              id="module-ta-search"
+              type="search"
+              value={taSearchQuery}
+              onChange={(event) => setTaSearchQuery(event.target.value)}
+              placeholder="Search accounts by name, email, or ID"
+              aria-label="Search teaching assistant accounts"
+            />
+            <span className="ui-note ui-note--muted">
+              {taStatus === "loading" && taTotal === 0
+                ? "Loading accounts..."
+                : taTotal === 0
+                  ? "Showing 0 accounts"
+                  : `Showing ${taStart}-${taEnd} of ${taTotal} accounts`}
+            </span>
+            <div className="enterprise-module-create__access-list" role="group" aria-label="Teaching assistants">
+              {taUsers.map((user) => (
+                <label key={`ta-${user.id}`} className={`enterprise-module-create__access-item ${taSet.has(user.id) ? "is-selected" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={taSet.has(user.id)}
+                    onChange={(event) => toggleTeachingAssistant(user.id, event.target.checked)}
+                    disabled={isSubmitting || isDeleting || leaderSet.has(user.id)}
+                  />
+                  <div className="ui-stack-xs">
+                    <strong>{user.firstName} {user.lastName}</strong>
+                    <span className="muted">{user.email} • ID {user.id}</span>
+                  </div>
+                  <span className={`status-chip ${user.active ? "status-chip--success" : "status-chip--danger"}`}>
+                    {user.active ? "Active" : "Inactive"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {taUsers.length === 0 ? (
+              <span className="ui-note ui-note--muted">
+                {taStatus === "loading"
+                  ? "Loading accounts..."
+                  : normalizeSearchQuery(taSearchQuery)
+                    ? `No accounts match "${taSearchQuery.trim()}".`
+                    : "No assignable accounts found."}
               </span>
-            </label>
-          ))}
-        </div>
-        {taUsers.length === 0 ? (
-          <span className="ui-note ui-note--muted">
-            {taStatus === "loading"
-              ? "Loading accounts..."
-              : normalizeSearchQuery(taSearchQuery)
-                ? `No accounts match "${taSearchQuery.trim()}".`
-                : "No assignable accounts found."}
-          </span>
-        ) : null}
-        {taMessage ? <span className="enterprise-module-create__field-error">{taMessage}</span> : null}
-        {taTotalPages > 1 ? (
-          <div className="user-management__pagination" aria-label="Teaching assistant search pagination">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setTaPage((prev) => Math.max(1, prev - 1))}
-              disabled={taPage === 1}
-            >
-              Previous
-            </Button>
-            <form className="user-management__page-jump" onSubmit={(event) => handlePageJump(event, "ta", taPageInput)}>
-              <label htmlFor="module-ta-page-input" className="user-management__page-jump-label">
-                Page
-              </label>
-              <FormField
-                id="module-ta-page-input"
-                type="number"
-                min={1}
-                max={Math.max(1, taTotalPages)}
-                step={1}
-                inputMode="numeric"
-                value={taPageInput}
-                onChange={(event) => setTaPageInput(event.target.value)}
-                onBlur={() => applyPageInput("ta", taPageInput)}
-                className="user-management__page-jump-input"
-                aria-label="Go to teaching assistant page"
-              />
-              <span className="muted user-management__page-total">of {Math.max(1, taTotalPages)}</span>
-            </form>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setTaPage((prev) => Math.min(Math.max(1, taTotalPages), prev + 1))}
-              disabled={taPage === Math.max(1, taTotalPages)}
-            >
-              Next
-            </Button>
-          </div>
-        ) : null}
-        <span className="ui-note ui-note--muted">{taIds.length} selected</span>
-      </div>
-
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--students">
-        <label htmlFor="module-student-search" className="enterprise-modules__create-field-label">
-          Students
-        </label>
-        <p className="ui-note ui-note--muted">Enrolled students can participate in module projects and assessments.</p>
-        <FormField
-          id="module-student-search"
-          type="search"
-          value={studentSearchQuery}
-          onChange={(event) => setStudentSearchQuery(event.target.value)}
-          placeholder="Search students by name, email, or ID"
-          aria-label="Search students"
-        />
-        <span className="ui-note ui-note--muted">
-          {studentStatus === "loading" && studentTotal === 0
-            ? "Loading students..."
-            : studentTotal === 0
-              ? "Showing 0 students"
-              : `Showing ${studentStart}-${studentEnd} of ${studentTotal} students`}
-        </span>
-        <div className="enterprise-module-create__access-list" role="group" aria-label="Module students">
-          {studentUsers.map((user) => (
-            <label key={`student-${user.id}`} className={`enterprise-module-create__access-item ${studentSet.has(user.id) ? "is-selected" : ""}`}>
-              <input
-                type="checkbox"
-                checked={studentSet.has(user.id)}
-                onChange={(event) => toggleStudent(user.id, event.target.checked)}
-                disabled={isSubmitting || isDeleting}
-              />
-              <div className="ui-stack-xs">
-                <strong>{user.firstName} {user.lastName}</strong>
-                <span className="muted">{user.email} • ID {user.id}</span>
+            ) : null}
+            {taMessage ? <span className="enterprise-module-create__field-error">{taMessage}</span> : null}
+            {taTotalPages > 1 ? (
+              <div className="user-management__pagination" aria-label="Teaching assistant search pagination">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTaPage((prev) => Math.max(1, prev - 1))}
+                  disabled={taPage === 1}
+                >
+                  Previous
+                </Button>
+                <form className="user-management__page-jump" onSubmit={(event) => handlePageJump(event, "ta", taPageInput)}>
+                  <label htmlFor="module-ta-page-input" className="user-management__page-jump-label">
+                    Page
+                  </label>
+                  <FormField
+                    id="module-ta-page-input"
+                    type="number"
+                    min={1}
+                    max={Math.max(1, taTotalPages)}
+                    step={1}
+                    inputMode="numeric"
+                    value={taPageInput}
+                    onChange={(event) => setTaPageInput(event.target.value)}
+                    onBlur={() => applyPageInput("ta", taPageInput)}
+                    className="user-management__page-jump-input"
+                    aria-label="Go to teaching assistant page"
+                  />
+                  <span className="muted user-management__page-total">of {Math.max(1, taTotalPages)}</span>
+                </form>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setTaPage((prev) => Math.min(Math.max(1, taTotalPages), prev + 1))}
+                  disabled={taPage === Math.max(1, taTotalPages)}
+                >
+                  Next
+                </Button>
               </div>
-              <span className={`status-chip ${user.active ? "status-chip--success" : "status-chip--danger"}`}>
-                {user.active ? "Active" : "Inactive"}
-              </span>
-            </label>
-          ))}
-        </div>
-        {studentUsers.length === 0 ? (
-          <span className="ui-note ui-note--muted">
-            {studentStatus === "loading"
-              ? "Loading students..."
-              : normalizeSearchQuery(studentSearchQuery)
-                ? `No students match "${studentSearchQuery.trim()}".`
-                : "No students found."}
-          </span>
-        ) : null}
-        {studentMessage ? <span className="enterprise-module-create__field-error">{studentMessage}</span> : null}
-        {studentTotalPages > 1 ? (
-          <div className="user-management__pagination" aria-label="Student search pagination">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setStudentPage((prev) => Math.max(1, prev - 1))}
-              disabled={studentPage === 1}
-            >
-              Previous
-            </Button>
-            <form className="user-management__page-jump" onSubmit={(event) => handlePageJump(event, "students", studentPageInput)}>
-              <label htmlFor="module-student-page-input" className="user-management__page-jump-label">
-                Page
-              </label>
-              <FormField
-                id="module-student-page-input"
-                type="number"
-                min={1}
-                max={Math.max(1, studentTotalPages)}
-                step={1}
-                inputMode="numeric"
-                value={studentPageInput}
-                onChange={(event) => setStudentPageInput(event.target.value)}
-                onBlur={() => applyPageInput("students", studentPageInput)}
-                className="user-management__page-jump-input"
-                aria-label="Go to student page"
-              />
-              <span className="muted user-management__page-total">of {Math.max(1, studentTotalPages)}</span>
-            </form>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setStudentPage((prev) => Math.min(Math.max(1, studentTotalPages), prev + 1))}
-              disabled={studentPage === Math.max(1, studentTotalPages)}
-            >
-              Next
-            </Button>
+            ) : null}
+            <span className="ui-note ui-note--muted">{taIds.length} selected</span>
           </div>
-        ) : null}
-        <span className="ui-note ui-note--muted">{studentIds.length} selected</span>
-      </div>
 
-      {mode === "edit" ? (
+          <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--students">
+            <label htmlFor="module-student-search" className="enterprise-modules__create-field-label">
+              Students
+            </label>
+            <p className="ui-note ui-note--muted">Enrolled students can participate in module projects and assessments.</p>
+            <FormField
+              id="module-student-search"
+              type="search"
+              value={studentSearchQuery}
+              onChange={(event) => setStudentSearchQuery(event.target.value)}
+              placeholder="Search students by name, email, or ID"
+              aria-label="Search students"
+            />
+            <span className="ui-note ui-note--muted">
+              {studentStatus === "loading" && studentTotal === 0
+                ? "Loading students..."
+                : studentTotal === 0
+                  ? "Showing 0 students"
+                  : `Showing ${studentStart}-${studentEnd} of ${studentTotal} students`}
+            </span>
+            <div className="enterprise-module-create__access-list" role="group" aria-label="Module students">
+              {studentUsers.map((user) => (
+                <label key={`student-${user.id}`} className={`enterprise-module-create__access-item ${studentSet.has(user.id) ? "is-selected" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={studentSet.has(user.id)}
+                    onChange={(event) => toggleStudent(user.id, event.target.checked)}
+                    disabled={isSubmitting || isDeleting}
+                  />
+                  <div className="ui-stack-xs">
+                    <strong>{user.firstName} {user.lastName}</strong>
+                    <span className="muted">{user.email} • ID {user.id}</span>
+                  </div>
+                  <span className={`status-chip ${user.active ? "status-chip--success" : "status-chip--danger"}`}>
+                    {user.active ? "Active" : "Inactive"}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {studentUsers.length === 0 ? (
+              <span className="ui-note ui-note--muted">
+                {studentStatus === "loading"
+                  ? "Loading students..."
+                  : normalizeSearchQuery(studentSearchQuery)
+                    ? `No students match "${studentSearchQuery.trim()}".`
+                    : "No students found."}
+              </span>
+            ) : null}
+            {studentMessage ? <span className="enterprise-module-create__field-error">{studentMessage}</span> : null}
+            {studentTotalPages > 1 ? (
+              <div className="user-management__pagination" aria-label="Student search pagination">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStudentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={studentPage === 1}
+                >
+                  Previous
+                </Button>
+                <form className="user-management__page-jump" onSubmit={(event) => handlePageJump(event, "students", studentPageInput)}>
+                  <label htmlFor="module-student-page-input" className="user-management__page-jump-label">
+                    Page
+                  </label>
+                  <FormField
+                    id="module-student-page-input"
+                    type="number"
+                    min={1}
+                    max={Math.max(1, studentTotalPages)}
+                    step={1}
+                    inputMode="numeric"
+                    value={studentPageInput}
+                    onChange={(event) => setStudentPageInput(event.target.value)}
+                    onBlur={() => applyPageInput("students", studentPageInput)}
+                    className="user-management__page-jump-input"
+                    aria-label="Go to student page"
+                  />
+                  <span className="muted user-management__page-total">of {Math.max(1, studentTotalPages)}</span>
+                </form>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setStudentPage((prev) => Math.min(Math.max(1, studentTotalPages), prev + 1))}
+                  disabled={studentPage === Math.max(1, studentTotalPages)}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : null}
+            <span className="ui-note ui-note--muted">{studentIds.length} selected</span>
+          </div>
+        </>
+      ) : null}
+
+      {isEditMode ? (
         <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger">
           <div className="enterprise-module-create__danger-zone">
             <h3 className="enterprise-module-create__danger-title">Delete module</h3>
@@ -800,7 +818,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
           Cancel
         </Button>
         <Button type="submit" disabled={isSubmitting || isDeleting}>
-          {isSubmitting ? (mode === "edit" ? "Saving..." : "Creating...") : mode === "edit" ? "Save module" : "Create module"}
+          {isSubmitting ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save module" : "Create module"}
         </Button>
       </div>
     </form>
