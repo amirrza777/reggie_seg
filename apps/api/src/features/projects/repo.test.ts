@@ -47,10 +47,13 @@ describe("projects repo", () => {
   const deadlineInput = {
     taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
     taskDueDate: new Date("2026-03-08T17:00:00.000Z"),
+    taskDueDateMcf: new Date("2026-03-15T17:00:00.000Z"),
     assessmentOpenDate: new Date("2026-03-09T09:00:00.000Z"),
     assessmentDueDate: new Date("2026-03-12T17:00:00.000Z"),
+    assessmentDueDateMcf: new Date("2026-03-19T17:00:00.000Z"),
     feedbackOpenDate: new Date("2026-03-13T09:00:00.000Z"),
     feedbackDueDate: new Date("2026-03-16T17:00:00.000Z"),
+    feedbackDueDateMcf: new Date("2026-03-23T17:00:00.000Z"),
   };
 
   beforeEach(() => {
@@ -161,10 +164,13 @@ describe("projects repo", () => {
           create: {
             taskOpenDate: deadlineInput.taskOpenDate,
             taskDueDate: deadlineInput.taskDueDate,
+            taskDueDateMcf: deadlineInput.taskDueDateMcf,
             assessmentOpenDate: deadlineInput.assessmentOpenDate,
             assessmentDueDate: deadlineInput.assessmentDueDate,
+            assessmentDueDateMcf: deadlineInput.assessmentDueDateMcf,
             feedbackOpenDate: deadlineInput.feedbackOpenDate,
             feedbackDueDate: deadlineInput.feedbackDueDate,
+            feedbackDueDateMcf: deadlineInput.feedbackDueDateMcf,
           },
         },
       },
@@ -177,10 +183,13 @@ describe("projects repo", () => {
           select: {
             taskOpenDate: true,
             taskDueDate: true,
+            taskDueDateMcf: true,
             assessmentOpenDate: true,
             assessmentDueDate: true,
+            assessmentDueDateMcf: true,
             feedbackOpenDate: true,
             feedbackDueDate: true,
+            feedbackDueDateMcf: true,
           },
         },
       },
@@ -260,6 +269,7 @@ describe("projects repo", () => {
   it("getUserProjectDeadline merges override with project deadline and sets isOverridden", async () => {
     (prisma.teamAllocation.findFirst as any).mockResolvedValue({
       team: {
+        deadlineProfile: "STANDARD",
         deadlineOverride: {
           taskOpenDate: "A",
           taskDueDate: null,
@@ -272,10 +282,13 @@ describe("projects repo", () => {
           deadline: {
             taskOpenDate: "P-A",
             taskDueDate: "P-B",
+            taskDueDateMcf: "P-B-MCF",
             assessmentOpenDate: "P-C",
             assessmentDueDate: "P-D",
+            assessmentDueDateMcf: "P-D-MCF",
             feedbackOpenDate: "P-E",
             feedbackDueDate: "P-F",
+            feedbackDueDateMcf: "P-F-MCF",
           },
         },
       },
@@ -289,6 +302,7 @@ describe("projects repo", () => {
       feedbackOpenDate: "P-E",
       feedbackDueDate: "P-F",
       isOverridden: true,
+      deadlineProfile: "STANDARD",
     });
   });
 

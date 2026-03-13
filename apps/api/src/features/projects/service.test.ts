@@ -28,10 +28,13 @@ describe("projects service", () => {
   const deadlineInput = {
     taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
     taskDueDate: new Date("2026-03-08T17:00:00.000Z"),
+    taskDueDateMcf: new Date("2026-03-15T17:00:00.000Z"),
     assessmentOpenDate: new Date("2026-03-09T09:00:00.000Z"),
     assessmentDueDate: new Date("2026-03-12T17:00:00.000Z"),
+    assessmentDueDateMcf: new Date("2026-03-19T17:00:00.000Z"),
     feedbackOpenDate: new Date("2026-03-13T09:00:00.000Z"),
     feedbackDueDate: new Date("2026-03-16T17:00:00.000Z"),
+    feedbackDueDateMcf: new Date("2026-03-23T17:00:00.000Z"),
   };
 
   beforeEach(() => {

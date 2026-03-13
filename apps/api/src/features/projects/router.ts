@@ -13,6 +13,7 @@ import {
   getQuestionsForProjectHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
+  updateTeamDeadlineProfileHandler,
 } from "./controller.js";
 
 const router = Router();
@@ -20,6 +21,7 @@ router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", getUserModulesHandler);
 router.get("/staff/mine", getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", getStaffProjectTeamsHandler);
+router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
 router.get("/", getUserProjectsHandler);
 router.get("/:projectId", getProjectByIdHandler);
 router.get("/:projectId/teammates", getTeammatesForProjectHandler);

@@ -59,3 +59,16 @@ export async function createStaffProject(payload: CreateStaffProjectPayload): Pr
 export async function dismissTeamFlag(teamId: number): Promise<void> {
   await apiFetch(`/teams/${teamId}/dismiss-flag`, { method: "PATCH" });
 }
+
+export async function updateStaffTeamDeadlineProfile(
+  teamId: number,
+  deadlineProfile: "STANDARD" | "MCF",
+): Promise<{ id: number; deadlineProfile: "STANDARD" | "MCF" }> {
+  return apiFetch<{ id: number; deadlineProfile: "STANDARD" | "MCF" }>(
+    `/projects/staff/teams/${teamId}/deadline-profile`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ deadlineProfile }),
+    },
+  );
+}

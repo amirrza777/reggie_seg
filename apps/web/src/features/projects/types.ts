@@ -12,11 +12,15 @@ export type Project = {
 export type ProjectDeadline = {
   taskOpenDate: string | null;
   taskDueDate: string | null;
+  taskDueDateMcf?: string | null;
   assessmentOpenDate: string | null;
   assessmentDueDate: string | null;
+  assessmentDueDateMcf?: string | null;
   feedbackOpenDate: string | null;
   feedbackDueDate: string | null;
+  feedbackDueDateMcf?: string | null;
   isOverridden: boolean;
+  deadlineProfile?: "STANDARD" | "MCF";
 };
 
 export type User = {
@@ -32,6 +36,8 @@ export type Team = {
   projectId: number;
   createdAt: string;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
+  deadlineProfile?: "STANDARD" | "MCF";
+  hasDeadlineOverride?: boolean;
   allocations: Array<{
     userId: number;
     user: User;
@@ -63,10 +69,13 @@ export type CreateStaffProjectPayload = {
   deadline: {
     taskOpenDate: string;
     taskDueDate: string;
+    taskDueDateMcf: string;
     assessmentOpenDate: string;
     assessmentDueDate: string;
+    assessmentDueDateMcf: string;
     feedbackOpenDate: string;
     feedbackDueDate: string;
+    feedbackDueDateMcf: string;
   };
 };
 
@@ -78,10 +87,13 @@ export type CreatedStaffProject = {
   deadline?: {
     taskOpenDate: string;
     taskDueDate: string;
+    taskDueDateMcf: string;
     assessmentOpenDate: string;
     assessmentDueDate: string;
+    assessmentDueDateMcf: string;
     feedbackOpenDate: string;
     feedbackDueDate: string;
+    feedbackDueDateMcf: string;
   } | null;
 };
 

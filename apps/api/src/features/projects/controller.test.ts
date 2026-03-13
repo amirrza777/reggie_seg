@@ -36,10 +36,13 @@ describe("projects controller", () => {
   const deadlinePayload = {
     taskOpenDate: "2026-03-01T09:00:00.000Z",
     taskDueDate: "2026-03-08T17:00:00.000Z",
+    taskDueDateMcf: "2026-03-15T17:00:00.000Z",
     assessmentOpenDate: "2026-03-09T09:00:00.000Z",
     assessmentDueDate: "2026-03-12T17:00:00.000Z",
+    assessmentDueDateMcf: "2026-03-19T17:00:00.000Z",
     feedbackOpenDate: "2026-03-13T09:00:00.000Z",
     feedbackDueDate: "2026-03-16T17:00:00.000Z",
+    feedbackDueDateMcf: "2026-03-23T17:00:00.000Z",
   };
 
   beforeEach(() => {
@@ -76,10 +79,13 @@ describe("projects controller", () => {
       expect.objectContaining({
         taskOpenDate: expect.any(Date),
         taskDueDate: expect.any(Date),
+        taskDueDateMcf: expect.any(Date),
         assessmentOpenDate: expect.any(Date),
         assessmentDueDate: expect.any(Date),
+        assessmentDueDateMcf: expect.any(Date),
         feedbackOpenDate: expect.any(Date),
         feedbackDueDate: expect.any(Date),
+        feedbackDueDateMcf: expect.any(Date),
       }),
     );
     expect(res.status).toHaveBeenCalledWith(201);

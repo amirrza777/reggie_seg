@@ -4,6 +4,7 @@ import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -57,9 +58,26 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <p className="staff-projects__desc">Project: {data.project.name}</p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">
+            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
+          </span>
+          {team.hasDeadlineOverride ? (
+            <span className="staff-projects__badge">Team override active</span>
+          ) : (
+            <span className="staff-projects__badge">No team override</span>
+          )}
           <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
             Back to teams
           </Link>
+        </div>
+        <div className="staff-projects__meta">
+          <StaffTeamDeadlineProfileControl
+            teamId={team.id}
+            initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
+          />
+          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+            Manage per-student overrides
+          </button>
         </div>
       </section>
 

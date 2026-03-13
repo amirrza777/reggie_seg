@@ -11,6 +11,7 @@ import {
   getStaffProjects,
   getStaffProjectTeams,
   getUserProjectMarking,
+  updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   type ProjectDeadlineInput,
 } from "./repo.js";
 
@@ -95,10 +96,27 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       moduleId: project.moduleId,
       moduleName: project.module?.name ?? "",
     },
-    teams: project.teams,
+    teams: project.teams.map((team) => ({
+      id: team.id,
+      teamName: team.teamName,
+      projectId: team.projectId,
+      createdAt: team.createdAt,
+      inactivityFlag: team.inactivityFlag,
+      deadlineProfile: team.deadlineProfile,
+      hasDeadlineOverride: Boolean(team.deadlineOverride),
+      allocations: team.allocations,
+    })),
   };
 }
 
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
+}
+
+export async function updateTeamDeadlineProfileForStaff(
+  actorUserId: number,
+  teamId: number,
+  deadlineProfile: "STANDARD" | "MCF",
+) {
+  return updateStaffTeamDeadlineProfileInDb(actorUserId, teamId, deadlineProfile);
 }

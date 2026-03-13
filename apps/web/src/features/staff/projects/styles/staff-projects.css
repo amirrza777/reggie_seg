@@ -256,6 +256,41 @@
   text-underline-offset: 3px;
 }
 
+.staff-projects__profile-switch-wrap {
+  display: grid;
+  gap: 6px;
+}
+
+.staff-projects__profile-switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.staff-projects__profile-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-body-sm);
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.staff-projects__profile-btn--active {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
+  border: 1px solid var(--accent-border);
+}
+
+.staff-projects__profile-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .staff-projects__error {
   margin: 0;
   color: var(--danger, #c62828);

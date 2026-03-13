@@ -3,10 +3,13 @@ import { prisma } from "../../shared/db.js";
 export type ProjectDeadlineInput = {
   taskOpenDate: Date;
   taskDueDate: Date;
+  taskDueDateMcf: Date;
   assessmentOpenDate: Date;
   assessmentDueDate: Date;
+  assessmentDueDateMcf: Date;
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
+  feedbackDueDateMcf: Date;
 };
 
 export async function getUserProjects(userId: number) {
@@ -225,6 +228,12 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
           projectId: true,
           createdAt: true,
           inactivityFlag: true,
+          deadlineProfile: true,
+          deadlineOverride: {
+            select: {
+              id: true,
+            },
+          },
           allocations: {
             select: {
               userId: true,
@@ -311,10 +320,13 @@ export async function createProject(
         create: {
           taskOpenDate: deadline.taskOpenDate,
           taskDueDate: deadline.taskDueDate,
+          taskDueDateMcf: deadline.taskDueDateMcf,
           assessmentOpenDate: deadline.assessmentOpenDate,
           assessmentDueDate: deadline.assessmentDueDate,
+          assessmentDueDateMcf: deadline.assessmentDueDateMcf,
           feedbackOpenDate: deadline.feedbackOpenDate,
           feedbackDueDate: deadline.feedbackDueDate,
+          feedbackDueDateMcf: deadline.feedbackDueDateMcf,
         },
       },
     },
@@ -327,12 +339,68 @@ export async function createProject(
         select: {
           taskOpenDate: true,
           taskDueDate: true,
+          taskDueDateMcf: true,
           assessmentOpenDate: true,
           assessmentDueDate: true,
+          assessmentDueDateMcf: true,
           feedbackOpenDate: true,
           feedbackDueDate: true,
+          feedbackDueDateMcf: true,
         },
       },
+    },
+  });
+}
+
+export async function updateStaffTeamDeadlineProfile(
+  actorUserId: number,
+  teamId: number,
+  deadlineProfile: "STANDARD" | "MCF",
+) {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    throw { code: "FORBIDDEN", message: "User not found" };
+  }
+
+  const isStaffRole = actor.role === "STAFF" || actor.role === "ENTERPRISE_ADMIN" || actor.role === "ADMIN";
+  if (!isStaffRole) {
+    throw { code: "FORBIDDEN", message: "Only staff can update team deadline profile" };
+  }
+
+  const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      project: {
+        module: {
+          enterpriseId: actor.enterpriseId,
+          ...(roleCanAccessAll
+            ? {}
+            : {
+                OR: [
+                  { moduleLeads: { some: { userId: actorUserId } } },
+                  { moduleTeachingAssistants: { some: { userId: actorUserId } } },
+                ],
+              }),
+        },
+      },
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!team) {
+    throw { code: "TEAM_NOT_FOUND" };
+  }
+
+  return prisma.team.update({
+    where: { id: teamId },
+    data: { deadlineProfile },
+    select: {
+      id: true,
+      deadlineProfile: true,
     },
   });
 }
@@ -375,6 +443,7 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
       team: {
         select: {
           id: true,
+          deadlineProfile: true,
           deadlineOverride: {
             select: {
               taskOpenDate: true,
@@ -391,10 +460,13 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
                 select: {
                   taskOpenDate: true,
                   taskDueDate: true,
+                  taskDueDateMcf: true,
                   assessmentOpenDate: true,
                   assessmentDueDate: true,
+                  assessmentDueDateMcf: true,
                   feedbackOpenDate: true,
                   feedbackDueDate: true,
+                  feedbackDueDateMcf: true,
                 },
               },
             },
@@ -409,15 +481,31 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
   }
   const projectDeadline = userTeam.team.project.deadline;
   const teamOverride = userTeam.team.deadlineOverride;
+  const teamUsesMcfDeadline = userTeam.team.deadlineProfile === "MCF";
+
+  const taskDueDate =
+    teamOverride?.taskDueDate ??
+    (teamUsesMcfDeadline ? projectDeadline?.taskDueDateMcf ?? projectDeadline?.taskDueDate : projectDeadline?.taskDueDate);
+  const assessmentDueDate =
+    teamOverride?.assessmentDueDate ??
+    (teamUsesMcfDeadline
+      ? projectDeadline?.assessmentDueDateMcf ?? projectDeadline?.assessmentDueDate
+      : projectDeadline?.assessmentDueDate);
+  const feedbackDueDate =
+    teamOverride?.feedbackDueDate ??
+    (teamUsesMcfDeadline
+      ? projectDeadline?.feedbackDueDateMcf ?? projectDeadline?.feedbackDueDate
+      : projectDeadline?.feedbackDueDate);
 
   return {
     taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline?.taskOpenDate,
-    taskDueDate: teamOverride?.taskDueDate ?? projectDeadline?.taskDueDate,
+    taskDueDate,
     assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline?.assessmentOpenDate,
-    assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline?.assessmentDueDate,
+    assessmentDueDate,
     feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
-    feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline?.feedbackDueDate,
+    feedbackDueDate,
     isOverridden: !!teamOverride,
+    deadlineProfile: userTeam.team.deadlineProfile,
   };
 }
 

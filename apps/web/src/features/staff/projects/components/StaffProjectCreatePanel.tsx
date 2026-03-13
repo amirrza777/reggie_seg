@@ -18,10 +18,13 @@ const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER"]);
 type DeadlineState = {
   taskOpenDate: string;
   taskDueDate: string;
+  taskDueDateMcf: string;
   assessmentOpenDate: string;
   assessmentDueDate: string;
+  assessmentDueDateMcf: string;
   feedbackOpenDate: string;
   feedbackDueDate: string;
+  feedbackDueDateMcf: string;
 };
 
 function toLocalDateTimeInputValue(date: Date): string {
@@ -43,10 +46,13 @@ function buildDefaultDeadlineState(): DeadlineState {
   return {
     taskOpenDate: toLocalDateTimeInputValue(taskOpen),
     taskDueDate: toLocalDateTimeInputValue(taskDue),
+    taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
     assessmentOpenDate: toLocalDateTimeInputValue(assessmentOpen),
     assessmentDueDate: toLocalDateTimeInputValue(assessmentDue),
+    assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
+    feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
   };
 }
 
@@ -79,10 +85,13 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
   return {
     taskOpenDate: toLocalDateTimeInputValue(taskOpen),
     taskDueDate: toLocalDateTimeInputValue(taskDue),
+    taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
     assessmentOpenDate: toLocalDateTimeInputValue(assessmentOpen),
     assessmentDueDate: toLocalDateTimeInputValue(assessmentDue),
+    assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
+    feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
   };
 }
 
@@ -141,18 +150,24 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
     templateId.trim().length > 0 &&
     deadline.taskOpenDate.trim().length > 0 &&
     deadline.taskDueDate.trim().length > 0 &&
+    deadline.taskDueDateMcf.trim().length > 0 &&
     deadline.assessmentOpenDate.trim().length > 0 &&
     deadline.assessmentDueDate.trim().length > 0 &&
+    deadline.assessmentDueDateMcf.trim().length > 0 &&
     deadline.feedbackOpenDate.trim().length > 0 &&
-    deadline.feedbackDueDate.trim().length > 0;
+    deadline.feedbackDueDate.trim().length > 0 &&
+    deadline.feedbackDueDateMcf.trim().length > 0;
 
   const deadlinePreview = useMemo(() => {
     const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
     const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const taskDueDateMcf = parseLocalDateTime(deadline.taskDueDateMcf);
     const assessmentOpenDate = parseLocalDateTime(deadline.assessmentOpenDate);
     const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const assessmentDueDateMcf = parseLocalDateTime(deadline.assessmentDueDateMcf);
     const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
     const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
 
     const rangeStart = taskOpenDate;
     const rangeEnd = feedbackDueDate;
@@ -162,13 +177,30 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
     return {
       taskOpenDate,
       taskDueDate,
+      taskDueDateMcf,
       assessmentOpenDate,
       assessmentDueDate,
+      assessmentDueDateMcf,
       feedbackOpenDate,
       feedbackDueDate,
+      feedbackDueDateMcf,
       totalDays,
     };
   }, [deadline]);
+
+  function applyMcfOffsetDays(offsetDays: number) {
+    const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    if (!taskDueDate || !assessmentDueDate || !feedbackDueDate) return;
+    const deltaMs = offsetDays * 24 * 60 * 60 * 1000;
+    setDeadline((prev) => ({
+      ...prev,
+      taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDueDate.getTime() + deltaMs)),
+      assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDueDate.getTime() + deltaMs)),
+      feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDueDate.getTime() + deltaMs)),
+    }));
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -183,12 +215,25 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
 
     const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
     const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const taskDueDateMcf = parseLocalDateTime(deadline.taskDueDateMcf);
     const assessmentOpenDate = parseLocalDateTime(deadline.assessmentOpenDate);
     const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const assessmentDueDateMcf = parseLocalDateTime(deadline.assessmentDueDateMcf);
     const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
     const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
 
-    if (!taskOpenDate || !taskDueDate || !assessmentOpenDate || !assessmentDueDate || !feedbackOpenDate || !feedbackDueDate) {
+    if (
+      !taskOpenDate ||
+      !taskDueDate ||
+      !taskDueDateMcf ||
+      !assessmentOpenDate ||
+      !assessmentDueDate ||
+      !assessmentDueDateMcf ||
+      !feedbackOpenDate ||
+      !feedbackDueDate ||
+      !feedbackDueDateMcf
+    ) {
       setSubmitError("All deadline fields must be valid dates.");
       return;
     }
@@ -213,6 +258,18 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
       setSubmitError("Feedback open must be before feedback due.");
       return;
     }
+    if (taskDueDateMcf < taskDueDate) {
+      setSubmitError("MCF task due must be on or after standard task due.");
+      return;
+    }
+    if (assessmentDueDateMcf < assessmentDueDate) {
+      setSubmitError("MCF assessment due must be on or after standard assessment due.");
+      return;
+    }
+    if (feedbackDueDateMcf < feedbackDueDate) {
+      setSubmitError("MCF feedback due must be on or after standard feedback due.");
+      return;
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -226,10 +283,13 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
         deadline: {
           taskOpenDate: taskOpenDate.toISOString(),
           taskDueDate: taskDueDate.toISOString(),
+          taskDueDateMcf: taskDueDateMcf.toISOString(),
           assessmentOpenDate: assessmentOpenDate.toISOString(),
           assessmentDueDate: assessmentDueDate.toISOString(),
+          assessmentDueDateMcf: assessmentDueDateMcf.toISOString(),
           feedbackOpenDate: feedbackOpenDate.toISOString(),
           feedbackDueDate: feedbackDueDate.toISOString(),
+          feedbackDueDateMcf: feedbackDueDateMcf.toISOString(),
         },
       });
       setProjectName("");
@@ -308,7 +368,7 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
         <fieldset className="staff-projects__deadline">
           <legend className="staff-projects__field-label">Project deadlines</legend>
           <p className="staff-projects__hint">
-            Deadlines are set when creating the project. Team-specific overrides can be applied later if needed.
+            Set standard cohort deadlines and separate MCF due dates. Team and student overrides can be applied later.
           </p>
           <div className="staff-projects__deadline-presets">
             <button
@@ -332,7 +392,13 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
             >
               Reset dates
             </button>
+            <button type="button" className="staff-projects__badge" onClick={() => applyMcfOffsetDays(7)}>
+              Set MCF +7 days
+            </button>
           </div>
+          <p className="staff-projects__field-label" style={{ margin: 0 }}>
+            Standard timeline
+          </p>
           <div className="staff-projects__deadline-grid">
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Task opens</span>
@@ -389,6 +455,38 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
               />
             </label>
           </div>
+          <p className="staff-projects__field-label" style={{ margin: 0 }}>
+            MCF extension due dates
+          </p>
+          <div className="staff-projects__deadline-grid">
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">MCF task due</span>
+              <input
+                className="staff-projects__input"
+                type="datetime-local"
+                value={deadline.taskDueDateMcf}
+                onChange={(event) => setDeadline((prev) => ({ ...prev, taskDueDateMcf: event.target.value }))}
+              />
+            </label>
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">MCF assessment due</span>
+              <input
+                className="staff-projects__input"
+                type="datetime-local"
+                value={deadline.assessmentDueDateMcf}
+                onChange={(event) => setDeadline((prev) => ({ ...prev, assessmentDueDateMcf: event.target.value }))}
+              />
+            </label>
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">MCF feedback due</span>
+              <input
+                className="staff-projects__input"
+                type="datetime-local"
+                value={deadline.feedbackDueDateMcf}
+                onChange={(event) => setDeadline((prev) => ({ ...prev, feedbackDueDateMcf: event.target.value }))}
+              />
+            </label>
+          </div>
           <div className="staff-projects__deadline-preview">
             <h3 className="staff-projects__deadline-preview-title">Timeline preview</h3>
             <p className="staff-projects__hint">
@@ -412,6 +510,18 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
                 <p className="staff-projects__card-sub">
                   {formatDateTime(deadlinePreview.feedbackOpenDate)} → {formatDateTime(deadlinePreview.feedbackDueDate)}
                 </p>
+              </div>
+              <div>
+                <p className="staff-projects__field-label">MCF task due</p>
+                <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.taskDueDateMcf)}</p>
+              </div>
+              <div>
+                <p className="staff-projects__field-label">MCF assessment due</p>
+                <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.assessmentDueDateMcf)}</p>
+              </div>
+              <div>
+                <p className="staff-projects__field-label">MCF feedback due</p>
+                <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.feedbackDueDateMcf)}</p>
               </div>
             </div>
           </div>

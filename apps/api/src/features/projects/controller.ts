@@ -13,6 +13,7 @@ import {
   fetchProjectsForStaff,
   fetchProjectTeamsForStaff,
   fetchProjectMarking,
+  updateTeamDeadlineProfileForStaff,
 } from "./service.js";
 
 function parsePositiveInt(value: unknown): number | null {
@@ -23,10 +24,13 @@ function parsePositiveInt(value: unknown): number | null {
 type ParsedProjectDeadline = {
   taskOpenDate: Date;
   taskDueDate: Date;
+  taskDueDateMcf: Date;
   assessmentOpenDate: Date;
   assessmentDueDate: Date;
+  assessmentDueDateMcf: Date;
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
+  feedbackDueDateMcf: Date;
 };
 
 function parseIsoDate(value: unknown, field: keyof ParsedProjectDeadline): Date | null {
@@ -43,17 +47,23 @@ function parseProjectDeadline(value: unknown): { ok: true; value: ParsedProjectD
 
   const taskOpenDate = parseIsoDate((value as any).taskOpenDate, "taskOpenDate");
   const taskDueDate = parseIsoDate((value as any).taskDueDate, "taskDueDate");
+  const taskDueDateMcf = parseIsoDate((value as any).taskDueDateMcf, "taskDueDateMcf");
   const assessmentOpenDate = parseIsoDate((value as any).assessmentOpenDate, "assessmentOpenDate");
   const assessmentDueDate = parseIsoDate((value as any).assessmentDueDate, "assessmentDueDate");
+  const assessmentDueDateMcf = parseIsoDate((value as any).assessmentDueDateMcf, "assessmentDueDateMcf");
   const feedbackOpenDate = parseIsoDate((value as any).feedbackOpenDate, "feedbackOpenDate");
   const feedbackDueDate = parseIsoDate((value as any).feedbackDueDate, "feedbackDueDate");
+  const feedbackDueDateMcf = parseIsoDate((value as any).feedbackDueDateMcf, "feedbackDueDateMcf");
 
   if (!taskOpenDate) return { ok: false, error: "deadline.taskOpenDate must be a valid date string" };
   if (!taskDueDate) return { ok: false, error: "deadline.taskDueDate must be a valid date string" };
+  if (!taskDueDateMcf) return { ok: false, error: "deadline.taskDueDateMcf must be a valid date string" };
   if (!assessmentOpenDate) return { ok: false, error: "deadline.assessmentOpenDate must be a valid date string" };
   if (!assessmentDueDate) return { ok: false, error: "deadline.assessmentDueDate must be a valid date string" };
+  if (!assessmentDueDateMcf) return { ok: false, error: "deadline.assessmentDueDateMcf must be a valid date string" };
   if (!feedbackOpenDate) return { ok: false, error: "deadline.feedbackOpenDate must be a valid date string" };
   if (!feedbackDueDate) return { ok: false, error: "deadline.feedbackDueDate must be a valid date string" };
+  if (!feedbackDueDateMcf) return { ok: false, error: "deadline.feedbackDueDateMcf must be a valid date string" };
 
   if (taskOpenDate >= taskDueDate) {
     return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
@@ -70,16 +80,28 @@ function parseProjectDeadline(value: unknown): { ok: true; value: ParsedProjectD
   if (feedbackOpenDate >= feedbackDueDate) {
     return { ok: false, error: "deadline.feedbackOpenDate must be before deadline.feedbackDueDate" };
   }
+  if (taskDueDateMcf < taskDueDate) {
+    return { ok: false, error: "deadline.taskDueDateMcf must be on or after deadline.taskDueDate" };
+  }
+  if (assessmentDueDateMcf < assessmentDueDate) {
+    return { ok: false, error: "deadline.assessmentDueDateMcf must be on or after deadline.assessmentDueDate" };
+  }
+  if (feedbackDueDateMcf < feedbackDueDate) {
+    return { ok: false, error: "deadline.feedbackDueDateMcf must be on or after deadline.feedbackDueDate" };
+  }
 
   return {
     ok: true,
     value: {
       taskOpenDate,
       taskDueDate,
+      taskDueDateMcf,
       assessmentOpenDate,
       assessmentDueDate,
+      assessmentDueDateMcf,
       feedbackOpenDate,
       feedbackDueDate,
+      feedbackDueDateMcf,
     },
   };
 }
@@ -337,5 +359,35 @@ export async function getProjectMarkingHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching project marking:", error);
     res.status(500).json({ error: "Failed to fetch project marking" });
+  }
+}
+
+export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const teamId = Number(req.params.teamId);
+  const deadlineProfile = req.body?.deadlineProfile;
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
+  if (deadlineProfile !== "STANDARD" && deadlineProfile !== "MCF") {
+    return res.status(400).json({ error: "deadlineProfile must be STANDARD or MCF" });
+  }
+
+  try {
+    const updated = await updateTeamDeadlineProfileForStaff(actorUserId, teamId, deadlineProfile);
+    return res.json(updated);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "TEAM_NOT_FOUND") {
+      return res.status(404).json({ error: "Team not found" });
+    }
+    console.error("Error updating team deadline profile:", error);
+    return res.status(500).json({ error: "Failed to update team deadline profile" });
   }
 }
