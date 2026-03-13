@@ -50,11 +50,19 @@ export function getMyQuestionnaireTemplates(userId: number) {
   });
 }
 
-export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
+export async function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
+  const requester = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { enterpriseId: true },
+  });
+
+  if (!requester) return [];
+
   return prisma.questionnaireTemplate.findMany({
     where: {
       isPublic: true,
       ownerId: { not: userId },
+      owner: { enterpriseId: requester.enterpriseId },
     },
     include: { questions: { orderBy: { order: "asc" } } },
   });

@@ -18,6 +18,9 @@ vi.mock("../../shared/db.js", () => ({
       findMany: vi.fn(),
       delete: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
     question: {
       findMany: vi.fn(),
       update: vi.fn(),
@@ -104,10 +107,16 @@ describe("QuestionnaireTemplate repository read paths", () => {
   });
 
   it("fetches public templates owned by other users", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-1" });
+
     await getPublicQuestionnaireTemplatesByOtherUsers(14);
 
     expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
-      where: { isPublic: true, ownerId: { not: 14 } },
+      where: {
+        isPublic: true,
+        ownerId: { not: 14 },
+        owner: { enterpriseId: "ent-1" },
+      },
       include: { questions: { orderBy: { order: "asc" } } },
     });
   });
