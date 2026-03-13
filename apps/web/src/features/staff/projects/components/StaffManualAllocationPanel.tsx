@@ -59,6 +59,10 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
     loadWorkspace(true);
   }
 
+  function handleRefreshWorkspace() {
+    loadWorkspace(isWorkspaceOpen);
+  }
+
   const isBusy = isLoading || isSubmitting;
 
   const availableStudentIds = workspace
@@ -139,14 +143,26 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
   return (
     <section className="staff-projects__manual-panel" aria-label="Manual allocation panel">
       <div className="staff-projects__manual-toolbar">
-        <button
-          type="button"
-          className="staff-projects__allocation-btn"
-          onClick={handleToggleWorkspace}
-          disabled={isBusy}
-        >
-          {isLoading ? "Loading..." : isWorkspaceOpen ? "Close manual allocation" : "Open manual allocation"}
-        </button>
+        <div className="staff-projects__manual-toolbar-actions">
+          <button
+            type="button"
+            className="staff-projects__allocation-btn"
+            onClick={handleToggleWorkspace}
+            disabled={isBusy}
+          >
+            {isLoading ? "Loading..." : isWorkspaceOpen ? "Close manual allocation" : "Open manual allocation"}
+          </button>
+          {workspace ? (
+            <button
+              type="button"
+              className="staff-projects__allocation-btn"
+              onClick={handleRefreshWorkspace}
+              disabled={isBusy}
+            >
+              {isLoading ? "Refreshing..." : "Refresh list"}
+            </button>
+          ) : null}
+        </div>
 
         {workspace ? (
           <div className="staff-projects__meta">
