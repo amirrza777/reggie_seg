@@ -12,7 +12,7 @@ model Team {
   deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments PeerAssessment[]
   peerFeedbacks   PeerFeedback[]
-  mcfRequests     MCFRequest[]
+  teamHealthMessages TeamHealthMessage[]
   staffTeamMarking StaffTeamMarking?
   staffStudentMarkings StaffStudentMarking[]
   meetings        Meeting[]

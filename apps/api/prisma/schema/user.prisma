@@ -49,8 +49,8 @@ model User {
   mappedGithubStats       GithubRepoSnapshotUserStat[]  @relation("GithubRepoSnapshotUserStatMappedUser")
   teamInvitesSent     TeamInvite[]            @relation("TeamInvitesSent")
   teamInvitesReceived TeamInvite[]            @relation("TeamInvitesReceived")
-  mcfRequestsCreated  MCFRequest[]            @relation("MCFRequestRequester")
-  mcfRequestsReviewed MCFRequest[]            @relation("MCFRequestReviewer")
+  teamHealthMessagesCreated  TeamHealthMessage[] @relation("TeamHealthMessageRequester")
+  teamHealthMessagesReviewed TeamHealthMessage[] @relation("TeamHealthMessageReviewer")
   auditLogs           AuditLog[]
 
   @@unique([id, enterpriseId])
