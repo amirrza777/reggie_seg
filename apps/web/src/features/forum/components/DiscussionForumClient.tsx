@@ -8,6 +8,7 @@ import {
   deleteDiscussionPost,
   getDiscussionPosts,
   reportDiscussionPost,
+  reactToDiscussionPost,
   updateDiscussionPost,
 } from "@/features/forum/api/client";
 import type { DiscussionPost } from "@/features/forum/types";
@@ -29,6 +30,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [savingPostId, setSavingPostId] = useState<number | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
+  const [reactingPostId, setReactingPostId] = useState<number | null>(null);
 
   const isStaff =
     Boolean(user?.isStaff) ||
@@ -144,6 +146,20 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     }
   };
 
+  const handleReaction = async (postId: number, type: "LIKE" | "DISLIKE") => {
+    if (!user) return;
+    setReactingPostId(postId);
+    try {
+      const updated = await reactToDiscussionPost(user.id, Number(projectId), postId, type);
+      setPosts((prev) => prev.map((post) => (post.id === postId ? updated : post)));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update reaction.");
+    } finally {
+      setReactingPostId(null);
+    }
+  };
+
   return (
     <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} />
@@ -251,61 +267,87 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
                   {isEditing ? null : <p style={{ margin: 0 }}>{post.body}</p>}
 
-                  {isAuthor ? (
-                    <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-                      {isEditing ? (
+                  <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      <span className="muted">Score {post.reactionScore}</span>
+                      {!isAuthor ? (
                         <>
                           <button
                             type="button"
-                            className="btn btn--ghost"
-                            onClick={cancelEditing}
-                            disabled={savingPostId === post.id}
+                            className={`btn ${post.myReaction === "LIKE" ? "btn--primary" : "btn--ghost"}`}
+                            onClick={() => handleReaction(post.id, "LIKE")}
+                            disabled={reactingPostId === post.id}
                           >
-                            Cancel
+                            {post.myReaction === "LIKE" ? "Liked" : "Like"}
                           </button>
                           <button
                             type="button"
-                            className="btn btn--primary"
-                            onClick={() => handleUpdate(post.id)}
-                            disabled={
-                              savingPostId === post.id ||
-                              editingTitle.trim().length === 0 ||
-                              editingBody.trim().length === 0
-                            }
+                            className={`btn ${post.myReaction === "DISLIKE" ? "btn--primary" : "btn--ghost"}`}
+                            onClick={() => handleReaction(post.id, "DISLIKE")}
+                            disabled={reactingPostId === post.id}
                           >
-                            Save
+                            {post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
                           </button>
                         </>
-                      ) : (
-                        <>
-                          <button type="button" className="btn btn--ghost" onClick={() => startEditing(post)}>
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn--ghost"
-                            onClick={() => handleDelete(post.id)}
-                            disabled={deletingPostId === post.id}
-                          >
-                            {deletingPostId === post.id ? "Deleting…" : "Delete"}
-                          </button>
-                        </>
-                      )}
+                      ) : null}
                     </div>
-                  ) : null}
 
-                  {isStaff && post.author.role === "STUDENT" ? (
                     <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-                      <button
-                        type="button"
-                        className="btn btn--ghost"
-                        onClick={() => handleReport(post.id)}
-                        disabled={reportingPostId === post.id}
-                      >
-                        {reportingPostId === post.id ? "Reporting…" : "Report"}
-                      </button>
+                      {isAuthor ? (
+                        isEditing ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn btn--ghost"
+                              onClick={cancelEditing}
+                              disabled={savingPostId === post.id}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--primary"
+                              onClick={() => handleUpdate(post.id)}
+                              disabled={
+                                savingPostId === post.id ||
+                                editingTitle.trim().length === 0 ||
+                                editingBody.trim().length === 0
+                              }
+                            >
+                              Save
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button type="button" className="btn btn--ghost" onClick={() => startEditing(post)}>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn--ghost"
+                              onClick={() => handleDelete(post.id)}
+                              disabled={deletingPostId === post.id}
+                            >
+                              {deletingPostId === post.id ? "Deleting…" : "Delete"}
+                            </button>
+                          </>
+                        )
+                      ) : null}
+
+                      {isStaff && post.author.role === "STUDENT" ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => handleReport(post.id)}
+                          disabled={reportingPostId === post.id}
+                        >
+                          {reportingPostId === post.id ? "Reporting…" : "Report"}
+                        </button>
+                      ) : null}
                     </div>
-                  ) : null}
+                  </div>
+
+                  
                 </article>
               );
             })

@@ -53,6 +53,7 @@ model User {
   discussionPosts     DiscussionPost[]
   forumReportsFiled   ForumReport[]           @relation("ForumReportReporter")
   forumReportsAgainst ForumReport[]           @relation("ForumReportAuthor")
+  forumReactions      ForumReaction[]
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

@@ -8,6 +8,7 @@ import {
   fetchForumSettings,
   setForumSettings,
   reportForumPost,
+  reactToDiscussionPost,
 } from "./service.js";
 
 export async function getProjectDiscussionPostsHandler(req: Request, res: Response) {
@@ -196,5 +197,31 @@ export async function reportDiscussionPostHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error reporting discussion post:", error);
     res.status(500).json({ error: "Failed to report discussion post" });
+  }
+}
+
+export async function reactToDiscussionPostHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const postId = Number(req.params.postId);
+  const { userId, type } = req.body as { userId?: number; type?: string };
+
+  if (isNaN(projectId) || isNaN(postId)) {
+    return res.status(400).json({ error: "Invalid project ID or post ID" });
+  }
+  if (typeof userId !== "number") {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+  if (type !== "LIKE" && type !== "DISLIKE") {
+    return res.status(400).json({ error: "Invalid reaction type" });
+  }
+
+  try {
+    const result = await reactToDiscussionPost(userId, projectId, postId, type);
+    if (result.status === "forbidden") return res.status(403).json({ error: "Forbidden" });
+    if (result.status === "not_found") return res.status(404).json({ error: "Post not found" });
+    res.json(result.post);
+  } catch (error) {
+    console.error("Error reacting to discussion post:", error);
+    res.status(500).json({ error: "Failed to update reaction" });
   }
 }

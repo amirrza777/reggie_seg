@@ -4,6 +4,8 @@ export type DiscussionPost = {
   body: string;
   createdAt: string;
   updatedAt: string;
+  reactionScore: number;
+  myReaction: "LIKE" | "DISLIKE" | null;
   author: {
     id: number;
     firstName: string;

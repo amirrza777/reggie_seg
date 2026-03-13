@@ -42,10 +42,36 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
     }),
   ]);
 
+  const postIds = posts.map((post) => post.id);
+  const [myReactions, reactionCounts] = await Promise.all([
+    prisma.forumReaction.findMany({
+      where: { userId, postId: { in: postIds } },
+      select: { postId: true, type: true },
+    }),
+    prisma.forumReaction.groupBy({
+      by: ["postId", "type"],
+      where: { postId: { in: postIds } },
+      _count: { _all: true },
+    }),
+  ]);
+
+  const reactionByPostId = new Map<number, "LIKE" | "DISLIKE">(
+    myReactions.map((reaction) => [reaction.postId, reaction.type])
+  );
+  const countsByPostId = new Map<number, { likeCount: number; dislikeCount: number }>();
+  for (const entry of reactionCounts) {
+    const existing = countsByPostId.get(entry.postId) ?? { likeCount: 0, dislikeCount: 0 };
+    if (entry.type === "LIKE") existing.likeCount = entry._count._all;
+    if (entry.type === "DISLIKE") existing.dislikeCount = entry._count._all;
+    countsByPostId.set(entry.postId, existing);
+  }
+
   const hideStudentNames = project?.forumIsAnonymous ?? false;
   return posts.map((post) => {
     const shouldHide =
       hideStudentNames && post.author.role === "STUDENT" && post.author.id !== userId;
+    const counts = countsByPostId.get(post.id) ?? { likeCount: 0, dislikeCount: 0 };
+    const score = counts.likeCount - counts.dislikeCount;
     return {
       ...post,
       author: {
@@ -54,6 +80,8 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
         lastName: shouldHide ? "Student" : post.author.lastName,
         role: post.author.role,
       },
+      reactionScore: score,
+      myReaction: reactionByPostId.get(post.id) ?? null,
     };
   });
 }
@@ -62,7 +90,7 @@ export async function getDiscussionPostById(userId: number, projectId: number, p
   const hasAccess = await isUserInProject(userId, projectId);
   if (!hasAccess) return null;
 
-  const [post, project] = await Promise.all([
+  const [post, project, myReaction, reactionCounts] = await Promise.all([
     prisma.discussionPost.findFirst({
       where: { id: postId, projectId },
       select: {
@@ -85,12 +113,30 @@ export async function getDiscussionPostById(userId: number, projectId: number, p
       where: { id: projectId },
       select: { forumIsAnonymous: true },
     }),
+    prisma.forumReaction.findUnique({
+      where: { postId_userId: { postId, userId } },
+      select: { type: true },
+    }),
+    prisma.forumReaction.groupBy({
+      by: ["type"],
+      where: { postId },
+      _count: { _all: true },
+    }),
   ]);
 
   if (!post) return null;
   const hideStudentNames = project?.forumIsAnonymous ?? false;
   const shouldHide =
     hideStudentNames && post.author.role === "STUDENT" && post.author.id !== userId;
+  const counts = reactionCounts.reduce(
+    (acc, entry) => {
+      if (entry.type === "LIKE") acc.likeCount = entry._count._all;
+      if (entry.type === "DISLIKE") acc.dislikeCount = entry._count._all;
+      return acc;
+    },
+    { likeCount: 0, dislikeCount: 0 }
+  );
+  const score = counts.likeCount - counts.dislikeCount;
   return {
     ...post,
     author: {
@@ -99,6 +145,8 @@ export async function getDiscussionPostById(userId: number, projectId: number, p
       lastName: shouldHide ? "Student" : post.author.lastName,
       role: post.author.role,
     },
+    reactionScore: score,
+    myReaction: myReaction?.type ?? null,
   };
 }
 
@@ -293,4 +341,48 @@ export async function reportDiscussionPost(
   ]);
 
   return { status: "ok" };
+}
+
+type ReactionResult =
+  | { status: "ok"; post: NonNullable<Awaited<ReturnType<typeof getDiscussionPostById>>> }
+  | { status: "forbidden" }
+  | { status: "not_found" };
+
+export async function setDiscussionPostReaction(
+  userId: number,
+  projectId: number,
+  postId: number,
+  type: "LIKE" | "DISLIKE"
+): Promise<ReactionResult> {
+  const hasAccess = await isUserInProject(userId, projectId);
+  if (!hasAccess) return { status: "forbidden" };
+
+  const post = await prisma.discussionPost.findFirst({
+    where: { id: postId, projectId },
+    select: { id: true, authorId: true },
+  });
+  if (!post) return { status: "not_found" };
+  if (post.authorId === userId) return { status: "forbidden" };
+
+  const existing = await prisma.forumReaction.findUnique({
+    where: { postId_userId: { postId, userId } },
+    select: { id: true, type: true },
+  });
+
+  if (!existing) {
+    await prisma.forumReaction.create({
+      data: { postId, userId, type },
+    });
+  } else if (existing.type === type) {
+    await prisma.forumReaction.delete({ where: { id: existing.id } });
+  } else {
+    await prisma.forumReaction.update({
+      where: { id: existing.id },
+      data: { type },
+    });
+  }
+
+  const updatedPost = await getDiscussionPostById(userId, projectId, postId);
+  if (!updatedPost) return { status: "not_found" };
+  return { status: "ok", post: updatedPost };
 }

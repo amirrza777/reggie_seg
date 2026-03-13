@@ -9,6 +9,7 @@ model DiscussionPost {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions ForumReaction[]
 
   @@index([projectId, createdAt])
   @@index([authorId])

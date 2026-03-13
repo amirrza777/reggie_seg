@@ -7,6 +7,7 @@ import {
   getForumSettings,
   updateForumSettings,
   reportDiscussionPost,
+  setDiscussionPostReaction,
 } from "./repo.js";
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
@@ -55,4 +56,13 @@ export async function reportForumPost(
   reason?: string | null
 ) {
   return reportDiscussionPost(userId, projectId, postId, reason);
+}
+
+export async function reactToDiscussionPost(
+  userId: number,
+  projectId: number,
+  postId: number,
+  type: "LIKE" | "DISLIKE"
+) {
+  return setDiscussionPostReaction(userId, projectId, postId, type);
 }

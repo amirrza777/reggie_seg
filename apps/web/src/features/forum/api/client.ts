@@ -60,6 +60,18 @@ export async function reportDiscussionPost(
   });
 }
 
+export async function reactToDiscussionPost(
+  userId: number,
+  projectId: number,
+  postId: number,
+  type: "LIKE" | "DISLIKE"
+): Promise<DiscussionPost> {
+  return apiFetch<DiscussionPost>(`/forum/projects/${projectId}/posts/${postId}/reactions`, {
+    method: "POST",
+    body: JSON.stringify({ userId, type }),
+  });
+}
+
 export async function getForumSettings(userId: number, projectId: number): Promise<ForumSettings> {
   return apiFetch<ForumSettings>(`/forum/projects/${projectId}/settings?userId=${userId}`, {
     cache: "no-store",
