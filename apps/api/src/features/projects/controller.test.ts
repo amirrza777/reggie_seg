@@ -11,9 +11,9 @@ import {
   getTeammatesForProjectHandler,
   getUserModulesHandler,
   getUserProjectsHandler,
-  createMcfRequestHandler,
-  getMyMcfRequestsHandler,
-  getStaffTeamMcfRequestsHandler,
+  createTeamHealthMessageHandler,
+  getMyTeamHealthMessagesHandler,
+  getStaffTeamHealthMessagesHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -26,9 +26,9 @@ vi.mock("./service.js", () => ({
   fetchTeamById: vi.fn(),
   fetchTeamByUserAndProject: vi.fn(),
   fetchQuestionsForProject: vi.fn(),
-  submitMcfRequest: vi.fn(),
-  fetchMyMcfRequests: vi.fn(),
-  fetchTeamMcfRequestsForStaff: vi.fn(),
+  submitTeamHealthMessage: vi.fn(),
+  fetchMyTeamHealthMessages: vi.fn(),
+  fetchTeamHealthMessagesForStaff: vi.fn(),
 }));
 
 function mockResponse() {
@@ -178,97 +178,97 @@ describe("projects controller", () => {
     expect(okRes.json).toHaveBeenCalledWith({ id: 5, questions: [{ id: 1 }] });
   });
 
-  it("createMcfRequestHandler validates payload and creates request", async () => {
+  it("createTeamHealthMessageHandler validates payload and creates request", async () => {
     const badRes = mockResponse();
-    await createMcfRequestHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, badRes);
+    await createTeamHealthMessageHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, badRes);
     expect(badRes.status).toHaveBeenCalledWith(400);
 
     const badBodyRes = mockResponse();
-    await createMcfRequestHandler(
+    await createTeamHealthMessageHandler(
       { params: { projectId: "2" }, body: { userId: 7, subject: " ", details: "detail" } } as any,
       badBodyRes
     );
     expect(badBodyRes.status).toHaveBeenCalledWith(400);
 
-    (service.submitMcfRequest as any).mockResolvedValue({
+    (service.submitTeamHealthMessage as any).mockResolvedValue({
       id: 11,
       projectId: 2,
       teamId: 3,
       requesterUserId: 7,
       subject: "Need support",
       details: "Please review team dynamics",
-      status: "OPEN",
+      resolved: false,
     });
     const okRes = mockResponse();
-    await createMcfRequestHandler(
+    await createTeamHealthMessageHandler(
       {
         params: { projectId: "2" },
         body: { userId: 7, subject: " Need support ", details: " Please review team dynamics " },
       } as any,
       okRes
     );
-    expect(service.submitMcfRequest).toHaveBeenCalledWith(7, 2, "Need support", "Please review team dynamics");
+    expect(service.submitTeamHealthMessage).toHaveBeenCalledWith(7, 2, "Need support", "Please review team dynamics");
     expect(okRes.status).toHaveBeenCalledWith(201);
     expect(okRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
-        request: expect.objectContaining({ id: 11, status: "OPEN" }),
+        request: expect.objectContaining({ id: 11, resolved: false }),
       })
     );
 
-    (service.submitMcfRequest as any).mockResolvedValue(null);
+    (service.submitTeamHealthMessage as any).mockResolvedValue(null);
     const missingRes = mockResponse();
-    await createMcfRequestHandler(
+    await createTeamHealthMessageHandler(
       { params: { projectId: "2" }, body: { userId: 7, subject: "Need", details: "Help" } } as any,
       missingRes
     );
     expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 
-  it("getMyMcfRequestsHandler validates ids and returns requester list", async () => {
+  it("getMyTeamHealthMessagesHandler validates ids and returns requester list", async () => {
     const badRes = mockResponse();
-    await getMyMcfRequestsHandler({ params: { projectId: "x" }, query: { userId: "7" } } as any, badRes);
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "x" }, query: { userId: "7" } } as any, badRes);
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.fetchMyMcfRequests as any).mockResolvedValue([
-      { id: 1, subject: "Need support", status: "OPEN" },
+    (service.fetchMyTeamHealthMessages as any).mockResolvedValue([
+      { id: 1, subject: "Need support", resolved: false },
     ]);
     const okRes = mockResponse();
-    await getMyMcfRequestsHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, okRes);
-    expect(service.fetchMyMcfRequests).toHaveBeenCalledWith(7, 3);
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, okRes);
+    expect(service.fetchMyTeamHealthMessages).toHaveBeenCalledWith(7, 3);
     expect(okRes.json).toHaveBeenCalledWith({
-      requests: [{ id: 1, subject: "Need support", status: "OPEN" }],
+      requests: [{ id: 1, subject: "Need support", resolved: false }],
     });
 
-    (service.fetchMyMcfRequests as any).mockResolvedValue(null);
+    (service.fetchMyTeamHealthMessages as any).mockResolvedValue(null);
     const missingRes = mockResponse();
-    await getMyMcfRequestsHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, missingRes);
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, missingRes);
     expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 
-  it("getStaffTeamMcfRequestsHandler validates ids and returns staff list", async () => {
+  it("getStaffTeamHealthMessagesHandler validates ids and returns staff list", async () => {
     const badRes = mockResponse();
-    await getStaffTeamMcfRequestsHandler(
+    await getStaffTeamHealthMessagesHandler(
       { params: { projectId: "x", teamId: "2" }, query: { userId: "7" } } as any,
       badRes
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.fetchTeamMcfRequestsForStaff as any).mockResolvedValue([
-      { id: 4, subject: "Urgent", status: "IN_REVIEW" },
+    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue([
+      { id: 4, subject: "Urgent", resolved: false },
     ]);
     const okRes = mockResponse();
-    await getStaffTeamMcfRequestsHandler(
+    await getStaffTeamHealthMessagesHandler(
       { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
       okRes
     );
-    expect(service.fetchTeamMcfRequestsForStaff).toHaveBeenCalledWith(7, 3, 2);
+    expect(service.fetchTeamHealthMessagesForStaff).toHaveBeenCalledWith(7, 3, 2);
     expect(okRes.json).toHaveBeenCalledWith({
-      requests: [{ id: 4, subject: "Urgent", status: "IN_REVIEW" }],
+      requests: [{ id: 4, subject: "Urgent", resolved: false }],
     });
 
-    (service.fetchTeamMcfRequestsForStaff as any).mockResolvedValue(null);
+    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue(null);
     const missingRes = mockResponse();
-    await getStaffTeamMcfRequestsHandler(
+    await getStaffTeamHealthMessagesHandler(
       { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
       missingRes
     );

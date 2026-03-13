@@ -11,9 +11,9 @@ import {
   getStaffProjects,
   getStaffProjectTeams,
   getUserProjectMarking,
-  createMcfRequest,
-  getMcfRequestsForUserInProject,
-  getMcfRequestsForTeamInProject,
+  createTeamHealthMessage,
+  getTeamHealthMessagesForUserInProject,
+  getTeamHealthMessagesForTeamInProject,
   canStaffAccessTeamInProject,
 } from "./repo.js";
 
@@ -99,7 +99,7 @@ export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
 }
 
-export async function submitMcfRequest(
+export async function submitTeamHealthMessage(
   userId: number,
   projectId: number,
   subject: string,
@@ -108,19 +108,19 @@ export async function submitMcfRequest(
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;
 
-  return createMcfRequest(projectId, team.id, userId, subject, details);
+  return createTeamHealthMessage(projectId, team.id, userId, subject, details);
 }
 
-export async function fetchMyMcfRequests(userId: number, projectId: number) {
+export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;
 
-  return getMcfRequestsForUserInProject(projectId, userId);
+  return getTeamHealthMessagesForUserInProject(projectId, userId);
 }
 
-export async function fetchTeamMcfRequestsForStaff(userId: number, projectId: number, teamId: number) {
+export async function fetchTeamHealthMessagesForStaff(userId: number, projectId: number, teamId: number) {
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
 
-  return getMcfRequestsForTeamInProject(projectId, teamId);
+  return getTeamHealthMessagesForTeamInProject(projectId, teamId);
 }

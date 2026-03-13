@@ -2,10 +2,9 @@ import type { Request, Response } from "express";
 import {
   fetchTeamDeadlineForStaff,
   InvalidDeadlineOverrideError,
-  ResolvedMcfAlreadyExistsError,
-  reviewTeamMcfRequestForStaff,
-  resolveTeamMcfRequestWithDeadlineOverrideForStaff,
-  type McfReviewStatus,
+  ResolvedTeamHealthMessageAlreadyExistsError,
+  reviewTeamHealthMessageForStaff,
+  resolveTeamHealthMessageWithDeadlineOverrideForStaff,
 } from "./service.js";
 
 type DateField =
@@ -61,40 +60,51 @@ export async function getStaffTeamDeadlineHandler(req: Request, res: Response) {
   }
 }
 
-export async function reviewStaffTeamMcfRequestHandler(req: Request, res: Response) {
+export async function reviewStaffTeamHealthMessageHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   const teamId = Number(req.params.teamId);
   const requestId = Number(req.params.requestId);
   const userId = Number((req.body as { userId?: unknown }).userId);
-  const status = (req.body as { status?: unknown }).status;
+  const resolvedRaw = (req.body as { resolved?: unknown }).resolved;
+  const responseTextRaw = (req.body as { responseText?: unknown }).responseText;
 
   if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(requestId) || Number.isNaN(userId)) {
     return res.status(400).json({ error: "Invalid user ID, project ID, team ID, or request ID" });
   }
 
-  if (status !== "REJECTED" && status !== "IN_REVIEW") {
-    return res.status(400).json({ error: "status must be REJECTED or IN_REVIEW" });
+  if (typeof resolvedRaw !== "boolean") {
+    return res.status(400).json({ error: "resolved must be a boolean" });
+  }
+  const resolved = resolvedRaw;
+
+  if (responseTextRaw !== undefined && typeof responseTextRaw !== "string") {
+    return res.status(400).json({ error: "responseText must be a string when provided" });
+  }
+  const responseText = typeof responseTextRaw === "string" ? responseTextRaw.trim() : undefined;
+  if (resolved && !responseText) {
+    return res.status(400).json({ error: "responseText is required when resolving a request" });
   }
 
   try {
-    const request = await reviewTeamMcfRequestForStaff(
+    const request = await reviewTeamHealthMessageForStaff(
       userId,
       projectId,
       teamId,
       requestId,
-      status as McfReviewStatus
+      resolved,
+      responseText
     );
     if (!request) {
       return res.status(404).json({ error: "Project, team, or request not found for staff scope" });
     }
     return res.json({ request });
   } catch (error) {
-    console.error("Error reviewing MCF request:", error);
-    return res.status(500).json({ error: "Failed to review MCF request" });
+    console.error("Error reviewing team health message:", error);
+    return res.status(500).json({ error: "Failed to review team health message" });
   }
 }
 
-export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Response) {
+export async function resolveStaffTeamHealthMessageHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   const teamId = Number(req.params.teamId);
   const requestId = Number(req.params.requestId);
@@ -162,7 +172,7 @@ export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Respo
   }
 
   try {
-    const result = await resolveTeamMcfRequestWithDeadlineOverrideForStaff(userId, projectId, teamId, requestId, {
+    const result = await resolveTeamHealthMessageWithDeadlineOverrideForStaff(userId, projectId, teamId, requestId, {
       taskOpenDate: taskOpenDateParsed.value,
       taskDueDate: taskDueDateParsed.value,
       assessmentOpenDate: assessmentOpenDateParsed.value,
@@ -182,10 +192,10 @@ export async function resolveStaffTeamMcfRequestHandler(req: Request, res: Respo
     if (error instanceof InvalidDeadlineOverrideError) {
       return res.status(400).json({ error: error.message });
     }
-    if (error instanceof ResolvedMcfAlreadyExistsError) {
+    if (error instanceof ResolvedTeamHealthMessageAlreadyExistsError) {
       return res.status(409).json({ error: error.message });
     }
-    console.error("Error resolving MCF request with deadline override:", error);
-    return res.status(500).json({ error: "Failed to resolve MCF request" });
+    console.error("Error resolving team health message with deadline override:", error);
+    return res.status(500).json({ error: "Failed to resolve team health message" });
   }
 }

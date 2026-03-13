@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   fetchTeamDeadlineForStaff,
   InvalidDeadlineOverrideError,
-  ResolvedMcfAlreadyExistsError,
-  resolveTeamMcfRequestWithDeadlineOverrideForStaff,
-  reviewTeamMcfRequestForStaff,
+  ResolvedTeamHealthMessageAlreadyExistsError,
+  resolveTeamHealthMessageWithDeadlineOverrideForStaff,
+  reviewTeamHealthMessageForStaff,
 } from "./service.js";
 import * as repo from "../repo.js";
 
@@ -12,12 +12,12 @@ vi.mock("../repo.js", () => ({
   canStaffAccessTeamInProject: vi.fn(),
   getTeamDeadlineDetailsInProject: vi.fn(),
   getTeamCurrentDeadlineInProject: vi.fn(),
-  hasAnotherResolvedMcfRequest: vi.fn(),
-  reviewMcfRequest: vi.fn(),
-  resolveMcfRequestWithDeadlineOverride: vi.fn(),
+  hasAnotherResolvedTeamHealthMessage: vi.fn(),
+  reviewTeamHealthMessage: vi.fn(),
+  resolveTeamHealthMessageWithDeadlineOverride: vi.fn(),
 }));
 
-describe("mcf-review service", () => {
+describe("team-health-review service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -43,21 +43,21 @@ describe("mcf-review service", () => {
     expect(repo.getTeamDeadlineDetailsInProject).toHaveBeenCalledWith(3, 2);
   });
 
-  it("reviewTeamMcfRequestForStaff enforces staff scope and delegates review", async () => {
+  it("reviewTeamHealthMessageForStaff enforces staff scope and delegates review", async () => {
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
-    await expect(reviewTeamMcfRequestForStaff(9, 3, 2, 11, "IN_REVIEW")).resolves.toBeNull();
-    expect(repo.reviewMcfRequest).not.toHaveBeenCalled();
+    await expect(reviewTeamHealthMessageForStaff(9, 3, 2, 11, false)).resolves.toBeNull();
+    expect(repo.reviewTeamHealthMessage).not.toHaveBeenCalled();
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
-    (repo.reviewMcfRequest as any).mockResolvedValueOnce({ id: 11, status: "IN_REVIEW" });
-    await expect(reviewTeamMcfRequestForStaff(9, 3, 2, 11, "IN_REVIEW")).resolves.toEqual({
+    (repo.reviewTeamHealthMessage as any).mockResolvedValueOnce({ id: 11, resolved: false });
+    await expect(reviewTeamHealthMessageForStaff(9, 3, 2, 11, false)).resolves.toEqual({
       id: 11,
-      status: "IN_REVIEW",
+      resolved: false,
     });
-    expect(repo.reviewMcfRequest).toHaveBeenCalledWith(3, 2, 11, 9, "IN_REVIEW");
+    expect(repo.reviewTeamHealthMessage).toHaveBeenCalledWith(3, 2, 11, 9, false, undefined);
   });
 
-  it("resolveTeamMcfRequestWithDeadlineOverrideForStaff fills omitted fields from current deadline", async () => {
+  it("resolveTeamHealthMessageWithDeadlineOverrideForStaff fills omitted fields from current deadline", async () => {
     const current = {
       taskOpenDate: new Date("2026-03-01T10:00:00.000Z"),
       taskDueDate: new Date("2026-03-02T10:00:00.000Z"),
@@ -70,20 +70,20 @@ describe("mcf-review service", () => {
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamCurrentDeadlineInProject as any).mockResolvedValueOnce(current);
-    (repo.hasAnotherResolvedMcfRequest as any).mockResolvedValueOnce(false);
-    (repo.resolveMcfRequestWithDeadlineOverride as any).mockResolvedValueOnce({
-      request: { id: 11, status: "RESOLVED" },
+    (repo.hasAnotherResolvedTeamHealthMessage as any).mockResolvedValueOnce(false);
+    (repo.resolveTeamHealthMessageWithDeadlineOverride as any).mockResolvedValueOnce({
+      request: { id: 11, resolved: true },
       deadline: current,
     });
 
-    await resolveTeamMcfRequestWithDeadlineOverrideForStaff(9, 3, 2, 11, {
+    await resolveTeamHealthMessageWithDeadlineOverrideForStaff(9, 3, 2, 11, {
       taskDueDate: new Date("2026-03-09T10:00:00.000Z"),
     }, {
       inputMode: "SHIFT_DAYS",
       shiftDays: { taskDueDate: 7 },
     });
 
-    expect(repo.resolveMcfRequestWithDeadlineOverride).toHaveBeenCalledWith(3, 2, 11, 9, {
+    expect(repo.resolveTeamHealthMessageWithDeadlineOverride).toHaveBeenCalledWith(3, 2, 11, 9, {
       taskOpenDate: current.taskOpenDate,
       taskDueDate: new Date("2026-03-09T10:00:00.000Z"),
       assessmentOpenDate: current.assessmentOpenDate,
@@ -96,7 +96,7 @@ describe("mcf-review service", () => {
     });
   });
 
-  it("resolveTeamMcfRequestWithDeadlineOverrideForStaff rejects earlier deadlines", async () => {
+  it("resolveTeamHealthMessageWithDeadlineOverrideForStaff rejects earlier deadlines", async () => {
     const current = {
       taskOpenDate: new Date("2026-03-10T10:00:00.000Z"),
       taskDueDate: new Date("2026-03-12T10:00:00.000Z"),
@@ -109,17 +109,17 @@ describe("mcf-review service", () => {
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamCurrentDeadlineInProject as any).mockResolvedValueOnce(current);
-    (repo.hasAnotherResolvedMcfRequest as any).mockResolvedValueOnce(false);
+    (repo.hasAnotherResolvedTeamHealthMessage as any).mockResolvedValueOnce(false);
 
     await expect(
-      resolveTeamMcfRequestWithDeadlineOverrideForStaff(9, 3, 2, 11, {
+      resolveTeamHealthMessageWithDeadlineOverrideForStaff(9, 3, 2, 11, {
         taskDueDate: new Date("2026-03-11T10:00:00.000Z"),
       })
     ).rejects.toBeInstanceOf(InvalidDeadlineOverrideError);
-    expect(repo.resolveMcfRequestWithDeadlineOverride).not.toHaveBeenCalled();
+    expect(repo.resolveTeamHealthMessageWithDeadlineOverride).not.toHaveBeenCalled();
   });
 
-  it("resolveTeamMcfRequestWithDeadlineOverrideForStaff rejects approving another request when one is already resolved", async () => {
+  it("resolveTeamHealthMessageWithDeadlineOverrideForStaff rejects approving another request when one is already resolved", async () => {
     const current = {
       taskOpenDate: new Date("2026-03-10T10:00:00.000Z"),
       taskDueDate: new Date("2026-03-12T10:00:00.000Z"),
@@ -132,13 +132,13 @@ describe("mcf-review service", () => {
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.getTeamCurrentDeadlineInProject as any).mockResolvedValueOnce(current);
-    (repo.hasAnotherResolvedMcfRequest as any).mockResolvedValueOnce(true);
+    (repo.hasAnotherResolvedTeamHealthMessage as any).mockResolvedValueOnce(true);
 
     await expect(
-      resolveTeamMcfRequestWithDeadlineOverrideForStaff(9, 3, 2, 11, {
+      resolveTeamHealthMessageWithDeadlineOverrideForStaff(9, 3, 2, 11, {
         taskDueDate: new Date("2026-03-20T10:00:00.000Z"),
       })
-    ).rejects.toBeInstanceOf(ResolvedMcfAlreadyExistsError);
-    expect(repo.resolveMcfRequestWithDeadlineOverride).not.toHaveBeenCalled();
+    ).rejects.toBeInstanceOf(ResolvedTeamHealthMessageAlreadyExistsError);
+    expect(repo.resolveTeamHealthMessageWithDeadlineOverride).not.toHaveBeenCalled();
   });
 });

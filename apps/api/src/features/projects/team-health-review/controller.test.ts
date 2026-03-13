@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
 import {
   getStaffTeamDeadlineHandler,
-  resolveStaffTeamMcfRequestHandler,
-  reviewStaffTeamMcfRequestHandler,
+  resolveStaffTeamHealthMessageHandler,
+  reviewStaffTeamHealthMessageHandler,
 } from "./controller.js";
 import * as service from "./service.js";
 
@@ -13,14 +13,14 @@ vi.mock("./service.js", () => ({
       super(`${field} cannot be earlier than the current deadline`);
     }
   },
-  ResolvedMcfAlreadyExistsError: class ResolvedMcfAlreadyExistsError extends Error {
+  ResolvedTeamHealthMessageAlreadyExistsError: class ResolvedTeamHealthMessageAlreadyExistsError extends Error {
     constructor() {
-      super("A resolved MCF request already exists for this team. Edit that request instead.");
+      super("A resolved team health message already exists for this team. Edit that request instead.");
     }
   },
   fetchTeamDeadlineForStaff: vi.fn(),
-  reviewTeamMcfRequestForStaff: vi.fn(),
-  resolveTeamMcfRequestWithDeadlineOverrideForStaff: vi.fn(),
+  reviewTeamHealthMessageForStaff: vi.fn(),
+  resolveTeamHealthMessageWithDeadlineOverrideForStaff: vi.fn(),
 }));
 
 function mockResponse() {
@@ -30,7 +30,7 @@ function mockResponse() {
   return res as Response;
 }
 
-describe("mcf-review controller", () => {
+describe("team-health-review controller", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -65,33 +65,47 @@ describe("mcf-review controller", () => {
     });
   });
 
-  it("reviewStaffTeamMcfRequestHandler validates status and delegates", async () => {
+  it("reviewStaffTeamHealthMessageHandler validates resolved flag and delegates", async () => {
     const badRes = mockResponse();
-    await reviewStaffTeamMcfRequestHandler(
+    await reviewStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
-        body: { userId: 7, status: "OPEN" },
+        body: { userId: 7, resolved: "yes" },
       } as any,
       badRes
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.reviewTeamMcfRequestForStaff as any).mockResolvedValueOnce({ id: 11, status: "REJECTED" });
+    (service.reviewTeamHealthMessageForStaff as any).mockResolvedValueOnce({ id: 11, resolved: false });
     const okRes = mockResponse();
-    await reviewStaffTeamMcfRequestHandler(
+    await reviewStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
-        body: { userId: 7, status: "REJECTED" },
+        body: { userId: 7, resolved: false },
       } as any,
       okRes
     );
-    expect(service.reviewTeamMcfRequestForStaff).toHaveBeenCalledWith(7, 3, 2, 11, "REJECTED");
-    expect(okRes.json).toHaveBeenCalledWith({ request: { id: 11, status: "REJECTED" } });
+    expect(service.reviewTeamHealthMessageForStaff).toHaveBeenCalledWith(7, 3, 2, 11, false, undefined);
+    expect(okRes.json).toHaveBeenCalledWith({ request: { id: 11, resolved: false } });
   });
 
-  it("resolveStaffTeamMcfRequestHandler validates dates and delegates", async () => {
+  it("reviewStaffTeamHealthMessageHandler requires response text when resolving", async () => {
+    const res = mockResponse();
+    await reviewStaffTeamHealthMessageHandler(
+      {
+        params: { projectId: "3", teamId: "2", requestId: "11" },
+        body: { userId: 7, resolved: true },
+      } as any,
+      res
+    );
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ error: "responseText is required when resolving a request" });
+  });
+
+  it("resolveStaffTeamHealthMessageHandler validates dates and delegates", async () => {
     const badRes = mockResponse();
-    await resolveStaffTeamMcfRequestHandler(
+    await resolveStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
         body: { userId: 7, taskDueDate: "not-a-date" },
@@ -100,12 +114,12 @@ describe("mcf-review controller", () => {
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
-    (service.resolveTeamMcfRequestWithDeadlineOverrideForStaff as any).mockResolvedValueOnce({
-      request: { id: 11, status: "RESOLVED" },
+    (service.resolveTeamHealthMessageWithDeadlineOverrideForStaff as any).mockResolvedValueOnce({
+      request: { id: 11, resolved: true },
       deadline: { taskDueDate: "2026-03-15T12:00:00.000Z" },
     });
     const okRes = mockResponse();
-    await resolveStaffTeamMcfRequestHandler(
+    await resolveStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
         body: {
@@ -117,7 +131,7 @@ describe("mcf-review controller", () => {
       } as any,
       okRes
     );
-    expect(service.resolveTeamMcfRequestWithDeadlineOverrideForStaff).toHaveBeenCalledWith(
+    expect(service.resolveTeamHealthMessageWithDeadlineOverrideForStaff).toHaveBeenCalledWith(
       7,
       3,
       2,
@@ -131,18 +145,18 @@ describe("mcf-review controller", () => {
       }
     );
     expect(okRes.json).toHaveBeenCalledWith({
-      request: { id: 11, status: "RESOLVED" },
+      request: { id: 11, resolved: true },
       deadline: { taskDueDate: "2026-03-15T12:00:00.000Z" },
     });
   });
 
-  it("resolveStaffTeamMcfRequestHandler maps invalid deadline override to 400", async () => {
+  it("resolveStaffTeamHealthMessageHandler maps invalid deadline override to 400", async () => {
     const res = mockResponse();
-    (service.resolveTeamMcfRequestWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
+    (service.resolveTeamHealthMessageWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
       new (service as any).InvalidDeadlineOverrideError("taskDueDate")
     );
 
-    await resolveStaffTeamMcfRequestHandler(
+    await resolveStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
         body: {
@@ -159,13 +173,13 @@ describe("mcf-review controller", () => {
     });
   });
 
-  it("resolveStaffTeamMcfRequestHandler maps duplicate resolved MCF conflict to 409", async () => {
+  it("resolveStaffTeamHealthMessageHandler maps duplicate resolved team health conflict to 409", async () => {
     const res = mockResponse();
-    (service.resolveTeamMcfRequestWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
-      new (service as any).ResolvedMcfAlreadyExistsError()
+    (service.resolveTeamHealthMessageWithDeadlineOverrideForStaff as any).mockRejectedValueOnce(
+      new (service as any).ResolvedTeamHealthMessageAlreadyExistsError()
     );
 
-    await resolveStaffTeamMcfRequestHandler(
+    await resolveStaffTeamHealthMessageHandler(
       {
         params: { projectId: "3", teamId: "2", requestId: "11" },
         body: {
@@ -178,7 +192,7 @@ describe("mcf-review controller", () => {
 
     expect(res.status).toHaveBeenCalledWith(409);
     expect(res.json).toHaveBeenCalledWith({
-      error: "A resolved MCF request already exists for this team. Edit that request instead.",
+      error: "A resolved team health message already exists for this team. Edit that request instead.",
     });
   });
 });

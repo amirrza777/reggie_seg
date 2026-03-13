@@ -506,7 +506,7 @@ export async function getUserProjectMarking(userId: number, projectId: number) {
   };
 }
 
-const mcfRequestSelect = {
+const teamHealthMessageSelect = {
   id: true,
   projectId: true,
   teamId: true,
@@ -514,7 +514,8 @@ const mcfRequestSelect = {
   reviewedByUserId: true,
   subject: true,
   details: true,
-  status: true,
+  responseText: true,
+  resolved: true,
   createdAt: true,
   updatedAt: true,
   reviewedAt: true,
@@ -536,14 +537,14 @@ const mcfRequestSelect = {
   },
 } as const;
 
-export async function createMcfRequest(
+export async function createTeamHealthMessage(
   projectId: number,
   teamId: number,
   requesterUserId: number,
   subject: string,
   details: string
 ) {
-  return prisma.mCFRequest.create({
+  return prisma.teamHealthMessage.create({
     data: {
       projectId,
       teamId,
@@ -551,38 +552,38 @@ export async function createMcfRequest(
       subject,
       details,
     },
-    select: mcfRequestSelect,
+    select: teamHealthMessageSelect,
   });
 }
 
-export async function getMcfRequestsForUserInProject(projectId: number, requesterUserId: number) {
-  return prisma.mCFRequest.findMany({
+export async function getTeamHealthMessagesForUserInProject(projectId: number, requesterUserId: number) {
+  return prisma.teamHealthMessage.findMany({
     where: {
       projectId,
       requesterUserId,
     },
     orderBy: { createdAt: "desc" },
-    select: mcfRequestSelect,
+    select: teamHealthMessageSelect,
   });
 }
 
-export async function getMcfRequestsForTeamInProject(projectId: number, teamId: number) {
-  return prisma.mCFRequest.findMany({
+export async function getTeamHealthMessagesForTeamInProject(projectId: number, teamId: number) {
+  return prisma.teamHealthMessage.findMany({
     where: {
       projectId,
       teamId,
     },
     orderBy: { createdAt: "desc" },
-    select: mcfRequestSelect,
+    select: teamHealthMessageSelect,
   });
 }
 
-export async function hasAnotherResolvedMcfRequest(projectId: number, teamId: number, requestId: number) {
-  const existing = await prisma.mCFRequest.findFirst({
+export async function hasAnotherResolvedTeamHealthMessage(projectId: number, teamId: number, requestId: number) {
+  const existing = await prisma.teamHealthMessage.findFirst({
     where: {
       projectId,
       teamId,
-      status: "RESOLVED",
+      resolved: true,
       NOT: { id: requestId },
     },
     select: { id: true },
@@ -841,49 +842,54 @@ export async function getTeamDeadlineDetailsInProject(projectId: number, teamId:
   };
 }
 
-export async function reviewMcfRequest(
+export async function reviewTeamHealthMessage(
   projectId: number,
   teamId: number,
   requestId: number,
   reviewerUserId: number,
-  status: "REJECTED" | "IN_REVIEW"
+  resolved: boolean,
+  responseText?: string
 ) {
-  const existing = await prisma.mCFRequest.findFirst({
+  const existing = await prisma.teamHealthMessage.findFirst({
     where: { id: requestId, projectId, teamId },
-    select: { id: true, status: true },
+    select: { id: true, resolved: true },
   });
   if (!existing) return null;
 
-  if (status === "REJECTED" && existing.status === "RESOLVED") {
+  if (!resolved && existing.resolved) {
     return prisma.$transaction(async (tx) => {
       await tx.teamDeadlineOverride.deleteMany({
         where: { teamId },
       });
 
-      return tx.mCFRequest.update({
+      return tx.teamHealthMessage.update({
         where: { id: requestId },
         data: {
-          status,
+          resolved: false,
           reviewedByUserId: reviewerUserId,
           reviewedAt: new Date(),
+          responseText: null,
         },
-        select: mcfRequestSelect,
+        select: teamHealthMessageSelect,
       });
     });
   }
 
-  return prisma.mCFRequest.update({
+  return prisma.teamHealthMessage.update({
     where: { id: requestId },
     data: {
-      status,
+      resolved,
       reviewedByUserId: reviewerUserId,
       reviewedAt: new Date(),
+      ...(resolved
+        ? { ...(responseText !== undefined ? { responseText } : {}) }
+        : { responseText: null }),
     },
-    select: mcfRequestSelect,
+    select: teamHealthMessageSelect,
   });
 }
 
-export async function resolveMcfRequestWithDeadlineOverride(
+export async function resolveTeamHealthMessageWithDeadlineOverride(
   projectId: number,
   teamId: number,
   requestId: number,
@@ -902,7 +908,7 @@ export async function resolveMcfRequestWithDeadlineOverride(
   }
 ) {
   return prisma.$transaction(async (tx) => {
-    const existingRequest = await tx.mCFRequest.findFirst({
+    const existingRequest = await tx.teamHealthMessage.findFirst({
       where: { id: requestId, projectId, teamId },
       select: { id: true },
     });
@@ -966,14 +972,14 @@ export async function resolveMcfRequestWithDeadlineOverride(
       },
     });
 
-    const request = await tx.mCFRequest.update({
+    const request = await tx.teamHealthMessage.update({
       where: { id: requestId },
       data: {
-        status: "RESOLVED",
+        resolved: true,
         reviewedByUserId: reviewerUserId,
         reviewedAt: new Date(),
       },
-      select: mcfRequestSelect,
+      select: teamHealthMessageSelect,
     });
 
     const deadline = mergeDeadlinesForTeam(projectDeadline, deadlineOverride);

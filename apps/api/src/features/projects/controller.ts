@@ -12,9 +12,9 @@ import {
   fetchProjectsForStaff,
   fetchProjectTeamsForStaff,
   fetchProjectMarking,
-  submitMcfRequest,
-  fetchMyMcfRequests,
-  fetchTeamMcfRequestsForStaff,
+  submitTeamHealthMessage,
+  fetchMyTeamHealthMessages,
+  fetchTeamHealthMessagesForStaff,
 } from "./service.js";
 
 export async function createProjectHandler(req: Request, res: Response) {
@@ -240,7 +240,7 @@ export async function getProjectMarkingHandler(req: Request, res: Response) {
   }
 }
 
-export async function createMcfRequestHandler(req: Request, res: Response) {
+export async function createTeamHealthMessageHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   const userId = Number((req.body as { userId?: unknown }).userId);
   const subjectRaw = (req.body as { subject?: unknown }).subject;
@@ -261,18 +261,18 @@ export async function createMcfRequestHandler(req: Request, res: Response) {
   }
 
   try {
-    const request = await submitMcfRequest(userId, projectId, subject, details);
+    const request = await submitTeamHealthMessage(userId, projectId, subject, details);
     if (!request) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
     return res.status(201).json({ request });
   } catch (error) {
-    console.error("Error creating MCF request:", error);
-    return res.status(500).json({ error: "Failed to create MCF request" });
+    console.error("Error creating team health message:", error);
+    return res.status(500).json({ error: "Failed to create team health message" });
   }
 }
 
-export async function getMyMcfRequestsHandler(req: Request, res: Response) {
+export async function getMyTeamHealthMessagesHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   const userId = Number(req.query.userId);
 
@@ -281,18 +281,18 @@ export async function getMyMcfRequestsHandler(req: Request, res: Response) {
   }
 
   try {
-    const requests = await fetchMyMcfRequests(userId, projectId);
+    const requests = await fetchMyTeamHealthMessages(userId, projectId);
     if (!requests) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
     return res.json({ requests });
   } catch (error) {
-    console.error("Error fetching user MCF requests:", error);
-    return res.status(500).json({ error: "Failed to fetch MCF requests" });
+    console.error("Error fetching user team health messages:", error);
+    return res.status(500).json({ error: "Failed to fetch team health messages" });
   }
 }
 
-export async function getStaffTeamMcfRequestsHandler(req: Request, res: Response) {
+export async function getStaffTeamHealthMessagesHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   const teamId = Number(req.params.teamId);
   const userId = Number(req.query.userId);
@@ -302,13 +302,13 @@ export async function getStaffTeamMcfRequestsHandler(req: Request, res: Response
   }
 
   try {
-    const requests = await fetchTeamMcfRequestsForStaff(userId, projectId, teamId);
+    const requests = await fetchTeamHealthMessagesForStaff(userId, projectId, teamId);
     if (!requests) {
       return res.status(404).json({ error: "Project or team not found for staff scope" });
     }
     return res.json({ requests });
   } catch (error) {
-    console.error("Error fetching staff team MCF requests:", error);
-    return res.status(500).json({ error: "Failed to fetch team MCF requests" });
+    console.error("Error fetching staff team team health messages:", error);
+    return res.status(500).json({ error: "Failed to fetch team team health messages" });
   }
 }

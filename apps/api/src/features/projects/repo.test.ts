@@ -4,15 +4,15 @@ import {
   getModulesForUser,
   getProjectById,
   getQuestionsForProject,
-  reviewMcfRequest,
+  reviewTeamHealthMessage,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
   getUserProjectDeadline,
   getUserProjects,
-  createMcfRequest,
-  getMcfRequestsForUserInProject,
-  getMcfRequestsForTeamInProject,
+  createTeamHealthMessage,
+  getTeamHealthMessagesForUserInProject,
+  getTeamHealthMessagesForTeamInProject,
   canStaffAccessTeamInProject,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
@@ -40,7 +40,7 @@ vi.mock("../../shared/db.js", () => ({
     module: {
       findMany: vi.fn(),
     },
-    mCFRequest: {
+    teamHealthMessage: {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -281,10 +281,10 @@ describe("projects repo", () => {
     });
   });
 
-  it("createMcfRequest persists request with expected selected fields", async () => {
-    await createMcfRequest(3, 4, 7, "Need support", "Please review team dynamics");
+  it("createTeamHealthMessage persists request with expected selected fields", async () => {
+    await createTeamHealthMessage(3, 4, 7, "Need support", "Please review team dynamics");
 
-    expect(prisma.mCFRequest.create).toHaveBeenCalledWith(
+    expect(prisma.teamHealthMessage.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: {
           projectId: 3,
@@ -295,7 +295,7 @@ describe("projects repo", () => {
         },
         select: expect.objectContaining({
           id: true,
-          status: true,
+          resolved: true,
           requester: expect.any(Object),
           reviewedBy: expect.any(Object),
         }),
@@ -303,17 +303,17 @@ describe("projects repo", () => {
     );
   });
 
-  it("lists MCF requests for requester and staff team with descending createdAt order", async () => {
-    await getMcfRequestsForUserInProject(3, 7);
-    expect(prisma.mCFRequest.findMany).toHaveBeenCalledWith(
+  it("lists team health messages for requester and staff team with descending createdAt order", async () => {
+    await getTeamHealthMessagesForUserInProject(3, 7);
+    expect(prisma.teamHealthMessage.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { projectId: 3, requesterUserId: 7 },
         orderBy: { createdAt: "desc" },
       })
     );
 
-    await getMcfRequestsForTeamInProject(3, 4);
-    expect(prisma.mCFRequest.findMany).toHaveBeenCalledWith(
+    await getTeamHealthMessagesForTeamInProject(3, 4);
+    expect(prisma.teamHealthMessage.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { projectId: 3, teamId: 4 },
         orderBy: { createdAt: "desc" },
@@ -321,37 +321,38 @@ describe("projects repo", () => {
     );
   });
 
-  it("reviewMcfRequest marks request as in review without deleting override", async () => {
-    (prisma.mCFRequest.findFirst as any).mockResolvedValueOnce({ id: 11, status: "OPEN" });
-    (prisma.mCFRequest.update as any).mockResolvedValueOnce({ id: 11, status: "IN_REVIEW" });
+  it("reviewTeamHealthMessage marks request as unresolved without deleting override", async () => {
+    (prisma.teamHealthMessage.findFirst as any).mockResolvedValueOnce({ id: 11, resolved: false });
+    (prisma.teamHealthMessage.update as any).mockResolvedValueOnce({ id: 11, resolved: false });
 
-    await reviewMcfRequest(3, 4, 11, 7, "IN_REVIEW");
+    await reviewTeamHealthMessage(3, 4, 11, 7, false);
 
-    expect(prisma.mCFRequest.update).toHaveBeenCalledWith(
+    expect(prisma.teamHealthMessage.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 11 },
         data: expect.objectContaining({
-          status: "IN_REVIEW",
+          resolved: false,
           reviewedByUserId: 7,
           reviewedAt: expect.any(Date),
+          responseText: null,
         }),
       })
     );
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
-  it("reviewMcfRequest marks resolved request as rejected and removes team deadline override", async () => {
-    (prisma.mCFRequest.findFirst as any).mockResolvedValueOnce({ id: 11, status: "RESOLVED" });
+  it("reviewTeamHealthMessage marks resolved request as unresolved and removes team deadline override", async () => {
+    (prisma.teamHealthMessage.findFirst as any).mockResolvedValueOnce({ id: 11, resolved: true });
     const deleteMany = vi.fn().mockResolvedValueOnce({ count: 1 });
-    const updateRequest = vi.fn().mockResolvedValueOnce({ id: 11, status: "REJECTED" });
+    const updateRequest = vi.fn().mockResolvedValueOnce({ id: 11, resolved: false });
     (prisma.$transaction as any).mockImplementationOnce(async (cb: any) =>
       cb({
         teamDeadlineOverride: { deleteMany },
-        mCFRequest: { update: updateRequest },
+        teamHealthMessage: { update: updateRequest },
       })
     );
 
-    const result = await reviewMcfRequest(3, 4, 11, 7, "REJECTED");
+    const result = await reviewTeamHealthMessage(3, 4, 11, 7, false);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(deleteMany).toHaveBeenCalledWith({ where: { teamId: 4 } });
@@ -359,13 +360,14 @@ describe("projects repo", () => {
       expect.objectContaining({
         where: { id: 11 },
         data: expect.objectContaining({
-          status: "REJECTED",
+          resolved: false,
           reviewedByUserId: 7,
           reviewedAt: expect.any(Date),
+          responseText: null,
         }),
       })
     );
-    expect(result).toEqual({ id: 11, status: "REJECTED" });
+    expect(result).toEqual({ id: 11, resolved: false });
   });
 
   it("canStaffAccessTeamInProject verifies role scoped staff access", async () => {

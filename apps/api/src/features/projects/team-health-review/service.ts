@@ -3,12 +3,10 @@ import {
   type DeadlineInputMode,
   getTeamDeadlineDetailsInProject,
   getTeamCurrentDeadlineInProject,
-  hasAnotherResolvedMcfRequest,
-  resolveMcfRequestWithDeadlineOverride,
-  reviewMcfRequest,
+  hasAnotherResolvedTeamHealthMessage,
+  resolveTeamHealthMessageWithDeadlineOverride,
+  reviewTeamHealthMessage,
 } from "../repo.js";
-
-export type McfReviewStatus = "REJECTED" | "IN_REVIEW";
 
 export type DeadlineOverrideInput = {
   taskOpenDate?: Date | null;
@@ -48,10 +46,10 @@ export class InvalidDeadlineOverrideError extends Error {
   }
 }
 
-export class ResolvedMcfAlreadyExistsError extends Error {
+export class ResolvedTeamHealthMessageAlreadyExistsError extends Error {
   constructor() {
-    super("A resolved MCF request already exists for this team. Edit that request instead.");
-    this.name = "ResolvedMcfAlreadyExistsError";
+    super("A resolved team health message already exists for this team. Edit that request instead.");
+    this.name = "ResolvedTeamHealthMessageAlreadyExistsError";
   }
 }
 
@@ -62,20 +60,21 @@ export async function fetchTeamDeadlineForStaff(userId: number, projectId: numbe
   return getTeamDeadlineDetailsInProject(projectId, teamId);
 }
 
-export async function reviewTeamMcfRequestForStaff(
+export async function reviewTeamHealthMessageForStaff(
   userId: number,
   projectId: number,
   teamId: number,
   requestId: number,
-  status: McfReviewStatus
+  resolved: boolean,
+  responseText?: string
 ) {
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
 
-  return reviewMcfRequest(projectId, teamId, requestId, userId, status);
+  return reviewTeamHealthMessage(projectId, teamId, requestId, userId, resolved, responseText);
 }
 
-export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
+export async function resolveTeamHealthMessageWithDeadlineOverrideForStaff(
   userId: number,
   projectId: number,
   teamId: number,
@@ -89,9 +88,9 @@ export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
   const currentDeadline = await getTeamCurrentDeadlineInProject(projectId, teamId);
   if (!currentDeadline) return null;
 
-  const hasResolvedMcf = await hasAnotherResolvedMcfRequest(projectId, teamId, requestId);
-  if (hasResolvedMcf) {
-    throw new ResolvedMcfAlreadyExistsError();
+  const hasResolvedTeamHealthMessage = await hasAnotherResolvedTeamHealthMessage(projectId, teamId, requestId);
+  if (hasResolvedTeamHealthMessage) {
+    throw new ResolvedTeamHealthMessageAlreadyExistsError();
   }
 
   const resolvedOverrides: DeadlineValues = {
@@ -114,5 +113,5 @@ export async function resolveTeamMcfRequestWithDeadlineOverrideForStaff(
     }
   }
 
-  return resolveMcfRequestWithDeadlineOverride(projectId, teamId, requestId, userId, resolvedOverrides, metadata);
+  return resolveTeamHealthMessageWithDeadlineOverride(projectId, teamId, requestId, userId, resolvedOverrides, metadata);
 }
