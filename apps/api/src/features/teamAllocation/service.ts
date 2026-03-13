@@ -4,6 +4,7 @@ import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
+  applyManualAllocationTeam,
   applyRandomAllocationPlan,
   createTeamInviteRecord,
   findActiveInvite,
@@ -99,6 +100,20 @@ export type ManualAllocationWorkspace = {
   };
 };
 
+export type ManualAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  team: {
+    id: number;
+    teamName: string;
+    memberCount: number;
+  };
+};
+
 async function notifyStudentsAboutRandomAllocation(
   projectName: string,
   plannedTeams: Array<{
@@ -144,6 +159,38 @@ async function notifyStudentsAboutRandomAllocation(
   const failures = results.filter((result) => result.status === "rejected");
   if (failures.length > 0) {
     console.error(`Random allocation email notifications failed for ${failures.length} student(s).`);
+  }
+}
+
+async function notifyStudentsAboutManualAllocation(
+  projectName: string,
+  teamName: string,
+  students: Array<{ firstName: string; email: string }>,
+) {
+  const results = await Promise.allSettled(
+    students.map((student) => {
+      const firstName = student.firstName?.trim() || "there";
+      const subject = `Team allocation updated - ${projectName}`;
+      const text = [
+        `Hi ${firstName},`,
+        "",
+        `Your team allocation for ${projectName} has been updated.`,
+        `You are now assigned to: ${teamName}.`,
+        "",
+        "Log in to view your updated team workspace.",
+      ].join("\n");
+
+      return sendEmail({
+        to: student.email,
+        subject,
+        text,
+      });
+    }),
+  );
+
+  const failures = results.filter((result) => result.status === "rejected");
+  if (failures.length > 0) {
+    console.error(`Manual allocation email notifications failed for ${failures.length} student(s).`);
   }
 }
 
@@ -272,6 +319,74 @@ export async function getManualAllocationWorkspaceForProject(
       availableStudents,
       alreadyInTeamStudents,
     },
+  };
+}
+
+export async function applyManualAllocationForProject(
+  staffId: number,
+  projectId: number,
+  input: { teamName: string; studentIds: number[] },
+): Promise<ManualAllocationApplied> {
+  const teamName = input.teamName.trim();
+  if (teamName.length === 0) {
+    throw { code: "INVALID_TEAM_NAME" };
+  }
+  if (
+    !Array.isArray(input.studentIds) ||
+    input.studentIds.length === 0 ||
+    input.studentIds.some((studentId) => !Number.isInteger(studentId) || studentId < 1)
+  ) {
+    throw { code: "INVALID_STUDENT_IDS" };
+  }
+
+  const studentIds = Array.from(new Set(input.studentIds));
+  if (studentIds.length !== input.studentIds.length) {
+    throw { code: "INVALID_STUDENT_IDS" };
+  }
+
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id);
+  const moduleStudentById = new Map(moduleStudents.map((student) => [student.id, student] as const));
+
+  const hasStudentOutsideModule = studentIds.some((studentId) => !moduleStudentById.has(studentId));
+  if (hasStudentOutsideModule) {
+    throw { code: "STUDENT_NOT_IN_MODULE" };
+  }
+
+  const hasStudentAlreadyAssigned = studentIds.some((studentId) => {
+    const student = moduleStudentById.get(studentId);
+    return student ? student.currentTeamId !== null : false;
+  });
+  if (hasStudentAlreadyAssigned) {
+    throw { code: "STUDENT_ALREADY_ASSIGNED" };
+  }
+
+  const selectedStudents = studentIds.map((studentId) => {
+    const student = moduleStudentById.get(studentId)!;
+    return {
+      firstName: student.firstName,
+      email: student.email,
+    };
+  });
+
+  const team = await applyManualAllocationTeam(project.id, project.enterpriseId, teamName, studentIds);
+  await notifyStudentsAboutManualAllocation(project.name, team.teamName, selectedStudents);
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    team,
   };
 }
 
