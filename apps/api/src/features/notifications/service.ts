@@ -13,6 +13,7 @@ import { sendEmail } from "../../shared/email.js";
 const NOTIFICATION_SUBJECTS: Record<NotificationType, string> = {
   MENTION: "You were mentioned in a comment",
   TEAM_INVITE: "You have been invited to join a team",
+  LOW_ATTENDANCE: "Your meeting attendance is low",
 };
 
 export function listNotifications(userId: number) {

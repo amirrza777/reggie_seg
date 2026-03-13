@@ -139,3 +139,24 @@ export function createMentions(sourceId: number, userIds: number[]) {
     skipDuplicates: true,
   });
 }
+
+export function getRecentAttendanceForUser(userId: number, teamId: number, limit: number) {
+  return prisma.meetingAttendance.findMany({
+    where: { userId, meeting: { teamId } },
+    orderBy: { meeting: { date: "desc" } },
+    take: limit,
+    select: { status: true },
+  });
+}
+
+export async function getModuleLeadsForTeam(teamId: number) {
+  const project = await prisma.project.findFirst({
+    where: { teams: { some: { id: teamId } } },
+    select: { moduleId: true },
+  });
+  if (!project) return [];
+  return prisma.moduleLead.findMany({
+    where: { moduleId: project.moduleId },
+    select: { userId: true },
+  });
+}

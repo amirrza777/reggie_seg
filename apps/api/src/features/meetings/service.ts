@@ -8,9 +8,13 @@ import {
   createComment,
   deleteComment,
   createMentions,
+  getRecentAttendanceForUser,
+  getModuleLeadsForTeam,
 } from "./repo.js";
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
+
+const ABSENCES_BEFORE_ALERT = 3;
 
 export function listMeetings(teamId: number) {
   return getMeetingsByTeamId(teamId);
@@ -36,8 +40,46 @@ export function removeMeeting(meetingId: number) {
   return deleteMeeting(meetingId);
 }
 
-export function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
-  return bulkUpsertAttendance(meetingId, records);
+async function checkAndNotifyConsecutiveAbsences(
+  meetingId: number,
+  records: { userId: number; status: string }[]
+) {
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) return;
+
+  const moduleLeads = await getModuleLeadsForTeam(meeting.teamId);
+
+  for (const record of records) {
+    if (record.status.toLowerCase() !== "absent") continue;
+
+    const recent = await getRecentAttendanceForUser(record.userId, meeting.teamId, ABSENCES_BEFORE_ALERT);
+    if (recent.length < ABSENCES_BEFORE_ALERT) continue;
+    if (!recent.every((a) => a.status.toLowerCase() === "absent")) continue;
+
+    const allocation = meeting.team.allocations.find((a) => a.user.id === record.userId);
+    const userName = allocation ? `${allocation.user.firstName} ${allocation.user.lastName}` : "Someone";
+
+    await addNotification({
+      userId: record.userId,
+      type: "LOW_ATTENDANCE",
+      message: `You have missed your last ${ABSENCES_BEFORE_ALERT} team meetings. Your team needs you!`,
+      link: `/projects/${meeting.team.projectId}/meetings`,
+    });
+
+    for (const lead of moduleLeads) {
+      await addNotification({
+        userId: lead.userId,
+        type: "LOW_ATTENDANCE",
+        message: `${userName} has missed their last ${ABSENCES_BEFORE_ALERT} meetings in ${meeting.team.teamName}`,
+        link: `/staff/projects/${meeting.team.projectId}/teams/${meeting.teamId}/team-meetings`,
+      });
+    }
+  }
+}
+
+export async function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
+  await bulkUpsertAttendance(meetingId, records);
+  await checkAndNotifyConsecutiveAbsences(meetingId, records);
 }
 
 export function saveMinutes(meetingId: number, writerId: number, content: string) {
