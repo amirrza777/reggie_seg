@@ -72,6 +72,54 @@ describe("StaffManualAllocationPanel", () => {
     expect(screen.getByText("0 selected")).toBeInTheDocument();
   });
 
+  it("refreshes workspace data on demand", async () => {
+    (getManualAllocationWorkspace as any)
+      .mockResolvedValueOnce({
+        project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
+        existingTeams: [],
+        students: [
+          {
+            id: 11,
+            firstName: "Pricha",
+            lastName: "Lee",
+            email: "pricha@example.com",
+            status: "AVAILABLE",
+            currentTeam: null,
+          },
+        ],
+        counts: {
+          totalStudents: 1,
+          availableStudents: 1,
+          alreadyInTeamStudents: 0,
+        },
+      })
+      .mockResolvedValueOnce({
+        project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
+        existingTeams: [],
+        students: [],
+        counts: {
+          totalStudents: 0,
+          availableStudents: 0,
+          alreadyInTeamStudents: 0,
+        },
+      });
+
+    render(<StaffManualAllocationPanel projectId={4} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open manual allocation" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("1 students")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Refresh list" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("0 students")).toBeInTheDocument();
+    });
+    expect(getManualAllocationWorkspace).toHaveBeenNthCalledWith(1, 4);
+    expect(getManualAllocationWorkspace).toHaveBeenNthCalledWith(2, 4);
+  });
+
   it("supports selecting available students only", async () => {
     (getManualAllocationWorkspace as any)
       .mockResolvedValueOnce({

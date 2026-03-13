@@ -347,6 +347,12 @@
   gap: 10px;
 }
 
+.staff-projects__manual-toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .staff-projects__manual-workspace-card {
   border: 1px solid var(--border);
   border-radius: 12px;
