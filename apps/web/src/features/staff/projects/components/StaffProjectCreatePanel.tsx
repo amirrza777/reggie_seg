@@ -11,6 +11,7 @@ import type { Module } from "@/features/modules/types";
 type StaffProjectCreatePanelProps = {
   modules: Module[];
   modulesError: string | null;
+  initialModuleId?: string | null;
 };
 
 const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER", "ADMIN_ACCESS"]);
@@ -95,14 +96,14 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
   };
 }
 
-export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectCreatePanelProps) {
+export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId = null }: StaffProjectCreatePanelProps) {
   const router = useRouter();
   const [templates, setTemplates] = useState<Questionnaire[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState("");
-  const [moduleId, setModuleId] = useState("");
+  const [moduleId, setModuleId] = useState(initialModuleId ?? "");
   const [templateId, setTemplateId] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -113,6 +114,13 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
     () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
     [modules]
   );
+
+  useEffect(() => {
+    if (!initialModuleId) return;
+    if (moduleId.trim().length > 0) return;
+    if (!creatableModules.some((module) => module.id === initialModuleId)) return;
+    setModuleId(initialModuleId);
+  }, [creatableModules, initialModuleId, moduleId]);
 
   useEffect(() => {
     let isMounted = true;

@@ -57,9 +57,14 @@ export function ModuleList({
                 </span>
                 <div className="module-card__actions">
                   {canManageModule ? (
-                    <Link href={`/staff/modules/${encodeURIComponent(module.id)}/manage`} className="module-card__manage">
-                      Manage module
-                    </Link>
+                    <>
+                      <Link href={`/staff/modules/${encodeURIComponent(module.id)}/manage`} className="module-card__manage">
+                        Manage module
+                      </Link>
+                      <Link href={`/staff/projects/create?moduleId=${encodeURIComponent(module.id)}`} className="module-card__manage">
+                        Create project
+                      </Link>
+                    </>
                   ) : null}
                   <Link href={`/modules/${encodeURIComponent(module.id)}`} className="module-card__cta">
                     View Module

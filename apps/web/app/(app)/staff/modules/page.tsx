@@ -22,7 +22,7 @@ export default async function StaffModulesPage() {
   const subtitle = errorMessage
     ? "Could not load your modules right now."
     : modules.length > 0
-      ? "Select a module to view teams, projects, and activity."
+      ? "Open a module to review teams/projects, or use Manage module for module-level setup."
       : "You have no modules assigned.";
 
   return (

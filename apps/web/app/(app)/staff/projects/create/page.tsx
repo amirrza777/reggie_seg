@@ -5,11 +5,18 @@ import { StaffProjectCreatePanel } from "@/features/staff/projects/components/St
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
-export default async function StaffCreateProjectPage() {
+type StaffCreateProjectPageProps = {
+  searchParams?: Promise<{ moduleId?: string }>;
+};
+
+export default async function StaffCreateProjectPage({ searchParams }: StaffCreateProjectPageProps) {
   const user = await getCurrentUser();
   if (!user?.isStaff && user?.role !== "ADMIN") {
     redirect("/dashboard");
   }
+
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const initialModuleId = typeof resolvedSearchParams?.moduleId === "string" ? resolvedSearchParams.moduleId : null;
 
   let modules: Awaited<ReturnType<typeof listModules>> = [];
   let modulesError: string | null = null;
@@ -35,7 +42,7 @@ export default async function StaffCreateProjectPage() {
       </section>
 
       <section className="staff-projects__create-layout">
-        <StaffProjectCreatePanel modules={modules} modulesError={modulesError} />
+        <StaffProjectCreatePanel modules={modules} modulesError={modulesError} initialModuleId={initialModuleId} />
         <aside className="staff-projects__create-guide" aria-label="Project creation guidance">
           <h2 className="staff-projects__create-title">Before you publish</h2>
           <ol className="staff-projects__guide-list">
