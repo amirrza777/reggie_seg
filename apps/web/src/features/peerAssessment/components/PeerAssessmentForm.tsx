@@ -129,12 +129,12 @@ export function PeerAssessmentForm({
 
   const isBeforeOpen = Boolean(openAt && now < openAt);
   const isAfterDue = Boolean(dueAt && now > dueAt);
-  const canSubmit = !isBeforeOpen && !isAfterDue;
+  const canSubmit = !isBeforeOpen;
 
   const deadlineStatusMessage = isBeforeOpen
     ? `Peer assessment is locked until ${formatDateLabel(openAt)}.`
     : isAfterDue
-      ? `Peer assessment deadline passed on ${formatDateLabel(dueAt)}.`
+      ? `Peer assessment deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
       : dueAt
         ? `Peer assessment is open. Deadline: ${formatDateLabel(dueAt)}.`
         : null;
@@ -145,7 +145,7 @@ export function PeerAssessmentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) {
+    if (isBeforeOpen) {
       setStatus("error");
       setMessage(deadlineStatusMessage ?? "Peer assessment is outside the allowed deadline window.");
       return;

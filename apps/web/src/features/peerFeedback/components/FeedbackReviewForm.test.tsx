@@ -167,4 +167,30 @@ describe("FeedbackReviewForm", () => {
       expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
     });
   });
+
+  it("allows submit after due date and shows late message", async () => {
+    const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackOpenAt={openAt}
+        feedbackDueAt={dueAt}
+      />
+    );
+
+    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
+    const submitButton = screen.getByRole("button", { name: "Submit Review" });
+    expect(submitButton).toBeEnabled();
+
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "Late response" },
+    });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(submitPeerFeedbackMock).toHaveBeenCalled();
+    });
+  });
 });

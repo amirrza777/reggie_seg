@@ -50,11 +50,11 @@ export function FeedbackReviewForm({
   const now = new Date();
   const isBeforeOpen = Boolean(openAt && now < openAt);
   const isAfterDue = Boolean(dueAt && now > dueAt);
-  const canSubmit = !isBeforeOpen && !isAfterDue;
+  const canSubmit = !isBeforeOpen;
   const deadlineStatusMessage = isBeforeOpen
     ? `Peer feedback is locked until ${formatDateLabel(openAt)}.`
     : isAfterDue
-      ? `Peer feedback deadline passed on ${formatDateLabel(dueAt)}.`
+      ? `Peer feedback deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
       : dueAt
         ? `Peer feedback is open. Deadline: ${formatDateLabel(dueAt)}.`
         : null;
@@ -73,7 +73,7 @@ export function FeedbackReviewForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) {
+    if (isBeforeOpen) {
       setMessage(deadlineStatusMessage ?? "Peer feedback is outside the allowed deadline window.");
       return;
     }

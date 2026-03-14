@@ -156,4 +156,24 @@ describe("PeerAssessmentForm", () => {
       expect(createPeerAssessmentMock).not.toHaveBeenCalled();
     });
   });
+
+  it("allows submission after due date and marks message as late", async () => {
+    const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    renderForm({ assessmentOpenAt: openAt, assessmentDueAt: dueAt });
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Late but submitted." },
+    });
+
+    const saveButton = screen.getByRole("button", { name: /save assessment/i });
+    expect(saveButton).toBeEnabled();
+    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
+
+    fireEvent.click(saveButton);
+    await waitFor(() => {
+      expect(createPeerAssessmentMock).toHaveBeenCalled();
+    });
+  });
 });
