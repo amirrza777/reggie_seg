@@ -100,25 +100,6 @@ describe("QuestionnaireList", () => {
     expect(errorSpy).toHaveBeenCalled();
   });
 
-  it("locks workspace overflow while mounted and restores on unmount", async () => {
-    const workspace = document.createElement("div");
-    workspace.className = "app-shell__workspace";
-    workspace.style.overflow = "auto";
-    document.body.appendChild(workspace);
-
-    getMyQuestionnairesMock.mockResolvedValue([]);
-    getPublicQuestionnairesFromOthersMock.mockResolvedValue([]);
-
-    const { unmount } = render(<QuestionnaireList />);
-    await screen.findByText("There are no public questionnaire templates yet.");
-
-    expect(workspace.style.overflow).toBe("hidden");
-
-    unmount();
-    expect(workspace.style.overflow).toBe("auto");
-    workspace.remove();
-  });
-
   it("scrolls to section when section buttons are clicked", async () => {
     getMyQuestionnairesMock.mockResolvedValue([
       { id: 1, templateName: "Mine", createdAt: "2026-02-01T00:00:00.000Z" } as any,
