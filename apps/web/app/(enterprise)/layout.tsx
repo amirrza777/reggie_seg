@@ -52,8 +52,15 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref={enterpriseHomeHref} actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Enterprise sections" links={enterpriseNav} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={enterpriseNav} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref={enterpriseHomeHref}
+          actions={<UserMenu />}
+        />
+      }
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

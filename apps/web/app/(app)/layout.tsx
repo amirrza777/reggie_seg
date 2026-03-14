@@ -128,8 +128,15 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Workspace" links={accessibleLinks} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Workspace sections" links={accessibleLinks} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref="/dashboard"
+          actions={<UserMenu />}
+        />
+      }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
     >
       <div className="workspace-shell">{children}</div>
