@@ -145,4 +145,26 @@ describe("FeedbackReviewForm", () => {
     expect(screen.getByRole("heading", { name: "Respond to Feedback" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Update Review" })).toBeInTheDocument();
   });
+
+  it("locks submit when feedback window has not opened yet", async () => {
+    const openAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackOpenAt={openAt}
+        feedbackDueAt={dueAt}
+      />
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Submit Review" });
+    expect(submitButton).toBeDisabled();
+    expect(screen.getByText(/peer feedback is locked until/i)).toBeInTheDocument();
+
+    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
+    });
+  });
 });
