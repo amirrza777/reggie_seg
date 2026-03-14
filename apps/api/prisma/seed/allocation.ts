@@ -98,13 +98,17 @@ export async function seedAdminTeamAllocation(enterpriseId: string) {
       return { value: undefined, rows: 0, details: "skipped (admin user not found)" };
     }
 
-    const firstProject = await prisma.project.findFirst({ select: { id: true }, orderBy: { id: "asc" } });
+    const firstProject = await prisma.project.findFirst({
+      where: { module: { enterpriseId } },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
     if (!firstProject) {
       return { value: undefined, rows: 0, details: "skipped (no project found)" };
     }
 
     const team = await prisma.team.findFirst({
-      where: { projectId: firstProject.id },
+      where: { enterpriseId, projectId: firstProject.id },
       select: { id: true },
     });
     if (!team) {

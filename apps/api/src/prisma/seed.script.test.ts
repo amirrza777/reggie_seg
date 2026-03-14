@@ -184,7 +184,7 @@ describe("prisma seed script", () => {
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Seed users ready. Default password"));
+    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 1 enterprise(s). Default password"));
   });
 
   it("skips bootstrap admin creation when admin env is missing", async () => {
@@ -227,5 +227,62 @@ describe("prisma seed script", () => {
 
     expect(prismaMock.user.create).not.toHaveBeenCalled();
     expect(prismaMock.$disconnect).toHaveBeenCalled();
+  });
+
+  it("repeats the seed flow for each configured enterprise", async () => {
+    const prismaMock = buildPrismaMock();
+    prismaMock.enterprise.findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    prismaMock.enterprise.create = vi
+      .fn()
+      .mockResolvedValueOnce({ id: "ent-1" })
+      .mockResolvedValueOnce({ id: "ent-2" });
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    vi.doMock("@prisma/client", () => ({
+      PrismaClient: vi.fn(() => ({
+        enterprise: prismaMock.enterprise,
+        user: prismaMock.user,
+        module: prismaMock.module,
+        questionnaireTemplate: prismaMock.questionnaireTemplate,
+        project: prismaMock.project,
+        team: prismaMock.team,
+        moduleLead: prismaMock.moduleLead,
+        userModule: prismaMock.userModule,
+        teamAllocation: prismaMock.teamAllocation,
+        peerAssessment: prismaMock.peerAssessment,
+        peerFeedback: prismaMock.peerFeedback,
+        projectDeadline: prismaMock.projectDeadline,
+        featureFlag: prismaMock.featureFlag,
+        $disconnect: prismaMock.$disconnect,
+      })),
+      Role: { STUDENT: "STUDENT", STAFF: "STAFF", ADMIN: "ADMIN" },
+    }));
+    vi.doMock("argon2", () => ({
+      default: { hash: vi.fn().mockResolvedValue("hashed") },
+    }));
+    vi.doMock("@ngneat/falso", () => ({
+      randFirstName: vi.fn().mockReturnValue("First"),
+      randLastName: vi.fn().mockReturnValue("Last"),
+      randSentence: vi.fn().mockReturnValue("Random generated question."),
+    }));
+    vi.doMock("../../prisma/seed/volumes.ts", async () => {
+      const actual = await vi.importActual<typeof import("../../prisma/seed/volumes.ts")>("../../prisma/seed/volumes.ts");
+      return {
+        ...actual,
+        SEED_ENTERPRISE_COUNT: 2,
+      };
+    });
+
+    await import("../../prisma/seed/seed.ts");
+    await flushAsyncWork();
+
+    expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.user.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.module.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
+    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 2 enterprise(s). Default password"));
   });
 });

@@ -23,6 +23,7 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
     const allUsers = await prisma.user.findMany({
       select: { id: true, role: true, email: true },
       where: {
+        enterpriseId,
         email: {
           in: userData.map((u) => u.email),
         },
@@ -49,7 +50,10 @@ export async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
 
     const modules = await prisma.module.findMany({
       select: { id: true, name: true },
-      where: { name: { in: moduleData.map((m) => m.name) } },
+      where: {
+        enterpriseId,
+        name: { in: moduleData.map((m) => m.name) },
+      },
     });
 
     return {
@@ -161,7 +165,10 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
 
     const projects = await prisma.project.findMany({
       select: { id: true, questionnaireTemplateId: true },
-      where: { name: { in: projectData.map((p) => p.name) } },
+      where: {
+        moduleId: { in: modules.map((module) => module.id) },
+        name: { in: projectData.map((p) => p.name) },
+      },
     });
 
     return {
@@ -209,7 +216,10 @@ export async function seedTeams(enterpriseId: string, projects: SeedProject[]): 
 
     const teams = await prisma.team.findMany({
       select: { id: true, projectId: true, teamName: true },
-      where: { teamName: { in: teamData.map((t) => t.teamName) } },
+      where: {
+        enterpriseId,
+        teamName: { in: teamData.map((t) => t.teamName) },
+      },
     });
 
     return {
