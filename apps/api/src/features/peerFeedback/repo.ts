@@ -99,6 +99,21 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   });
 }
 
+export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
+  if (peerAssessmentIds.length === 0) return Promise.resolve([]);
+
+  return prisma.peerFeedback.findMany({
+    where: {
+      peerAssessmentId: {
+        in: peerAssessmentIds,
+      },
+    },
+    select: {
+      peerAssessmentId: true,
+    },
+  });
+}
+
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({
     where: { id: assessmentId },

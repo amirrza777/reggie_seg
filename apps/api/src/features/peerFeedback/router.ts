@@ -5,6 +5,7 @@ const router = Router();
 
 import {
   createPeerFeedbackHandler,
+  getPeerFeedbackStatusesHandler,
   getPeerFeedbackHandler,
   getPeerAssessmentHandler,
 } from "./controller.js"
@@ -16,6 +17,7 @@ router.use(async (_req, res, next) => {
 });
 
 router.post("/feedback/:feedbackId/review", createPeerFeedbackHandler); // Submit a peerfeedback
+router.post("/feedback/reviews/statuses", getPeerFeedbackStatusesHandler); // Get review-status map in bulk
 router.get("/feedback/:feedbackId/review", getPeerFeedbackHandler); // Get stored peer feedback
 router.get("/feedback/:feedbackId", getPeerAssessmentHandler); // Get the original assessment/feedback details
 

@@ -1,4 +1,9 @@
-import { upsertPeerFeedback, getPeerFeedbackByAssessmentId, getPeerAssessmentById } from "./repo.js";
+import {
+  upsertPeerFeedback,
+  getPeerFeedbackByAssessmentId,
+  getPeerFeedbackByAssessmentIds,
+  getPeerAssessmentById,
+} from "./repo.js";
 
 export async function saveFeedbackReview(
   assessmentId: number,
@@ -16,6 +21,12 @@ export async function saveFeedbackReview(
 
 export function getFeedbackReview(assessmentId: number) {
   return getPeerFeedbackByAssessmentId(assessmentId);
+}
+
+export async function getFeedbackReviewStatuses(assessmentIds: number[]) {
+  const reviews = await getPeerFeedbackByAssessmentIds(assessmentIds);
+  const reviewedIds = new Set(reviews.map((review) => review.peerAssessmentId));
+  return Object.fromEntries(assessmentIds.map((id) => [String(id), reviewedIds.has(id)]));
 }
 
 export function getPeerAssessment(assessmentId: number) {

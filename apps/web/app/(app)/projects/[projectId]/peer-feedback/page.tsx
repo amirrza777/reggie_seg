@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import {
-  getFeedbackReview,
+  getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
@@ -32,16 +32,11 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   }
 
   const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
-  const feedbacks = await Promise.all(
-    feedbacksRaw.map(async (feedback) => {
-      try {
-        await getFeedbackReview(String(feedback.id));
-        return { ...feedback, reviewSubmitted: true };
-      } catch {
-        return { ...feedback, reviewSubmitted: false };
-      }
-    })
-  );
+  const reviewStatuses = await getFeedbackReviewStatuses(feedbacksRaw.map((feedback) => String(feedback.id)));
+  const feedbacks = feedbacksRaw.map((feedback) => ({
+    ...feedback,
+    reviewSubmitted: reviewStatuses[String(feedback.id)] === true,
+  }));
 
   return (
     <PageSection

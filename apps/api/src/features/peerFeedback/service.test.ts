@@ -3,17 +3,20 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const repoMocks = vi.hoisted(() => ({
   upsertPeerFeedback: vi.fn(),
   getPeerFeedbackByAssessmentId: vi.fn(),
+  getPeerFeedbackByAssessmentIds: vi.fn(),
   getPeerAssessmentById: vi.fn(),
 }));
 
 vi.mock("./repo.js", () => ({
   upsertPeerFeedback: repoMocks.upsertPeerFeedback,
   getPeerFeedbackByAssessmentId: repoMocks.getPeerFeedbackByAssessmentId,
+  getPeerFeedbackByAssessmentIds: repoMocks.getPeerFeedbackByAssessmentIds,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
 }));
 
 import {
   getFeedbackReview,
+  getFeedbackReviewStatuses,
   getPeerAssessment,
   saveFeedbackReview,
 } from "./service.js";
@@ -53,6 +56,23 @@ describe("peerFeedback service", () => {
 
     expect(repoMocks.getPeerFeedbackByAssessmentId).toHaveBeenCalledWith(11);
     expect(result).toBe(expected);
+  });
+
+  it("getFeedbackReviewStatuses returns boolean map for requested ids", async () => {
+    repoMocks.getPeerFeedbackByAssessmentIds.mockResolvedValue([
+      { peerAssessmentId: 11 },
+      { peerAssessmentId: 13 },
+    ]);
+
+    const result = await getFeedbackReviewStatuses([10, 11, 12, 13]);
+
+    expect(repoMocks.getPeerFeedbackByAssessmentIds).toHaveBeenCalledWith([10, 11, 12, 13]);
+    expect(result).toEqual({
+      "10": false,
+      "11": true,
+      "12": false,
+      "13": true,
+    });
   });
 
   it("getPeerAssessment forwards assessment id to repo", async () => {
