@@ -4,6 +4,8 @@ import {
   getModulesForUser,
   getProjectById,
   getQuestionsForProject,
+  getStaffProjectTeams,
+  getStaffProjects,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
@@ -18,6 +20,7 @@ vi.mock("../../shared/db.js", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      findFirst: vi.fn(),
     },
     teamAllocation: {
       findMany: vi.fn(),
@@ -57,6 +60,7 @@ describe("projects repo", () => {
       select: {
         id: true,
         name: true,
+        archivedAt: true,
         module: { select: { name: true } },
       },
     });
@@ -237,6 +241,97 @@ describe("projects repo", () => {
           allocations: expect.any(Object),
         }),
       })
+    );
+  });
+
+  it("getStaffProjects gives admins enterprise-wide project visibility", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 12,
+      role: "ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findMany as any).mockResolvedValue([]);
+
+    await getStaffProjects(12);
+
+    expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          module: {
+            enterpriseId: "ent-1",
+          },
+        },
+      }),
+    );
+  });
+
+  it("getStaffProjects limits non-admin staff to assigned modules", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 21,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findMany as any).mockResolvedValue([]);
+
+    await getStaffProjects(21);
+
+    expect(prisma.project.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          module: {
+            enterpriseId: "ent-1",
+            OR: [
+              { moduleLeads: { some: { userId: 21 } } },
+              { moduleTeachingAssistants: { some: { userId: 21 } } },
+            ],
+          },
+        },
+      }),
+    );
+  });
+
+  it("getStaffProjectTeams enforces admin-all vs staff-scoped access filters", async () => {
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 12,
+        role: "ADMIN",
+        enterpriseId: "ent-1",
+      })
+      .mockResolvedValueOnce({
+        id: 21,
+        role: "STAFF",
+        enterpriseId: "ent-1",
+      });
+    (prisma.project.findFirst as any).mockResolvedValue(null);
+
+    await getStaffProjectTeams(12, 9);
+    expect(prisma.project.findFirst).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        where: {
+          id: 9,
+          module: {
+            enterpriseId: "ent-1",
+          },
+        },
+      }),
+    );
+
+    await getStaffProjectTeams(21, 9);
+    expect(prisma.project.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: {
+          id: 9,
+          module: {
+            enterpriseId: "ent-1",
+            OR: [
+              { moduleLeads: { some: { userId: 21 } } },
+              { moduleTeachingAssistants: { some: { userId: 21 } } },
+            ],
+          },
+        },
+      }),
     );
   });
 

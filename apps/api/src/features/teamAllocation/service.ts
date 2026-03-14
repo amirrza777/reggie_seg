@@ -278,7 +278,7 @@ export async function getManualAllocationWorkspaceForProject(
   }
 
   const [students, existingTeams] = await Promise.all([
-    findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId),
+    findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
     findProjectTeamSummaries(project.id),
   ]);
 
@@ -352,7 +352,7 @@ export async function applyManualAllocationForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
-  const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId);
+  const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id);
   const moduleStudentById = new Map(moduleStudents.map((student) => [student.id, student] as const));
 
   const hasStudentOutsideModule = studentIds.some((studentId) => !moduleStudentById.has(studentId));
@@ -378,7 +378,6 @@ export async function applyManualAllocationForProject(
 
   const team = await applyManualAllocationTeam(
     project.id,
-    project.moduleId,
     project.enterpriseId,
     teamName,
     studentIds,
@@ -417,6 +416,7 @@ export async function previewRandomAllocationForProject(
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,
     project.moduleId,
+    projectId,
   );
   if (students.length === 0) {
     throw { code: "NO_VACANT_STUDENTS" };
@@ -469,6 +469,7 @@ export async function applyRandomAllocationForProject(
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,
     project.moduleId,
+    projectId,
   );
   if (students.length === 0) {
     throw { code: "NO_VACANT_STUDENTS" };
@@ -480,7 +481,6 @@ export async function applyRandomAllocationForProject(
   const plannedTeams = planRandomTeams(students, teamCount, { seed: options.seed });
   const appliedTeams = await applyRandomAllocationPlan(
     projectId,
-    project.moduleId,
     project.enterpriseId,
     plannedTeams,
   );

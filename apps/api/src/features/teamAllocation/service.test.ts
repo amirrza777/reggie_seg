@@ -211,7 +211,7 @@ describe("teamAllocation service", () => {
 
     const result = await getManualAllocationWorkspaceForProject(3, 42);
 
-    expect(repo.findModuleStudentsForManualAllocation).toHaveBeenCalledWith("ent-9", 11);
+    expect(repo.findModuleStudentsForManualAllocation).toHaveBeenCalledWith("ent-9", 11, 42);
     expect(repo.findProjectTeamSummaries).toHaveBeenCalledWith(42);
     expect(result.project).toEqual({
       id: 42,
@@ -345,7 +345,7 @@ describe("teamAllocation service", () => {
       studentIds: [1, 2],
     });
 
-    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, 11, "ent-9", "Team Gamma", [1, 2]);
+    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2]);
     expect(result).toEqual({
       project: {
         id: 42,
@@ -474,7 +474,7 @@ describe("teamAllocation service", () => {
 
     const preview = await previewRandomAllocationForProject(3, 42, 2, { seed: 123 });
 
-    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11);
+    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11, 42);
     expect(preview.project).toEqual({
       id: 42,
       name: "Project A",
@@ -517,9 +517,9 @@ describe("teamAllocation service", () => {
 
     const result = await applyRandomAllocationForProject(3, 42, 2, { seed: 999 });
 
-    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11);
-    expect(repo.applyRandomAllocationPlan).toHaveBeenCalledWith(42, 11, "ent-9", expect.any(Array));
-    const planned = (repo.applyRandomAllocationPlan as any).mock.calls[0][3];
+    expect(repo.findVacantModuleStudentsForProject).toHaveBeenCalledWith("ent-9", 11, 42);
+    expect(repo.applyRandomAllocationPlan).toHaveBeenCalledWith(42, "ent-9", expect.any(Array));
+    const planned = (repo.applyRandomAllocationPlan as any).mock.calls[0][2];
     expect(planned).toHaveLength(2);
     expect(planned.flatMap((team: any) => team.members).map((student: any) => student.id).sort((a: number, b: number) => a - b)).toEqual([
       1, 2, 3, 4,

@@ -146,7 +146,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
       return res.status(409).json({ error: "Project is archived" });
     }
     if (error?.code === "NO_VACANT_STUDENTS") {
-      return res.status(409).json({ error: "No vacant students are available for this project module" });
+      return res.status(409).json({ error: "No vacant students are available for this project" });
     }
     console.error("Error previewing random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -216,7 +216,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "Project is archived" });
     }
     if (error?.code === "NO_VACANT_STUDENTS") {
-      return res.status(409).json({ error: "No vacant students are available for this project module" });
+      return res.status(409).json({ error: "No vacant students are available for this project" });
     }
     if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
       return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
@@ -260,7 +260,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
       return res.status(400).json({ error: "All selected students must belong to this module" });
     }
     if (error?.code === "STUDENT_ALREADY_ASSIGNED") {
-      return res.status(409).json({ error: "One or more selected students are already in a team for this module" });
+      return res.status(409).json({ error: "One or more selected students are already in a team for this project" });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
       return res.status(409).json({ error: "Team name already exists in this enterprise" });

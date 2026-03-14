@@ -12,8 +12,29 @@ function setCookie(value: string | null) {
   document.cookie = `${ACCESS_COOKIE_KEY}=${value}; path=/; max-age=${ACCESS_MAX_AGE}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = `${name}=`;
+  const cookiePart = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+
+  if (!cookiePart) return null;
+  const rawValue = cookiePart.slice(prefix.length);
+  return rawValue ? decodeURIComponent(rawValue) : null;
+}
+
 export function getAccessToken() {
   if (typeof window === "undefined") return null;
+  const cookieToken = readCookie(ACCESS_COOKIE_KEY)?.trim() || null;
+  if (cookieToken) {
+    if (window.localStorage.getItem(ACCESS_TOKEN_KEY) !== cookieToken) {
+      window.localStorage.setItem(ACCESS_TOKEN_KEY, cookieToken);
+    }
+    return cookieToken;
+  }
+
   return window.localStorage.getItem(ACCESS_TOKEN_KEY);
 }
 

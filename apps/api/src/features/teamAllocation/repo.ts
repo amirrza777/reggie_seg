@@ -206,6 +206,7 @@ export async function findStaffScopedProject(
 export async function findVacantModuleStudentsForProject(
   enterpriseId: string,
   moduleId: number,
+  projectId: number,
 ): Promise<ModuleStudent[]> {
   return prisma.user.findMany({
     where: {
@@ -221,9 +222,8 @@ export async function findVacantModuleStudentsForProject(
       teamAllocations: {
         none: {
           team: {
-            project: {
-              moduleId,
-            },
+            projectId,
+            archivedAt: null,
           },
         },
       },
@@ -241,6 +241,7 @@ export async function findVacantModuleStudentsForProject(
 export async function findModuleStudentsForManualAllocation(
   enterpriseId: string,
   moduleId: number,
+  projectId: number,
 ): Promise<ManualAllocationStudent[]> {
   const students = await prisma.user.findMany({
     where: {
@@ -262,9 +263,8 @@ export async function findModuleStudentsForManualAllocation(
       teamAllocations: {
         where: {
           team: {
-            project: {
-              moduleId,
-            },
+            projectId,
+            archivedAt: null,
           },
         },
         select: {
@@ -320,7 +320,6 @@ export async function findProjectTeamSummaries(projectId: number): Promise<Proje
 
 export async function applyRandomAllocationPlan(
   projectId: number,
-  moduleId: number,
   enterpriseId: string,
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
 ): Promise<AppliedRandomTeam[]> {
@@ -331,9 +330,8 @@ export async function applyRandomAllocationPlan(
         where: {
           userId: { in: plannedStudentIds },
           team: {
-            project: {
-              moduleId,
-            },
+            projectId,
+            archivedAt: null,
           },
         },
         select: { userId: true },
@@ -398,7 +396,6 @@ export async function applyRandomAllocationPlan(
 
 export async function applyManualAllocationTeam(
   projectId: number,
-  moduleId: number,
   enterpriseId: string,
   teamName: string,
   studentIds: number[],
@@ -422,9 +419,8 @@ export async function applyManualAllocationTeam(
       where: {
         userId: { in: studentIds },
         team: {
-          project: {
-            moduleId,
-          },
+          projectId,
+          archivedAt: null,
         },
       },
       select: {

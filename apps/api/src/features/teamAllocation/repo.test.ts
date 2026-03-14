@@ -215,7 +215,7 @@ describe("teamAllocation repo", () => {
   it("findVacantModuleStudentsForProject returns active unallocated students in module", async () => {
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 1 }]);
 
-    await findVacantModuleStudentsForProject("ent-3", 22);
+    await findVacantModuleStudentsForProject("ent-3", 22, 5);
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: {
@@ -231,9 +231,8 @@ describe("teamAllocation repo", () => {
         teamAllocations: {
           none: {
             team: {
-              project: {
-                moduleId: 22,
-              },
+              projectId: 5,
+              archivedAt: null,
             },
           },
         },
@@ -248,7 +247,7 @@ describe("teamAllocation repo", () => {
     });
   });
 
-  it("findModuleStudentsForManualAllocation maps current module team status", async () => {
+  it("findModuleStudentsForManualAllocation maps current project team status", async () => {
     (prisma.user.findMany as any).mockResolvedValueOnce([
       {
         id: 1,
@@ -266,7 +265,7 @@ describe("teamAllocation repo", () => {
       },
     ]);
 
-    await expect(findModuleStudentsForManualAllocation("ent-3", 22)).resolves.toEqual([
+    await expect(findModuleStudentsForManualAllocation("ent-3", 22, 5)).resolves.toEqual([
       {
         id: 1,
         firstName: "A",
@@ -305,9 +304,8 @@ describe("teamAllocation repo", () => {
         teamAllocations: {
           where: {
             team: {
-              project: {
-                moduleId: 22,
-              },
+              projectId: 5,
+              archivedAt: null,
             },
           },
           select: {
@@ -355,7 +353,7 @@ describe("teamAllocation repo", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    const result = await applyRandomAllocationPlan(5, 22, "ent-1", [
+    const result = await applyRandomAllocationPlan(5, "ent-1", [
       { members: [{ id: 1 }, { id: 2 }] },
       { members: [{ id: 3 }] },
     ]);
@@ -364,9 +362,8 @@ describe("teamAllocation repo", () => {
       where: {
         userId: { in: [1, 2, 3] },
         team: {
-          project: {
-            moduleId: 22,
-          },
+          projectId: 5,
+          archivedAt: null,
         },
       },
       select: { userId: true },
@@ -427,7 +424,7 @@ describe("teamAllocation repo", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    const result = await applyRandomAllocationPlan(5, 22, "ent-1", [
+    const result = await applyRandomAllocationPlan(5, "ent-1", [
       { members: [{ id: 1 }] },
       { members: [{ id: 2 }] },
       { members: [{ id: 3 }] },
@@ -478,7 +475,7 @@ describe("teamAllocation repo", () => {
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
     await expect(
-      applyRandomAllocationPlan(5, 22, "ent-1", [
+      applyRandomAllocationPlan(5, "ent-1", [
         { members: [{ id: 1 }, { id: 2 }] },
         { members: [{ id: 3 }] },
       ]),
@@ -502,7 +499,7 @@ describe("teamAllocation repo", () => {
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
     await expect(
-      applyManualAllocationTeam(5, 22, "ent-1", "Team Gamma", [7, 8]),
+      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
     ).resolves.toEqual({
       id: 44,
       teamName: "Team Gamma",
@@ -522,9 +519,8 @@ describe("teamAllocation repo", () => {
       where: {
         userId: { in: [7, 8] },
         team: {
-          project: {
-            moduleId: 22,
-          },
+          projectId: 5,
+          archivedAt: null,
         },
       },
       select: {
@@ -565,7 +561,7 @@ describe("teamAllocation repo", () => {
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
     await expect(
-      applyManualAllocationTeam(5, 22, "ent-1", "Team Gamma", [7, 8]),
+      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
     ).rejects.toEqual({ code: "TEAM_NAME_ALREADY_EXISTS" });
 
     expect(tx.teamAllocation.findMany).not.toHaveBeenCalled();
@@ -587,7 +583,7 @@ describe("teamAllocation repo", () => {
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
     await expect(
-      applyManualAllocationTeam(5, 22, "ent-1", "Team Gamma", [7, 8]),
+      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
     ).rejects.toEqual({ code: "STUDENTS_NO_LONGER_AVAILABLE" });
 
     expect(tx.team.create).not.toHaveBeenCalled();
