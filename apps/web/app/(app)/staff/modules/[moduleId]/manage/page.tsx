@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
 import { listModules } from "@/features/modules/api/client";
+import type { Module } from "@/features/modules/types";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 
@@ -18,7 +19,7 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
   const parsedModuleId = Number.parseInt(moduleId, 10);
   if (!Number.isInteger(parsedModuleId) || parsedModuleId <= 0) notFound();
 
-  let staffModules;
+  let staffModules: Module[] = [];
   try {
     staffModules = await listModules(user.id, { scope: "staff" });
   } catch {
