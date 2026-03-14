@@ -179,3 +179,20 @@
 .btn--danger-ghost:hover {
   background: var(--status-danger-soft);
 }
+
+@media (max-width: 860px) {
+  .team-formation__create-form,
+  .team-formation__invite-form {
+    flex-direction: column;
+  }
+
+  .team-formation__invite-item,
+  .team-formation__invite-meta {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .team-formation__invite-date {
+    white-space: normal;
+  }
+}

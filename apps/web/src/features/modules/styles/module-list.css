@@ -82,19 +82,19 @@
 }
 
 .module-card__role--assistant {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--selection-gray-bg);
   color: var(--muted);
   border: 1px solid var(--border);
 }
 
 .module-card__role--admin {
-  background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: var(--status-warning-soft);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
 }
 
 .module-card__role--enrolled {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--selection-gray-bg);
   color: var(--muted);
   border: 1px solid var(--border);
 }
@@ -140,7 +140,7 @@
   margin: 0;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 860px) {
   .module-list {
     padding-top: 4px;
   }

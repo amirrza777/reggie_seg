@@ -636,3 +636,27 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+@media (max-width: 860px) {
+  .staff-projects__hero {
+    padding: 14px;
+  }
+
+  .staff-projects__title {
+    font-size: clamp(1.65rem, 9vw, 2.3rem);
+  }
+
+  .staff-projects__team-top {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .staff-projects__member {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .staff-projects__member-placeholder-btn {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}

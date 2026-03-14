@@ -3,6 +3,7 @@
 @import "./feature-panels.assessment.css";
 @import "./feature-panels.auth.css";
 @import "./feature-panels.projects.css";
+@import "./feature-panels.responsive.css";
 
 .projects-panel,
 .project-overview-dashboard,
