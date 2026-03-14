@@ -1,8 +1,8 @@
 import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPageContent";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import Link from "next/link";
 
 type ProjectPageProps = {
@@ -12,8 +12,8 @@ type ProjectPageProps = {
 export default async function ProjectMeetingsPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
-  const flagMap = await getFeatureFlagMap();
   const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, numericProjectId);
 
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
   if (user && !Number.isNaN(numericProjectId)) {
@@ -26,7 +26,7 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
+      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       {team ? (
         <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />
       ) : (

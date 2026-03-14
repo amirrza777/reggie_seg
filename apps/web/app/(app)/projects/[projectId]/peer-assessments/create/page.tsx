@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 import { getProject, getProjectDeadline } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
 import { getCurrentUser } from "@/shared/auth/session";
 import { ApiError } from "@/shared/api/errors";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type CreatePageProps = {
   params: Promise<{ projectId: string }>;
@@ -21,7 +21,8 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const revieweeId = Number(resolvedSearchParams.revieweeId);
   const reviewerId = Number(resolvedSearchParams.reviewerId);
   const teammateName = resolvedSearchParams.teammateName ?? "";
-  const flagMap = await getFeatureFlagMap();
+  const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, projectId);
 
   let existingAssessment: PeerAssessment | null = null;
   try {
@@ -38,7 +39,6 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
     );
   }
 
-  const user = await getCurrentUser();
   const project = await getProject(String(projectId));
   const questions = await getQuestionsByProject(String(projectId));
   let assessmentDeadline: string | null = null;
@@ -53,7 +53,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
+      <ProjectNav projectId={String(projectId)} enabledFlags={navFlags} />
       <div style={{ padding: "20px" }}>
         {questions.length > 0 && (
           <PeerAssessmentForm

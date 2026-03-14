@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import {
   getFeedbackReview,
   getPeerAssessmentsForUser,
@@ -17,14 +18,16 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
+  const numericProjectId = Number(projectId);
   const flagMap = await getFeatureFlagMap();
   if (!flagMap["peer_feedback"]) redirect(`/projects/${projectId}`);
 
   const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, numericProjectId);
   if (!user) {
     return (
       <div className="stack stack--tabbed">
-        <ProjectNav projectId={projectId} />
+        <ProjectNav projectId={projectId} enabledFlags={navFlags} />
         <PageSection
           title="Peer Feedback"
           description="Collect and review peer feedback for this project."
@@ -49,7 +52,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} />
+      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       <PageSection
         title="Peer Feedback"
         description="Collect and review peer feedback for this project."

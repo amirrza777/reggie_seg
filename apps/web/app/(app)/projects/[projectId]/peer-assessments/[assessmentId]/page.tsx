@@ -1,9 +1,9 @@
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getPeerAssessmentById, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 
 type AssessmentPageProps = {
   params: Promise<{ projectId: string; assessmentId: string }>;
@@ -14,8 +14,8 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   const { projectId , assessmentId } = resolvedParams;
-  const flagMap = await getFeatureFlagMap();
   const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
   const questions = await getQuestionsByProject(String(projectId));
@@ -34,7 +34,7 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
+      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       <div style={{ padding: "20px" }}>
         {questions.length > 0 ? (
           <PeerAssessmentForm

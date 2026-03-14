@@ -3,6 +3,7 @@ import { FeedbackReviewForm } from "@/features/peerFeedback/components/FeedbackR
 import { getPeerFeedbackById, getFeedbackReview } from "@/features/peerFeedback/api/client";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getCurrentUser } from "@/shared/auth/session";
 
 type ProjectPageProps = {
@@ -16,6 +17,7 @@ export default async function PeerFeedbackReview(props : ProjectPageProps) {
   const params = await props.params;
   const { feedbackId, projectId } = params;
   const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
   const feedback: PeerFeedback = await getPeerFeedbackById(feedbackId);
   let existingReview: Awaited<ReturnType<typeof getFeedbackReview>> | null = null;
   let feedbackDeadline: string | null = null;
@@ -36,7 +38,7 @@ export default async function PeerFeedbackReview(props : ProjectPageProps) {
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} />
+      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       {existingReview ? (
         <FeedbackReviewForm
           feedback={feedback}

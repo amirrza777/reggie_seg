@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getMyTeamHealthMessages, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
+import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { Card } from "@/shared/ui/Card";
 import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
 import type { TeamHealthMessage } from "@/features/projects/types";
@@ -14,11 +15,12 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
+  const navFlags = await getProjectNavFlags(user?.id, numericProjectId);
 
   if (!user) {
     return (
       <div className="stack stack--tabbed" style={{ gap: 16 }}>
-        <ProjectNav projectId={projectId} />
+        <ProjectNav projectId={projectId} enabledFlags={navFlags} />
         <div style={{ padding: 24 }}>
           <p>Please sign in to submit a team health message.</p>
           <Link href="/login">Go to login</Link>
@@ -30,7 +32,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   if (Number.isNaN(numericProjectId)) {
     return (
       <div className="stack stack--tabbed" style={{ gap: 16 }}>
-        <ProjectNav projectId={projectId} />
+        <ProjectNav projectId={projectId} enabledFlags={navFlags} />
         <div style={{ padding: 24 }}>
           <p>Invalid project ID.</p>
           <Link href="/projects">Back to projects</Link>
@@ -49,7 +51,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   if (!team) {
     return (
       <div className="stack stack--tabbed" style={{ gap: 16 }}>
-        <ProjectNav projectId={projectId} />
+        <ProjectNav projectId={projectId} enabledFlags={navFlags} />
         <div style={{ padding: 24 }}>
           <p>You are not in a team for this project.</p>
           <Link href={`/projects/${projectId}`}>Back to project overview</Link>
@@ -67,7 +69,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   }
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
-      <ProjectNav projectId={projectId} />
+      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       <div style={{ padding: 20 }}>
         <Card title="Team Health">
           <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
