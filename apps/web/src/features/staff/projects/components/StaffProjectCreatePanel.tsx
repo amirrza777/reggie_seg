@@ -13,7 +13,7 @@ type StaffProjectCreatePanelProps = {
   modulesError: string | null;
 };
 
-const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER"]);
+const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER", "ADMIN_ACCESS"]);
 
 type DeadlineState = {
   taskOpenDate: string;
@@ -311,7 +311,8 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
           <p className="staff-projects__eyebrow">Project Setup</p>
           <h2 className="staff-projects__create-title">Create New Project</h2>
           <p className="staff-projects__desc">
-            Create projects inside modules you lead. Questionnaire templates define the assessment form used by students.
+            Create projects inside modules you lead. Enterprise admins can also create projects as an override.
+            Questionnaire templates define the assessment form used by students.
           </p>
         </div>
         <span className="staff-projects__badge">{creatableModules.length} creatable module{creatableModules.length === 1 ? "" : "s"}</span>
@@ -562,7 +563,7 @@ export function StaffProjectCreatePanel({ modules, modulesError }: StaffProjectC
       {templatesError ? <p className="staff-projects__error">{templatesError}</p> : null}
       {!hasCreatableModule && !modulesError ? (
         <p className="staff-projects__hint">
-          You need module-lead access to create projects in this enterprise.
+          You need module-lead access to create projects in this enterprise. Enterprise admins can override this.
         </p>
       ) : null}
       {!isLoadingTemplates && !hasTemplates && !templatesError ? (

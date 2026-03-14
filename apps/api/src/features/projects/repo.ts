@@ -292,12 +292,15 @@ export async function createProject(
     throw { code: "MODULE_NOT_FOUND" };
   }
 
-  const isModuleLead = await prisma.moduleLead.findFirst({
-    where: { moduleId, userId: actor.id },
-    select: { moduleId: true },
-  });
-  if (!isModuleLead) {
-    throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
+  const roleCanOverride = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+  if (!roleCanOverride) {
+    const isModuleLead = await prisma.moduleLead.findFirst({
+      where: { moduleId, userId: actor.id },
+      select: { moduleId: true },
+    });
+    if (!isModuleLead) {
+      throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
+    }
   }
 
   const templateRecord = await prisma.questionnaireTemplate.findFirst({

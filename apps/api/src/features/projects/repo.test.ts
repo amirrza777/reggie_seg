@@ -220,19 +220,30 @@ describe("projects repo", () => {
     expect(prisma.project.create).not.toHaveBeenCalled();
   });
 
-  it("createProject rejects enterprise admins who are not module leads", async () => {
+  it("createProject allows enterprise admins without module-lead membership", async () => {
     (prisma.user.findUnique as any).mockResolvedValue({
       id: 45,
       role: "ENTERPRISE_ADMIN",
       enterpriseId: "ent-1",
     });
     (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
-    (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
-
-    await expect(createProject(45, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
-      code: "FORBIDDEN",
+    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
+    (prisma.project.create as any).mockResolvedValue({
+      id: 17,
+      name: "Admin Project",
+      moduleId: 7,
+      questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
     });
-    expect(prisma.project.create).not.toHaveBeenCalled();
+
+    await expect(createProject(45, "Admin Project", 7, 3, deadlineInput)).resolves.toMatchObject({
+      id: 17,
+      moduleId: 7,
+    });
+    expect(prisma.moduleLead.findFirst).not.toHaveBeenCalled();
+    expect(prisma.project.create).toHaveBeenCalled();
   });
 
   it("getTeammatesInProject filters by shared team and project", async () => {

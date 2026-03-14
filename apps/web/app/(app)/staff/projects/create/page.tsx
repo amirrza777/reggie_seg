@@ -44,7 +44,8 @@ export default async function StaffCreateProjectPage() {
             <li>Create the project first, then review teams and overrides if needed.</li>
           </ol>
           <p className="staff-projects__hint">
-            Module leads can create projects. Students and teaching assistants can still view project timelines once published.
+            Module leads create projects by default. Enterprise admins can override when needed.
+            Students and teaching assistants can still view project timelines once published.
           </p>
         </aside>
       </section>
