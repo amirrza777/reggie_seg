@@ -483,6 +483,7 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
         expectationsText: payload.expectationsText,
         readinessNotesText: payload.readinessNotesText,
       },
+      select: { id: true },
     });
 
     await replaceModuleAssignments(tx, {
@@ -514,7 +515,7 @@ export async function deleteModule(enterpriseUser: EnterpriseUser, moduleId: num
     await tx.moduleLead.deleteMany({ where: { moduleId } });
     await tx.moduleTeachingAssistant.deleteMany({ where: { moduleId } });
     await tx.userModule.deleteMany({ where: { enterpriseId: enterpriseUser.enterpriseId, moduleId } });
-    await tx.module.delete({ where: { id: moduleId } });
+    await tx.module.delete({ where: { id: moduleId }, select: { id: true } });
     return true;
   });
 
