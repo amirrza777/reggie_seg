@@ -120,8 +120,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     }));
 
   const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
   if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });

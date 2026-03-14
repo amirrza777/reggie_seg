@@ -42,12 +42,14 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     "/staff/analytics",
     "/staff/questionnaires",
   ];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [
-    { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
-    { href: "/staff/dashboard", label: "Staff" },
-    { href: enterpriseHomeHref, label: "Enterprise" },
-  ];
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
+  spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
+  spaceLinks.push({ href: enterpriseHomeHref, label: "Enterprise" });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
