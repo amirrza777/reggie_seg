@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import type { Module } from "@/features/modules/types";
@@ -30,6 +31,11 @@ export default async function StaffModulesPage() {
       <header className="projects-panel__header">
         <h1 className="projects-panel__title">My Modules</h1>
         <p className="projects-panel__subtitle">{subtitle}</p>
+        <div className="staff-projects__meta">
+          <Link href="/staff/projects/create" className="staff-projects__badge">
+            Create project
+          </Link>
+        </div>
       </header>
       {errorMessage ? (
         <p className="muted">{errorMessage}</p>
