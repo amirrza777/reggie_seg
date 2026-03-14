@@ -195,7 +195,7 @@ export function StaffRandomAllocationPreview({
       <div className="staff-projects__allocation-actions">
         <button
           type="button"
-          className="staff-projects__allocation-btn"
+          className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
           onClick={runPreview}
           disabled={isPreviewPending || isApplyPending}
         >
@@ -203,7 +203,7 @@ export function StaffRandomAllocationPreview({
         </button>
         <button
           type="button"
-          className="staff-projects__allocation-btn"
+          className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
           onClick={runApplyAllocation}
           disabled={!isPreviewCurrent || !confirmApply || isPreviewPending || isApplyPending}
         >
