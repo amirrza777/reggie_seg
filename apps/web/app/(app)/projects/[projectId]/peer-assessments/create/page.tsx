@@ -1,7 +1,5 @@
 import { redirect } from "next/navigation";
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 import { getProject, getProjectDeadline } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
@@ -22,7 +20,6 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const reviewerId = Number(resolvedSearchParams.reviewerId);
   const teammateName = resolvedSearchParams.teammateName ?? "";
   const user = await getCurrentUser();
-  const navFlags = await getProjectNavFlags(user?.id, projectId);
 
   let existingAssessment: PeerAssessment | null = null;
   try {
@@ -52,23 +49,20 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   }
 
   return (
-    <div className="stack stack--tabbed">
-      <ProjectNav projectId={String(projectId)} enabledFlags={navFlags} />
-      <div style={{ padding: "20px" }}>
-        {questions.length > 0 && (
-          <PeerAssessmentForm
-            title="Create Peer Assessment"
-            teammateName={String(teammateName)}
-            questions={questions}
-            projectId={projectId}
-            teamId={teamId}
-            reviewerId={reviewerId}
-            revieweeId={revieweeId}
-            templateId={project.questionnaireTemplateId}
-            assessmentDeadline={assessmentDeadline}
-          />
-        )}
-      </div>
+    <div style={{ padding: "20px" }}>
+      {questions.length > 0 && (
+        <PeerAssessmentForm
+          title="Create Peer Assessment"
+          teammateName={String(teammateName)}
+          questions={questions}
+          projectId={projectId}
+          teamId={teamId}
+          reviewerId={reviewerId}
+          revieweeId={revieweeId}
+          templateId={project.questionnaireTemplateId}
+          assessmentDeadline={assessmentDeadline}
+        />
+      )}
     </div>
   );
 }

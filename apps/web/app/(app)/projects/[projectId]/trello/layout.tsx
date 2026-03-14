@@ -1,6 +1,4 @@
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { TrelloBoardProvider } from "@/features/trello/context/TrelloBoardContext";
 import { getCurrentUser } from "@/shared/auth/session";
 
@@ -14,7 +12,6 @@ type LayoutProps = {
 export default async function TrelloLayout({ params, children }: LayoutProps) {
   const { projectId } = await params;
   const user = await getCurrentUser();
-  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
 
   if (user) {
@@ -25,14 +22,9 @@ export default async function TrelloLayout({ params, children }: LayoutProps) {
     }
   }
 
-  return (
-    <div className="stack">
-      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
-      {team ? (
-        <TrelloBoardProvider teamId={team.id}>{children}</TrelloBoardProvider>
-      ) : (
-        children
-      )}
-    </div>
-  );
+  if (team) {
+    return <TrelloBoardProvider teamId={team.id}>{children}</TrelloBoardProvider>;
+  }
+
+  return children;
 }

@@ -1,6 +1,4 @@
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
-import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getPeerAssessmentById, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -15,7 +13,6 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const resolvedSearchParams = await searchParams;
   const { projectId , assessmentId } = resolvedParams;
   const user = await getCurrentUser();
-  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
   
   const assessment = await getPeerAssessmentById(Number(assessmentId));
   const questions = await getQuestionsByProject(String(projectId));
@@ -33,27 +30,24 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
   const teammateName = (resolvedSearchParams.teammateName as string) || `${assessment.firstName} ${assessment.lastName}`;
 
   return (
-    <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
-      <div style={{ padding: "20px" }}>
-        {questions.length > 0 ? (
-          <PeerAssessmentForm
-            title="Edit Peer Assessment"
-            teammateName={teammateName}
-            questions={questions}
-            projectId={Number(projectId)}
-            teamId={assessment.teamId}
-            templateId={assessment.templateId}
-            reviewerId={assessment.reviewerUserId}
-            revieweeId={assessment.revieweeUserId}
-            initialAnswers={assessment.answers}
-            assessmentId={assessmentIdNum}
-            assessmentDeadline={assessmentDeadline}
-          />
-        ) : (
-          <p>No questions found</p>
-        )}
-      </div>
+    <div style={{ padding: "20px" }}>
+      {questions.length > 0 ? (
+        <PeerAssessmentForm
+          title="Edit Peer Assessment"
+          teammateName={teammateName}
+          questions={questions}
+          projectId={Number(projectId)}
+          teamId={assessment.teamId}
+          templateId={assessment.templateId}
+          reviewerId={assessment.reviewerUserId}
+          revieweeId={assessment.revieweeUserId}
+          initialAnswers={assessment.answers}
+          assessmentId={assessmentIdNum}
+          assessmentDeadline={assessmentDeadline}
+        />
+      ) : (
+        <p>No questions found</p>
+      )}
     </div>
   );
 }
