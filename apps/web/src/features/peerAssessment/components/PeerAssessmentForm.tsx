@@ -52,6 +52,16 @@ function getSliderConfig(question: Question) {
   };
 }
 
+function toDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value: Date | null): string {
+  return value ? value.toLocaleString() : "Not set";
+}
+
 type PeerAssessmentFormProps = {
   teammateName: string;
   questions: Question[];
@@ -62,6 +72,8 @@ type PeerAssessmentFormProps = {
   templateId: number;
   initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
+  assessmentOpenAt?: string | null;
+  assessmentDueAt?: string | null;
 };
 
 export function PeerAssessmentForm({
@@ -74,6 +86,8 @@ export function PeerAssessmentForm({
   templateId,
   initialAnswers,
   assessmentId,
+  assessmentOpenAt = null,
+  assessmentDueAt = null,
 }: PeerAssessmentFormProps) {
   const router = useRouter();
   const peerAssessmentsPath = `/projects/${projectId}/peer-assessments`;
@@ -83,6 +97,21 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  const openAt = toDate(assessmentOpenAt);
+  const dueAt = toDate(assessmentDueAt);
+  const now = new Date();
+
+  const isBeforeOpen = Boolean(openAt && now < openAt);
+  const isAfterDue = Boolean(dueAt && now > dueAt);
+  const canSubmit = !isBeforeOpen && !isAfterDue;
+
+  const deadlineStatusMessage = isBeforeOpen
+    ? `Peer assessment is locked until ${formatDateLabel(openAt)}.`
+    : isAfterDue
+      ? `Peer assessment deadline passed on ${formatDateLabel(dueAt)}.`
+      : dueAt
+        ? `Peer assessment is open. Deadline: ${formatDateLabel(dueAt)}.`
+        : null;
 
   const normalizeAnswers = (
     raw: Record<string, string | number | boolean | null> | undefined
@@ -117,6 +146,11 @@ export function PeerAssessmentForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canSubmit) {
+      setStatus("error");
+      setMessage(deadlineStatusMessage ?? "Peer assessment is outside the allowed deadline window.");
+      return;
+    }
     setStatus("loading");
     setMessage(null);
 
@@ -162,6 +196,9 @@ export function PeerAssessmentForm({
       <h3>
          You're reviewing {teammateName}
       </h3>
+      {deadlineStatusMessage ? (
+        <p className={canSubmit ? "muted" : "error"}>{deadlineStatusMessage}</p>
+      ) : null}
       {questions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
@@ -272,7 +309,7 @@ export function PeerAssessmentForm({
         <Button type="button" onClick={handleDiscard}>
           {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
-        <Button type="submit" disabled={status === "loading"}>
+        <Button type="submit" disabled={status === "loading" || !canSubmit}>
           {status === "loading"
             ? "Saving..."
             : isEditMode
