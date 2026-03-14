@@ -20,6 +20,8 @@
   font-size: var(--fs-panel-section-title);
   line-height: 1.2;
   letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .card__action {
@@ -56,7 +58,7 @@
   padding: 0 var(--space-panel-content-inset) 12px;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 860px) {
   .card--has-action .card__header {
     align-items: flex-start;
   }
@@ -74,17 +76,34 @@
 }
 
 .table {
+  --table-column-gap: 12px;
   border: 1px solid var(--border);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: var(--surface);
   width: 100%;
+  overflow-anchor: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.module-dashboard__timeline-table {
+  --table-column-gap: clamp(16px, 2.4vw, 24px);
 }
 
 .table__head,
 .table__row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  column-gap: var(--table-column-gap);
+}
+
+.table__head > *,
+.table__row > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .table__head {
@@ -98,6 +117,7 @@
   border-top: 1px solid var(--border);
   padding: 10px 12px;
   background: var(--surface);
+  overflow-anchor: none;
 }
 
 .table__row:nth-child(even) {
@@ -148,7 +168,7 @@
   display: inline-flex;
   align-items: center;
   width: fit-content;
-  border-radius: 999px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   padding: 4px 8px;
   font-size: var(--fs-body-xs);
@@ -172,9 +192,94 @@
   color: var(--status-success-text);
 }
 
-@media (max-width: 820px) {
+@media (max-width: 860px) {
   .module-dashboard__panel {
     min-height: 0;
+  }
+
+  .module-dashboard__table .table__head {
+    display: none;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+    align-items: start;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div {
+    display: grid;
+    grid-template-columns: var(--responsive-table-label-column-width, clamp(96px, 28vw, 136px)) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 6px;
+    min-width: 0;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div::before {
+    display: block;
+    font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--fw-semibold);
+    line-height: 1.2;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(1)::before {
+    content: "When?";
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(2)::before {
+    content: "Date & time";
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(3)::before {
+    content: "Details";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(1)::before {
+    content: "Expectation";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(2)::before {
+    content: "Target";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(3)::before {
+    content: "Owner";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(1)::before {
+    content: "Assessment";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(2)::before {
+    content: "Latest mark";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(3)::before {
+    content: "Status";
+  }
+}
+
+@media (max-width: 560px) {
+  .module-dashboard__table .module-dashboard__table-row > div {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div::before,
+  .module-dashboard__table .module-dashboard__table-row > div > * {
+    grid-column: 1;
   }
 }
 
@@ -518,7 +623,7 @@
   }
 
   .workspace-shell .help-page__toc a:hover {
-    color: #ffffff;
+    color: var(--ink);
   }
 
   .workspace-shell .help-page__content {
