@@ -194,6 +194,22 @@
   cursor: not-allowed;
 }
 
+.staff-projects__allocation-btn--light {
+  background: color-mix(in srgb, white 92%, var(--surface) 8%);
+  border-color: color-mix(in srgb, white 55%, var(--border) 45%);
+  color: #111827;
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__allocation-btn--light:hover,
+.staff-projects__allocation-btn--light:focus-visible {
+  background: color-mix(in srgb, white 86%, var(--surface) 14%);
+}
+
+.staff-projects__allocation-btn--light:disabled {
+  color: color-mix(in srgb, #111827 62%, white 38%);
+}
+
 .staff-projects__allocation-error {
   margin: 0;
   color: rgb(185, 28, 28);

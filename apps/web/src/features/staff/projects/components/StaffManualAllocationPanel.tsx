@@ -146,7 +146,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
         <div className="staff-projects__manual-toolbar-actions">
           <button
             type="button"
-            className="staff-projects__allocation-btn"
+            className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
             onClick={handleToggleWorkspace}
             disabled={isBusy}
           >
@@ -155,7 +155,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
           {workspace ? (
             <button
               type="button"
-              className="staff-projects__allocation-btn"
+              className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
               onClick={handleRefreshWorkspace}
               disabled={isBusy}
             >
@@ -216,10 +216,19 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
               />
             </label>
             <div className="staff-projects__manual-create-actions">
-              <button type="submit" className="staff-projects__allocation-btn" disabled={isBusy}>
+              <button
+                type="submit"
+                className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
+                disabled={isBusy}
+              >
                 {isSubmitting ? "Creating..." : "Create team"}
               </button>
-              <button type="button" className="staff-projects__allocation-btn" onClick={resetManualForm} disabled={isBusy}>
+              <button
+                type="button"
+                className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
+                onClick={resetManualForm}
+                disabled={isBusy}
+              >
                 Reset form
               </button>
             </div>
