@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
   const response = NextResponse.redirect(new URL(destination, req.url));
 
   if (token) {
+    const isSecure = process.env.NODE_ENV === "production" || req.nextUrl.protocol === "https:";
     response.cookies.set("tf_access_token", token, {
       path: "/",
       maxAge: ACCESS_MAX_AGE,
-      sameSite: "lax",
-      secure: true,
+      sameSite: isSecure ? "none" : "lax",
+      secure: isSecure,
       httpOnly: false, // must stay readable by client JS (getAccessToken reads document.cookie)
     });
   }
