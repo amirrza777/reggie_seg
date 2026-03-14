@@ -194,6 +194,28 @@ async function notifyStudentsAboutManualAllocation(
   }
 }
 
+function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[]) {
+  if (teamNames === undefined) {
+    return Array.from({ length: teamCount }, (_, index) => `Random Team ${index + 1}`);
+  }
+
+  if (!Array.isArray(teamNames) || teamNames.length !== teamCount) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const normalizedNames = teamNames.map((teamName) => teamName.trim());
+  if (normalizedNames.some((teamName) => teamName.length === 0)) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const uniqueNames = new Set(normalizedNames.map((teamName) => teamName.toLowerCase()));
+  if (uniqueNames.size !== normalizedNames.length) {
+    throw { code: "DUPLICATE_TEAM_NAMES" };
+  }
+
+  return normalizedNames;
+}
+
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
@@ -452,11 +474,13 @@ export async function applyRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { seed?: number } = {},
+  options: { seed?: number; teamNames?: string[] } = {},
 ): Promise<RandomAllocationApplied> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
   }
+
+  const teamNames = resolveRandomAllocationTeamNames(teamCount, options.teamNames);
 
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -483,6 +507,7 @@ export async function applyRandomAllocationForProject(
     projectId,
     project.enterpriseId,
     plannedTeams,
+    { teamNames },
   );
   await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 

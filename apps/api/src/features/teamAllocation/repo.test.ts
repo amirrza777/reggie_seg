@@ -343,8 +343,8 @@ describe("teamAllocation repo", () => {
       team: {
         findMany: vi.fn().mockResolvedValue([{ teamName: "Team A" }]),
         create: vi.fn()
-          .mockResolvedValueOnce({ id: 11, teamName: "Project 5 Random Team 1" })
-          .mockResolvedValueOnce({ id: 22, teamName: "Project 5 Random Team 2" }),
+          .mockResolvedValueOnce({ id: 11, teamName: "Random Team 1" })
+          .mockResolvedValueOnce({ id: 22, teamName: "Random Team 2" }),
       },
       teamAllocation: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -376,7 +376,7 @@ describe("teamAllocation repo", () => {
       data: {
         enterpriseId: "ent-1",
         projectId: 5,
-        teamName: "Project 5 Random Team 1",
+        teamName: "Random Team 1",
       },
       select: { id: true, teamName: true },
     });
@@ -384,7 +384,7 @@ describe("teamAllocation repo", () => {
       data: {
         enterpriseId: "ent-1",
         projectId: 5,
-        teamName: "Project 5 Random Team 2",
+        teamName: "Random Team 2",
       },
       select: { id: true, teamName: true },
     });
@@ -400,22 +400,42 @@ describe("teamAllocation repo", () => {
       skipDuplicates: true,
     });
     expect(result).toEqual([
-      { id: 11, teamName: "Project 5 Random Team 1", memberCount: 2 },
-      { id: 22, teamName: "Project 5 Random Team 2", memberCount: 1 },
+      { id: 11, teamName: "Random Team 1", memberCount: 2 },
+      { id: 22, teamName: "Random Team 2", memberCount: 1 },
     ]);
   });
 
-  it("applyRandomAllocationPlan creates unique random team names when names already exist", async () => {
+  it("applyRandomAllocationPlan throws when one of the target team names already exists", async () => {
     const tx = {
       team: {
         findMany: vi.fn().mockResolvedValue([
-          { teamName: "Project 5 Random Team 1" },
-          { teamName: "Project 5 Random Team 2" },
+          { teamName: "Random Team 1" },
         ]),
+        create: vi.fn(),
+      },
+      teamAllocation: {
+        findMany: vi.fn().mockResolvedValue([]),
+        createMany: vi.fn(),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    await expect(
+      applyRandomAllocationPlan(5, "ent-1", [
+        { members: [{ id: 1 }] },
+        { members: [{ id: 2 }] },
+      ]),
+    ).rejects.toEqual({ code: "TEAM_NAME_ALREADY_EXISTS" });
+    expect(tx.team.create).not.toHaveBeenCalled();
+  });
+
+  it("applyRandomAllocationPlan uses supplied team names", async () => {
+    const tx = {
+      team: {
+        findMany: vi.fn().mockResolvedValue([{ teamName: "Existing Team" }]),
         create: vi.fn()
-          .mockResolvedValueOnce({ id: 22, teamName: "Project 5 Random Team 3" })
-          .mockResolvedValueOnce({ id: 33, teamName: "Project 5 Random Team 4" })
-          .mockResolvedValueOnce({ id: 44, teamName: "Project 5 Random Team 5" }),
+          .mockResolvedValueOnce({ id: 11, teamName: "Team Orion" })
+          .mockResolvedValueOnce({ id: 22, teamName: "Team Vega" }),
       },
       teamAllocation: {
         findMany: vi.fn().mockResolvedValue([]),
@@ -424,17 +444,21 @@ describe("teamAllocation repo", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    const result = await applyRandomAllocationPlan(5, "ent-1", [
-      { members: [{ id: 1 }] },
-      { members: [{ id: 2 }] },
-      { members: [{ id: 3 }] },
-    ]);
+    const result = await applyRandomAllocationPlan(
+      5,
+      "ent-1",
+      [
+        { members: [{ id: 1 }] },
+        { members: [{ id: 2 }] },
+      ],
+      { teamNames: ["Team Orion", "Team Vega"] },
+    );
 
     expect(tx.team.create).toHaveBeenNthCalledWith(1, {
       data: {
         enterpriseId: "ent-1",
         projectId: 5,
-        teamName: "Project 5 Random Team 3",
+        teamName: "Team Orion",
       },
       select: { id: true, teamName: true },
     });
@@ -442,22 +466,13 @@ describe("teamAllocation repo", () => {
       data: {
         enterpriseId: "ent-1",
         projectId: 5,
-        teamName: "Project 5 Random Team 4",
-      },
-      select: { id: true, teamName: true },
-    });
-    expect(tx.team.create).toHaveBeenNthCalledWith(3, {
-      data: {
-        enterpriseId: "ent-1",
-        projectId: 5,
-        teamName: "Project 5 Random Team 5",
+        teamName: "Team Vega",
       },
       select: { id: true, teamName: true },
     });
     expect(result).toEqual([
-      { id: 22, teamName: "Project 5 Random Team 3", memberCount: 1 },
-      { id: 33, teamName: "Project 5 Random Team 4", memberCount: 1 },
-      { id: 44, teamName: "Project 5 Random Team 5", memberCount: 1 },
+      { id: 11, teamName: "Team Orion", memberCount: 1 },
+      { id: 22, teamName: "Team Vega", memberCount: 1 },
     ]);
   });
 

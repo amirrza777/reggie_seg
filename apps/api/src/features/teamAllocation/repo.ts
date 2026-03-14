@@ -322,6 +322,7 @@ export async function applyRandomAllocationPlan(
   projectId: number,
   enterpriseId: string,
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
+  options: { teamNames?: string[] } = {},
 ): Promise<AppliedRandomTeam[]> {
   return prisma.$transaction(async (tx) => {
     const plannedStudentIds = plannedTeams.flatMap((team) => team.members.map((member) => member.id));
@@ -349,25 +350,31 @@ export async function applyRandomAllocationPlan(
     const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
     const targetTeams: Array<{ id: number; teamName: string }> = [];
 
-    let sequence = 1;
-    while (targetTeams.length < plannedTeams.length) {
-      let candidateName = `Project ${projectId} Random Team ${sequence}`;
-      sequence += 1;
-      while (usedNames.has(candidateName)) {
-        candidateName = `Project ${projectId} Random Team ${sequence}`;
-        sequence += 1;
+    const requestedTeamNames =
+      options.teamNames ??
+      plannedTeams.map((_, index) => `Random Team ${index + 1}`);
+    if (requestedTeamNames.length !== plannedTeams.length) {
+      throw { code: "INVALID_TEAM_NAMES" };
+    }
+
+    for (let index = 0; index < requestedTeamNames.length; index += 1) {
+      const teamName = requestedTeamNames[index].trim();
+      if (teamName.length === 0) {
+        throw { code: "INVALID_TEAM_NAMES" };
+      }
+      if (usedNames.has(teamName)) {
+        throw { code: "TEAM_NAME_ALREADY_EXISTS" };
       }
 
       const createdTeam = await tx.team.create({
         data: {
           enterpriseId,
           projectId,
-          teamName: candidateName,
+          teamName,
         },
         select: { id: true, teamName: true },
       });
-
-      usedNames.add(createdTeam.teamName);
+      usedNames.add(teamName);
       targetTeams.push(createdTeam);
     }
 

@@ -413,6 +413,15 @@ describe("teamAllocation controller", () => {
     const badSeedRes = mockResponse();
     await applyRandomAllocationHandler(badSeedReq, badSeedRes);
     expect(badSeedRes.status).toHaveBeenCalledWith(400);
+
+    const badTeamNamesReq: any = {
+      user: { sub: 9 },
+      params: { projectId: "4" },
+      body: { teamCount: 2, teamNames: ["Team A", 1] },
+    };
+    const badTeamNamesRes = mockResponse();
+    await applyRandomAllocationHandler(badTeamNamesReq, badTeamNamesRes);
+    expect(badTeamNamesRes.status).toHaveBeenCalledWith(400);
   });
 
   it("applyRandomAllocationHandler returns applied payload", async () => {
@@ -423,12 +432,19 @@ describe("teamAllocation controller", () => {
       appliedTeams: [{ id: 20, teamName: "Project 4 Random Team 1", memberCount: 3 }],
     });
 
-    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, body: { teamCount: 2, seed: 99 } };
+    const req: any = {
+      user: { sub: 7 },
+      params: { projectId: "4" },
+      body: { teamCount: 2, seed: 99, teamNames: ["Team Orion", "Team Vega"] },
+    };
     const res = mockResponse();
 
     await applyRandomAllocationHandler(req, res);
 
-    expect(service.applyRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, { seed: 99 });
+    expect(service.applyRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, {
+      seed: 99,
+      teamNames: ["Team Orion", "Team Vega"],
+    });
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -440,6 +456,22 @@ describe("teamAllocation controller", () => {
 
   it("applyRandomAllocationHandler maps service errors", async () => {
     const req: any = { user: { sub: 3 }, params: { projectId: "5" }, body: { teamCount: 2 } };
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "INVALID_TEAM_NAMES" });
+    const badNamesRes = mockResponse();
+    await applyRandomAllocationHandler(req, badNamesRes);
+    expect(badNamesRes.status).toHaveBeenCalledWith(400);
+    expect(badNamesRes.json).toHaveBeenCalledWith({
+      error: "teamNames must contain one non-empty name per generated team",
+    });
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "DUPLICATE_TEAM_NAMES" });
+    const duplicateNamesRes = mockResponse();
+    await applyRandomAllocationHandler(req, duplicateNamesRes);
+    expect(duplicateNamesRes.status).toHaveBeenCalledWith(400);
+    expect(duplicateNamesRes.json).toHaveBeenCalledWith({
+      error: "teamNames must be unique",
+    });
 
     (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" });
     const teamCountRes = mockResponse();
@@ -467,6 +499,14 @@ describe("teamAllocation controller", () => {
     expect(stalePreviewRes.status).toHaveBeenCalledWith(409);
     expect(stalePreviewRes.json).toHaveBeenCalledWith({
       error: "Some students are no longer vacant. Regenerate preview and try again.",
+    });
+
+    (service.applyRandomAllocationForProject as any).mockRejectedValueOnce({ code: "TEAM_NAME_ALREADY_EXISTS" });
+    const duplicateExistingNameRes = mockResponse();
+    await applyRandomAllocationHandler(req, duplicateExistingNameRes);
+    expect(duplicateExistingNameRes.status).toHaveBeenCalledWith(409);
+    expect(duplicateExistingNameRes.json).toHaveBeenCalledWith({
+      error: "One or more team names already exist in this enterprise",
     });
   });
 });

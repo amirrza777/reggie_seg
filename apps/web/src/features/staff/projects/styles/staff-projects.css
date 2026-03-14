@@ -520,9 +520,47 @@
   gap: 10px;
 }
 
+.staff-projects__allocation-team-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.staff-projects__allocation-team-name-input {
+  width: min(100%, 280px);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: inherit;
+  font-size: var(--fs-body-sm);
+}
+
+.staff-projects__allocation-team-name-input:disabled {
+  opacity: 0.65;
+}
+
+.staff-projects__allocation-rename-btn {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  color: inherit;
+  font-size: var(--fs-caption);
+  cursor: pointer;
+}
+
+.staff-projects__allocation-rename-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .staff-projects__team-title {
   margin: 0;
   font-size: clamp(1.2rem, 1.5vw, 1.45rem);
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .staff-projects__team-count {
@@ -649,6 +687,15 @@
   .staff-projects__team-top {
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  .staff-projects__allocation-team-head {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .staff-projects__allocation-team-name-input {
+    width: 100%;
   }
 
   .staff-projects__member {

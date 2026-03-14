@@ -110,5 +110,15 @@ describe("team allocation api client", () => {
       method: "POST",
       body: JSON.stringify({ teamCount: 4 }),
     });
+
+    await applyRandomAllocation(55, 4, 1234, ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"]);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({
+        teamCount: 4,
+        seed: 1234,
+        teamNames: ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"],
+      }),
+    });
   });
 });

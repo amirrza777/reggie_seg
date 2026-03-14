@@ -108,6 +108,10 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(screen.getByText("Random Team 1")).toBeInTheDocument();
     });
+    fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]);
+    fireEvent.change(screen.getByLabelText("Team 1 name"), { target: { value: "Team Orion" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByText("Team Orion")).toBeInTheDocument();
 
     const applyButton = screen.getByRole("button", { name: /apply allocation/i });
     expect(applyButton).toBeDisabled();
@@ -119,7 +123,7 @@ describe("StaffRandomAllocationPreview", () => {
     fireEvent.click(applyButton);
 
     await waitFor(() => {
-      expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, 101);
+      expect(applyRandomAllocationMock).toHaveBeenCalledWith(4, 2, 101, ["Team Orion", "Random Team 2"]);
     });
     await waitFor(() => {
       expect(refreshMock).toHaveBeenCalledTimes(1);
@@ -128,6 +132,54 @@ describe("StaffRandomAllocationPreview", () => {
     expect(
       screen.queryByText("This assigns vacant students only. Existing team memberships in this project stay unchanged.")
     ).not.toBeInTheDocument();
+  });
+
+  it("locks random preview inputs and renaming while allocation is confirmed", async () => {
+    getRandomAllocationPreviewMock.mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 2, moduleName: "Module A" },
+      studentCount: 4,
+      teamCount: 2,
+      existingTeams: [],
+      previewTeams: [
+        {
+          index: 0,
+          suggestedName: "Random Team 1",
+          members: [{ id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" }],
+        },
+        {
+          index: 1,
+          suggestedName: "Random Team 2",
+          members: [{ id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" }],
+        },
+      ],
+    });
+
+    render(<StaffRandomAllocationPreview projectId={4} initialTeamCount={2} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /preview random teams/i }));
+    await waitFor(() => {
+      expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, undefined);
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /preview random teams/i })).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
+    expect(screen.getByRole("button", { name: /confirmed/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Team count")).toBeDisabled();
+    expect(screen.getByLabelText("Seed")).toBeDisabled();
+    expect(screen.getByRole("button", { name: /preview random teams/i })).toBeDisabled();
+    for (const button of screen.getAllByRole("button", { name: "Rename" })) {
+      expect(button).toBeDisabled();
+    }
+
+    fireEvent.click(screen.getByRole("button", { name: /confirmed/i }));
+    expect(screen.getByRole("button", { name: /confirm allocation/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Team count")).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /preview random teams/i })).not.toBeDisabled();
+    for (const button of screen.getAllByRole("button", { name: "Rename" })) {
+      expect(button).not.toBeDisabled();
+    }
   });
 
   it("requires a fresh preview when inputs change", async () => {

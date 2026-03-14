@@ -156,12 +156,18 @@ export async function getRandomAllocationPreview(projectId: number, teamCount: n
   );
 }
 
-export async function applyRandomAllocation(projectId: number, teamCount: number, seed?: number) {
+export async function applyRandomAllocation(
+  projectId: number,
+  teamCount: number,
+  seed?: number,
+  teamNames?: string[],
+) {
   return apiFetch<RandomAllocationApplied>(`/team-allocation/projects/${projectId}/random-allocate`, {
     method: "POST",
     body: JSON.stringify({
       teamCount,
       ...(seed !== undefined ? { seed } : {}),
+      ...(teamNames !== undefined ? { teamNames } : {}),
     }),
   });
 }

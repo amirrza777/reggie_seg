@@ -185,6 +185,14 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   const teamCount = Number(req.body?.teamCount);
   const rawSeed = req.body?.seed;
   const seed = rawSeed === undefined || rawSeed === null || rawSeed === "" ? undefined : Number(rawSeed);
+  const rawTeamNames = req.body?.teamNames;
+  const hasInvalidTeamNamesPayload =
+    rawTeamNames !== undefined &&
+    (!Array.isArray(rawTeamNames) || rawTeamNames.some((teamName) => typeof teamName !== "string"));
+  const teamNames =
+    !hasInvalidTeamNamesPayload && Array.isArray(rawTeamNames)
+      ? rawTeamNames.map((teamName) => teamName.trim())
+      : undefined;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -198,13 +206,25 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   if (seed !== undefined && Number.isNaN(seed)) {
     return res.status(400).json({ error: "seed must be a number when provided" });
   }
+  if (hasInvalidTeamNamesPayload) {
+    return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+  }
 
   try {
-    const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, { seed });
+    const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
+      seed,
+      ...(teamNames !== undefined ? { teamNames } : {}),
+    });
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
       return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "INVALID_TEAM_NAMES") {
+      return res.status(400).json({ error: "teamNames must contain one non-empty name per generated team" });
+    }
+    if (error?.code === "DUPLICATE_TEAM_NAMES") {
+      return res.status(400).json({ error: "teamNames must be unique" });
     }
     if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
       return res.status(400).json({ error: "teamCount cannot be greater than available students" });
@@ -220,6 +240,9 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
     }
     if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
       return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
+    }
+    if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
+      return res.status(409).json({ error: "One or more team names already exist in this enterprise" });
     }
     console.error("Error applying random team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
