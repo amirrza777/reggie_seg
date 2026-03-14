@@ -6,7 +6,7 @@ const ACCESS_MAX_AGE = 15 * 60; // 15 minutes, aligned with access token TTL
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const token = searchParams.get("token");
-  const destination = searchParams.get("redirect") || "/dashboard";
+  const destination = searchParams.get("redirect") || "/app-home";
 
   const response = NextResponse.redirect(new URL(destination, req.url));
 

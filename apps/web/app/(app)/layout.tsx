@@ -9,6 +9,7 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
@@ -122,6 +123,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
   const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+  const defaultSpaceHref = getDefaultSpaceOverviewPath(user);
 
   const spaceLinks: SpaceLink[] = [];
   if (!isStaffOnlyAccount) {
@@ -138,8 +140,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <Topbar
           leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
           title="Team Feedback"
-          titleHref="/dashboard"
-          actions={<><NotificationBell /><UserMenu /></>}
+          titleHref={defaultSpaceHref}
+          actions={
+            <>
+              <NotificationBell />
+              <UserMenu />
+            </>
+          }
         />
       }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
