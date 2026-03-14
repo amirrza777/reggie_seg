@@ -26,13 +26,10 @@ function assertFeedbackWindowOpen(
       opensAt: openAt,
     };
   }
-  if (dueAt && now > dueAt) {
-    throw {
-      code: "FEEDBACK_DEADLINE_PASSED",
-      message: "Peer feedback deadline has passed for your deadline profile",
-      dueAt,
-    };
-  }
+  return {
+    isLate: Boolean(dueAt && now > dueAt),
+    dueAt,
+  };
 }
 
 export async function saveFeedbackReview(
@@ -54,7 +51,7 @@ export async function saveFeedbackReview(
   }
 
   const reviewerDeadline = await fetchProjectDeadline(reviewerUserId, assessment.projectId);
-  assertFeedbackWindowOpen(reviewerDeadline);
+  const window = assertFeedbackWindowOpen(reviewerDeadline);
 
   const created = await upsertPeerFeedback({
     peerAssessmentId: assessmentId,
@@ -62,6 +59,8 @@ export async function saveFeedbackReview(
     revieweeUserId,
     reviewText: payload.reviewText,
     agreementsJson: payload.agreements,
+    submittedLate: window?.isLate ?? false,
+    effectiveDueDate: window?.dueAt ?? null,
   });
   return created;
 }

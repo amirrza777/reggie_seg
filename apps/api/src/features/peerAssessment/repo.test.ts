@@ -82,6 +82,8 @@ describe("peerAssessment repo", () => {
         revieweeUserId: 5,
         templateId: 6,
         answersJson: [{ questionId: 1, answer: "A" }],
+        submittedLate: false,
+        effectiveDueDate: null,
       },
     });
     expect(result).toBe(expected);

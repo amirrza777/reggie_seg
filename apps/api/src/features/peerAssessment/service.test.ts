@@ -87,7 +87,13 @@ describe("peerAssessment service", () => {
 
     const result = await saveAssessment(payload);
 
-    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(payload);
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: false,
+        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      }),
+    );
     expect(result).toBe(expected);
   });
 
@@ -124,7 +130,7 @@ describe("peerAssessment service", () => {
     expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
   });
 
-  it("saveAssessment blocks submissions after assessment due", async () => {
+  it("saveAssessment allows late submissions and marks them", async () => {
     const payload = {
       projectId: 1,
       teamId: 2,
@@ -137,9 +143,16 @@ describe("peerAssessment service", () => {
       assessmentOpenDate: new Date("2020-03-01T09:00:00.000Z"),
       assessmentDueDate: new Date("2020-03-31T23:59:59.000Z"),
     });
+    repoMocks.createPeerAssessment.mockResolvedValue({ id: 99 });
 
-    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "ASSESSMENT_DEADLINE_PASSED" });
-    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+    await expect(saveAssessment(payload)).resolves.toEqual({ id: 99 });
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
   });
 
   it("fetchAssessment forwards to repo", async () => {
@@ -159,13 +172,46 @@ describe("peerAssessment service", () => {
       id: 11,
       projectId: 1,
       reviewerUserId: 4,
+      submittedLate: false,
     });
     repoMocks.updatePeerAssessment.mockResolvedValue(expected);
 
     const result = await updateAssessmentAnswers(11, answers);
 
-    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(11, answers);
+    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(
+      11,
+      answers,
+      expect.objectContaining({
+        submittedLate: false,
+        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      }),
+    );
     expect(result).toBe(expected);
+  });
+
+  it("updateAssessmentAnswers keeps late flag once deadline has passed", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue({
+      id: 12,
+      projectId: 1,
+      reviewerUserId: 4,
+      submittedLate: false,
+    });
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2020-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2020-03-31T23:59:59.000Z"),
+    });
+    repoMocks.updatePeerAssessment.mockResolvedValue({ id: 12 });
+
+    await updateAssessmentAnswers(12, { 1: "Late edit" });
+
+    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(
+      12,
+      { 1: "Late edit" },
+      expect.objectContaining({
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
   });
 
   it("updateAssessmentAnswers returns P2025 when assessment cannot be found", async () => {

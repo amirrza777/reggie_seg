@@ -54,6 +54,8 @@ describe("peerFeedback service", () => {
       revieweeUserId: 9,
       reviewText: "Well done",
       agreementsJson: payload.agreements,
+      submittedLate: false,
+      effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
     });
     expect(result).toBe(expected);
   });
@@ -71,11 +73,12 @@ describe("peerFeedback service", () => {
     ).rejects.toMatchObject({ code: "PEER_ASSESSMENT_NOT_FOUND" });
   });
 
-  it("saveFeedbackReview blocks feedback outside deadline window", async () => {
+  it("saveFeedbackReview allows late feedback and marks it", async () => {
     projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
       feedbackOpenDate: new Date("2020-03-01T09:00:00.000Z"),
       feedbackDueDate: new Date("2020-03-31T23:59:59.000Z"),
     });
+    repoMocks.upsertPeerFeedback.mockResolvedValue({ id: 200 });
 
     await expect(
       saveFeedbackReview(4, {
@@ -84,8 +87,13 @@ describe("peerFeedback service", () => {
         reviewerUserId: "6",
         revieweeUserId: "9",
       }),
-    ).rejects.toMatchObject({ code: "FEEDBACK_DEADLINE_PASSED" });
-    expect(repoMocks.upsertPeerFeedback).not.toHaveBeenCalled();
+    ).resolves.toEqual({ id: 200 });
+    expect(repoMocks.upsertPeerFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
   });
 
   it("getFeedbackReview forwards assessment id to repo", async () => {

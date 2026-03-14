@@ -26,6 +26,8 @@ export function createPeerAssessment(data: {
   revieweeUserId: number;
   templateId: number;
   answersJson: any;
+  submittedLate?: boolean;
+  effectiveDueDate?: Date | null;
 }) {
   return prisma.peerAssessment.create({
     data: {
@@ -35,6 +37,8 @@ export function createPeerAssessment(data: {
       revieweeUserId: data.revieweeUserId,
       templateId: data.templateId,
       answersJson: data.answersJson,
+      submittedLate: data.submittedLate ?? false,
+      effectiveDueDate: data.effectiveDueDate ?? null,
     },
   });
 }
@@ -73,13 +77,28 @@ export function getPeerAssessment(
   });
 }
 
-export function updatePeerAssessment(assessmentId: number, answersJson: any) {
+export function updatePeerAssessment(
+  assessmentId: number,
+  answersJson: any,
+  metadata?: {
+    submittedLate?: boolean;
+    effectiveDueDate?: Date | null;
+  }
+) {
+  const updateData: Record<string, unknown> = {
+    answersJson: answersJson,
+    updatedAt: new Date(),
+  };
+  if (metadata?.submittedLate === true) {
+    updateData.submittedLate = true;
+  }
+  if (metadata && "effectiveDueDate" in metadata) {
+    updateData.effectiveDueDate = metadata.effectiveDueDate ?? null;
+  }
+
   return prisma.peerAssessment.update({
     where: { id: assessmentId },
-    data: {
-      answersJson: answersJson,
-      updatedAt: new Date(),
-    },
+    data: updateData,
   });
 }
 
@@ -154,4 +173,3 @@ export function getPeerAssessmentById(assessmentId: number) {
     },
   });
 }
-

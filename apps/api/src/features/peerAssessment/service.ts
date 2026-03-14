@@ -37,13 +37,10 @@ function assertWindowOpen(
       opensAt: openAt,
     };
   }
-  if (dueAt && now > dueAt) {
-    throw {
-      code: `${kind}_DEADLINE_PASSED`,
-      message: "Peer assessment deadline has passed for your deadline profile",
-      dueAt,
-    };
-  }
+  return {
+    isLate: Boolean(dueAt && now > dueAt),
+    dueAt,
+  };
 }
 
 export function fetchTeammates(userId: number, teamId: number) {
@@ -61,8 +58,12 @@ export async function saveAssessment(data: {
   const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { archivedAt: true } });
   if (project?.archivedAt) throw { code: "PROJECT_ARCHIVED" };
   const reviewerDeadline = await fetchProjectDeadline(data.reviewerUserId, data.projectId);
-  assertWindowOpen("ASSESSMENT", reviewerDeadline);
-  return createPeerAssessment(data)
+  const window = assertWindowOpen("ASSESSMENT", reviewerDeadline);
+  return createPeerAssessment({
+    ...data,
+    submittedLate: window?.isLate ?? false,
+    effectiveDueDate: window?.dueAt ?? null,
+  })
 }
 
 export function fetchAssessment(
@@ -80,8 +81,11 @@ export async function updateAssessmentAnswers(assessmentId: number, answersJson:
     throw { code: "P2025" };
   }
   const reviewerDeadline = await fetchProjectDeadline(assessment.reviewerUserId, assessment.projectId);
-  assertWindowOpen("ASSESSMENT", reviewerDeadline);
-  return updatePeerAssessment(assessmentId, answersJson)
+  const window = assertWindowOpen("ASSESSMENT", reviewerDeadline);
+  return updatePeerAssessment(assessmentId, answersJson, {
+    submittedLate: Boolean(assessment.submittedLate || window?.isLate),
+    effectiveDueDate: window?.dueAt ?? null,
+  })
 }
 
 export function fetchTeammateAssessments(userId: number, projectId: number) {
