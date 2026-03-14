@@ -35,7 +35,13 @@ export function FeatureFlagsPanel({ flags, onToggle, updating }: FeatureFlagsPan
 
   return (
     <Card title="Feature flags">
-      <Table headers={["Feature", "Status"]} rows={rows} />
+      <Table
+        headers={["Feature", "Status"]}
+        rows={rows}
+        className="feature-flags-table"
+        rowClassName="feature-flags-table__row"
+        columnTemplate="minmax(0, 1.2fr) minmax(0, 1fr)"
+      />
     </Card>
   );
 }

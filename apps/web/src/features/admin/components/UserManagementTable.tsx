@@ -246,7 +246,10 @@ export function UserManagementTable() {
           <Table
             headers={["Email", "Name", "Role", "Account status"]}
             rows={rows}
+            className="user-management__table"
+            headClassName="user-management__head"
             rowClassName="user-management__row"
+            columnTemplate="var(--user-management-columns)"
           />
           {totalPages > 1 ? (
             <div className="user-management__pagination" aria-label="User accounts pagination">

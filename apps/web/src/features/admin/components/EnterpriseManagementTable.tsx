@@ -490,7 +490,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
               rows={rows}
               className="enterprise-management__table"
               rowClassName="enterprise-management__row"
-              columnTemplate="1.3fr 1.55fr 1fr 0.82fr 1.05fr"
+              columnTemplate="var(--enterprise-management-columns)"
             />
             {enterpriseTotalPages > 1 ? (
               <div className="user-management__pagination" aria-label="Enterprise pagination">
@@ -661,8 +661,10 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
                     <Table
                       headers={["Email", "Name", "Role", "Account status"]}
                       rows={enterpriseUserRows}
+                      className="user-management__table"
+                      headClassName="user-management__head"
                       rowClassName="user-management__row"
-                      columnTemplate="1.4fr 1fr 1fr 0.9fr"
+                      columnTemplate="var(--user-management-columns)"
                     />
                   </div>
                   {enterpriseUserTotalPages > 1 ? (
