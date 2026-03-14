@@ -180,6 +180,31 @@ describe("peerFeedback controller", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+
+    it("returns 409 when feedback submission is outside deadline window", async () => {
+      const req = {
+        params: { feedbackId: "4" },
+        body: {
+          agreements: {
+            "1": { selected: "Agree", score: 4 },
+          },
+          reviewerUserId: "6",
+          revieweeUserId: "9",
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.saveFeedbackReview.mockRejectedValue({
+        code: "FEEDBACK_DEADLINE_PASSED",
+        message: "Peer feedback deadline has passed for your deadline profile",
+      });
+
+      await createPeerFeedbackHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer feedback deadline has passed for your deadline profile",
+      });
+    });
   });
 
   describe("getPeerFeedbackHandler", () => {
