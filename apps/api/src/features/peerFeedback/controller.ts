@@ -27,7 +27,16 @@ export async function createPeerFeedbackHandler(req: Request, res: Response) {
   try {
     const saved = await saveFeedbackReview(feedbackId, { reviewText: reviewText || '', agreements, reviewerUserId, revieweeUserId});
     res.json({ ok: true, saved });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "PEER_ASSESSMENT_NOT_FOUND") {
+      return res.status(404).json({ error: "Peer assessment not found" });
+    }
+    if (error?.code === "INVALID_REVIEWER" || error?.code === "INVALID_REVIEWEE") {
+      return res.status(400).json({ error: error?.message ?? "Invalid reviewer/reviewee id" });
+    }
+    if (error?.code === "FEEDBACK_WINDOW_NOT_OPEN" || error?.code === "FEEDBACK_DEADLINE_PASSED") {
+      return res.status(409).json({ error: error?.message ?? "Peer feedback is outside the allowed deadline window" });
+    }
     console.error("Error saving feedback review:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -60,4 +69,3 @@ export async function getPeerAssessmentHandler(req: Request, res: Response) {
     res.status(500).json({ error: "Internal server error" });
   }
 }
-

@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/db.js";
+import { fetchProjectDeadline } from "../projects/service.js";
 import {
   getTeammates,
   createPeerAssessment,
@@ -9,6 +10,41 @@ import {
   getPeerAssessmentById,
   getProjectQuestionnaireTemplate,
 } from "./repo.js"
+
+function asDate(value: unknown): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  return null;
+}
+
+function assertWindowOpen(
+  kind: "ASSESSMENT",
+  deadline: { assessmentOpenDate?: unknown; assessmentDueDate?: unknown } | null,
+  now = new Date(),
+) {
+  if (!deadline) return;
+  const openAt = asDate(deadline.assessmentOpenDate);
+  const dueAt = asDate(deadline.assessmentDueDate);
+
+  if (openAt && now < openAt) {
+    throw {
+      code: `${kind}_WINDOW_NOT_OPEN`,
+      message: "Peer assessment is not open yet for your deadline profile",
+      opensAt: openAt,
+    };
+  }
+  if (dueAt && now > dueAt) {
+    throw {
+      code: `${kind}_DEADLINE_PASSED`,
+      message: "Peer assessment deadline has passed for your deadline profile",
+      dueAt,
+    };
+  }
+}
 
 export function fetchTeammates(userId: number, teamId: number) {
   return getTeammates(userId, teamId)
@@ -24,6 +60,8 @@ export async function saveAssessment(data: {
 }) {
   const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { archivedAt: true } });
   if (project?.archivedAt) throw { code: "PROJECT_ARCHIVED" };
+  const reviewerDeadline = await fetchProjectDeadline(data.reviewerUserId, data.projectId);
+  assertWindowOpen("ASSESSMENT", reviewerDeadline);
   return createPeerAssessment(data)
 }
 
@@ -36,7 +74,13 @@ export function fetchAssessment(
   return getPeerAssessment(projectId, teamId, reviewerId, revieweeId)
 }
 
-export function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
+export async function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
+  const assessment = await getPeerAssessmentById(assessmentId);
+  if (!assessment) {
+    throw { code: "P2025" };
+  }
+  const reviewerDeadline = await fetchProjectDeadline(assessment.reviewerUserId, assessment.projectId);
+  assertWindowOpen("ASSESSMENT", reviewerDeadline);
   return updatePeerAssessment(assessmentId, answersJson)
 }
 
@@ -55,4 +99,3 @@ export function fetchAssessmentById(assessmentId: number) {
 export function fetchProjectQuestionnaireTemplate(projectId: number) {
   return getProjectQuestionnaireTemplate(projectId);
 }
-

@@ -12,6 +12,16 @@ export type ProjectDeadlineInput = {
   feedbackDueDateMcf: Date;
 };
 
+export type StudentDeadlineOverrideInput = {
+  taskOpenDate?: Date | null;
+  taskDueDate?: Date | null;
+  assessmentOpenDate?: Date | null;
+  assessmentDueDate?: Date | null;
+  feedbackOpenDate?: Date | null;
+  feedbackDueDate?: Date | null;
+  reason?: string | null;
+};
+
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
@@ -144,6 +154,50 @@ async function getScopedStaffUser(userId: number) {
   });
 }
 
+async function getScopedStaffProjectDeadline(actorUserId: number, projectId: number) {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    throw { code: "FORBIDDEN", message: "User not found" };
+  }
+
+  const isStaffRole = actor.role === "STAFF" || actor.role === "ENTERPRISE_ADMIN" || actor.role === "ADMIN";
+  if (!isStaffRole) {
+    throw { code: "FORBIDDEN", message: "Only staff can manage student deadline overrides" };
+  }
+
+  const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId: actor.enterpriseId,
+        ...(roleCanAccessAll
+          ? {}
+          : {
+              OR: [
+                { moduleLeads: { some: { userId: actorUserId } } },
+                { moduleTeachingAssistants: { some: { userId: actorUserId } } },
+              ],
+            }),
+      },
+    },
+    select: {
+      id: true,
+      deadline: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!project || !project.deadline) {
+    throw { code: "PROJECT_NOT_FOUND" };
+  }
+
+  return { actor, projectDeadlineId: project.deadline.id, projectId: project.id };
+}
+
 export async function getStaffProjects(userId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
@@ -253,6 +307,112 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
   });
 
   return project;
+}
+
+export async function getStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
+  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
+
+  const overrides = await prisma.studentDeadlineOverride.findMany({
+    where: { projectDeadlineId },
+    select: {
+      id: true,
+      userId: true,
+      taskOpenDate: true,
+      taskDueDate: true,
+      assessmentOpenDate: true,
+      assessmentDueDate: true,
+      feedbackOpenDate: true,
+      feedbackDueDate: true,
+      reason: true,
+      updatedAt: true,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+  });
+
+  return overrides;
+}
+
+export async function upsertStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+  payload: StudentDeadlineOverrideInput,
+) {
+  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
+
+  const isStudentInProject = await prisma.teamAllocation.findFirst({
+    where: {
+      userId: studentId,
+      team: { projectId },
+    },
+    select: { userId: true },
+  });
+  if (!isStudentInProject) {
+    throw { code: "STUDENT_NOT_IN_PROJECT" };
+  }
+
+  const data = {
+    ...(payload.taskOpenDate !== undefined ? { taskOpenDate: payload.taskOpenDate } : {}),
+    ...(payload.taskDueDate !== undefined ? { taskDueDate: payload.taskDueDate } : {}),
+    ...(payload.assessmentOpenDate !== undefined ? { assessmentOpenDate: payload.assessmentOpenDate } : {}),
+    ...(payload.assessmentDueDate !== undefined ? { assessmentDueDate: payload.assessmentDueDate } : {}),
+    ...(payload.feedbackOpenDate !== undefined ? { feedbackOpenDate: payload.feedbackOpenDate } : {}),
+    ...(payload.feedbackDueDate !== undefined ? { feedbackDueDate: payload.feedbackDueDate } : {}),
+    ...(payload.reason !== undefined ? { reason: payload.reason } : {}),
+  };
+
+  const updated = await prisma.studentDeadlineOverride.upsert({
+    where: {
+      userId_projectDeadlineId: {
+        userId: studentId,
+        projectDeadlineId,
+      },
+    },
+    update: data,
+    create: {
+      userId: studentId,
+      projectDeadlineId,
+      createdByUserId: actorUserId,
+      taskOpenDate: payload.taskOpenDate ?? null,
+      taskDueDate: payload.taskDueDate ?? null,
+      assessmentOpenDate: payload.assessmentOpenDate ?? null,
+      assessmentDueDate: payload.assessmentDueDate ?? null,
+      feedbackOpenDate: payload.feedbackOpenDate ?? null,
+      feedbackDueDate: payload.feedbackDueDate ?? null,
+      reason: payload.reason ?? null,
+    },
+    select: {
+      id: true,
+      userId: true,
+      taskOpenDate: true,
+      taskDueDate: true,
+      assessmentOpenDate: true,
+      assessmentDueDate: true,
+      feedbackOpenDate: true,
+      feedbackDueDate: true,
+      reason: true,
+      updatedAt: true,
+    },
+  });
+
+  return updated;
+}
+
+export async function clearStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+) {
+  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
+
+  const deleted = await prisma.studentDeadlineOverride.deleteMany({
+    where: {
+      userId: studentId,
+      projectDeadlineId,
+    },
+  });
+
+  return { cleared: deleted.count > 0 };
 }
 
 export async function getProjectById(projectId: number) {
@@ -470,6 +630,18 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
                   feedbackOpenDate: true,
                   feedbackDueDate: true,
                   feedbackDueDateMcf: true,
+                  studentOverrides: {
+                    where: { userId },
+                    take: 1,
+                    select: {
+                      taskOpenDate: true,
+                      taskDueDate: true,
+                      assessmentOpenDate: true,
+                      assessmentDueDate: true,
+                      feedbackOpenDate: true,
+                      feedbackDueDate: true,
+                    },
+                  },
                 },
               },
             },
@@ -484,30 +656,48 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
   }
   const projectDeadline = userTeam.team.project.deadline;
   const teamOverride = userTeam.team.deadlineOverride;
+  const studentOverride = projectDeadline?.studentOverrides?.[0];
   const teamUsesMcfDeadline = userTeam.team.deadlineProfile === "MCF";
 
   const taskDueDate =
+    studentOverride?.taskDueDate ??
     teamOverride?.taskDueDate ??
-    (teamUsesMcfDeadline ? projectDeadline?.taskDueDateMcf ?? projectDeadline?.taskDueDate : projectDeadline?.taskDueDate);
+    (teamUsesMcfDeadline
+      ? projectDeadline?.taskDueDateMcf ?? projectDeadline?.taskDueDate
+      : projectDeadline?.taskDueDate);
   const assessmentDueDate =
+    studentOverride?.assessmentDueDate ??
     teamOverride?.assessmentDueDate ??
     (teamUsesMcfDeadline
       ? projectDeadline?.assessmentDueDateMcf ?? projectDeadline?.assessmentDueDate
       : projectDeadline?.assessmentDueDate);
   const feedbackDueDate =
+    studentOverride?.feedbackDueDate ??
     teamOverride?.feedbackDueDate ??
     (teamUsesMcfDeadline
       ? projectDeadline?.feedbackDueDateMcf ?? projectDeadline?.feedbackDueDate
       : projectDeadline?.feedbackDueDate);
 
+  const hasStudentOverride = Boolean(
+    studentOverride?.taskOpenDate ||
+    studentOverride?.taskDueDate ||
+    studentOverride?.assessmentOpenDate ||
+    studentOverride?.assessmentDueDate ||
+    studentOverride?.feedbackOpenDate ||
+    studentOverride?.feedbackDueDate
+  );
+  const hasTeamOverride = Boolean(teamOverride);
+
   return {
-    taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline?.taskOpenDate,
+    taskOpenDate: studentOverride?.taskOpenDate ?? teamOverride?.taskOpenDate ?? projectDeadline?.taskOpenDate,
     taskDueDate,
-    assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline?.assessmentOpenDate,
+    assessmentOpenDate:
+      studentOverride?.assessmentOpenDate ?? teamOverride?.assessmentOpenDate ?? projectDeadline?.assessmentOpenDate,
     assessmentDueDate,
-    feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
+    feedbackOpenDate: studentOverride?.feedbackOpenDate ?? teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
     feedbackDueDate,
-    isOverridden: !!teamOverride,
+    isOverridden: hasStudentOverride || hasTeamOverride,
+    overrideScope: hasStudentOverride ? "STUDENT" : hasTeamOverride ? "TEAM" : "NONE",
     deadlineProfile: userTeam.team.deadlineProfile,
   };
 }

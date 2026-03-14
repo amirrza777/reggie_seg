@@ -10,9 +10,13 @@ import {
   getQuestionsForProject,
   getStaffProjects,
   getStaffProjectTeams,
+  getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
+  upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
+  clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
   type ProjectDeadlineInput,
+  type StudentDeadlineOverrideInput,
 } from "./repo.js";
 
 export async function createProject(
@@ -119,4 +123,25 @@ export async function updateTeamDeadlineProfileForStaff(
   deadlineProfile: "STANDARD" | "MCF",
 ) {
   return updateStaffTeamDeadlineProfileInDb(actorUserId, teamId, deadlineProfile);
+}
+
+export async function fetchStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
+  return getStaffStudentDeadlineOverrides(actorUserId, projectId);
+}
+
+export async function upsertStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+  payload: StudentDeadlineOverrideInput,
+) {
+  return upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
+}
+
+export async function clearStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+) {
+  return clearStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId);
 }

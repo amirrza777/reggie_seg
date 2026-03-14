@@ -82,9 +82,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               teamId={team.id}
               initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
             />
-            <button type="button" className="staff-projects__card-placeholder-btn" disabled>
+            <Link
+              href={`/staff/projects/${projectId}/teams/${teamId}/deadlines`}
+              className="staff-projects__card-placeholder-btn"
+            >
               Manage per-student overrides
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -130,14 +133,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               </p>
               <p className="staff-projects__member-email">{allocation.user.email}</p>
             </div>
-            <button
-              type="button"
+            <Link
+              href={`/staff/projects/${projectId}/teams/${teamId}/deadlines?studentId=${allocation.userId}`}
               className="staff-projects__member-placeholder-btn"
-              disabled
-              title="Notification workflow placeholder"
             >
-              Notify student
-            </button>
+              Edit deadline
+            </Link>
           </div>
         ))}
         </div>

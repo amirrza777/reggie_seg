@@ -11,6 +11,14 @@ const repoMocks = vi.hoisted(() => ({
   getProjectQuestionnaireTemplate: vi.fn(),
 }));
 
+const projectServiceMocks = vi.hoisted(() => ({
+  fetchProjectDeadline: vi.fn(),
+}));
+
+const prismaMocks = vi.hoisted(() => ({
+  projectFindUnique: vi.fn(),
+}));
+
 vi.mock("./repo.js", () => ({
   getTeammates: repoMocks.getTeammates,
   createPeerAssessment: repoMocks.createPeerAssessment,
@@ -20,6 +28,18 @@ vi.mock("./repo.js", () => ({
   getQuestionsForProject: repoMocks.getQuestionsForProject,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
   getProjectQuestionnaireTemplate: repoMocks.getProjectQuestionnaireTemplate,
+}));
+
+vi.mock("../projects/service.js", () => ({
+  fetchProjectDeadline: projectServiceMocks.fetchProjectDeadline,
+}));
+
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    project: {
+      findUnique: prismaMocks.projectFindUnique,
+    },
+  },
 }));
 
 import {
@@ -36,6 +56,11 @@ import {
 describe("peerAssessment service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMocks.projectFindUnique.mockResolvedValue(null);
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2026-03-31T23:59:59.000Z"),
+    });
   });
 
   it("fetchTeammates forwards to repo", async () => {
@@ -66,6 +91,57 @@ describe("peerAssessment service", () => {
     expect(result).toBe(expected);
   });
 
+  it("saveAssessment blocks archived project", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    prismaMocks.projectFindUnique.mockResolvedValue({ archivedAt: new Date() });
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "PROJECT_ARCHIVED" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
+  it("saveAssessment blocks submissions before assessment open", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("3026-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("3026-03-31T23:59:59.000Z"),
+    });
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "ASSESSMENT_WINDOW_NOT_OPEN" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
+  it("saveAssessment blocks submissions after assessment due", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2020-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2020-03-31T23:59:59.000Z"),
+    });
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "ASSESSMENT_DEADLINE_PASSED" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
   it("fetchAssessment forwards to repo", async () => {
     const expected = { id: 11 };
     repoMocks.getPeerAssessment.mockResolvedValue(expected);
@@ -79,12 +155,24 @@ describe("peerAssessment service", () => {
   it("updateAssessmentAnswers forwards to repo", async () => {
     const answers = [{ questionId: 1, answer: "Updated" }];
     const expected = { id: 11 };
+    repoMocks.getPeerAssessmentById.mockResolvedValue({
+      id: 11,
+      projectId: 1,
+      reviewerUserId: 4,
+    });
     repoMocks.updatePeerAssessment.mockResolvedValue(expected);
 
     const result = await updateAssessmentAnswers(11, answers);
 
     expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(11, answers);
     expect(result).toBe(expected);
+  });
+
+  it("updateAssessmentAnswers returns P2025 when assessment cannot be found", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue(null);
+
+    await expect(updateAssessmentAnswers(999, [{ q: 1 }])).rejects.toMatchObject({ code: "P2025" });
+    expect(repoMocks.updatePeerAssessment).not.toHaveBeenCalled();
   });
 
   it("fetchTeammateAssessments forwards to repo", async () => {

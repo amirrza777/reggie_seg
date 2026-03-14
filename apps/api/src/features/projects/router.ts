@@ -14,6 +14,9 @@ import {
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   updateTeamDeadlineProfileHandler,
+  getStaffStudentDeadlineOverridesHandler,
+  upsertStaffStudentDeadlineOverrideHandler,
+  clearStaffStudentDeadlineOverrideHandler,
 } from "./controller.js";
 
 const router = Router();
@@ -22,6 +25,17 @@ router.get("/modules", getUserModulesHandler);
 router.get("/staff/mine", getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", getStaffProjectTeamsHandler);
 router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
+router.get("/staff/:projectId/students/deadline-overrides", requireAuth, getStaffStudentDeadlineOverridesHandler);
+router.put(
+  "/staff/:projectId/students/:studentId/deadline-override",
+  requireAuth,
+  upsertStaffStudentDeadlineOverrideHandler,
+);
+router.delete(
+  "/staff/:projectId/students/:studentId/deadline-override",
+  requireAuth,
+  clearStaffStudentDeadlineOverrideHandler,
+);
 router.get("/", getUserProjectsHandler);
 router.get("/:projectId", getProjectByIdHandler);
 router.get("/:projectId/teammates", getTeammatesForProjectHandler);

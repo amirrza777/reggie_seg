@@ -20,6 +20,7 @@ export type ProjectDeadline = {
   feedbackDueDate: string | null;
   feedbackDueDateMcf?: string | null;
   isOverridden: boolean;
+  overrideScope?: "NONE" | "TEAM" | "STUDENT";
   deadlineProfile?: "STANDARD" | "MCF";
 };
 
@@ -60,6 +61,29 @@ export type StaffProjectTeamsResponse = {
     moduleName: string;
   };
   teams: Team[];
+};
+
+export type StaffStudentDeadlineOverride = {
+  id: number;
+  userId: number;
+  taskOpenDate: string | null;
+  taskDueDate: string | null;
+  assessmentOpenDate: string | null;
+  assessmentDueDate: string | null;
+  feedbackOpenDate: string | null;
+  feedbackDueDate: string | null;
+  reason: string | null;
+  updatedAt: string;
+};
+
+export type StaffStudentDeadlineOverridePayload = {
+  taskOpenDate?: string | null;
+  taskDueDate?: string | null;
+  assessmentOpenDate?: string | null;
+  assessmentDueDate?: string | null;
+  feedbackOpenDate?: string | null;
+  feedbackDueDate?: string | null;
+  reason?: string | null;
 };
 
 export type CreateStaffProjectPayload = {

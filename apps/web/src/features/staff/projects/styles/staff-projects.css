@@ -94,12 +94,25 @@
 .staff-projects__card-placeholder-btn {
   margin-top: 4px;
   width: fit-content;
+  display: inline-flex;
+  align-items: center;
   border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 6px 10px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: var(--muted);
   font-size: var(--fs-caption);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.staff-projects__card-placeholder-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.staff-projects__card-placeholder-btn:disabled {
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
@@ -489,14 +502,55 @@
   font-size: var(--fs-caption);
 }
 
+.staff-projects__override-list {
+  display: grid;
+  gap: 10px;
+}
+
+.staff-projects__override-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
+}
+
+.staff-projects__override-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.staff-projects__override-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.staff-projects__override-editor {
+  display: grid;
+  gap: 10px;
+}
+
 .staff-projects__member-placeholder-btn {
+  display: inline-flex;
+  align-items: center;
   border: 1px dashed var(--border);
   border-radius: 8px;
   padding: 6px 10px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: var(--muted);
   font-size: var(--fs-caption);
-  cursor: not-allowed;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.staff-projects__member-placeholder-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text);
 }
 
 .team-flag {

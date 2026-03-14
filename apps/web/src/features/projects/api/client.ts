@@ -8,6 +8,8 @@ import type {
   ProjectMarkingSummary,
   StaffProject,
   StaffProjectTeamsResponse,
+  StaffStudentDeadlineOverride,
+  StaffStudentDeadlineOverridePayload,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -69,6 +71,43 @@ export async function updateStaffTeamDeadlineProfile(
     {
       method: "PATCH",
       body: JSON.stringify({ deadlineProfile }),
+    },
+  );
+}
+
+export async function getStaffStudentDeadlineOverrides(
+  projectId: number,
+): Promise<StaffStudentDeadlineOverride[]> {
+  const response = await apiFetch<{ overrides: StaffStudentDeadlineOverride[] }>(
+    `/projects/staff/${projectId}/students/deadline-overrides`,
+    { cache: "no-store" }
+  );
+  return response.overrides;
+}
+
+export async function upsertStaffStudentDeadlineOverride(
+  projectId: number,
+  studentId: number,
+  payload: StaffStudentDeadlineOverridePayload,
+): Promise<StaffStudentDeadlineOverride> {
+  const response = await apiFetch<{ override: StaffStudentDeadlineOverride }>(
+    `/projects/staff/${projectId}/students/${studentId}/deadline-override`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
+  return response.override;
+}
+
+export async function clearStaffStudentDeadlineOverride(
+  projectId: number,
+  studentId: number,
+): Promise<{ cleared: boolean }> {
+  return apiFetch<{ cleared: boolean }>(
+    `/projects/staff/${projectId}/students/${studentId}/deadline-override`,
+    {
+      method: "DELETE",
     },
   );
 }

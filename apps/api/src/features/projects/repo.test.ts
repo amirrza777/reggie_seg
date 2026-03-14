@@ -313,6 +313,7 @@ describe("projects repo", () => {
       feedbackOpenDate: "P-E",
       feedbackDueDate: "P-F",
       isOverridden: true,
+      overrideScope: "TEAM",
       deadlineProfile: "STANDARD",
     });
   });
