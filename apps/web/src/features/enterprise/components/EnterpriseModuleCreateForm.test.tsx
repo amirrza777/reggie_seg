@@ -154,10 +154,12 @@ describe("EnterpriseModuleCreateForm", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/module name/i), { target: { value: "Backend Search Module" } });
+    expect(screen.getByRole("button", { name: /create module/i })).toBeDisabled();
 
     const leadersGroup = screen.getByRole("group", { name: /module leaders/i });
 
     fireEvent.click(within(leadersGroup).getByRole("checkbox", { name: /staff owner/i }));
+    expect(screen.getByRole("button", { name: /create module/i })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: /create module/i }));
 
@@ -167,7 +169,7 @@ describe("EnterpriseModuleCreateForm", () => {
         leaderIds: [11],
       }),
     );
-    expect(push).toHaveBeenCalledWith("/enterprise/modules");
+    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit");
     expect(refresh).toHaveBeenCalled();
   });
 

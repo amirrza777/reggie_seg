@@ -261,6 +261,10 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
       setModuleNameError("Module name is required.");
       return;
     }
+    if (!isEditMode && leaderIds.length === 0) {
+      setErrorMessage("Select at least one module leader before creating the module.");
+      return;
+    }
 
     setModuleNameError(null);
     setIsSubmitting(true);
@@ -279,14 +283,14 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
           taIds,
           studentIds,
         });
+        router.push("/enterprise/modules");
       } else {
-        await createEnterpriseModule({
+        const createdModule = await createEnterpriseModule({
           name,
           leaderIds,
         });
+        router.push(`/enterprise/modules/${createdModule.id}/edit`);
       }
-
-      router.push("/enterprise/modules");
       router.refresh();
     } catch (err) {
       setErrorMessage(resolveModuleActionError(err, isEditMode ? "update" : "create"));
@@ -579,6 +583,9 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
           </div>
         ) : null}
         <span className="ui-note ui-note--muted">{leaderIds.length} selected</span>
+        {!isEditMode && leaderIds.length === 0 ? (
+          <span className="enterprise-module-create__field-error">Select at least one module leader to continue.</span>
+        ) : null}
       </div>
 
       {isEditMode ? (
@@ -817,7 +824,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
         >
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting || isDeleting}>
+        <Button type="submit" disabled={isSubmitting || isDeleting || (!isEditMode && leaderIds.length === 0)}>
           {isSubmitting ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save module" : "Create module"}
         </Button>
       </div>
