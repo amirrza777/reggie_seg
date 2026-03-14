@@ -206,7 +206,6 @@ export async function findStaffScopedProject(
 export async function findVacantModuleStudentsForProject(
   enterpriseId: string,
   moduleId: number,
-  projectId: number,
 ): Promise<ModuleStudent[]> {
   return prisma.user.findMany({
     where: {
@@ -222,7 +221,9 @@ export async function findVacantModuleStudentsForProject(
       teamAllocations: {
         none: {
           team: {
-            projectId,
+            project: {
+              moduleId,
+            },
           },
         },
       },
@@ -240,7 +241,6 @@ export async function findVacantModuleStudentsForProject(
 export async function findModuleStudentsForManualAllocation(
   enterpriseId: string,
   moduleId: number,
-  projectId: number,
 ): Promise<ManualAllocationStudent[]> {
   const students = await prisma.user.findMany({
     where: {
@@ -262,7 +262,9 @@ export async function findModuleStudentsForManualAllocation(
       teamAllocations: {
         where: {
           team: {
-            projectId,
+            project: {
+              moduleId,
+            },
           },
         },
         select: {
@@ -318,6 +320,7 @@ export async function findProjectTeamSummaries(projectId: number): Promise<Proje
 
 export async function applyRandomAllocationPlan(
   projectId: number,
+  moduleId: number,
   enterpriseId: string,
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
 ): Promise<AppliedRandomTeam[]> {
@@ -327,7 +330,11 @@ export async function applyRandomAllocationPlan(
       const alreadyAllocatedStudents = await tx.teamAllocation.findMany({
         where: {
           userId: { in: plannedStudentIds },
-          team: { projectId },
+          team: {
+            project: {
+              moduleId,
+            },
+          },
         },
         select: { userId: true },
       });
@@ -337,42 +344,33 @@ export async function applyRandomAllocationPlan(
       }
     }
 
-    const existingProjectTeams = await tx.team.findMany({
-      where: { projectId },
-      select: { id: true, teamName: true },
-      orderBy: [{ id: "asc" }],
+    const enterpriseNames = await tx.team.findMany({
+      where: { enterpriseId },
+      select: { teamName: true },
     });
+    const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
+    const targetTeams: Array<{ id: number; teamName: string }> = [];
 
-    const targetTeams = existingProjectTeams.slice(0, plannedTeams.length);
-
-    if (targetTeams.length < plannedTeams.length) {
-      const enterpriseNames = await tx.team.findMany({
-        where: { enterpriseId },
-        select: { teamName: true },
-      });
-      const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
-
-      let sequence = 1;
-      while (targetTeams.length < plannedTeams.length) {
-        let candidateName = `Project ${projectId} Random Team ${sequence}`;
+    let sequence = 1;
+    while (targetTeams.length < plannedTeams.length) {
+      let candidateName = `Project ${projectId} Random Team ${sequence}`;
+      sequence += 1;
+      while (usedNames.has(candidateName)) {
+        candidateName = `Project ${projectId} Random Team ${sequence}`;
         sequence += 1;
-        while (usedNames.has(candidateName)) {
-          candidateName = `Project ${projectId} Random Team ${sequence}`;
-          sequence += 1;
-        }
-
-        const createdTeam = await tx.team.create({
-          data: {
-            enterpriseId,
-            projectId,
-            teamName: candidateName,
-          },
-          select: { id: true, teamName: true },
-        });
-
-        usedNames.add(createdTeam.teamName);
-        targetTeams.push(createdTeam);
       }
+
+      const createdTeam = await tx.team.create({
+        data: {
+          enterpriseId,
+          projectId,
+          teamName: candidateName,
+        },
+        select: { id: true, teamName: true },
+      });
+
+      usedNames.add(createdTeam.teamName);
+      targetTeams.push(createdTeam);
     }
 
     for (let index = 0; index < plannedTeams.length; index += 1) {
@@ -400,6 +398,7 @@ export async function applyRandomAllocationPlan(
 
 export async function applyManualAllocationTeam(
   projectId: number,
+  moduleId: number,
   enterpriseId: string,
   teamName: string,
   studentIds: number[],
@@ -423,7 +422,9 @@ export async function applyManualAllocationTeam(
       where: {
         userId: { in: studentIds },
         team: {
-          projectId,
+          project: {
+            moduleId,
+          },
         },
       },
       select: {
