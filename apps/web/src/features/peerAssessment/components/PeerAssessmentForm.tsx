@@ -62,6 +62,32 @@ function formatDateLabel(value: Date | null): string {
   return value ? value.toLocaleString() : "Not set";
 }
 
+function normalizeAnswers(
+  raw: Record<string, string | number | boolean | null> | undefined,
+  questions: Question[]
+): Record<string, AnswerValue> {
+  if (!raw || typeof raw !== "object") return {};
+  const normalized: Record<string, AnswerValue> = {};
+  Object.entries(raw).forEach(([k, v]) => {
+    const question = questions.find((item) => String(item.id) === k);
+    if (question && isNumericQuestion(question)) {
+      if (typeof v === "number" && Number.isFinite(v)) {
+        normalized[k] = v;
+        return;
+      }
+      if (typeof v === "string" && v.trim().length > 0) {
+        const parsed = Number(v);
+        if (Number.isFinite(parsed)) {
+          normalized[k] = parsed;
+          return;
+        }
+      }
+    }
+    normalized[k] = String(v ?? "");
+  });
+  return normalized;
+}
+
 type PeerAssessmentFormProps = {
   teammateName: string;
   questions: Question[];
@@ -113,35 +139,8 @@ export function PeerAssessmentForm({
         ? `Peer assessment is open. Deadline: ${formatDateLabel(dueAt)}.`
         : null;
 
-  const normalizeAnswers = (
-    raw: Record<string, string | number | boolean | null> | undefined
-  ): Record<string, AnswerValue> => {
-    if (!raw || typeof raw !== "object") return {};
-    const normalized: Record<string, AnswerValue> = {};
-    Object.entries(raw).forEach(([k, v]) => {
-      const question = questions.find((item) => String(item.id) === k);
-      if (question && isNumericQuestion(question)) {
-        if (typeof v === "number" && Number.isFinite(v)) {
-          normalized[k] = v;
-          return;
-        }
-        if (typeof v === "string" && v.trim().length > 0) {
-          const parsed = Number(v);
-          if (Number.isFinite(parsed)) {
-            normalized[k] = parsed;
-            return;
-          }
-        }
-      }
-      normalized[k] = String(v ?? "");
-    });
-    return normalized;
-  };
-
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAnswers(normalizeAnswers(initialAnswers));
+    setAnswers(normalizeAnswers(initialAnswers, questions));
   }, [initialAnswers, questions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -182,7 +181,7 @@ export function PeerAssessmentForm({
   };
 
   const handleDiscard = () => {
-    setAnswers(normalizeAnswers(initialAnswers));
+    setAnswers(normalizeAnswers(initialAnswers, questions));
     setMessage(null);
   };
 
