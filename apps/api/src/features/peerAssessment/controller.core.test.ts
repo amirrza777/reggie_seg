@@ -149,6 +149,31 @@ describe("peerAssessment controller core handlers", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+
+    it("returns 409 when assessment is outside deadline window", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 10,
+          answersJson: [{ question: "1", answer: "x" }],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.saveAssessment.mockRejectedValue({
+        code: "ASSESSMENT_DEADLINE_PASSED",
+        message: "Peer assessment deadline has passed for your deadline profile",
+      });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer assessment deadline has passed for your deadline profile",
+      });
+    });
   });
 
   describe("getAssessmentHandler", () => {
@@ -263,6 +288,22 @@ describe("peerAssessment controller core handlers", () => {
       expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+
+    it("returns 409 when update is outside deadline window", async () => {
+      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const res = createMockResponse();
+      serviceMocks.updateAssessmentAnswers.mockRejectedValue({
+        code: "ASSESSMENT_WINDOW_NOT_OPEN",
+        message: "Peer assessment is not open yet for your deadline profile",
+      });
+
+      await updateAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer assessment is not open yet for your deadline profile",
+      });
     });
   });
 });
