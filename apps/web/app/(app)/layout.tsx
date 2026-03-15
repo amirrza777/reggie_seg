@@ -48,34 +48,31 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  const [modulesResult, projectsResult] = await Promise.allSettled([
+    listModules(user.id, { compact: true }),
+    getUserProjects(user.id),
+  ]);
+
   let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
-  try {
-    const modules = await listModules(user.id);
-    if (modules.length > 0) {
-      moduleChildren = [
-        { href: "/dashboard", label: "Overview" },
-        ...modules.map((module) => ({
-          href: `/modules/${encodeURIComponent(module.id)}`,
-          label: module.title,
-        })),
-      ];
-    }
-  } catch {
-    // Keep base overview link if modules cannot be loaded.
+  if (modulesResult.status === "fulfilled" && modulesResult.value.length > 0) {
+    moduleChildren = [
+      { href: "/dashboard", label: "Overview" },
+      ...modulesResult.value.map((module) => ({
+        href: `/modules/${encodeURIComponent(module.id)}`,
+        label: module.title,
+      })),
+    ];
   }
 
   let projectChildren: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
-  try {
-    const projects = await getUserProjects(user.id);
+  if (projectsResult.status === "fulfilled") {
     projectChildren = [
       { href: "/projects", label: "All projects" },
-      ...projects.map((project) => ({
+      ...projectsResult.value.map((project) => ({
         href: `/projects/${project.id}`,
         label: project.name,
       })),
     ];
-  } catch {
-    projectChildren = [{ href: "/projects", label: "All projects" }];
   }
 
   const navLinks: NavLink[] = [

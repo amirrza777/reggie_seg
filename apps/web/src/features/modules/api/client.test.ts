@@ -27,4 +27,9 @@ describe("modules api client", () => {
     await listModules(42, { scope: "staff" });
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&scope=staff");
   });
+
+  it("fetches compact module list", async () => {
+    await listModules(42, { compact: true });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&compact=1");
+  });
 });
