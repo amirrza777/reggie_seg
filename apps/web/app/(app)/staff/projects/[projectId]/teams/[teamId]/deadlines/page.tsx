@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffStudentDeadlineOverridesPanel } from "@/features/staff/projects/components/StaffStudentDeadlineOverridesPanel";
+import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -64,6 +65,12 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
         </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{members.length} student{members.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">
+            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
+          </span>
+          <span className="staff-projects__badge">
+            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
+          </span>
           <Link href={`/staff/projects/${projectId}/teams/${teamId}`} className="staff-projects__badge">
             Back to overview
           </Link>
@@ -71,6 +78,30 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
       </section>
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
+      <section className="staff-projects__team-policy" aria-label="Deadline policy controls">
+        <div className="staff-projects__team-policy-top">
+          <div>
+            <h2 className="staff-projects__team-policy-title">Team deadline policy</h2>
+            <p className="staff-projects__team-policy-desc">
+              Switch the team profile and then apply per-student overrides only where needed.
+            </p>
+          </div>
+          <span
+            className={`staff-projects__policy-pill${
+              team.deadlineProfile === "MCF" ? " staff-projects__policy-pill--mcf" : ""
+            }`}
+          >
+            {team.deadlineProfile === "MCF" ? "MCF extended" : "Standard"}
+          </span>
+        </div>
+        <div className="staff-projects__team-policy-actions">
+          <StaffTeamDeadlineProfileControl
+            teamId={team.id}
+            initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
+          />
+        </div>
+      </section>
 
       <StaffStudentDeadlineOverridesPanel
         projectId={numericProjectId}

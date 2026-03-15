@@ -4,7 +4,6 @@ import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
-import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -72,45 +71,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
-      <section className="staff-projects__policy-grid" aria-label="Deadline policy controls">
-        <article className="staff-projects__policy-card">
-          <div className="staff-projects__policy-head">
-            <h2 className="staff-projects__team-policy-title">Deadline policy</h2>
-            <span
-              className={`staff-projects__policy-pill${
-                team.deadlineProfile === "MCF" ? " staff-projects__policy-pill--mcf" : ""
-              }`}
-            >
-              {team.deadlineProfile === "MCF" ? "MCF extended" : "Standard"}
-            </span>
-          </div>
-          <p className="staff-projects__team-policy-desc">
-            This controls which due-date track the whole team uses by default.
-          </p>
-          <p className="staff-projects__team-policy-desc">
-            {team.hasDeadlineOverride
-              ? "A team-level override is active."
-              : "No team-level override is currently active."}
-          </p>
-        </article>
-
-        <article className="staff-projects__policy-card">
-          <h3 className="staff-projects__team-policy-title">Controls</h3>
-          <p className="staff-projects__team-policy-desc">
-            Switch profile and then adjust individual students where needed.
-          </p>
-          <div className="staff-projects__policy-actions">
-            <StaffTeamDeadlineProfileControl
-              teamId={team.id}
-              initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
-            />
-            <Link href={`/staff/projects/${projectId}/teams/${teamId}/deadlines`} className="staff-projects__policy-link">
-              Manage per-student overrides
-            </Link>
-          </div>
-        </article>
-      </section>
-
       <section className="staff-projects__grid" aria-label="Team overview quick actions">
         <article className="staff-projects__card">
           <h3 className="staff-projects__card-title">Team health</h3>
@@ -150,12 +110,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               </p>
               <p className="staff-projects__member-email">{allocation.user.email}</p>
             </div>
-            <Link
-              href={`/staff/projects/${projectId}/teams/${teamId}/deadlines?studentId=${allocation.userId}`}
-              className="staff-projects__member-placeholder-btn"
-            >
-              Edit deadline
-            </Link>
           </div>
         ))}
         </div>
