@@ -1,23 +1,15 @@
-@media (max-width: 1220px) {
+@media (max-width: 1200px) {
   .enterprise-overview__layout {
     grid-template-columns: 1fr;
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
   .enterprise-management__create {
     grid-template-columns: 1fr;
   }
 
-  .enterprise-management__actions {
-    flex-wrap: wrap;
-  }
-
   .enterprise-management__create-actions {
-    justify-content: flex-start;
-  }
-
-  .enterprise-management__row-actions {
     justify-content: flex-start;
   }
 
@@ -55,5 +47,131 @@
   .enterprise-modules__student-item .status-chip {
     grid-column: 1 / -1;
     width: fit-content;
+  }
+
+  .enterprise-management__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .enterprise-management__search {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .enterprise-management__create-trigger {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .enterprise-management__table {
+    --enterprise-management-columns: 1fr;
+  }
+
+  .enterprise-management__table .table__head {
+    display: none;
+  }
+
+  .enterprise-management__row {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .enterprise-management__row > div {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: var(--responsive-table-label-column-width, clamp(96px, 28vw, 136px)) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 6px;
+  }
+
+  .enterprise-management__row > div::before {
+    display: block;
+    font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--fw-semibold);
+    line-height: 1.2;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .enterprise-management__row > div > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .enterprise-management__row > div:nth-child(1)::before {
+    content: "Enterprise";
+  }
+
+  .enterprise-management__row > div:nth-child(2)::before {
+    content: "Accounts";
+  }
+
+  .enterprise-management__row > div:nth-child(3)::before {
+    content: "Workspace";
+  }
+
+  .enterprise-management__row > div:nth-child(4)::before {
+    content: "Created";
+  }
+
+  .enterprise-management__row > div:nth-child(5)::before {
+    content: "Actions";
+  }
+
+  .enterprise-management__row .ui-stack-xs,
+  .enterprise-management__row .ui-stack-xs > * {
+    min-width: 0;
+  }
+
+  .enterprise-management__row .ui-stack-xs > * {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .enterprise-management__row-actions {
+    width: min(420px, 100%);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .enterprise-management__row-actions .btn {
+    width: auto;
+    min-width: 138px;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .enterprise-management__row > div {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .enterprise-management__row > div::before,
+  .enterprise-management__row > div > * {
+    grid-column: 1;
+  }
+
+  .enterprise-management__row-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .enterprise-management__row-actions .btn {
+    width: 100%;
+    min-width: 0;
   }
 }

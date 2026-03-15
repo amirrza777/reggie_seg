@@ -34,6 +34,17 @@ export function getMeetingById(meetingId: number) {
       organiser: {
         select: { id: true, firstName: true, lastName: true },
       },
+      team: {
+        include: {
+          allocations: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {
@@ -115,5 +126,37 @@ export function createComment(meetingId: number, userId: number, content: string
 export function deleteComment(commentId: number) {
   return prisma.meetingComment.delete({
     where: { id: commentId },
+  });
+}
+
+export function createMentions(sourceId: number, userIds: number[]) {
+  return prisma.mention.createMany({
+    data: userIds.map((userId) => ({
+      userId,
+      sourceType: "COMMENT",
+      sourceId,
+    })),
+    skipDuplicates: true,
+  });
+}
+
+export function getRecentAttendanceForUser(userId: number, teamId: number, limit: number) {
+  return prisma.meetingAttendance.findMany({
+    where: { userId, meeting: { teamId } },
+    orderBy: { meeting: { date: "desc" } },
+    take: limit,
+    select: { status: true },
+  });
+}
+
+export async function getModuleLeadsForTeam(teamId: number) {
+  const project = await prisma.project.findFirst({
+    where: { teams: { some: { id: teamId } } },
+    select: { moduleId: true },
+  });
+  if (!project) return [];
+  return prisma.moduleLead.findMany({
+    where: { moduleId: project.moduleId },
+    select: { userId: true },
   });
 }

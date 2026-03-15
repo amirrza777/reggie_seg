@@ -75,7 +75,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
           <span>Agenda</span>
           <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
-        <div>
+        <div className="ui-row">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
           </Button>

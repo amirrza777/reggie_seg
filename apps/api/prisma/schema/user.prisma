@@ -52,6 +52,8 @@ model User {
   teamInvitesSent              TeamInvite[]                 @relation("TeamInvitesSent")
   teamInvitesReceived          TeamInvite[]                 @relation("TeamInvitesReceived")
   auditLogs                    AuditLog[]
+  mentions            Mention[]               @relation("Mention")
+  notifications       Notification[]          @relation("Notification")
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

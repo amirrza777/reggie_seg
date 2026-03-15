@@ -127,12 +127,18 @@ export function AdminWorkspaceSummary() {
     <>
       <Card
         title={<span className="overview-title">Admin workspace</span>}
+        className="admin-overview-card"
         action={
-          <div className="ui-row ui-row--wrap">
-            <Button type="button" onClick={() => setModalOpen(true)}>
+          <div className="admin-overview-actions">
+            <Button type="button" className="admin-overview-actions__btn" onClick={() => setModalOpen(true)}>
               Invite admin
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setAuditOpen(true)}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="admin-overview-actions__btn"
+              onClick={() => setAuditOpen(true)}
+            >
               Audit log
             </Button>
           </div>

@@ -94,3 +94,13 @@
 .feedback-card--pending .feedback-card__cta {
   color: var(--accent);
 }
+
+@media (max-width: 860px) {
+  .feedback-card__header {
+    flex-wrap: wrap;
+  }
+
+  .feedback-card__status {
+    width: fit-content;
+  }
+}

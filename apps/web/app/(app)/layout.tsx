@@ -5,6 +5,7 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
@@ -120,16 +121,27 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     }));
 
   const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
   if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Workspace" links={accessibleLinks} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Workspace sections" links={accessibleLinks} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref="/dashboard"
+          actions={<><NotificationBell /><UserMenu /></>}
+        />
+      }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
     >
       <div className="workspace-shell">{children}</div>

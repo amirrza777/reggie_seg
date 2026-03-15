@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Team } from "../types";
 import {
   sendTeamInvite,
   cancelTeamInvite,
   getTeamInvites,
+  getReceivedInvites,
+  acceptInvite,
+  declineInvite,
   createTeamForProject,
   type TeamInvite,
 } from "../api/teamAllocation";
@@ -39,6 +42,38 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
   const [inviteSuccess, setInviteSuccess] = useState("");
   const [isInviting, startInviting] = useTransition();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+
+  // Received invite state
+  const [receivedInvites, setReceivedInvites] = useState<TeamInvite[]>([]);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (team) return;
+    getReceivedInvites()
+      .then((data) => setReceivedInvites(data.filter((inv) => inv.team?.projectId === projectId)))
+      .catch(() => {});
+  }, [team, projectId]);
+
+  const handleAccept = async (inviteId: string) => {
+    setRespondingId(inviteId);
+    try {
+      await acceptInvite(inviteId);
+      router.refresh();
+    } catch {
+      setRespondingId(null);
+    }
+  };
+
+  const handleDecline = async (inviteId: string) => {
+    setRespondingId(inviteId);
+    try {
+      await declineInvite(inviteId);
+      setReceivedInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+    } catch {
+    } finally {
+      setRespondingId(null);
+    }
+  };
 
   const refreshInvites = useCallback(async (teamId: number) => {
     try {
@@ -104,7 +139,7 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
         <div className="team-formation__empty">
           <span className="team-formation__empty-icon">👥</span>
           <h3>You're not in a team yet</h3>
-          <p>Create a new team for this project, or accept an invitation from a teammate via the notification bell.</p>
+          <p>Create a new team for this project, or accept an invitation from a teammate.</p>
           <div className="team-formation__create-form">
             <input
               type="text"
@@ -127,6 +162,43 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
             <p className="team-formation__feedback team-formation__feedback--error">{createError}</p>
           )}
         </div>
+
+        {receivedInvites.length > 0 && (
+          <div className="team-formation__section">
+            <p className="team-formation__section-title">Pending invitations</p>
+            <ul className="team-formation__invite-list">
+              {receivedInvites.map((inv) => (
+                <li key={inv.id} className="team-formation__invite-item">
+                  <span className="team-formation__invite-email">
+                    {inv.inviter
+                      ? `${inv.inviter.firstName} ${inv.inviter.lastName}`
+                      : "A teammate"}{" "}
+                    invited you to join <strong>{inv.team?.teamName ?? "a team"}</strong>
+                  </span>
+                  <div className="team-formation__invite-meta">
+                    <span className="team-formation__invite-date">{formatDate(inv.createdAt)}</span>
+                    <button
+                      type="button"
+                      className="btn--accept-ghost"
+                      onClick={() => handleAccept(inv.id)}
+                      disabled={respondingId === inv.id}
+                    >
+                      {respondingId === inv.id ? "Accepting…" : "Accept"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn--danger-ghost"
+                      onClick={() => handleDecline(inv.id)}
+                      disabled={respondingId === inv.id}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }

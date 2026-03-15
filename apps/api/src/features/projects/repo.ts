@@ -235,9 +235,25 @@ export async function getStaffProjects(userId: number) {
           name: true,
         },
       },
+      createdAt: true,
       _count: {
         select: {
           teams: true,
+          githubRepositories: true,
+        },
+      },
+      teams: {
+        where: { archivedAt: null },
+        select: {
+          allocations: {
+            select: {
+              user: {
+                select: {
+                  githubAccount: { select: { id: true } },
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -297,6 +313,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
                   firstName: true,
                   lastName: true,
                   email: true,
+                  githubAccount: { select: { id: true } },
                 },
               },
             },

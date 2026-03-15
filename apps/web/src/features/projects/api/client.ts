@@ -34,7 +34,9 @@ export async function getTeamById(teamId: number): Promise<Team> {
 }
 
 export async function getTeamByUserAndProject(userId: number, projectId: number): Promise<Team> {
-  return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`);
+  return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`, {
+    cache: "no-store",
+  });
 }
 
 export async function getProjectMarking(userId: number, projectId: number): Promise<ProjectMarkingSummary> {
@@ -48,7 +50,9 @@ export async function getStaffProjects(userId: number): Promise<StaffProject[]> 
 }
 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
-  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
+  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`, {
+    cache: "no-store",
+  });
 }
 
 export async function createStaffProject(payload: CreateStaffProjectPayload): Promise<CreatedStaffProject> {

@@ -129,3 +129,17 @@
   margin-top: 4px;
 }
 
+@media (max-width: 860px) {
+  .performance-summary__header,
+  .performance-summary__question-title-row,
+  .performance-summary__metric-row,
+  .performance-summary__answer,
+  .assessment-summary__rating-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .performance-summary__answer-name {
+    min-width: 0;
+  }
+}

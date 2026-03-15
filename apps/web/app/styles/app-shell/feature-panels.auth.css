@@ -26,9 +26,3 @@
 .full-width-btn {
   width: 100%;
 }
-
-@media (max-width: 900px) {
-  .github-chart-section__panel--half {
-    grid-column: 1 / -1;
-  }
-}

@@ -55,6 +55,11 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
           <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
           <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
         </div>
+        <div className="staff-projects__hero-actions">
+          <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
+            Team allocation
+          </Link>
+        </div>
       </section>
 
       {data.teams.length === 0 ? <p className="muted">No teams exist in this project yet.</p> : null}

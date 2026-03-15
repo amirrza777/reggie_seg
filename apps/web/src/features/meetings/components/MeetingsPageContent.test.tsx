@@ -1,18 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MeetingsPageContent } from "./MeetingsPageContent";
 
 vi.mock("../api/client", () => ({
   listMeetings: vi.fn(),
-}));
-
-vi.mock("./MeetingList", () => ({
-  MeetingList: ({ meetings, onCreateNew }: any) => (
-    <div data-testid="meeting-list">
-      <span>{meetings.length} meetings</span>
-      <button type="button" onClick={onCreateNew}>New Meeting</button>
-    </div>
-  ),
 }));
 
 vi.mock("./CreateMeetingForm", () => ({
@@ -25,50 +16,102 @@ vi.mock("./CreateMeetingForm", () => ({
 }));
 
 import { listMeetings } from "../api/client";
-import { fireEvent } from "@testing-library/react";
 
 const listMeetingsMock = vi.mocked(listMeetings);
+
+const futureMeeting = {
+  id: 1,
+  title: "Team Meeting",
+  date: "2099-01-01T10:00:00Z",
+  organiser: { id: 1, firstName: "Reggie", lastName: "King" },
+  location: "Bush House 3.01",
+};
+
+const pastMeeting = {
+  id: 2,
+  title: "Group Check-in",
+  date: "2020-01-01T10:00:00Z",
+  organiser: { id: 2, firstName: "John", lastName: "Smith" },
+  location: null,
+};
 
 describe("MeetingsPageContent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    listMeetingsMock.mockResolvedValue([
-      { id: 1, title: "Team Meeting" },
-      { id: 2, title: "Group Check-in" },
-    ] as any);
+    listMeetingsMock.mockResolvedValue([futureMeeting, pastMeeting] as any);
   });
 
-  it("fetches and displays meetings", async () => {
+  it("fetches meetings and shows upcoming by default", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
     await waitFor(() => {
-      expect(screen.getByText("2 meetings")).toBeInTheDocument();
+      expect(screen.getByText("Team Meeting")).toBeInTheDocument();
     });
+    expect(screen.queryByText("Group Check-in")).not.toBeInTheDocument();
     expect(listMeetingsMock).toHaveBeenCalledWith(10);
   });
 
-  it("shows create form when New Meeting is clicked", async () => {
+  it("switches to previous meetings tab", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
-    await waitFor(() => screen.getByText("2 meetings"));
-    fireEvent.click(screen.getByRole("button", { name: "New Meeting" }));
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByText("Previous meetings"));
+    expect(screen.getByText("Group Check-in")).toBeInTheDocument();
+    expect(screen.queryByText("Team Meeting")).not.toBeInTheDocument();
+  });
+
+  it("switches back to upcoming tab", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByText("Previous meetings"));
+    fireEvent.click(screen.getByText("Upcoming meetings"));
+    expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+    expect(screen.queryByText("Group Check-in")).not.toBeInTheDocument();
+  });
+
+  it("shows empty message when no upcoming meetings", async () => {
+    listMeetingsMock.mockResolvedValue([pastMeeting] as any);
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => {
+      expect(screen.getByText("There are no scheduled meetings to list at this time.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows empty message when no previous meetings", async () => {
+    listMeetingsMock.mockResolvedValue([futureMeeting] as any);
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByText("Previous meetings"));
+    expect(screen.getByText("No previous meetings.")).toBeInTheDocument();
+  });
+
+  it("shows create form when button is clicked", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
     expect(screen.getByTestId("create-form")).toBeInTheDocument();
   });
 
   it("hides create form on cancel", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
-    await waitFor(() => screen.getByText("2 meetings"));
-    fireEvent.click(screen.getByRole("button", { name: "New Meeting" }));
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
     fireEvent.click(screen.getByRole("button", { name: "cancel" }));
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
   });
 
-  it("refreshes list and hides form after creating a meeting", async () => {
+  it("refreshes list and hides form after creating", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
-    await waitFor(() => screen.getByText("2 meetings"));
-    fireEvent.click(screen.getByRole("button", { name: "New Meeting" }));
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
     fireEvent.click(screen.getByRole("button", { name: "submit" }));
     await waitFor(() => {
       expect(listMeetingsMock).toHaveBeenCalledTimes(2);
     });
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
+  });
+
+  it("renders location or empty for null location", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    expect(screen.getByText("Bush House 3.01")).toBeInTheDocument();
   });
 });
