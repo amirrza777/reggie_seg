@@ -15,7 +15,6 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
     { href: base, label: "Overview" },
     { href: `${base}/team`, label: "Team" },
     { href: `${base}/meetings`, label: "Team meetings" },
-    { href: `${base}/meeting-scheduler`, label: "Meeting scheduler" },
     { href: `${base}/peer-assessments`, label: "Peer assessment", flag: "peer_assessment" },
     { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
     { href: `${base}/repos`, label: "Repositories", flag: "repos" },
