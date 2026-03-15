@@ -68,13 +68,23 @@ export async function fetchQuestionsForProject(projectId: number) {
 
 export async function fetchProjectsForStaff(userId: number) {
   const projects = await getStaffProjects(userId);
-  return projects.map((project) => ({
-    id: project.id,
-    name: project.name,
-    moduleId: project.moduleId,
-    moduleName: project.module?.name ?? "",
-    teamCount: project._count.teams,
-  }));
+  const now = Date.now();
+  return projects.map((project) => {
+    const allAllocations = project.teams.flatMap((t) => t.allocations);
+    const membersTotal = allAllocations.length;
+    const membersConnected = allAllocations.filter((a) => a.user.githubAccount).length;
+    return {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.module?.name ?? "",
+      teamCount: project._count.teams,
+      hasGithubRepo: project._count.githubRepositories > 0,
+      daysOld: Math.floor((now - new Date(project.createdAt).getTime()) / 86_400_000),
+      membersTotal,
+      membersConnected,
+    };
+  });
 }
 
 export async function fetchProjectTeamsForStaff(userId: number, projectId: number) {

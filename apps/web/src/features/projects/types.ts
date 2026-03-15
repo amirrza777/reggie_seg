@@ -24,6 +24,7 @@ export type User = {
   firstName: string;
   lastName: string;
   email: string;
+  githubAccount?: { id: number } | null;
 };
 
 export type Team = {
@@ -44,6 +45,10 @@ export type StaffProject = {
   moduleId: number;
   moduleName: string;
   teamCount: number;
+  hasGithubRepo: boolean;
+  daysOld: number;
+  membersTotal: number;
+  membersConnected: number;
 };
 
 export type StaffProjectTeamsResponse = {
