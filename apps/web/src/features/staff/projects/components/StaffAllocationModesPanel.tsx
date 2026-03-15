@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 import { StaffManualAllocationPanel } from "./StaffManualAllocationPanel";
+import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type AllocationMode = "random" | "manual" | "custom";
@@ -71,6 +72,12 @@ export function StaffAllocationModesPanel({
                   ) : null}
                   {mode.key === "manual" ? (
                     <StaffManualAllocationPanel projectId={projectId} />
+                  ) : null}
+                  {mode.key === "custom" ? (
+                    <StaffCustomisedAllocationPanel
+                      projectId={projectId}
+                      initialTeamCount={initialTeamCount}
+                    />
                   ) : null}
                 </div>
               ) : null}
