@@ -48,7 +48,22 @@ export async function getUserProjects(userId: number) {
   });
 }
 
-export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+function resolveModuleAccessRole(
+  userRole: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN",
+  {
+    isOwner,
+    isTeachingAssistant,
+    isEnrolled,
+  }: { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean },
+) {
+  if (isOwner) return "OWNER";
+  if (isTeachingAssistant) return "TEACHING_ASSISTANT";
+  if (isEnrolled) return "ENROLLED";
+  if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") return "ADMIN_ACCESS";
+  return "ENROLLED";
+}
+
+export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true, enterpriseId: true },
@@ -80,6 +95,46 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
                   userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
                 }),
           };
+
+  if (options?.compact) {
+    const compactModules = await prisma.module.findMany({
+      where: membershipFilter,
+      select: {
+        id: true,
+        name: true,
+        moduleLeads: {
+          where: { userId: user.id },
+          select: { userId: true },
+          take: 1,
+        },
+        moduleTeachingAssistants: {
+          where: { userId: user.id },
+          select: { userId: true },
+          take: 1,
+        },
+        userModules: {
+          where: { userId: user.id, enterpriseId: user.enterpriseId },
+          select: { userId: true },
+          take: 1,
+        },
+      },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+    });
+
+    return compactModules.map((module) => {
+      const accessRole = resolveModuleAccessRole(user.role, {
+        isOwner: module.moduleLeads.length > 0,
+        isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
+        isEnrolled: module.userModules.length > 0,
+      });
+
+      return {
+        id: module.id,
+        name: module.name,
+        accessRole,
+      };
+    });
+  }
 
   const modules = await prisma.module.findMany({
     where: membershipFilter,
@@ -119,19 +174,11 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
   });
 
   return modules.map((module) => {
-    const isOwner = module.moduleLeads.length > 0;
-    const isTeachingAssistant = module.moduleTeachingAssistants.length > 0;
-    const isEnrolled = module.userModules.length > 0;
-
-    const accessRole = isOwner
-      ? "OWNER"
-      : isTeachingAssistant
-        ? "TEACHING_ASSISTANT"
-        : isEnrolled
-          ? "ENROLLED"
-          : user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
-            ? "ADMIN_ACCESS"
-            : "ENROLLED";
+    const accessRole = resolveModuleAccessRole(user.role, {
+      isOwner: module.moduleLeads.length > 0,
+      isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
+      isEnrolled: module.userModules.length > 0,
+    });
 
     return {
       id: module.id,

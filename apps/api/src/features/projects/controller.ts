@@ -301,9 +301,10 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   }
 
   const scope = req.query.scope === "staff" ? "staff" : "workspace";
+  const compact = req.query.compact === "1";
 
   try {
-    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff" });
+    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff", compact });
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);

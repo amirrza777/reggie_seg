@@ -79,7 +79,7 @@ describe("projects service", () => {
       },
     ]);
 
-    await expect(fetchModulesForUser(7, { staffOnly: true })).resolves.toEqual([
+    await expect(fetchModulesForUser(7, { staffOnly: true, compact: true })).resolves.toEqual([
       {
         id: "9",
         title: "SEGP",
@@ -93,7 +93,7 @@ describe("projects service", () => {
       },
     ]);
 
-    expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true });
+    expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {

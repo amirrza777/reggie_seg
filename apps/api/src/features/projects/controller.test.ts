@@ -173,11 +173,18 @@ describe("projects controller", () => {
     (service.fetchModulesForUser as any).mockResolvedValue([{ id: "1", title: "M1" }]);
     const workspaceRes = mockResponse();
     await getUserModulesHandler({ user: { sub: 7 }, query: { userId: "7" } } as any, workspaceRes);
-    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: false });
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: false, compact: false });
 
     const staffRes = mockResponse();
     await getUserModulesHandler({ user: { sub: 7 }, query: { userId: "7", scope: "staff" } } as any, staffRes);
-    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true });
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: false });
+
+    const compactRes = mockResponse();
+    await getUserModulesHandler(
+      { user: { sub: 7 }, query: { userId: "7", scope: "staff", compact: "1" } } as any,
+      compactRes
+    );
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
   it("getProjectDeadlineHandler validates ids and returns deadline", async () => {

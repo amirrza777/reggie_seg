@@ -43,7 +43,7 @@ export async function fetchProjectsForUser(userId: number) {
   }));
 }
 
-export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
   const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
