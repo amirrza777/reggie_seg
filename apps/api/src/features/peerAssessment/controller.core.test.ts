@@ -262,6 +262,37 @@ describe("peerAssessment controller core handlers", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+
+    it("returns 409 when assessment is outside deadline window", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 10,
+          answersJson: [
+            { question: "1", answer: "x" },
+            { question: "2", answer: "Excellent" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
+      serviceMocks.saveAssessment.mockRejectedValue({
+        code: "ASSESSMENT_DEADLINE_PASSED",
+        message: "Peer assessment deadline has passed for your deadline profile",
+      });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer assessment deadline has passed for your deadline profile",
+      });
+    });
   });
 
   describe("getAssessmentHandler", () => {
@@ -425,6 +456,26 @@ describe("peerAssessment controller core handlers", () => {
       expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+
+    it("returns 409 when update is outside deadline window", async () => {
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
+      serviceMocks.updateAssessmentAnswers.mockRejectedValue({
+        code: "ASSESSMENT_WINDOW_NOT_OPEN",
+        message: "Peer assessment is not open yet for your deadline profile",
+      });
+
+      await updateAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer assessment is not open yet for your deadline profile",
+      });
     });
   });
 });

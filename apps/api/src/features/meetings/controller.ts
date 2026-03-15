@@ -54,7 +54,10 @@ export async function createMeetingHandler(req: Request, res: Response) {
       agenda,
     });
     res.status(201).json(meeting);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "TEAM_ARCHIVED") {
+      return res.status(409).json({ error: "This team is archived and cannot create new meetings" });
+    }
     console.error("Error creating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -142,7 +145,7 @@ export async function getMinutesHandler(req: Request, res: Response) {
 
 export async function addCommentHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
-  const { userId, content } = req.body;
+  const { userId, content, teamId } = req.body;
 
   if (isNaN(meetingId)) {
     return res.status(400).json({ error: "Invalid meeting ID" });
@@ -153,7 +156,7 @@ export async function addCommentHandler(req: Request, res: Response) {
   }
 
   try {
-    const comment = await addComment(meetingId, userId, content);
+    const comment = await addComment(meetingId, userId, content, teamId);
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error adding comment:", error);

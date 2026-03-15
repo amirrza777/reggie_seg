@@ -52,11 +52,12 @@ export async function saveMinutes(
 export async function addComment(
   meetingId: number,
   userId: number,
-  content: string
+  content: string,
+  teamId?: number
 ) {
   return apiFetch(`/meetings/${meetingId}/comments`, {
     method: "POST",
-    body: JSON.stringify({ userId, content }),
+    body: JSON.stringify({ userId, content, teamId }),
   });
 }
 

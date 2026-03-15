@@ -1,21 +1,21 @@
 model TeamHealthMessage {
-  id              Int              @id @default(autoincrement())
-  projectId       Int
-  teamId          Int
-  requesterUserId Int
+  id               Int       @id @default(autoincrement())
+  projectId        Int
+  teamId           Int
+  requesterUserId  Int
   reviewedByUserId Int?
-  subject         String
-  details         String           @db.Text
-  responseText    String?          @db.Text
-  resolved        Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  reviewedAt      DateTime?
+  subject          String
+  details          String    @db.Text
+  responseText     String?   @db.Text
+  resolved         Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  reviewedAt       DateTime?
 
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_projectId_fkey")
-  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_teamId_fkey")
-  requester User    @relation("TeamHealthMessageRequester", fields: [requesterUserId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_requesterUserId_fkey")
-  reviewedBy User?  @relation("TeamHealthMessageReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "TeamHealthMessage_reviewedByUserId_fkey")
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_projectId_fkey")
+  team       Team    @relation(fields: [teamId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_teamId_fkey")
+  requester  User    @relation("TeamHealthMessageRequester", fields: [requesterUserId], references: [id], onDelete: Cascade, map: "TeamHealthMessage_requesterUserId_fkey")
+  reviewedBy User?   @relation("TeamHealthMessageReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull, map: "TeamHealthMessage_reviewedByUserId_fkey")
 
   @@index([projectId])
   @@index([teamId])

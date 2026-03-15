@@ -34,4 +34,18 @@ describe("search helpers", () => {
     });
     expect(byStatusLabel.map((item) => item.id)).toEqual([2]);
   });
+
+  it("supports fuzzy token matching for minor typos", () => {
+    const modules = [
+      { id: 1, moduleName: "Data Structures", teamName: "Team Gamma" },
+      { id: 2, moduleName: "Database Systems", teamName: "Team Alpha" },
+    ];
+
+    const looseMatch = filterBySearchQuery(modules, "daa structures", { fields: ["moduleName"] });
+    expect(looseMatch.map((item) => item.id)).toEqual([1]);
+
+    expect(matchesSearchQuery(modules[0], "daa structures", { fields: ["moduleName"] })).toBe(true);
+    expect(matchesSearchQuery(modules[0], "dt structures", { fields: ["moduleName"] })).toBe(false);
+    expect(matchesSearchQuery(modules[0], "quantum mechanics", { fields: ["moduleName"] })).toBe(false);
+  });
 });

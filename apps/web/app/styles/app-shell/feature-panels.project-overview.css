@@ -9,6 +9,9 @@
   padding: var(--space-panel-content-inset);
   background: linear-gradient(180deg, var(--surface-hero-start), var(--surface));
   box-shadow: var(--shadow-sm);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .project-overview-hero__stack {
@@ -49,13 +52,13 @@
 }
 
 .project-overview-hero__chip--override {
-  background: rgba(245, 158, 11, 0.12);
-  color: #b45309;
+  background: var(--status-warning-soft);
+  color: var(--status-warning-text);
 }
 
 .project-overview-hero__chip--default {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
+  background: var(--status-success-soft);
+  color: var(--status-success-text);
 }
 
 .project-overview-hero__facts {
@@ -159,15 +162,15 @@
 }
 
 .project-overview-status--passed {
-  color: #ef4444;
+  color: var(--status-danger);
 }
 
 .project-overview-status--soon {
-  color: #f59e0b;
+  color: var(--status-warning-text);
 }
 
 .project-overview-status--upcoming {
-  color: #10b981;
+  color: var(--status-success-text);
 }
 
 .project-overview-status--muted {
@@ -178,7 +181,10 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .project-overview-info__body {

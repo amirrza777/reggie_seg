@@ -38,13 +38,16 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
 
   const project = await getProject(String(projectId));
   const questions = await getQuestionsByProject(String(projectId));
-  let assessmentDeadline: string | null = null;
-  if (user) {
+  let assessmentOpenAt: string | null = null;
+  let assessmentDueAt: string | null = null;
+
+  if (user && Number.isFinite(projectId)) {
     try {
       const deadline = await getProjectDeadline(user.id, projectId);
-      assessmentDeadline = deadline.assessmentDueDate;
+      assessmentOpenAt = deadline.assessmentOpenDate;
+      assessmentDueAt = deadline.assessmentDueDate;
     } catch {
-      assessmentDeadline = null;
+      // Form still submits against backend guard if deadline endpoint is unavailable.
     }
   }
 
@@ -60,7 +63,8 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
           reviewerId={reviewerId}
           revieweeId={revieweeId}
           templateId={project.questionnaireTemplateId}
-          assessmentDeadline={assessmentDeadline}
+          assessmentOpenAt={assessmentOpenAt}
+          assessmentDueAt={assessmentDueAt}
         />
       )}
     </div>

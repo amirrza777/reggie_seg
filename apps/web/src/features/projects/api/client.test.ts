@@ -13,9 +13,11 @@ import {
   resolveStaffTeamHealthMessageWithDeadlineOverride,
   reviewStaffTeamHealthMessage,
   getStaffTeamHealthMessages,
+  createStaffProject,
   getProject,
   getProjectDeadline,
   getProjectMarking,
+  getStaffProjectTeams,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
@@ -68,7 +70,16 @@ describe("projects api client", () => {
 
   it("gets team by user and project", async () => {
     await getTeamByUserAndProject(7, 42);
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team?userId=7");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team?userId=7", {
+      cache: "no-store",
+    });
+  });
+
+  it("gets staff project teams without cache", async () => {
+    await getStaffProjectTeams(7, 42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams?userId=7", {
+      cache: "no-store",
+    });
   });
 
   it("gets project marking for the current user", async () => {
@@ -211,5 +222,30 @@ describe("projects api client", () => {
       }),
     });
     expect(result).toEqual(response);
+  it("creates a staff project", async () => {
+    const deadline = {
+      taskOpenDate: "2026-03-01T09:00:00.000Z",
+      taskDueDate: "2026-03-08T17:00:00.000Z",
+      assessmentOpenDate: "2026-03-09T09:00:00.000Z",
+      assessmentDueDate: "2026-03-12T17:00:00.000Z",
+      feedbackOpenDate: "2026-03-13T09:00:00.000Z",
+      feedbackDueDate: "2026-03-16T17:00:00.000Z",
+    };
+
+    await createStaffProject({
+      name: "Project A",
+      moduleId: 2,
+      questionnaireTemplateId: 9,
+      deadline,
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Project A",
+        moduleId: 2,
+        questionnaireTemplateId: 9,
+        deadline,
+      }),
+    });
   });
 });

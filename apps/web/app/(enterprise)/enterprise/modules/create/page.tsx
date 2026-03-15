@@ -1,14 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 import { Card } from "@/shared/ui/Card";
 
-export default function EnterpriseModuleCreatePage() {
+export default async function EnterpriseModuleCreatePage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!isEnterpriseAdmin(user) && !isAdmin(user)) redirect("/enterprise/modules");
+
   return (
     <div className="ui-page enterprise-module-create-page">
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Create module</h1>
         <p className="ui-page__description">
-          Capture module guidance and define access levels for owners/leaders, teaching assistants, and students.
+          Create the module shell and assign module leaders. Operational setup is managed in module edit.
         </p>
       </header>
 

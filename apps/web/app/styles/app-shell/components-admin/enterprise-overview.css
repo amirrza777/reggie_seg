@@ -26,6 +26,10 @@
   gap: 12px;
 }
 
+.enterprise-overview__snapshot-card .ui-grid-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .enterprise-overview .ui-metric-card {
   min-height: 92px;
   padding: 14px 14px;
@@ -218,3 +222,8 @@
   min-width: 132px;
 }
 
+@media (max-width: 480px) {
+  .enterprise-overview__snapshot-card .ui-grid-metrics {
+    grid-template-columns: 1fr;
+  }
+}

@@ -4,10 +4,10 @@ model Enterprise {
   name      String   @db.VarChar(120)
   createdAt DateTime @default(now())
 
-  users   User[]
-  modules Module[]
-  teams   Team[]
-  auditLogs AuditLog[]
+  users        User[]
+  modules      Module[]
+  teams        Team[]
+  auditLogs    AuditLog[]
   featureFlags FeatureFlag[]
 
   @@index([code])

@@ -8,21 +8,24 @@ type AssessmentPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export default async function AssessmentPage({params, searchParams}: AssessmentPageProps) {
+export default async function AssessmentPage({ params, searchParams }: AssessmentPageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
-  const { projectId , assessmentId } = resolvedParams;
+  const { projectId, assessmentId } = resolvedParams;
   const user = await getCurrentUser();
-  
+
   const assessment = await getPeerAssessmentById(Number(assessmentId));
   const questions = await getQuestionsByProject(String(projectId));
-  let assessmentDeadline: string | null = null;
+  let assessmentOpenAt: string | null = null;
+  let assessmentDueAt: string | null = null;
+
   if (user) {
     try {
       const deadline = await getProjectDeadline(user.id, Number(projectId));
-      assessmentDeadline = deadline.assessmentDueDate;
+      assessmentOpenAt = deadline.assessmentOpenDate;
+      assessmentDueAt = deadline.assessmentDueDate;
     } catch {
-      assessmentDeadline = null;
+      // Form still submits against backend guard if deadline endpoint is unavailable.
     }
   }
 
@@ -43,7 +46,8 @@ export default async function AssessmentPage({params, searchParams}: AssessmentP
           revieweeId={assessment.revieweeUserId}
           initialAnswers={assessment.answers}
           assessmentId={assessmentIdNum}
-          assessmentDeadline={assessmentDeadline}
+          assessmentOpenAt={assessmentOpenAt}
+          assessmentDueAt={assessmentDueAt}
         />
       ) : (
         <p>No questions found</p>

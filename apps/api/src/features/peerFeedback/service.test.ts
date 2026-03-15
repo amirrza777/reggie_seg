@@ -7,11 +7,19 @@ const repoMocks = vi.hoisted(() => ({
   getPeerAssessmentById: vi.fn(),
 }));
 
+const projectServiceMocks = vi.hoisted(() => ({
+  fetchProjectDeadline: vi.fn(),
+}));
+
 vi.mock("./repo.js", () => ({
   upsertPeerFeedback: repoMocks.upsertPeerFeedback,
   getPeerFeedbackByAssessmentId: repoMocks.getPeerFeedbackByAssessmentId,
   getPeerFeedbackByAssessmentIds: repoMocks.getPeerFeedbackByAssessmentIds,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
+}));
+
+vi.mock("../projects/service.js", () => ({
+  fetchProjectDeadline: projectServiceMocks.fetchProjectDeadline,
 }));
 
 import {
@@ -24,6 +32,11 @@ import {
 describe("peerFeedback service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    repoMocks.getPeerAssessmentById.mockResolvedValue({ id: 4, projectId: 11 });
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      feedbackOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+      feedbackDueDate: new Date("2026-03-31T23:59:59.000Z"),
+    });
   });
 
   it("saveFeedbackReview forwards mapped payload to repo with numeric user ids", async () => {
@@ -44,8 +57,46 @@ describe("peerFeedback service", () => {
       revieweeUserId: 9,
       reviewText: "Well done",
       agreementsJson: payload.agreements,
+      submittedLate: false,
+      effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
     });
     expect(result).toBe(expected);
+  });
+
+  it("saveFeedbackReview throws when peer assessment is missing", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue(null);
+
+    await expect(
+      saveFeedbackReview(4, {
+        reviewText: "Well done",
+        agreements: { "1": { selected: "Agree", score: 4 } },
+        reviewerUserId: "6",
+        revieweeUserId: "9",
+      }),
+    ).rejects.toMatchObject({ code: "PEER_ASSESSMENT_NOT_FOUND" });
+  });
+
+  it("saveFeedbackReview allows late feedback and marks it", async () => {
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      feedbackOpenDate: new Date("2020-03-01T09:00:00.000Z"),
+      feedbackDueDate: new Date("2020-03-31T23:59:59.000Z"),
+    });
+    repoMocks.upsertPeerFeedback.mockResolvedValue({ id: 200 });
+
+    await expect(
+      saveFeedbackReview(4, {
+        reviewText: "Well done",
+        agreements: { "1": { selected: "Agree", score: 4 } },
+        reviewerUserId: "6",
+        revieweeUserId: "9",
+      }),
+    ).resolves.toEqual({ id: 200 });
+    expect(repoMocks.upsertPeerFeedback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
   });
 
   it("getFeedbackReview forwards assessment id to repo", async () => {

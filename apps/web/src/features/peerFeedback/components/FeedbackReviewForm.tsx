@@ -17,6 +17,8 @@ type FeedbackReviewFormProps = {
   redirectTo?: "back" | string;
   currentUserId: string;
   feedbackDeadline?: string | null;
+  feedbackOpenAt?: string | null;
+  feedbackDueAt?: string | null;
 };
 
 const radioInputStyle: CSSProperties = {
@@ -28,6 +30,7 @@ const radioInputStyle: CSSProperties = {
   background: "transparent",
   flex: "0 0 auto",
 };
+
 const countdownBoxStyle: CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 8,
@@ -51,6 +54,16 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
+function toDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value: Date | null): string {
+  return value ? value.toLocaleString() : "Not set";
+}
+
 function renderAnswerPreview(answer: Answer) {
   const type = answer.type ?? "text";
 
@@ -65,17 +78,8 @@ function renderAnswerPreview(answer: Answer) {
     return (
       <div className="answerPreviewGroup">
         {options.map((option) => (
-          <label
-            key={`${answer.id}-option-${option}`}
-            className="answerPreviewOption"
-          >
-            <input
-              type="radio"
-              style={radioInputStyle}
-              checked={selected === option}
-              readOnly
-              disabled
-            />
+          <label key={`${answer.id}-option-${option}`} className="answerPreviewOption">
+            <input type="radio" style={radioInputStyle} checked={selected === option} readOnly disabled />
             <span>{option}</span>
           </label>
         ))}
@@ -92,17 +96,8 @@ function renderAnswerPreview(answer: Answer) {
     return (
       <div className="answerPreviewGroup answerPreviewGroup--rating">
         {Array.from({ length: max - min + 1 }, (_, index) => min + index).map((value) => (
-          <label
-            key={`${answer.id}-rating-${value}`}
-            className="answerPreviewOption"
-          >
-            <input
-              type="radio"
-              style={radioInputStyle}
-              checked={selected === value}
-              readOnly
-              disabled
-            />
+          <label key={`${answer.id}-rating-${value}`} className="answerPreviewOption">
+            <input type="radio" style={radioInputStyle} checked={selected === value} readOnly disabled />
             <span>{value}</span>
           </label>
         ))}
@@ -120,9 +115,7 @@ function renderAnswerPreview(answer: Answer) {
 
     return (
       <div className="answerPreviewSlider">
-        {answer.configs?.helperText ? (
-          <p className="muted" style={{ margin: 0 }}>{answer.configs.helperText}</p>
-        ) : null}
+        {answer.configs?.helperText ? <p className="muted" style={{ margin: 0 }}>{answer.configs.helperText}</p> : null}
         {answer.configs?.left || answer.configs?.right ? (
           <div className="answerPreviewSliderLabels">
             <span>{answer.configs?.left}</span>
@@ -172,7 +165,9 @@ export function FeedbackReviewForm({
   initialAgreements,
   redirectTo = "back",
   currentUserId,
-  feedbackDeadline,
+  feedbackDeadline = null,
+  feedbackOpenAt = null,
+  feedbackDueAt = null,
 }: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
@@ -180,11 +175,22 @@ export function FeedbackReviewForm({
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!initialReview);
   const editingMode = !!initialReview;
-  const deadlineTimestamp = useMemo(() => {
-    if (!feedbackDeadline) return null;
-    const timestamp = new Date(feedbackDeadline).getTime();
-    return Number.isFinite(timestamp) ? timestamp : null;
-  }, [feedbackDeadline]);
+
+  const openAt = toDate(feedbackOpenAt);
+  const dueAt = toDate(feedbackDueAt ?? feedbackDeadline);
+  const now = new Date();
+  const isBeforeOpen = Boolean(openAt && now < openAt);
+  const isAfterDue = Boolean(dueAt && now > dueAt);
+  const canSubmit = !isBeforeOpen;
+  const deadlineStatusMessage = isBeforeOpen
+    ? `Peer feedback is locked until ${formatDateLabel(openAt)}.`
+    : isAfterDue
+      ? `Peer feedback deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
+      : dueAt
+        ? `Peer feedback is open. Deadline: ${formatDateLabel(dueAt)}.`
+        : null;
+
+  const deadlineTimestamp = useMemo(() => dueAt?.getTime() ?? null, [dueAt]);
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const remainingSeconds = useMemo(() => {
     if (deadlineTimestamp == null || currentTimestamp == null) return null;
@@ -209,14 +215,16 @@ export function FeedbackReviewForm({
       setCurrentTimestamp(Date.now());
     };
     tick();
-    const interval = window.setInterval(() => {
-      tick();
-    }, 1000);
+    const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
   }, [deadlineTimestamp]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isBeforeOpen) {
+      setMessage(deadlineStatusMessage ?? "Peer feedback is outside the allowed deadline window.");
+      return;
+    }
     if (!review.trim()) {
       setMessage("Please provide a review before submitting.");
       return;
@@ -253,11 +261,7 @@ export function FeedbackReviewForm({
         router.refresh();
       }
     } catch (err) {
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : "Failed to submit peer feedback"
-      );
+      setMessage(err instanceof Error ? err.message : "Failed to submit peer feedback");
     } finally {
       setIsLoading(false);
     }
@@ -279,26 +283,36 @@ export function FeedbackReviewForm({
           <p className="muted" style={{ margin: 0 }}>
             Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
           </p>
+          {deadlineStatusMessage ? (
+            <p className={canSubmit ? "muted" : "error"} style={{ margin: 0 }}>
+              {deadlineStatusMessage}
+            </p>
+          ) : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {remainingSeconds != null ? (
-            <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div>
-          ) : null}
-          {editingMode && !isEditing && (
-            <Button onClick={() => setIsEditing(true)} disabled={isLoading}>
+          {remainingSeconds != null ? <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div> : null}
+          {editingMode && !isEditing ? (
+            <Button onClick={() => setIsEditing(true)} disabled={isLoading || !canSubmit}>
               Edit
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
         <label className="stack reviewLabel">
           <span>Your Review</span>
           {isEditing ? (
-            <textarea rows={4} placeholder="Type your response here..." value={review} onChange={(e) => setReview(e.target.value)} disabled={isLoading} className="textarea"/>
+            <textarea
+              rows={4}
+              placeholder="Type your response here..."
+              value={review}
+              onChange={(e) => setReview(e.target.value)}
+              disabled={isLoading}
+              className="textarea"
+            />
           ) : (
             <div className="reviewBox">
-              <p className="reviewText">{review || '(No review provided)'}</p>
+              <p className="reviewText">{review || "(No review provided)"}</p>
             </div>
           )}
         </label>
@@ -314,10 +328,10 @@ export function FeedbackReviewForm({
                 <label className="labelBlock">
                   {isEditing ? (
                     <select
-                      value={agreements[getAnswerKey(a)]?.selected ?? 'Reasonable'}
+                      value={agreements[getAnswerKey(a)]?.selected ?? "Reasonable"}
                       onChange={(e) => {
                         const selected = e.target.value as AgreementOption;
-                        const score = AGREEMENT_OPTIONS.find(o => o.label === selected)?.score ?? 3;
+                        const score = AGREEMENT_OPTIONS.find((option) => option.label === selected)?.score ?? 3;
                         setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
                       }}
                       disabled={isLoading}
@@ -331,7 +345,7 @@ export function FeedbackReviewForm({
                     </select>
                   ) : (
                     <span className="agreementSpan">
-                      {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? 'Not selected'}
+                      {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
                     </span>
                   )}
                 </label>
@@ -340,26 +354,18 @@ export function FeedbackReviewForm({
           </ul>
         </div>
 
-        {isEditing && (
+        {isEditing ? (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !canSubmit}>
               {isLoading ? "Submitting..." : editingMode ? "Update Review" : "Submit Review"}
             </Button>
             <Button type="button" onClick={handleBack} disabled={isLoading}>
               Back
             </Button>
           </div>
-        )}
-        {editingMode && !isEditing && (
-          <Button onClick={handleBack}>
-            Back
-          </Button>
-        )}
-        {message ? (
-          <p className={message.includes("success") ? "" : "muted"}>
-            {message}
-          </p>
         ) : null}
+        {editingMode && !isEditing ? <Button onClick={handleBack}>Back</Button> : null}
+        {message ? <p className={message.includes("success") ? "" : "muted"}>{message}</p> : null}
       </form>
     </div>
   );

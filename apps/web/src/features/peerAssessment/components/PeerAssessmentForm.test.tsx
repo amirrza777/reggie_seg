@@ -182,4 +182,46 @@ describe("PeerAssessmentForm", () => {
     expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
     vi.useRealTimers();
   });
+
+  it("locks submission when assessment window has not opened yet", async () => {
+    const openAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+
+    renderForm({ assessmentOpenAt: openAt, assessmentDueAt: dueAt });
+
+    const saveButton = screen.getByRole("button", { name: /save assessment/i });
+    expect(saveButton).toBeDisabled();
+    expect(screen.getByText(/peer assessment is locked until/i)).toBeInTheDocument();
+
+    fireEvent.click(saveButton);
+    await waitFor(() => {
+      expect(createPeerAssessmentMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("allows submission after due date and marks message as late", async () => {
+    const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    renderForm({ assessmentOpenAt: openAt, assessmentDueAt: dueAt });
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Late but submitted." },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Excellent" }));
+    fireEvent.click(screen.getByRole("radio", { name: "4" }));
+    fireEvent.change(screen.getByRole("slider"), {
+      target: { value: "80" },
+    });
+
+    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
+
+    const saveButton = screen.getByRole("button", { name: /save assessment/i });
+    expect(saveButton).toBeEnabled();
+
+    fireEvent.click(saveButton);
+    await waitFor(() => {
+      expect(createPeerAssessmentMock).toHaveBeenCalled();
+    });
+  });
 });

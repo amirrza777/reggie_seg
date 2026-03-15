@@ -135,7 +135,7 @@
   color: var(--status-danger-text);
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .trello-link-board {
     grid-template-rows: auto auto auto;
     min-height: auto;

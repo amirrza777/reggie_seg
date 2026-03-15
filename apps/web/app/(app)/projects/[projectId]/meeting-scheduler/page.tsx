@@ -1,4 +1,4 @@
-import { MeetingSchedulerContent } from "@/features/meetings/components/MeetingSchedulerContent";
+import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPageContent";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
@@ -22,7 +22,7 @@ export default async function MeetingSchedulerPage({ params }: PageProps) {
   }
 
   if (team) {
-    return <MeetingSchedulerContent teamId={team.id} projectId={numericProjectId} />;
+    return <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />;
   }
 
   return (

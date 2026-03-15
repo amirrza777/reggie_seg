@@ -17,19 +17,22 @@ export default async function PeerFeedbackReview(props : ProjectPageProps) {
   const user = await getCurrentUser();
   const feedback: PeerFeedback = await getPeerFeedbackById(feedbackId);
   let existingReview: Awaited<ReturnType<typeof getFeedbackReview>> | null = null;
-  let feedbackDeadline: string | null = null;
+  let feedbackOpenAt: string | null = null;
+  let feedbackDueAt: string | null = null;
+
+  if (user) {
+    try {
+      const deadline = await getProjectDeadline(user.id, Number(projectId));
+      feedbackOpenAt = deadline.feedbackOpenDate;
+      feedbackDueAt = deadline.feedbackDueDate;
+    } catch {
+      // Form still submits against backend guard if deadline endpoint is unavailable.
+    }
+  }
   try {
     existingReview = await getFeedbackReview(feedbackId);
   } catch {
     existingReview = null;
-  }
-  if (user?.id) {
-    try {
-      const deadline = await getProjectDeadline(user.id, Number(projectId));
-      feedbackDeadline = deadline.feedbackDueDate;
-    } catch {
-      feedbackDeadline = null;
-    }
   }
   const currentUserId = user ? String(user.id) : feedback.revieweeId;
 
@@ -39,9 +42,15 @@ export default async function PeerFeedbackReview(props : ProjectPageProps) {
       initialReview={existingReview.reviewText ?? ""}
       initialAgreements={existingReview.agreementsJson ?? null}
       currentUserId={currentUserId}
-      feedbackDeadline={feedbackDeadline}
+      feedbackOpenAt={feedbackOpenAt}
+      feedbackDueAt={feedbackDueAt}
     />
   ) : (
-    <FeedbackReviewForm feedback={feedback} currentUserId={currentUserId} feedbackDeadline={feedbackDeadline} />
+    <FeedbackReviewForm
+      feedback={feedback}
+      currentUserId={currentUserId}
+      feedbackOpenAt={feedbackOpenAt}
+      feedbackDueAt={feedbackDueAt}
+    />
   );
 }

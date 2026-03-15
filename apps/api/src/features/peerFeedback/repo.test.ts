@@ -76,6 +76,8 @@ describe("peerFeedback repo", () => {
         revieweeUserId: 9,
         reviewText: "Constructive review",
         agreementsJson: { "1": { selected: "Agree", score: 4 } },
+        submittedLate: false,
+        effectiveDueDate: null,
       },
       include: {
         peerAssessment: {
@@ -123,7 +125,7 @@ describe("peerFeedback repo", () => {
     expect(prismaMock.peerFeedback.upsert).toHaveBeenCalledWith(
       expect.objectContaining({
         update: expect.objectContaining({ reviewText: null }),
-        create: expect.objectContaining({ reviewText: null }),
+        create: expect.objectContaining({ reviewText: null, submittedLate: false, effectiveDueDate: null }),
       }),
     );
   });

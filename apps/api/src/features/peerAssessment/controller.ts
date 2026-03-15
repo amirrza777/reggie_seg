@@ -64,21 +64,30 @@ export async function createAssessmentHandler(req: Request, res: Response) {
       project.questionnaireTemplate.questions
     );
 
-    const assessment = await saveAssessment({ 
+    const assessment = await saveAssessment({
       projectId: numericProjectId,
       teamId: numericTeamId,
       reviewerUserId: numericReviewerUserId,
       revieweeUserId: numericRevieweeUserId,
       templateId: numericTemplateId,
-      answersJson: normalizedAnswers
-    })
-    res.json({ ok: true, assessmentId: assessment.id })
-  } catch (error: unknown) {
+      answersJson: normalizedAnswers,
+    });
+
+    res.json({ ok: true, assessmentId: assessment.id });
+  } catch (error: any) {
     if (error instanceof AssessmentAnswerValidationError) {
       return res.status(400).json({ error: error.message });
     }
-    console.error("Error creating peer assessment:", error)
-    res.status(500).json({ error: "Internal server error" })
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "This project is archived and cannot accept new assessments" });
+    }
+    if (error?.code === "ASSESSMENT_WINDOW_NOT_OPEN" || error?.code === "ASSESSMENT_DEADLINE_PASSED") {
+      return res.status(409).json({
+        error: error?.message ?? "Peer assessment is outside the allowed deadline window",
+      });
+    }
+    console.error("Error creating peer assessment:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 }
 
@@ -135,6 +144,9 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
     }
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Peer assessment not found" })
+    }
+    if (error?.code === "ASSESSMENT_WINDOW_NOT_OPEN" || error?.code === "ASSESSMENT_DEADLINE_PASSED") {
+      return res.status(409).json({ error: error?.message ?? "Peer assessment is outside the allowed deadline window" })
     }
     console.error("Error updating peer assessment:", error)
     res.status(500).json({ error: "Internal server error" })

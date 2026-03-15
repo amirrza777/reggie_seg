@@ -253,7 +253,7 @@
   color: var(--ink);
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .auth-card {
     padding: 0;
   }

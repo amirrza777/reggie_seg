@@ -1,0 +1,2 @@
+ALTER TABLE `Project` ADD COLUMN `noRepoAlertSentAt` DATETIME(3) NULL;
+ALTER TABLE `Team` ADD COLUMN `noGithubAccountAlertSentAt` DATETIME(3) NULL;

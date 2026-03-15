@@ -13,7 +13,10 @@ vi.mock("./controller.js", () => ({
   confirmEmailChangeHandler: vi.fn(),
 }));
 
-vi.mock("./middleware.js", () => ({ requireAuth: vi.fn((_req: any, _res: any, next: any) => next()) }));
+vi.mock("./middleware.js", () => ({
+  requireAuth: vi.fn((_req: any, _res: any, next: any) => next()),
+  optionalAuth: vi.fn((_req: any, _res: any, next: any) => next()),
+}));
 vi.mock("passport", () => ({
   default: {
     authenticate: vi.fn(() => (_req: any, _res: any, next: any) => (next ? next() : undefined)),
@@ -53,7 +56,7 @@ describe("auth router", () => {
     expect(res.status).toHaveBeenCalledWith(503);
   });
 
-  it("google callback issues tokens, sets cookie and redirects non-admin users to modules", async () => {
+  it("google callback issues tokens, sets cookie and redirects to app-home resolver", async () => {
     vi.resetModules();
     vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
     const { issueTokensForUser } = await import("./service.js");
@@ -71,10 +74,12 @@ describe("auth router", () => {
       "r",
       expect.objectContaining({ httpOnly: true, path: "/" })
     );
-    expect(res.redirect).toHaveBeenCalledWith("http://localhost:3001/modules");
+    expect(res.redirect).toHaveBeenCalledWith(
+      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
+    );
   });
 
-  it("google callback redirects admin users to admin space", async () => {
+  it("google callback sends admins through app-home resolver", async () => {
     vi.resetModules();
     vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
     const { default: router } = await import("./router.js");
@@ -85,6 +90,40 @@ describe("auth router", () => {
 
     await callbackHandler({ user: { id: 5, email: "admin@test.com", role: "ADMIN" } } as any, res);
 
-    expect(res.redirect).toHaveBeenCalledWith("http://localhost:3001/admin");
+    expect(res.redirect).toHaveBeenCalledWith(
+      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
+    );
+  });
+
+  it("google callback sends staff users through app-home resolver", async () => {
+    vi.resetModules();
+    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
+    const { default: router } = await import("./router.js");
+
+    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
+    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
+    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
+
+    await callbackHandler({ user: { id: 5, email: "staff@test.com", role: "STAFF" } } as any, res);
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
+    );
+  });
+
+  it("google callback sends enterprise admins through app-home resolver", async () => {
+    vi.resetModules();
+    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
+    const { default: router } = await import("./router.js");
+
+    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
+    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
+    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
+
+    await callbackHandler({ user: { id: 5, email: "ea@test.com", role: "ENTERPRISE_ADMIN" } } as any, res);
+
+    expect(res.redirect).toHaveBeenCalledWith(
+      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
+    );
   });
 });

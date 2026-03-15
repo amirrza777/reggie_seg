@@ -1,0 +1,178 @@
+@media (max-width: 860px) {
+  .module-dashboard__panel {
+    min-height: 0;
+  }
+
+  .module-dashboard__table .table__head {
+    display: none;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+    align-items: start;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div {
+    display: grid;
+    grid-template-columns: var(--responsive-table-label-column-width, clamp(96px, 28vw, 136px)) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 12px;
+    row-gap: 6px;
+    min-width: 0;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div::before {
+    display: block;
+    font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--fw-semibold);
+    line-height: 1.2;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div > * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(1)::before {
+    content: "When?";
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(2)::before {
+    content: "Date & time";
+  }
+
+  .module-dashboard__timeline-table .module-dashboard__timeline-row > div:nth-child(3)::before {
+    content: "Details";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(1)::before {
+    content: "Expectation";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(2)::before {
+    content: "Target";
+  }
+
+  .module-dashboard__expectations-table .module-dashboard__expectations-row > div:nth-child(3)::before {
+    content: "Owner";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(1)::before {
+    content: "Assessment";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(2)::before {
+    content: "Latest mark";
+  }
+
+  .module-dashboard__marks-table .module-dashboard__marks-row > div:nth-child(3)::before {
+    content: "Status";
+  }
+}
+
+@media (max-width: 560px) {
+  .module-dashboard__table .module-dashboard__table-row > div {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .module-dashboard__table .module-dashboard__table-row > div::before,
+  .module-dashboard__table .module-dashboard__table-row > div > * {
+    grid-column: 1;
+  }
+}
+
+.progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8px;
+  background-color: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar__fill {
+  height: 100%;
+  width: 0%;
+  background-color: var(--accent-strong);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progress-bar__label {
+  min-width: fit-content;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: var(--backdrop-strong);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 24px 56px;
+  z-index: 9000;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal__dialog {
+  background: var(--surface);
+  border-radius: 14px;
+  width: min(720px, 96vw);
+  overflow: hidden;
+  max-height: min(78vh, 820px);
+  position: relative;
+  z-index: 9001;
+  margin: auto;
+}
+
+.modal__header,
+.modal__footer {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal__footer {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+}
+
+.modal__body {
+  padding: 16px;
+}
+
+.modal__close-btn {
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: inherit;
+}
+

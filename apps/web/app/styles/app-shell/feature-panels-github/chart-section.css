@@ -66,6 +66,10 @@
   padding: 10px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .github-chart-section__panel--full {
@@ -87,4 +91,3 @@
 .github-chart-section__canvas--md {
   height: 220px;
 }
-

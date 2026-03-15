@@ -1,0 +1,57 @@
+/* Shared responsive foundation for app-shell content.
+   Complex screens still add their own component-specific rules. */
+
+.workspace-shell,
+.workspace-shell > *,
+.workspace-shell .card,
+.workspace-shell .card__body,
+.workspace-shell .table,
+.workspace-shell .table__head,
+.workspace-shell .table__row {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.workspace-shell :is(.table__head, .table__row) > * {
+  min-width: 0;
+}
+
+.workspace-shell :is(.card__header, .card__body, .table__head, .table__row, .ui-row, .ui-toolbar, .ui-grid-metrics) > * {
+  min-width: 0;
+}
+
+.workspace-shell :is(
+    .card__title,
+    .ui-note,
+    .muted,
+    .eyebrow,
+    .ui-metric-value,
+    .table__head > *,
+    .table__row > *,
+    .ui-stack-xs > *,
+    .ui-stack-sm > *,
+    .ui-stack-md > *,
+    .ui-stack-lg > *,
+    .status-chip,
+    .audit-badge,
+    .module-dashboard__when
+  ) {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.workspace-shell :is(.btn, .status-chip, .audit-badge, .module-dashboard__when) {
+  max-width: 100%;
+}
+
+.workspace-shell :is(.btn, .status-chip, .audit-badge) {
+  white-space: normal;
+}
+
+/* Panels should allow horizontal panning when content exceeds available inline size. */
+.workspace-shell .card {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}

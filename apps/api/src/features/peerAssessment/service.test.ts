@@ -11,6 +11,14 @@ const repoMocks = vi.hoisted(() => ({
   getProjectQuestionnaireTemplate: vi.fn(),
 }));
 
+const projectServiceMocks = vi.hoisted(() => ({
+  fetchProjectDeadline: vi.fn(),
+}));
+
+const prismaMocks = vi.hoisted(() => ({
+  projectFindUnique: vi.fn(),
+}));
+
 vi.mock("./repo.js", () => ({
   getTeammates: repoMocks.getTeammates,
   createPeerAssessment: repoMocks.createPeerAssessment,
@@ -20,6 +28,18 @@ vi.mock("./repo.js", () => ({
   getQuestionsForProject: repoMocks.getQuestionsForProject,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
   getProjectQuestionnaireTemplate: repoMocks.getProjectQuestionnaireTemplate,
+}));
+
+vi.mock("../projects/service.js", () => ({
+  fetchProjectDeadline: projectServiceMocks.fetchProjectDeadline,
+}));
+
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    project: {
+      findUnique: prismaMocks.projectFindUnique,
+    },
+  },
 }));
 
 import {
@@ -36,6 +56,11 @@ import {
 describe("peerAssessment service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMocks.projectFindUnique.mockResolvedValue(null);
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2026-03-31T23:59:59.000Z"),
+    });
   });
 
   it("fetchTeammates forwards to repo", async () => {
@@ -62,8 +87,72 @@ describe("peerAssessment service", () => {
 
     const result = await saveAssessment(payload);
 
-    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(payload);
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: false,
+        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      }),
+    );
     expect(result).toBe(expected);
+  });
+
+  it("saveAssessment blocks archived project", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    prismaMocks.projectFindUnique.mockResolvedValue({ archivedAt: new Date() });
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "PROJECT_ARCHIVED" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
+  it("saveAssessment blocks submissions before assessment open", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("3026-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("3026-03-31T23:59:59.000Z"),
+    });
+
+    await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "ASSESSMENT_WINDOW_NOT_OPEN" });
+    expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();
+  });
+
+  it("saveAssessment allows late submissions and marks them", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "Great work" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2020-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2020-03-31T23:59:59.000Z"),
+    });
+    repoMocks.createPeerAssessment.mockResolvedValue({ id: 99 });
+
+    await expect(saveAssessment(payload)).resolves.toEqual({ id: 99 });
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
   });
 
   it("fetchAssessment forwards to repo", async () => {
@@ -79,12 +168,57 @@ describe("peerAssessment service", () => {
   it("updateAssessmentAnswers forwards to repo", async () => {
     const answers = [{ questionId: 1, answer: "Updated" }];
     const expected = { id: 11 };
+    repoMocks.getPeerAssessmentById.mockResolvedValue({
+      id: 11,
+      projectId: 1,
+      reviewerUserId: 4,
+      submittedLate: false,
+    });
     repoMocks.updatePeerAssessment.mockResolvedValue(expected);
 
     const result = await updateAssessmentAnswers(11, answers);
 
-    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(11, answers);
+    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(
+      11,
+      answers,
+      expect.objectContaining({
+        submittedLate: false,
+        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      }),
+    );
     expect(result).toBe(expected);
+  });
+
+  it("updateAssessmentAnswers keeps late flag once deadline has passed", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue({
+      id: 12,
+      projectId: 1,
+      reviewerUserId: 4,
+      submittedLate: false,
+    });
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: new Date("2020-03-01T09:00:00.000Z"),
+      assessmentDueDate: new Date("2020-03-31T23:59:59.000Z"),
+    });
+    repoMocks.updatePeerAssessment.mockResolvedValue({ id: 12 });
+
+    await updateAssessmentAnswers(12, { 1: "Late edit" });
+
+    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(
+      12,
+      { 1: "Late edit" },
+      expect.objectContaining({
+        submittedLate: true,
+        effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
+  });
+
+  it("updateAssessmentAnswers returns P2025 when assessment cannot be found", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue(null);
+
+    await expect(updateAssessmentAnswers(999, [{ q: 1 }])).rejects.toMatchObject({ code: "P2025" });
+    expect(repoMocks.updatePeerAssessment).not.toHaveBeenCalled();
   });
 
   it("fetchTeammateAssessments forwards to repo", async () => {

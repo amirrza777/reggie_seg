@@ -1,5 +1,7 @@
 import { apiFetch } from "@/shared/api/http";
 import type {
+  CreateStaffProjectPayload,
+  CreatedStaffProject,
   Project,
   ProjectDeadline,
   StaffTeamDeadlineDetails,
@@ -10,6 +12,8 @@ import type {
   StaffProject,
   StaffProjectTeamsResponse,
   TeamHealthMessage,
+  StaffStudentDeadlineOverride,
+  StaffStudentDeadlineOverridePayload,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -34,7 +38,9 @@ export async function getTeamById(teamId: number): Promise<Team> {
 }
 
 export async function getTeamByUserAndProject(userId: number, projectId: number): Promise<Team> {
-  return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`);
+  return apiFetch<Team>(`/projects/${projectId}/team?userId=${userId}`, {
+    cache: "no-store",
+  });
 }
 
 export async function getProjectMarking(userId: number, projectId: number): Promise<ProjectMarkingSummary> {
@@ -48,7 +54,70 @@ export async function getStaffProjects(userId: number): Promise<StaffProject[]> 
 }
 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
-  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`);
+  return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`, {
+    cache: "no-store",
+  });
+}
+
+export async function createStaffProject(payload: CreateStaffProjectPayload): Promise<CreatedStaffProject> {
+  return apiFetch<CreatedStaffProject>("/projects", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function dismissTeamFlag(teamId: number): Promise<void> {
+  await apiFetch(`/teams/${teamId}/dismiss-flag`, { method: "PATCH" });
+}
+
+export async function updateStaffTeamDeadlineProfile(
+  teamId: number,
+  deadlineProfile: "STANDARD" | "MCF",
+): Promise<{ id: number; deadlineProfile: "STANDARD" | "MCF" }> {
+  return apiFetch<{ id: number; deadlineProfile: "STANDARD" | "MCF" }>(
+    `/projects/staff/teams/${teamId}/deadline-profile`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ deadlineProfile }),
+    },
+  );
+}
+
+export async function getStaffStudentDeadlineOverrides(
+  projectId: number,
+): Promise<StaffStudentDeadlineOverride[]> {
+  const response = await apiFetch<{ overrides: StaffStudentDeadlineOverride[] }>(
+    `/projects/staff/${projectId}/students/deadline-overrides`,
+    { cache: "no-store" }
+  );
+  return response.overrides;
+}
+
+export async function upsertStaffStudentDeadlineOverride(
+  projectId: number,
+  studentId: number,
+  payload: StaffStudentDeadlineOverridePayload,
+): Promise<StaffStudentDeadlineOverride> {
+  const response = await apiFetch<{ override: StaffStudentDeadlineOverride }>(
+    `/projects/staff/${projectId}/students/${studentId}/deadline-override`,
+    {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    },
+  );
+  return response.override;
+}
+
+export async function clearStaffStudentDeadlineOverride(
+  projectId: number,
+  studentId: number,
+): Promise<{ cleared: boolean }> {
+  return apiFetch<{ cleared: boolean }>(
+    `/projects/staff/${projectId}/students/${studentId}/deadline-override`,
+    {
+      method: "DELETE",
+    },
+  );
 }
 
 export async function createTeamHealthMessage(

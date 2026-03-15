@@ -42,18 +42,27 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     "/staff/analytics",
     "/staff/questionnaires",
   ];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [
-    { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
-    { href: "/staff/dashboard", label: "Staff" },
-    { href: enterpriseHomeHref, label: "Enterprise" },
-  ];
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
+  spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
+  spaceLinks.push({ href: enterpriseHomeHref, label: "Enterprise" });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref={enterpriseHomeHref} actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Enterprise sections" links={enterpriseNav} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={enterpriseNav} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref={enterpriseHomeHref}
+          actions={<UserMenu />}
+        />
+      }
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

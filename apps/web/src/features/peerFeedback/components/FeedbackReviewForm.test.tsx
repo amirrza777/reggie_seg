@@ -76,7 +76,7 @@ describe("FeedbackReviewForm", () => {
           }),
         }),
         "4",
-        "9",
+        "9"
       );
     });
 
@@ -90,7 +90,7 @@ describe("FeedbackReviewForm", () => {
         feedback={makeFeedback()}
         currentUserId="4"
         redirectTo="/projects/1/peer-feedback"
-      />,
+      />
     );
 
     fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
@@ -111,7 +111,7 @@ describe("FeedbackReviewForm", () => {
         feedback={makeFeedback()}
         currentUserId="4"
         onSubmit={onSubmit}
-      />,
+      />
     );
 
     fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
@@ -126,7 +126,7 @@ describe("FeedbackReviewForm", () => {
           agreements: expect.objectContaining({
             q1: { selected: "Reasonable", score: 3 },
           }),
-        }),
+        })
       );
     });
     expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe("FeedbackReviewForm", () => {
         feedback={makeFeedback()}
         currentUserId="4"
         initialReview="Existing review"
-      />,
+      />
     );
 
     expect(screen.getByRole("heading", { name: "View Review" })).toBeInTheDocument();
@@ -203,5 +203,53 @@ describe("FeedbackReviewForm", () => {
 
     expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
     vi.useRealTimers();
+  });
+
+  it("locks submit when feedback window has not opened yet", async () => {
+    const openAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackOpenAt={openAt}
+        feedbackDueAt={dueAt}
+      />
+    );
+
+    const submitButton = screen.getByRole("button", { name: "Submit Review" });
+    expect(submitButton).toBeDisabled();
+    expect(screen.getByText(/peer feedback is locked until/i)).toBeInTheDocument();
+
+    fireEvent.click(submitButton);
+    await waitFor(() => {
+      expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
+    });
+  });
+
+  it("allows submit after due date and shows late message", async () => {
+    const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    render(
+      <FeedbackReviewForm
+        feedback={makeFeedback()}
+        currentUserId="4"
+        feedbackOpenAt={openAt}
+        feedbackDueAt={dueAt}
+      />
+    );
+
+    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
+    const submitButton = screen.getByRole("button", { name: "Submit Review" });
+    expect(submitButton).toBeEnabled();
+
+    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
+      target: { value: "Late response" },
+    });
+    fireEvent.click(submitButton);
+
+    await waitFor(() => {
+      expect(submitPeerFeedbackMock).toHaveBeenCalled();
+    });
   });
 });
