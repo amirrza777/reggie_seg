@@ -32,8 +32,8 @@ export default async function StaffModulesPage() {
         <h1 className="projects-panel__title">My Modules</h1>
         <p className="projects-panel__subtitle">{subtitle}</p>
         <div className="staff-projects__meta">
-          <Link href="/staff/projects/create" className="staff-projects__badge">
-            Create project
+          <Link href="/staff/projects" className="staff-projects__badge">
+            Open staff projects
           </Link>
         </div>
       </header>

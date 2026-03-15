@@ -22,14 +22,20 @@ const ACCESS_USERS_PAGE_SIZE = 20;
 type EnterpriseModuleCreateFormProps = {
   mode?: "create" | "edit";
   moduleId?: number;
+  workspace?: "enterprise" | "staff";
 };
 
 type RequestState = "idle" | "loading" | "success" | "error";
 type AccessBucket = "staff" | "ta" | "students";
 
-export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: EnterpriseModuleCreateFormProps) {
+export function EnterpriseModuleCreateForm({
+  mode = "create",
+  moduleId,
+  workspace = "enterprise",
+}: EnterpriseModuleCreateFormProps) {
   const router = useRouter();
   const isEditMode = mode === "edit";
+  const modulesHomeHref = workspace === "staff" ? "/staff/modules" : "/enterprise/modules";
 
   const [moduleName, setModuleName] = useState("");
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
@@ -283,13 +289,17 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
           taIds,
           studentIds,
         });
-        router.push("/enterprise/modules");
+        router.push(modulesHomeHref);
       } else {
         const createdModule = await createEnterpriseModule({
           name,
           leaderIds,
         });
-        router.push(`/enterprise/modules/${createdModule.id}/edit`);
+        const nextHref =
+          workspace === "staff"
+            ? `/staff/modules/${createdModule.id}/manage`
+            : `/enterprise/modules/${createdModule.id}/edit`;
+        router.push(nextHref);
       }
       router.refresh();
     } catch (err) {
@@ -311,7 +321,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
 
     try {
       await deleteEnterpriseModule(moduleId);
-      router.push("/enterprise/modules");
+      router.push(modulesHomeHref);
       router.refresh();
     } catch (err) {
       setErrorMessage(resolveModuleActionError(err, "delete"));
@@ -377,7 +387,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
           <span>{errorMessage ?? "Only module owners/leaders can edit this module."}</span>
         </div>
         <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-          <Button type="button" variant="ghost" onClick={() => router.push("/enterprise/modules")}>
+          <Button type="button" variant="ghost" onClick={() => router.push(modulesHomeHref)}>
             Back to modules
           </Button>
         </div>
@@ -819,7 +829,7 @@ export function EnterpriseModuleCreateForm({ mode = "create", moduleId }: Enterp
         <Button
           type="button"
           variant="ghost"
-          onClick={() => router.push("/enterprise/modules")}
+          onClick={() => router.push(modulesHomeHref)}
           disabled={isSubmitting || isDeleting}
         >
           Cancel

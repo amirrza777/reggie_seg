@@ -43,13 +43,21 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
       <Card
         title={<span className="overview-title">Module setup</span>}
         action={
-          <Link href="/staff/modules" className="btn btn--ghost">
-            Back to my modules
-          </Link>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link
+              href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
+              className="btn btn--primary"
+            >
+              Create project
+            </Link>
+            <Link href="/staff/modules" className="btn btn--ghost">
+              Back to my modules
+            </Link>
+          </div>
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={parsedModuleId} />
+        <EnterpriseModuleCreateForm mode="edit" moduleId={parsedModuleId} workspace="staff" />
       </Card>
     </div>
   );
