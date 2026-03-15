@@ -18,6 +18,7 @@ import {
 } from "./service.js";
 import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
+import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
@@ -44,12 +45,17 @@ vi.mock("../../shared/email.js", () => ({
   sendEmail: vi.fn(),
 }));
 
+vi.mock("../notifications/service.js", () => ({
+  addNotification: vi.fn(),
+}));
+
 vi.mock("../../shared/db.js", () => ({
   prisma: {
     team: {
       findUnique: vi.fn(),
     },
     user: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
   },
@@ -78,7 +84,7 @@ describe("teamAllocation service", () => {
     (repo.findActiveInvite as any).mockResolvedValue(null);
     (repo.createTeamInviteRecord as any).mockResolvedValue({ id: "inv-1" });
     (repo.findInviteContext as any).mockResolvedValue({
-      team: { teamName: "Team Alpha" },
+      team: { teamName: "Team Alpha", projectId: 3 },
       inviter: { firstName: "Ava", lastName: "Smith", email: "ava@example.com" },
     });
 
@@ -110,6 +116,12 @@ describe("teamAllocation service", () => {
         text: expect.stringContaining("Team Alpha"),
       })
     );
+    expect(addNotification).toHaveBeenCalledWith({
+      userId: 7,
+      type: "TEAM_INVITE",
+      message: 'Ava Smith invited you to join "Team Alpha"',
+      link: "/projects/3/team",
+    });
     expect(result).toEqual(
       expect.objectContaining({
         invite: { id: "inv-1" },
@@ -117,6 +129,34 @@ describe("teamAllocation service", () => {
       })
     );
     expect(result.rawToken).toHaveLength(64);
+  });
+
+  it("createTeamInvite resolves userId from email when inviteeId not provided", async () => {
+    (repo.findActiveInvite as any).mockResolvedValue(null);
+    (repo.createTeamInviteRecord as any).mockResolvedValue({ id: "inv-2" });
+    (repo.findInviteContext as any).mockResolvedValue({
+      team: { teamName: "Team Beta", projectId: 5 },
+      inviter: { firstName: "Reggie", lastName: "Jones", email: "reggie@example.com" },
+    });
+    (prisma.user.findFirst as any).mockResolvedValue({ id: 42 });
+
+    await createTeamInvite({
+      teamId: 1,
+      inviterId: 2,
+      inviteeEmail: "newuser@example.com",
+      baseUrl: "http://localhost:3001",
+    });
+
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { email: "newuser@example.com" },
+      select: { id: true },
+    });
+    expect(addNotification).toHaveBeenCalledWith({
+      userId: 42,
+      type: "TEAM_INVITE",
+      message: 'Reggie Jones invited you to join "Team Beta"',
+      link: "/projects/5/team",
+    });
   });
 
   it("delegates list/get/create/add/members to repo TeamService", async () => {
@@ -134,9 +174,10 @@ describe("teamAllocation service", () => {
   });
 
   it("accept/decline/reject/cancel/expire update invite status", async () => {
-    (repo.updateInviteStatusFromPending as any).mockResolvedValue({ id: "i1", status: "ACCEPTED" });
-    await expect(acceptTeamInvite("i1")).resolves.toEqual({ id: "i1", status: "ACCEPTED" });
+    (repo.updateInviteStatusFromPending as any).mockResolvedValue({ id: "i1", teamId: 10, status: "ACCEPTED" });
+    await expect(acceptTeamInvite("i1", 5)).resolves.toEqual({ id: "i1", teamId: 10, status: "ACCEPTED" });
     expect(repo.updateInviteStatusFromPending).toHaveBeenCalledWith("i1", "ACCEPTED", expect.any(Date));
+    expect(repo.TeamService.addUserToTeam).toHaveBeenCalledWith(10, 5);
 
     (repo.updateInviteStatusFromPending as any).mockResolvedValue({ id: "i1", status: "DECLINED" });
     await expect(declineTeamInvite("i1")).resolves.toEqual({ id: "i1", status: "DECLINED" });
@@ -152,7 +193,7 @@ describe("teamAllocation service", () => {
   it("throws INVITE_NOT_PENDING when transition update returns null", async () => {
     (repo.updateInviteStatusFromPending as any).mockResolvedValue(null);
 
-    await expect(acceptTeamInvite("missing")).rejects.toEqual({ code: "INVITE_NOT_PENDING" });
+    await expect(acceptTeamInvite("missing", 5)).rejects.toEqual({ code: "INVITE_NOT_PENDING" });
   });
 
   it("previewRandomAllocationForProject validates team count", async () => {

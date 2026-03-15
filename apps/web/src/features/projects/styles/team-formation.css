@@ -180,6 +180,22 @@
   background: var(--status-danger-soft);
 }
 
+.btn--accept-ghost {
+  padding: 4px 10px;
+  border: 1px solid var(--status-success-border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--status-success-text);
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn--accept-ghost:hover {
+  background: var(--status-success-soft);
+}
+
 @media (max-width: 860px) {
   .team-formation__create-form,
   .team-formation__invite-form {

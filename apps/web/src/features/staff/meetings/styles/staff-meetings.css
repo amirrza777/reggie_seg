@@ -1,0 +1,59 @@
+.meeting-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.meeting-stats__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.meeting-stats__value {
+  font-size: 1.75rem;
+  font-weight: var(--fw-bold);
+  color: var(--ink);
+  line-height: 1;
+}
+
+.meeting-stats__label {
+  font-size: var(--fs-body-sm);
+  color: var(--muted);
+}
+
+.low-attendance-alert {
+  border: 1px solid var(--status-danger-border);
+  border-radius: 12px;
+  padding: 16px;
+  background: var(--status-danger-soft);
+}
+
+.low-attendance-alert__title {
+  margin: 0 0 10px;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--status-danger-text);
+}
+
+.low-attendance-alert__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.low-attendance-alert__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--fs-body-sm);
+}
+
+.low-attendance-alert__count {
+  font-weight: var(--fw-medium);
+  color: var(--status-danger-text);
+}

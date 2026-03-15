@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
+import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
@@ -9,6 +10,7 @@ import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
+  findPendingInvitesForEmail,
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
@@ -258,11 +260,31 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
     text: textLines.join("\n"),
   });
 
+  const inviteeUserId = params.inviteeId ?? (
+    await prisma.user.findFirst({ where: { email: normalizedEmail }, select: { id: true } })
+  )?.id;
+
+  if (inviteeUserId) {
+    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : "A teammate";
+    await addNotification({
+      userId: inviteeUserId,
+      type: "TEAM_INVITE",
+      message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
+      link: `/projects/${team?.projectId}/team`,
+    });
+  }
+
   return { invite, rawToken };
 }
 
 export async function listTeamInvites(teamId: number) {
   return getInvitesForTeam(teamId);
+}
+
+export async function listReceivedInvites(userId: number) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user) throw { code: "USER_NOT_FOUND" };
+  return findPendingInvitesForEmail(user.email);
 }
 
 export async function createTeam(userId: number, teamData: Parameters<typeof TeamService.createTeam>[1]) {

@@ -15,6 +15,7 @@ import {
   getTeamByIdHandler,
   getTeamMembersHandler,
   listTeamInvitesHandler,
+  listReceivedInvitesHandler,
   previewRandomAllocationHandler,
   rejectTeamInviteHandler,
 } from "./controller.js";
@@ -22,6 +23,7 @@ import {
 vi.mock("./service.js", () => ({
   createTeamInvite: vi.fn(),
   listTeamInvites: vi.fn(),
+  listReceivedInvites: vi.fn(),
   createTeam: vi.fn(),
   getTeamById: vi.fn(),
   addUserToTeam: vi.fn(),
@@ -114,6 +116,20 @@ describe("teamAllocation controller", () => {
     await listTeamInvitesHandler(req, res);
     expect(service.listTeamInvites).toHaveBeenCalledWith(9);
     expect(res.json).toHaveBeenCalledWith([{ id: "i1" }]);
+  });
+
+  it("listReceivedInvitesHandler returns 401 without auth and returns data", async () => {
+    const noAuthReq: any = { user: undefined };
+    const noAuthRes = mockResponse();
+    await listReceivedInvitesHandler(noAuthReq, noAuthRes);
+    expect(noAuthRes.status).toHaveBeenCalledWith(401);
+
+    (service.listReceivedInvites as any).mockResolvedValue([{ id: "inv-1" }]);
+    const req: any = { user: { sub: 5 } };
+    const res = mockResponse();
+    await listReceivedInvitesHandler(req, res);
+    expect(service.listReceivedInvites).toHaveBeenCalledWith(5);
+    expect(res.json).toHaveBeenCalledWith([{ id: "inv-1" }]);
   });
 
   it("createTeamHandler validates body and returns 201", async () => {

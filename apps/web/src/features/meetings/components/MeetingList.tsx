@@ -1,7 +1,6 @@
 "use client";
 
 import { Card } from "@/shared/ui/Card";
-import { Button } from "@/shared/ui/Button";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { formatDate } from "@/shared/lib/formatDate";
 import type { Meeting } from "../types";
@@ -9,13 +8,16 @@ import type { Meeting } from "../types";
 type MeetingListProps = {
   meetings: Meeting[];
   projectId: number;
-  onCreateNew: () => void;
+  title?: string;
+  emptyMessage?: string;
 };
 
-export function MeetingList({ meetings, projectId, onCreateNew }: MeetingListProps) {
+export function MeetingList({ meetings, projectId, title = "Meetings", emptyMessage }: MeetingListProps) {
   return (
-    <Card title="Meetings">
-      <div className="stack stack--loose">
+    <Card title={title}>
+      {meetings.length === 0 ? (
+        <p className="muted">{emptyMessage ?? "No meetings to show."}</p>
+      ) : (
         <div className="table">
           <div className="table__head">
             <div>Title</div>
@@ -36,12 +38,7 @@ export function MeetingList({ meetings, projectId, onCreateNew }: MeetingListPro
             </AnchorLink>
           ))}
         </div>
-        <div>
-          <Button type="button" onClick={onCreateNew}>
-            New Meeting
-          </Button>
-        </div>
-      </div>
+      )}
     </Card>
   );
 }

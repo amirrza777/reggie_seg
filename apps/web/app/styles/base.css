@@ -271,6 +271,10 @@ h3 {
     color: var(--accent-strong);
 }
 
+.pill-nav__link--action {
+    border-style: dashed;
+}
+
 .pill-nav .nav-link--active {
   font-weight: var(--fw-semibold);
 }
@@ -313,6 +317,13 @@ textarea {
     font-family: inherit;
     background: var(--surface);
     color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+    input,
+    textarea {
+        color-scheme: dark;
+    }
 }
 
 textarea {

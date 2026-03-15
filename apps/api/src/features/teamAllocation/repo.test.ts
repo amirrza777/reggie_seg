@@ -98,7 +98,7 @@ describe("teamAllocation repo", () => {
 
     expect(prisma.team.findUnique).toHaveBeenCalledWith({
       where: { id: 5 },
-      select: { teamName: true },
+      select: { teamName: true, projectId: true },
     });
     expect(prisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 8 },
@@ -113,7 +113,9 @@ describe("teamAllocation repo", () => {
       where: { teamId: 12 },
       orderBy: { createdAt: "desc" },
       include: {
-        inviter: { select: { id: true, firstName: true, lastName: true, email: true } },
+        inviter: {
+          select: { id: true, firstName: true, lastName: true, email: true },
+        },
       },
     });
   });
