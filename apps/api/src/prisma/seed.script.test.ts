@@ -13,6 +13,7 @@ type PrismaMock = {
   };
   module: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   questionnaireTemplate: { upsert: ReturnType<typeof vi.fn> };
+  question: { findMany: ReturnType<typeof vi.fn> };
   project: {
     createMany: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
@@ -67,6 +68,18 @@ function buildPrismaMock(): PrismaMock {
       upsert: vi
         .fn()
         .mockResolvedValue({ id: 1, questions: [{ label: "Technical contribution" }, { label: "Communication" }] }),
+    },
+    question: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: 1, label: "Technical Skills", type: "rating", configs: { min: 1, max: 5 } },
+        {
+          id: 2,
+          label: "Communication",
+          type: "multiple-choice",
+          configs: { options: ["Excellent", "Good", "Needs Improvement"] },
+        },
+        { id: 3, label: "Teamwork", type: "slider", configs: { min: 0, max: 100, step: 5 } },
+      ]),
     },
     project: {
       createMany: vi.fn().mockResolvedValue({ count: 4 }),
@@ -150,6 +163,7 @@ describe("prisma seed script", () => {
         user: prismaMock.user,
         module: prismaMock.module,
         questionnaireTemplate: prismaMock.questionnaireTemplate,
+        question: prismaMock.question,
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
@@ -197,6 +211,7 @@ describe("prisma seed script", () => {
         user: prismaMock.user,
         module: prismaMock.module,
         questionnaireTemplate: prismaMock.questionnaireTemplate,
+        question: prismaMock.question,
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,

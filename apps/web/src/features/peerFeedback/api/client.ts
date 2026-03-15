@@ -26,6 +26,19 @@ export async function getFeedbackReview(feedbackId: string) {
   return apiFetch<PeerFeedbackReview>(`/peer-feedback/feedback/${feedbackId}/review`);
 }
 
+export async function getFeedbackReviewStatuses(feedbackIds: string[]) {
+  if (feedbackIds.length === 0) return {};
+
+  const response = await apiFetch<{ statuses: Record<string, boolean> }>(
+    "/peer-feedback/feedback/reviews/statuses",
+    {
+      method: "POST",
+      body: JSON.stringify({ feedbackIds }),
+    }
+  );
+  return response.statuses ?? {};
+}
+
 export async function submitPeerFeedback(feedbackId: string, payload: PeerAssessmentReviewPayload, reviewerUserId: string, revieweeUserId: string) {
   // submit (create/update) a review for a peer-feedback
   const body = { ...payload, reviewerUserId, revieweeUserId};

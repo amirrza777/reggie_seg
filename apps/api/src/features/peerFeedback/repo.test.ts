@@ -7,6 +7,7 @@ const prismaMock = vi.hoisted(() => ({
   peerFeedback: {
     upsert: vi.fn(),
     findUnique: vi.fn(),
+    findMany: vi.fn(),
   },
 }));
 
@@ -17,6 +18,7 @@ vi.mock("../../shared/db.js", () => ({
 import {
   getPeerAssessmentById,
   getPeerFeedbackByAssessmentId,
+  getPeerFeedbackByAssessmentIds,
   upsertPeerFeedback,
 } from "./repo.js";
 
@@ -81,17 +83,21 @@ describe("peerFeedback repo", () => {
         peerAssessment: {
           select: {
             id: true,
+            templateId: true,
             reviewerUserId: true,
             revieweeUserId: true,
             projectId: true,
             answersJson: true,
             questionnaireTemplate: {
               select: {
+                id: true,
                 questions: {
                   select: {
                     id: true,
                     label: true,
+                    type: true,
                     order: true,
+                    configs: true,
                   },
                 },
               },
@@ -136,17 +142,21 @@ describe("peerFeedback repo", () => {
         peerAssessment: {
           select: {
             id: true,
+            templateId: true,
             reviewerUserId: true,
             revieweeUserId: true,
             projectId: true,
             answersJson: true,
             questionnaireTemplate: {
               select: {
+                id: true,
                 questions: {
                   select: {
                     id: true,
                     label: true,
+                    type: true,
                     order: true,
+                    configs: true,
                   },
                 },
               },
@@ -155,6 +165,25 @@ describe("peerFeedback repo", () => {
             reviewer: { select: { firstName: true, lastName: true } },
           },
         },
+      },
+    });
+    expect(result).toBe(expected);
+  });
+
+  it("getPeerFeedbackByAssessmentIds selects ids for bulk status lookups", async () => {
+    const expected = [{ peerAssessmentId: 15 }, { peerAssessmentId: 18 }];
+    prismaMock.peerFeedback.findMany.mockResolvedValue(expected);
+
+    const result = await getPeerFeedbackByAssessmentIds([15, 18]);
+
+    expect(prismaMock.peerFeedback.findMany).toHaveBeenCalledWith({
+      where: {
+        peerAssessmentId: {
+          in: [15, 18],
+        },
+      },
+      select: {
+        peerAssessmentId: true,
       },
     });
     expect(result).toBe(expected);

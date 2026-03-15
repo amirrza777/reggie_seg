@@ -24,6 +24,23 @@ export type ProjectDeadline = {
   deadlineProfile?: "STANDARD" | "MCF";
 };
 
+export type DeadlineFieldKey =
+  | "taskOpenDate"
+  | "taskDueDate"
+  | "assessmentOpenDate"
+  | "assessmentDueDate"
+  | "feedbackOpenDate"
+  | "feedbackDueDate";
+
+export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
+
+export type StaffTeamDeadlineDetails = {
+  baseDeadline: ProjectDeadline;
+  effectiveDeadline: ProjectDeadline;
+  deadlineInputMode: DeadlineInputMode | null;
+  shiftDays: Partial<Record<DeadlineFieldKey, number>> | null;
+};
+
 export type User = {
   id: number;
   firstName: string;
@@ -44,6 +61,30 @@ export type Team = {
     userId: number;
     user: User;
   }>;
+};
+
+export type TeamHealthMessage = {
+  id: number;
+  projectId: number;
+  teamId: number;
+  requesterUserId: number;
+  reviewedByUserId: number | null;
+  subject: string;
+  details: string;
+  responseText: string | null;
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  requester: User;
+  reviewedBy:
+    | {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+      }
+    | null;
 };
 
 export type StaffProject = {

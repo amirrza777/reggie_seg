@@ -12,6 +12,10 @@ import {
   getStaffProjectTeams,
   getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
+  createTeamHealthMessage,
+  getTeamHealthMessagesForUserInProject,
+  getTeamHealthMessagesForTeamInProject,
+  canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
@@ -125,6 +129,32 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
 
 export async function fetchProjectMarking(userId: number, projectId: number) {
   return getUserProjectMarking(userId, projectId);
+}
+
+export async function submitTeamHealthMessage(
+  userId: number,
+  projectId: number,
+  subject: string,
+  details: string
+) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  return createTeamHealthMessage(projectId, team.id, userId, subject, details);
+}
+
+export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  return getTeamHealthMessagesForUserInProject(projectId, userId);
+}
+
+export async function fetchTeamHealthMessagesForStaff(userId: number, projectId: number, teamId: number) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  return getTeamHealthMessagesForTeamInProject(projectId, teamId);
 }
 
 export async function updateTeamDeadlineProfileForStaff(

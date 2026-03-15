@@ -1,5 +1,10 @@
 import type { Request, Response } from "express"
-import { saveFeedbackReview, getPeerAssessment } from "./service.js"
+import {
+  getFeedbackReview,
+  getFeedbackReviewStatuses,
+  saveFeedbackReview,
+  getPeerAssessment,
+} from "./service.js"
 
 export async function createPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
@@ -48,12 +53,32 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid feedback ID" });
   }
   try {
-    const review = await (await import("./service.js")).getFeedbackReview(feedbackId);
+    const review = await getFeedbackReview(feedbackId);
     if (!review) return res.status(404).json({ error: "Review not found" });
     res.json(review);
   } catch (error) {
     console.error("Error retrieving feedback review:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getPeerFeedbackStatusesHandler(req: Request, res: Response) {
+  const feedbackIdsRaw = (req.body as { feedbackIds?: unknown }).feedbackIds;
+  if (!Array.isArray(feedbackIdsRaw)) {
+    return res.status(400).json({ error: "feedbackIds must be an array" });
+  }
+
+  const parsedFeedbackIds = feedbackIdsRaw.map((value) => Number(value));
+  if (parsedFeedbackIds.some((id) => Number.isNaN(id))) {
+    return res.status(400).json({ error: "feedbackIds must contain only numeric IDs" });
+  }
+
+  try {
+    const statuses = await getFeedbackReviewStatuses(parsedFeedbackIds);
+    return res.json({ statuses });
+  } catch (error) {
+    console.error("Error retrieving feedback review statuses:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
 

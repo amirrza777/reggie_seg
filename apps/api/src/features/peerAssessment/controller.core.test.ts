@@ -58,6 +58,16 @@ describe("peerAssessment controller core handlers", () => {
     vi.clearAllMocks();
   });
 
+  const questionnaireTemplate = {
+    id: 10,
+    questions: [
+      { id: 1, type: "text", configs: null },
+      { id: 2, type: "multiple-choice", configs: { options: ["Excellent", "Needs work"] } },
+      { id: 3, type: "rating", configs: { min: 1, max: 5 } },
+      { id: 4, type: "slider", configs: { min: 0, max: 100, step: 5 } },
+    ],
+  };
+
   describe("getTeammatesHandler", () => {
     it("returns 400 for invalid params", async () => {
       const req = { query: { userId: "abc" }, params: { teamId: "1" } } as any;
@@ -115,16 +125,113 @@ describe("peerAssessment controller core handlers", () => {
           reviewerUserId: 4,
           revieweeUserId: 2,
           templateId: 10,
-          answersJson: [{ question: "1", answer: "Strong contribution" }],
+          answersJson: [
+            { question: "1", answer: "Strong contribution" },
+            { question: "2", answer: "Excellent" },
+            { question: "3", answer: "4" },
+            { question: "4", answer: 80 },
+          ],
         },
       } as any;
       const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.saveAssessment.mockResolvedValue({ id: 42 });
 
       await createAssessmentHandler(req, res);
 
-      expect(serviceMocks.saveAssessment).toHaveBeenCalledWith(req.body);
+      expect(serviceMocks.fetchProjectQuestionnaireTemplate).toHaveBeenCalledWith(1);
+      expect(serviceMocks.saveAssessment).toHaveBeenCalledWith({
+        projectId: 1,
+        teamId: 1,
+        reviewerUserId: 4,
+        revieweeUserId: 2,
+        templateId: 10,
+        answersJson: [
+          { question: "1", answer: "Strong contribution" },
+          { question: "2", answer: "Excellent" },
+          { question: "3", answer: 4 },
+          { question: "4", answer: 80 },
+        ],
+      });
       expect(res.json).toHaveBeenCalledWith({ ok: true, assessmentId: 42 });
+    });
+
+    it("returns 400 when answer does not match template options", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 10,
+          answersJson: [
+            { question: "1", answer: "Strong contribution" },
+            { question: "2", answer: "Maybe" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 answer is not one of the configured options.",
+      });
+      expect(serviceMocks.saveAssessment).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when one or more questions are not answered", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 10,
+          answersJson: [
+            { question: "1", answer: "Strong contribution" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 is required.",
+      });
+      expect(serviceMocks.saveAssessment).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when templateId does not match project's template", async () => {
+      const req = {
+        body: {
+          projectId: 1,
+          teamId: 1,
+          reviewerUserId: 4,
+          revieweeUserId: 2,
+          templateId: 11,
+          answersJson: [{ question: "1", answer: "Strong contribution" }],
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
+
+      await createAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "templateId does not match the project's questionnaire template",
+      });
+      expect(serviceMocks.saveAssessment).not.toHaveBeenCalled();
     });
 
     it("returns 500 on service error", async () => {
@@ -135,11 +242,17 @@ describe("peerAssessment controller core handlers", () => {
           reviewerUserId: 4,
           revieweeUserId: 2,
           templateId: 10,
-          answersJson: [{ question: "1", answer: "x" }],
+          answersJson: [
+            { question: "1", answer: "x" },
+            { question: "2", answer: "Excellent" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
         },
       } as any;
       const res = createMockResponse();
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.saveAssessment.mockRejectedValue(new Error("boom"));
 
       await createAssessmentHandler(req, res);
@@ -158,10 +271,16 @@ describe("peerAssessment controller core handlers", () => {
           reviewerUserId: 4,
           revieweeUserId: 2,
           templateId: 10,
-          answersJson: [{ question: "1", answer: "x" }],
+          answersJson: [
+            { question: "1", answer: "x" },
+            { question: "2", answer: "Excellent" },
+            { question: "3", answer: 4 },
+            { question: "4", answer: 80 },
+          ],
         },
       } as any;
       const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.saveAssessment.mockRejectedValue({
         code: "ASSESSMENT_DEADLINE_PASSED",
         message: "Peer assessment deadline has passed for your deadline profile",
@@ -255,19 +374,64 @@ describe("peerAssessment controller core handlers", () => {
     });
 
     it("returns ok on success", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockResolvedValue(undefined);
 
       await updateAssessmentHandler(req, res);
 
-      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, { 1: "Updated" });
+      expect(serviceMocks.fetchAssessmentById).toHaveBeenCalledWith(9);
+      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, [
+        { question: "1", answer: "Updated" },
+        { question: "2", answer: "Excellent" },
+        { question: "3", answer: 4 },
+        { question: "4", answer: 75 },
+      ]);
       expect(res.json).toHaveBeenCalledWith({ ok: true });
     });
 
-    it("maps Prisma P2025 to 404", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+    it("returns 400 for answers that fail template validation", async () => {
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Unknown option", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
+
+      await updateAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 answer is not one of the configured options.",
+      });
+      expect(serviceMocks.updateAssessmentAnswers).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 for incomplete updates", async () => {
+      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated", 3: 4, 4: 75 } } } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
+
+      await updateAssessmentHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Question 2 is required.",
+      });
+      expect(serviceMocks.updateAssessmentAnswers).not.toHaveBeenCalled();
+    });
+
+    it("maps Prisma P2025 to 404", async () => {
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue({ code: "P2025" });
 
       await updateAssessmentHandler(req, res);
@@ -277,9 +441,13 @@ describe("peerAssessment controller core handlers", () => {
     });
 
     it("returns 500 for non-Prisma error", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue(new Error("boom"));
 
       await updateAssessmentHandler(req, res);
@@ -291,8 +459,12 @@ describe("peerAssessment controller core handlers", () => {
     });
 
     it("returns 409 when update is outside deadline window", async () => {
-      const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
+      const req = {
+        params: { id: "9" },
+        body: { answersJson: { 1: "Updated", 2: "Excellent", 3: 4, 4: 75 } },
+      } as any;
       const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({ questionnaireTemplate });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue({
         code: "ASSESSMENT_WINDOW_NOT_OPEN",
         message: "Peer assessment is not open yet for your deadline profile",
