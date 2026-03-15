@@ -28,7 +28,7 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
   const moduleRecord = staffModules.find((module) => Number(module.id) === parsedModuleId);
   if (!moduleRecord) redirect("/staff/modules");
 
-  const canManageModule = moduleRecord.accountRole === "OWNER" || moduleRecord.accountRole === "ADMIN_ACCESS";
+  const canManageModule = moduleRecord.accountRole === "OWNER";
   if (!canManageModule) redirect(`/modules/${moduleRecord.id}`);
 
   return (

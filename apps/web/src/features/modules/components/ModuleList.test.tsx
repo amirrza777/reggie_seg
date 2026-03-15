@@ -41,4 +41,20 @@ describe("ModuleList", () => {
       "/staff/projects/create?moduleId=12",
     );
   });
+
+  it("hides manage-module action for admin access role", () => {
+    render(
+      <ModuleList
+        modules={[
+          { id: "22", title: "Data Structures", accountRole: "ADMIN_ACCESS" },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
+      "href",
+      "/staff/projects/create?moduleId=22",
+    );
+  });
 });

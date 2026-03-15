@@ -35,7 +35,8 @@ export function ModuleList({
           const teams = module.teamCount ?? 0;
           const projects = module.projectCount ?? 0;
           const role = getRolePresentation(module.accountRole);
-          const canManageModule = module.accountRole === "OWNER" || module.accountRole === "ADMIN_ACCESS";
+          const canManageModule = module.accountRole === "OWNER";
+          const canCreateProject = module.accountRole === "OWNER" || module.accountRole === "ADMIN_ACCESS";
 
           return (
             <article key={module.id} className="module-card card">
@@ -57,14 +58,14 @@ export function ModuleList({
                 </span>
                 <div className="module-card__actions">
                   {canManageModule ? (
-                    <>
-                      <Link href={`/staff/modules/${encodeURIComponent(module.id)}/manage`} className="module-card__manage">
-                        Manage module
-                      </Link>
-                      <Link href={`/staff/projects/create?moduleId=${encodeURIComponent(module.id)}`} className="module-card__manage">
-                        Create project
-                      </Link>
-                    </>
+                    <Link href={`/staff/modules/${encodeURIComponent(module.id)}/manage`} className="module-card__manage">
+                      Manage module
+                    </Link>
+                  ) : null}
+                  {canCreateProject ? (
+                    <Link href={`/staff/projects/create?moduleId=${encodeURIComponent(module.id)}`} className="module-card__manage">
+                      Create project
+                    </Link>
                   ) : null}
                   <Link href={`/modules/${encodeURIComponent(module.id)}`} className="module-card__cta">
                     View Module
