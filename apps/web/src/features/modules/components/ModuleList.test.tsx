@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ModuleList } from "./ModuleList";
 
@@ -56,5 +56,31 @@ describe("ModuleList", () => {
       "href",
       "/staff/projects/create?moduleId=22",
     );
+  });
+
+  it("sorts modules by the selected mode", () => {
+    render(
+      <ModuleList
+        modules={[
+          { id: "m1", title: "Zeta", teamCount: 1, projectCount: 2, accountRole: "TEACHING_ASSISTANT" },
+          { id: "m2", title: "Alpha", teamCount: 5, projectCount: 1, accountRole: "OWNER" },
+          { id: "m3", title: "Beta", teamCount: 3, projectCount: 8, accountRole: "ADMIN_ACCESS" },
+        ]}
+      />,
+    );
+
+    const getTitles = () =>
+      screen.getAllByRole("heading", { level: 2 }).map((heading) => heading.textContent);
+
+    expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
+
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "teamCount" } });
+    expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
+
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "projectCount" } });
+    expect(getTitles()).toEqual(["Beta", "Zeta", "Alpha"]);
+
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "accessLevel" } });
+    expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
   });
 });
