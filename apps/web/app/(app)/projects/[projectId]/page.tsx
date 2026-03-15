@@ -22,7 +22,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!user) {
     return (
-      <div className="stack" style={{ gap: 16 }}>
+      <div className="stack stack--tabbed" style={{ gap: 16 }}>
         <ProjectNav projectId={projectId} />
         <div style={{ padding: 24 }}>
           <p>Please sign in to view this project.</p>
@@ -41,7 +41,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!team) {
     return (
-      <div className="stack" style={{ gap: 16 }}>
+      <div className="stack stack--tabbed" style={{ gap: 16 }}>
         <ProjectNav projectId={projectId} />
         <div style={{ padding: 24 }}>
           <p>You are not in a team for this project.</p>
@@ -76,7 +76,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   }
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
       <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} />
     </div>

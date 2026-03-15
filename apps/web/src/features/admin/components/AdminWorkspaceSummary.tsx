@@ -127,12 +127,18 @@ export function AdminWorkspaceSummary() {
     <>
       <Card
         title={<span className="overview-title">Admin workspace</span>}
+        className="admin-overview-card"
         action={
-          <div className="ui-row ui-row--wrap">
-            <Button type="button" onClick={() => setModalOpen(true)}>
+          <div className="admin-overview-actions">
+            <Button type="button" className="admin-overview-actions__btn" onClick={() => setModalOpen(true)}>
               Invite admin
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setAuditOpen(true)}>
+            <Button
+              type="button"
+              variant="ghost"
+              className="admin-overview-actions__btn"
+              onClick={() => setAuditOpen(true)}
+            >
               Audit log
             </Button>
           </div>
@@ -156,8 +162,14 @@ export function AdminWorkspaceSummary() {
       </Card>
 
       {modalOpen ? (
-        <div className="modal" role="dialog" aria-modal="true" aria-labelledby="invite-admin-title">
-          <div className="modal__dialog admin-modal ui-content-width">
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="invite-admin-title"
+          onClick={() => setModalOpen(false)}
+        >
+          <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
             <div className="modal__header ui-modal-header">
               <div className="ui-stack-sm">
                 <h3 id="invite-admin-title">
@@ -167,21 +179,24 @@ export function AdminWorkspaceSummary() {
                   Select a staff member to grant or revoke admin privileges.
                 </p>
               </div>
-              <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                Close
+              <Button
+                type="button"
+                variant="ghost"
+                className="modal__close-btn"
+                aria-label="Close"
+                onClick={() => setModalOpen(false)}
+              >
+                ×
               </Button>
             </div>
 
             <div className="modal__body admin-modal__body">
-              <div className="ui-toolbar ui-toolbar--between">
+              <div className="ui-toolbar">
                 <span className="ui-note ui-note--muted">
                   {status === "loading"
                     ? "Loading staff directory..."
                     : `Showing ${staffDirectory.length} staff ${staffDirectory.length === 1 ? "account" : "accounts"}.`}
                 </span>
-                <Button type="button" variant="ghost" onClick={loadStaff} disabled={status === "loading"}>
-                  {status === "loading" ? "Refreshing..." : "Refresh list"}
-                </Button>
               </div>
 
               {notice ? (

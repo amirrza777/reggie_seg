@@ -1,6 +1,7 @@
 import {
   getProjectById,
   getUserProjects,
+  getModulesForUser,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -26,6 +27,22 @@ export async function fetchProjectsForUser(userId: number) {
     id: project.id,
     name: project.name,
     moduleName: project.module?.name ?? "",
+    archivedAt: project.archivedAt ?? null,
+  }));
+}
+
+export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+  const modules = await getModulesForUser(userId, options);
+  return modules.map((module) => ({
+    id: String(module.id),
+    title: module.name,
+    briefText: module.briefText ?? undefined,
+    timelineText: module.timelineText ?? undefined,
+    expectationsText: module.expectationsText ?? undefined,
+    readinessNotesText: module.readinessNotesText ?? undefined,
+    teamCount: module.teamCount,
+    projectCount: module.projectCount,
+    accountRole: module.accessRole,
   }));
 }
 

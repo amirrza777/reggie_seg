@@ -1,0 +1,229 @@
+.enterprise-overview-page {
+  max-width: none;
+  gap: var(--space-panel-gap);
+  padding-bottom: 8px;
+}
+
+.enterprise-overview-page .ui-page__header {
+  gap: var(--space-panel-heading-gap);
+}
+
+.enterprise-overview__card {
+  gap: 0;
+}
+
+.enterprise-overview__card .card__header {
+  padding-bottom: 8px;
+}
+
+.enterprise-overview__card .card__body {
+  padding-top: 0;
+  padding-bottom: 14px;
+}
+
+.enterprise-overview__snapshot-card .card__body {
+  display: grid;
+  gap: 12px;
+}
+
+.enterprise-overview__snapshot-card .ui-grid-metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.enterprise-overview .ui-metric-card {
+  min-height: 92px;
+  padding: 14px 14px;
+}
+
+.enterprise-overview .ui-metric-value {
+  font-size: 24px;
+}
+
+.enterprise-overview__priority-banner {
+  margin: 0;
+}
+
+.enterprise-overview__quick-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.enterprise-overview__risk-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+
+.enterprise-overview__risk-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.enterprise-overview__meta {
+  margin-top: 6px;
+}
+
+.enterprise-overview__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(320px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.enterprise-overview__main,
+.enterprise-overview__side {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.enterprise-overview__checklist {
+  display: grid;
+  gap: 8px;
+}
+
+.enterprise-overview__checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+
+.enterprise-overview__role-list {
+  display: grid;
+  gap: 10px;
+}
+
+.enterprise-overview__role-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(180px, 5fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.enterprise-overview__role-label {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.enterprise-overview__role-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.enterprise-overview__role-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--status-success-border);
+}
+
+.enterprise-overview__role-value {
+  font-size: 0.9rem;
+  color: var(--muted-subtle);
+  white-space: nowrap;
+}
+
+.enterprise-overview__action-queue {
+  display: grid;
+  gap: 8px;
+}
+
+.enterprise-overview__action-queue-body {
+  padding: 0 0 6px;
+}
+
+.enterprise-overview__action-queue-note {
+  padding: 0 var(--space-panel-content-inset);
+}
+
+.enterprise-overview__action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-left: none;
+  border-right: none;
+  border-radius: 0;
+  padding: 10px var(--space-panel-content-inset);
+  background: var(--surface);
+}
+
+.enterprise-overview__action-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.enterprise-overview__action-copy p {
+  margin: 0;
+}
+
+.enterprise-overview__action-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.enterprise-overview__action-head strong {
+  font-size: 0.98rem;
+}
+
+.enterprise-overview__action-tone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: var(--fw-semibold);
+}
+
+.enterprise-overview__action-tone--critical {
+  background: var(--status-danger-soft);
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
+}
+
+.enterprise-overview__action-tone--attention {
+  background: var(--accent-soft);
+  border-color: var(--accent-border);
+  color: var(--ink);
+}
+
+.enterprise-overview__action-tone--healthy {
+  background: var(--status-success-soft);
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+}
+
+.enterprise-overview__action-link {
+  min-width: 132px;
+}
+
+@media (max-width: 480px) {
+  .enterprise-overview__snapshot-card .ui-grid-metrics {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,67 @@
+.enterprise-management__actions {
+  width: 100%;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.enterprise-management__search {
+  width: clamp(22rem, 56vw, 42rem);
+  min-width: min(22rem, 100%);
+  max-width: 42rem;
+}
+
+.enterprise-management__create-trigger {
+  margin-left: auto;
+}
+
+.enterprise-management__create {
+  display: grid;
+  grid-template-columns: minmax(240px, 2fr) minmax(180px, 1fr);
+  gap: 10px;
+}
+
+.enterprise-management__create-actions {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.enterprise-management__create-modal {
+  width: min(760px, 96vw);
+}
+
+.enterprise-management__row {
+  align-items: center;
+}
+
+.enterprise-management__table {
+  --enterprise-management-columns: minmax(0, 1.3fr) minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.82fr) minmax(0, 1.05fr);
+}
+
+.enterprise-management__row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.enterprise-management__modal {
+  width: min(1020px, 96vw);
+}
+
+.enterprise-management__modal-toolbar {
+  gap: 10px;
+}
+
+.enterprise-management__modal-search {
+  width: min(660px, 84vw);
+}
+
+.enterprise-management__modal-table {
+  border-radius: 12px;
+  overflow-x: auto;
+  max-height: min(46vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}

@@ -86,3 +86,10 @@
   display: block;
   gap: 8px;
 }
+
+@media (max-width: 860px) {
+  .headerContainer {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}

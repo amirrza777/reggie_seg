@@ -39,7 +39,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
     : "Team Formation";
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} />
       <div style={{ padding: 20 }}>
         <Card title={cardTitle}>

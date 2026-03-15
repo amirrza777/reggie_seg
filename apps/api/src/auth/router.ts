@@ -12,7 +12,7 @@ import {
   requestEmailChangeHandler,
   confirmEmailChangeHandler,
 } from "./controller.js";
-import { requireAuth } from "./middleware.js";
+import { requireAuth, optionalAuth } from "./middleware.js";
 import { configureGoogle } from "./google.js";
 import { issueTokensForUser } from "./service.js";
 
@@ -25,7 +25,7 @@ router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
 router.post("/forgot-password", forgotPasswordHandler);
 router.post("/reset-password", resetPasswordHandler);
-router.get("/me", meHandler);
+router.get("/me", optionalAuth, meHandler);
 router.patch("/profile", requireAuth, updateProfileHandler);
 router.post("/email-change/request", requireAuth, requestEmailChangeHandler);
 router.post("/email-change/confirm", requireAuth, confirmEmailChangeHandler);
@@ -52,7 +52,8 @@ if (googleEnabled) {
         maxAge: 1000 * 60 * 60 * 24 * 30,
       });
       const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
-      res.redirect(`${appBaseUrl}/modules`);
+      const destination = user?.role === "ADMIN" ? "/admin" : "/dashboard";
+      res.redirect(`${appBaseUrl}/google/success?token=${encodeURIComponent(accessToken)}&redirect=${encodeURIComponent(destination)}`);
     }
   );
 

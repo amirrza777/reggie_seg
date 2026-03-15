@@ -41,7 +41,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const questions = await getQuestionsByProject(String(projectId));
 
   return (
-    <div className="stack">
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
       <div style={{ padding: "20px" }}>
         <h2>Create Peer Assessment</h2>

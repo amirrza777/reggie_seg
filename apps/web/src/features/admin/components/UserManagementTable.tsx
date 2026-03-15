@@ -1,43 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { filterBySearchQuery, normalizeSearchQuery } from "@/shared/lib/search";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
 import { Table } from "@/shared/ui/Table";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
-import { listUsers, updateUser, updateUserRole } from "../api/client";
-
-const demoUsers: AdminUser[] = [
-  {
-    id: 1,
-    email: "admin@kcl.ac.uk",
-    firstName: "Admin",
-    lastName: "User",
-    isStaff: true,
-    role: "ADMIN",
-    active: true,
-  },
-  {
-    id: 2,
-    email: "michael.kolling@kcl.ac.uk",
-    firstName: "Michael",
-    lastName: "Kölling",
-    isStaff: true,
-    role: "STAFF",
-    active: true,
-  },
-  {
-    id: 3,
-    email: "tunjay.seyidali@kcl.ac.uk",
-    firstName: "Tunjay",
-    lastName: "Seyidali",
-    isStaff: false,
-    role: "STUDENT",
-    active: true,
-  },
-];
+import { searchUsers, updateUser, updateUserRole } from "../api/client";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
@@ -50,33 +20,52 @@ const normalizeUser = (user: AdminUserRecord): AdminUser => ({
 const USERS_PER_PAGE = 10;
 
 export function UserManagementTable() {
-  const [users, setUsers] = useState<AdminUser[]>(demoUsers);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [status, setStatus] = useState<RequestState>("idle");
+  const [tableStatus, setTableStatus] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const latestRequestId = useRef(0);
+
+  const loadUsers = useCallback(async (query: string, page: number) => {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
+    setTableStatus("loading");
+
+    try {
+      const response = await searchUsers({
+        q: query.trim() || undefined,
+        page,
+        pageSize: USERS_PER_PAGE,
+      });
+      if (latestRequestId.current !== requestId) return;
+
+      if (response.totalPages > 0 && response.page > response.totalPages) {
+        setCurrentPage(response.totalPages);
+        return;
+      }
+
+      setUsers(response.items.map(normalizeUser));
+      setTotalUsers(response.total);
+      setTotalPages(response.totalPages);
+      setTableStatus("success");
+    } catch (err) {
+      if (latestRequestId.current !== requestId) return;
+      setUsers([]);
+      setTotalUsers(0);
+      setTotalPages(0);
+      setTableStatus("error");
+      setMessage(err instanceof Error ? err.message : "Could not load users.");
+    }
+  }, []);
 
   useEffect(() => {
-    let subscribed = true;
-    const fetchUsers = async () => {
-      try {
-        const response = await listUsers();
-        if (subscribed && response.length > 0) {
-          setUsers(response.map(normalizeUser));
-        }
-      } catch {
-        if (subscribed) {
-          setStatus("error");
-          setMessage("Using demo users while the admin API responds.");
-        }
-      }
-    };
-    fetchUsers();
-    return () => {
-      subscribed = false;
-    };
-  }, []);
+    void loadUsers(searchQuery, currentPage);
+  }, [searchQuery, currentPage, loadUsers]);
 
   const setUserRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
     setUsers((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
@@ -92,6 +81,7 @@ export function UserManagementTable() {
       setUserRow(userId, () => normalizeUser(updated));
       setStatus("success");
       setMessage(`Updated role to ${role.toLowerCase()} for ${previous.find((u) => u.id === userId)?.email ?? "user"}.`);
+      void loadUsers(searchQuery, currentPage);
     } catch (err) {
       setUsers(previous);
       setStatus("error");
@@ -109,6 +99,7 @@ export function UserManagementTable() {
       setUserRow(userId, () => normalizeUser(updated));
       setStatus("success");
       setMessage(nextStatus ? "Account activated." : "Account suspended.");
+      void loadUsers(searchQuery, currentPage);
     } catch (err) {
       setUsers(previous);
       setStatus("error");
@@ -116,64 +107,23 @@ export function UserManagementTable() {
     }
   };
 
-  const refreshUsers = async () => {
-    setStatus("loading");
-    setMessage(null);
-    try {
-      const response = await listUsers();
-      if (response.length > 0) {
-        setUsers(response.map(normalizeUser));
-      }
-      setStatus("success");
-      setMessage("User directory refreshed.");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not refresh users.");
-    }
-  };
-
-  const filteredUsers = useMemo(
-    () =>
-      filterBySearchQuery(users, searchQuery, {
-        fields: ["id", "email", "firstName", "lastName", "role"],
-        selectors: [
-          (user) => `${user.firstName} ${user.lastName}`,
-          (user) => (user.active ? "active" : "suspended"),
-          (user) =>
-            user.role === "ADMIN"
-              ? "admin"
-              : user.role === "ENTERPRISE_ADMIN"
-                ? "enterprise admin"
-                : user.role === "STAFF"
-                  ? "staff"
-                  : "student",
-        ],
-      }),
-    [users, searchQuery],
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / USERS_PER_PAGE));
   const normalizedSearch = normalizeSearchQuery(searchQuery);
+  const effectiveTotalPages = Math.max(1, totalPages);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [normalizedSearch]);
 
   useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
-
-  useEffect(() => {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  const pageStart = (currentPage - 1) * USERS_PER_PAGE;
-  const paginatedUsers = filteredUsers.slice(pageStart, pageStart + USERS_PER_PAGE);
-  const pageEnd = Math.min(pageStart + USERS_PER_PAGE, filteredUsers.length);
+  const pageStart = totalUsers === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1;
+  const pageEnd = totalUsers === 0 ? 0 : Math.min((currentPage - 1) * USERS_PER_PAGE + users.length, totalUsers);
 
   const applyPageInput = (value: string) => {
     const parsedPage = Number(value);
-    const isValidPage = Number.isInteger(parsedPage) && parsedPage >= 1 && parsedPage <= totalPages;
+    const isValidPage = Number.isInteger(parsedPage) && parsedPage >= 1 && parsedPage <= effectiveTotalPages;
     if (!isValidPage) {
       setPageInput(String(currentPage));
       return;
@@ -186,7 +136,7 @@ export function UserManagementTable() {
     applyPageInput(pageInput);
   };
 
-  const rows = paginatedUsers.map((user) => {
+  const rows = users.map((user) => {
     const statusClass = user.active ? "status-chip status-chip--success" : "status-chip status-chip--danger";
     const statusLabel = user.active ? "Active" : "Suspended";
     const isAdmin = user.role === "ADMIN";
@@ -206,11 +156,11 @@ export function UserManagementTable() {
     ) : isEnterpriseAdmin ? (
       <span className="role-chip role-chip--locked">Enterprise admin</span>
     ) : (
-      <div className="role-toggle">
+      <div className="user-management__role-toggle">
         <Button
           type="button"
           variant={user.role === "STUDENT" ? "primary" : "ghost"}
-          className="role-toggle__btn"
+          className="user-management__role-toggle-btn"
           onClick={() => handleRoleChange(user.id, "STUDENT")}
           disabled={status === "loading" || user.role === "STUDENT"}
         >
@@ -219,7 +169,7 @@ export function UserManagementTable() {
         <Button
           type="button"
           variant={user.role === "STAFF" ? "primary" : "ghost"}
-          className="role-toggle__btn"
+          className="user-management__role-toggle-btn"
           onClick={() => handleRoleChange(user.id, "STAFF")}
           disabled={status === "loading" || user.role === "STAFF"}
         >
@@ -272,26 +222,23 @@ export function UserManagementTable() {
             placeholder="Search by name, email, role, status, or ID"
             aria-label="Search user accounts"
           />
-          <Button type="button" variant="ghost" onClick={refreshUsers} disabled={status === "loading"}>
-            Refresh
-          </Button>
         </div>
       }
     >
       {message ? (
         <div
-          className={`${status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} status-alert--spaced`}
+          className={`${status === "error" || tableStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} status-alert--spaced`}
         >
           <span>{message}</span>
         </div>
       ) : null}
       <div className="user-management__toolbar">
         <span className="ui-note ui-note--muted">
-          {filteredUsers.length === 0
-            ? `Showing 0 of ${users.length} account${users.length === 1 ? "" : "s"}.`
-            : `Showing ${pageStart + 1}-${pageEnd} of ${filteredUsers.length} account${
-                filteredUsers.length === 1 ? "" : "s"
-              }${filteredUsers.length !== users.length ? ` (filtered from ${users.length})` : ""}.`}
+          {tableStatus === "loading" && totalUsers === 0
+            ? "Loading accounts..."
+            : totalUsers === 0
+              ? "Showing 0 accounts."
+              : `Showing ${pageStart}-${pageEnd} of ${totalUsers} account${totalUsers === 1 ? "" : "s"}.`}
         </span>
       </div>
       {rows.length > 0 ? (
@@ -299,7 +246,10 @@ export function UserManagementTable() {
           <Table
             headers={["Email", "Name", "Role", "Account status"]}
             rows={rows}
+            className="user-management__table"
+            headClassName="user-management__head"
             rowClassName="user-management__row"
+            columnTemplate="var(--user-management-columns)"
           />
           {totalPages > 1 ? (
             <div className="user-management__pagination" aria-label="User accounts pagination">
@@ -320,7 +270,7 @@ export function UserManagementTable() {
                   id="user-management-page-input"
                   type="number"
                   min={1}
-                  max={totalPages}
+                  max={effectiveTotalPages}
                   step={1}
                   inputMode="numeric"
                   value={pageInput}
@@ -329,14 +279,14 @@ export function UserManagementTable() {
                   className="user-management__page-jump-input"
                   aria-label="Go to page number"
                 />
-                <span className="muted user-management__page-total">of {totalPages}</span>
+                <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
               </form>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
+                disabled={currentPage === effectiveTotalPages}
               >
                 Next
               </Button>
@@ -346,9 +296,11 @@ export function UserManagementTable() {
       ) : (
         <div className="ui-empty-state">
           <p>
-            {normalizedSearch
-              ? `No user accounts match "${searchQuery.trim()}".`
-              : "No user accounts found."}
+            {tableStatus === "loading"
+              ? "Loading user accounts..."
+              : normalizedSearch
+                ? `No user accounts match "${searchQuery.trim()}".`
+                : "No user accounts found."}
           </p>
         </div>
       )}

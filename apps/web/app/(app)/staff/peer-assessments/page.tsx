@@ -31,7 +31,7 @@ export default async function StaffPeerAssessmentsPage() {
 
   if (errorMessage || !modules) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
       </div>
     );
@@ -49,7 +49,7 @@ export default async function StaffPeerAssessmentsPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title="All modules' peer assessments"
         description="Progress overview of peer assessments."

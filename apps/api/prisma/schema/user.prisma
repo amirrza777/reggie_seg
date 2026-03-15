@@ -20,6 +20,7 @@ model User {
   updatedAt           DateTime             @updatedAt
   enterprise          Enterprise           @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
   moduleLeads         ModuleLead[]
+  moduleTeachingAssistants ModuleTeachingAssistant[]
   revieweeAssessments PeerAssessment[]     @relation("PeerAssessmentReviewee")
   reviewerAssessments PeerAssessment[]     @relation("PeerAssessmentReviewer")
   teamAllocations     TeamAllocation[]

@@ -77,7 +77,7 @@ export default async function StudentPage({ params }: PageProps) {
 
   if (!data || staffId == null) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
       </div>
     );
@@ -85,7 +85,7 @@ export default async function StudentPage({ params }: PageProps) {
 
   const studentName = memberName(data.student);
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title={`${data.module.title} – ${data.team.title} – ${studentName}`}
         description={`Detailed view of ${studentName}'s peer assessments for their team.`}

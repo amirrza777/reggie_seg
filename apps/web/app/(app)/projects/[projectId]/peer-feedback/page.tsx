@@ -23,7 +23,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   const user = await getCurrentUser();
   if (!user) {
     return (
-      <div>
+      <div className="stack stack--tabbed">
         <ProjectNav projectId={projectId} />
         <PageSection
           title="Peer Feedback"
@@ -48,7 +48,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   );
 
   return (
-    <div>
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} />
       <PageSection
         title="Peer Feedback"

@@ -54,7 +54,10 @@ export async function createMeetingHandler(req: Request, res: Response) {
       agenda,
     });
     res.status(201).json(meeting);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "TEAM_ARCHIVED") {
+      return res.status(409).json({ error: "This team is archived and cannot create new meetings" });
+    }
     console.error("Error creating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }

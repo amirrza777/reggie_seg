@@ -1,6 +1,51 @@
 import type { Prisma, TeamInviteStatus } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
 
+type StaffUserRole = "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+
+export type StaffScopedProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  moduleName: string;
+  archivedAt: Date | null;
+  enterpriseId: string;
+};
+
+export type ModuleStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
+export type ProjectTeamSummary = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
+export type ManualAllocationStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentTeamId: number | null;
+  currentTeamName: string | null;
+};
+
+export type AppliedRandomTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
+export type AppliedManualTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -96,6 +141,329 @@ export async function updateInviteStatusFromPending(
 
   return prisma.teamInvite.findUnique({
     where: { id: inviteId },
+  });
+}
+
+export async function findStaffScopedProject(
+  staffId: number,
+  projectId: number,
+): Promise<StaffScopedProject | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: staffId },
+    select: { enterpriseId: true, role: true, active: true },
+  });
+
+  if (!user || user.active === false) {
+    return null;
+  }
+
+  const role = user.role as StaffUserRole | "STUDENT";
+  if (role === "STUDENT") {
+    return null;
+  }
+
+  const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId: user.enterpriseId,
+        ...(hasEnterpriseWideAccess
+          ? {}
+          : {
+              OR: [
+                { moduleLeads: { some: { userId: staffId } } },
+                { moduleTeachingAssistants: { some: { userId: staffId } } },
+              ],
+            }),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      moduleId: true,
+      archivedAt: true,
+      module: {
+        select: { name: true },
+      },
+    },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  return {
+    id: project.id,
+    name: project.name,
+    moduleId: project.moduleId,
+    moduleName: project.module.name,
+    archivedAt: project.archivedAt,
+    enterpriseId: user.enterpriseId,
+  };
+}
+
+export async function findVacantModuleStudentsForProject(
+  enterpriseId: string,
+  moduleId: number,
+  projectId: number,
+): Promise<ModuleStudent[]> {
+  return prisma.user.findMany({
+    where: {
+      enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId,
+          moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId,
+            archivedAt: null,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findModuleStudentsForManualAllocation(
+  enterpriseId: string,
+  moduleId: number,
+  projectId: number,
+): Promise<ManualAllocationStudent[]> {
+  const students = await prisma.user.findMany({
+    where: {
+      enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId,
+          moduleId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      teamAllocations: {
+        where: {
+          team: {
+            projectId,
+            archivedAt: null,
+          },
+        },
+        select: {
+          team: {
+            select: {
+              id: true,
+              teamName: true,
+            },
+          },
+        },
+        orderBy: {
+          teamId: "asc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+
+  return students.map((student) => {
+    const currentTeam = student.teamAllocations[0]?.team ?? null;
+
+    return {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      currentTeamId: currentTeam?.id ?? null,
+      currentTeamName: currentTeam?.teamName ?? null,
+    };
+  });
+}
+
+export async function findProjectTeamSummaries(projectId: number): Promise<ProjectTeamSummary[]> {
+  const teams = await prisma.team.findMany({
+    where: { projectId },
+    select: {
+      id: true,
+      teamName: true,
+      _count: {
+        select: { allocations: true },
+      },
+    },
+    orderBy: [{ teamName: "asc" }, { id: "asc" }],
+  });
+
+  return teams.map((team) => ({
+    id: team.id,
+    teamName: team.teamName,
+    memberCount: team._count.allocations,
+  }));
+}
+
+export async function applyRandomAllocationPlan(
+  projectId: number,
+  enterpriseId: string,
+  plannedTeams: Array<{ members: Array<{ id: number }> }>,
+  options: { teamNames?: string[] } = {},
+): Promise<AppliedRandomTeam[]> {
+  return prisma.$transaction(async (tx) => {
+    const plannedStudentIds = plannedTeams.flatMap((team) => team.members.map((member) => member.id));
+    if (plannedStudentIds.length > 0) {
+      const alreadyAllocatedStudents = await tx.teamAllocation.findMany({
+        where: {
+          userId: { in: plannedStudentIds },
+          team: {
+            projectId,
+            archivedAt: null,
+          },
+        },
+        select: { userId: true },
+      });
+
+      if (alreadyAllocatedStudents.length > 0) {
+        throw { code: "STUDENTS_NO_LONGER_VACANT" };
+      }
+    }
+
+    const enterpriseNames = await tx.team.findMany({
+      where: { enterpriseId },
+      select: { teamName: true },
+    });
+    const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
+    const targetTeams: Array<{ id: number; teamName: string }> = [];
+
+    const requestedTeamNames =
+      options.teamNames ??
+      plannedTeams.map((_, index) => `Random Team ${index + 1}`);
+    if (requestedTeamNames.length !== plannedTeams.length) {
+      throw { code: "INVALID_TEAM_NAMES" };
+    }
+
+    for (let index = 0; index < requestedTeamNames.length; index += 1) {
+      const teamName = requestedTeamNames[index].trim();
+      if (teamName.length === 0) {
+        throw { code: "INVALID_TEAM_NAMES" };
+      }
+      if (usedNames.has(teamName)) {
+        throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+      }
+
+      const createdTeam = await tx.team.create({
+        data: {
+          enterpriseId,
+          projectId,
+          teamName,
+        },
+        select: { id: true, teamName: true },
+      });
+      usedNames.add(teamName);
+      targetTeams.push(createdTeam);
+    }
+
+    for (let index = 0; index < plannedTeams.length; index += 1) {
+      const team = targetTeams[index];
+      const allocations = plannedTeams[index].members.map((member) => ({
+        teamId: team.id,
+        userId: member.id,
+      }));
+
+      if (allocations.length > 0) {
+        await tx.teamAllocation.createMany({
+          data: allocations,
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return plannedTeams.map((plan, index) => ({
+      id: targetTeams[index].id,
+      teamName: targetTeams[index].teamName,
+      memberCount: plan.members.length,
+    }));
+  });
+}
+
+export async function applyManualAllocationTeam(
+  projectId: number,
+  enterpriseId: string,
+  teamName: string,
+  studentIds: number[],
+): Promise<AppliedManualTeam> {
+  return prisma.$transaction(async (tx) => {
+    const existingName = await tx.team.findFirst({
+      where: {
+        enterpriseId,
+        teamName,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingName) {
+      throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+    }
+
+    const conflictingAllocations = await tx.teamAllocation.findMany({
+      where: {
+        userId: { in: studentIds },
+        team: {
+          projectId,
+          archivedAt: null,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (conflictingAllocations.length > 0) {
+      throw { code: "STUDENTS_NO_LONGER_AVAILABLE" };
+    }
+
+    const team = await tx.team.create({
+      data: {
+        enterpriseId,
+        projectId,
+        teamName,
+      },
+      select: {
+        id: true,
+        teamName: true,
+      },
+    });
+
+    await tx.teamAllocation.createMany({
+      data: studentIds.map((studentId) => ({
+        teamId: team.id,
+        userId: studentId,
+      })),
+      skipDuplicates: true,
+    });
+
+    return {
+      id: team.id,
+      teamName: team.teamName,
+      memberCount: studentIds.length,
+    };
   });
 }
 

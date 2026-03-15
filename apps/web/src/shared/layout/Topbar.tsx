@@ -2,15 +2,17 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 type TopbarProps = {
+  leading?: ReactNode;
   title?: string;
   titleHref?: string;
   nav?: ReactNode;
   actions?: ReactNode;
 };
 
-export function Topbar({ title, titleHref, nav, actions }: TopbarProps) {
+export function Topbar({ leading, title, titleHref, nav, actions }: TopbarProps) {
   return (
     <div className="topbar">
+      {leading ? <div className="topbar__leading">{leading}</div> : null}
       <div className="topbar__main">
         {title ? (
           <h1 className="topbar__title">

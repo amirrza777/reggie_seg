@@ -49,14 +49,14 @@ export default async function ModulePage({ params }: PageProps) {
 
   if (errorMessage || !moduleInfo) {
     return (
-      <div className="stack">
+      <div className="stack ui-page">
         <p className="muted">{errorMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className="stack">
+    <div className="stack ui-page">
       <Placeholder
         title={moduleInfo.title}
         description="Progress overview of this module's peer assessments."

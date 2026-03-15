@@ -9,9 +9,7 @@ import { getCurrentUser, isAdmin } from "@/shared/auth/session";
 
 export const dynamic = "force-dynamic";
 
-const adminNav = [
-  { href: "/admin", label: "Admin dashboard", space: "admin" as const },
-];
+const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -24,6 +22,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/dashboard");
   }
 
+  const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
+  const adminNav = [
+    { href: "/admin", label: "Admin dashboard", space: "admin" as const },
+    ...(isSuperAdmin ? [{ href: "/admin/enterprises", label: "Enterprises", space: "admin" as const }] : []),
+  ];
+
   const spaceLinks: SpaceLink[] = [
     { href: "/dashboard", label: "Workspace" },
     { href: "/staff/dashboard", label: "Staff" },
@@ -33,8 +37,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Admin" links={adminNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Admin sections" links={adminNav} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={adminNav} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref="/admin"
+          actions={<UserMenu />}
+        />
+      }
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

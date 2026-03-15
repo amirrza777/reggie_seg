@@ -19,7 +19,7 @@
   min-height: 0;
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 18px 20px;
+  padding: 16px var(--space-panel-content-inset);
   background: var(--surface);
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
@@ -88,7 +88,7 @@
   background: var(--surface);
 }
 
-@media (max-width: 700px) {
+@media (max-width: 860px) {
   .project-list {
     padding-top: 4px;
   }
@@ -100,6 +100,6 @@
 
   .project-card {
     min-height: 156px;
-    padding: 16px;
+    padding: 16px var(--space-panel-content-inset);
   }
 }

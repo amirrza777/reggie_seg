@@ -16,12 +16,112 @@ export async function getUserProjects(userId: number) {
     select: {
       id: true,
       name: true,
+      archivedAt: true,
       module: {
         select: {
           name: true,
         },
       },
     },
+  });
+}
+
+export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, enterpriseId: true },
+  });
+
+  if (!user) {
+    return [];
+  }
+
+  const membershipFilter =
+    user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
+      ? { enterpriseId: user.enterpriseId }
+      : user.role === "STAFF"
+        ? {
+            enterpriseId: user.enterpriseId,
+            OR: [
+              { moduleLeads: { some: { userId: user.id } } },
+              { moduleTeachingAssistants: { some: { userId: user.id } } },
+              { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } },
+            ],
+          }
+        : {
+            enterpriseId: user.enterpriseId,
+            ...(options?.staffOnly
+              ? {
+                  moduleTeachingAssistants: { some: { userId: user.id } },
+                }
+              : {
+                  userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
+                }),
+          };
+
+  const modules = await prisma.module.findMany({
+    where: membershipFilter,
+    select: {
+      id: true,
+      name: true,
+      briefText: true,
+      timelineText: true,
+      expectationsText: true,
+      readinessNotesText: true,
+      moduleLeads: {
+        where: { userId: user.id },
+        select: { userId: true },
+        take: 1,
+      },
+      moduleTeachingAssistants: {
+        where: { userId: user.id },
+        select: { userId: true },
+        take: 1,
+      },
+      userModules: {
+        where: { userId: user.id, enterpriseId: user.enterpriseId },
+        select: { userId: true },
+        take: 1,
+      },
+      projects: {
+        select: {
+          _count: {
+            select: {
+              teams: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [{ name: "asc" }, { id: "asc" }],
+  });
+
+  return modules.map((module) => {
+    const isOwner = module.moduleLeads.length > 0;
+    const isTeachingAssistant = module.moduleTeachingAssistants.length > 0;
+    const isEnrolled = module.userModules.length > 0;
+
+    const accessRole = isOwner
+      ? "OWNER"
+      : isTeachingAssistant
+        ? "TEACHING_ASSISTANT"
+        : isEnrolled
+          ? "ENROLLED"
+          : user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
+            ? "ADMIN_ACCESS"
+            : "ENROLLED";
+
+    return {
+      id: module.id,
+      name: module.name,
+      briefText: module.briefText,
+      timelineText: module.timelineText,
+      expectationsText: module.expectationsText,
+      readinessNotesText: module.readinessNotesText,
+      teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
+      projectCount: module.projects.length,
+      accessRole,
+    };
   });
 }
 
@@ -49,11 +149,10 @@ export async function getStaffProjects(userId: number) {
           ...baseWhere,
           module: {
             ...baseWhere.module,
-            moduleLeads: {
-              some: {
-                userId,
-              },
-            },
+            OR: [
+              { moduleLeads: { some: { userId } } },
+              { moduleTeachingAssistants: { some: { userId } } },
+            ],
           },
         };
 
@@ -64,6 +163,7 @@ export async function getStaffProjects(userId: number) {
       id: true,
       name: true,
       moduleId: true,
+      archivedAt: true,
       module: {
         select: {
           name: true,
@@ -92,11 +192,10 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
         ...(roleCanAccessAll
           ? {}
           : {
-              moduleLeads: {
-                some: {
-                  userId,
-                },
-              },
+              OR: [
+                { moduleLeads: { some: { userId } } },
+                { moduleTeachingAssistants: { some: { userId } } },
+              ],
             }),
       },
     },
@@ -116,6 +215,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
           teamName: true,
           projectId: true,
           createdAt: true,
+          inactivityFlag: true,
           allocations: {
             select: {
               userId: true,

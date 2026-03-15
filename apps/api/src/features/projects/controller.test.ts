@@ -5,17 +5,25 @@ import {
   createProjectHandler,
   getProjectByIdHandler,
   getProjectDeadlineHandler,
+  getProjectMarkingHandler,
   getQuestionsForProjectHandler,
+  getStaffProjectTeamsHandler,
+  getStaffProjectsHandler,
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
+  getUserModulesHandler,
   getUserProjectsHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
   createProject: vi.fn(),
   fetchProjectById: vi.fn(),
+  fetchProjectMarking: vi.fn(),
+  fetchProjectTeamsForStaff: vi.fn(),
   fetchProjectsForUser: vi.fn(),
+  fetchProjectsForStaff: vi.fn(),
+  fetchModulesForUser: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
   fetchTeamById: vi.fn(),
@@ -71,26 +79,57 @@ describe("projects controller", () => {
     expect(okRes.json).toHaveBeenCalledWith({ id: 1 });
   });
 
-  it("getUserProjectsHandler validates user id and returns projects", async () => {
-    const badRes = mockResponse();
-    await getUserProjectsHandler({ query: { userId: "x" } } as any, badRes);
-    expect(badRes.status).toHaveBeenCalledWith(400);
+  it("getUserProjectsHandler requires auth and blocks user spoofing", async () => {
+    const unauthorizedRes = mockResponse();
+    await getUserProjectsHandler({ query: { userId: "7" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badQueryRes = mockResponse();
+    await getUserProjectsHandler({ user: { sub: 7 }, query: { userId: "x" } } as any, badQueryRes);
+    expect(badQueryRes.status).toHaveBeenCalledWith(400);
+
+    const forbiddenRes = mockResponse();
+    await getUserProjectsHandler({ user: { sub: 7 }, query: { userId: "8" } } as any, forbiddenRes);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
 
     (service.fetchProjectsForUser as any).mockResolvedValue([{ id: 1, name: "P1", moduleName: "SEGP" }]);
     const res = mockResponse();
-    await getUserProjectsHandler({ query: { userId: "7" } } as any, res);
+    await getUserProjectsHandler({ user: { sub: 7 }, query: { userId: "7" } } as any, res);
     expect(service.fetchProjectsForUser).toHaveBeenCalledWith(7);
     expect(res.json).toHaveBeenCalled();
   });
 
-  it("getProjectDeadlineHandler validates ids and returns deadline", async () => {
+  it("getUserModulesHandler maps query scope to module fetch scope", async () => {
+    const unauthorizedRes = mockResponse();
+    await getUserModulesHandler({ query: { userId: "7" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
     const badRes = mockResponse();
-    await getProjectDeadlineHandler({ params: { projectId: "x" }, query: { userId: "1" } } as any, badRes);
+    await getUserModulesHandler({ user: { sub: 7 }, query: { userId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchModulesForUser as any).mockResolvedValue([{ id: "1", title: "M1" }]);
+    const workspaceRes = mockResponse();
+    await getUserModulesHandler({ user: { sub: 7 }, query: { userId: "7" } } as any, workspaceRes);
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: false });
+
+    const staffRes = mockResponse();
+    await getUserModulesHandler({ user: { sub: 7 }, query: { userId: "7", scope: "staff" } } as any, staffRes);
+    expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true });
+  });
+
+  it("getProjectDeadlineHandler validates ids and returns deadline", async () => {
+    const unauthorizedRes = mockResponse();
+    await getProjectDeadlineHandler({ params: { projectId: "2" }, query: { userId: "1" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getProjectDeadlineHandler({ user: { sub: 1 }, params: { projectId: "x" }, query: { userId: "1" } } as any, badRes);
     expect(badRes.status).toHaveBeenCalledWith(400);
 
     (service.fetchProjectDeadline as any).mockResolvedValue({ taskDueDate: "2026-03-01", isOverridden: false });
     const res = mockResponse();
-    await getProjectDeadlineHandler({ params: { projectId: "2" }, query: { userId: "1" } } as any, res);
+    await getProjectDeadlineHandler({ user: { sub: 1 }, params: { projectId: "2" }, query: { userId: "1" } } as any, res);
     expect(service.fetchProjectDeadline).toHaveBeenCalledWith(1, 2);
     expect(res.json).toHaveBeenCalledWith({
       deadline: { taskDueDate: "2026-03-01", isOverridden: false },
@@ -98,13 +137,17 @@ describe("projects controller", () => {
   });
 
   it("getTeammatesForProjectHandler validates ids and returns teammates", async () => {
+    const unauthorizedRes = mockResponse();
+    await getTeammatesForProjectHandler({ params: { projectId: "3" }, query: { userId: "1" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
     const badRes = mockResponse();
-    await getTeammatesForProjectHandler({ params: { projectId: "x" }, query: { userId: "1" } } as any, badRes);
+    await getTeammatesForProjectHandler({ user: { sub: 1 }, params: { projectId: "x" }, query: { userId: "1" } } as any, badRes);
     expect(badRes.status).toHaveBeenCalledWith(400);
 
     (service.fetchTeammatesForProject as any).mockResolvedValue([{ userId: 2 }]);
     const res = mockResponse();
-    await getTeammatesForProjectHandler({ params: { projectId: "3" }, query: { userId: "1" } } as any, res);
+    await getTeammatesForProjectHandler({ user: { sub: 1 }, params: { projectId: "3" }, query: { userId: "1" } } as any, res);
     expect(service.fetchTeammatesForProject).toHaveBeenCalledWith(1, 3);
     expect(res.json).toHaveBeenCalledWith({ teammates: [{ userId: 2 }] });
   });
@@ -121,9 +164,16 @@ describe("projects controller", () => {
   });
 
   it("getTeamByUserAndProjectHandler validates ids and maps not found", async () => {
+    const unauthorizedRes = mockResponse();
+    await getTeamByUserAndProjectHandler(
+      { params: { projectId: "2" }, query: { userId: "1" } } as any,
+      unauthorizedRes
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
     const badRes = mockResponse();
     await getTeamByUserAndProjectHandler(
-      { params: { projectId: "x" }, query: { userId: "1" } } as any,
+      { user: { sub: 1 }, params: { projectId: "x" }, query: { userId: "1" } } as any,
       badRes
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
@@ -131,10 +181,52 @@ describe("projects controller", () => {
     (service.fetchTeamByUserAndProject as any).mockResolvedValue(null);
     const missingRes = mockResponse();
     await getTeamByUserAndProjectHandler(
-      { params: { projectId: "2" }, query: { userId: "1" } } as any,
+      { user: { sub: 1 }, params: { projectId: "2" }, query: { userId: "1" } } as any,
       missingRes
     );
     expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getStaffProjectsHandler and getStaffProjectTeamsHandler use authenticated user id", async () => {
+    const staffProjectsRes = mockResponse();
+    (service.fetchProjectsForStaff as any).mockResolvedValue([{ id: 1, name: "P1" }]);
+    await getStaffProjectsHandler({ user: { sub: 12 }, query: { userId: "12" } } as any, staffProjectsRes);
+    expect(service.fetchProjectsForStaff).toHaveBeenCalledWith(12);
+    expect(staffProjectsRes.json).toHaveBeenCalledWith([{ id: 1, name: "P1" }]);
+
+    const staffTeamsRes = mockResponse();
+    (service.fetchProjectTeamsForStaff as any).mockResolvedValue({
+      project: { id: 9, name: "P9", moduleId: 1, moduleName: "M1" },
+      teams: [],
+    });
+    await getStaffProjectTeamsHandler(
+      { user: { sub: 12 }, params: { projectId: "9" }, query: { userId: "12" } } as any,
+      staffTeamsRes
+    );
+    expect(service.fetchProjectTeamsForStaff).toHaveBeenCalledWith(12, 9);
+    expect(staffTeamsRes.json).toHaveBeenCalledWith({
+      project: { id: 9, name: "P9", moduleId: 1, moduleName: "M1" },
+      teams: [],
+    });
+  });
+
+  it("getProjectMarkingHandler uses authenticated user id", async () => {
+    (service.fetchProjectMarking as any).mockResolvedValue({
+      teamId: 5,
+      teamMarking: null,
+      studentMarking: null,
+    });
+    const res = mockResponse();
+    await getProjectMarkingHandler(
+      { user: { sub: 4 }, params: { projectId: "5" }, query: { userId: "4" } } as any,
+      res
+    );
+    expect(service.fetchProjectMarking).toHaveBeenCalledWith(4, 5);
+    expect(res.json).toHaveBeenCalledWith({
+      teamId: 5,
+      teamMarking: null,
+      studentMarking: null,
+    });
   });
 
   it("getQuestionsForProjectHandler validates id and maps missing template", async () => {

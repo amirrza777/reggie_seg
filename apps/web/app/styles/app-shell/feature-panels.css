@@ -2,3 +2,37 @@
 @import "./feature-panels.project-overview.css";
 @import "./feature-panels.assessment.css";
 @import "./feature-panels.auth.css";
+@import "./feature-panels.projects.css";
+@import "./feature-panels.responsive.css";
+
+.projects-panel,
+.project-overview-dashboard,
+.github-project-repos-client {
+  gap: var(--space-panel-gap);
+  width: 100%;
+  min-width: 0;
+}
+
+.projects-panel__header,
+.github-hero__intro {
+  display: grid;
+  gap: var(--space-panel-heading-gap);
+  min-width: 0;
+}
+
+.projects-panel__title,
+.project-overview-hero__title,
+.github-hero__title {
+  margin: 0;
+  font-size: var(--fs-panel-title);
+  line-height: var(--lh-display);
+  letter-spacing: -0.02em;
+  font-weight: var(--fw-bold);
+}
+
+.projects-panel__subtitle,
+.project-overview-hero__summary,
+.github-hero__blurb {
+  margin: 0;
+  color: var(--muted);
+}

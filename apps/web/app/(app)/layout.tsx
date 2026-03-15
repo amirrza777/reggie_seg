@@ -8,7 +8,7 @@ import { UserMenu } from "@/features/auth/components/UserMenu";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
-import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
@@ -49,12 +49,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
   try {
-    const modules = await listModules();
+    const modules = await listModules(user.id);
     if (modules.length > 0) {
       moduleChildren = [
         { href: "/dashboard", label: "Overview" },
         ...modules.map((module) => ({
-          href: `/dashboard?module=${encodeURIComponent(module.id)}`,
+          href: `/modules/${encodeURIComponent(module.id)}`,
           label: module.title,
         })),
       ];
@@ -81,21 +81,37 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     // Workspace
     { href: "/dashboard", label: "Modules", space: "workspace", children: moduleChildren },
     { href: "/projects", label: "Projects", space: "workspace", children: projectChildren },
+    { href: "/calendar", label: "Calendar", space: "workspace" },
 
     // Staff
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
+    { href: "/staff/modules", label: "My Modules", space: "staff" },
     { href: "/staff/projects", label: "Projects", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
+    { href: "/staff/archive", label: "Archive", space: "staff" },
 
     // Admin
     { href: "/admin", label: "Admin Home", space: "admin" },
   ];
 
+  const limitedStaffUser = isModuleScopedStaff(user);
+  const moduleScopedStaffLinks = new Set([
+    "/staff/dashboard",
+    "/staff/modules",
+    "/staff/projects",
+    "/staff/analytics",
+    "/staff/questionnaires",
+    "/staff/archive",
+  ]);
+
   const accessibleLinks = navLinks
     .filter((link) => {
       if (link.flag && flagMap[link.flag] === false) return false;
-      if (link.space === "staff" && !(user?.isStaff || isAdmin(user))) return false;
+      if (link.space === "staff") {
+        if (!(user?.isStaff || isAdmin(user))) return false;
+        if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
+      }
       if (link.space === "admin" && !isAdmin(user)) return false;
       return true;
     })
@@ -104,17 +120,28 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
     }));
 
-  const workspaceAliases = ["/projects"];
+  const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
   if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
   if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Workspace" links={accessibleLinks} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<><NotificationBell /><UserMenu /></>} />}
+      sidebar={<Sidebar title="Workspace sections" links={accessibleLinks} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref="/dashboard"
+          actions={<><NotificationBell /><UserMenu /></>}
+        />
+      }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
     >
       <div className="workspace-shell">{children}</div>

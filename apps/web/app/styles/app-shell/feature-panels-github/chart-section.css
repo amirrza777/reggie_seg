@@ -1,0 +1,93 @@
+.github-chart-section {
+  margin-top: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
+
+.github-chart-section__label {
+  margin-top: 2px;
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.github-chart-section__insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.github-chart-section__insight {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--surface) 94%, var(--accent) 6%) 0%,
+      var(--surface) 100%
+    );
+  min-height: 92px;
+}
+
+.github-chart-section__insight-label {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.github-chart-section__insight-value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.github-chart-section__insight-subtext {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.github-chart-section__grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 10px;
+  align-items: start;
+}
+
+.github-chart-section__panel {
+  margin-top: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.github-chart-section__panel--full {
+  grid-column: 1 / -1;
+}
+
+.github-chart-section__panel--half {
+  grid-column: span 6;
+}
+
+.github-chart-section__canvas {
+  width: 100%;
+}
+
+.github-chart-section__canvas--xl {
+  height: 280px;
+}
+
+.github-chart-section__canvas--md {
+  height: 220px;
+}

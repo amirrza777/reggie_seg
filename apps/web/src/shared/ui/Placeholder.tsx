@@ -11,12 +11,12 @@ export function Placeholder({
   description,
   titleClassName,
 }: PlaceholderProps) {
+  const resolvedTitleClass = ["overview-title", "ui-page__title", titleClassName].filter(Boolean).join(" ");
+
   return (
-    <div className="placeholder">
-      <div className="stack">
-        <h2 className={titleClassName}>{title}</h2>
-        {description && <p className="muted">{description}</p>}
-      </div>
-    </div>
+    <header className="ui-page__header">
+      <h1 className={resolvedTitleClass}>{title}</h1>
+      {description && <p className="ui-page__description">{description}</p>}
+    </header>
   );
 }

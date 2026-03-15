@@ -1,0 +1,46 @@
+@media (max-width: 860px) {
+  .project-overview-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .project-overview-schedule__row {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .project-overview-status {
+    width: fit-content;
+  }
+
+  .github-hero__badge {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  .github-chart-section__panel--half {
+    grid-column: 1 / -1;
+  }
+
+  .github-chart-section__canvas--xl {
+    height: 220px;
+  }
+
+  .github-chart-section__canvas--md {
+    height: 190px;
+  }
+
+  .github-repos-tab__summary-grid {
+    max-width: none;
+    grid-template-columns: 1fr;
+  }
+
+  .github-repos-tab__pager-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .github-repos-tab__pager-actions .btn {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}

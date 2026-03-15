@@ -3,7 +3,7 @@ import { QuestionnaireList } from "@/features/questionnaires/components/question
 
 export default function QuestionnairesPage() {
   return (
-    <div className="stack" style={{ gap: 24 }}>
+    <div className="stack ui-page" style={{ gap: 24 }}>
       <div
         style={{
           display: "flex",

@@ -3,9 +3,9 @@ import { prisma } from "../../../shared/db.js";
 async function findStaffScope(staffId: number) {
   const user = await prisma.user.findUnique({
     where: { id: staffId },
-    select: { enterpriseId: true, role: true, active: true },
+    select: { id: true, enterpriseId: true, role: true, active: true },
   });
-  if (!user || user.active === false || user.role === "STUDENT") {
+  if (!user || user.active === false) {
     return null;
   }
   return user;
@@ -14,10 +14,21 @@ async function findStaffScope(staffId: number) {
 export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: number) {
   const staffScope = await findStaffScope(staffId);
   if (!staffScope) return null;
+
+  const canAccessAllModules = staffScope.role === "ADMIN" || staffScope.role === "ENTERPRISE_ADMIN";
+
   return prisma.module.findFirst({
     where: {
       id: moduleId,
       enterpriseId: staffScope.enterpriseId,
+      ...(canAccessAllModules
+        ? {}
+        : {
+            OR: [
+              { moduleLeads: { some: { userId: staffScope.id } } },
+              { moduleTeachingAssistants: { some: { userId: staffScope.id } } },
+            ],
+          }),
     },
     select: { id: true, name: true },
   });
@@ -26,8 +37,21 @@ export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: nu
 export async function findModulesForStaff(staffId: number) {
   const staffScope = await findStaffScope(staffId);
   if (!staffScope) return [];
+
+  const canAccessAllModules = staffScope.role === "ADMIN" || staffScope.role === "ENTERPRISE_ADMIN";
+
   return prisma.module.findMany({
-    where: { enterpriseId: staffScope.enterpriseId },
+    where: {
+      enterpriseId: staffScope.enterpriseId,
+      ...(canAccessAllModules
+        ? {}
+        : {
+            OR: [
+              { moduleLeads: { some: { userId: staffScope.id } } },
+              { moduleTeachingAssistants: { some: { userId: staffScope.id } } },
+            ],
+          }),
+    },
     orderBy: { name: "asc" },
   });
 }

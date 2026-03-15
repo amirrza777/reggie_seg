@@ -36,8 +36,13 @@ export function GithubChartTitleWithInfo({ title, info }: GithubChartTitleWithIn
           <div className="github-chart-info__modal" onClick={(event) => event.stopPropagation()}>
             <div className="github-chart-info__header">
               <h3 className="github-chart-info__title">{title}</h3>
-              <button type="button" className="github-chart-info__close" onClick={() => setOpen(false)}>
-                Close
+              <button
+                type="button"
+                className="github-chart-info__close"
+                aria-label="Close"
+                onClick={() => setOpen(false)}
+              >
+                ×
               </button>
             </div>
             <div className="github-chart-info__body">

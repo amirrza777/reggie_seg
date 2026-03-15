@@ -32,7 +32,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
 
   if (!user || !team) {
     return (
-      <div>
+      <div className="stack stack--tabbed">
         <ProjectNav projectId={projectId} enabledFlags={flagMap} />
         <div style={{ padding: 24 }}>
           <p>You are not in a team for this project.</p>
@@ -80,7 +80,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   );
 
   return (
-    <div>
+    <div className="stack stack--tabbed">
       <ProjectNav projectId={projectId} enabledFlags={flagMap} />
        <div style={{ padding: "30px" }}>
       <h2> Peer Assessments</h2>

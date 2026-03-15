@@ -1,0 +1,9 @@
+model ModuleTeachingAssistant {
+  moduleId Int
+  userId   Int
+  module   Module @relation(fields: [moduleId], references: [id])
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@id([moduleId, userId])
+  @@index([userId], map: "ModuleTeachingAssistant_userId_fkey")
+}

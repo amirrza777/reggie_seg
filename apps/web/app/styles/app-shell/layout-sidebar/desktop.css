@@ -1,0 +1,262 @@
+.app-shell__sidebar {
+  background: var(--surface);
+  color: var(--sidebar-text);
+  border-right: none;
+  border-radius: 10px;
+  padding: 12px 10px;
+  margin: 0;
+  position: relative;
+  align-self: stretch;
+  height: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-shell__sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
+.app-shell__workspace {
+  --workspace-radius: 10px;
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+  align-content: start;
+  align-items: start;
+  height: 100%;
+  min-height: 0;
+  background: var(--surface);
+  border-radius: var(--workspace-radius);
+  background-clip: padding-box;
+  overflow-anchor: none;
+  padding: 8px 10px 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.sidebar {
+  height: auto;
+  min-height: 100%;
+  /* Remove top padding so sidebar links align with main content start */
+  padding: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: flex-start;
+  width: 100%;
+  overflow: visible;
+  --sidebar-item-min-height: 52px;
+  --sidebar-item-pad-x: 16px;
+  --sidebar-item-radius: 14px;
+  --sidebar-item-font-size: 1rem;
+  --sidebar-group-gap: 8px;
+  --sidebar-subitem-indent: 12px;
+  --sidebar-subitem-min-height: 48px;
+  --sidebar-dropdown-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sidebar-dropdown-ease-soft: cubic-bezier(0.25, 0.9, 0.3, 1);
+}
+
+.sidebar__nav {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  justify-items: stretch;
+  min-height: 0;
+  overflow: visible;
+}
+
+.sidebar__link {
+  width: 100%;
+  max-width: 320px;
+  margin: 0;
+  min-height: var(--sidebar-item-min-height);
+  padding: 10px var(--sidebar-item-pad-x);
+  display: flex;
+  align-items: center;
+  border-radius: var(--sidebar-item-radius);
+  color: var(--sidebar-text);
+  background: transparent;
+  border: 1px solid transparent;
+  font-weight: var(--fw-semibold);
+  font-size: var(--sidebar-item-font-size);
+  text-align: left;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar__group {
+  width: 100%;
+  max-width: 320px;
+  display: grid;
+  gap: var(--sidebar-group-gap);
+}
+
+.sidebar__group-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transform: translateY(-8px);
+  transform-origin: top;
+  visibility: hidden;
+  pointer-events: none;
+  overflow: hidden;
+  will-change: grid-template-rows, opacity, transform;
+  transition:
+    grid-template-rows 0.44s var(--sidebar-dropdown-ease),
+    opacity 0.28s var(--sidebar-dropdown-ease-soft),
+    transform 0.34s var(--sidebar-dropdown-ease-soft),
+    visibility 0s linear 0.44s;
+}
+
+.sidebar__group-collapse.is-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    grid-template-rows 0.48s var(--sidebar-dropdown-ease),
+    opacity 0.32s var(--sidebar-dropdown-ease-soft),
+    transform 0.36s var(--sidebar-dropdown-ease-soft),
+    visibility 0s linear 0s;
+}
+
+.sidebar__group-collapse-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sidebar__group-trigger {
+  width: 100%;
+  margin: 0;
+  min-height: var(--sidebar-item-min-height);
+  padding: 10px var(--sidebar-item-pad-x);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--sidebar-item-radius);
+  color: var(--sidebar-text);
+  background: transparent;
+  border: 1px solid transparent;
+  font-weight: var(--fw-semibold);
+  font-size: var(--sidebar-item-font-size);
+  text-align: left;
+  transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  cursor: pointer;
+}
+
+.sidebar__link:hover,
+.sidebar__link:focus-visible,
+.sidebar__group-trigger:hover,
+.sidebar__group-trigger:focus-visible {
+  background: transparent;
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--border) 140%, transparent);
+}
+
+.sidebar__link.is-active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text);
+  font-weight: var(--fw-bold);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.sidebar__group-trigger.is-active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text);
+  font-weight: var(--fw-bold);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.sidebar__group-items {
+  display: grid;
+  gap: 6px;
+  padding-left: var(--sidebar-subitem-indent);
+}
+
+.sidebar__sublink {
+  width: 100%;
+  min-height: var(--sidebar-subitem-min-height);
+  padding: 8px calc(var(--sidebar-item-pad-x) - 2px);
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  color: var(--sidebar-text);
+  border: 1px solid transparent;
+  font-size: var(--sidebar-item-font-size);
+  opacity: 0;
+  transform: translateY(-5px);
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    opacity 0.24s var(--sidebar-dropdown-ease-soft),
+    transform 0.32s var(--sidebar-dropdown-ease-soft);
+  transition-delay: calc(var(--dropdown-item-index, 0) * 18ms);
+}
+
+.sidebar__sublink:hover,
+.sidebar__sublink:focus-visible {
+  color: var(--accent-strong);
+  border-color: color-mix(in srgb, var(--border) 130%, transparent);
+}
+
+.sidebar__group-collapse.is-open .sidebar__sublink {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sidebar__sublink.is-active {
+  background: var(--sidebar-active-bg);
+  color: var(--sidebar-text);
+  border-color: transparent;
+  font-weight: var(--fw-semibold);
+}
+
+@media (max-height: 820px) and (min-width: 1025px) {
+  .app-shell__sidebar {
+    padding: 10px 8px;
+  }
+
+  .app-shell__workspace {
+    padding: 8px 10px 10px;
+    gap: 12px;
+  }
+
+  .sidebar {
+    --sidebar-item-min-height: 46px;
+    --sidebar-subitem-min-height: 42px;
+    --sidebar-item-pad-x: 14px;
+    gap: 14px;
+  }
+
+  .sidebar__nav {
+    gap: 8px;
+  }
+}
+
+.sidebar__footer {
+  margin-top: auto;
+  font-size: var(--fs-caption);
+  color: var(--sidebar-muted);
+}
+
+/* Mobile sidebar dropdown */

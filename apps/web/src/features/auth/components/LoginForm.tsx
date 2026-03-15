@@ -31,9 +31,10 @@ const useLoginFormState = () => {
     setMessage(null);
     try {
       await login(form);
-      await refresh(); // pull fresh profile into context
+      const profile = await refresh(); // pull fresh profile into context
       setStatus("success");
-      router.push("/dashboard");
+      const destination = profile?.role === "ADMIN" || profile?.isAdmin ? "/admin" : "/dashboard";
+      router.push(destination);
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Login failed");

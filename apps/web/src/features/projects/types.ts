@@ -6,6 +6,7 @@ export type Project = {
   moduleId?: number;
   teamCount?: number;
   questionnaireTemplateId: number;
+  archivedAt?: string | null;
 };
 
 export type ProjectDeadline = {
@@ -30,6 +31,7 @@ export type Team = {
   teamName: string;
   projectId: number;
   createdAt: string;
+  inactivityFlag: "NONE" | "YELLOW" | "RED";
   allocations: Array<{
     userId: number;
     user: User;

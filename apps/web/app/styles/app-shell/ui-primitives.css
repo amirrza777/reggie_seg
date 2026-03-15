@@ -1,5 +1,5 @@
 .ui-page {
-  padding: 30px;
+  padding: 20px;
   display: grid;
   gap: 16px;
 }
@@ -194,6 +194,9 @@
   padding: 12px 14px;
   display: grid;
   gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .ui-metric-value {
@@ -205,4 +208,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 1024px) {
+  .ui-page {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-page {
+    padding: 12px;
+  }
 }

@@ -1,5 +1,26 @@
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 a {
@@ -43,6 +64,10 @@ h3 {
     letter-spacing: -0.02em;
 }
 
+:where(strong, b, th, button, .btn, .pill-nav__link) {
+    letter-spacing: -0.012em;
+}
+
 .lede {
     margin: 0;
     color: var(--muted);
@@ -73,6 +98,22 @@ h3 {
 
 .stack--loose {
     gap: 10px;
+}
+
+.stack--tabbed {
+    padding: 20px;
+}
+
+@media (max-width: 1024px) {
+    .stack--tabbed {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 640px) {
+    .stack--tabbed {
+        padding: 12px;
+    }
 }
 
 /* Utility compatibility for staff pages using Tailwind-style class names */
@@ -189,7 +230,7 @@ h3 {
     background: var(--surface);
     border: 1px dashed var(--border);
     border-radius: 16px;
-    padding: 18px 20px;
+    padding: 16px var(--space-panel-content-inset);
     display: grid;
     gap: 8px;
 }

@@ -9,7 +9,7 @@ import { getCurrentUser } from "./api/client";
 type UserContextValue = {
   user: UserProfile | null;
   setUser: (user: UserProfile | null) => void;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<UserProfile | null>;
   loading: boolean;
 };
 
@@ -24,8 +24,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       const profile = await getCurrentUser();
       setUser(profile);
+      return profile;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }

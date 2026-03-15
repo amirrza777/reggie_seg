@@ -281,8 +281,8 @@ export default function ProfilePage() {
       </div>
 
       {emailModalOpen ? (
-        <div className="modal" role="dialog" aria-modal="true">
-          <div className="modal__dialog profile-modal">
+        <div className="modal" role="dialog" aria-modal="true" onClick={() => setEmailModalOpen(false)}>
+          <div className="modal__dialog profile-modal" onClick={(event) => event.stopPropagation()}>
             <div className="profile-modal__icon">✉️</div>
             <h3>Verify it’s you</h3>
             <p>

@@ -9,7 +9,15 @@ import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/sessio
 
 export const dynamic = "force-dynamic";
 
-const enterpriseNav = [{ href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const }];
+const enterpriseAdminNav = [
+  { href: "/enterprise", label: "Enterprise overview", space: "enterprise" as const },
+  { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
+  { href: "/enterprise/groups", label: "Group management", space: "enterprise" as const },
+];
+
+const enterpriseStaffNav = [
+  { href: "/enterprise/modules", label: "Module management", space: "enterprise" as const },
+];
 
 export default async function EnterpriseLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();
@@ -18,23 +26,43 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
     redirect("/login");
   }
 
-  if (!isEnterpriseAdmin(user) && !isAdmin(user)) {
+  const canAccessEnterpriseAdmin = isEnterpriseAdmin(user) || isAdmin(user);
+  const canAccessModuleManagement = canAccessEnterpriseAdmin || user.role === "STAFF";
+
+  if (!canAccessModuleManagement) {
     redirect("/dashboard");
   }
 
-  const workspaceAliases = ["/staff/repos", "/staff/integrations", "/staff/questionnaires", "/staff/peer-assessments"];
-
-  const spaceLinks: SpaceLink[] = [
-    { href: "/dashboard", label: "Workspace", activePaths: workspaceAliases },
-    { href: "/staff/dashboard", label: "Staff" },
-    { href: "/enterprise", label: "Enterprise" },
+  const enterpriseHomeHref = canAccessEnterpriseAdmin ? "/enterprise" : "/enterprise/modules";
+  const enterpriseNav = canAccessEnterpriseAdmin ? enterpriseAdminNav : enterpriseStaffNav;
+  const workspaceAliases = [
+    "/staff/dashboard",
+    "/staff/modules",
+    "/staff/projects",
+    "/staff/analytics",
+    "/staff/questionnaires",
   ];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+
+  const spaceLinks: SpaceLink[] = [];
+  if (!isStaffOnlyAccount) {
+    spaceLinks.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
+  spaceLinks.push({ href: "/staff/dashboard", label: "Staff" });
+  spaceLinks.push({ href: enterpriseHomeHref, label: "Enterprise" });
   if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin" });
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Enterprise" links={enterpriseNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Enterprise sections" links={enterpriseNav} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={enterpriseNav} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref={enterpriseHomeHref}
+          actions={<UserMenu />}
+        />
+      }
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

@@ -55,7 +55,7 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
       <div className="github-repos-tab__header">
         <div className="github-repos-tab__title">
           <p className="github-repos-tab__kicker">Repositories</p>
-          <strong>Linked repositories</strong>
+          <h2 className="github-repos-tab__heading">Linked repositories</h2>
         </div>
         <Button variant="ghost" onClick={() => void onRefresh()} disabled={loading || busy}>
           {busy && links.length > 0 ? "Refreshing..." : "Refresh"}

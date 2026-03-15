@@ -1,8 +1,10 @@
 import type { Request, Response } from "express";
+import type { AuthRequest } from "../../auth/middleware.js";
 import {
   createProject,
   fetchProjectById,
   fetchProjectsForUser,
+  fetchModulesForUser,
   fetchProjectDeadline,
   fetchTeammatesForProject,
   fetchTeamById,
@@ -12,6 +14,29 @@ import {
   fetchProjectTeamsForStaff,
   fetchProjectMarking,
 } from "./service.js";
+
+function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | null {
+  const authUserId = req.user?.sub;
+  if (!authUserId) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+
+  const queryUserId = req.query.userId;
+  if (queryUserId !== undefined) {
+    const parsedQueryUserId = Number(queryUserId);
+    if (Number.isNaN(parsedQueryUserId)) {
+      res.status(400).json({ error: "Invalid user ID" });
+      return null;
+    }
+    if (parsedQueryUserId !== authUserId) {
+      res.status(403).json({ error: "Forbidden" });
+      return null;
+    }
+  }
+
+  return authUserId;
+}
 
 export async function createProjectHandler(req: Request, res: Response) {
   const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
@@ -55,10 +80,10 @@ export async function getProjectByIdHandler(req: Request, res: Response) {
   }
 }
 
-export async function getUserProjectsHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) {
+    return;
   }
 
   try {
@@ -70,12 +95,32 @@ export async function getUserProjectsHandler(req: Request, res: Response) {
   }
 }
 
-export async function getProjectDeadlineHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+export async function getUserModulesHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) {
+    return;
+  }
+
+  const scope = req.query.scope === "staff" ? "staff" : "workspace";
+
+  try {
+    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff" });
+    res.json(modules);
+  } catch (error) {
+    console.error("Error fetching user modules:", error);
+    res.status(500).json({ error: "Failed to fetch modules" });
+  }
+}
+
+export async function getProjectDeadlineHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId) || isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
@@ -87,12 +132,15 @@ export async function getProjectDeadlineHandler(req: Request, res: Response) {
   }
 }
 
-export async function getTeammatesForProjectHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+export async function getTeammatesForProjectHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId) || isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
@@ -123,12 +171,15 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
   }
 }
 
-export async function getTeamByUserAndProjectHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId) || isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
@@ -162,10 +213,10 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 }
 
-export async function getStaffProjectsHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
-  if (Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) {
+    return;
   }
 
   try {
@@ -177,11 +228,11 @@ export async function getStaffProjectsHandler(req: Request, res: Response) {
   }
 }
 
-export async function getStaffProjectTeamsHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
-  if (Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
+  if (userId === null) {
+    return;
   }
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
@@ -199,12 +250,15 @@ export async function getStaffProjectTeamsHandler(req: Request, res: Response) {
   }
 }
 
-export async function getProjectMarkingHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
+export async function getProjectMarkingHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
 
-  if (isNaN(userId) || isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
   }
 
   try {
