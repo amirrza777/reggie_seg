@@ -329,6 +329,38 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     requests,
   });
   const healthLabel = healthFlags.length === 0 ? "Healthy" : healthFlags.length <= 2 ? "Watch" : "At Risk";
+  const summaryMetrics = [
+    {
+      label: "Commits (14d)",
+      value: repoSummary?.commitsLast14Days != null ? String(repoSummary.commitsLast14Days) : "Not available",
+      isAvailable: repoSummary?.commitsLast14Days != null,
+    },
+    {
+      label: "Active coding days (14d)",
+      value: repoSummary?.activeCommitDaysLast14Days != null ? String(repoSummary.activeCommitDaysLast14Days) : "Not available",
+      isAvailable: repoSummary?.activeCommitDaysLast14Days != null,
+    },
+    {
+      label: "Meetings (last 30d)",
+      value: meetingSummary ? String(meetingSummary.recentThirtyDays) : "Not available",
+      isAvailable: Boolean(meetingSummary),
+    },
+    {
+      label: "Attendance rate",
+      value: meetingSummary?.attendanceRate != null ? `${meetingSummary.attendanceRate}%` : "Not available",
+      isAvailable: meetingSummary?.attendanceRate != null,
+    },
+    {
+      label: "Peer assessment completion",
+      value: peerSummary?.completionRate != null ? `${peerSummary.completionRate}%` : "Not available",
+      isAvailable: peerSummary?.completionRate != null,
+    },
+    {
+      label: "Open support requests",
+      value: String(requests.filter((request) => !request.resolved).length),
+      isAvailable: true,
+    },
+  ] as const;
 
   return (
     <div className="staff-projects">
@@ -351,49 +383,30 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
-      <section className="staff-projects__grid" aria-label="Team health summary">
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Commits (14d)</h3>
-          <p className="staff-projects__card-sub">
-            {repoSummary?.commitsLast14Days != null ? repoSummary.commitsLast14Days : "Not available"}
-          </p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Active coding days (14d)</h3>
-          <p className="staff-projects__card-sub">
-            {repoSummary?.activeCommitDaysLast14Days != null ? repoSummary.activeCommitDaysLast14Days : "Not available"}
-          </p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Meetings (last 30d)</h3>
-          <p className="staff-projects__card-sub">
-            {meetingSummary ? meetingSummary.recentThirtyDays : "Not available"}
-          </p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Attendance rate</h3>
-          <p className="staff-projects__card-sub">
-            {meetingSummary?.attendanceRate != null ? `${meetingSummary.attendanceRate}%` : "Not available"}
-          </p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Peer assessment completion</h3>
-          <p className="staff-projects__card-sub">
-            {peerSummary?.completionRate != null ? `${peerSummary.completionRate}%` : "Not available"}
-          </p>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Open support requests</h3>
-          <p className="staff-projects__card-sub">
-            {requests.filter((request) => !request.resolved).length}
-          </p>
-        </article>
+      <section className="staff-projects__grid staff-projects__health-metrics" aria-label="Team health summary">
+        {summaryMetrics.map((metric) => (
+          <article key={metric.label} className="staff-projects__card staff-projects__health-metric-card">
+            <p className="staff-projects__health-metric-label">{metric.label}</p>
+            <p
+              className={`staff-projects__health-metric-value${
+                metric.isAvailable ? "" : " staff-projects__health-metric-value--muted"
+              }`}
+            >
+              {metric.value}
+            </p>
+          </article>
+        ))}
       </section>
 
       <section className="staff-projects__team-list" aria-label="Team health signals">
-        <article className="staff-projects__team-card">
+        <article className="staff-projects__team-card staff-projects__team-card--signal">
           <div className="staff-projects__team-top">
-            <h3 className="staff-projects__team-title">Signal overview</h3>
+            <div>
+              <h3 className="staff-projects__team-title">Signal overview</h3>
+              <p className="staff-projects__team-count">
+                A consolidated read of activity, meetings, assessments, and support signals.
+              </p>
+            </div>
             <span className="staff-projects__badge">{healthLabel}</span>
           </div>
           {healthFlags.length === 0 ? (
@@ -401,35 +414,42 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               No immediate risk signals found from commits, meetings, peer assessment completion, and support requests.
             </p>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: 20 }}>
+            <ul className="staff-projects__signal-flags">
               {healthFlags.map((flag) => (
                 <li key={flag} className="staff-projects__team-count">{flag}</li>
               ))}
             </ul>
           )}
-          <p className="staff-projects__team-count">Latest meeting: {formatDateTime(meetingSummary?.lastMeetingAt ?? null)}</p>
-          <p className="staff-projects__team-count">Meetings with minutes: {meetingSummary?.withMinutes ?? "Not available"}</p>
-          <p className="staff-projects__team-count">
-            Repositories analysed: {repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "Not available"}
-          </p>
-          <p className="staff-projects__team-count">Latest repo snapshot: {formatDateTime(repoSummary?.latestAnalysedAt ?? null)}</p>
-          <p className="staff-projects__team-count">
-            Peer assessments submitted: {peerSummary ? `${peerSummary.submitted}/${peerSummary.expected}` : "Not available"}
-          </p>
-          <p className="staff-projects__team-count">
-            Students with zero submissions: {peerSummary?.missingStudents ?? "Not available"}
-          </p>
+          <dl className="staff-projects__signal-stats">
+            <div className="staff-projects__signal-stat">
+              <dt>Latest meeting</dt>
+              <dd>{formatDateTime(meetingSummary?.lastMeetingAt ?? null)}</dd>
+            </div>
+            <div className="staff-projects__signal-stat">
+              <dt>Meetings with minutes</dt>
+              <dd>{meetingSummary?.withMinutes ?? "Not available"}</dd>
+            </div>
+            <div className="staff-projects__signal-stat">
+              <dt>Repositories analysed</dt>
+              <dd>{repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "Not available"}</dd>
+            </div>
+            <div className="staff-projects__signal-stat">
+              <dt>Latest repo snapshot</dt>
+              <dd>{formatDateTime(repoSummary?.latestAnalysedAt ?? null)}</dd>
+            </div>
+            <div className="staff-projects__signal-stat">
+              <dt>Peer assessments submitted</dt>
+              <dd>{peerSummary ? `${peerSummary.submitted}/${peerSummary.expected}` : "Not available"}</dd>
+            </div>
+            <div className="staff-projects__signal-stat">
+              <dt>Students with zero submissions</dt>
+              <dd>{peerSummary?.missingStudents ?? "Not available"}</dd>
+            </div>
+          </dl>
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}
         </article>
-      </section>
-
-      <section className="staff-projects__team-card" aria-label="Support requests">
-        <h3 style={{ margin: 0 }}>Team queries and complaints</h3>
-        <p className="muted" style={{ margin: 0 }}>
-          Review student-submitted queries and complaints, then respond directly from this panel.
-        </p>
       </section>
 
       <StaffTeamHealthMessageReviewPanel

@@ -98,6 +98,9 @@ export function StaffTeamHealthMessageReviewPanel({
     <>
       <section className="staff-projects__team-list" aria-label="Team queries and complaints">
         <h3 style={{ margin: 0 }}>Messages</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          Review student-submitted queries and complaints, then respond directly from this panel.
+        </p>
         {requestLoadError ? (
           <article className="staff-projects__team-card">
             <p className="muted" style={{ margin: 0 }}>{requestLoadError}</p>

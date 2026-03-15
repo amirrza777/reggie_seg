@@ -56,6 +56,11 @@
   gap: 16px;
 }
 
+.staff-projects__health-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 12px;
+}
+
 .staff-projects__card {
   display: grid;
   gap: 12px;
@@ -81,6 +86,34 @@
 .staff-projects__card-sub {
   margin: 0;
   color: var(--muted);
+}
+
+.staff-projects__health-metric-card {
+  gap: 6px;
+  padding: 14px 14px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, white 5%) 0%, var(--surface) 100%);
+}
+
+.staff-projects__health-metric-label {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body-sm);
+  letter-spacing: 0.01em;
+}
+
+.staff-projects__health-metric-value {
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: clamp(1.25rem, 1.6vw, 1.6rem);
+  line-height: 1;
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__health-metric-value--muted {
+  color: var(--muted);
+  font-size: 1.25rem;
+  font-weight: var(--fw-regular);
 }
 
 .staff-projects__card-action {
@@ -142,6 +175,48 @@
 .staff-projects__team-count {
   margin: 0;
   color: var(--muted);
+}
+
+.staff-projects__team-card--signal {
+  padding: 18px;
+  gap: 14px;
+}
+
+.staff-projects__signal-flags {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+}
+
+.staff-projects__signal-stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 8px 12px;
+}
+
+.staff-projects__signal-stat {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+}
+
+.staff-projects__signal-stat dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__signal-stat dd {
+  margin: 0;
+  color: var(--ink-strong);
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
 }
 
 .staff-projects__team-avatars {
