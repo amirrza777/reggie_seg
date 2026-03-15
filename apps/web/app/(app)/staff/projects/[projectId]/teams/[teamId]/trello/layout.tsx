@@ -1,7 +1,6 @@
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { TrelloBoardProvider } from "@/features/trello/context/TrelloBoardContext";
 import { getCurrentUser } from "@/shared/auth/session";
-
 export const metadata = { title: "Trello (staff)" };
 
 type LayoutProps = {

@@ -125,6 +125,11 @@ h3 {
     color: var(--muted-subtle);
 }
 
+a.muted:hover {
+    color: var(--space-switcher-underline);
+    text-decoration: underline;
+}
+
 .section {
     padding: clamp(52px, 6.5vw, 84px) 20px;
     scroll-margin-top: 96px;

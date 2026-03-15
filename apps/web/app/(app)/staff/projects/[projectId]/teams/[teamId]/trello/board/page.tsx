@@ -1,7 +1,6 @@
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloProjectGate } from "@/features/staff/trello/StaffTrelloProjectGate";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
-import { TrelloBoardView } from "@/features/trello/views/TrelloBoardView";
+import { StaffTrelloBoardView } from "@/features/staff/trello/StaffTrelloBoardView";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
@@ -14,12 +13,11 @@ export default async function StaffTrelloBoardPage({ params }: PageProps) {
       <StaffTrelloProjectGate projectId={projectId} signInMessage="Please sign in to view the board.">
         {({ projectId, teamId, teamName }) => (
           <>
-            <StaffTeamSectionNav projectId={projectId} teamId={String(teamId)} />
             <StaffProjectTrelloContent
               projectId={projectId}
               teamId={teamId}
               teamName={teamName}
-              viewComponent={TrelloBoardView}
+              viewComponent={StaffTrelloBoardView}
             />
           </>
         )}

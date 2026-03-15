@@ -1,7 +1,6 @@
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloProjectGate } from "@/features/staff/trello/StaffTrelloProjectGate";
 import { StaffTrelloGraphsView } from "@/features/staff/trello/StaffTrelloGraphsView";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 
 type PageProps = {
   params: Promise<{ projectId: string }>;
@@ -14,7 +13,6 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
       <StaffTrelloProjectGate projectId={projectId} needDeadline signInMessage="Please sign in to view graphs.">
         {({ projectId, teamId, teamName, deadline }) => (
           <>
-            <StaffTeamSectionNav projectId={projectId} teamId={String(teamId)} />
             <StaffProjectTrelloContent
               projectId={projectId}
               teamId={teamId}

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 type Props = {
   projectId: string;
+  teamId: string | number;
   boardName: string;
   boardUrl?: string;
 };
@@ -28,9 +29,9 @@ function NavLink({
   );
 }
 
-export function StaffTrelloNav({ projectId, boardName, boardUrl }: Props) {
+export function StaffTrelloNav({ projectId, teamId, boardName, boardUrl }: Props) {
   const pathname = usePathname();
-  const base = `/staff/projects/${projectId}/trello`;
+  const base = `/staff/projects/${projectId}/teams/${teamId}/trello`;
   const isSummary = pathname === base || pathname === `${base}/`;
   const isBoard = pathname === `${base}/board`;
   const isGraphs = pathname === `${base}/graphs`;
