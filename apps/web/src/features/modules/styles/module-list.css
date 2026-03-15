@@ -82,19 +82,19 @@
 }
 
 .module-card__role--assistant {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--selection-gray-bg);
   color: var(--muted);
   border: 1px solid var(--border);
 }
 
 .module-card__role--admin {
-  background: rgba(251, 191, 36, 0.14);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: var(--status-warning-soft);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
 }
 
 .module-card__role--enrolled {
-  background: rgba(148, 163, 184, 0.14);
+  background: var(--selection-gray-bg);
   color: var(--muted);
   border: 1px solid var(--border);
 }
@@ -122,9 +122,36 @@
 }
 
 .module-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.module-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.module-card__manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.module-card__manage:hover,
+.module-card__manage:focus-visible,
+.module-card__cta:hover,
+.module-card__cta:focus-visible {
+  text-decoration: underline;
 }
 
 .module-list-empty {
@@ -140,7 +167,7 @@
   margin: 0;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 860px) {
   .module-list {
     padding-top: 4px;
   }

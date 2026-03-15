@@ -8,10 +8,12 @@ vi.mock("@/shared/api/http", () => ({
 
 import {
   acceptInvite,
+  applyManualAllocation,
   applyRandomAllocation,
   cancelTeamInvite,
   createTeamForProject,
   declineInvite,
+  getManualAllocationWorkspace,
   getRandomAllocationPreview,
   getReceivedInvites,
   getTeamInvites,
@@ -81,6 +83,21 @@ describe("team allocation api client", () => {
     });
   });
 
+  it("fetches manual allocation workspace", async () => {
+    await getManualAllocationWorkspace(91);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/manual-workspace", {
+      cache: "no-store",
+    });
+  });
+
+  it("applies manual allocation with team name and selected students", async () => {
+    await applyManualAllocation(55, "Team Gamma", [4, 8, 11]);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/manual-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamName: "Team Gamma", studentIds: [4, 8, 11] }),
+    });
+  });
+
   it("applies random allocation with team count and optional seed", async () => {
     await applyRandomAllocation(55, 4, 1234);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
@@ -92,6 +109,16 @@ describe("team allocation api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
       method: "POST",
       body: JSON.stringify({ teamCount: 4 }),
+    });
+
+    await applyRandomAllocation(55, 4, 1234, ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"]);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({
+        teamCount: 4,
+        seed: 1234,
+        teamNames: ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"],
+      }),
     });
   });
 });

@@ -18,6 +18,7 @@ export function useAutosave(value: string, options: UseAutosaveOptions) {
   useEffect(() => {
     if (value === lastSavedRef.current) return;
 
+    setStatus("idle");
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
     timeoutRef.current = setTimeout(async () => {

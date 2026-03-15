@@ -8,19 +8,24 @@
   position: relative;
   align-self: stretch;
   height: 100%;
-  min-height: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-shell__sidebar-inner {
-  position: sticky;
-  top: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
   width: 100%;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
 }
 
 .app-shell__workspace {
@@ -31,19 +36,23 @@
   gap: 16px;
   align-content: start;
   align-items: start;
-  overflow: auto;
+  height: 100%;
   min-height: 0;
   background: var(--surface);
   border-radius: var(--workspace-radius);
   background-clip: padding-box;
-  clip-path: inset(0 round var(--workspace-radius));
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
   padding: 8px 10px 10px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .sidebar {
   height: auto;
+  min-height: 100%;
   /* Remove top padding so sidebar links align with main content start */
   padding: 0 0 12px;
   display: flex;
@@ -51,6 +60,7 @@
   gap: 18px;
   align-items: flex-start;
   width: 100%;
+  overflow: visible;
   --sidebar-item-min-height: 52px;
   --sidebar-item-pad-x: 16px;
   --sidebar-item-radius: 14px;
@@ -66,7 +76,10 @@
   display: grid;
   gap: 10px;
   width: 100%;
+  box-sizing: border-box;
   justify-items: stretch;
+  min-height: 0;
+  overflow: visible;
 }
 
 .sidebar__link {
@@ -95,35 +108,37 @@
 }
 
 .sidebar__group-collapse {
-  max-height: 0;
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
   transform: translateY(-8px);
   transform-origin: top;
   visibility: hidden;
   pointer-events: none;
   overflow: hidden;
-  will-change: max-height, opacity, transform;
+  will-change: grid-template-rows, opacity, transform;
   transition:
-    max-height 0.44s var(--sidebar-dropdown-ease),
+    grid-template-rows 0.44s var(--sidebar-dropdown-ease),
     opacity 0.28s var(--sidebar-dropdown-ease-soft),
     transform 0.34s var(--sidebar-dropdown-ease-soft),
     visibility 0s linear 0.44s;
 }
 
 .sidebar__group-collapse.is-open {
-  max-height: 1000px;
+  grid-template-rows: 1fr;
   opacity: 1;
   transform: translateY(0);
   visibility: visible;
   pointer-events: auto;
   transition:
-    max-height 0.48s var(--sidebar-dropdown-ease),
+    grid-template-rows 0.48s var(--sidebar-dropdown-ease),
     opacity 0.32s var(--sidebar-dropdown-ease-soft),
     transform 0.36s var(--sidebar-dropdown-ease-soft),
     visibility 0s linear 0s;
 }
 
 .sidebar__group-collapse-inner {
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -216,16 +231,25 @@
   font-weight: var(--fw-semibold);
 }
 
-@media (prefers-color-scheme: dark) {
-  .sidebar__link.is-active {
-    background: var(--sidebar-active-bg);
-    border: 1px solid transparent;
+@media (max-height: 820px) and (min-width: 1025px) {
+  .app-shell__sidebar {
+    padding: 10px 8px;
   }
 
-  .sidebar__group-trigger.is-active,
-  .sidebar__sublink.is-active {
-    background: var(--sidebar-active-bg);
-    border: 1px solid transparent;
+  .app-shell__workspace {
+    padding: 8px 10px 10px;
+    gap: 12px;
+  }
+
+  .sidebar {
+    --sidebar-item-min-height: 46px;
+    --sidebar-subitem-min-height: 42px;
+    --sidebar-item-pad-x: 14px;
+    gap: 14px;
+  }
+
+  .sidebar__nav {
+    gap: 8px;
   }
 }
 

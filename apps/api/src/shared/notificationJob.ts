@@ -188,6 +188,123 @@ async function sendInactivityAlerts() {
   }
 }
 
+const NO_REPO_THRESHOLD_DAYS = 14;
+const NO_GITHUB_ACCOUNT_THRESHOLD_DAYS = 14;
+
+async function sendNoRepoAlerts() {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - NO_REPO_THRESHOLD_DAYS * 86_400_000);
+
+  const projects = await prisma.project.findMany({
+    where: {
+      archivedAt: null,
+      noRepoAlertSentAt: null,
+      createdAt: { lte: cutoff },
+      githubRepositories: { none: { isActive: true } },
+    },
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      module: { select: { name: true } },
+    },
+  });
+
+  if (projects.length === 0) return;
+
+  await prisma.project.updateMany({
+    where: { id: { in: projects.map((p) => p.id) } },
+    data: { noRepoAlertSentAt: now },
+  });
+
+  const staffUsers = await prisma.user.findMany({
+    where: { role: "STAFF" },
+    select: { email: true, firstName: true },
+  });
+
+  for (const { email, firstName } of staffUsers) {
+    const subject = `GitHub repo missing – ${projects.length} project${projects.length === 1 ? "" : "s"} have no linked repository`;
+    const list = projects.map((p) => `• ${p.name} (${p.module.name}) – created ${Math.floor((now.getTime() - p.createdAt.getTime()) / 86_400_000)} days ago`).join("\n");
+    const listHtml = projects.map((p) => `<li>${p.name} (${p.module.name}) – created ${Math.floor((now.getTime() - p.createdAt.getTime()) / 86_400_000)} days ago</li>`).join("");
+    const text = `Hi ${firstName},\n\nThe following projects have been active for ${NO_REPO_THRESHOLD_DAYS}+ days but have no GitHub repository linked:\n\n${list}\n\nPlease remind the relevant teams to link their repository.\n`;
+    const html = `<p>Hi ${firstName},</p><p>The following projects have been active for <strong>${NO_REPO_THRESHOLD_DAYS}+ days</strong> but have no GitHub repository linked:</p><ul>${listHtml}</ul><p>Please remind the relevant teams to link their repository.</p>`;
+    await sendEmail({ to: email, subject, text, html });
+  }
+}
+
+async function sendNoGithubAccountAlerts() {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - NO_GITHUB_ACCOUNT_THRESHOLD_DAYS * 86_400_000);
+
+  const teams = await prisma.team.findMany({
+    where: {
+      archivedAt: null,
+      noGithubAccountAlertSentAt: null,
+      createdAt: { lte: cutoff },
+    },
+    select: {
+      id: true,
+      teamName: true,
+      createdAt: true,
+      project: { select: { name: true } },
+      allocations: {
+        select: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+              githubAccount: { select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  type UnconnectedEntry = { teamName: string; projectName: string; members: string[] };
+  const toAlert: number[] = [];
+  const entries: UnconnectedEntry[] = [];
+
+  for (const team of teams) {
+    const unconnected = team.allocations
+      .filter((a) => !a.user.githubAccount)
+      .map((a) => `${a.user.firstName} ${a.user.lastName}`.trim() || a.user.email);
+
+    if (unconnected.length > 0) {
+      toAlert.push(team.id);
+      entries.push({ teamName: team.teamName, projectName: team.project.name, members: unconnected });
+    }
+  }
+
+  if (toAlert.length === 0) return;
+
+  await prisma.team.updateMany({
+    where: { id: { in: toAlert } },
+    data: { noGithubAccountAlertSentAt: now },
+  });
+
+  const staffUsers = await prisma.user.findMany({
+    where: { role: "STAFF" },
+    select: { email: true, firstName: true },
+  });
+
+  for (const { email, firstName } of staffUsers) {
+    const total = entries.reduce((sum, e) => sum + e.members.length, 0);
+    const subject = `GitHub not connected – ${total} student${total === 1 ? "" : "s"} across ${entries.length} team${entries.length === 1 ? "" : "s"}`;
+    let text = `Hi ${firstName},\n\nThe following students have not connected their GitHub accounts ${NO_GITHUB_ACCOUNT_THRESHOLD_DAYS}+ days after their team was created:\n\n`;
+    let html = `<p>Hi ${firstName},</p><p>The following students have not connected their GitHub accounts <strong>${NO_GITHUB_ACCOUNT_THRESHOLD_DAYS}+ days</strong> after their team was created:</p>`;
+    for (const entry of entries) {
+      text += `${entry.teamName} (${entry.projectName}):\n${entry.members.map((m) => `  – ${m}`).join("\n")}\n\n`;
+      html += `<p><strong>${entry.teamName}</strong> (${entry.projectName})</p><ul>${entry.members.map((m) => `<li>${m}</li>`).join("")}</ul>`;
+    }
+    text += `Log in to review your teams.\n`;
+    html += `<p>Log in to review your teams.</p>`;
+    await sendEmail({ to: email, subject, text, html });
+  }
+}
+
 export function startNotificationJob() {
   cron.schedule("0 8 * * *", async () => {
     try {
@@ -199,6 +316,16 @@ export function startNotificationJob() {
       await sendInactivityAlerts();
     } catch (err) {
       console.error("Inactivity alert job error:", err);
+    }
+    try {
+      await sendNoRepoAlerts();
+    } catch (err) {
+      console.error("No-repo alert job error:", err);
+    }
+    try {
+      await sendNoGithubAccountAlerts();
+    } catch (err) {
+      console.error("No-GitHub-account alert job error:", err);
     }
   });
 }

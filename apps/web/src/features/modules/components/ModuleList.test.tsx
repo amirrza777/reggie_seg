@@ -22,4 +22,23 @@ describe("ModuleList", () => {
     expect(screen.getByText("Graph theory")).toBeInTheDocument();
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
+
+  it("shows management actions for module owners", () => {
+    render(
+      <ModuleList
+        modules={[
+          { id: "12", title: "Software Engineering", accountRole: "OWNER" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Manage module" })).toHaveAttribute(
+      "href",
+      "/staff/modules/12/manage",
+    );
+    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
+      "href",
+      "/staff/projects/create?moduleId=12",
+    );
+  });
 });

@@ -12,6 +12,7 @@ import "@/features/staff/projects/styles/staff-projects.css";
 type StaffRandomAllocationPreviewProps = {
   projectId: number;
   initialTeamCount: number;
+  embedded?: boolean;
 };
 
 function toFullName(member: { firstName: string; lastName: string; email: string }) {
@@ -22,6 +23,7 @@ function toFullName(member: { firstName: string; lastName: string; email: string
 export function StaffRandomAllocationPreview({
   projectId,
   initialTeamCount,
+  embedded = false,
 }: StaffRandomAllocationPreviewProps) {
   const router = useRouter();
   const defaultTeamCount = Math.max(1, initialTeamCount || 2);
@@ -29,6 +31,8 @@ export function StaffRandomAllocationPreview({
   const [seedInput, setSeedInput] = useState("");
   const [preview, setPreview] = useState<RandomAllocationPreview | null>(null);
   const [previewInput, setPreviewInput] = useState<{ teamCount: number; seed?: number } | null>(null);
+  const [teamNames, setTeamNames] = useState<Record<number, string>>({});
+  const [renamingTeams, setRenamingTeams] = useState<Record<number, boolean>>({});
   const [confirmApply, setConfirmApply] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -74,6 +78,60 @@ export function StaffRandomAllocationPreview({
 
   const isPreviewCurrent = isCurrentInputMatchingPreview();
 
+  function toDefaultTeamNameMap(nextPreview: RandomAllocationPreview) {
+    return nextPreview.previewTeams.reduce<Record<number, string>>((names, team) => {
+      names[team.index] = team.suggestedName;
+      return names;
+    }, {});
+  }
+
+  function getTeamName(index: number, fallbackName: string) {
+    return teamNames[index] ?? fallbackName;
+  }
+
+  function getTeamNameValidationError() {
+    if (!preview) {
+      return "Generate a preview before confirming.";
+    }
+
+    const normalizedNames = preview.previewTeams.map((team) =>
+      getTeamName(team.index, team.suggestedName).trim(),
+    );
+    if (normalizedNames.some((name) => name.length === 0)) {
+      return "Team names cannot be empty.";
+    }
+
+    const uniqueNames = new Set(normalizedNames.map((name) => name.toLowerCase()));
+    if (uniqueNames.size !== normalizedNames.length) {
+      return "Team names must be unique.";
+    }
+
+    return null;
+  }
+
+  function getTeamNamesForApply() {
+    if (!preview) {
+      return [];
+    }
+    return preview.previewTeams.map((team) => getTeamName(team.index, team.suggestedName).trim());
+  }
+
+  function toggleConfirmAllocation() {
+    if (confirmApply) {
+      setConfirmApply(false);
+      return;
+    }
+
+    const teamNameValidationError = getTeamNameValidationError();
+    if (teamNameValidationError) {
+      setErrorMessage(teamNameValidationError);
+      return;
+    }
+
+    setErrorMessage("");
+    setConfirmApply(true);
+  }
+
   function runPreview() {
     const parsed = parseInputs();
     if (!parsed) {
@@ -88,10 +146,14 @@ export function StaffRandomAllocationPreview({
         const result = await getRandomAllocationPreview(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
         setPreview(result);
         setPreviewInput({ teamCount: parsed.parsedTeamCount, ...(parsed.parsedSeed !== undefined ? { seed: parsed.parsedSeed } : {}) });
+        setTeamNames(toDefaultTeamNameMap(result));
+        setRenamingTeams({});
         setConfirmApply(false);
       } catch (error) {
         setPreview(null);
         setPreviewInput(null);
+        setTeamNames({});
+        setRenamingTeams({});
         setErrorMessage(error instanceof Error ? error.message : "Failed to preview random allocation.");
       }
     });
@@ -111,18 +173,32 @@ export function StaffRandomAllocationPreview({
       setErrorMessage("Please confirm that this allocation should proceed.");
       return;
     }
+    const teamNameValidationError = getTeamNameValidationError();
+    if (teamNameValidationError) {
+      setErrorMessage(teamNameValidationError);
+      return;
+    }
+
+    const teamNamesForApply = getTeamNamesForApply();
 
     setErrorMessage("");
     setSuccessMessage("");
     startApplyTransition(async () => {
       try {
-        const result = await applyRandomAllocation(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
+        const result = await applyRandomAllocation(
+          projectId,
+          parsed.parsedTeamCount,
+          parsed.parsedSeed,
+          teamNamesForApply,
+        );
         setSuccessMessage(
           `Applied random allocation for vacant students across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
         );
         setConfirmApply(false);
         setPreview(null);
         setPreviewInput(null);
+        setTeamNames({});
+        setRenamingTeams({});
         router.refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to apply random allocation.";
@@ -130,6 +206,8 @@ export function StaffRandomAllocationPreview({
           setConfirmApply(false);
           setPreview(null);
           setPreviewInput(null);
+          setTeamNames({});
+          setRenamingTeams({});
         }
         setErrorMessage(message);
       }
@@ -137,14 +215,25 @@ export function StaffRandomAllocationPreview({
   }
 
   return (
-    <section className="staff-projects__team-card" aria-label="Random allocation preview">
-      <h2 className="staff-projects__card-title">Random allocation preview</h2>
-      <p className="staff-projects__card-sub">
-        Choose how many teams to generate, preview the random distribution, and review before applying.
-      </p>
-      <p className="staff-projects__allocation-note">
-        Only vacant students are included here. Students already assigned to a team in this project are excluded.
-      </p>
+    <section
+      className={
+        embedded
+          ? "staff-projects__allocation-content staff-projects__allocation-content--embedded"
+          : "staff-projects__team-card staff-projects__allocation-content"
+      }
+      aria-label="Random allocation preview"
+    >
+      {!embedded ? (
+        <>
+          <h2 className="staff-projects__card-title">Random allocation preview</h2>
+          <p className="staff-projects__card-sub">
+            Choose how many teams to generate, preview the random distribution, and review before applying.
+          </p>
+          <p className="staff-projects__allocation-note">
+            Only vacant students are included here. Students already assigned to a team in this project are excluded.
+          </p>
+        </>
+      ) : null}
 
       <div className="staff-projects__allocation-form">
         <label className="staff-projects__allocation-field">
@@ -157,8 +246,8 @@ export function StaffRandomAllocationPreview({
             onChange={(event) => {
               setTeamCountInput(event.target.value);
               setSuccessMessage("");
-              setConfirmApply(false);
             }}
+            disabled={confirmApply || isPreviewPending || isApplyPending}
             aria-label="Team count"
           />
         </label>
@@ -171,8 +260,8 @@ export function StaffRandomAllocationPreview({
             onChange={(event) => {
               setSeedInput(event.target.value);
               setSuccessMessage("");
-              setConfirmApply(false);
             }}
+            disabled={confirmApply || isPreviewPending || isApplyPending}
             aria-label="Seed"
             placeholder="e.g. 20260311"
           />
@@ -182,15 +271,15 @@ export function StaffRandomAllocationPreview({
       <div className="staff-projects__allocation-actions">
         <button
           type="button"
-          className="staff-projects__allocation-btn"
+          className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
           onClick={runPreview}
-          disabled={isPreviewPending || isApplyPending}
+          disabled={confirmApply || isPreviewPending || isApplyPending}
         >
           {isPreviewPending ? "Generating preview..." : "Preview random teams"}
         </button>
         <button
           type="button"
-          className="staff-projects__allocation-btn"
+          className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
           onClick={runApplyAllocation}
           disabled={!isPreviewCurrent || !confirmApply || isPreviewPending || isApplyPending}
         >
@@ -212,14 +301,15 @@ export function StaffRandomAllocationPreview({
             <button
               type="button"
               className={`staff-projects__allocation-confirm-btn${confirmApply ? " staff-projects__allocation-confirm-btn--active" : ""}`}
-              onClick={() => setConfirmApply((value) => !value)}
+              onClick={toggleConfirmAllocation}
               aria-pressed={confirmApply}
               disabled={!isPreviewCurrent || isPreviewPending || isApplyPending}
             >
-              {confirmApply ? "Confirmed" : "Confirm allocation"}
+              {confirmApply ? "Confirmed (click to unlock)" : "Confirm allocation"}
             </button>
             <p className="staff-projects__allocation-confirm-text">
               This assigns vacant students only. Existing team memberships in this project stay unchanged.
+              {confirmApply ? " Team names and preview settings are locked until you unlock confirmation." : ""}
             </p>
           </div>
 
@@ -230,21 +320,66 @@ export function StaffRandomAllocationPreview({
           </div>
 
           <section className="staff-projects__team-list" aria-label="Random team preview list">
-            {preview.previewTeams.map((team) => (
-              <article key={team.index} className="staff-projects__team-card">
-                <div className="staff-projects__team-top">
-                  <h3 className="staff-projects__team-title">{team.suggestedName}</h3>
-                  <span className="staff-projects__badge">
-                    {team.members.length} member{team.members.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-                <ul className="staff-projects__allocation-members">
-                  {team.members.map((member) => (
-                    <li key={member.id}>{toFullName(member)}</li>
-                  ))}
-                </ul>
-              </article>
-            ))}
+            {preview.previewTeams.map((team, index) => {
+              const teamName = getTeamName(team.index, team.suggestedName);
+              const isRenaming = renamingTeams[team.index] === true;
+              const teamNumber = index + 1;
+
+              return (
+                <article key={team.index} className="staff-projects__team-card">
+                  <div className="staff-projects__team-top">
+                    <div className="staff-projects__allocation-team-head">
+                      {isRenaming ? (
+                        <input
+                          type="text"
+                          className="staff-projects__allocation-team-name-input"
+                          value={teamName}
+                          onChange={(event) => {
+                            setTeamNames((currentNames) => ({
+                              ...currentNames,
+                              [team.index]: event.target.value,
+                            }));
+                            setErrorMessage("");
+                            setSuccessMessage("");
+                          }}
+                          aria-label={`Team ${teamNumber} name`}
+                          disabled={confirmApply || isPreviewPending || isApplyPending}
+                        />
+                      ) : (
+                        <h3 className="staff-projects__team-title">{teamName}</h3>
+                      )}
+                      <button
+                        type="button"
+                        className="staff-projects__allocation-rename-btn"
+                        onClick={() => {
+                          if (isRenaming) {
+                            setTeamNames((currentNames) => ({
+                              ...currentNames,
+                              [team.index]: (currentNames[team.index] ?? team.suggestedName).trim(),
+                            }));
+                          }
+                          setRenamingTeams((currentTeams) => ({
+                            ...currentTeams,
+                            [team.index]: !isRenaming,
+                          }));
+                        }}
+                        disabled={confirmApply || !isPreviewCurrent || isPreviewPending || isApplyPending}
+                      >
+                        {isRenaming ? "Save" : "Rename"}
+                      </button>
+                    </div>
+                    <span className="staff-projects__badge">
+                      {team.members.length} member{team.members.length === 1 ? "" : "s"}
+                    </span>
+                  </div>
+                  <ul className="staff-projects__allocation-members">
+                    {team.members.map((member) => (
+                      <li key={member.id}>{toFullName(member)}</li>
+                    ))}
+                  </ul>
+                </article>
+              );
+            })}
           </section>
         </div>
       ) : null}

@@ -1,5 +1,26 @@
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 999px;
+    border: 2px solid var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 a {
@@ -255,6 +276,10 @@ a.muted:hover {
     color: var(--accent-strong);
 }
 
+.pill-nav__link--action {
+    border-style: dashed;
+}
+
 .pill-nav .nav-link--active {
   font-weight: var(--fw-semibold);
 }
@@ -297,6 +322,13 @@ textarea {
     font-family: inherit;
     background: var(--surface);
     color: inherit;
+}
+
+@media (prefers-color-scheme: dark) {
+    input,
+    textarea {
+        color-scheme: dark;
+    }
 }
 
 textarea {

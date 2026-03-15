@@ -1,25 +1,4 @@
-@media (max-width: 900px) {
-  .topbar {
-    flex-wrap: wrap;
-    gap: 10px 12px;
-  }
-
-  .topbar__main {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .topbar__nav {
-    width: 100%;
-    justify-content: flex-start;
-  }
-
-  .topbar__actions {
-    width: auto;
-    justify-content: flex-start;
-  }
-
+@media (max-width: 860px) {
   .space-switcher {
     justify-content: flex-start;
     overflow-x: auto;
@@ -30,22 +9,10 @@
   }
 
   .user-menu__name {
-    display: inline-block;
     max-width: 140px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   .user-menu__trigger {
-    width: auto;
-    height: auto;
-    padding: 4px 12px 4px 4px;
-    gap: 8px;
     flex-shrink: 0;
-    border-radius: 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
   }
 }

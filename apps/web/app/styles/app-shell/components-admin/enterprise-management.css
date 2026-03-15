@@ -33,6 +33,10 @@
   align-items: center;
 }
 
+.enterprise-management__table {
+  --enterprise-management-columns: minmax(0, 1.3fr) minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, 0.82fr) minmax(0, 1.05fr);
+}
+
 .enterprise-management__row-actions {
   display: inline-flex;
   align-items: center;
@@ -55,7 +59,9 @@
 
 .enterprise-management__modal-table {
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
   max-height: min(46vh, 520px);
   overflow-y: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }

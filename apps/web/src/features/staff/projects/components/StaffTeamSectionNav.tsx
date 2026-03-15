@@ -10,6 +10,7 @@ type StaffTeamSectionNavProps = {
 
 const teamTabs = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
+  { key: "deadlines", label: "Deadlines", hrefSuffix: "/deadlines" },
   { key: "team", label: "Team", hrefSuffix: "/team" },
   { key: "team-meetings", label: "Team meetings", hrefSuffix: "/team-meetings" },
   { key: "meeting-scheduler", label: "Meeting scheduler", hrefSuffix: "/meeting-scheduler" },

@@ -6,8 +6,15 @@ import { usePathname, useSearchParams } from "next/navigation";
 const SCROLL_OFFSET = 12;
 const MAX_SCROLL_ATTEMPTS = 20;
 
-const getScrollContainer = () =>
-  document.querySelector<HTMLElement>(".app-shell__workspace");
+const getScrollContainer = () => {
+  const workspace = document.querySelector<HTMLElement>(".app-shell__workspace");
+  if (!workspace) return null;
+
+  const styles = window.getComputedStyle(workspace);
+  const hasInternalOverflow = /(auto|scroll|overlay)/.test(styles.overflowY);
+  const canScrollInternally = workspace.scrollHeight > workspace.clientHeight;
+  return hasInternalOverflow && canScrollInternally ? workspace : null;
+};
 
 const scrollToSection = (id: string) => {
   const target = document.getElementById(id);

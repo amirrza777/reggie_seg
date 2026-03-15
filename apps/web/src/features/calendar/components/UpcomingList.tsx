@@ -16,13 +16,13 @@ const TYPE_LABEL: Record<CalendarEvent["type"], string> = {
 };
 
 const TYPE_BADGE: Record<CalendarEvent["type"], string> = {
-  task_open:        "badge--info",
-  task_due:         "badge--danger",
-  assessment_open:  "badge--info",
-  assessment_due:   "badge--warning",
-  feedback_open:    "badge--info",
-  feedback_due:     "badge--success",
-  meeting:          "badge--purple",
+  task_open:        "calendar-badge--info",
+  task_due:         "calendar-badge--danger",
+  assessment_open:  "calendar-badge--info",
+  assessment_due:   "calendar-badge--warning",
+  feedback_open:    "calendar-badge--info",
+  feedback_due:     "calendar-badge--success",
+  meeting:          "calendar-badge--purple",
 };
 
 function formatDate(iso: string): string {
@@ -37,14 +37,14 @@ export function UpcomingList({ events, title = "Upcoming" }: Props) {
       </div>
       <div className="upcoming-list-body">
         {events.length === 0 ? (
-          <p className="muted" style={{ margin: "8px 0", fontSize: "0.875rem" }}>No events.</p>
+          <p className="upcoming-list__empty">No events.</p>
         ) : (
           <ul className="upcoming-list__items">
             {events.map((e) => (
               <li key={e.id} className="upcoming-item">
                 <div className="upcoming-item__date">{formatDate(e.date)}</div>
                 <div className="upcoming-item__body">
-                  <span className={`badge ${TYPE_BADGE[e.type]}`}>{TYPE_LABEL[e.type]}</span>
+                  <span className={`calendar-badge ${TYPE_BADGE[e.type]}`}>{TYPE_LABEL[e.type]}</span>
                   <span className="upcoming-item__title">{e.projectName ?? e.title}</span>
                 </div>
               </li>

@@ -239,9 +239,11 @@ describe("enterpriseAdmin router access control", () => {
     expect(prisma.module.delete).not.toHaveBeenCalled();
   });
 
-  it("forbids module updates for enterprise admins who are not module leaders", async () => {
+  it("allows enterprise admin module updates as an override without module-lead membership", async () => {
     const updateModule = getRouteHandler("put", "/modules/:moduleId");
-    (prisma.moduleLead.findFirst as any).mockResolvedValueOnce(null);
+
+    (prisma.module.findFirst as any).mockResolvedValue(null);
+    (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
 
     const res = mockRes();
     await updateModule(
@@ -253,7 +255,8 @@ describe("enterpriseAdmin router access control", () => {
       res,
     );
 
-    expect((res.status as any)).toHaveBeenCalledWith(403);
-    expect(prisma.module.update).not.toHaveBeenCalled();
+    expect((res.status as any)).not.toHaveBeenCalledWith(403);
+    expect(prisma.moduleLead.findFirst).not.toHaveBeenCalled();
+    expect(prisma.module.findFirst).toHaveBeenCalled();
   });
 });

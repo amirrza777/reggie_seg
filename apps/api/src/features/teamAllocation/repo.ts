@@ -25,7 +25,22 @@ export type ProjectTeamSummary = {
   memberCount: number;
 };
 
+export type ManualAllocationStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  currentTeamId: number | null;
+  currentTeamName: string | null;
+};
+
 export type AppliedRandomTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
+export type AppliedManualTeam = {
   id: number;
   teamName: string;
   memberCount: number;
@@ -70,7 +85,7 @@ export async function findInviteContext(teamId: number, inviterId: number) {
   const [team, inviter] = await Promise.all([
     prisma.team.findUnique({
       where: { id: teamId },
-      select: { teamName: true },
+      select: { teamName: true, projectId: true },
     }),
     prisma.user.findUnique({
       where: { id: inviterId },
@@ -208,6 +223,7 @@ export async function findVacantModuleStudentsForProject(
         none: {
           team: {
             projectId,
+            archivedAt: null,
           },
         },
       },
@@ -219,6 +235,66 @@ export async function findVacantModuleStudentsForProject(
       email: true,
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findModuleStudentsForManualAllocation(
+  enterpriseId: string,
+  moduleId: number,
+  projectId: number,
+): Promise<ManualAllocationStudent[]> {
+  const students = await prisma.user.findMany({
+    where: {
+      enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId,
+          moduleId,
+        },
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      teamAllocations: {
+        where: {
+          team: {
+            projectId,
+            archivedAt: null,
+          },
+        },
+        select: {
+          team: {
+            select: {
+              id: true,
+              teamName: true,
+            },
+          },
+        },
+        orderBy: {
+          teamId: "asc",
+        },
+        take: 1,
+      },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+
+  return students.map((student) => {
+    const currentTeam = student.teamAllocations[0]?.team ?? null;
+
+    return {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      currentTeamId: currentTeam?.id ?? null,
+      currentTeamName: currentTeam?.teamName ?? null,
+    };
   });
 }
 
@@ -246,6 +322,7 @@ export async function applyRandomAllocationPlan(
   projectId: number,
   enterpriseId: string,
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
+  options: { teamNames?: string[] } = {},
 ): Promise<AppliedRandomTeam[]> {
   return prisma.$transaction(async (tx) => {
     const plannedStudentIds = plannedTeams.flatMap((team) => team.members.map((member) => member.id));
@@ -253,7 +330,10 @@ export async function applyRandomAllocationPlan(
       const alreadyAllocatedStudents = await tx.teamAllocation.findMany({
         where: {
           userId: { in: plannedStudentIds },
-          team: { projectId },
+          team: {
+            projectId,
+            archivedAt: null,
+          },
         },
         select: { userId: true },
       });
@@ -263,42 +343,39 @@ export async function applyRandomAllocationPlan(
       }
     }
 
-    const existingProjectTeams = await tx.team.findMany({
-      where: { projectId },
-      select: { id: true, teamName: true },
-      orderBy: [{ id: "asc" }],
+    const enterpriseNames = await tx.team.findMany({
+      where: { enterpriseId },
+      select: { teamName: true },
     });
+    const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
+    const targetTeams: Array<{ id: number; teamName: string }> = [];
 
-    const targetTeams = existingProjectTeams.slice(0, plannedTeams.length);
+    const requestedTeamNames =
+      options.teamNames ??
+      plannedTeams.map((_, index) => `Random Team ${index + 1}`);
+    if (requestedTeamNames.length !== plannedTeams.length) {
+      throw { code: "INVALID_TEAM_NAMES" };
+    }
 
-    if (targetTeams.length < plannedTeams.length) {
-      const enterpriseNames = await tx.team.findMany({
-        where: { enterpriseId },
-        select: { teamName: true },
-      });
-      const usedNames = new Set(enterpriseNames.map((team) => team.teamName));
-
-      let sequence = 1;
-      while (targetTeams.length < plannedTeams.length) {
-        let candidateName = `Project ${projectId} Random Team ${sequence}`;
-        sequence += 1;
-        while (usedNames.has(candidateName)) {
-          candidateName = `Project ${projectId} Random Team ${sequence}`;
-          sequence += 1;
-        }
-
-        const createdTeam = await tx.team.create({
-          data: {
-            enterpriseId,
-            projectId,
-            teamName: candidateName,
-          },
-          select: { id: true, teamName: true },
-        });
-
-        usedNames.add(createdTeam.teamName);
-        targetTeams.push(createdTeam);
+    for (let index = 0; index < requestedTeamNames.length; index += 1) {
+      const teamName = requestedTeamNames[index].trim();
+      if (teamName.length === 0) {
+        throw { code: "INVALID_TEAM_NAMES" };
       }
+      if (usedNames.has(teamName)) {
+        throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+      }
+
+      const createdTeam = await tx.team.create({
+        data: {
+          enterpriseId,
+          projectId,
+          teamName,
+        },
+        select: { id: true, teamName: true },
+      });
+      usedNames.add(teamName);
+      targetTeams.push(createdTeam);
     }
 
     for (let index = 0; index < plannedTeams.length; index += 1) {
@@ -321,6 +398,72 @@ export async function applyRandomAllocationPlan(
       teamName: targetTeams[index].teamName,
       memberCount: plan.members.length,
     }));
+  });
+}
+
+export async function applyManualAllocationTeam(
+  projectId: number,
+  enterpriseId: string,
+  teamName: string,
+  studentIds: number[],
+): Promise<AppliedManualTeam> {
+  return prisma.$transaction(async (tx) => {
+    const existingName = await tx.team.findFirst({
+      where: {
+        enterpriseId,
+        teamName,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingName) {
+      throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+    }
+
+    const conflictingAllocations = await tx.teamAllocation.findMany({
+      where: {
+        userId: { in: studentIds },
+        team: {
+          projectId,
+          archivedAt: null,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    if (conflictingAllocations.length > 0) {
+      throw { code: "STUDENTS_NO_LONGER_AVAILABLE" };
+    }
+
+    const team = await tx.team.create({
+      data: {
+        enterpriseId,
+        projectId,
+        teamName,
+      },
+      select: {
+        id: true,
+        teamName: true,
+      },
+    });
+
+    await tx.teamAllocation.createMany({
+      data: studentIds.map((studentId) => ({
+        teamId: team.id,
+        userId: studentId,
+      })),
+      skipDuplicates: true,
+    });
+
+    return {
+      id: team.id,
+      teamName: team.teamName,
+      memberCount: studentIds.length,
+    };
   });
 }
 

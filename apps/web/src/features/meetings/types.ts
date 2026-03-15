@@ -14,6 +14,15 @@ export type Meeting = {
     firstName: string;
     lastName: string;
   };
+  team: {
+    allocations: {
+      user: {
+        id: number;
+        firstName: string;
+        lastName: string;
+      };
+    }[];
+  };
   attendances: MeetingAttendanceRecord[];
   minutes: MeetingMinutesRecord | null;
   comments: MeetingCommentRecord[];

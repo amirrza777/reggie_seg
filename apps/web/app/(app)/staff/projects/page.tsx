@@ -29,6 +29,9 @@ export default async function StaffProjectsPage() {
         {!errorMessage ? (
           <div className="staff-projects__meta">
             <span className="staff-projects__badge">{projects.length} project{projects.length === 1 ? "" : "s"}</span>
+            <Link href="/staff/modules" className="staff-projects__badge">
+              Create project from module
+            </Link>
           </div>
         ) : null}
       </section>
@@ -39,20 +42,36 @@ export default async function StaffProjectsPage() {
       ) : null}
 
       <section className="staff-projects__grid" aria-label="Staff project list">
-          {projects.map((project) => (
-            <Link key={project.id} href={`/staff/projects/${project.id}`} className="staff-projects__card">
-              <div>
-                <h2 className="staff-projects__card-title">{project.name}</h2>
-                <p className="staff-projects__card-sub">Module: {project.moduleName}</p>
-              </div>
-              <p className="staff-projects__card-sub">
-                {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
-              </p>
-              <div className="staff-projects__card-action">
-                <span>View teams</span>
-              </div>
-            </Link>
-          ))}
+          {projects.map((project) => {
+            const repoOk = project.hasGithubRepo;
+            const allConnected = project.membersTotal > 0 && project.membersConnected === project.membersTotal;
+            const someConnected = project.membersTotal > 0 && project.membersConnected > 0 && project.membersConnected < project.membersTotal;
+            const noneConnected = project.membersTotal > 0 && project.membersConnected === 0;
+            return (
+              <Link key={project.id} href={`/staff/projects/${project.id}`} className="staff-projects__card">
+                <div>
+                  <h2 className="staff-projects__card-title">{project.name}</h2>
+                  <p className="staff-projects__card-sub">Module: {project.moduleName}</p>
+                </div>
+                <p className="staff-projects__card-sub">
+                  {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
+                </p>
+                <div className="staff-projects__gh-health">
+                  <span className={`staff-projects__gh-pill ${repoOk ? "staff-projects__gh-pill--ok" : "staff-projects__gh-pill--warn"}`}>
+                    {repoOk ? "✓ Repo linked" : "⚠ No repo"}
+                  </span>
+                  {project.membersTotal > 0 && (
+                    <span className={`staff-projects__gh-pill ${allConnected ? "staff-projects__gh-pill--ok" : someConnected ? "staff-projects__gh-pill--partial" : noneConnected ? "staff-projects__gh-pill--warn" : ""}`}>
+                      {project.membersConnected}/{project.membersTotal} GitHub
+                    </span>
+                  )}
+                </div>
+                <div className="staff-projects__card-action">
+                  <span>View teams</span>
+                </div>
+              </Link>
+            );
+          })}
       </section>
     </div>
   );

@@ -15,15 +15,49 @@ type FeedbackReviewFormProps = {
   initialAgreements?: AgreementsMap | null;
   redirectTo?: "back" | string;
   currentUserId: string;
+  feedbackOpenAt?: string | null;
+  feedbackDueAt?: string | null;
 };
 
-export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialAgreements, redirectTo = 'back', currentUserId }: FeedbackReviewFormProps) {
+function toDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value: Date | null): string {
+  return value ? value.toLocaleString() : "Not set";
+}
+
+export function FeedbackReviewForm({
+  feedback,
+  onSubmit,
+  initialReview,
+  initialAgreements,
+  redirectTo = "back",
+  currentUserId,
+  feedbackOpenAt = null,
+  feedbackDueAt = null,
+}: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!initialReview);
   const editingMode = !!initialReview;
+  const openAt = toDate(feedbackOpenAt);
+  const dueAt = toDate(feedbackDueAt);
+  const now = new Date();
+  const isBeforeOpen = Boolean(openAt && now < openAt);
+  const isAfterDue = Boolean(dueAt && now > dueAt);
+  const canSubmit = !isBeforeOpen;
+  const deadlineStatusMessage = isBeforeOpen
+    ? `Peer feedback is locked until ${formatDateLabel(openAt)}.`
+    : isAfterDue
+      ? `Peer feedback deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
+      : dueAt
+        ? `Peer feedback is open. Deadline: ${formatDateLabel(dueAt)}.`
+        : null;
 
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
     return Object.fromEntries(
@@ -39,6 +73,10 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isBeforeOpen) {
+      setMessage(deadlineStatusMessage ?? "Peer feedback is outside the allowed deadline window.");
+      return;
+    }
     if (!review.trim()) {
       setMessage("Please provide a review before submitting.");
       return;
@@ -91,7 +129,7 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
       <div className="headerContainer">
         <h3>{editingMode && !isEditing ? 'View Review' : 'Respond to Feedback'}</h3>
         {editingMode && !isEditing && (
-          <Button onClick={() => setIsEditing(true)} disabled={isLoading}>
+          <Button onClick={() => setIsEditing(true)} disabled={isLoading || !canSubmit}>
             Edit
           </Button>
         )}
@@ -99,6 +137,9 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
       <p className="muted">
         Share your thoughts about this feedback from {feedback.firstName} {feedback.lastName}
       </p>
+      {deadlineStatusMessage ? (
+        <p className={canSubmit ? "muted" : "error"}>{deadlineStatusMessage}</p>
+      ) : null}
       <form className="stack" onSubmit={handleSubmit}>
         <label className="stack reviewLabel">
           <span>Your Review</span>
@@ -150,7 +191,7 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
 
         {isEditing && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !canSubmit}>
               {isLoading ? "Submitting..." : editingMode ? "Update Review" : "Submit Review"}
             </Button>
             <Button type="button" onClick={handleBack} disabled={isLoading}>
@@ -159,9 +200,7 @@ export function FeedbackReviewForm({ feedback, onSubmit, initialReview, initialA
           </div>
         )}
         {editingMode && !isEditing && (
-          <Button onClick={handleBack}>
-            Back
-          </Button>
+          <Button onClick={handleBack}>Back</Button>
         )}
         {message ? (
           <p className={message.includes("success") ? "" : "muted"}>

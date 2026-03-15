@@ -37,8 +37,15 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   return (
     <AppShell
-      sidebar={<Sidebar title="Admin" links={adminNav} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/admin" actions={<UserMenu />} />}
+      sidebar={<Sidebar title="Admin sections" links={adminNav} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={adminNav} mode="mobile" mobileSpaces={spaceLinks} />}
+          title="Team Feedback"
+          titleHref="/admin"
+          actions={<UserMenu />}
+        />
+      }
       ribbon={<SpaceSwitcher links={spaceLinks} />}
     >
       <div className="workspace-shell">{children}</div>

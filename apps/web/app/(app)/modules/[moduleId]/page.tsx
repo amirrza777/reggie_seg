@@ -117,21 +117,31 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
 
           <Card title="Timeline" className="module-dashboard__panel module-dashboard__panel--timeline">
             <Table
-              headers={["When?", "Date & time", "Project", "Activity"]}
+              headers={["When?", "Date & time", "Details"]}
               rows={timelineRows.map((item) => [
                 <span className={`module-dashboard__when module-dashboard__when--${item.whenTone}`}>
                   {item.whenLabel}
                 </span>,
                 item.dateLabel,
-                item.projectName,
-                item.activity,
+                <div className="ui-stack-xs">
+                  {item.projectName ? <span>{item.projectName}</span> : null}
+                  {item.activity ? <span className="muted">{item.activity}</span> : null}
+                  {!item.projectName && !item.activity ? <span className="muted">Module timeline checkpoint</span> : null}
+                </div>,
               ])}
-              columnTemplate="minmax(120px, 0.9fr) minmax(200px, 1.1fr) minmax(220px, 1.1fr) minmax(220px, 1.2fr)"
+              className="module-dashboard__table module-dashboard__timeline-table"
+              rowClassName="module-dashboard__table-row module-dashboard__timeline-row"
+              columnTemplate="minmax(140px, 0.9fr) minmax(0, 1.2fr) minmax(0, 1.4fr)"
             />
           </Card>
 
           <Card title="Module expectations" className="module-dashboard__panel">
-            <Table headers={["Expectation", "Target", "Owner"]} rows={expectationRows} />
+            <Table
+              headers={["Expectation", "Target", "Owner"]}
+              rows={expectationRows}
+              className="module-dashboard__table module-dashboard__expectations-table"
+              rowClassName="module-dashboard__table-row module-dashboard__expectations-row"
+            />
           </Card>
           <Card title="Readiness notes" className="module-dashboard__panel">
             {readinessParagraphs.length > 0 ? (
@@ -151,7 +161,12 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
       ) : (
         <>
           <Card title="Marks overview" className="module-dashboard__panel">
-            <Table headers={["Assessment", "Latest mark", "Status"]} rows={marksRows} />
+            <Table
+              headers={["Assessment", "Latest mark", "Status"]}
+              rows={marksRows}
+              className="module-dashboard__table module-dashboard__marks-table"
+              rowClassName="module-dashboard__table-row module-dashboard__marks-row"
+            />
           </Card>
           <Card title="Marking notes" className="module-dashboard__panel">
             <p className="muted">

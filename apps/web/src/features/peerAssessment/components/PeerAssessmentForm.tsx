@@ -52,6 +52,42 @@ function getSliderConfig(question: Question) {
   };
 }
 
+function toDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value: Date | null): string {
+  return value ? value.toLocaleString() : "Not set";
+}
+
+function normalizeAnswers(
+  raw: Record<string, string | number | boolean | null> | undefined,
+  questions: Question[]
+): Record<string, AnswerValue> {
+  if (!raw || typeof raw !== "object") return {};
+  const normalized: Record<string, AnswerValue> = {};
+  Object.entries(raw).forEach(([k, v]) => {
+    const question = questions.find((item) => String(item.id) === k);
+    if (question && isNumericQuestion(question)) {
+      if (typeof v === "number" && Number.isFinite(v)) {
+        normalized[k] = v;
+        return;
+      }
+      if (typeof v === "string" && v.trim().length > 0) {
+        const parsed = Number(v);
+        if (Number.isFinite(parsed)) {
+          normalized[k] = parsed;
+          return;
+        }
+      }
+    }
+    normalized[k] = String(v ?? "");
+  });
+  return normalized;
+}
+
 type PeerAssessmentFormProps = {
   teammateName: string;
   questions: Question[];
@@ -62,6 +98,8 @@ type PeerAssessmentFormProps = {
   templateId: number;
   initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
+  assessmentOpenAt?: string | null;
+  assessmentDueAt?: string | null;
 };
 
 export function PeerAssessmentForm({
@@ -74,6 +112,8 @@ export function PeerAssessmentForm({
   templateId,
   initialAnswers,
   assessmentId,
+  assessmentOpenAt = null,
+  assessmentDueAt = null,
 }: PeerAssessmentFormProps) {
   const router = useRouter();
   const peerAssessmentsPath = `/projects/${projectId}/peer-assessments`;
@@ -83,40 +123,33 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  const openAt = toDate(assessmentOpenAt);
+  const dueAt = toDate(assessmentDueAt);
+  const now = new Date();
 
-  const normalizeAnswers = (
-    raw: Record<string, string | number | boolean | null> | undefined
-  ): Record<string, AnswerValue> => {
-    if (!raw || typeof raw !== "object") return {};
-    const normalized: Record<string, AnswerValue> = {};
-    Object.entries(raw).forEach(([k, v]) => {
-      const question = questions.find((item) => String(item.id) === k);
-      if (question && isNumericQuestion(question)) {
-        if (typeof v === "number" && Number.isFinite(v)) {
-          normalized[k] = v;
-          return;
-        }
-        if (typeof v === "string" && v.trim().length > 0) {
-          const parsed = Number(v);
-          if (Number.isFinite(parsed)) {
-            normalized[k] = parsed;
-            return;
-          }
-        }
-      }
-      normalized[k] = String(v ?? "");
-    });
-    return normalized;
-  };
+  const isBeforeOpen = Boolean(openAt && now < openAt);
+  const isAfterDue = Boolean(dueAt && now > dueAt);
+  const canSubmit = !isBeforeOpen;
 
+  const deadlineStatusMessage = isBeforeOpen
+    ? `Peer assessment is locked until ${formatDateLabel(openAt)}.`
+    : isAfterDue
+      ? `Peer assessment deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
+      : dueAt
+        ? `Peer assessment is open. Deadline: ${formatDateLabel(dueAt)}.`
+        : null;
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAnswers(normalizeAnswers(initialAnswers));
+    setAnswers(normalizeAnswers(initialAnswers, questions));
   }, [initialAnswers, questions]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBeforeOpen) {
+      setStatus("error");
+      setMessage(deadlineStatusMessage ?? "Peer assessment is outside the allowed deadline window.");
+      return;
+    }
     setStatus("loading");
     setMessage(null);
 
@@ -148,7 +181,7 @@ export function PeerAssessmentForm({
   };
 
   const handleDiscard = () => {
-    setAnswers(normalizeAnswers(initialAnswers));
+    setAnswers(normalizeAnswers(initialAnswers, questions));
     setMessage(null);
   };
 
@@ -162,6 +195,9 @@ export function PeerAssessmentForm({
       <h3>
          You're reviewing {teammateName}
       </h3>
+      {deadlineStatusMessage ? (
+        <p className={canSubmit ? "muted" : "error"}>{deadlineStatusMessage}</p>
+      ) : null}
       {questions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
@@ -272,7 +308,7 @@ export function PeerAssessmentForm({
         <Button type="button" onClick={handleDiscard}>
           {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
-        <Button type="submit" disabled={status === "loading"}>
+        <Button type="submit" disabled={status === "loading" || !canSubmit}>
           {status === "loading"
             ? "Saving..."
             : isEditMode

@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAssessment/api/client";
-import { getProject } from "@/features/projects/api/client";
+import { getProject, getProjectDeadline } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
 import { ApiError } from "@/shared/api/errors";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { getCurrentUser } from "@/shared/auth/session";
 
 type CreatePageProps = {
   params: Promise<{ projectId: string }>;
@@ -21,6 +22,7 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const reviewerId = Number(resolvedSearchParams.reviewerId);
   const teammateName = resolvedSearchParams.teammateName ?? "";
   const flagMap = await getFeatureFlagMap();
+  const user = await getCurrentUser();
 
   let existingAssessment: PeerAssessment | null = null;
   try {
@@ -39,6 +41,18 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
 
   const project = await getProject(String(projectId));
   const questions = await getQuestionsByProject(String(projectId));
+  let assessmentOpenAt: string | null = null;
+  let assessmentDueAt: string | null = null;
+
+  if (user && Number.isFinite(projectId)) {
+    try {
+      const deadline = await getProjectDeadline(user.id, projectId);
+      assessmentOpenAt = deadline.assessmentOpenDate;
+      assessmentDueAt = deadline.assessmentDueDate;
+    } catch {
+      // Form still submits against backend guard if deadline endpoint is unavailable.
+    }
+  }
 
   return (
     <div className="stack stack--tabbed">
@@ -54,6 +68,8 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
             reviewerId={reviewerId}
             revieweeId={revieweeId}
             templateId={project.questionnaireTemplateId}
+            assessmentOpenAt={assessmentOpenAt}
+            assessmentDueAt={assessmentDueAt}
           />
         )}
       </div>
