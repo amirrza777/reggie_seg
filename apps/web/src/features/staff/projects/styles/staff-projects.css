@@ -558,7 +558,7 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 10px;
   align-items: center;
   padding: 8px 10px;
@@ -626,24 +626,6 @@
 .staff-projects__override-editor {
   display: grid;
   gap: 10px;
-}
-
-.staff-projects__member-placeholder-btn {
-  display: inline-flex;
-  align-items: center;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--muted);
-  font-size: var(--fs-caption);
-  text-decoration: none;
-  cursor: pointer;
-}
-
-.staff-projects__member-placeholder-btn:hover {
-  border-color: var(--accent-border);
-  color: var(--text);
 }
 
 .team-flag {
