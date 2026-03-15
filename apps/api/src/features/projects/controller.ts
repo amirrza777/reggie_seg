@@ -13,8 +13,16 @@ import {
   fetchProjectsForStaff,
   fetchProjectTeamsForStaff,
   fetchProjectMarking,
+  updateTeamDeadlineProfileForStaff,
+  fetchStaffStudentDeadlineOverrides,
+  upsertStaffStudentDeadlineOverride,
+  clearStaffStudentDeadlineOverride,
 } from "./service.js";
 
+function parsePositiveInt(value: unknown): number | null {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
 function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | null {
   const authUserId = req.user?.sub;
   if (!authUserId) {
@@ -38,25 +46,216 @@ function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | n
   return authUserId;
 }
 
-export async function createProjectHandler(req: Request, res: Response) {
-  const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
+type ParsedProjectDeadline = {
+  taskOpenDate: Date;
+  taskDueDate: Date;
+  taskDueDateMcf: Date;
+  assessmentOpenDate: Date;
+  assessmentDueDate: Date;
+  assessmentDueDateMcf: Date;
+  feedbackOpenDate: Date;
+  feedbackDueDate: Date;
+  feedbackDueDateMcf: Date;
+};
 
-  if (!name || typeof name !== "string") {
+type ParsedStudentDeadlineOverride = {
+  taskOpenDate?: Date | null;
+  taskDueDate?: Date | null;
+  assessmentOpenDate?: Date | null;
+  assessmentDueDate?: Date | null;
+  feedbackOpenDate?: Date | null;
+  feedbackDueDate?: Date | null;
+  reason?: string | null;
+};
+
+function parseIsoDate(value: unknown, field: keyof ParsedProjectDeadline): Date | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function parseOptionalIsoDateField(
+  value: unknown,
+  fieldName: keyof Omit<ParsedStudentDeadlineOverride, "reason">,
+): { ok: true; value: Date | null | undefined } | { ok: false; error: string } {
+  if (value === undefined) return { ok: true, value: undefined };
+  if (value === null || value === "") return { ok: true, value: null };
+  if (typeof value !== "string") {
+    return { ok: false, error: `${fieldName} must be a valid date string, null, or omitted` };
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return { ok: false, error: `${fieldName} must be a valid date string` };
+  }
+  return { ok: true, value: parsed };
+}
+
+function parseStudentDeadlineOverridePayload(
+  value: unknown,
+): { ok: true; value: ParsedStudentDeadlineOverride } | { ok: false; error: string } {
+  if (typeof value !== "object" || value === null) {
+    return { ok: false, error: "Override payload must be an object" };
+  }
+
+  const raw = value as Record<string, unknown>;
+  const taskOpenDate = parseOptionalIsoDateField(raw.taskOpenDate, "taskOpenDate");
+  if (!taskOpenDate.ok) return taskOpenDate;
+  const taskDueDate = parseOptionalIsoDateField(raw.taskDueDate, "taskDueDate");
+  if (!taskDueDate.ok) return taskDueDate;
+  const assessmentOpenDate = parseOptionalIsoDateField(raw.assessmentOpenDate, "assessmentOpenDate");
+  if (!assessmentOpenDate.ok) return assessmentOpenDate;
+  const assessmentDueDate = parseOptionalIsoDateField(raw.assessmentDueDate, "assessmentDueDate");
+  if (!assessmentDueDate.ok) return assessmentDueDate;
+  const feedbackOpenDate = parseOptionalIsoDateField(raw.feedbackOpenDate, "feedbackOpenDate");
+  if (!feedbackOpenDate.ok) return feedbackOpenDate;
+  const feedbackDueDate = parseOptionalIsoDateField(raw.feedbackDueDate, "feedbackDueDate");
+  if (!feedbackDueDate.ok) return feedbackDueDate;
+
+  let reason: string | null | undefined = undefined;
+  if (raw.reason !== undefined) {
+    if (raw.reason === null || raw.reason === "") {
+      reason = null;
+    } else if (typeof raw.reason === "string") {
+      const normalizedReason = raw.reason.trim();
+      reason = normalizedReason.length > 0 ? normalizedReason : null;
+    } else {
+      return { ok: false, error: "reason must be a string, null, or omitted" };
+    }
+  }
+
+  return {
+    ok: true,
+    value: {
+      taskOpenDate: taskOpenDate.value,
+      taskDueDate: taskDueDate.value,
+      assessmentOpenDate: assessmentOpenDate.value,
+      assessmentDueDate: assessmentDueDate.value,
+      feedbackOpenDate: feedbackOpenDate.value,
+      feedbackDueDate: feedbackDueDate.value,
+      reason,
+    },
+  };
+}
+
+function parseProjectDeadline(value: unknown): { ok: true; value: ParsedProjectDeadline } | { ok: false; error: string } {
+  if (typeof value !== "object" || value === null) {
+    return { ok: false, error: "deadline is required" };
+  }
+
+  const taskOpenDate = parseIsoDate((value as any).taskOpenDate, "taskOpenDate");
+  const taskDueDate = parseIsoDate((value as any).taskDueDate, "taskDueDate");
+  const taskDueDateMcf = parseIsoDate((value as any).taskDueDateMcf, "taskDueDateMcf");
+  const assessmentOpenDate = parseIsoDate((value as any).assessmentOpenDate, "assessmentOpenDate");
+  const assessmentDueDate = parseIsoDate((value as any).assessmentDueDate, "assessmentDueDate");
+  const assessmentDueDateMcf = parseIsoDate((value as any).assessmentDueDateMcf, "assessmentDueDateMcf");
+  const feedbackOpenDate = parseIsoDate((value as any).feedbackOpenDate, "feedbackOpenDate");
+  const feedbackDueDate = parseIsoDate((value as any).feedbackDueDate, "feedbackDueDate");
+  const feedbackDueDateMcf = parseIsoDate((value as any).feedbackDueDateMcf, "feedbackDueDateMcf");
+
+  if (!taskOpenDate) return { ok: false, error: "deadline.taskOpenDate must be a valid date string" };
+  if (!taskDueDate) return { ok: false, error: "deadline.taskDueDate must be a valid date string" };
+  if (!taskDueDateMcf) return { ok: false, error: "deadline.taskDueDateMcf must be a valid date string" };
+  if (!assessmentOpenDate) return { ok: false, error: "deadline.assessmentOpenDate must be a valid date string" };
+  if (!assessmentDueDate) return { ok: false, error: "deadline.assessmentDueDate must be a valid date string" };
+  if (!assessmentDueDateMcf) return { ok: false, error: "deadline.assessmentDueDateMcf must be a valid date string" };
+  if (!feedbackOpenDate) return { ok: false, error: "deadline.feedbackOpenDate must be a valid date string" };
+  if (!feedbackDueDate) return { ok: false, error: "deadline.feedbackDueDate must be a valid date string" };
+  if (!feedbackDueDateMcf) return { ok: false, error: "deadline.feedbackDueDateMcf must be a valid date string" };
+
+  if (taskOpenDate >= taskDueDate) {
+    return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
+  }
+  if (taskDueDate > assessmentOpenDate) {
+    return { ok: false, error: "deadline.assessmentOpenDate must be on or after deadline.taskDueDate" };
+  }
+  if (assessmentOpenDate >= assessmentDueDate) {
+    return { ok: false, error: "deadline.assessmentOpenDate must be before deadline.assessmentDueDate" };
+  }
+  if (assessmentDueDate > feedbackOpenDate) {
+    return { ok: false, error: "deadline.feedbackOpenDate must be on or after deadline.assessmentDueDate" };
+  }
+  if (feedbackOpenDate >= feedbackDueDate) {
+    return { ok: false, error: "deadline.feedbackOpenDate must be before deadline.feedbackDueDate" };
+  }
+  if (taskDueDateMcf < taskDueDate) {
+    return { ok: false, error: "deadline.taskDueDateMcf must be on or after deadline.taskDueDate" };
+  }
+  if (assessmentDueDateMcf < assessmentDueDate) {
+    return { ok: false, error: "deadline.assessmentDueDateMcf must be on or after deadline.assessmentDueDate" };
+  }
+  if (feedbackDueDateMcf < feedbackDueDate) {
+    return { ok: false, error: "deadline.feedbackDueDateMcf must be on or after deadline.feedbackDueDate" };
+  }
+
+  return {
+    ok: true,
+    value: {
+      taskOpenDate,
+      taskDueDate,
+      taskDueDateMcf,
+      assessmentOpenDate,
+      assessmentDueDate,
+      assessmentDueDateMcf,
+      feedbackOpenDate,
+      feedbackDueDate,
+      feedbackDueDateMcf,
+    },
+  };
+}
+
+export async function createProjectHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
+    name?: unknown;
+    moduleId?: unknown;
+    questionnaireTemplateId?: unknown;
+    deadline?: unknown;
+  };
+
+  const normalizedName = typeof name === "string" ? name.trim() : "";
+  if (!normalizedName) {
     return res.status(400).json({ error: "Project name is required and must be a string" });
   }
 
-  if (typeof moduleId !== "number" || typeof questionnaireTemplateId !== "number") {
-    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be numbers" });
+  if (normalizedName.length > 160) {
+    return res.status(400).json({ error: "Project name must be 160 characters or fewer" });
   }
 
-  if (!Array.isArray(teamIds) || !teamIds.every((id) => typeof id === "number")) {
-    return res.status(400).json({ error: "teamIds must be an array of numbers" });
+  const parsedModuleId = parsePositiveInt(moduleId);
+  const parsedTemplateId = parsePositiveInt(questionnaireTemplateId);
+  if (!parsedModuleId || !parsedTemplateId) {
+    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
+  }
+
+  const parsedDeadline = parseProjectDeadline(deadline);
+  if (!parsedDeadline.ok) {
+    return res.status(400).json({ error: parsedDeadline.error });
   }
 
   try {
-    const project = await createProject(name, moduleId, questionnaireTemplateId, teamIds);
+    const project = await createProject(
+      actorUserId,
+      normalizedName,
+      parsedModuleId,
+      parsedTemplateId,
+      parsedDeadline.value,
+    );
     res.status(201).json(project);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "MODULE_NOT_FOUND") {
+      return res.status(404).json({ error: "Module not found" });
+    }
+    if (error?.code === "TEMPLATE_NOT_FOUND") {
+      return res.status(404).json({ error: "Questionnaire template not found" });
+    }
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });
   }
@@ -270,5 +469,135 @@ export async function getProjectMarkingHandler(req: AuthRequest, res: Response) 
   } catch (error) {
     console.error("Error fetching project marking:", error);
     res.status(500).json({ error: "Failed to fetch project marking" });
+  }
+}
+
+export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const teamId = Number(req.params.teamId);
+  const deadlineProfile = req.body?.deadlineProfile;
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
+  if (deadlineProfile !== "STANDARD" && deadlineProfile !== "MCF") {
+    return res.status(400).json({ error: "deadlineProfile must be STANDARD or MCF" });
+  }
+
+  try {
+    const updated = await updateTeamDeadlineProfileForStaff(actorUserId, teamId, deadlineProfile);
+    return res.json(updated);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "TEAM_NOT_FOUND") {
+      return res.status(404).json({ error: "Team not found" });
+    }
+    console.error("Error updating team deadline profile:", error);
+    return res.status(500).json({ error: "Failed to update team deadline profile" });
+  }
+}
+
+export async function getStaffStudentDeadlineOverridesHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const overrides = await fetchStaffStudentDeadlineOverrides(actorUserId, projectId);
+    return res.json({ overrides });
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error fetching staff student deadline overrides:", error);
+    return res.status(500).json({ error: "Failed to fetch student deadline overrides" });
+  }
+}
+
+export async function upsertStaffStudentDeadlineOverrideHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const studentId = Number(req.params.studentId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId) || Number.isNaN(studentId)) {
+    return res.status(400).json({ error: "Invalid project ID or student ID" });
+  }
+
+  const parsed = parseStudentDeadlineOverridePayload(req.body);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: parsed.error });
+  }
+
+  const hasAnyField =
+    parsed.value.taskOpenDate !== undefined ||
+    parsed.value.taskDueDate !== undefined ||
+    parsed.value.assessmentOpenDate !== undefined ||
+    parsed.value.assessmentDueDate !== undefined ||
+    parsed.value.feedbackOpenDate !== undefined ||
+    parsed.value.feedbackDueDate !== undefined ||
+    parsed.value.reason !== undefined;
+  if (!hasAnyField) {
+    return res.status(400).json({ error: "At least one override field is required" });
+  }
+
+  try {
+    const override = await upsertStaffStudentDeadlineOverride(actorUserId, projectId, studentId, parsed.value);
+    return res.json({ override });
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "STUDENT_NOT_IN_PROJECT") {
+      return res.status(404).json({ error: "Student not found in project" });
+    }
+    console.error("Error upserting student deadline override:", error);
+    return res.status(500).json({ error: "Failed to update student deadline override" });
+  }
+}
+
+export async function clearStaffStudentDeadlineOverrideHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const studentId = Number(req.params.studentId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId) || Number.isNaN(studentId)) {
+    return res.status(400).json({ error: "Invalid project ID or student ID" });
+  }
+
+  try {
+    const result = await clearStaffStudentDeadlineOverride(actorUserId, projectId, studentId);
+    return res.json(result);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error clearing student deadline override:", error);
+    return res.status(500).json({ error: "Failed to clear student deadline override" });
   }
 }

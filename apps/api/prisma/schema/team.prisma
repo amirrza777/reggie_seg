@@ -4,35 +4,41 @@ enum InactivityFlag {
   RED
 }
 
+enum DeadlineProfile {
+  STANDARD
+  MCF
+}
+
 model Team {
-  id              Int              @id @default(autoincrement())
+  id              Int             @id @default(autoincrement())
   enterpriseId    String
   projectId       Int
   teamName        String
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  archivedAt                 DateTime?
-  inactivityFlag             InactivityFlag   @default(NONE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  archivedAt      DateTime?
+  inactivityFlag  InactivityFlag  @default(NONE)
+  deadlineProfile DeadlineProfile @default(STANDARD)
   noGithubAccountAlertSentAt DateTime?
 
-  allocations     TeamAllocation[]
-  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  enterprise      Enterprise       @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
-  deadlineOverride TeamDeadlineOverride? @relation("TeamDeadlineOverride")
-  peerAssessments PeerAssessment[]
-  peerFeedbacks   PeerFeedback[]
-  staffTeamMarking StaffTeamMarking?
+  allocations          TeamAllocation[]
+  project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  enterprise           Enterprise            @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
+  deadlineOverride     TeamDeadlineOverride? @relation("TeamDeadlineOverride")
+  peerAssessments      PeerAssessment[]
+  peerFeedbacks        PeerFeedback[]
+  staffTeamMarking     StaffTeamMarking?
   staffStudentMarkings StaffStudentMarking[]
-  meetings        Meeting[]
-  
-  trelloBoardId      String?
-  trelloOwnerId      Int?
-  trelloOwner        User?   @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
-  trelloSectionConfig Json? 
-  invites            TeamInvite[]
+  meetings             Meeting[]
+
+  trelloBoardId       String?
+  trelloOwnerId       Int?
+  trelloOwner         User?        @relation("TrelloOwner", fields: [trelloOwnerId], references: [id])
+  trelloSectionConfig Json?
+  invites             TeamInvite[]
 
   @@unique([projectId, teamName])
+  @@unique([enterpriseId, teamName])
   @@index([projectId])
   @@index([enterpriseId])
-  @@unique([enterpriseId, teamName])
 }

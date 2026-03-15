@@ -57,6 +57,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <p className="staff-projects__desc">Project: {data.project.name}</p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">
+            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
+          </span>
+          <span className="staff-projects__badge">
+            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
+          </span>
           <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
             Back to teams
           </Link>
@@ -104,14 +110,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               </p>
               <p className="staff-projects__member-email">{allocation.user.email}</p>
             </div>
-            <button
-              type="button"
-              className="staff-projects__member-placeholder-btn"
-              disabled
-              title="Notification workflow placeholder"
-            >
-              Notify student
-            </button>
           </div>
         ))}
         </div>

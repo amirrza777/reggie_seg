@@ -29,6 +29,9 @@ export default async function StaffProjectsPage() {
         {!errorMessage ? (
           <div className="staff-projects__meta">
             <span className="staff-projects__badge">{projects.length} project{projects.length === 1 ? "" : "s"}</span>
+            <Link href="/staff/modules" className="staff-projects__badge">
+              Create project from module
+            </Link>
           </div>
         ) : null}
       </section>

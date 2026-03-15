@@ -139,7 +139,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
                   <p className="muted" style={{ margin: 0 }}>Student identifier unavailable.</p>
                 ) : (
                   <Link
-                    href={`/staff/peer-assessments/module/${projectData.project.moduleId}/team/${team.id}/student/${student.id}`}
+                    href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${student.id}`}
                     className="pill-nav__link staff-projects__team-action"
                   >
                     Open student grading

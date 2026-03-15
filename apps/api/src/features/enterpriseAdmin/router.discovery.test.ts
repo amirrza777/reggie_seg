@@ -154,6 +154,26 @@ describe("enterpriseAdmin router discovery", () => {
       }),
     );
 
+    (prisma.module.findMany as any).mockResolvedValueOnce([
+      {
+        id: 8,
+        name: "AI",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        createdAt: new Date("2026-03-01"),
+        updatedAt: new Date("2026-03-02"),
+        _count: { userModules: 0, moduleLeads: 1, moduleTeachingAssistants: 0 },
+        moduleLeads: [],
+      },
+    ]);
+    res = mockRes();
+    await listModules({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+    expect((res.json as any)).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ id: 8, canManageAccess: true })]),
+    );
+
     res = mockRes();
     await searchModules({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { page: "0" } } as any, res);
     expect((res.status as any)).toHaveBeenCalledWith(400);
@@ -194,7 +214,6 @@ describe("enterpriseAdmin router discovery", () => {
 
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([
-      { id: 99, role: "ENTERPRISE_ADMIN" },
       { id: 11, role: "STAFF" },
       { id: 12, role: "STUDENT" },
       { id: 31, role: "STUDENT" },
@@ -229,7 +248,6 @@ describe("enterpriseAdmin router discovery", () => {
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
-        { moduleId: 7, userId: 99 },
       ],
       skipDuplicates: true,
     });

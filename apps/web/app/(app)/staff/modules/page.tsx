@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import type { Module } from "@/features/modules/types";
@@ -22,7 +23,7 @@ export default async function StaffModulesPage() {
   const subtitle = errorMessage
     ? "Could not load your modules right now."
     : modules.length > 0
-      ? "Select a module to view teams, projects, and activity."
+      ? "Open a module to review teams/projects, or use Manage module for module-level setup."
       : "You have no modules assigned.";
 
   return (
@@ -30,6 +31,11 @@ export default async function StaffModulesPage() {
       <header className="projects-panel__header">
         <h1 className="projects-panel__title">My Modules</h1>
         <p className="projects-panel__subtitle">{subtitle}</p>
+        <div className="staff-projects__meta">
+          <Link href="/staff/projects" className="staff-projects__badge">
+            Open staff projects
+          </Link>
+        </div>
       </header>
       {errorMessage ? (
         <p className="muted">{errorMessage}</p>

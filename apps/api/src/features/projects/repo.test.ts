@@ -35,11 +35,30 @@ vi.mock("../../shared/db.js", () => ({
     },
     module: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    moduleLead: {
+      findFirst: vi.fn(),
+    },
+    questionnaireTemplate: {
+      findFirst: vi.fn(),
     },
   },
 }));
 
 describe("projects repo", () => {
+  const deadlineInput = {
+    taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
+    taskDueDate: new Date("2026-03-08T17:00:00.000Z"),
+    taskDueDateMcf: new Date("2026-03-15T17:00:00.000Z"),
+    assessmentOpenDate: new Date("2026-03-09T09:00:00.000Z"),
+    assessmentDueDate: new Date("2026-03-12T17:00:00.000Z"),
+    assessmentDueDateMcf: new Date("2026-03-19T17:00:00.000Z"),
+    feedbackOpenDate: new Date("2026-03-13T09:00:00.000Z"),
+    feedbackDueDate: new Date("2026-03-16T17:00:00.000Z"),
+    feedbackDueDateMcf: new Date("2026-03-23T17:00:00.000Z"),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -119,26 +138,63 @@ describe("projects repo", () => {
     });
   });
 
-  it("createProject creates and selects persisted project", async () => {
+  it("createProject creates and selects persisted project for an authorised module lead", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 99,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 2 });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
+    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
     (prisma.project.create as any).mockResolvedValue({
       id: 1,
       name: "P1",
       moduleId: 2,
       questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
     });
-    const result = await createProject("P1", 2, 3, [10, 11]);
+    const result = await createProject(99, "P1", 2, 3, deadlineInput);
 
     expect(prisma.project.create).toHaveBeenCalledWith({
       data: {
         name: "P1",
         moduleId: 2,
         questionnaireTemplateId: 3,
+        deadline: {
+          create: {
+            taskOpenDate: deadlineInput.taskOpenDate,
+            taskDueDate: deadlineInput.taskDueDate,
+            taskDueDateMcf: deadlineInput.taskDueDateMcf,
+            assessmentOpenDate: deadlineInput.assessmentOpenDate,
+            assessmentDueDate: deadlineInput.assessmentDueDate,
+            assessmentDueDateMcf: deadlineInput.assessmentDueDateMcf,
+            feedbackOpenDate: deadlineInput.feedbackOpenDate,
+            feedbackDueDate: deadlineInput.feedbackDueDate,
+            feedbackDueDateMcf: deadlineInput.feedbackDueDateMcf,
+          },
+        },
       },
       select: {
         id: true,
         name: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        deadline: {
+          select: {
+            taskOpenDate: true,
+            taskDueDate: true,
+            taskDueDateMcf: true,
+            assessmentOpenDate: true,
+            assessmentDueDate: true,
+            assessmentDueDateMcf: true,
+            feedbackOpenDate: true,
+            feedbackDueDate: true,
+            feedbackDueDateMcf: true,
+          },
+        },
       },
     });
     expect(result).toEqual({
@@ -146,7 +202,51 @@ describe("projects repo", () => {
       name: "P1",
       moduleId: 2,
       questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
     });
+  });
+
+  it("createProject rejects staff who are not module leads", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 44,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
+    (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
+
+    await expect(createProject(44, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+    expect(prisma.project.create).not.toHaveBeenCalled();
+  });
+
+  it("createProject allows enterprise admins without module-lead membership", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 45,
+      role: "ENTERPRISE_ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
+    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
+    (prisma.project.create as any).mockResolvedValue({
+      id: 17,
+      name: "Admin Project",
+      moduleId: 7,
+      questionnaireTemplateId: 3,
+      deadline: {
+        ...deadlineInput,
+      },
+    });
+
+    await expect(createProject(45, "Admin Project", 7, 3, deadlineInput)).resolves.toMatchObject({
+      id: 17,
+      moduleId: 7,
+    });
+    expect(prisma.moduleLead.findFirst).not.toHaveBeenCalled();
+    expect(prisma.project.create).toHaveBeenCalled();
   });
 
   it("getTeammatesInProject filters by shared team and project", async () => {
@@ -183,6 +283,7 @@ describe("projects repo", () => {
   it("getUserProjectDeadline merges override with project deadline and sets isOverridden", async () => {
     (prisma.teamAllocation.findFirst as any).mockResolvedValue({
       team: {
+        deadlineProfile: "STANDARD",
         deadlineOverride: {
           taskOpenDate: "A",
           taskDueDate: null,
@@ -195,10 +296,13 @@ describe("projects repo", () => {
           deadline: {
             taskOpenDate: "P-A",
             taskDueDate: "P-B",
+            taskDueDateMcf: "P-B-MCF",
             assessmentOpenDate: "P-C",
             assessmentDueDate: "P-D",
+            assessmentDueDateMcf: "P-D-MCF",
             feedbackOpenDate: "P-E",
             feedbackDueDate: "P-F",
+            feedbackDueDateMcf: "P-F-MCF",
           },
         },
       },
@@ -212,6 +316,8 @@ describe("projects repo", () => {
       feedbackOpenDate: "P-E",
       feedbackDueDate: "P-F",
       isOverridden: true,
+      overrideScope: "TEAM",
+      deadlineProfile: "STANDARD",
     });
   });
 

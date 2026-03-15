@@ -7,6 +7,7 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 import {
+  createStaffProject,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -79,6 +80,33 @@ describe("projects api client", () => {
     await getProjectMarking(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/marking?userId=7", {
       cache: "no-store",
+    });
+  });
+
+  it("creates a staff project", async () => {
+    const deadline = {
+      taskOpenDate: "2026-03-01T09:00:00.000Z",
+      taskDueDate: "2026-03-08T17:00:00.000Z",
+      assessmentOpenDate: "2026-03-09T09:00:00.000Z",
+      assessmentDueDate: "2026-03-12T17:00:00.000Z",
+      feedbackOpenDate: "2026-03-13T09:00:00.000Z",
+      feedbackDueDate: "2026-03-16T17:00:00.000Z",
+    };
+
+    await createStaffProject({
+      name: "Project A",
+      moduleId: 2,
+      questionnaireTemplateId: 9,
+      deadline,
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Project A",
+        moduleId: 2,
+        questionnaireTemplateId: 9,
+        deadline,
+      }),
     });
   });
 });

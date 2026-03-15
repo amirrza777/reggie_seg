@@ -6,6 +6,8 @@ export async function upsertPeerFeedback(data: {
   revieweeUserId: number;
   reviewText?: string | null;
   agreementsJson: any;
+  submittedLate?: boolean;
+  effectiveDueDate?: Date | null;
 }) {
   // Get the team ID from the peer assessment
   const assessment = await prisma.peerAssessment.findUnique({
@@ -17,15 +19,23 @@ export async function upsertPeerFeedback(data: {
     throw new Error("Peer assessment not found");
   }
 
+  const updateData: Record<string, unknown> = {
+    reviewerUserId: data.reviewerUserId,
+    revieweeUserId: data.revieweeUserId,
+    reviewText: data.reviewText ?? null,
+    agreementsJson: data.agreementsJson,
+    updatedAt: new Date(),
+  };
+  if (data.submittedLate === true) {
+    updateData.submittedLate = true;
+  }
+  if ("effectiveDueDate" in data) {
+    updateData.effectiveDueDate = data.effectiveDueDate ?? null;
+  }
+
   return prisma.peerFeedback.upsert({
     where: { peerAssessmentId: data.peerAssessmentId },
-    update: {
-      reviewerUserId: data.reviewerUserId,
-      revieweeUserId: data.revieweeUserId,
-      reviewText: data.reviewText ?? null,
-      agreementsJson: data.agreementsJson,
-      updatedAt: new Date(),
-    },
+    update: updateData,
     create: {
       peerAssessmentId: data.peerAssessmentId,
       teamId: assessment.teamId,
@@ -33,6 +43,8 @@ export async function upsertPeerFeedback(data: {
       revieweeUserId: data.revieweeUserId,
       reviewText: data.reviewText ?? null,
       agreementsJson: data.agreementsJson,
+      submittedLate: data.submittedLate ?? false,
+      effectiveDueDate: data.effectiveDueDate ?? null,
     },
     include: {
       peerAssessment: {

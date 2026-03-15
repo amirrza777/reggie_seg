@@ -122,9 +122,36 @@
 }
 
 .module-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   color: var(--accent-strong);
+  text-decoration: none;
+}
+
+.module-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.module-card__manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.module-card__manage:hover,
+.module-card__manage:focus-visible,
+.module-card__cta:hover,
+.module-card__cta:focus-visible {
+  text-decoration: underline;
 }
 
 .module-list-empty {

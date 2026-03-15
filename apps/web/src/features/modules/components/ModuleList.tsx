@@ -35,13 +35,10 @@ export function ModuleList({
           const teams = module.teamCount ?? 0;
           const projects = module.projectCount ?? 0;
           const role = getRolePresentation(module.accountRole);
+          const canManageModule = module.accountRole === "OWNER" || module.accountRole === "ADMIN_ACCESS";
 
           return (
-            <Link
-              key={module.id}
-              href={`/modules/${encodeURIComponent(module.id)}`}
-              className="module-card card"
-            >
+            <article key={module.id} className="module-card card">
               <div className="module-card__header">
                 <div className="module-card__header-top">
                   <h2 className="module-card__title">{module.title}</h2>
@@ -58,9 +55,23 @@ export function ModuleList({
                 <span className="module-card__counts">
                   {teams} team{teams === 1 ? "" : "s"} · {projects} project{projects === 1 ? "" : "s"}
                 </span>
-                <span className="module-card__cta">View Module</span>
+                <div className="module-card__actions">
+                  {canManageModule ? (
+                    <>
+                      <Link href={`/staff/modules/${encodeURIComponent(module.id)}/manage`} className="module-card__manage">
+                        Manage module
+                      </Link>
+                      <Link href={`/staff/projects/create?moduleId=${encodeURIComponent(module.id)}`} className="module-card__manage">
+                        Create project
+                      </Link>
+                    </>
+                  ) : null}
+                  <Link href={`/modules/${encodeURIComponent(module.id)}`} className="module-card__cta">
+                    View Module
+                  </Link>
+                </div>
               </div>
-            </Link>
+            </article>
           );
         })}
       </div>

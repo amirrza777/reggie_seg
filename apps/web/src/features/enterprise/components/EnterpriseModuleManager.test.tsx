@@ -20,8 +20,9 @@ const moduleRecord = {
   teachingAssistantCount: 4,
   canManageAccess: true,
 };
+type ModuleRecord = typeof moduleRecord;
 
-const makeSearchResponse = (items: Array<any>, total: number, page = 1, pageSize = 10) => ({
+const makeSearchResponse = (items: ModuleRecord[], total: number, page = 1, pageSize = 10) => ({
   items,
   total,
   page,
@@ -32,7 +33,7 @@ const makeSearchResponse = (items: Array<any>, total: number, page = 1, pageSize
   query: null,
 });
 
-const installSearchMock = (dataset: Array<any>) => {
+const installSearchMock = (dataset: ModuleRecord[]) => {
   searchEnterpriseModulesMock.mockImplementation(async (params = {}) => {
     const q = (params.q ?? "").trim().toLowerCase();
     const page = params.page ?? 1;
@@ -80,5 +81,13 @@ describe("EnterpriseModuleManager", () => {
       expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
     );
     expect(screen.getByText("Module 11")).toBeInTheDocument();
+  });
+
+  it("hides create-module action when creation is disabled", async () => {
+    render(<EnterpriseModuleManager canCreateModule={false} />);
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+    expect(screen.queryByRole("link", { name: /create module/i })).not.toBeInTheDocument();
   });
 });

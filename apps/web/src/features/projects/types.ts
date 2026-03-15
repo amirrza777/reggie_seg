@@ -12,11 +12,16 @@ export type Project = {
 export type ProjectDeadline = {
   taskOpenDate: string | null;
   taskDueDate: string | null;
+  taskDueDateMcf?: string | null;
   assessmentOpenDate: string | null;
   assessmentDueDate: string | null;
+  assessmentDueDateMcf?: string | null;
   feedbackOpenDate: string | null;
   feedbackDueDate: string | null;
+  feedbackDueDateMcf?: string | null;
   isOverridden: boolean;
+  overrideScope?: "NONE" | "TEAM" | "STUDENT";
+  deadlineProfile?: "STANDARD" | "MCF";
 };
 
 export type User = {
@@ -33,6 +38,8 @@ export type Team = {
   projectId: number;
   createdAt: string;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
+  deadlineProfile?: "STANDARD" | "MCF";
+  hasDeadlineOverride?: boolean;
   allocations: Array<{
     userId: number;
     user: User;
@@ -59,6 +66,64 @@ export type StaffProjectTeamsResponse = {
     moduleName: string;
   };
   teams: Team[];
+};
+
+export type StaffStudentDeadlineOverride = {
+  id: number;
+  userId: number;
+  taskOpenDate: string | null;
+  taskDueDate: string | null;
+  assessmentOpenDate: string | null;
+  assessmentDueDate: string | null;
+  feedbackOpenDate: string | null;
+  feedbackDueDate: string | null;
+  reason: string | null;
+  updatedAt: string;
+};
+
+export type StaffStudentDeadlineOverridePayload = {
+  taskOpenDate?: string | null;
+  taskDueDate?: string | null;
+  assessmentOpenDate?: string | null;
+  assessmentDueDate?: string | null;
+  feedbackOpenDate?: string | null;
+  feedbackDueDate?: string | null;
+  reason?: string | null;
+};
+
+export type CreateStaffProjectPayload = {
+  name: string;
+  moduleId: number;
+  questionnaireTemplateId: number;
+  deadline: {
+    taskOpenDate: string;
+    taskDueDate: string;
+    taskDueDateMcf: string;
+    assessmentOpenDate: string;
+    assessmentDueDate: string;
+    assessmentDueDateMcf: string;
+    feedbackOpenDate: string;
+    feedbackDueDate: string;
+    feedbackDueDateMcf: string;
+  };
+};
+
+export type CreatedStaffProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  questionnaireTemplateId: number;
+  deadline?: {
+    taskOpenDate: string;
+    taskDueDate: string;
+    taskDueDateMcf: string;
+    assessmentOpenDate: string;
+    assessmentDueDate: string;
+    assessmentDueDateMcf: string;
+    feedbackOpenDate: string;
+    feedbackDueDate: string;
+    feedbackDueDateMcf: string;
+  } | null;
 };
 
 export type TeamMember = {

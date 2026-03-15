@@ -14,7 +14,11 @@ type RequestState = "idle" | "loading" | "success" | "error";
 
 const MODULES_PER_PAGE = 10;
 
-export function EnterpriseModuleManager() {
+type EnterpriseModuleManagerProps = {
+  canCreateModule?: boolean;
+};
+
+export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseModuleManagerProps) {
   const [modules, setModules] = useState<EnterpriseModuleRecord[]>([]);
   const [modulesStatus, setModulesStatus] = useState<RequestState>("idle");
   const [modulesMessage, setModulesMessage] = useState<string | null>(null);
@@ -114,11 +118,11 @@ export function EnterpriseModuleManager() {
   return (
     <Card
       title={<span className="overview-title">Enterprise modules</span>}
-      action={
+      action={canCreateModule ? (
         <Link href="/enterprise/modules/create" className="btn btn--primary enterprise-modules__create-trigger">
           Create module
         </Link>
-      }
+      ) : undefined}
       className="enterprise-modules__card"
     >
       <p className="muted">Create modules, set owners/leaders and teaching assistants, and enroll students.</p>
