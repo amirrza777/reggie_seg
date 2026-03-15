@@ -58,41 +58,58 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <p className="staff-projects__desc">Project: {data.project.name}</p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">
+            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
+          </span>
+          <span className="staff-projects__badge">
+            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
+          </span>
           <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
             Back to teams
           </Link>
         </div>
-        <div className="staff-projects__team-policy">
-          <div className="staff-projects__team-policy-top">
-            <div>
-              <h2 className="staff-projects__team-policy-title">Deadline policy</h2>
-              <p className="staff-projects__team-policy-desc">
-                This team is currently using{" "}
-                <strong>{team.deadlineProfile === "MCF" ? "MCF extended deadlines" : "standard deadlines"}</strong>.
-              </p>
-            </div>
-            {team.hasDeadlineOverride ? (
-              <span className="staff-projects__badge">Team override active</span>
-            ) : (
-              <span className="staff-projects__badge">No team override</span>
-            )}
+      </section>
+
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
+      <section className="staff-projects__policy-grid" aria-label="Deadline policy controls">
+        <article className="staff-projects__policy-card">
+          <div className="staff-projects__policy-head">
+            <h2 className="staff-projects__team-policy-title">Deadline policy</h2>
+            <span
+              className={`staff-projects__policy-pill${
+                team.deadlineProfile === "MCF" ? " staff-projects__policy-pill--mcf" : ""
+              }`}
+            >
+              {team.deadlineProfile === "MCF" ? "MCF extended" : "Standard"}
+            </span>
           </div>
-          <div className="staff-projects__team-policy-actions">
+          <p className="staff-projects__team-policy-desc">
+            This controls which due-date track the whole team uses by default.
+          </p>
+          <p className="staff-projects__team-policy-desc">
+            {team.hasDeadlineOverride
+              ? "A team-level override is active."
+              : "No team-level override is currently active."}
+          </p>
+        </article>
+
+        <article className="staff-projects__policy-card">
+          <h3 className="staff-projects__team-policy-title">Controls</h3>
+          <p className="staff-projects__team-policy-desc">
+            Switch profile and then adjust individual students where needed.
+          </p>
+          <div className="staff-projects__policy-actions">
             <StaffTeamDeadlineProfileControl
               teamId={team.id}
               initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
             />
-            <Link
-              href={`/staff/projects/${projectId}/teams/${teamId}/deadlines`}
-              className="staff-projects__card-placeholder-btn"
-            >
+            <Link href={`/staff/projects/${projectId}/teams/${teamId}/deadlines`} className="staff-projects__policy-link">
               Manage per-student overrides
             </Link>
           </div>
-        </div>
+        </article>
       </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
       <section className="staff-projects__grid" aria-label="Team overview quick actions">
         <article className="staff-projects__card">

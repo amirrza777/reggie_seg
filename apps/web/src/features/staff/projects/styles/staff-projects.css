@@ -335,10 +335,10 @@
 
 .staff-projects__profile-switch {
   display: inline-flex;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: 999px;
   padding: 2px;
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
 }
 
 .staff-projects__profile-btn {
@@ -347,15 +347,16 @@
   color: var(--muted);
   font: inherit;
   font-size: var(--fs-body-sm);
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
   cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 .staff-projects__profile-btn--active {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 22%, var(--surface));
-  border: 1px solid var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--accent-strong);
+  font-weight: var(--fw-semibold);
 }
 
 .staff-projects__profile-btn:disabled {
@@ -412,6 +413,77 @@
   color: var(--muted);
 }
 
+.staff-projects__policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+
+.staff-projects__policy-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+  background:
+    radial-gradient(120% 110% at 100% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 65%),
+    var(--surface);
+  display: grid;
+  gap: 10px;
+}
+
+.staff-projects__policy-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.staff-projects__policy-pill {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+}
+
+.staff-projects__policy-pill--mcf {
+  border-color: color-mix(in srgb, var(--accent-border) 60%, var(--border));
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent-strong);
+}
+
+.staff-projects__policy-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.staff-projects__policy-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+  transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
+}
+
+.staff-projects__policy-link:hover {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-1px);
+}
+
 .staff-projects__team-policy {
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -431,11 +503,11 @@
 
 .staff-projects__team-policy-title {
   margin: 0;
-  font-size: var(--fs-body);
+  font-size: var(--fs-body-lg);
 }
 
 .staff-projects__team-policy-desc {
-  margin: 2px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: var(--fs-body-sm);
 }
