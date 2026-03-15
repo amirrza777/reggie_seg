@@ -347,10 +347,6 @@ export function StaffCustomisedAllocationPanel({
             Apply allocation
           </button>
         </div>
-        <p className="staff-projects__allocation-note">
-          Step 1 scaffolding is complete. Preview generation and apply wiring are added in the next
-          parts.
-        </p>
       </div>
     </section>
   );

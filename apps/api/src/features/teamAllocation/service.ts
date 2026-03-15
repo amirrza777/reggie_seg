@@ -116,6 +116,146 @@ export type ManualAllocationApplied = {
   };
 };
 
+export type CustomAllocationQuestionType = "multiple-choice" | "rating" | "slider";
+export type CustomAllocationCriteriaStrategy = "diversify" | "group" | "ignore";
+export type CustomAllocationNonRespondentStrategy = "distribute_randomly" | "exclude";
+
+export type CustomAllocationQuestionnaireListing = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaires: Array<{
+    id: number;
+    templateName: string;
+    ownerId: number;
+    isPublic: boolean;
+    eligibleQuestionCount: number;
+    eligibleQuestions: Array<{
+      id: number;
+      label: string;
+      type: CustomAllocationQuestionType;
+    }>;
+  }>;
+};
+
+export type CustomAllocationCoverage = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaireTemplateId: number;
+  totalAvailableStudents: number;
+  respondingStudents: number;
+  nonRespondingStudents: number;
+  responseRate: number;
+  responseThreshold: number;
+};
+
+export type CustomAllocationPreviewInput = {
+  questionnaireTemplateId: number;
+  teamCount: number;
+  seed?: number;
+  nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
+  criteria: Array<{
+    questionId: number;
+    strategy: CustomAllocationCriteriaStrategy;
+    weight: number;
+  }>;
+};
+
+export type CustomAllocationPreview = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaireTemplateId: number;
+  previewId: string;
+  generatedAt: string;
+  expiresAt: string;
+  teamCount: number;
+  respondentCount: number;
+  nonRespondentCount: number;
+  nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
+  criteriaSummary: Array<{
+    questionId: number;
+    strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+    weight: number;
+    satisfactionScore: number;
+  }>;
+  overallScore: number;
+  previewTeams: Array<{
+    index: number;
+    suggestedName: string;
+    members: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      responseStatus: "RESPONDED" | "NO_RESPONSE";
+    }>;
+  }>;
+};
+
+export type CustomAllocationApplyInput = {
+  previewId: string;
+  teamNames?: string[];
+};
+
+export type CustomAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  previewId: string;
+  studentCount: number;
+  teamCount: number;
+  appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+};
+
+export async function listCustomAllocationQuestionnairesForProject(
+  _staffId: number,
+  _projectId: number,
+): Promise<CustomAllocationQuestionnaireListing> {
+  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+}
+
+export async function getCustomAllocationCoverageForProject(
+  _staffId: number,
+  _projectId: number,
+  _questionnaireTemplateId: number,
+): Promise<CustomAllocationCoverage> {
+  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+}
+
+export async function previewCustomAllocationForProject(
+  _staffId: number,
+  _projectId: number,
+  _input: CustomAllocationPreviewInput,
+): Promise<CustomAllocationPreview> {
+  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+}
+
+export async function applyCustomAllocationForProject(
+  _staffId: number,
+  _projectId: number,
+  _input: CustomAllocationApplyInput,
+): Promise<CustomAllocationApplied> {
+  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+}
+
 async function notifyStudentsAboutRandomAllocation(
   projectName: string,
   plannedTeams: Array<{

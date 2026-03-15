@@ -13,7 +13,11 @@ import {
   createTeamForProjectHandler,
   applyManualAllocationHandler,
   applyRandomAllocationHandler,
+  applyCustomAllocationHandler,
+  getCustomAllocationCoverageHandler,
   getManualAllocationWorkspaceHandler,
+  listCustomAllocationQuestionnairesHandler,
+  previewCustomAllocationHandler,
   previewRandomAllocationHandler,
   getTeamByIdHandler,
   addUserToTeamHandler,
@@ -36,6 +40,14 @@ router.post("/projects/:projectId/random-allocate", requireAuth, applyRandomAllo
 router.post("/projects/:projectId/manual-allocate", requireAuth, applyManualAllocationHandler);
 router.get("/projects/:projectId/random-preview", requireAuth, previewRandomAllocationHandler);
 router.get("/projects/:projectId/manual-workspace", requireAuth, getManualAllocationWorkspaceHandler);
+router.get(
+  "/projects/:projectId/custom-questionnaires",
+  requireAuth,
+  listCustomAllocationQuestionnairesHandler,
+);
+router.get("/projects/:projectId/custom-coverage", requireAuth, getCustomAllocationCoverageHandler);
+router.post("/projects/:projectId/custom-preview", requireAuth, previewCustomAllocationHandler);
+router.post("/projects/:projectId/custom-allocate", requireAuth, applyCustomAllocationHandler);
 router.get("/teams/:teamId", getTeamByIdHandler);
 router.post("/teams/:teamId/members", addUserToTeamHandler);
 router.get("/teams/:teamId/members", getTeamMembersHandler);

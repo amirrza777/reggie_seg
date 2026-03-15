@@ -16,7 +16,11 @@ import {
   expireTeamInvite,
   applyManualAllocationForProject,
   applyRandomAllocationForProject,
+  applyCustomAllocationForProject,
+  getCustomAllocationCoverageForProject,
+  listCustomAllocationQuestionnairesForProject,
   getManualAllocationWorkspaceForProject,
+  previewCustomAllocationForProject,
   previewRandomAllocationForProject,
 } from "./service.js";
 
@@ -198,6 +202,180 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
   }
 }
 
+export async function listCustomAllocationQuestionnairesHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const result = await listCustomAllocationQuestionnairesForProject(staffId, projectId);
+    return res.json(result);
+  } catch (error: any) {
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
+      return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
+    }
+    console.error("Error loading customised allocation questionnaires:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getCustomAllocationCoverageHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const questionnaireTemplateId = Number(req.query.questionnaireTemplateId);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(questionnaireTemplateId) || questionnaireTemplateId < 1) {
+    return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+  }
+
+  try {
+    const result = await getCustomAllocationCoverageForProject(staffId, projectId, questionnaireTemplateId);
+    return res.json(result);
+  } catch (error: any) {
+    if (error?.code === "INVALID_TEMPLATE_ID") {
+      return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+    }
+    if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(403).json({ error: "Questionnaire template is not accessible" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
+      return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
+    }
+    console.error("Error loading customised allocation coverage:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function previewCustomAllocationHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const questionnaireTemplateId = Number(req.body?.questionnaireTemplateId);
+  const teamCount = Number(req.body?.teamCount);
+  const rawSeed = req.body?.seed;
+  const seed = rawSeed === undefined || rawSeed === null || rawSeed === "" ? undefined : Number(rawSeed);
+  const nonRespondentStrategy = req.body?.nonRespondentStrategy;
+  const rawCriteria = req.body?.criteria;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(questionnaireTemplateId) || questionnaireTemplateId < 1) {
+    return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+  }
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (seed !== undefined && Number.isNaN(seed)) {
+    return res.status(400).json({ error: "seed must be a number when provided" });
+  }
+  if (nonRespondentStrategy !== "distribute_randomly" && nonRespondentStrategy !== "exclude") {
+    return res.status(400).json({
+      error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
+    });
+  }
+  if (!Array.isArray(rawCriteria)) {
+    return res.status(400).json({ error: "criteria must be an array" });
+  }
+
+  const normalizedCriteria = rawCriteria.map((criterion: any) => ({
+    questionId: Number(criterion?.questionId),
+    strategy: criterion?.strategy,
+    weight: Number(criterion?.weight),
+  }));
+
+  const hasInvalidCriteria = normalizedCriteria.some(
+    (criterion) =>
+      !Number.isInteger(criterion.questionId) ||
+      criterion.questionId < 1 ||
+      (criterion.strategy !== "diversify" &&
+        criterion.strategy !== "group" &&
+        criterion.strategy !== "ignore") ||
+      !Number.isInteger(criterion.weight) ||
+      criterion.weight < 1 ||
+      criterion.weight > 5,
+  );
+  if (hasInvalidCriteria) {
+    return res.status(400).json({
+      error: "Each criterion must include a valid questionId, strategy, and weight between 1 and 5",
+    });
+  }
+
+  try {
+    const result = await previewCustomAllocationForProject(staffId, projectId, {
+      questionnaireTemplateId,
+      teamCount,
+      ...(seed !== undefined ? { seed } : {}),
+      nonRespondentStrategy,
+      criteria: normalizedCriteria,
+    });
+    return res.json(result);
+  } catch (error: any) {
+    if (error?.code === "INVALID_TEAM_COUNT") {
+      return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "INVALID_TEMPLATE_ID") {
+      return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+    }
+    if (error?.code === "INVALID_NON_RESPONDENT_STRATEGY") {
+      return res.status(400).json({
+        error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
+      });
+    }
+    if (error?.code === "INVALID_CRITERIA") {
+      return res.status(400).json({
+        error: "Each criterion must include a valid questionId, strategy, and weight between 1 and 5",
+      });
+    }
+    if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
+      return res.status(400).json({ error: "teamCount cannot be greater than available students" });
+    }
+    if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(403).json({ error: "Questionnaire template is not accessible" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "NO_VACANT_STUDENTS") {
+      return res.status(409).json({ error: "No vacant students are available for this project" });
+    }
+    if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
+      return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
+    }
+    console.error("Error previewing customised team allocation:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 export async function applyRandomAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
@@ -264,6 +442,71 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "One or more team names already exist in this enterprise" });
     }
     console.error("Error applying random team allocation:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function applyCustomAllocationHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const previewId = typeof req.body?.previewId === "string" ? req.body.previewId.trim() : "";
+  const rawTeamNames = req.body?.teamNames;
+  const hasInvalidTeamNamesPayload =
+    rawTeamNames !== undefined &&
+    (!Array.isArray(rawTeamNames) || rawTeamNames.some((teamName) => typeof teamName !== "string"));
+  const teamNames =
+    !hasInvalidTeamNamesPayload && Array.isArray(rawTeamNames)
+      ? rawTeamNames.map((teamName) => teamName.trim())
+      : undefined;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!previewId) {
+    return res.status(400).json({ error: "previewId is required" });
+  }
+  if (hasInvalidTeamNamesPayload) {
+    return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+  }
+
+  try {
+    const result = await applyCustomAllocationForProject(staffId, projectId, {
+      previewId,
+      ...(teamNames !== undefined ? { teamNames } : {}),
+    });
+    return res.status(201).json(result);
+  } catch (error: any) {
+    if (error?.code === "INVALID_PREVIEW_ID") {
+      return res.status(400).json({ error: "previewId is required" });
+    }
+    if (error?.code === "INVALID_TEAM_NAMES") {
+      return res.status(400).json({ error: "teamNames must contain one non-empty name per generated team" });
+    }
+    if (error?.code === "DUPLICATE_TEAM_NAMES") {
+      return res.status(400).json({ error: "teamNames must be unique" });
+    }
+    if (error?.code === "PREVIEW_NOT_FOUND_OR_EXPIRED") {
+      return res.status(409).json({ error: "Preview no longer exists. Generate a new preview and try again." });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
+      return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
+    }
+    if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
+      return res.status(409).json({ error: "One or more team names already exist in this enterprise" });
+    }
+    if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
+      return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
+    }
+    console.error("Error applying customised team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
