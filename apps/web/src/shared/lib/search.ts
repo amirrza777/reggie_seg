@@ -7,6 +7,7 @@ export type SearchOptions<T> = {
 };
 
 const DEFAULT_MAX_DEPTH = 5;
+const TOKEN_SPLIT_PATTERN = /[^a-z0-9]+/g;
 
 export function normalizeSearchQuery(value: unknown): string {
   return String(value ?? "")
@@ -87,6 +88,76 @@ function buildSearchText(value: unknown, maxDepth: number): string {
   return tokens.join(" ");
 }
 
+function tokenize(value: string): string[] {
+  return value
+    .split(TOKEN_SPLIT_PATTERN)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function maxTyposForTokenLength(length: number): number {
+  if (length <= 2) return 0;
+  if (length <= 5) return 1;
+  if (length <= 9) return 2;
+  return 3;
+}
+
+function isWithinEditDistance(left: string, right: string, maxDistance: number): boolean {
+  if (left === right) return true;
+  if (maxDistance <= 0) return false;
+
+  const leftLength = left.length;
+  const rightLength = right.length;
+  if (Math.abs(leftLength - rightLength) > maxDistance) return false;
+
+  const previousRow = new Array<number>(rightLength + 1);
+  const currentRow = new Array<number>(rightLength + 1);
+
+  for (let column = 0; column <= rightLength; column += 1) {
+    previousRow[column] = column;
+  }
+
+  for (let row = 1; row <= leftLength; row += 1) {
+    currentRow[0] = row;
+    let rowMinimum = currentRow[0];
+
+    for (let column = 1; column <= rightLength; column += 1) {
+      const substitutionCost = left[row - 1] === right[column - 1] ? 0 : 1;
+      const deletion = previousRow[column] + 1;
+      const insertion = currentRow[column - 1] + 1;
+      const substitution = previousRow[column - 1] + substitutionCost;
+      const distance = Math.min(deletion, insertion, substitution);
+      currentRow[column] = distance;
+      if (distance < rowMinimum) rowMinimum = distance;
+    }
+
+    if (rowMinimum > maxDistance) return false;
+
+    for (let column = 0; column <= rightLength; column += 1) {
+      previousRow[column] = currentRow[column];
+    }
+  }
+
+  return previousRow[rightLength] <= maxDistance;
+}
+
+function hasFuzzyTokenMatch(searchText: string, normalizedQuery: string): boolean {
+  const queryTokens = tokenize(normalizedQuery);
+  if (queryTokens.length === 0) return true;
+
+  const searchTokens = Array.from(new Set(tokenize(searchText)));
+  if (searchTokens.length === 0) return false;
+
+  return queryTokens.every((queryToken) => {
+    const maxDistance = maxTyposForTokenLength(queryToken.length);
+    return searchTokens.some((searchToken) => {
+      if (searchToken.includes(queryToken)) return true;
+      if (queryToken.includes(searchToken) && queryToken.length > 3) return true;
+      return isWithinEditDistance(searchToken, queryToken, maxDistance);
+    });
+  });
+}
+
 export function matchesSearchQuery<T>(item: T, query: string, options: SearchOptions<T> = {}): boolean {
   const normalizedQuery = normalizeSearchQuery(query);
   if (!normalizedQuery) return true;
@@ -95,7 +166,8 @@ export function matchesSearchQuery<T>(item: T, query: string, options: SearchOpt
   const sources = hasConfiguredSources(options) ? getConfiguredSources(item, options) : [item];
   const searchText = sources.map((source) => buildSearchText(source, maxDepth)).join(" ");
 
-  return searchText.includes(normalizedQuery);
+  if (searchText.includes(normalizedQuery)) return true;
+  return hasFuzzyTokenMatch(searchText, normalizedQuery);
 }
 
 export function filterBySearchQuery<T>(items: readonly T[], query: string, options: SearchOptions<T> = {}): T[] {
