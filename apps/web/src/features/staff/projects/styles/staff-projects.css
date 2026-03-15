@@ -217,24 +217,45 @@
 }
 
 .staff-projects__deadline-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 10px;
+}
+
+.staff-projects__deadline-preset-group {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+}
+
+.staff-projects__deadline-preset-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
 
 .staff-projects__chip-btn {
   border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: inherit;
   border-radius: 999px;
-  padding: 6px 12px;
+  min-height: 34px;
+  padding: 0 12px;
   font: inherit;
   font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
   cursor: pointer;
+  transition: border-color .2s ease, background-color .2s ease, transform .2s ease;
 }
 
 .staff-projects__chip-btn:hover {
   border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  transform: translateY(-1px);
 }
 
 .staff-projects__deadline-sections {

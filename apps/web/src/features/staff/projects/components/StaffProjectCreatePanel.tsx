@@ -106,6 +106,8 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
   const [templateId, setTemplateId] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
+  const [deadlinePresetStatus, setDeadlinePresetStatus] = useState<string | null>(null);
+  const [deadlinePresetError, setDeadlinePresetError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -200,7 +202,12 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
     const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
     const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
     const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
-    if (!taskDueDate || !assessmentDueDate || !feedbackDueDate) return;
+    if (!taskDueDate || !assessmentDueDate || !feedbackDueDate) {
+      setDeadlinePresetStatus(null);
+      setDeadlinePresetError("Set valid standard due dates first, then apply an MCF offset.");
+      return;
+    }
+
     const deltaMs = offsetDays * 24 * 60 * 60 * 1000;
     setDeadline((prev) => ({
       ...prev,
@@ -208,6 +215,20 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
       assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDueDate.getTime() + deltaMs)),
       feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDueDate.getTime() + deltaMs)),
     }));
+    setDeadlinePresetError(null);
+    setDeadlinePresetStatus(`Applied MCF +${offsetDays} days to all due dates.`);
+  }
+
+  function applySchedulePreset(totalWeeks: number) {
+    setDeadline(buildPresetDeadlineState(totalWeeks));
+    setDeadlinePresetError(null);
+    setDeadlinePresetStatus(`Applied ${totalWeeks}-week project schedule.`);
+  }
+
+  function resetSchedulePreset() {
+    setDeadline(buildDefaultDeadlineState());
+    setDeadlinePresetError(null);
+    setDeadlinePresetStatus("Reset to default project schedule.");
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -393,31 +414,41 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
             </p>
           </div>
           <div className="staff-projects__deadline-presets">
-            <button
-              type="button"
-              className="staff-projects__chip-btn"
-              onClick={() => setDeadline(buildPresetDeadlineState(6))}
-            >
-              Use 6-week schedule
-            </button>
-            <button
-              type="button"
-              className="staff-projects__chip-btn"
-              onClick={() => setDeadline(buildPresetDeadlineState(8))}
-            >
-              Use 8-week schedule
-            </button>
-            <button
-              type="button"
-              className="staff-projects__chip-btn"
-              onClick={() => setDeadline(buildDefaultDeadlineState())}
-            >
-              Reset dates
-            </button>
-            <button type="button" className="staff-projects__chip-btn" onClick={() => applyMcfOffsetDays(7)}>
-              Set MCF +7 days
-            </button>
+            <div className="staff-projects__deadline-preset-group">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                Schedule presets
+              </p>
+              <div className="staff-projects__deadline-preset-actions">
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applySchedulePreset(6)}>
+                  Use 6-week schedule
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applySchedulePreset(8)}>
+                  Use 8-week schedule
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={resetSchedulePreset}>
+                  Reset dates
+                </button>
+              </div>
+            </div>
+
+            <div className="staff-projects__deadline-preset-group">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                MCF due-date offset
+              </p>
+              <div className="staff-projects__deadline-preset-actions">
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applyMcfOffsetDays(7)}>
+                  Set MCF +7 days
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applyMcfOffsetDays(14)}>
+                  Set MCF +14 days
+                </button>
+              </div>
+            </div>
           </div>
+
+          {deadlinePresetStatus ? <p className="staff-projects__success">{deadlinePresetStatus}</p> : null}
+          {deadlinePresetError ? <p className="staff-projects__error">{deadlinePresetError}</p> : null}
+
           <div className="staff-projects__deadline-sections">
             <section className="staff-projects__deadline-block" aria-label="Standard timeline">
               <p className="staff-projects__field-label" style={{ margin: 0 }}>
