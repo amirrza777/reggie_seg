@@ -188,6 +188,7 @@ async function sendInactivityAlerts() {
   }
 }
 
+/** Starts the background notification scheduler for reminder and inactivity emails. */
 export function startNotificationJob() {
   cron.schedule("0 8 * * *", async () => {
     try {

@@ -6,6 +6,7 @@ export function toJsonSafe<T>(value: T): T {
   ) as T;
 }
 
+/** Executes the with query. */
 export function withQuery(path: string, params: Record<string, string>) {
   try {
     const absolute = new URL(path);

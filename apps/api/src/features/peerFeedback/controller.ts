@@ -1,6 +1,7 @@
 import type { Request, Response } from "express"
 import { saveFeedbackReview, getPeerAssessment } from "./service.js"
 
+/** Handles requests for create peer feedback. */
 export async function createPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   const { reviewText, agreements, reviewerUserId, revieweeUserId } = req.body;
@@ -33,6 +34,7 @@ export async function createPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get peer feedback. */
 export async function getPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) {
@@ -48,6 +50,7 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get peer assessment. */
 export async function getPeerAssessmentHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) return res.status(400).json({ error: "Invalid feedback ID" });

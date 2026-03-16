@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the user projects. */
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
@@ -26,6 +27,7 @@ export async function getUserProjects(userId: number) {
   });
 }
 
+/** Returns the modules for user. */
 export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -132,6 +134,7 @@ async function getScopedStaffUser(userId: number) {
   });
 }
 
+/** Returns the staff projects. */
 export async function getStaffProjects(userId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
@@ -178,6 +181,7 @@ export async function getStaffProjects(userId: number) {
   });
 }
 
+/** Returns the staff project teams. */
 export async function getStaffProjectTeams(userId: number, projectId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return null;
@@ -237,6 +241,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
   return project;
 }
 
+/** Returns the project by ID. */
 export async function getProjectById(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -249,6 +254,7 @@ export async function getProjectById(projectId: number) {
   });
 }
 
+/** Creates a project. */
 export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
   const project = await prisma.project.create({
     data: {
@@ -267,6 +273,7 @@ export async function createProject(name: string, moduleId: number, questionnair
   return project;
 }
 
+/** Returns the teammates in project. */
 export async function getTeammatesInProject(userId: number, projectId: number) {
   return prisma.teamAllocation.findMany({
     where: {
@@ -293,6 +300,7 @@ export async function getTeammatesInProject(userId: number, projectId: number) {
   });
 }
 
+/** Returns the user project deadline. */
 export async function getUserProjectDeadline(userId: number, projectId: number) {
   const userTeam = await prisma.teamAllocation.findFirst({
     where: {
@@ -351,6 +359,7 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
   };
 }
 
+/** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
   return prisma.team.findUnique({
     where: { id: teamId },
@@ -376,6 +385,7 @@ export async function getTeamById(teamId: number) {
   });
 }
 
+/** Returns the team by user and project. */
 export async function getTeamByUserAndProject(userId: number, projectId: number) {
   return prisma.team.findFirst({
     where: {
@@ -408,6 +418,7 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
   });
 }
 
+/** Returns the questions for project. */
 export async function getQuestionsForProject(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -452,6 +463,7 @@ function mapStaffMarking(marking: RawStaffMarking | null) {
   };
 }
 
+/** Returns the user project marking. */
 export async function getUserProjectMarking(userId: number, projectId: number) {
   const enrollment = await prisma.teamAllocation.findFirst({
     where: {

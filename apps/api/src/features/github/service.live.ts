@@ -67,6 +67,7 @@ async function resolveProjectLinkAccessToken(params: {
   );
 }
 
+/** Returns the live project GitHub repository branches. */
 export async function listLiveProjectGithubRepositoryBranches(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -126,6 +127,7 @@ export async function listLiveProjectGithubRepositoryBranches(userId: number, li
   };
 }
 
+/** Returns the live project GitHub repository branch commits. */
 export async function listLiveProjectGithubRepositoryBranchCommits(
   userId: number,
   linkId: number,
@@ -199,6 +201,7 @@ export async function listLiveProjectGithubRepositoryBranchCommits(
   };
 }
 
+/** Returns the live project GitHub repository my commits. */
 export async function listLiveProjectGithubRepositoryMyCommits(
   userId: number,
   linkId: number,
@@ -321,6 +324,7 @@ export async function listLiveProjectGithubRepositoryMyCommits(
   };
 }
 
+/** Removes the project GitHub repository link. */
 export async function removeProjectGithubRepositoryLink(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {

@@ -14,6 +14,7 @@ const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
 const MAX_QUERY_LENGTH = 120;
 
+/** Parses the enterprise module search filters. */
 export function parseEnterpriseModuleSearchFilters(query: ParsedQs): ParseResult {
   const rawQuery = parseSingleString(query.q)?.trim() ?? "";
   if (rawQuery.length > MAX_QUERY_LENGTH) {
@@ -37,6 +38,7 @@ export function parseEnterpriseModuleSearchFilters(query: ParsedQs): ParseResult
   };
 }
 
+/** Builds the enterprise module search where. */
 export function buildEnterpriseModuleSearchWhere(
   baseWhere: Prisma.ModuleWhereInput,
   filters: Pick<EnterpriseModuleSearchFilters, "query">,

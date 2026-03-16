@@ -18,6 +18,7 @@ const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
 const MAX_QUERY_LENGTH = 120;
 
+/** Parses the admin user search filters. */
 export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult {
   const rawQuery = parseSingleString(query.q)?.trim() ?? "";
   if (rawQuery.length > MAX_QUERY_LENGTH) {
@@ -56,6 +57,7 @@ export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult {
   };
 }
 
+/** Builds the admin user search where. */
 export function buildAdminUserSearchWhere(
   enterpriseId: string,
   filters: Pick<AdminUserSearchFilters, "query" | "role" | "active">,

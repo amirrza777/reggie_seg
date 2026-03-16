@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the user by ID. */
 export function findUserById(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -7,6 +8,7 @@ export function findUserById(userId: number) {
   });
 }
 
+/** Returns the GitHub account by GitHub user ID. */
 export function findGithubAccountByGithubUserId(githubUserId: bigint) {
   return prisma.githubAccount.findUnique({
     where: { githubUserId },
@@ -14,6 +16,7 @@ export function findGithubAccountByGithubUserId(githubUserId: bigint) {
   });
 }
 
+/** Returns the GitHub account by user ID. */
 export function findGithubAccountByUserId(userId: number) {
   return prisma.githubAccount.findUnique({
     where: { userId },
@@ -30,6 +33,7 @@ export function findGithubAccountByUserId(userId: number) {
   });
 }
 
+/** Returns the GitHub account status by user ID. */
 export function findGithubAccountStatusByUserId(userId: number) {
   return prisma.githubAccount.findUnique({
     where: { userId },
@@ -48,6 +52,7 @@ export function findGithubAccountStatusByUserId(userId: number) {
   });
 }
 
+/** Deletes the GitHub account by user ID. */
 export async function deleteGithubAccountByUserId(userId: number) {
   await prisma.githubAccount.delete({
     where: { userId },
@@ -64,6 +69,7 @@ type UpdateGithubAccountTokensInput = {
   refreshTokenExpiresAt: Date | null;
 };
 
+/** Updates the GitHub account tokens. */
 export function updateGithubAccountTokens(input: UpdateGithubAccountTokensInput) {
   return prisma.githubAccount.update({
     where: { userId: input.userId },
@@ -102,6 +108,7 @@ type UpsertGithubAccountInput = {
   refreshTokenExpiresAt: Date | null;
 };
 
+/** Executes the upsert GitHub account. */
 export function upsertGithubAccount(input: UpsertGithubAccountInput) {
   return prisma.githubAccount.upsert({
     where: { userId: input.userId },

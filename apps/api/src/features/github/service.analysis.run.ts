@@ -80,6 +80,7 @@ async function resolveProjectLinkAccessToken(params: {
   );
 }
 
+/** Runs repository analysis for a project-linked GitHub repository. */
 export async function analyseProjectGithubRepository(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {

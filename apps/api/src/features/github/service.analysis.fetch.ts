@@ -43,10 +43,12 @@ type GithubCompareResponse = {
   behind_by?: number;
 };
 
+/** Converts the utc day key. */
 export function toUtcDayKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+/** Executes the contributor key from commit. */
 export function contributorKeyFromCommit(commit: GithubCommitListItem) {
   const login = commit.author?.login?.trim().toLowerCase();
   if (login) {
@@ -59,6 +61,7 @@ export function contributorKeyFromCommit(commit: GithubCommitListItem) {
   return "unmatched:unknown";
 }
 
+/** Returns the commits for linked repository. */
 export async function fetchCommitsForLinkedRepository(accessToken: string, fullName: string, branch: string, sinceIso: string) {
   const { baseUrl } = getGitHubApiConfig();
   const commits: GithubCommitListItem[] = [];
@@ -105,6 +108,7 @@ export async function fetchCommitsForLinkedRepository(accessToken: string, fullN
   return commits;
 }
 
+/** Returns the recent commits for branch. */
 export async function fetchRecentCommitsForBranch(
   accessToken: string,
   fullName: string,
@@ -140,6 +144,7 @@ export async function fetchRecentCommitsForBranch(
   return (await response.json()) as GithubCommitListItem[];
 }
 
+/** Returns the user commits for repository page. */
 export async function fetchUserCommitsForRepositoryPage(
   accessToken: string,
   fullName: string,
@@ -180,6 +185,7 @@ export async function fetchUserCommitsForRepositoryPage(
   return (await response.json()) as GithubCommitListItem[];
 }
 
+/** Returns the all user commits for repository. */
 export async function fetchAllUserCommitsForRepository(accessToken: string, fullName: string, author: string) {
   const commits: GithubCommitListItem[] = [];
   let page = 1;
@@ -199,6 +205,7 @@ export async function fetchAllUserCommitsForRepository(accessToken: string, full
   return commits;
 }
 
+/** Returns the repository branches. */
 export async function listRepositoryBranches(accessToken: string, fullName: string) {
   const { baseUrl } = getGitHubApiConfig();
   const branches: string[] = [];
@@ -234,6 +241,7 @@ export async function listRepositoryBranches(accessToken: string, fullName: stri
   return Array.from(new Set(branches));
 }
 
+/** Returns the repository branches live. */
 export async function listRepositoryBranchesLive(
   accessToken: string,
   fullName: string
@@ -288,6 +296,7 @@ export async function listRepositoryBranchesLive(
   return branches;
 }
 
+/** Returns the branch ahead behind. */
 export async function getBranchAheadBehind(
   accessToken: string,
   fullName: string,
@@ -331,6 +340,7 @@ export async function getBranchAheadBehind(
   };
 }
 
+/** Returns the commit stats for repository. */
 export async function fetchCommitStatsForRepository(
   accessToken: string,
   fullName: string,

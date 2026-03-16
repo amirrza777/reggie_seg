@@ -2,6 +2,7 @@ import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
 import type { Question, IncomingQuestion } from "./types.js";
 
+/** Creates a questionnaire template. */
 export function createQuestionnaireTemplate(
   templateName: string,
   questions: any[],
@@ -25,6 +26,7 @@ export function createQuestionnaireTemplate(
   })
 }
 
+/** Returns the questionnaire template by ID. */
 export function getQuestionnaireTemplateById(id: number, requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findFirst({
     where: requesterUserId
@@ -34,6 +36,7 @@ export function getQuestionnaireTemplateById(id: number, requesterUserId?: numbe
   })
 }
 
+/** Returns the all questionnaire templates. */
 export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findMany({
     where: requesterUserId
@@ -43,6 +46,7 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   });
 };
 
+/** Returns the my questionnaire templates. */
 export function getMyQuestionnaireTemplates(userId: number) {
   return prisma.questionnaireTemplate.findMany({
     where: { ownerId: userId },
@@ -50,6 +54,7 @@ export function getMyQuestionnaireTemplates(userId: number) {
   });
 }
 
+/** Returns the public questionnaire templates by other users. */
 export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
   return prisma.questionnaireTemplate.findMany({
     where: {
@@ -60,6 +65,7 @@ export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
   });
 }
 
+/** Checks whether questionnaire template owned by user. */
 export async function isQuestionnaireTemplateOwnedByUser(templateId: number, userId: number) {
   const template = await prisma.questionnaireTemplate.findFirst({
     where: { id: templateId, ownerId: userId },
@@ -68,6 +74,7 @@ export async function isQuestionnaireTemplateOwnedByUser(templateId: number, use
   return Boolean(template);
 }
 
+/** Checks whether questionnaire template in use. */
 export async function isQuestionnaireTemplateInUse(templateId: number) {
   const template = await prisma.questionnaireTemplate.findUnique({
     where: { id: templateId },
@@ -85,6 +92,7 @@ export async function isQuestionnaireTemplateInUse(templateId: number) {
   return template._count.projects > 0 || template._count.assessments > 0;
 }
 
+/** Updates the questionnaire template. */
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
@@ -161,12 +169,14 @@ export async function updateQuestionnaireTemplate(
   });
 }
 
+/** Deletes the questionnaire template. */
 export function deleteQuestionnaireTemplate(id: number) {
   return prisma.questionnaireTemplate.delete({
     where: { id },
   });
 }
 
+/** Executes the copy public questionnaire template to user. */
 export async function copyPublicQuestionnaireTemplateToUser(templateId: number, userId: number) {
   const source = await prisma.questionnaireTemplate.findFirst({
     where: { id: templateId, isPublic: true },

@@ -10,14 +10,17 @@ import {
   deleteComment,
 } from "./repo.js";
 
+/** Returns the meetings. */
 export function listMeetings(teamId: number) {
   return getMeetingsByTeamId(teamId);
 }
 
+/** Returns the meeting. */
 export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
+/** Adds a meeting. */
 export async function addMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -36,22 +39,27 @@ export async function addMeeting(data: {
   return meeting;
 }
 
+/** Removes the meeting. */
 export function removeMeeting(meetingId: number) {
   return deleteMeeting(meetingId);
 }
 
+/** Marks the attendance. */
 export function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
   return bulkUpsertAttendance(meetingId, records);
 }
 
+/** Saves the minutes. */
 export function saveMinutes(meetingId: number, writerId: number, content: string) {
   return upsertMinutes(meetingId, writerId, content);
 }
 
+/** Adds a comment. */
 export function addComment(meetingId: number, userId: number, content: string) {
   return createComment(meetingId, userId, content);
 }
 
+/** Removes the comment. */
 export function removeComment(commentId: number) {
   return deleteComment(commentId);
 }
