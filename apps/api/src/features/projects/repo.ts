@@ -22,6 +22,23 @@ export type StudentDeadlineOverrideInput = {
   reason?: string | null;
 };
 
+type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
+
+function resolveModuleAccessRole(
+  userRole: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN",
+  flags: { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean },
+): ModuleAccessRole {
+  if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") {
+    return "ADMIN_ACCESS";
+  }
+
+  if (flags.isOwner) return "OWNER";
+  if (flags.isTeachingAssistant) return "TEACHING_ASSISTANT";
+  if (flags.isEnrolled) return "ENROLLED";
+
+  return "ENROLLED";
+}
+
 /** Returns the user projects. */
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
