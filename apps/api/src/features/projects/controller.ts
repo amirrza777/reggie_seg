@@ -50,8 +50,17 @@ function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | n
 }
 
 /** Handles requests for create project. */
-export async function createProjectHandler(req: Request, res: Response) {
-  const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
+type ParsedProjectDeadline = {
+  taskOpenDate: Date;
+  taskDueDate: Date;
+  taskDueDateMcf: Date;
+  assessmentOpenDate: Date;
+  assessmentDueDate: Date;
+  assessmentDueDateMcf: Date;
+  feedbackOpenDate: Date;
+  feedbackDueDate: Date;
+  feedbackDueDateMcf: Date;
+};
 
 type ParsedStudentDeadlineOverride = {
   taskOpenDate?: Date | null;

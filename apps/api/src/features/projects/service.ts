@@ -24,8 +24,14 @@ import {
 } from "./repo.js";
 
 /** Creates a project. */
-export async function createProject(name: string, moduleId: number, questionnaireTemplateId: number, teamIds: number[]) {
-  return createProjectInDb(name, moduleId, questionnaireTemplateId, teamIds);
+export async function createProject(
+  actorUserId: number,
+  name: string,
+  moduleId: number,
+  questionnaireTemplateId: number,
+  deadline: ProjectDeadlineInput,
+) {
+  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId, deadline);
 }
 
 /** Returns the project by ID. */
@@ -45,7 +51,7 @@ export async function fetchProjectsForUser(userId: number) {
 }
 
 /** Returns the modules for user. */
-export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean }) {
+export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
   const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
