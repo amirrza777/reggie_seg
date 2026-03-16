@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  applyCustomAllocationForProject,
   getCustomAllocationCoverageForProject,
   listCustomAllocationQuestionnairesForProject,
   previewCustomAllocationForProject,
 } from "./service.js";
 import * as repo from "./repo.js";
+import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
@@ -472,5 +474,175 @@ describe("teamAllocation service custom allocation", () => {
     expect(allMembers).toHaveLength(4);
     expect(allMembers.filter((member) => member.responseStatus === "RESPONDED")).toHaveLength(3);
     expect(allMembers.filter((member) => member.responseStatus === "NO_RESPONSE")).toHaveLength(1);
+  });
+
+  it("applyCustomAllocationForProject validates input", async () => {
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: " ",
+      }),
+    ).rejects.toEqual({ code: "INVALID_PREVIEW_ID" });
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: "custom-preview-1",
+        teamNames: ["Team A", 2 as any],
+      }),
+    ).rejects.toEqual({ code: "INVALID_TEAM_NAMES" });
+  });
+
+  it("applyCustomAllocationForProject enforces scope and preview integrity", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: "missing",
+      }),
+    ).rejects.toEqual({ code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" });
+
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: new Date(),
+      enterpriseId: "ent-9",
+    });
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: "missing",
+      }),
+    ).rejects.toEqual({ code: "PROJECT_ARCHIVED" });
+
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: "missing",
+      }),
+    ).rejects.toEqual({ code: "PREVIEW_NOT_FOUND_OR_EXPIRED" });
+  });
+
+  it("applyCustomAllocationForProject applies a generated preview", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [
+        { id: 11, label: "Skill level", type: "rating" },
+        { id: 12, label: "Interest", type: "multiple-choice" },
+      ],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
+      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+    ]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1, "12": "Backend" } },
+      { reviewerUserId: 2, answersJson: { "11": 5, "12": "Frontend" } },
+      { reviewerUserId: 3, answersJson: { "11": 3, "12": "Backend" } },
+    ]);
+    (repo.applyRandomAllocationPlan as any).mockResolvedValue([
+      { id: 200, teamName: "Team Orion", memberCount: 2 },
+      { id: 201, teamName: "Team Vega", memberCount: 2 },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "distribute_randomly",
+      criteria: [{ questionId: 11, strategy: "diversify", weight: 4 }],
+    });
+
+    const applied = await applyCustomAllocationForProject(7, 42, {
+      previewId: preview.previewId,
+      teamNames: ["Team Orion", "Team Vega"],
+    });
+
+    expect(repo.applyRandomAllocationPlan).toHaveBeenCalledWith(
+      42,
+      "ent-9",
+      expect.any(Array),
+      { teamNames: ["Team Orion", "Team Vega"] },
+    );
+    const plannedTeams = (repo.applyRandomAllocationPlan as any).mock.calls[0][2];
+    expect(plannedTeams).toHaveLength(2);
+    expect(plannedTeams.flatMap((team: any) => team.members).map((member: any) => member.id).sort((a: number, b: number) => a - b)).toEqual([
+      1, 2, 3, 4,
+    ]);
+    expect(applied).toEqual({
+      project: {
+        id: 42,
+        name: "Project A",
+        moduleId: 11,
+        moduleName: "Module A",
+      },
+      previewId: preview.previewId,
+      studentCount: 4,
+      teamCount: 2,
+      appliedTeams: [
+        { id: 200, teamName: "Team Orion", memberCount: 2 },
+        { id: 201, teamName: "Team Vega", memberCount: 2 },
+      ],
+    });
+    expect(sendEmail).toHaveBeenCalledTimes(4);
+  });
+
+  it("applyCustomAllocationForProject rejects duplicate custom team names", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1 } },
+      { reviewerUserId: 2, answersJson: { "11": 5 } },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
+    });
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: preview.previewId,
+        teamNames: ["Team Same", "team same"],
+      }),
+    ).rejects.toEqual({ code: "DUPLICATE_TEAM_NAMES" });
   });
 });

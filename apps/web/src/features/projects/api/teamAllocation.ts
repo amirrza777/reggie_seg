@@ -104,6 +104,98 @@ export type ManualAllocationApplied = {
   };
 };
 
+export type CustomAllocationQuestionType = "multiple-choice" | "rating" | "slider";
+export type CustomAllocationCriteriaStrategy = "diversify" | "group" | "ignore";
+export type CustomAllocationNonRespondentStrategy = "distribute_randomly" | "exclude";
+
+export type CustomAllocationQuestionnaireListing = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaires: Array<{
+    id: number;
+    templateName: string;
+    ownerId: number;
+    isPublic: boolean;
+    eligibleQuestionCount: number;
+    eligibleQuestions: Array<{
+      id: number;
+      label: string;
+      type: CustomAllocationQuestionType;
+    }>;
+  }>;
+};
+
+export type CustomAllocationCoverage = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaireTemplateId: number;
+  totalAvailableStudents: number;
+  respondingStudents: number;
+  nonRespondingStudents: number;
+  responseRate: number;
+  responseThreshold: number;
+};
+
+export type CustomAllocationPreview = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  questionnaireTemplateId: number;
+  previewId: string;
+  generatedAt: string;
+  expiresAt: string;
+  teamCount: number;
+  respondentCount: number;
+  nonRespondentCount: number;
+  nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
+  criteriaSummary: Array<{
+    questionId: number;
+    strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+    weight: number;
+    satisfactionScore: number;
+  }>;
+  overallScore: number;
+  previewTeams: Array<{
+    index: number;
+    suggestedName: string;
+    members: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      responseStatus: "RESPONDED" | "NO_RESPONSE";
+    }>;
+  }>;
+};
+
+export type CustomAllocationApplied = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  previewId: string;
+  studentCount: number;
+  teamCount: number;
+  appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+};
+
 export async function sendTeamInvite(teamId: number, inviterId: number, inviteeEmail: string, message?: string) {
   return apiFetch<{ ok: boolean; inviteId: string }>("/team-allocation/invites", {
     method: "POST",
@@ -182,5 +274,54 @@ export async function applyManualAllocation(projectId: number, teamName: string,
   return apiFetch<ManualAllocationApplied>(`/team-allocation/projects/${projectId}/manual-allocate`, {
     method: "POST",
     body: JSON.stringify({ teamName, studentIds }),
+  });
+}
+
+export async function getCustomAllocationQuestionnaires(projectId: number) {
+  return apiFetch<CustomAllocationQuestionnaireListing>(
+    `/team-allocation/projects/${projectId}/custom-questionnaires`,
+    {
+      cache: "no-store",
+    },
+  );
+}
+
+export async function getCustomAllocationCoverage(projectId: number, questionnaireTemplateId: number) {
+  const params = new URLSearchParams({ questionnaireTemplateId: String(questionnaireTemplateId) });
+  return apiFetch<CustomAllocationCoverage>(
+    `/team-allocation/projects/${projectId}/custom-coverage?${params.toString()}`,
+    {
+      cache: "no-store",
+    },
+  );
+}
+
+export async function previewCustomAllocation(
+  projectId: number,
+  payload: {
+    questionnaireTemplateId: number;
+    teamCount: number;
+    seed?: number;
+    nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
+    criteria: Array<{
+      questionId: number;
+      strategy: CustomAllocationCriteriaStrategy;
+      weight: number;
+    }>;
+  },
+) {
+  return apiFetch<CustomAllocationPreview>(`/team-allocation/projects/${projectId}/custom-preview`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function applyCustomAllocation(
+  projectId: number,
+  payload: { previewId: string; teamNames?: string[] },
+) {
+  return apiFetch<CustomAllocationApplied>(`/team-allocation/projects/${projectId}/custom-allocate`, {
+    method: "POST",
+    body: JSON.stringify(payload),
   });
 }

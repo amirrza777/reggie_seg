@@ -233,6 +233,39 @@ export type CustomAllocationApplied = {
 const CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = 80;
 const CUSTOM_ALLOCATION_PREVIEW_TTL_MS = 15 * 60 * 1000;
 
+type StoredCustomPreviewTeam = {
+  index: number;
+  suggestedName: string;
+  members: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    responseStatus: "RESPONDED" | "NO_RESPONSE";
+  }>;
+};
+
+type StoredCustomAllocationPreview = {
+  previewId: string;
+  staffId: number;
+  projectId: number;
+  questionnaireTemplateId: number;
+  generatedAt: Date;
+  expiresAt: Date;
+  teamCount: number;
+  nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
+  criteriaSummary: Array<{
+    questionId: number;
+    strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+    weight: number;
+    satisfactionScore: number;
+  }>;
+  overallScore: number;
+  previewTeams: StoredCustomPreviewTeam[];
+};
+
+const customAllocationPreviewCache = new Map<string, StoredCustomAllocationPreview>();
+
 function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocationQuestionType | null {
   const normalized = rawType.trim().toLowerCase().replaceAll("_", "-");
   if (normalized === "multiple-choice") {
@@ -245,6 +278,35 @@ function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocatio
     return "slider";
   }
   return null;
+}
+
+function cleanupExpiredCustomAllocationPreviews(referenceTime = Date.now()) {
+  for (const [previewId, preview] of customAllocationPreviewCache.entries()) {
+    if (preview.expiresAt.getTime() <= referenceTime) {
+      customAllocationPreviewCache.delete(previewId);
+    }
+  }
+}
+
+function storeCustomAllocationPreview(preview: StoredCustomAllocationPreview) {
+  cleanupExpiredCustomAllocationPreviews(preview.generatedAt.getTime());
+  customAllocationPreviewCache.set(preview.previewId, preview);
+}
+
+function getStoredCustomAllocationPreview(
+  previewId: string,
+  staffId: number,
+  projectId: number,
+): StoredCustomAllocationPreview | null {
+  cleanupExpiredCustomAllocationPreviews();
+  const preview = customAllocationPreviewCache.get(previewId);
+  if (!preview) {
+    return null;
+  }
+  if (preview.staffId !== staffId || preview.projectId !== projectId) {
+    return null;
+  }
+  return preview;
 }
 
 function parseCustomAllocationAnswers(answersJson: unknown): Map<number, unknown> {
@@ -285,6 +347,37 @@ function parseCustomAllocationAnswers(answersJson: unknown): Map<number, unknown
   }
 
   return answersByQuestionId;
+}
+
+function resolveCustomAllocationTeamNames(
+  previewTeams: Array<{ suggestedName: string }>,
+  teamNames?: string[],
+): string[] {
+  const defaults = previewTeams.map((team, index) => {
+    const fallbackName = `Custom Team ${index + 1}`;
+    const normalized = team.suggestedName.trim();
+    return normalized.length > 0 ? normalized : fallbackName;
+  });
+
+  if (teamNames === undefined) {
+    return defaults;
+  }
+
+  if (!Array.isArray(teamNames) || teamNames.length !== previewTeams.length) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const normalizedNames = teamNames.map((teamName) => teamName.trim());
+  if (normalizedNames.some((teamName) => teamName.length === 0)) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const uniqueNames = new Set(normalizedNames.map((teamName) => teamName.toLowerCase()));
+  if (uniqueNames.size !== normalizedNames.length) {
+    throw { code: "DUPLICATE_TEAM_NAMES" };
+  }
+
+  return normalizedNames;
 }
 
 export async function listCustomAllocationQuestionnairesForProject(
@@ -534,6 +627,38 @@ export async function previewCustomAllocationForProject(
 
   const generatedAt = new Date();
   const expiresAt = new Date(generatedAt.getTime() + CUSTOM_ALLOCATION_PREVIEW_TTL_MS);
+  const previewId = `custom-preview-${crypto.randomUUID()}`;
+  const previewTeams = allocationPlan.teams.map((team, index) => ({
+    index: team.index,
+    suggestedName: `Custom Team ${index + 1}`,
+    members: team.members.map((member) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email,
+      responseStatus: member.responseStatus,
+    })),
+  }));
+  const criteriaSummary = allocationPlan.criterionScores.map((criterionScore) => ({
+    questionId: criterionScore.questionId,
+    strategy: criterionScore.strategy,
+    weight: criterionScore.weight,
+    satisfactionScore: criterionScore.satisfactionScore,
+  }));
+  const storedPreview: StoredCustomAllocationPreview = {
+    previewId,
+    staffId,
+    projectId: project.id,
+    questionnaireTemplateId: template.id,
+    generatedAt,
+    expiresAt,
+    teamCount: input.teamCount,
+    nonRespondentStrategy: input.nonRespondentStrategy,
+    criteriaSummary,
+    overallScore: allocationPlan.overallScore,
+    previewTeams,
+  };
+  storeCustomAllocationPreview(storedPreview);
 
   return {
     project: {
@@ -543,40 +668,82 @@ export async function previewCustomAllocationForProject(
       moduleName: project.moduleName,
     },
     questionnaireTemplateId: template.id,
-    previewId: `custom-preview-${crypto.randomUUID()}`,
+    previewId,
     generatedAt: generatedAt.toISOString(),
     expiresAt: expiresAt.toISOString(),
     teamCount: input.teamCount,
     respondentCount: respondents.length,
     nonRespondentCount: nonRespondents.length,
     nonRespondentStrategy: input.nonRespondentStrategy,
-    criteriaSummary: allocationPlan.criterionScores.map((criterionScore) => ({
-      questionId: criterionScore.questionId,
-      strategy: criterionScore.strategy,
-      weight: criterionScore.weight,
-      satisfactionScore: criterionScore.satisfactionScore,
-    })),
+    criteriaSummary,
     overallScore: allocationPlan.overallScore,
-    previewTeams: allocationPlan.teams.map((team, index) => ({
-      index: team.index,
-      suggestedName: `Custom Team ${index + 1}`,
-      members: team.members.map((member) => ({
-        id: member.id,
-        firstName: member.firstName,
-        lastName: member.lastName,
-        email: member.email,
-        responseStatus: member.responseStatus,
-      })),
-    })),
+    previewTeams,
   };
 }
 
 export async function applyCustomAllocationForProject(
-  _staffId: number,
-  _projectId: number,
-  _input: CustomAllocationApplyInput,
+  staffId: number,
+  projectId: number,
+  input: CustomAllocationApplyInput,
 ): Promise<CustomAllocationApplied> {
-  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+  const previewId = input.previewId.trim();
+  if (!previewId) {
+    throw { code: "INVALID_PREVIEW_ID" };
+  }
+
+  if (
+    input.teamNames !== undefined &&
+    (!Array.isArray(input.teamNames) || input.teamNames.some((teamName) => typeof teamName !== "string"))
+  ) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const preview = getStoredCustomAllocationPreview(previewId, staffId, projectId);
+  if (!preview) {
+    throw { code: "PREVIEW_NOT_FOUND_OR_EXPIRED" };
+  }
+
+  const requestedTeamNames = resolveCustomAllocationTeamNames(preview.previewTeams, input.teamNames);
+  const plannedTeams = preview.previewTeams.map((team) => ({
+    members: team.members.map((member) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      email: member.email,
+    })),
+  }));
+
+  const appliedTeams = await applyRandomAllocationPlan(
+    project.id,
+    project.enterpriseId,
+    plannedTeams,
+    { teamNames: requestedTeamNames },
+  );
+  customAllocationPreviewCache.delete(previewId);
+  await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
+
+  const studentCount = plannedTeams.reduce((sum, team) => sum + team.members.length, 0);
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    previewId,
+    studentCount,
+    teamCount: preview.teamCount,
+    appliedTeams,
+  };
 }
 
 async function notifyStudentsAboutRandomAllocation(
