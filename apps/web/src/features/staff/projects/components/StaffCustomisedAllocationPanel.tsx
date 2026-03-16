@@ -517,40 +517,43 @@ export function StaffCustomisedAllocationPanel({
         <p className="staff-projects__custom-step-sub">
           Choose a questionnaire that has at least one multiple-choice, rating, or slider question.
         </p>
-        <label className="staff-projects__allocation-field">
-          Search questionnaires
-          <input
-            type="search"
-            value={questionnaireSearch}
-            onChange={(event) => setQuestionnaireSearch(event.target.value)}
-            placeholder="Filter by template name"
-            aria-label="Search questionnaires"
-            disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
-          />
-        </label>
-        <label className="staff-projects__allocation-field">
-          Select questionnaire
-          <select
-            className="staff-projects__custom-select"
-            value={selectedTemplateId}
-            onChange={(event) => {
-              setSelectedTemplateId(event.target.value);
-              setSuccessMessage("");
-            }}
-            disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
-            aria-label="Select questionnaire"
-          >
-            <option value="">Select questionnaire</option>
-            {visibleQuestionnaires.map((template) => {
-              const eligibleCount = countEligibleQuestions(template);
-              return (
-                <option key={template.id} value={template.id}>
-                  {template.templateName} ({eligibleCount} criteria)
-                </option>
-              );
-            })}
-          </select>
-        </label>
+        <div className="staff-projects__custom-questionnaire-controls">
+          <label className="staff-projects__allocation-field">
+            Search questionnaires
+            <input
+              className="staff-projects__custom-search-input"
+              type="search"
+              value={questionnaireSearch}
+              onChange={(event) => setQuestionnaireSearch(event.target.value)}
+              placeholder="Filter by template name"
+              aria-label="Search questionnaires"
+              disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
+            />
+          </label>
+          <label className="staff-projects__allocation-field">
+            Select questionnaire
+            <select
+              className="staff-projects__custom-select"
+              value={selectedTemplateId}
+              onChange={(event) => {
+                setSelectedTemplateId(event.target.value);
+                setSuccessMessage("");
+              }}
+              disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
+              aria-label="Select questionnaire"
+            >
+              <option value="">Select questionnaire</option>
+              {visibleQuestionnaires.map((template) => {
+                const eligibleCount = countEligibleQuestions(template);
+                return (
+                  <option key={template.id} value={template.id}>
+                    {template.templateName} ({eligibleCount} criteria)
+                  </option>
+                );
+              })}
+            </select>
+          </label>
+        </div>
         {isLoadingQuestionnaires ? (
           <p className="staff-projects__allocation-note">Loading questionnaires...</p>
         ) : null}
@@ -609,8 +612,12 @@ export function StaffCustomisedAllocationPanel({
             No available students have completed this questionnaire yet. Share it first, then retry.
           </p>
         ) : null}
-        <fieldset className="staff-projects__custom-radio-group">
-          <legend className="staff-projects__custom-radio-title">Non-respondent strategy</legend>
+        <div
+          className="staff-projects__custom-radio-group"
+          role="radiogroup"
+          aria-label="Non-respondent strategy"
+        >
+          <p className="staff-projects__custom-radio-title">Non-respondent strategy</p>
           <label className="staff-projects__custom-radio-option">
             <input
               type="radio"
@@ -623,7 +630,7 @@ export function StaffCustomisedAllocationPanel({
               }}
               disabled={confirmApply || isPreviewPending || isApplyPending}
             />
-            Distribute randomly
+            <span className="staff-projects__custom-radio-option-label">Distribute randomly</span>
           </label>
           <label className="staff-projects__custom-radio-option">
             <input
@@ -637,9 +644,9 @@ export function StaffCustomisedAllocationPanel({
               }}
               disabled={confirmApply || isPreviewPending || isApplyPending}
             />
-            Exclude from allocation
+            <span className="staff-projects__custom-radio-option-label">Exclude from allocation</span>
           </label>
-        </fieldset>
+        </div>
       </div>
 
       <div className="staff-projects__custom-step">
