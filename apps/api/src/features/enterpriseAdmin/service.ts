@@ -28,6 +28,7 @@ export const MODULE_SELECT = {
   },
 } satisfies Prisma.ModuleSelect;
 
+/** Returns the overview. */
 export function getOverview(enterpriseUser: EnterpriseUser) {
   return buildOverview(enterpriseUser);
 }
@@ -118,6 +119,7 @@ function buildManagedModuleSelect(enterpriseUser: EnterpriseUser) {
   };
 }
 
+/** Returns the modules. */
 export async function listModules(enterpriseUser: EnterpriseUser) {
   const modules = await prisma.module.findMany({
     where: buildModuleScopeWhere(enterpriseUser),
@@ -131,10 +133,12 @@ export async function listModules(enterpriseUser: EnterpriseUser) {
   }));
 }
 
+/** Parses the module search filters. */
 export function parseModuleSearchFilters(query: unknown) {
   return parseEnterpriseModuleSearchFilters(query);
 }
 
+/** Executes the search modules. */
 export async function searchModules(
   enterpriseUser: EnterpriseUser,
   filters: { query: string | null; page: number; pageSize: number },
@@ -162,6 +166,7 @@ export async function searchModules(
   );
 }
 
+/** Returns the assignable users. */
 export async function listAssignableUsers(enterpriseUser: EnterpriseUser) {
   const [staff, students] = await Promise.all([
     prisma.user.findMany({
@@ -197,10 +202,12 @@ export async function listAssignableUsers(enterpriseUser: EnterpriseUser) {
   return { staff, students };
 }
 
+/** Parses the access user search filters. */
 export function parseAccessUserSearchFilters(query: unknown) {
   return parseEnterpriseAccessUserSearchFilters(query);
 }
 
+/** Executes the search assignable users. */
 export async function searchAssignableUsers(
   enterpriseUser: EnterpriseUser,
   filters: { scope: "staff" | "students" | "all"; query: string | null; page: number; pageSize: number },
@@ -227,6 +234,7 @@ export async function searchAssignableUsers(
   return toEnterpriseAccessUserSearchResponse(users, filters, total);
 }
 
+/** Parses the module payload. */
 export function parseModulePayload(body: unknown): { ok: true; value: ParsedModulePayload } | { ok: false; error: string } {
   const name = typeof (body as any)?.name === "string" ? (body as any).name.trim() : "";
   if (!name) return { ok: false, error: "Module name is required" };
@@ -270,11 +278,13 @@ export function parseModulePayload(body: unknown): { ok: true; value: ParsedModu
   };
 }
 
+/** Ensures the creator leader. */
 export function ensureCreatorLeader(leaderIds: number[], user: EnterpriseUser): number[] {
   if (leaderIds.includes(user.id)) return leaderIds;
   return [...leaderIds, user.id];
 }
 
+/** Creates a module. */
 export async function createModule(enterpriseUser: EnterpriseUser, payload: ParsedModulePayload) {
   const leaderIds = ensureCreatorLeader(payload.leaderIds, enterpriseUser);
   const taIds = payload.taIds.filter((id) => !leaderIds.includes(id));
@@ -323,6 +333,7 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
   return { ok: true as const, value: mapModuleRecord(created) };
 }
 
+/** Returns the module access. */
 export async function getModuleAccess(enterpriseUser: EnterpriseUser, moduleId: number) {
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
@@ -403,6 +414,7 @@ export async function getModuleAccess(enterpriseUser: EnterpriseUser, moduleId: 
   };
 }
 
+/** Returns the module access selection. */
 export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, moduleId: number) {
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
@@ -439,6 +451,7 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
   };
 }
 
+/** Updates the module. */
 export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: number, payload: ParsedModulePayload) {
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
   if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
@@ -501,6 +514,7 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   return { ok: true as const, value: mapModuleRecord(updated) };
 }
 
+/** Deletes the module. */
 export async function deleteModule(enterpriseUser: EnterpriseUser, moduleId: number) {
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
   if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
@@ -523,6 +537,7 @@ export async function deleteModule(enterpriseUser: EnterpriseUser, moduleId: num
   return { ok: true as const, value: { moduleId, deleted: true as const } };
 }
 
+/** Returns the module students. */
 export async function getModuleStudents(enterpriseUser: EnterpriseUser, moduleId: number) {
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
@@ -565,6 +580,7 @@ export async function getModuleStudents(enterpriseUser: EnterpriseUser, moduleId
   };
 }
 
+/** Updates the module students. */
 export async function updateModuleStudents(enterpriseUser: EnterpriseUser, moduleId: number, studentIds: number[]) {
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
   if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
@@ -603,6 +619,7 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
   };
 }
 
+/** Checks whether manage module access. */
 export async function canManageModuleAccess(user: EnterpriseUser, moduleId: number): Promise<boolean> {
   const membership = await prisma.moduleLead.findFirst({
     where: {
@@ -616,16 +633,19 @@ export async function canManageModuleAccess(user: EnterpriseUser, moduleId: numb
   return Boolean(membership);
 }
 
+/** Checks whether enterprise admin role. */
 export function isEnterpriseAdminRole(role: EnterpriseUserRole): role is Extract<EnterpriseUserRole, "ENTERPRISE_ADMIN" | "ADMIN"> {
   return role === "ENTERPRISE_ADMIN" || role === "ADMIN";
 }
 
+/** Parses the positive int. */
 export function parsePositiveInt(value: string | undefined): number | null {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
+/** Parses the positive int array. */
 export function parsePositiveIntArray(
   value: unknown,
   field: string,

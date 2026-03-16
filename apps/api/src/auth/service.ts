@@ -22,6 +22,7 @@ const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
 type NewUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
+/** Registers a sign up. */
 export async function signUp(data: {
   enterpriseCode: string;
   email: string;
@@ -49,6 +50,7 @@ export async function signUp(data: {
   return issueTokens(user);
 }
 
+/** Authenticates a login. */
 export async function login(
   data: { email: string; password: string },
   meta: { ip?: string | null; userAgent?: string | null } = {}
@@ -120,6 +122,7 @@ export async function login(
   return tokens;
 }
 
+/** Refreshes the tokens. */
 export async function refreshTokens(refreshToken: string) {
   let payload: TokenPayload;
   try {
@@ -136,6 +139,7 @@ export async function refreshTokens(refreshToken: string) {
   return tokens;
 }
 
+/** Logs out the current session. */
 export async function logout(
   refreshToken: string,
   meta: { ip?: string | null; userAgent?: string | null } = {}
@@ -148,6 +152,7 @@ export async function logout(
   await recordAuditLog({ userId: payload.sub, action: "LOGOUT", ...meta });
 }
 
+/** Requests the password reset. */
 export async function requestPasswordReset(email: string) {
   const user = await prisma.user.findFirst({
     where: { email: email.toLowerCase() },
@@ -176,6 +181,7 @@ export async function requestPasswordReset(email: string) {
   await sendEmail({ to: user.email, subject: "Reset your password", text });
 }
 
+/** Executes the reset password. */
 export async function resetPassword(params: { token: string; newPassword: string }) {
   const normalizedToken = extractHexToken(params.token);
   const tokenHash = hashToken(normalizedToken);
@@ -202,6 +208,7 @@ export async function resetPassword(params: { token: string; newPassword: string
   ]);
 }
 
+/** Returns the profile. */
 export async function getProfile(userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -218,6 +225,7 @@ export async function getProfile(userId: number) {
   };
 }
 
+/** Updates the profile. */
 export async function updateProfile(params: {
   userId: number;
   firstName?: string;
@@ -251,6 +259,7 @@ export async function updateProfile(params: {
   };
 }
 
+/** Requests the email change. */
 export async function requestEmailChange(params: { userId: number; newEmail: string }) {
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
@@ -290,6 +299,7 @@ export async function requestEmailChange(params: { userId: number; newEmail: str
   await sendEmail({ to: nextEmail, subject: "Verify your new email", text, html });
 }
 
+/** Confirms the email change. */
 export async function confirmEmailChange(params: { userId: number; newEmail: string; code: string }) {
   const nextEmail = params.newEmail.toLowerCase();
   const codeHash = hashToken(params.code.trim());
@@ -314,6 +324,7 @@ export async function confirmEmailChange(params: { userId: number; newEmail: str
   ]);
 }
 
+/** Registers a with provider. */
 export async function signUpWithProvider(params: { email: string; firstName?: string; lastName?: string; provider: string }) {
   const email = params.email.toLowerCase();
   let user = await prisma.user.findFirst({ where: { email } });
@@ -335,6 +346,7 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
   return user;
 }
 
+/** Issues a fresh access token and refresh token pair for an existing user. */
 export async function issueTokensForUser(userId: number, email: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw { code: "INVALID_REFRESH_TOKEN" };
@@ -391,6 +403,7 @@ function verifyRefresh(token: string) {
   return jwt.verify(token, refreshSecret) as TokenPayload;
 }
 
+/** Verifies and decodes a refresh token payload. */
 export function verifyRefreshToken(token: string) {
   return verifyRefresh(token);
 }

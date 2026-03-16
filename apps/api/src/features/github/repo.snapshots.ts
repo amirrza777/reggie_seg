@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the GitHub snapshots by project link ID. */
 export function listGithubSnapshotsByProjectLinkId(projectGithubRepositoryId: number) {
   return prisma.githubRepoSnapshot.findMany({
     where: { projectGithubRepositoryId },
@@ -14,6 +15,7 @@ export function listGithubSnapshotsByProjectLinkId(projectGithubRepositoryId: nu
   });
 }
 
+/** Returns the GitHub snapshot by ID. */
 export function findGithubSnapshotById(snapshotId: number) {
   return prisma.githubRepoSnapshot.findUnique({
     where: { id: snapshotId },
@@ -73,6 +75,7 @@ export function findGithubSnapshotById(snapshotId: number) {
   });
 }
 
+/** Returns the latest GitHub snapshot coverage by project link ID. */
 export function findLatestGithubSnapshotCoverageByProjectLinkId(projectGithubRepositoryId: number) {
   return prisma.githubRepoSnapshot.findFirst({
     where: { projectGithubRepositoryId },
@@ -93,6 +96,7 @@ export function findLatestGithubSnapshotCoverageByProjectLinkId(projectGithubRep
   });
 }
 
+/** Returns the latest GitHub snapshot by project link ID. */
 export function findLatestGithubSnapshotByProjectLinkId(projectGithubRepositoryId: number) {
   return prisma.githubRepoSnapshot.findFirst({
     where: { projectGithubRepositoryId },
@@ -187,6 +191,7 @@ type CreateGithubSnapshotInput = {
   };
 };
 
+/** Creates a GitHub snapshot. */
 export async function createGithubSnapshot(input: CreateGithubSnapshotInput) {
   return prisma.$transaction(async (tx) => {
     const snapshot = await tx.githubRepoSnapshot.create({

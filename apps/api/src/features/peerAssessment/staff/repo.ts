@@ -11,6 +11,7 @@ async function findStaffScope(staffId: number) {
   return user;
 }
 
+/** Returns the module details if authorised. */
 export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: number) {
   const staffScope = await findStaffScope(staffId);
   if (!staffScope) return null;
@@ -34,6 +35,7 @@ export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: nu
   });
 }
 
+/** Returns the modules for staff. */
 export async function findModulesForStaff(staffId: number) {
   const staffScope = await findStaffScope(staffId);
   if (!staffScope) return [];
@@ -56,18 +58,21 @@ export async function findModulesForStaff(staffId: number) {
   });
 }
 
+/** Executes the count students in module. */
 export function countStudentsInModule(moduleId: number) {
   return prisma.userModule.count({
     where: { moduleId },
   });
 }
 
+/** Executes the count submitted p as for module. */
 export function countSubmittedPAsForModule(moduleId: number) {
   return prisma.peerAssessment.count({
     where: { project: { moduleId } },
   });
 }
 
+/** Returns the teams in module. */
 export function findTeamsInModule(moduleId: number) {
   return prisma.team.findMany({
     where: { project: { moduleId } },
@@ -75,18 +80,21 @@ export function findTeamsInModule(moduleId: number) {
   });
 }
 
+/** Executes the count students in team. */
 export function countStudentsInTeam(teamId: number) {
   return prisma.teamAllocation.count({
     where: { teamId },
   });
 }
 
+/** Executes count Submitted P As for team. */
 export function countSubmittedPAsForTeam(teamId: number) {
   return prisma.peerAssessment.count({
     where: { teamId },
   });
 }
 
+/** Returns the team by ID and module. */
 export function findTeamByIdAndModule(teamId: number, moduleId: number) {
   return prisma.team.findFirst({
     where: { id: teamId, project: { moduleId } },
@@ -94,6 +102,7 @@ export function findTeamByIdAndModule(teamId: number, moduleId: number) {
   });
 }
 
+/** Returns the students in team. */
 export function findStudentsInTeam(teamId: number) {
   return prisma.teamAllocation
     .findMany({
@@ -107,6 +116,7 @@ export function findStudentsInTeam(teamId: number) {
     .then((rows) => rows.map((r) => r.user));
 }
 
+/** Returns the team with assessments. */
 export async function getTeamWithAssessments(teamId: number) {
   const [members, assessments] = await Promise.all([
     findStudentsInTeam(teamId),
@@ -118,6 +128,7 @@ export async function getTeamWithAssessments(teamId: number) {
   return { members, assessments };
 }
 
+/** Returns the assessments for reviewee in team. */
 export function findAssessmentsForRevieweeInTeam(teamId: number, revieweeUserId: number) {
   return prisma.peerAssessment.findMany({
     where: { teamId, revieweeUserId },
@@ -133,6 +144,7 @@ export function findAssessmentsForRevieweeInTeam(teamId: number, revieweeUserId:
   });
 }
 
+/** Returns the template with questions. */
 export function findTemplateWithQuestions(templateId: number) {
   return prisma.questionnaireTemplate.findUnique({
     where: { id: templateId },
@@ -146,6 +158,7 @@ export function findTemplateWithQuestions(templateId: number) {
   });
 }
 
+/** Returns the team marking. */
 export function findTeamMarking(teamId: number) {
   return prisma.staffTeamMarking.findUnique({
     where: { teamId },
@@ -160,6 +173,7 @@ export function findTeamMarking(teamId: number) {
   });
 }
 
+/** Returns the student marking. */
 export function findStudentMarking(teamId: number, studentUserId: number) {
   return prisma.staffStudentMarking.findUnique({
     where: {
@@ -176,6 +190,7 @@ export function findStudentMarking(teamId: number, studentUserId: number) {
   });
 }
 
+/** Checks whether student in team. */
 export async function isStudentInTeam(teamId: number, studentUserId: number) {
   const count = await prisma.teamAllocation.count({
     where: { teamId, userId: studentUserId },
@@ -183,6 +198,7 @@ export async function isStudentInTeam(teamId: number, studentUserId: number) {
   return count > 0;
 }
 
+/** Executes the upsert team marking. */
 export function upsertTeamMarking(data: {
   teamId: number;
   markerUserId: number;
@@ -213,6 +229,7 @@ export function upsertTeamMarking(data: {
   });
 }
 
+/** Executes the upsert student marking. */
 export function upsertStudentMarking(data: {
   teamId: number;
   studentUserId: number;

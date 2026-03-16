@@ -196,28 +196,7 @@ async function notifyStudentsAboutManualAllocation(
   }
 }
 
-function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[]) {
-  if (teamNames === undefined) {
-    return Array.from({ length: teamCount }, (_, index) => `Random Team ${index + 1}`);
-  }
-
-  if (!Array.isArray(teamNames) || teamNames.length !== teamCount) {
-    throw { code: "INVALID_TEAM_NAMES" };
-  }
-
-  const normalizedNames = teamNames.map((teamName) => teamName.trim());
-  if (normalizedNames.some((teamName) => teamName.length === 0)) {
-    throw { code: "INVALID_TEAM_NAMES" };
-  }
-
-  const uniqueNames = new Set(normalizedNames.map((teamName) => teamName.toLowerCase()));
-  if (uniqueNames.size !== normalizedNames.length) {
-    throw { code: "DUPLICATE_TEAM_NAMES" };
-  }
-
-  return normalizedNames;
-}
-
+/** Creates a team invite. */
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
@@ -277,38 +256,39 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   return { invite, rawToken };
 }
 
+/** Returns the team invites. */
 export async function listTeamInvites(teamId: number) {
   return getInvitesForTeam(teamId);
 }
 
-export async function listReceivedInvites(userId: number) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
-  if (!user) throw { code: "USER_NOT_FOUND" };
-  return findPendingInvitesForEmail(user.email);
-}
-
+/** Creates a team. */
 export async function createTeam(userId: number, teamData: Parameters<typeof TeamService.createTeam>[1]) {
   return TeamService.createTeam(userId, teamData);
 }
 
+/** Creates a team for project. */
 export async function createTeamForProject(userId: number, projectId: number, teamName: string) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { enterpriseId: true } });
   if (!user) throw { code: "USER_NOT_FOUND" };
   return TeamService.createTeam(userId, { enterpriseId: user.enterpriseId, projectId, teamName });
 }
 
+/** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
   return TeamService.getTeamById(teamId);
 }
 
+/** Adds an user to team. */
 export async function addUserToTeam(teamId: number, userId: number, role: "OWNER" | "MEMBER" = "MEMBER") {
   return TeamService.addUserToTeam(teamId, userId, role);
 }
 
+/** Returns the team members. */
 export async function getTeamMembers(teamId: number) {
   return TeamService.getTeamMembers(teamId);
 }
 
+/** Returns the manual allocation workspace for project. */
 export async function getManualAllocationWorkspaceForProject(
   staffId: number,
   projectId: number,
@@ -366,6 +346,7 @@ export async function getManualAllocationWorkspaceForProject(
   };
 }
 
+/** Applies the manual allocation for project. */
 export async function applyManualAllocationForProject(
   staffId: number,
   projectId: number,
@@ -439,6 +420,7 @@ export async function applyManualAllocationForProject(
   };
 }
 
+/** Previews the random allocation for project. */
 export async function previewRandomAllocationForProject(
   staffId: number,
   projectId: number,
@@ -492,6 +474,7 @@ export async function previewRandomAllocationForProject(
   };
 }
 
+/** Applies the random allocation for project. */
 export async function applyRandomAllocationForProject(
   staffId: number,
   projectId: number,
@@ -556,6 +539,7 @@ async function transitionInviteFromPending(inviteId: string, status: TeamInviteS
   return invite;
 }
 
+/** Accepts the team invite. */
 export async function acceptTeamInvite(inviteId: string, userId: number) {
   const invite = await transitionInviteFromPending(inviteId, "ACCEPTED");
   // Add the accepting user to the team; ignore if already a member.
@@ -565,19 +549,23 @@ export async function acceptTeamInvite(inviteId: string, userId: number) {
   return invite;
 }
 
+/** Declines the team invite. */
 export async function declineTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "DECLINED");
 }
 
 // "REJECTED" is treated as an alias of DECLINED in current schema.
+/** Rejects the team invite. */
 export async function rejectTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "DECLINED");
 }
 
+/** Cancels the team invite. */
 export async function cancelTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "CANCELLED");
 }
 
+/** Expires the team invite. */
 export async function expireTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "EXPIRED");
 }

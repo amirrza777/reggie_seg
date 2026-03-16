@@ -20,6 +20,7 @@ import {
   previewRandomAllocationForProject,
 } from "./service.js";
 
+/** Handles requests for create team invite. */
 export async function createTeamInviteHandler(req: Request, res: Response) {
   const teamId = Number(req.body?.teamId);
   const inviterId = Number(req.body?.inviterId);
@@ -57,6 +58,7 @@ export async function createTeamInviteHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for list team invites. */
 export async function listTeamInvitesHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
   if (isNaN(teamId)) {
@@ -72,24 +74,7 @@ export async function listTeamInvitesHandler(req: Request, res: Response) {
   }
 }
 
-export async function listReceivedInvitesHandler(req: AuthRequest, res: Response) {
-  const userId = req.user?.sub;
-  if (!userId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  try {
-    const invites = await listReceivedInvites(userId);
-    return res.json(invites);
-  } catch (error: any) {
-    if (error?.code === "USER_NOT_FOUND") {
-      return res.status(404).json({ error: "User not found" });
-    }
-    console.error("Error fetching received invites:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  }
-}
-
+/** Handles requests for create team. */
 export async function createTeamHandler(req: Request, res: Response) {
   const userId = Number(req.body?.userId);
   const teamData = req.body?.teamData;
@@ -107,6 +92,7 @@ export async function createTeamHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for create team for project. */
 export async function createTeamForProjectHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   const projectId = Number(req.body?.projectId);
@@ -128,6 +114,7 @@ export async function createTeamForProjectHandler(req: AuthRequest, res: Respons
   }
 }
 
+/** Handles requests for preview random allocation. */
 export async function previewRandomAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
@@ -172,6 +159,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   }
 }
 
+/** Handles requests for get manual allocation workspace. */
 export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
@@ -198,6 +186,7 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
   }
 }
 
+/** Handles requests for apply random allocation. */
 export async function applyRandomAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
@@ -268,6 +257,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   }
 }
 
+/** Handles requests for apply manual allocation. */
 export async function applyManualAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
@@ -321,6 +311,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
   }
 }
 
+/** Handles requests for get team by ID. */
 export async function getTeamByIdHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
   if (isNaN(teamId)) {
@@ -339,6 +330,7 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for add user to team. */
 export async function addUserToTeamHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
   const userId = Number(req.body?.userId);
@@ -363,6 +355,7 @@ export async function addUserToTeamHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get team members. */
 export async function getTeamMembersHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
   if (isNaN(teamId)) {
@@ -404,6 +397,7 @@ async function transitionInviteHandler(
   }
 }
 
+/** Handles requests for accept team invite. */
 export async function acceptTeamInviteHandler(req: AuthRequest, res: Response) {
   const inviteId = typeof req.params.inviteId === "string" ? req.params.inviteId.trim() : "";
   const userId = req.user?.sub;
@@ -427,18 +421,22 @@ export async function acceptTeamInviteHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for decline team invite. */
 export async function declineTeamInviteHandler(req: Request, res: Response) {
   return transitionInviteHandler(req, res, declineTeamInvite, "declining");
 }
 
+/** Handles requests for reject team invite. */
 export async function rejectTeamInviteHandler(req: Request, res: Response) {
   return transitionInviteHandler(req, res, rejectTeamInvite, "rejecting");
 }
 
+/** Handles requests for cancel team invite. */
 export async function cancelTeamInviteHandler(req: Request, res: Response) {
   return transitionInviteHandler(req, res, cancelTeamInvite, "cancelling");
 }
 
+/** Handles requests for expire team invite. */
 export async function expireTeamInviteHandler(req: Request, res: Response) {
   return transitionInviteHandler(req, res, expireTeamInvite, "expiring");
 }

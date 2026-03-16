@@ -14,6 +14,7 @@ const DEFAULT_PAGE_SIZE = 8;
 const MAX_PAGE_SIZE = 100;
 const MAX_QUERY_LENGTH = 120;
 
+/** Parses the admin enterprise search filters. */
 export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult {
   const rawQuery = parseSingleString(query.q)?.trim() ?? "";
   if (rawQuery.length > MAX_QUERY_LENGTH) {
@@ -37,6 +38,7 @@ export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult 
   };
 }
 
+/** Builds the admin enterprise search where. */
 export function buildAdminEnterpriseSearchWhere(
   filters: Pick<AdminEnterpriseSearchFilters, "query">,
 ): Prisma.EnterpriseWhereInput {

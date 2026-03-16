@@ -20,6 +20,7 @@ export class EnterpriseCodeGeneratorService {
   }
 }
 
+/** Builds the enterprise code base. */
 export function buildEnterpriseCodeBase(name: string): string {
   const normalized = name
     .normalize("NFKD")
@@ -52,6 +53,7 @@ export function buildEnterpriseCodeBase(name: string): string {
   return chars.join("").slice(0, MAX_ENTERPRISE_CODE_LENGTH);
 }
 
+/** Ensures the unique enterprise code. */
 export function ensureUniqueEnterpriseCode(baseCode: string, existingCodes: string[]): string {
   const normalizedExisting = new Set(existingCodes.map((code) => code.toUpperCase()));
   if (!normalizedExisting.has(baseCode.toUpperCase())) return baseCode;

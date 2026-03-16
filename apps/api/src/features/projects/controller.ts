@@ -49,17 +49,9 @@ function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | n
   return authUserId;
 }
 
-type ParsedProjectDeadline = {
-  taskOpenDate: Date;
-  taskDueDate: Date;
-  taskDueDateMcf: Date;
-  assessmentOpenDate: Date;
-  assessmentDueDate: Date;
-  assessmentDueDateMcf: Date;
-  feedbackOpenDate: Date;
-  feedbackDueDate: Date;
-  feedbackDueDateMcf: Date;
-};
+/** Handles requests for create project. */
+export async function createProjectHandler(req: Request, res: Response) {
+  const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
 
 type ParsedStudentDeadlineOverride = {
   taskOpenDate?: Date | null;
@@ -264,6 +256,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get project by ID. */
 export async function getProjectByIdHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   if (isNaN(projectId)) {
@@ -282,6 +275,7 @@ export async function getProjectByIdHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get user projects. */
 export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -297,6 +291,7 @@ export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get user modules. */
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -315,6 +310,7 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get project deadline. */
 export async function getProjectDeadlineHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -335,6 +331,7 @@ export async function getProjectDeadlineHandler(req: AuthRequest, res: Response)
   }
 }
 
+/** Handles requests for get teammates for project. */
 export async function getTeammatesForProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -355,6 +352,7 @@ export async function getTeammatesForProjectHandler(req: AuthRequest, res: Respo
   }
 }
 
+/** Handles requests for get team by ID. */
 export async function getTeamByIdHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
 
@@ -374,6 +372,7 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get team by user and project. */
 export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -397,6 +396,7 @@ export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Resp
   }
 }
 
+/** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
 
@@ -416,6 +416,7 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 }
 
+/** Handles requests for get staff projects. */
 export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -431,6 +432,7 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get staff project teams. */
 export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -453,6 +455,7 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
   }
 }
 
+/** Handles requests for get project marking. */
 export async function getProjectMarkingHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);

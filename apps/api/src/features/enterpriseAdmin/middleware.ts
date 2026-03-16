@@ -2,6 +2,7 @@ import type { NextFunction, Response } from "express";
 import { prisma } from "../../shared/db.js";
 import type { EnterpriseRequest } from "./types.js";
 
+/** Resolves the enterprise user. */
 export async function resolveEnterpriseUser(req: EnterpriseRequest, res: Response, next: NextFunction) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Not authenticated" });

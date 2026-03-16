@@ -20,6 +20,7 @@ const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_EN
 const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
+/** Handles requests for signup. */
 export async function signupHandler(req: Request, res: Response) {
   const { enterpriseCode, email, password, firstName, lastName, role } = req.body ?? {};
   if (!enterpriseCode || !email || !password) {
@@ -56,6 +57,7 @@ export async function signupHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for login. */
 export async function loginHandler(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
@@ -74,6 +76,7 @@ export async function loginHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for refresh. */
 export async function refreshHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
   if (!token) return res.status(400).json({ error: "refresh token missing" });
@@ -93,6 +96,7 @@ export async function refreshHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for logout. */
 export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
   if (token) {
@@ -106,6 +110,7 @@ export async function logoutHandler(req: Request, res: Response) {
   return res.json({ success: true });
 }
 
+/** Handles requests for forgot password. */
 export async function forgotPasswordHandler(req: Request, res: Response) {
   const { email } = req.body ?? {};
   if (!email) return res.status(400).json({ error: "Email required" });
@@ -118,6 +123,7 @@ export async function forgotPasswordHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for reset password. */
 export async function resetPasswordHandler(req: Request, res: Response) {
   const { token, newPassword } = req.body ?? {};
   if (!token || !newPassword) return res.status(400).json({ error: "Token and newPassword required" });
@@ -133,6 +139,7 @@ export async function resetPasswordHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for update profile. */
 export async function updateProfileHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -146,6 +153,7 @@ export async function updateProfileHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for request email change. */
 export async function requestEmailChangeHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -161,6 +169,7 @@ export async function requestEmailChangeHandler(req: AuthRequest, res: Response)
   }
 }
 
+/** Handles requests for confirm email change. */
 export async function confirmEmailChangeHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
@@ -197,6 +206,7 @@ function clearRefreshCookie(res: Response) {
   });
 }
 
+/** Handles requests for me. */
 export async function meHandler(req: AuthRequest, res: Response) {
   try {
     let userId = req.user?.sub ?? null;

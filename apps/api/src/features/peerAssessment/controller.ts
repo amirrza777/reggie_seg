@@ -4,6 +4,7 @@ import { PeerAssessmentService } from "./services/PeerAssessmentService.js"
 import { AssessmentAnswerValidationError, normalizeAndValidateAssessmentAnswers } from "./answers.js";
 const peerService = new PeerAssessmentService();
 
+/** Handles requests for get teammates. */
 export async function getTeammatesHandler(req: Request, res: Response) {
   const userId = Number(req.query.userId)
   const teamId = Number(req.params.teamId)
@@ -21,6 +22,7 @@ export async function getTeammatesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for create assessment. */
 export async function createAssessmentHandler(req: Request, res: Response) {
   const {
     projectId,
@@ -91,6 +93,7 @@ export async function createAssessmentHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get assessment. */
 export async function getAssessmentHandler(req: Request, res: Response) {
   const projectId = Number(req.query.projectId)
   const teamId = Number(req.query.teamId)
@@ -115,6 +118,7 @@ export async function getAssessmentHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for update assessment. */
 export async function updateAssessmentHandler(req: Request, res: Response) {
   
   const assessmentId = Number(req.params.id)
@@ -153,6 +157,7 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get assessments. */
 export async function getAssessmentsHandler(req: Request, res: Response) {
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.projectId);
@@ -170,6 +175,7 @@ export async function getAssessmentsHandler(req: Request, res: Response) {
   }   
 }
 
+/** Handles requests for get assessment by ID. */
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
   const assessmentId = Number(req.params.id);
 
@@ -189,6 +195,7 @@ export async function getAssessmentByIdHandler(req: Request, res: Response) {
   }   
 }
 
+/** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
 
@@ -208,6 +215,7 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 }
 
+/** Handles requests for get project questionnaire template. */
 export async function getProjectQuestionnaireTemplateHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
 

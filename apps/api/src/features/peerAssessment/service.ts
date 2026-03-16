@@ -11,42 +11,12 @@ import {
   getProjectQuestionnaireTemplate,
 } from "./repo.js"
 
-function asDate(value: unknown): Date | null {
-  if (!value) return null;
-  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
-  if (typeof value === "string") {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? null : parsed;
-  }
-  return null;
-}
-
-function assertWindowOpen(
-  kind: "ASSESSMENT",
-  deadline: { assessmentOpenDate?: unknown; assessmentDueDate?: unknown } | null,
-  now = new Date(),
-) {
-  if (!deadline) return;
-  const openAt = asDate(deadline.assessmentOpenDate);
-  const dueAt = asDate(deadline.assessmentDueDate);
-
-  if (openAt && now < openAt) {
-    throw {
-      code: `${kind}_WINDOW_NOT_OPEN`,
-      message: "Peer assessment is not open yet for your deadline profile",
-      opensAt: openAt,
-    };
-  }
-  return {
-    isLate: Boolean(dueAt && now > dueAt),
-    dueAt,
-  };
-}
-
+/** Returns the teammates. */
 export function fetchTeammates(userId: number, teamId: number) {
   return getTeammates(userId, teamId)
 }
 
+/** Saves the assessment. */
 export async function saveAssessment(data: {
   projectId: number
   teamId: number
@@ -66,6 +36,7 @@ export async function saveAssessment(data: {
   })
 }
 
+/** Returns the assessment. */
 export function fetchAssessment(
   projectId: number,
   teamId: number,
@@ -75,31 +46,27 @@ export function fetchAssessment(
   return getPeerAssessment(projectId, teamId, reviewerId, revieweeId)
 }
 
-export async function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
-  const assessment = await getPeerAssessmentById(assessmentId);
-  if (!assessment) {
-    throw { code: "P2025" };
-  }
-  const reviewerDeadline = await fetchProjectDeadline(assessment.reviewerUserId, assessment.projectId);
-  const window = assertWindowOpen("ASSESSMENT", reviewerDeadline);
-  return updatePeerAssessment(assessmentId, answersJson, {
-    submittedLate: Boolean(assessment.submittedLate || window?.isLate),
-    effectiveDueDate: window?.dueAt ?? null,
-  })
+/** Updates the assessment answers. */
+export function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
+  return updatePeerAssessment(assessmentId, answersJson)
 }
 
+/** Returns the teammate assessments. */
 export function fetchTeammateAssessments(userId: number, projectId: number) {
   return getTeammateAssessments(userId, projectId)
 }
 
+/** Returns the questions for project. */
 export function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
 }
 
+/** Returns the assessment by ID. */
 export function fetchAssessmentById(assessmentId: number) {
   return getPeerAssessmentById(assessmentId);
 }
 
+/** Returns the project questionnaire template. */
 export function fetchProjectQuestionnaireTemplate(projectId: number) {
   return getProjectQuestionnaireTemplate(projectId);
 }

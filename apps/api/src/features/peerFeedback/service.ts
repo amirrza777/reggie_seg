@@ -37,6 +37,7 @@ function assertFeedbackWindowOpen(
   };
 }
 
+/** Saves the feedback review. */
 export async function saveFeedbackReview(
   assessmentId: number,
   payload: { reviewText: string; agreements: any; reviewerUserId: string | number; revieweeUserId: string | number },
@@ -70,16 +71,12 @@ export async function saveFeedbackReview(
   return created;
 }
 
+/** Returns the feedback review. */
 export function getFeedbackReview(assessmentId: number) {
   return getPeerFeedbackByAssessmentId(assessmentId);
 }
 
-export async function getFeedbackReviewStatuses(assessmentIds: number[]) {
-  const reviews = await getPeerFeedbackByAssessmentIds(assessmentIds);
-  const reviewedIds = new Set(reviews.map((review) => review.peerAssessmentId));
-  return Object.fromEntries(assessmentIds.map((id) => [String(id), reviewedIds.has(id)]));
-}
-
+/** Returns the peer assessment. */
 export function getPeerAssessment(assessmentId: number) {
   return getPeerAssessmentById(assessmentId);
 }

@@ -9,6 +9,7 @@ import {
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
 
+/** Handles requests for link GitHub project repo. */
 export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -72,6 +73,7 @@ export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Respon
   }
 }
 
+/** Handles requests for remove GitHub project repo. */
 export async function removeGithubProjectRepoHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -95,6 +97,7 @@ export async function removeGithubProjectRepoHandler(req: AuthRequest, res: Resp
   }
 }
 
+/** Handles requests for list project GitHub repos. */
 export async function listProjectGithubReposHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -118,6 +121,7 @@ export async function listProjectGithubReposHandler(req: AuthRequest, res: Respo
   }
 }
 
+/** Handles requests for analyse project GitHub repo. */
 export async function analyseProjectGithubRepoHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
