@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { listMeetings, fetchMeeting, addMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment } from "./service.js";
 
+/** Handles requests for list meetings. */
 export async function listMeetingsHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
 
@@ -17,6 +18,7 @@ export async function listMeetingsHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get meeting. */
 export async function getMeetingHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -36,6 +38,7 @@ export async function getMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for create meeting. */
 export async function createMeetingHandler(req: Request, res: Response) {
   const { teamId, organiserId, title, date, subject, location, agenda } = req.body;
 
@@ -63,6 +66,7 @@ export async function createMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for delete meeting. */
 export async function deleteMeetingHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -82,6 +86,7 @@ export async function deleteMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for mark attendance. */
 export async function markAttendanceHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { records } = req.body;
@@ -103,6 +108,7 @@ export async function markAttendanceHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for save minutes. */
 export async function saveMinutesHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { writerId, content } = req.body;
@@ -124,6 +130,7 @@ export async function saveMinutesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get minutes. */
 export async function getMinutesHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -143,6 +150,7 @@ export async function getMinutesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for add comment. */
 export async function addCommentHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { userId, content, teamId } = req.body;
@@ -164,6 +172,7 @@ export async function addCommentHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for delete comment. */
 export async function deleteCommentHandler(req: Request, res: Response) {
   const commentId = Number(req.params.commentId);
 

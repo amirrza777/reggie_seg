@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Executes the upsert peer feedback. */
 export async function upsertPeerFeedback(data: {
   peerAssessmentId: number;
   reviewerUserId: number;
@@ -77,6 +78,7 @@ export async function upsertPeerFeedback(data: {
   });
 }
 
+/** Returns the peer feedback by assessment ID. */
 export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   return prisma.peerFeedback.findUnique({
     where: { peerAssessmentId },
@@ -111,9 +113,8 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   });
 }
 
+/** Returns existing peer feedback assessment ids for bulk status lookups. */
 export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
-  if (peerAssessmentIds.length === 0) return Promise.resolve([]);
-
   return prisma.peerFeedback.findMany({
     where: {
       peerAssessmentId: {
@@ -126,6 +127,7 @@ export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
   });
 }
 
+/** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({
     where: { id: assessmentId },

@@ -173,6 +173,7 @@ async function fetchUserCollaborativeRepositories(accessToken: string) {
   return Array.from(repositoryById.values());
 }
 
+/** Returns the GitHub repositories for user. */
 export async function listGithubRepositoriesForUser(userId: number) {
   const account = await findGithubAccountByUserId(userId);
   if (!account) {
@@ -217,6 +218,7 @@ export async function listGithubRepositoriesForUser(userId: number) {
     }));
 }
 
+/** Returns the GitHub connection status. */
 export async function getGithubConnectionStatus(userId: number) {
   const account = await findGithubAccountStatusByUserId(userId);
   if (!account) {
@@ -232,6 +234,7 @@ export async function getGithubConnectionStatus(userId: number) {
   };
 }
 
+/** Disconnects the GitHub account. */
 export async function disconnectGithubAccount(userId: number) {
   const account = await findGithubAccountStatusByUserId(userId);
   if (!account) {
@@ -253,6 +256,7 @@ type LinkGithubRepositoryToProjectInput = {
   defaultBranch: string | null;
 };
 
+/** Links the GitHub repository to project. */
 export async function linkGithubRepositoryToProject(userId: number, input: LinkGithubRepositoryToProjectInput) {
   const isMember = await isUserInProject(userId, input.projectId);
   if (!isMember) {
@@ -313,6 +317,7 @@ export async function linkGithubRepositoryToProject(userId: number, input: LinkG
   };
 }
 
+/** Returns the project GitHub repositories. */
 export async function listProjectGithubRepositories(userId: number, projectId: number) {
   const isMember = await isUserInProject(userId, projectId);
   if (!isMember) {

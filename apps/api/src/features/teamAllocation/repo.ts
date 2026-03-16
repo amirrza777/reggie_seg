@@ -46,6 +46,7 @@ export type AppliedManualTeam = {
   memberCount: number;
 };
 
+/** Returns the active invite. */
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -57,6 +58,7 @@ export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   });
 }
 
+/** Creates a team invite record. */
 export async function createTeamInviteRecord(data: {
   teamId: number;
   inviterId: number;
@@ -81,6 +83,7 @@ export async function createTeamInviteRecord(data: {
   });
 }
 
+/** Returns the invite context. */
 export async function findInviteContext(teamId: number, inviterId: number) {
   const [team, inviter] = await Promise.all([
     prisma.team.findUnique({
@@ -96,6 +99,7 @@ export async function findInviteContext(teamId: number, inviterId: number) {
   return { team, inviter };
 }
 
+/** Returns the invites for team. */
 export async function getInvitesForTeam(teamId: number) {
   return prisma.teamInvite.findMany({
     where: { teamId },
@@ -106,6 +110,7 @@ export async function getInvitesForTeam(teamId: number) {
   });
 }
 
+/** Returns the pending invites for email. */
 export async function findPendingInvitesForEmail(email: string) {
   return prisma.teamInvite.findMany({
     where: { inviteeEmail: email, status: "PENDING", active: true },
@@ -117,6 +122,15 @@ export async function findPendingInvitesForEmail(email: string) {
   });
 }
 
+/** Returns the normalized email address for a user when present. */
+export async function findUserEmailById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+}
+
+/** Updates the invite status from pending. */
 export async function updateInviteStatusFromPending(
   inviteId: string,
   status: TeamInviteStatus,
@@ -144,6 +158,7 @@ export async function updateInviteStatusFromPending(
   });
 }
 
+/** Returns the staff scoped project. */
 export async function findStaffScopedProject(
   staffId: number,
   projectId: number,
@@ -203,6 +218,7 @@ export async function findStaffScopedProject(
   };
 }
 
+/** Returns the vacant module students for project. */
 export async function findVacantModuleStudentsForProject(
   enterpriseId: string,
   moduleId: number,
@@ -238,6 +254,7 @@ export async function findVacantModuleStudentsForProject(
   });
 }
 
+/** Returns the module students for manual allocation. */
 export async function findModuleStudentsForManualAllocation(
   enterpriseId: string,
   moduleId: number,
@@ -298,6 +315,7 @@ export async function findModuleStudentsForManualAllocation(
   });
 }
 
+/** Returns the project team summaries. */
 export async function findProjectTeamSummaries(projectId: number): Promise<ProjectTeamSummary[]> {
   const teams = await prisma.team.findMany({
     where: { projectId },
@@ -318,6 +336,7 @@ export async function findProjectTeamSummaries(projectId: number): Promise<Proje
   }));
 }
 
+/** Applies the random allocation plan. */
 export async function applyRandomAllocationPlan(
   projectId: number,
   enterpriseId: string,
@@ -401,6 +420,7 @@ export async function applyRandomAllocationPlan(
   });
 }
 
+/** Applies the manual allocation team. */
 export async function applyManualAllocationTeam(
   projectId: number,
   enterpriseId: string,

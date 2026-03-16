@@ -9,6 +9,7 @@ import {
   updateProjectGithubRepositorySyncSettings,
 } from "./repo.js";
 
+/** Returns the project GitHub repository snapshots. */
 export async function listProjectGithubRepositorySnapshots(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -23,6 +24,7 @@ export async function listProjectGithubRepositorySnapshots(userId: number, linkI
   return listGithubSnapshotsByProjectLinkId(link.id);
 }
 
+/** Returns the project GitHub repository snapshot. */
 export async function getProjectGithubRepositorySnapshot(userId: number, snapshotId: number) {
   const snapshot = await findGithubSnapshotById(snapshotId);
   if (!snapshot) {
@@ -37,6 +39,7 @@ export async function getProjectGithubRepositorySnapshot(userId: number, snapsho
   return snapshot;
 }
 
+/** Returns the latest project GitHub repository snapshot. */
 export async function getLatestProjectGithubRepositorySnapshot(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -56,6 +59,7 @@ export async function getLatestProjectGithubRepositorySnapshot(userId: number, l
   return snapshot;
 }
 
+/** Returns the project GitHub mapping coverage. */
 export async function getProjectGithubMappingCoverage(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -96,6 +100,7 @@ type UpdateProjectGithubSyncSettingsInput = {
   syncIntervalMinutes: number;
 };
 
+/** Updates the project GitHub sync settings. */
 export async function updateProjectGithubSyncSettings(
   userId: number,
   linkId: number,

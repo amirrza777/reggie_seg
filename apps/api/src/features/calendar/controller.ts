@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { getCalendarEventsForUser } from "./service.js";
 
+/** Handles requests for get calendar events. */
 export async function getCalendarEventsHandler(req: Request, res: Response) {
   const userId = Number(req.query.userId);
   if (isNaN(userId)) {

@@ -22,6 +22,24 @@ export type StudentDeadlineOverrideInput = {
   reason?: string | null;
 };
 
+type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
+
+function resolveModuleAccessRole(
+  userRole: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN",
+  flags: { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean },
+): ModuleAccessRole {
+  if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") {
+    return "ADMIN_ACCESS";
+  }
+
+  if (flags.isOwner) return "OWNER";
+  if (flags.isTeachingAssistant) return "TEACHING_ASSISTANT";
+  if (flags.isEnrolled) return "ENROLLED";
+
+  return "ENROLLED";
+}
+
+/** Returns the user projects. */
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
@@ -48,21 +66,7 @@ export async function getUserProjects(userId: number) {
   });
 }
 
-function resolveModuleAccessRole(
-  userRole: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN",
-  {
-    isOwner,
-    isTeachingAssistant,
-    isEnrolled,
-  }: { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean },
-) {
-  if (isOwner) return "OWNER";
-  if (isTeachingAssistant) return "TEACHING_ASSISTANT";
-  if (isEnrolled) return "ENROLLED";
-  if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") return "ADMIN_ACCESS";
-  return "ENROLLED";
-}
-
+/** Returns the modules for user. */
 export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -201,50 +205,7 @@ async function getScopedStaffUser(userId: number) {
   });
 }
 
-async function getScopedStaffProjectDeadline(actorUserId: number, projectId: number) {
-  const actor = await getScopedStaffUser(actorUserId);
-  if (!actor) {
-    throw { code: "FORBIDDEN", message: "User not found" };
-  }
-
-  const isStaffRole = actor.role === "STAFF" || actor.role === "ENTERPRISE_ADMIN" || actor.role === "ADMIN";
-  if (!isStaffRole) {
-    throw { code: "FORBIDDEN", message: "Only staff can manage student deadline overrides" };
-  }
-
-  const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      module: {
-        enterpriseId: actor.enterpriseId,
-        ...(roleCanAccessAll
-          ? {}
-          : {
-              OR: [
-                { moduleLeads: { some: { userId: actorUserId } } },
-                { moduleTeachingAssistants: { some: { userId: actorUserId } } },
-              ],
-            }),
-      },
-    },
-    select: {
-      id: true,
-      deadline: {
-        select: {
-          id: true,
-        },
-      },
-    },
-  });
-
-  if (!project || !project.deadline) {
-    throw { code: "PROJECT_NOT_FOUND" };
-  }
-
-  return { actor, projectDeadlineId: project.deadline.id, projectId: project.id };
-}
-
+/** Returns the staff projects. */
 export async function getStaffProjects(userId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
@@ -307,6 +268,7 @@ export async function getStaffProjects(userId: number) {
   });
 }
 
+/** Returns the staff project teams. */
 export async function getStaffProjectTeams(userId: number, projectId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return null;
@@ -373,112 +335,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
   return project;
 }
 
-export async function getStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
-  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
-
-  const overrides = await prisma.studentDeadlineOverride.findMany({
-    where: { projectDeadlineId },
-    select: {
-      id: true,
-      userId: true,
-      taskOpenDate: true,
-      taskDueDate: true,
-      assessmentOpenDate: true,
-      assessmentDueDate: true,
-      feedbackOpenDate: true,
-      feedbackDueDate: true,
-      reason: true,
-      updatedAt: true,
-    },
-    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-  });
-
-  return overrides;
-}
-
-export async function upsertStaffStudentDeadlineOverride(
-  actorUserId: number,
-  projectId: number,
-  studentId: number,
-  payload: StudentDeadlineOverrideInput,
-) {
-  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
-
-  const isStudentInProject = await prisma.teamAllocation.findFirst({
-    where: {
-      userId: studentId,
-      team: { projectId },
-    },
-    select: { userId: true },
-  });
-  if (!isStudentInProject) {
-    throw { code: "STUDENT_NOT_IN_PROJECT" };
-  }
-
-  const data = {
-    ...(payload.taskOpenDate !== undefined ? { taskOpenDate: payload.taskOpenDate } : {}),
-    ...(payload.taskDueDate !== undefined ? { taskDueDate: payload.taskDueDate } : {}),
-    ...(payload.assessmentOpenDate !== undefined ? { assessmentOpenDate: payload.assessmentOpenDate } : {}),
-    ...(payload.assessmentDueDate !== undefined ? { assessmentDueDate: payload.assessmentDueDate } : {}),
-    ...(payload.feedbackOpenDate !== undefined ? { feedbackOpenDate: payload.feedbackOpenDate } : {}),
-    ...(payload.feedbackDueDate !== undefined ? { feedbackDueDate: payload.feedbackDueDate } : {}),
-    ...(payload.reason !== undefined ? { reason: payload.reason } : {}),
-  };
-
-  const updated = await prisma.studentDeadlineOverride.upsert({
-    where: {
-      userId_projectDeadlineId: {
-        userId: studentId,
-        projectDeadlineId,
-      },
-    },
-    update: data,
-    create: {
-      userId: studentId,
-      projectDeadlineId,
-      createdByUserId: actorUserId,
-      taskOpenDate: payload.taskOpenDate ?? null,
-      taskDueDate: payload.taskDueDate ?? null,
-      assessmentOpenDate: payload.assessmentOpenDate ?? null,
-      assessmentDueDate: payload.assessmentDueDate ?? null,
-      feedbackOpenDate: payload.feedbackOpenDate ?? null,
-      feedbackDueDate: payload.feedbackDueDate ?? null,
-      reason: payload.reason ?? null,
-    },
-    select: {
-      id: true,
-      userId: true,
-      taskOpenDate: true,
-      taskDueDate: true,
-      assessmentOpenDate: true,
-      assessmentDueDate: true,
-      feedbackOpenDate: true,
-      feedbackDueDate: true,
-      reason: true,
-      updatedAt: true,
-    },
-  });
-
-  return updated;
-}
-
-export async function clearStaffStudentDeadlineOverride(
-  actorUserId: number,
-  projectId: number,
-  studentId: number,
-) {
-  const { projectDeadlineId } = await getScopedStaffProjectDeadline(actorUserId, projectId);
-
-  const deleted = await prisma.studentDeadlineOverride.deleteMany({
-    where: {
-      userId: studentId,
-      projectDeadlineId,
-    },
-  });
-
-  return { cleared: deleted.count > 0 };
-}
-
+/** Returns the project by ID. */
 export async function getProjectById(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -491,21 +348,17 @@ export async function getProjectById(projectId: number) {
   });
 }
 
+/** Creates a project. */
 export async function createProject(
   actorUserId: number,
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
-  deadline: ProjectDeadlineInput
+  deadline: ProjectDeadlineInput,
 ) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
     throw { code: "FORBIDDEN", message: "User not found" };
-  }
-
-  const isStaffRole = actor.role === "STAFF" || actor.role === "ENTERPRISE_ADMIN" || actor.role === "ADMIN";
-  if (!isStaffRole) {
-    throw { code: "FORBIDDEN", message: "Only staff can create projects" };
   }
 
   const moduleRecord = await prisma.module.findFirst({
@@ -516,29 +369,33 @@ export async function createProject(
     throw { code: "MODULE_NOT_FOUND" };
   }
 
-  const roleCanOverride = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
-  if (!roleCanOverride) {
-    const isModuleLead = await prisma.moduleLead.findFirst({
-      where: { moduleId, userId: actor.id },
-      select: { moduleId: true },
+  const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+  if (!roleCanAccessAll) {
+    const staffModule = await prisma.module.findFirst({
+      where: {
+        id: moduleId,
+        enterpriseId: actor.enterpriseId,
+        OR: [
+          { moduleLeads: { some: { userId: actorUserId } } },
+          { moduleTeachingAssistants: { some: { userId: actorUserId } } },
+        ],
+      },
+      select: { id: true },
     });
-    if (!isModuleLead) {
-      throw { code: "FORBIDDEN", message: "Only module leads can create projects for this module" };
+    if (!staffModule) {
+      throw { code: "FORBIDDEN", message: "You do not have access to create projects in this module" };
     }
   }
 
-  const templateRecord = await prisma.questionnaireTemplate.findFirst({
-    where: {
-      id: questionnaireTemplateId,
-      owner: { enterpriseId: actor.enterpriseId },
-    },
+  const template = await prisma.questionnaireTemplate.findUnique({
+    where: { id: questionnaireTemplateId },
     select: { id: true },
   });
-  if (!templateRecord) {
+  if (!template) {
     throw { code: "TEMPLATE_NOT_FOUND" };
   }
 
-  return prisma.project.create({
+  const project = await prisma.project.create({
     data: {
       name,
       moduleId,
@@ -577,6 +434,8 @@ export async function createProject(
       },
     },
   });
+
+  return project;
 }
 
 export async function updateStaffTeamDeadlineProfile(
@@ -632,6 +491,7 @@ export async function updateStaffTeamDeadlineProfile(
   });
 }
 
+/** Returns the teammates in project. */
 export async function getTeammatesInProject(userId: number, projectId: number) {
   return prisma.teamAllocation.findMany({
     where: {
@@ -658,6 +518,7 @@ export async function getTeammatesInProject(userId: number, projectId: number) {
   });
 }
 
+/** Returns the user project deadline. */
 export async function getUserProjectDeadline(userId: number, projectId: number) {
   const userTeam = await prisma.teamAllocation.findFirst({
     where: {
@@ -766,6 +627,7 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
   };
 }
 
+/** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
   return prisma.team.findUnique({
     where: { id: teamId },
@@ -791,6 +653,7 @@ export async function getTeamById(teamId: number) {
   });
 }
 
+/** Returns the team by user and project. */
 export async function getTeamByUserAndProject(userId: number, projectId: number) {
   return prisma.team.findFirst({
     where: {
@@ -823,6 +686,7 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
   });
 }
 
+/** Returns the questions for project. */
 export async function getQuestionsForProject(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -867,6 +731,7 @@ function mapStaffMarking(marking: RawStaffMarking | null) {
   };
 }
 
+/** Returns the user project marking. */
 export async function getUserProjectMarking(userId: number, projectId: number) {
   const enrollment = await prisma.teamAllocation.findFirst({
     where: {
@@ -1404,4 +1269,194 @@ export async function resolveTeamHealthMessageWithDeadlineOverride(
     if (!deadline) return null;
     return { request, deadline };
   });
+}
+
+async function getAccessibleProjectDeadlineScope(actorUserId: number, projectId: number) {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    throw { code: "FORBIDDEN", message: "User not found" };
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId: actor.enterpriseId,
+      },
+    },
+    select: {
+      id: true,
+      deadline: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND" };
+  }
+
+  const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
+  if (!roleCanAccessAll) {
+    const accessibleProject = await prisma.project.findFirst({
+      where: {
+        id: projectId,
+        module: {
+          enterpriseId: actor.enterpriseId,
+          OR: [
+            { moduleLeads: { some: { userId: actorUserId } } },
+            { moduleTeachingAssistants: { some: { userId: actorUserId } } },
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    if (!accessibleProject) {
+      throw { code: "FORBIDDEN", message: "You do not have staff access to this project" };
+    }
+  }
+
+  return project;
+}
+
+export async function getStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
+  const project = await getAccessibleProjectDeadlineScope(actorUserId, projectId);
+  if (!project.deadline) {
+    return [];
+  }
+
+  const overrides = await prisma.studentDeadlineOverride.findMany({
+    where: {
+      projectDeadlineId: project.deadline.id,
+    },
+    select: {
+      id: true,
+      userId: true,
+      taskOpenDate: true,
+      taskDueDate: true,
+      assessmentOpenDate: true,
+      assessmentDueDate: true,
+      feedbackOpenDate: true,
+      feedbackDueDate: true,
+      reason: true,
+      updatedAt: true,
+    },
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+  });
+
+  return overrides.map((override) => ({
+    ...override,
+    taskOpenDate: override.taskOpenDate?.toISOString() ?? null,
+    taskDueDate: override.taskDueDate?.toISOString() ?? null,
+    assessmentOpenDate: override.assessmentOpenDate?.toISOString() ?? null,
+    assessmentDueDate: override.assessmentDueDate?.toISOString() ?? null,
+    feedbackOpenDate: override.feedbackOpenDate?.toISOString() ?? null,
+    feedbackDueDate: override.feedbackDueDate?.toISOString() ?? null,
+    updatedAt: override.updatedAt.toISOString(),
+  }));
+}
+
+async function ensureStudentInProject(projectId: number, studentId: number) {
+  const allocation = await prisma.teamAllocation.findFirst({
+    where: {
+      userId: studentId,
+      team: {
+        projectId,
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!allocation) {
+    throw { code: "STUDENT_NOT_IN_PROJECT" };
+  }
+}
+
+export async function upsertStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+  payload: StudentDeadlineOverrideInput,
+) {
+  const project = await getAccessibleProjectDeadlineScope(actorUserId, projectId);
+  if (!project.deadline) {
+    throw { code: "PROJECT_NOT_FOUND" };
+  }
+
+  await ensureStudentInProject(projectId, studentId);
+
+  const override = await prisma.studentDeadlineOverride.upsert({
+    where: {
+      userId_projectDeadlineId: {
+        userId: studentId,
+        projectDeadlineId: project.deadline.id,
+      },
+    },
+    update: {
+      taskOpenDate: payload.taskOpenDate,
+      taskDueDate: payload.taskDueDate,
+      assessmentOpenDate: payload.assessmentOpenDate,
+      assessmentDueDate: payload.assessmentDueDate,
+      feedbackOpenDate: payload.feedbackOpenDate,
+      feedbackDueDate: payload.feedbackDueDate,
+      reason: payload.reason ?? null,
+      createdByUserId: actorUserId,
+    },
+    create: {
+      userId: studentId,
+      projectDeadlineId: project.deadline.id,
+      createdByUserId: actorUserId,
+      taskOpenDate: payload.taskOpenDate ?? null,
+      taskDueDate: payload.taskDueDate ?? null,
+      assessmentOpenDate: payload.assessmentOpenDate ?? null,
+      assessmentDueDate: payload.assessmentDueDate ?? null,
+      feedbackOpenDate: payload.feedbackOpenDate ?? null,
+      feedbackDueDate: payload.feedbackDueDate ?? null,
+      reason: payload.reason ?? null,
+    },
+    select: {
+      id: true,
+      userId: true,
+      taskOpenDate: true,
+      taskDueDate: true,
+      assessmentOpenDate: true,
+      assessmentDueDate: true,
+      feedbackOpenDate: true,
+      feedbackDueDate: true,
+      reason: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    ...override,
+    taskOpenDate: override.taskOpenDate?.toISOString() ?? null,
+    taskDueDate: override.taskDueDate?.toISOString() ?? null,
+    assessmentOpenDate: override.assessmentOpenDate?.toISOString() ?? null,
+    assessmentDueDate: override.assessmentDueDate?.toISOString() ?? null,
+    feedbackOpenDate: override.feedbackOpenDate?.toISOString() ?? null,
+    feedbackDueDate: override.feedbackDueDate?.toISOString() ?? null,
+    updatedAt: override.updatedAt.toISOString(),
+  };
+}
+
+export async function clearStaffStudentDeadlineOverride(
+  actorUserId: number,
+  projectId: number,
+  studentId: number,
+) {
+  const project = await getAccessibleProjectDeadlineScope(actorUserId, projectId);
+  if (!project.deadline) {
+    throw { code: "PROJECT_NOT_FOUND" };
+  }
+
+  await prisma.studentDeadlineOverride.deleteMany({
+    where: {
+      userId: studentId,
+      projectDeadlineId: project.deadline.id,
+    },
+  });
+
+  return { cleared: true };
 }

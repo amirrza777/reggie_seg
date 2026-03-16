@@ -9,6 +9,7 @@ import {
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
 
+/** Handles requests for list project GitHub repo snapshots. */
 export async function listProjectGithubRepoSnapshotsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -32,6 +33,7 @@ export async function listProjectGithubRepoSnapshotsHandler(req: AuthRequest, re
   }
 }
 
+/** Handles requests for get GitHub snapshot. */
 export async function getGithubSnapshotHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -55,6 +57,7 @@ export async function getGithubSnapshotHandler(req: AuthRequest, res: Response) 
   }
 }
 
+/** Handles requests for get latest project GitHub repo snapshot. */
 export async function getLatestProjectGithubRepoSnapshotHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -78,6 +81,7 @@ export async function getLatestProjectGithubRepoSnapshotHandler(req: AuthRequest
   }
 }
 
+/** Handles requests for get project GitHub mapping coverage. */
 export async function getProjectGithubMappingCoverageHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {

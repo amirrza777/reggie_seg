@@ -125,6 +125,66 @@ describe("projects repo read and create flows", () => {
     );
   });
 
+  it("getModulesForUser resolves module access roles for staff and admins", async () => {
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 21,
+        role: "STAFF",
+        enterpriseId: "ent-1",
+      })
+      .mockResolvedValueOnce({
+        id: 99,
+        role: "ADMIN",
+        enterpriseId: "ent-1",
+      });
+
+    (prisma.module.findMany as any)
+      .mockResolvedValueOnce([
+        {
+          id: 7,
+          name: "SEGP",
+          briefText: null,
+          timelineText: null,
+          expectationsText: null,
+          readinessNotesText: null,
+          moduleLeads: [{ userId: 21 }],
+          moduleTeachingAssistants: [{ userId: 21 }],
+          userModules: [{ userId: 21 }],
+          projects: [{ _count: { teams: 2 } }, { _count: { teams: 1 } }],
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 8,
+          name: "IOT",
+          briefText: null,
+          timelineText: null,
+          expectationsText: null,
+          readinessNotesText: null,
+          moduleLeads: [],
+          moduleTeachingAssistants: [],
+          userModules: [],
+          projects: [],
+        },
+      ]);
+
+    await expect(getModulesForUser(21)).resolves.toEqual([
+      expect.objectContaining({
+        id: 7,
+        accessRole: "OWNER",
+        teamCount: 3,
+        projectCount: 2,
+      }),
+    ]);
+
+    await expect(getModulesForUser(99)).resolves.toEqual([
+      expect.objectContaining({
+        id: 8,
+        accessRole: "ADMIN_ACCESS",
+      }),
+    ]);
+  });
+
   it("getProjectById queries selected fields", async () => {
     await getProjectById(4);
     expect(prisma.project.findUnique).toHaveBeenCalledWith({

@@ -4,6 +4,7 @@ import { prisma } from "../shared/db.js";
 import { randomBytes } from "crypto";
 import { signUpWithProvider } from "./service.js";
 
+/** Configures Google authentication when the required environment variables are available. */
 export function configureGoogle(): boolean {
   const clientID = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;

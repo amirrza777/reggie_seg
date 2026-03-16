@@ -6,6 +6,7 @@ import {
   getPeerAssessment,
 } from "./service.js"
 
+/** Handles requests for create peer feedback. */
 export async function createPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   const { reviewText, agreements, reviewerUserId, revieweeUserId } = req.body;
@@ -47,6 +48,7 @@ export async function createPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get peer feedback. */
 export async function getPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) {
@@ -62,14 +64,15 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for bulk peer feedback completion statuses. */
 export async function getPeerFeedbackStatusesHandler(req: Request, res: Response) {
-  const feedbackIdsRaw = (req.body as { feedbackIds?: unknown }).feedbackIds;
-  if (!Array.isArray(feedbackIdsRaw)) {
+  const feedbackIds = req.body?.feedbackIds;
+  if (!Array.isArray(feedbackIds)) {
     return res.status(400).json({ error: "feedbackIds must be an array" });
   }
 
-  const parsedFeedbackIds = feedbackIdsRaw.map((value) => Number(value));
-  if (parsedFeedbackIds.some((id) => Number.isNaN(id))) {
+  const parsedFeedbackIds = feedbackIds.map((feedbackId) => Number(feedbackId));
+  if (parsedFeedbackIds.some((feedbackId) => Number.isNaN(feedbackId))) {
     return res.status(400).json({ error: "feedbackIds must contain only numeric IDs" });
   }
 
@@ -77,11 +80,12 @@ export async function getPeerFeedbackStatusesHandler(req: Request, res: Response
     const statuses = await getFeedbackReviewStatuses(parsedFeedbackIds);
     return res.json({ statuses });
   } catch (error) {
-    console.error("Error retrieving feedback review statuses:", error);
+    console.error("Error retrieving peer feedback statuses:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
 
+/** Handles requests for get peer assessment. */
 export async function getPeerAssessmentHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) return res.status(400).json({ error: "Invalid feedback ID" });

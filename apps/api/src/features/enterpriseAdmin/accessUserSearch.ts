@@ -18,6 +18,7 @@ const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 const MAX_QUERY_LENGTH = 120;
 
+/** Parses the enterprise access user search filters. */
 export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseResult {
   const rawScope = parseSingleString(query.scope)?.trim().toLowerCase();
   const scope = parseScope(rawScope);
@@ -46,6 +47,7 @@ export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseRe
   };
 }
 
+/** Builds the enterprise access user search where. */
 export function buildEnterpriseAccessUserSearchWhere(
   enterpriseId: string,
   filters: Pick<EnterpriseAccessUserSearchFilters, "scope" | "query">,

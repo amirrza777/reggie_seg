@@ -12,6 +12,7 @@ function makeCommitStatsCacheKey(fullName: string, sha: string) {
   return `${fullName}:${sha}`;
 }
 
+/** Returns the cached commit stats. */
 export function getCachedCommitStats(fullName: string, sha: string) {
   const key = makeCommitStatsCacheKey(fullName, sha);
   const cached = githubCommitStatsCache.get(key);
@@ -25,6 +26,7 @@ export function getCachedCommitStats(fullName: string, sha: string) {
   return cached;
 }
 
+/** Executes the set cached commit stats. */
 export function setCachedCommitStats(fullName: string, sha: string, value: { additions: number; deletions: number }) {
   const key = makeCommitStatsCacheKey(fullName, sha);
   if (githubCommitStatsCache.size >= GITHUB_COMMIT_STATS_CACHE_MAX_ENTRIES) {

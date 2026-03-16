@@ -157,6 +157,7 @@ function addSecondsToNow(seconds?: number) {
   return new Date(Date.now() + seconds * 1000);
 }
 
+/** Builds the GitHub connect URL. */
 export async function buildGithubConnectUrl(userId: number, returnTo?: string | null) {
   const githubApp = getGitHubAppConfig();
   if (!githubApp) {
@@ -194,6 +195,7 @@ export async function buildGithubConnectUrl(userId: number, returnTo?: string | 
   return `https://github.com/login/oauth/authorize?${params.toString()}`;
 }
 
+/** Validates the GitHub callback. */
 export function validateGithubCallback(code: string, state: string) {
   const secret = getStateSecret();
   if (!secret) {
@@ -326,6 +328,7 @@ async function fetchGithubUser(accessToken: string) {
   };
 }
 
+/** Connects the GitHub account. */
 export async function connectGithubAccount(code: string, state: string) {
   const validated = validateGithubCallback(code, state);
   const user = await findUserById(validated.userId);
@@ -359,6 +362,7 @@ export async function connectGithubAccount(code: string, state: string) {
   };
 }
 
+/** Returns the valid GitHub access token. */
 export async function getValidGithubAccessToken(account: GithubAccountTokenState) {
   const now = Date.now();
   const expiresAtMs = account.accessTokenExpiresAt ? account.accessTokenExpiresAt.getTime() : null;
