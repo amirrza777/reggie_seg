@@ -82,6 +82,57 @@ describe("StaffCustomisedAllocationPanel", () => {
     expect(screen.getByText("Coverage is below 80% (75%). You can still proceed.")).toBeInTheDocument();
   });
 
+  it("filters questionnaire options via searchable input", async () => {
+    getCustomAllocationQuestionnairesMock.mockResolvedValue({
+      project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
+      questionnaires: [
+        {
+          id: 101,
+          templateName: "Team Setup",
+          ownerId: 1,
+          isPublic: false,
+          eligibleQuestionCount: 1,
+          eligibleQuestions: [{ id: 1, label: "Preferred working style", type: "multiple-choice" }],
+        },
+        {
+          id: 202,
+          templateName: "Project Preferences",
+          ownerId: 1,
+          isPublic: false,
+          eligibleQuestionCount: 1,
+          eligibleQuestions: [{ id: 2, label: "Timezone", type: "rating" }],
+        },
+      ],
+    });
+    getCustomAllocationCoverageMock.mockResolvedValue({
+      project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
+      questionnaireTemplateId: 101,
+      totalAvailableStudents: 2,
+      respondingStudents: 2,
+      nonRespondingStudents: 0,
+      responseRate: 100,
+      responseThreshold: 80,
+    });
+    previewCustomAllocationMock.mockResolvedValue({});
+    applyCustomAllocationMock.mockResolvedValue({});
+
+    render(<StaffCustomisedAllocationPanel projectId={9} initialTeamCount={2} />);
+
+    await waitFor(() => {
+      expect(getCustomAllocationQuestionnairesMock).toHaveBeenCalledWith(9);
+    });
+
+    expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Project Preferences/i })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search questionnaires"), {
+      target: { value: "setup" },
+    });
+
+    expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: /Project Preferences/i })).not.toBeInTheDocument();
+  });
+
   it("requests and renders customised preview results", async () => {
     getCustomAllocationQuestionnairesMock.mockResolvedValue({
       project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },

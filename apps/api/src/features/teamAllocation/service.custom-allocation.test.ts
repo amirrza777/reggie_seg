@@ -9,6 +9,8 @@ import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 
+const originalCustomAllocationThreshold = process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
+
 vi.mock("./repo.js", () => ({
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
@@ -60,6 +62,11 @@ describe("teamAllocation service custom allocation", () => {
   });
 
   afterEach(() => {
+    if (originalCustomAllocationThreshold === undefined) {
+      delete process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
+    } else {
+      process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = originalCustomAllocationThreshold;
+    }
     vi.useRealTimers();
   });
 
@@ -259,6 +266,35 @@ describe("teamAllocation service custom allocation", () => {
     expect(result.responseRate).toBe(0);
     expect(result.respondingStudents).toBe(0);
     expect(result.nonRespondingStudents).toBe(0);
+  });
+
+  it("getCustomAllocationCoverageForProject uses configured response threshold", async () => {
+    process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = "92";
+
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 12, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    (repo.findRespondingStudentIdsForTemplateInProject as any).mockResolvedValue([1]);
+
+    const result = await getCustomAllocationCoverageForProject(7, 42, 5);
+
+    expect(result.responseThreshold).toBe(92);
   });
 
   it("previewCustomAllocationForProject validates input", async () => {

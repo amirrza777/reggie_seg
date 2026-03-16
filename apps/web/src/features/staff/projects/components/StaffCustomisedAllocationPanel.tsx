@@ -111,6 +111,7 @@ export function StaffCustomisedAllocationPanel({
   const [questionnaires, setQuestionnaires] = useState<CustomAllocationQuestionnaire[]>([]);
   const [isLoadingQuestionnaires, setIsLoadingQuestionnaires] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [questionnaireSearch, setQuestionnaireSearch] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [coverage, setCoverage] = useState<CustomAllocationCoverage | null>(null);
   const [isLoadingCoverage, setIsLoadingCoverage] = useState(false);
@@ -174,6 +175,26 @@ export function StaffCustomisedAllocationPanel({
     }
     return eligibleQuestionnaires.find((template) => template.id === parsedTemplateId) ?? null;
   }, [eligibleQuestionnaires, selectedTemplateId]);
+
+  const visibleQuestionnaires = useMemo(() => {
+    const normalizedQuery = questionnaireSearch.trim().toLowerCase();
+    const filteredTemplates =
+      normalizedQuery.length === 0
+        ? eligibleQuestionnaires
+        : eligibleQuestionnaires.filter((template) =>
+            template.templateName.toLowerCase().includes(normalizedQuery),
+          );
+
+    if (!selectedQuestionnaire) {
+      return filteredTemplates;
+    }
+
+    if (filteredTemplates.some((template) => template.id === selectedQuestionnaire.id)) {
+      return filteredTemplates;
+    }
+
+    return [selectedQuestionnaire, ...filteredTemplates];
+  }, [eligibleQuestionnaires, questionnaireSearch, selectedQuestionnaire]);
 
   const criteriaQuestions = useMemo(() => {
     if (!selectedQuestionnaire) {
@@ -497,6 +518,17 @@ export function StaffCustomisedAllocationPanel({
           Choose a questionnaire that has at least one multiple-choice, rating, or slider question.
         </p>
         <label className="staff-projects__allocation-field">
+          Search questionnaires
+          <input
+            type="search"
+            value={questionnaireSearch}
+            onChange={(event) => setQuestionnaireSearch(event.target.value)}
+            placeholder="Filter by template name"
+            aria-label="Search questionnaires"
+            disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
+          />
+        </label>
+        <label className="staff-projects__allocation-field">
           Select questionnaire
           <select
             className="staff-projects__custom-select"
@@ -509,7 +541,7 @@ export function StaffCustomisedAllocationPanel({
             aria-label="Select questionnaire"
           >
             <option value="">Select questionnaire</option>
-            {eligibleQuestionnaires.map((template) => {
+            {visibleQuestionnaires.map((template) => {
               const eligibleCount = countEligibleQuestions(template);
               return (
                 <option key={template.id} value={template.id}>
@@ -526,6 +558,14 @@ export function StaffCustomisedAllocationPanel({
         {!isLoadingQuestionnaires && !loadError && eligibleQuestionnaires.length === 0 ? (
           <p className="staff-projects__allocation-warning">
             No eligible questionnaire found yet. Create or copy one with non-text questions first.
+          </p>
+        ) : null}
+        {!isLoadingQuestionnaires &&
+        !loadError &&
+        eligibleQuestionnaires.length > 0 &&
+        visibleQuestionnaires.length === 0 ? (
+          <p className="staff-projects__allocation-note">
+            No questionnaire matches your search. Try a different keyword.
           </p>
         ) : null}
         {selectedQuestionnaire ? (

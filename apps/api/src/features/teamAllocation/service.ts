@@ -256,7 +256,7 @@ export type CustomAllocationApplied = {
   }>;
 };
 
-const CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = 80;
+const DEFAULT_CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = 80;
 const CUSTOM_ALLOCATION_PREVIEW_TTL_MS = 15 * 60 * 1000;
 
 type StoredCustomPreviewTeam = {
@@ -344,6 +344,15 @@ function cleanupExpiredCustomAllocationPreviews(referenceTime = Date.now()) {
       customAllocationPreviewCache.delete(previewId);
     }
   }
+}
+
+function getCustomAllocationResponseThreshold() {
+  const rawThreshold = process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
+  const parsedThreshold = Number(rawThreshold);
+  if (!Number.isFinite(parsedThreshold)) {
+    return DEFAULT_CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
+  }
+  return Math.min(100, Math.max(0, Number(parsedThreshold.toFixed(2))));
 }
 
 function storeCustomAllocationPreview(preview: StoredCustomAllocationPreview) {
@@ -574,7 +583,7 @@ export async function getCustomAllocationCoverageForProject(
     respondingStudents,
     nonRespondingStudents,
     responseRate,
-    responseThreshold: CUSTOM_ALLOCATION_RESPONSE_THRESHOLD,
+    responseThreshold: getCustomAllocationResponseThreshold(),
   };
 }
 
