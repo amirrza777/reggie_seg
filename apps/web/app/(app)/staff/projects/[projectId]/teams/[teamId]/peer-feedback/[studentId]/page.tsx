@@ -59,7 +59,7 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
     id: string;
     fromName: string;
     submittedAt: string;
-    answers: Array<{ id: string; question: string; answer: string | number }>;
+    answers: Array<{ id: string; question: string; answer: string | number | boolean | null }>;
     reviewText: string | null;
     agreementsJson: Record<string, { selected: string; score: number }> | null;
   }> = [];
