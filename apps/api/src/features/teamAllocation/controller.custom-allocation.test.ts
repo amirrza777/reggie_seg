@@ -159,4 +159,43 @@ describe("teamAllocation controller custom allocation handlers", () => {
       error: "Preview no longer exists. Generate a new preview and try again.",
     });
   });
+
+  it("applyCustomAllocationHandler maps stale vacancy conflicts", async () => {
+    (service.applyCustomAllocationForProject as any).mockRejectedValue({
+      code: "STUDENTS_NO_LONGER_VACANT",
+    });
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, body: { previewId: "p-1" } };
+    const res = mockResponse();
+
+    await applyCustomAllocationHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Some students are no longer vacant. Regenerate preview and try again.",
+    });
+  });
+
+  it("applyCustomAllocationHandler includes stale student details when provided", async () => {
+    (service.applyCustomAllocationForProject as any).mockRejectedValue({
+      code: "STUDENTS_NO_LONGER_VACANT",
+      staleStudents: [
+        { id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" },
+        { id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" },
+      ],
+    });
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, body: { previewId: "p-1" } };
+    const res = mockResponse();
+
+    await applyCustomAllocationHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error:
+        "Some students are no longer vacant: Jin Johannesdottir, Sunil Stefansdottir. Regenerate preview and try again.",
+      staleStudents: [
+        { id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com" },
+        { id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com" },
+      ],
+    });
+  });
 });

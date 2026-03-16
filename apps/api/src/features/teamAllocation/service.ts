@@ -317,6 +317,12 @@ type StoredCustomAllocationPreview = {
 };
 
 const customAllocationPreviewCache = new Map<string, StoredCustomAllocationPreview>();
+type CustomAllocationStaleStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
 
 function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocationQuestionType | null {
   const normalized = rawType.trim().toLowerCase().replaceAll("_", "-");
@@ -430,6 +436,30 @@ function resolveCustomAllocationTeamNames(
   }
 
   return normalizedNames;
+}
+
+function findStaleStudentsFromPreview(
+  previewTeams: StoredCustomPreviewTeam[],
+  currentlyVacantStudentIds: Set<number>,
+): CustomAllocationStaleStudent[] {
+  const staleById = new Map<number, CustomAllocationStaleStudent>();
+  for (const team of previewTeams) {
+    for (const member of team.members) {
+      if (currentlyVacantStudentIds.has(member.id)) {
+        continue;
+      }
+      if (staleById.has(member.id)) {
+        continue;
+      }
+      staleById.set(member.id, {
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        email: member.email,
+      });
+    }
+  }
+  return Array.from(staleById.values());
 }
 
 export async function listCustomAllocationQuestionnairesForProject(
@@ -785,12 +815,49 @@ export async function applyCustomAllocationForProject(
     })),
   }));
 
-  const appliedTeams = await applyRandomAllocationPlan(
-    project.id,
+  const currentlyVacantStudents = await findVacantModuleStudentsForProject(
     project.enterpriseId,
-    plannedTeams,
-    { teamNames: requestedTeamNames },
+    project.moduleId,
+    project.id,
   );
+  const currentlyVacantStudentIds = new Set(currentlyVacantStudents.map((student) => student.id));
+  const staleStudents = findStaleStudentsFromPreview(preview.previewTeams, currentlyVacantStudentIds);
+  if (staleStudents.length > 0) {
+    customAllocationPreviewCache.delete(previewId);
+    throw {
+      code: "STUDENTS_NO_LONGER_VACANT",
+      staleStudents,
+    };
+  }
+
+  let appliedTeams: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+  }>;
+  try {
+    appliedTeams = await applyRandomAllocationPlan(
+      project.id,
+      project.enterpriseId,
+      plannedTeams,
+      { teamNames: requestedTeamNames },
+    );
+  } catch (error: any) {
+    if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
+      customAllocationPreviewCache.delete(previewId);
+      const refreshedVacantStudents = await findVacantModuleStudentsForProject(
+        project.enterpriseId,
+        project.moduleId,
+        project.id,
+      );
+      const refreshedVacantStudentIds = new Set(refreshedVacantStudents.map((student) => student.id));
+      throw {
+        code: "STUDENTS_NO_LONGER_VACANT",
+        staleStudents: findStaleStudentsFromPreview(preview.previewTeams, refreshedVacantStudentIds),
+      };
+    }
+    throw error;
+  }
   customAllocationPreviewCache.delete(previewId);
   await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 

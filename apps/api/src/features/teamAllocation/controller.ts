@@ -63,6 +63,40 @@ function respondCustomAllocationValidationError(
   return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
 }
 
+function formatCustomAllocationStaleStudentNames(staleStudents: unknown): string | null {
+  if (!Array.isArray(staleStudents) || staleStudents.length === 0) {
+    return null;
+  }
+
+  const names = staleStudents
+    .map((student) => {
+      if (!student || typeof student !== "object") {
+        return "";
+      }
+      const row = student as Record<string, unknown>;
+      const firstName = typeof row.firstName === "string" ? row.firstName.trim() : "";
+      const lastName = typeof row.lastName === "string" ? row.lastName.trim() : "";
+      const fullName = `${firstName} ${lastName}`.trim();
+      if (fullName.length > 0) {
+        return fullName;
+      }
+      if (typeof row.email === "string" && row.email.trim().length > 0) {
+        return row.email.trim();
+      }
+      return "";
+    })
+    .filter((name) => name.length > 0);
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  const visibleNames = names.slice(0, 5);
+  const remainderCount = names.length - visibleNames.length;
+  const suffix = remainderCount > 0 ? ` (+${remainderCount} more)` : "";
+  return `${visibleNames.join(", ")}${suffix}`;
+}
+
 export async function createTeamInviteHandler(req: Request, res: Response) {
   const teamId = Number(req.body?.teamId);
   const inviterId = Number(req.body?.inviterId);
@@ -489,7 +523,14 @@ export async function applyCustomAllocationHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "Project is archived" });
     }
     if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
-      return res.status(409).json({ error: "Some students are no longer vacant. Regenerate preview and try again." });
+      const staleNames = formatCustomAllocationStaleStudentNames(error?.staleStudents);
+      const errorMessage = staleNames
+        ? `Some students are no longer vacant: ${staleNames}. Regenerate preview and try again.`
+        : "Some students are no longer vacant. Regenerate preview and try again.";
+      return res.status(409).json({
+        error: errorMessage,
+        ...(Array.isArray(error?.staleStudents) ? { staleStudents: error.staleStudents } : {}),
+      });
     }
     if (error?.code === "TEAM_NAME_ALREADY_EXISTS") {
       return res.status(409).json({ error: "One or more team names already exist in this enterprise" });

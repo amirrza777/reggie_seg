@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyCustomAllocationForProject,
   getCustomAllocationCoverageForProject,
@@ -57,6 +57,10 @@ describe("teamAllocation service custom allocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("listCustomAllocationQuestionnairesForProject enforces staff scope and archived guard", async () => {
@@ -656,5 +660,168 @@ describe("teamAllocation service custom allocation", () => {
         teamNames: ["Team Same", "team same"],
       }),
     ).rejects.toEqual({ code: "DUPLICATE_TEAM_NAMES" });
+  });
+
+  it("applyCustomAllocationForProject returns stale student details before transaction apply", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any)
+      .mockResolvedValueOnce([
+        { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+        { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      ])
+      .mockResolvedValueOnce([{ id: 2, firstName: "B", lastName: "B", email: "b@example.com" }]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1 } },
+      { reviewerUserId: 2, answersJson: { "11": 5 } },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
+    });
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: preview.previewId,
+      }),
+    ).rejects.toMatchObject({
+      code: "STUDENTS_NO_LONGER_VACANT",
+      staleStudents: [
+        expect.objectContaining({
+          id: 1,
+          email: "a@example.com",
+        }),
+      ],
+    });
+    expect(repo.applyRandomAllocationPlan).not.toHaveBeenCalled();
+  });
+
+  it("applyCustomAllocationForProject rejects expired previews", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-16T10:00:00.000Z"));
+
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    ]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1 } },
+      { reviewerUserId: 2, answersJson: { "11": 5 } },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
+    });
+
+    vi.setSystemTime(new Date("2026-03-16T10:16:00.000Z"));
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: preview.previewId,
+      }),
+    ).rejects.toEqual({ code: "PREVIEW_NOT_FOUND_OR_EXPIRED" });
+    expect(repo.applyRandomAllocationPlan).not.toHaveBeenCalled();
+  });
+
+  it("applyCustomAllocationForProject invalidates preview after stale vacancy conflict", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any)
+      .mockResolvedValueOnce([
+        { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+        { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+        { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      ])
+      .mockResolvedValueOnce([
+        { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      ]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1 } },
+      { reviewerUserId: 2, answersJson: { "11": 5 } },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
+    });
+
+    (repo.applyRandomAllocationPlan as any).mockRejectedValueOnce({
+      code: "STUDENTS_NO_LONGER_VACANT",
+    });
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: preview.previewId,
+      }),
+    ).rejects.toMatchObject({
+      code: "STUDENTS_NO_LONGER_VACANT",
+      staleStudents: [
+        expect.objectContaining({
+          id: 1,
+          email: "a@example.com",
+        }),
+      ],
+    });
+
+    await expect(
+      applyCustomAllocationForProject(7, 42, {
+        previewId: preview.previewId,
+      }),
+    ).rejects.toEqual({ code: "PREVIEW_NOT_FOUND_OR_EXPIRED" });
   });
 });

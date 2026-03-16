@@ -353,4 +353,88 @@ describe("StaffCustomisedAllocationPanel", () => {
       expect(screen.getByText("boom")).toBeInTheDocument();
     });
   });
+
+  it("shows stale-student details when apply fails due to vacancy conflicts", async () => {
+    getCustomAllocationQuestionnairesMock.mockResolvedValue({
+      project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
+      questionnaires: [
+        {
+          id: 101,
+          templateName: "Team Setup",
+          ownerId: 1,
+          isPublic: false,
+          eligibleQuestionCount: 1,
+          eligibleQuestions: [{ id: 1, label: "Preferred working style", type: "multiple-choice" }],
+        },
+      ],
+    });
+    getCustomAllocationCoverageMock.mockResolvedValue({
+      project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
+      questionnaireTemplateId: 101,
+      totalAvailableStudents: 2,
+      respondingStudents: 2,
+      nonRespondingStudents: 0,
+      responseRate: 100,
+      responseThreshold: 80,
+    });
+    previewCustomAllocationMock.mockResolvedValue({
+      project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
+      questionnaireTemplateId: 101,
+      previewId: "custom-preview-1",
+      generatedAt: "2026-03-16T12:00:00.000Z",
+      expiresAt: "2026-03-16T12:15:00.000Z",
+      teamCount: 2,
+      respondentCount: 2,
+      nonRespondentCount: 0,
+      nonRespondentStrategy: "distribute_randomly",
+      criteriaSummary: [{ questionId: 1, strategy: "diversify", weight: 1, satisfactionScore: 0.7 }],
+      teamCriteriaSummary: [],
+      overallScore: 0.7,
+      previewTeams: [
+        {
+          index: 0,
+          suggestedName: "Custom Team 1",
+          members: [{ id: 11, firstName: "Jin", lastName: "Johannesdottir", email: "jin@example.com", responseStatus: "RESPONDED" }],
+        },
+        {
+          index: 1,
+          suggestedName: "Custom Team 2",
+          members: [{ id: 12, firstName: "Sunil", lastName: "Stefansdottir", email: "sunil@example.com", responseStatus: "RESPONDED" }],
+        },
+      ],
+    });
+    applyCustomAllocationMock.mockRejectedValue(
+      new Error(
+        "Some students are no longer vacant: Jin Johannesdottir. Regenerate preview and try again.",
+      ),
+    );
+
+    render(<StaffCustomisedAllocationPanel projectId={9} initialTeamCount={2} />);
+
+    await waitFor(() => {
+      expect(getCustomAllocationQuestionnairesMock).toHaveBeenCalledWith(9);
+    });
+    fireEvent.change(screen.getByLabelText("Select questionnaire"), { target: { value: "101" } });
+    await waitFor(() => {
+      expect(getCustomAllocationCoverageMock).toHaveBeenCalledWith(9, 101);
+    });
+    fireEvent.click(screen.getByRole("button", { name: /preview customised teams/i }));
+    await waitFor(() => {
+      expect(previewCustomAllocationMock).toHaveBeenCalled();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /preview customised teams/i })).toBeEnabled();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
+    fireEvent.click(screen.getByRole("button", { name: /apply allocation/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          "Some students are no longer vacant: Jin Johannesdottir. Regenerate preview and try again.",
+        ),
+      ).toBeInTheDocument();
+    });
+  });
 });
