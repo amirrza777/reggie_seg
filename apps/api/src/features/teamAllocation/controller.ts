@@ -74,6 +74,22 @@ export async function listTeamInvitesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for list invites received by the authenticated user. */
+export async function listReceivedInvitesHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const invites = await listReceivedInvites(userId);
+    return res.json(invites);
+  } catch (error) {
+    console.error("Error fetching received team invites:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 /** Handles requests for create team. */
 export async function createTeamHandler(req: Request, res: Response) {
   const userId = Number(req.body?.userId);

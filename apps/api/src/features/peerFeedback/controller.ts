@@ -64,6 +64,27 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for bulk peer feedback completion statuses. */
+export async function getPeerFeedbackStatusesHandler(req: Request, res: Response) {
+  const feedbackIds = req.body?.feedbackIds;
+  if (!Array.isArray(feedbackIds)) {
+    return res.status(400).json({ error: "feedbackIds must be an array" });
+  }
+
+  const parsedFeedbackIds = feedbackIds.map((feedbackId) => Number(feedbackId));
+  if (parsedFeedbackIds.some((feedbackId) => Number.isNaN(feedbackId))) {
+    return res.status(400).json({ error: "feedbackIds must contain only numeric IDs" });
+  }
+
+  try {
+    const statuses = await getFeedbackReviewStatuses(parsedFeedbackIds);
+    return res.json({ statuses });
+  } catch (error) {
+    console.error("Error retrieving peer feedback statuses:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 /** Handles requests for get peer assessment. */
 export async function getPeerAssessmentHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
