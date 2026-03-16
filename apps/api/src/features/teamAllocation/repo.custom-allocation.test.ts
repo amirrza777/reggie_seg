@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   findCustomAllocationQuestionnairesForStaff,
   findCustomAllocationTemplateForStaff,
+  findLatestCustomAllocationResponsesForStudents,
   findRespondingStudentIdsForTemplateInProject,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
@@ -104,6 +105,64 @@ describe("teamAllocation repo custom allocation reads", () => {
         reviewerUserId: true,
       },
       distinct: ["reviewerUserId"],
+    });
+  });
+
+  it("findLatestCustomAllocationResponsesForStudents short-circuits for empty student list", async () => {
+    await expect(findLatestCustomAllocationResponsesForStudents(42, 5, [])).resolves.toEqual([]);
+    expect(prisma.peerAssessment.findMany).not.toHaveBeenCalled();
+  });
+
+  it("findLatestCustomAllocationResponsesForStudents returns latest entry per reviewer", async () => {
+    (prisma.peerAssessment.findMany as any).mockResolvedValue([
+      {
+        id: 31,
+        reviewerUserId: 2,
+        answersJson: { "11": "A" },
+        submittedAt: new Date("2026-03-10T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-10T10:00:00.000Z"),
+      },
+      {
+        id: 30,
+        reviewerUserId: 2,
+        answersJson: { "11": "B" },
+        submittedAt: new Date("2026-03-09T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-09T10:00:00.000Z"),
+      },
+      {
+        id: 40,
+        reviewerUserId: 4,
+        answersJson: [{ question: "11", answer: 3 }],
+        submittedAt: new Date("2026-03-11T10:00:00.000Z"),
+        updatedAt: new Date("2026-03-11T10:00:00.000Z"),
+      },
+    ]);
+
+    await expect(findLatestCustomAllocationResponsesForStudents(42, 5, [1, 2, 3, 4])).resolves.toEqual([
+      { reviewerUserId: 2, answersJson: { "11": "A" } },
+      { reviewerUserId: 4, answersJson: [{ question: "11", answer: 3 }] },
+    ]);
+    expect(prisma.peerAssessment.findMany).toHaveBeenCalledWith({
+      where: {
+        projectId: 42,
+        templateId: 5,
+        reviewerUserId: {
+          in: [1, 2, 3, 4],
+        },
+      },
+      select: {
+        id: true,
+        reviewerUserId: true,
+        answersJson: true,
+        submittedAt: true,
+        updatedAt: true,
+      },
+      orderBy: [
+        { reviewerUserId: "asc" },
+        { submittedAt: "desc" },
+        { updatedAt: "desc" },
+        { id: "desc" },
+      ],
     });
   });
 });

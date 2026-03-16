@@ -60,6 +60,11 @@ export type CustomAllocationTemplate = {
   questions: CustomAllocationTemplateQuestion[];
 };
 
+export type CustomAllocationLatestResponse = {
+  reviewerUserId: number;
+  answersJson: unknown;
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -419,6 +424,55 @@ export async function findRespondingStudentIdsForTemplateInProject(
   });
 
   return responses.map((response) => response.reviewerUserId);
+}
+
+export async function findLatestCustomAllocationResponsesForStudents(
+  projectId: number,
+  templateId: number,
+  studentIds: number[],
+): Promise<CustomAllocationLatestResponse[]> {
+  if (studentIds.length === 0) {
+    return [];
+  }
+
+  const records = await prisma.peerAssessment.findMany({
+    where: {
+      projectId,
+      templateId,
+      reviewerUserId: {
+        in: studentIds,
+      },
+    },
+    select: {
+      id: true,
+      reviewerUserId: true,
+      answersJson: true,
+      submittedAt: true,
+      updatedAt: true,
+    },
+    orderBy: [
+      { reviewerUserId: "asc" },
+      { submittedAt: "desc" },
+      { updatedAt: "desc" },
+      { id: "desc" },
+    ],
+  });
+
+  const latestByReviewer = new Set<number>();
+  const latestResponses: CustomAllocationLatestResponse[] = [];
+
+  for (const record of records) {
+    if (latestByReviewer.has(record.reviewerUserId)) {
+      continue;
+    }
+    latestByReviewer.add(record.reviewerUserId);
+    latestResponses.push({
+      reviewerUserId: record.reviewerUserId,
+      answersJson: record.answersJson,
+    });
+  }
+
+  return latestResponses;
 }
 
 export async function applyRandomAllocationPlan(

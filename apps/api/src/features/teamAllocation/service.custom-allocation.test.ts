@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   getCustomAllocationCoverageForProject,
   listCustomAllocationQuestionnairesForProject,
+  previewCustomAllocationForProject,
 } from "./service.js";
 import * as repo from "./repo.js";
 import { prisma } from "../../shared/db.js";
@@ -14,6 +15,7 @@ vi.mock("./repo.js", () => ({
   findCustomAllocationTemplateForStaff: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findLatestCustomAllocationResponsesForStudents: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
@@ -251,5 +253,224 @@ describe("teamAllocation service custom allocation", () => {
     expect(result.responseRate).toBe(0);
     expect(result.respondingStudents).toBe(0);
     expect(result.nonRespondingStudents).toBe(0);
+  });
+
+  it("previewCustomAllocationForProject validates input", async () => {
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 0,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [],
+      }),
+    ).rejects.toEqual({ code: "INVALID_TEAM_COUNT" });
+
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 0,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [],
+      }),
+    ).rejects.toEqual({ code: "INVALID_TEMPLATE_ID" });
+
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "invalid" as any,
+        criteria: [],
+      }),
+    ).rejects.toEqual({ code: "INVALID_NON_RESPONDENT_STRATEGY" });
+
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 7 }],
+      }),
+    ).rejects.toEqual({ code: "INVALID_CRITERIA" });
+  });
+
+  it("previewCustomAllocationForProject enforces scope/template/student guards", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" });
+
+    (repo.findStaffScopedProject as any).mockResolvedValueOnce({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: new Date(),
+      enterpriseId: "ent-9",
+    });
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "PROJECT_ARCHIVED" });
+
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValueOnce(null);
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "TEMPLATE_NOT_FOUND_OR_FORBIDDEN" });
+
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValueOnce({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValueOnce([]);
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "NO_VACANT_STUDENTS" });
+
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValueOnce({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Skill level", type: "rating" }],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValueOnce([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+    ]);
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" });
+  });
+
+  it("previewCustomAllocationForProject rejects criteria that are not part of eligible template questions", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [{ id: 11, label: "Notes", type: "text" }],
+    });
+
+    await expect(
+      previewCustomAllocationForProject(7, 42, {
+        questionnaireTemplateId: 5,
+        teamCount: 1,
+        nonRespondentStrategy: "exclude",
+        criteria: [{ questionId: 11, strategy: "diversify", weight: 2 }],
+      }),
+    ).rejects.toEqual({ code: "INVALID_CRITERIA" });
+  });
+
+  it("previewCustomAllocationForProject returns generated preview payload", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+    });
+    (repo.findCustomAllocationTemplateForStaff as any).mockResolvedValue({
+      id: 5,
+      templateName: "Team Setup",
+      ownerId: 7,
+      isPublic: false,
+      questions: [
+        { id: 11, label: "Skill level", type: "rating" },
+        { id: 12, label: "Interest", type: "multiple-choice" },
+      ],
+    });
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
+      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+    ]);
+    (repo.findLatestCustomAllocationResponsesForStudents as any).mockResolvedValue([
+      { reviewerUserId: 1, answersJson: { "11": 1, "12": "Backend" } },
+      { reviewerUserId: 2, answersJson: { "11": 5, "12": "Frontend" } },
+      { reviewerUserId: 3, answersJson: [{ question: "11", answer: 3 }, { questionId: 12, answer: "Backend" }] },
+    ]);
+
+    const preview = await previewCustomAllocationForProject(7, 42, {
+      questionnaireTemplateId: 5,
+      teamCount: 2,
+      seed: 2026,
+      nonRespondentStrategy: "distribute_randomly",
+      criteria: [
+        { questionId: 11, strategy: "diversify", weight: 4 },
+        { questionId: 12, strategy: "ignore", weight: 1 },
+      ],
+    });
+
+    expect(repo.findLatestCustomAllocationResponsesForStudents).toHaveBeenCalledWith(42, 5, [1, 2, 3, 4]);
+    expect(preview.project).toEqual({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+    });
+    expect(preview.questionnaireTemplateId).toBe(5);
+    expect(preview.previewId).toMatch(/^custom-preview-/);
+    expect(preview.teamCount).toBe(2);
+    expect(preview.respondentCount).toBe(3);
+    expect(preview.nonRespondentCount).toBe(1);
+    expect(preview.nonRespondentStrategy).toBe("distribute_randomly");
+    expect(preview.criteriaSummary).toEqual([
+      expect.objectContaining({
+        questionId: 11,
+        strategy: "diversify",
+        weight: 4,
+      }),
+    ]);
+    expect(preview.overallScore).toBeGreaterThanOrEqual(0);
+    expect(preview.overallScore).toBeLessThanOrEqual(1);
+    expect(preview.previewTeams).toHaveLength(2);
+    const allMembers = preview.previewTeams.flatMap((team) => team.members);
+    expect(allMembers).toHaveLength(4);
+    expect(allMembers.filter((member) => member.responseStatus === "RESPONDED")).toHaveLength(3);
+    expect(allMembers.filter((member) => member.responseStatus === "NO_RESPONSE")).toHaveLength(1);
   });
 });

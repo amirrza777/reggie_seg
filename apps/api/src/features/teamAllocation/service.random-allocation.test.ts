@@ -29,6 +29,7 @@ vi.mock("./repo.js", () => ({
   findCustomAllocationTemplateForStaff: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findLatestCustomAllocationResponsesForStudents: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),

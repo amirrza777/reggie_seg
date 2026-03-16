@@ -3,6 +3,7 @@ import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
 import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
+import { planCustomAllocationTeams } from "./customAllocator.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
   applyManualAllocationTeam,
@@ -12,6 +13,7 @@ import {
   findCustomAllocationTemplateForStaff,
   findActiveInvite,
   findInviteContext,
+  findLatestCustomAllocationResponsesForStudents,
   findPendingInvitesForEmail,
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
@@ -229,6 +231,7 @@ export type CustomAllocationApplied = {
 };
 
 const CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = 80;
+const CUSTOM_ALLOCATION_PREVIEW_TTL_MS = 15 * 60 * 1000;
 
 function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocationQuestionType | null {
   const normalized = rawType.trim().toLowerCase().replaceAll("_", "-");
@@ -242,6 +245,46 @@ function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocatio
     return "slider";
   }
   return null;
+}
+
+function parseCustomAllocationAnswers(answersJson: unknown): Map<number, unknown> {
+  const answersByQuestionId = new Map<number, unknown>();
+
+  if (Array.isArray(answersJson)) {
+    for (const answerItem of answersJson) {
+      if (!answerItem || typeof answerItem !== "object") {
+        continue;
+      }
+
+      const row = answerItem as Record<string, unknown>;
+      const rawQuestionId = row.questionId ?? row.question;
+      const questionId = Number(rawQuestionId);
+      if (!Number.isInteger(questionId) || questionId < 1) {
+        continue;
+      }
+
+      if (!Object.prototype.hasOwnProperty.call(row, "answer")) {
+        continue;
+      }
+
+      answersByQuestionId.set(questionId, row.answer);
+    }
+    return answersByQuestionId;
+  }
+
+  if (!answersJson || typeof answersJson !== "object") {
+    return answersByQuestionId;
+  }
+
+  for (const [rawQuestionId, answer] of Object.entries(answersJson as Record<string, unknown>)) {
+    const questionId = Number(rawQuestionId);
+    if (!Number.isInteger(questionId) || questionId < 1) {
+      continue;
+    }
+    answersByQuestionId.set(questionId, answer);
+  }
+
+  return answersByQuestionId;
 }
 
 export async function listCustomAllocationQuestionnairesForProject(
@@ -361,11 +404,171 @@ export async function getCustomAllocationCoverageForProject(
 }
 
 export async function previewCustomAllocationForProject(
-  _staffId: number,
-  _projectId: number,
-  _input: CustomAllocationPreviewInput,
+  staffId: number,
+  projectId: number,
+  input: CustomAllocationPreviewInput,
 ): Promise<CustomAllocationPreview> {
-  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+  if (!Number.isInteger(input.teamCount) || input.teamCount < 1) {
+    throw { code: "INVALID_TEAM_COUNT" };
+  }
+  if (!Number.isInteger(input.questionnaireTemplateId) || input.questionnaireTemplateId < 1) {
+    throw { code: "INVALID_TEMPLATE_ID" };
+  }
+  if (
+    input.nonRespondentStrategy !== "distribute_randomly" &&
+    input.nonRespondentStrategy !== "exclude"
+  ) {
+    throw { code: "INVALID_NON_RESPONDENT_STRATEGY" };
+  }
+
+  if (
+    !Array.isArray(input.criteria) ||
+    input.criteria.some(
+      (criterion) =>
+        !Number.isInteger(criterion.questionId) ||
+        criterion.questionId < 1 ||
+        (criterion.strategy !== "diversify" &&
+          criterion.strategy !== "group" &&
+          criterion.strategy !== "ignore") ||
+        !Number.isInteger(criterion.weight) ||
+        criterion.weight < 1 ||
+        criterion.weight > 5,
+    )
+  ) {
+    throw { code: "INVALID_CRITERIA" };
+  }
+
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const template = await findCustomAllocationTemplateForStaff(staffId, input.questionnaireTemplateId);
+  if (!template) {
+    throw { code: "TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  const eligibleQuestions = template.questions
+    .map((question) => {
+      const type = normalizeCustomAllocationQuestionType(question.type);
+      if (!type) {
+        return null;
+      }
+      return {
+        id: question.id,
+        label: question.label,
+        type,
+      };
+    })
+    .filter((question): question is NonNullable<typeof question> => question !== null);
+  const eligibleQuestionIds = new Set(eligibleQuestions.map((question) => question.id));
+  const hasInvalidCriterionQuestion = input.criteria.some(
+    (criterion) => !eligibleQuestionIds.has(criterion.questionId),
+  );
+  if (hasInvalidCriterionQuestion) {
+    throw { code: "INVALID_CRITERIA" };
+  }
+
+  const uniqueCriteriaQuestionIds = new Set(input.criteria.map((criterion) => criterion.questionId));
+  if (uniqueCriteriaQuestionIds.size !== input.criteria.length) {
+    throw { code: "INVALID_CRITERIA" };
+  }
+
+  const students = await findVacantModuleStudentsForProject(
+    project.enterpriseId,
+    project.moduleId,
+    project.id,
+  );
+  if (students.length === 0) {
+    throw { code: "NO_VACANT_STUDENTS" };
+  }
+  if (input.teamCount > students.length) {
+    throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
+  }
+
+  const studentIds = students.map((student) => student.id);
+  const responseRecords = await findLatestCustomAllocationResponsesForStudents(
+    project.id,
+    template.id,
+    studentIds,
+  );
+  const responsesByReviewerId = new Map<number, Map<number, unknown>>();
+  for (const record of responseRecords) {
+    responsesByReviewerId.set(record.reviewerUserId, parseCustomAllocationAnswers(record.answersJson));
+  }
+
+  const respondents = students
+    .filter((student) => responsesByReviewerId.has(student.id))
+    .map((student) => {
+      const answersByQuestionId = responsesByReviewerId.get(student.id) ?? new Map<number, unknown>();
+      const responses: Record<number, unknown> = {};
+      for (const [questionId, answer] of answersByQuestionId.entries()) {
+        responses[questionId] = answer;
+      }
+      return {
+        ...student,
+        responses,
+      };
+    });
+  const nonRespondents = students.filter((student) => !responsesByReviewerId.has(student.id));
+
+  const criteriaForAllocator = input.criteria
+    .filter((criterion) => criterion.strategy !== "ignore")
+    .map((criterion) => ({
+      questionId: criterion.questionId,
+      strategy: criterion.strategy,
+      weight: criterion.weight,
+    })) as Array<{ questionId: number; strategy: "diversify" | "group"; weight: number }>;
+
+  const allocationPlan = planCustomAllocationTeams({
+    respondents,
+    nonRespondents,
+    criteria: criteriaForAllocator,
+    teamCount: input.teamCount,
+    nonRespondentStrategy: input.nonRespondentStrategy,
+    ...(input.seed !== undefined ? { seed: input.seed } : {}),
+  });
+
+  const generatedAt = new Date();
+  const expiresAt = new Date(generatedAt.getTime() + CUSTOM_ALLOCATION_PREVIEW_TTL_MS);
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    questionnaireTemplateId: template.id,
+    previewId: `custom-preview-${crypto.randomUUID()}`,
+    generatedAt: generatedAt.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    teamCount: input.teamCount,
+    respondentCount: respondents.length,
+    nonRespondentCount: nonRespondents.length,
+    nonRespondentStrategy: input.nonRespondentStrategy,
+    criteriaSummary: allocationPlan.criterionScores.map((criterionScore) => ({
+      questionId: criterionScore.questionId,
+      strategy: criterionScore.strategy,
+      weight: criterionScore.weight,
+      satisfactionScore: criterionScore.satisfactionScore,
+    })),
+    overallScore: allocationPlan.overallScore,
+    previewTeams: allocationPlan.teams.map((team, index) => ({
+      index: team.index,
+      suggestedName: `Custom Team ${index + 1}`,
+      members: team.members.map((member) => ({
+        id: member.id,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        email: member.email,
+        responseStatus: member.responseStatus,
+      })),
+    })),
+  };
 }
 
 export async function applyCustomAllocationForProject(
