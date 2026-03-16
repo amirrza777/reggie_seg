@@ -122,6 +122,14 @@ export async function findPendingInvitesForEmail(email: string) {
   });
 }
 
+/** Returns the normalized email address for a user when present. */
+export async function findUserEmailById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+}
+
 /** Updates the invite status from pending. */
 export async function updateInviteStatusFromPending(
   inviteId: string,
