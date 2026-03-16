@@ -111,6 +111,7 @@ describe("teamAllocation controller custom allocation handlers", () => {
       nonRespondentCount: 1,
       nonRespondentStrategy: "distribute_randomly",
       criteriaSummary: [],
+      teamCriteriaSummary: [],
       overallScore: 0.81,
       previewTeams: [],
     });

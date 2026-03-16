@@ -165,6 +165,32 @@ export type CustomAllocationPreview = {
     weight: number;
     satisfactionScore: number;
   }>;
+  teamCriteriaSummary: Array<{
+    teamIndex: number;
+    criteria: Array<{
+      questionId: number;
+      strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+      weight: number;
+      responseCount: number;
+      summary:
+        | {
+            kind: "none";
+          }
+        | {
+            kind: "numeric";
+            average: number;
+            min: number;
+            max: number;
+          }
+        | {
+            kind: "categorical";
+            categories: Array<{
+              value: string;
+              count: number;
+            }>;
+          };
+    }>;
+  }>;
   overallScore: number;
   previewTeams: Array<{
     index: number;

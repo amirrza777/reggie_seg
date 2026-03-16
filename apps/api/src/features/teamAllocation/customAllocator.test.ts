@@ -205,6 +205,39 @@ describe("team allocation custom allocator", () => {
     expect(excluded.teams.flatMap((team) => team.members)).toHaveLength(4);
   });
 
+  it("returns per-team criterion breakdown summaries", () => {
+    const respondents = [
+      createRespondent(1, { 1: "Backend", 2: 2 }),
+      createRespondent(2, { 1: "Frontend", 2: 4 }),
+      createRespondent(3, { 1: "Backend", 2: 3 }),
+      createRespondent(4, { 1: "Frontend", 2: 5 }),
+    ];
+
+    const plan = planCustomAllocationTeams({
+      respondents,
+      nonRespondents: [],
+      criteria: [
+        { questionId: 1, strategy: "diversify", weight: 3 },
+        { questionId: 2, strategy: "group", weight: 2 },
+      ],
+      teamCount: 2,
+      nonRespondentStrategy: "exclude",
+      seed: 77,
+    });
+
+    expect(plan.teamCriterionBreakdowns).toHaveLength(2);
+    expect(plan.teamCriterionBreakdowns[0].criteria).toHaveLength(2);
+    const categoricalSummary = plan.teamCriterionBreakdowns[0].criteria.find(
+      (criterion) => criterion.questionId === 1,
+    )?.summary;
+    const numericSummary = plan.teamCriterionBreakdowns[0].criteria.find(
+      (criterion) => criterion.questionId === 2,
+    )?.summary;
+
+    expect(categoricalSummary?.kind).toBe("categorical");
+    expect(numericSummary?.kind).toBe("numeric");
+  });
+
   it("handles edge cases", () => {
     const respondents = [
       createRespondent(1, { 1: 1 }),

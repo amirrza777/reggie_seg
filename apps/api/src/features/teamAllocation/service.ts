@@ -194,6 +194,32 @@ export type CustomAllocationPreview = {
     weight: number;
     satisfactionScore: number;
   }>;
+  teamCriteriaSummary: Array<{
+    teamIndex: number;
+    criteria: Array<{
+      questionId: number;
+      strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+      weight: number;
+      responseCount: number;
+      summary:
+        | {
+            kind: "none";
+          }
+        | {
+            kind: "numeric";
+            average: number;
+            min: number;
+            max: number;
+          }
+        | {
+            kind: "categorical";
+            categories: Array<{
+              value: string;
+              count: number;
+            }>;
+          };
+    }>;
+  }>;
   overallScore: number;
   previewTeams: Array<{
     index: number;
@@ -259,6 +285,32 @@ type StoredCustomAllocationPreview = {
     strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
     weight: number;
     satisfactionScore: number;
+  }>;
+  teamCriteriaSummary: Array<{
+    teamIndex: number;
+    criteria: Array<{
+      questionId: number;
+      strategy: Exclude<CustomAllocationCriteriaStrategy, "ignore">;
+      weight: number;
+      responseCount: number;
+      summary:
+        | {
+            kind: "none";
+          }
+        | {
+            kind: "numeric";
+            average: number;
+            min: number;
+            max: number;
+          }
+        | {
+            kind: "categorical";
+            categories: Array<{
+              value: string;
+              count: number;
+            }>;
+          };
+    }>;
   }>;
   overallScore: number;
   previewTeams: StoredCustomPreviewTeam[];
@@ -645,6 +697,16 @@ export async function previewCustomAllocationForProject(
     weight: criterionScore.weight,
     satisfactionScore: criterionScore.satisfactionScore,
   }));
+  const teamCriteriaSummary = allocationPlan.teamCriterionBreakdowns.map((team) => ({
+    teamIndex: team.teamIndex,
+    criteria: team.criteria.map((criterion) => ({
+      questionId: criterion.questionId,
+      strategy: criterion.strategy,
+      weight: criterion.weight,
+      responseCount: criterion.responseCount,
+      summary: criterion.summary,
+    })),
+  }));
   const storedPreview: StoredCustomAllocationPreview = {
     previewId,
     staffId,
@@ -655,6 +717,7 @@ export async function previewCustomAllocationForProject(
     teamCount: input.teamCount,
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteriaSummary,
+    teamCriteriaSummary,
     overallScore: allocationPlan.overallScore,
     previewTeams,
   };
@@ -676,6 +739,7 @@ export async function previewCustomAllocationForProject(
     nonRespondentCount: nonRespondents.length,
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteriaSummary,
+    teamCriteriaSummary,
     overallScore: allocationPlan.overallScore,
     previewTeams,
   };

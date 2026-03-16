@@ -467,6 +467,18 @@ describe("teamAllocation service custom allocation", () => {
         weight: 4,
       }),
     ]);
+    expect(preview.teamCriteriaSummary).toHaveLength(2);
+    expect(preview.teamCriteriaSummary[0]).toEqual(
+      expect.objectContaining({
+        teamIndex: 0,
+      }),
+    );
+    expect(preview.teamCriteriaSummary[0].criteria[0]).toEqual(
+      expect.objectContaining({
+        questionId: 11,
+        strategy: "diversify",
+      }),
+    );
     expect(preview.overallScore).toBeGreaterThanOrEqual(0);
     expect(preview.overallScore).toBeLessThanOrEqual(1);
     expect(preview.previewTeams).toHaveLength(2);

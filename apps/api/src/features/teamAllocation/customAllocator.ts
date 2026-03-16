@@ -29,6 +29,32 @@ export type CustomAllocationPlan<TStudent extends { id: number }> = {
     weight: number;
     satisfactionScore: number;
   }>;
+  teamCriterionBreakdowns: Array<{
+    teamIndex: number;
+    criteria: Array<{
+      questionId: number;
+      strategy: AllocationStrategy;
+      weight: number;
+      responseCount: number;
+      summary:
+        | {
+            kind: "none";
+          }
+        | {
+            kind: "numeric";
+            average: number;
+            min: number;
+            max: number;
+          }
+        | {
+            kind: "categorical";
+            categories: Array<{
+              value: string;
+              count: number;
+            }>;
+          };
+    }>;
+  }>;
   overallScore: number;
 };
 
@@ -311,6 +337,74 @@ function scoreCriterion(criterion: CriterionRuntime, teams: number[][]): number 
   return scoreGroupCategorical(criterion, teams);
 }
 
+function roundToTwo(value: number): number {
+  return Number(value.toFixed(2));
+}
+
+function buildTeamCriterionBreakdowns(criteria: CriterionRuntime[], teams: number[][]) {
+  return teams.map((team, teamIndex) => ({
+    teamIndex,
+    criteria: criteria.map((criterion) => {
+      const values = team
+        .map((index) => criterion.values[index])
+        .filter((value): value is number | string => value !== null);
+
+      if (values.length === 0) {
+        return {
+          questionId: criterion.questionId,
+          strategy: criterion.strategy,
+          weight: criterion.weight,
+          responseCount: 0,
+          summary: { kind: "none" as const },
+        };
+      }
+
+      if (criterion.kind === "numeric") {
+        const numericValues = values as number[];
+        const average = mean(numericValues);
+        return {
+          questionId: criterion.questionId,
+          strategy: criterion.strategy,
+          weight: criterion.weight,
+          responseCount: numericValues.length,
+          summary: {
+            kind: "numeric" as const,
+            average: roundToTwo(average),
+            min: roundToTwo(Math.min(...numericValues)),
+            max: roundToTwo(Math.max(...numericValues)),
+          },
+        };
+      }
+
+      const counts = new Map<string, number>();
+      for (const value of values) {
+        const key = String(value);
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+
+      const categories = Array.from(counts.entries())
+        .sort((left, right) => {
+          if (right[1] !== left[1]) {
+            return right[1] - left[1];
+          }
+          return left[0].localeCompare(right[0]);
+        })
+        .map(([value, count]) => ({ value, count }));
+
+      return {
+        questionId: criterion.questionId,
+        strategy: criterion.strategy,
+        weight: criterion.weight,
+        responseCount: values.length,
+        summary: {
+          kind: "categorical" as const,
+          categories,
+        },
+      };
+    }),
+  }));
+}
+
 function evaluateOverallScore(criteria: CriterionRuntime[], teams: number[][]): number {
   if (criteria.length === 0) {
     return 0;
@@ -444,6 +538,7 @@ export function planCustomAllocationTeams<TStudent extends { id: number }>(
     weight: criterion.weight,
     satisfactionScore: Number(scoreCriterion(criterion, bestTeams).toFixed(4)),
   }));
+  const teamCriterionBreakdowns = buildTeamCriterionBreakdowns(criteriaRuntime, bestTeams);
 
   const teamsWithMembers: Array<{
     index: number;
@@ -475,6 +570,7 @@ export function planCustomAllocationTeams<TStudent extends { id: number }>(
     teams: teamsWithMembers,
     unassignedNonRespondents,
     criterionScores,
+    teamCriterionBreakdowns,
     overallScore: Number(bestScore.toFixed(4)),
   };
 }
