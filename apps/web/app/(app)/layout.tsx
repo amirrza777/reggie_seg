@@ -9,6 +9,7 @@ import { NotificationBell } from "@/features/notifications/components/Notificati
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 export const dynamic = "force-dynamic";
 
@@ -47,34 +48,31 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     );
   }
 
+  const [modulesResult, projectsResult] = await Promise.allSettled([
+    listModules(user.id, { compact: true }),
+    getUserProjects(user.id),
+  ]);
+
   let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
-  try {
-    const modules = await listModules(user.id);
-    if (modules.length > 0) {
-      moduleChildren = [
-        { href: "/dashboard", label: "Overview" },
-        ...modules.map((module) => ({
-          href: `/modules/${encodeURIComponent(module.id)}`,
-          label: module.title,
-        })),
-      ];
-    }
-  } catch {
-    // Keep base overview link if modules cannot be loaded.
+  if (modulesResult.status === "fulfilled" && modulesResult.value.length > 0) {
+    moduleChildren = [
+      { href: "/dashboard", label: "Overview" },
+      ...modulesResult.value.map((module) => ({
+        href: `/modules/${encodeURIComponent(module.id)}`,
+        label: module.title,
+      })),
+    ];
   }
 
   let projectChildren: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
-  try {
-    const projects = await getUserProjects(user.id);
+  if (projectsResult.status === "fulfilled") {
     projectChildren = [
       { href: "/projects", label: "All projects" },
-      ...projects.map((project) => ({
+      ...projectsResult.value.map((project) => ({
         href: `/projects/${project.id}`,
         label: project.name,
       })),
     ];
-  } catch {
-    projectChildren = [{ href: "/projects", label: "All projects" }];
   }
 
   const navLinks: NavLink[] = [
@@ -122,6 +120,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
 
   const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
   const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+  const defaultSpaceHref = getDefaultSpaceOverviewPath(user);
 
   const spaceLinks: SpaceLink[] = [];
   if (!isStaffOnlyAccount) {
@@ -138,8 +137,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         <Topbar
           leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
           title="Team Feedback"
-          titleHref="/dashboard"
-          actions={<><NotificationBell /><UserMenu /></>}
+          titleHref={defaultSpaceHref}
+          actions={
+            <>
+              <NotificationBell />
+              <UserMenu />
+            </>
+          }
         />
       }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}

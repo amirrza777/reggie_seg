@@ -208,6 +208,7 @@ describe("enterpriseAdmin router access control", () => {
         expectationsText: null,
         readinessNotesText: null,
       },
+      select: { id: true },
     });
     expect((res.status as any)).not.toHaveBeenCalledWith(403);
   });
@@ -224,7 +225,7 @@ describe("enterpriseAdmin router access control", () => {
     expect(prisma.moduleLead.deleteMany).toHaveBeenCalledWith({ where: { moduleId: 2 } });
     expect(prisma.moduleTeachingAssistant.deleteMany).toHaveBeenCalledWith({ where: { moduleId: 2 } });
     expect(prisma.userModule.deleteMany).toHaveBeenCalledWith({ where: { enterpriseId: "ent-1", moduleId: 2 } });
-    expect(prisma.module.delete).toHaveBeenCalledWith({ where: { id: 2 } });
+    expect(prisma.module.delete).toHaveBeenCalledWith({ where: { id: 2 }, select: { id: true } });
     expect((res.json as any)).toHaveBeenCalledWith({ moduleId: 2, deleted: true });
   });
 

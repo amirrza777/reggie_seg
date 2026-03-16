@@ -13,6 +13,9 @@ import {
   fetchProjectsForStaff,
   fetchProjectTeamsForStaff,
   fetchProjectMarking,
+  submitTeamHealthMessage,
+  fetchMyTeamHealthMessages,
+  fetchTeamHealthMessagesForStaff,
   updateTeamDeadlineProfileForStaff,
   fetchStaffStudentDeadlineOverrides,
   upsertStaffStudentDeadlineOverride,
@@ -46,17 +49,9 @@ function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | n
   return authUserId;
 }
 
-type ParsedProjectDeadline = {
-  taskOpenDate: Date;
-  taskDueDate: Date;
-  taskDueDateMcf: Date;
-  assessmentOpenDate: Date;
-  assessmentDueDate: Date;
-  assessmentDueDateMcf: Date;
-  feedbackOpenDate: Date;
-  feedbackDueDate: Date;
-  feedbackDueDateMcf: Date;
-};
+/** Handles requests for create project. */
+export async function createProjectHandler(req: Request, res: Response) {
+  const { name, moduleId, questionnaireTemplateId, teamIds } = req.body;
 
 type ParsedStudentDeadlineOverride = {
   taskOpenDate?: Date | null;
@@ -261,6 +256,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get project by ID. */
 export async function getProjectByIdHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
   if (isNaN(projectId)) {
@@ -279,6 +275,7 @@ export async function getProjectByIdHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get user projects. */
 export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -294,6 +291,7 @@ export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get user modules. */
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -301,9 +299,10 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   }
 
   const scope = req.query.scope === "staff" ? "staff" : "workspace";
+  const compact = req.query.compact === "1";
 
   try {
-    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff" });
+    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff", compact });
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
@@ -311,6 +310,7 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get project deadline. */
 export async function getProjectDeadlineHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -331,6 +331,7 @@ export async function getProjectDeadlineHandler(req: AuthRequest, res: Response)
   }
 }
 
+/** Handles requests for get teammates for project. */
 export async function getTeammatesForProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -351,6 +352,7 @@ export async function getTeammatesForProjectHandler(req: AuthRequest, res: Respo
   }
 }
 
+/** Handles requests for get team by ID. */
 export async function getTeamByIdHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
 
@@ -370,6 +372,7 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get team by user and project. */
 export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -393,6 +396,7 @@ export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Resp
   }
 }
 
+/** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
 
@@ -412,6 +416,7 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
   }
 }
 
+/** Handles requests for get staff projects. */
 export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   if (userId === null) {
@@ -427,6 +432,7 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get staff project teams. */
 export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -449,6 +455,7 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
   }
 }
 
+/** Handles requests for get project marking. */
 export async function getProjectMarkingHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -469,6 +476,79 @@ export async function getProjectMarkingHandler(req: AuthRequest, res: Response) 
   } catch (error) {
     console.error("Error fetching project marking:", error);
     res.status(500).json({ error: "Failed to fetch project marking" });
+  }
+}
+
+export async function createTeamHealthMessageHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const userId = Number((req.body as { userId?: unknown }).userId);
+  const subjectRaw = (req.body as { subject?: unknown }).subject;
+  const detailsRaw = (req.body as { details?: unknown }).details;
+
+  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  if (typeof subjectRaw !== "string" || typeof detailsRaw !== "string") {
+    return res.status(400).json({ error: "subject and details are required strings" });
+  }
+
+  const subject = subjectRaw.trim();
+  const details = detailsRaw.trim();
+  if (!subject || !details) {
+    return res.status(400).json({ error: "subject and details cannot be empty" });
+  }
+
+  try {
+    const request = await submitTeamHealthMessage(userId, projectId, subject, details);
+    if (!request) {
+      return res.status(404).json({ error: "Team not found for user in this project" });
+    }
+    return res.status(201).json({ request });
+  } catch (error) {
+    console.error("Error creating team health message:", error);
+    return res.status(500).json({ error: "Failed to create team health message" });
+  }
+}
+
+export async function getMyTeamHealthMessagesHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const userId = Number(req.query.userId);
+
+  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const requests = await fetchMyTeamHealthMessages(userId, projectId);
+    if (!requests) {
+      return res.status(404).json({ error: "Team not found for user in this project" });
+    }
+    return res.json({ requests });
+  } catch (error) {
+    console.error("Error fetching user team health messages:", error);
+    return res.status(500).json({ error: "Failed to fetch team health messages" });
+  }
+}
+
+export async function getStaffTeamHealthMessagesHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+  const userId = Number(req.query.userId);
+
+  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID, project ID, or team ID" });
+  }
+
+  try {
+    const requests = await fetchTeamHealthMessagesForStaff(userId, projectId, teamId);
+    if (!requests) {
+      return res.status(404).json({ error: "Project or team not found for staff scope" });
+    }
+    return res.json({ requests });
+  } catch (error) {
+    console.error("Error fetching staff team team health messages:", error);
+    return res.status(500).json({ error: "Failed to fetch team team health messages" });
   }
 }
 

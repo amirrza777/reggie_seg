@@ -4,7 +4,6 @@ import {
   getProjectMarking,
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getCurrentUser } from "@/shared/auth/session";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 import Link from "next/link";
@@ -22,12 +21,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!user) {
     return (
-      <div className="stack stack--tabbed" style={{ gap: 16 }}>
-        <ProjectNav projectId={projectId} />
-        <div style={{ padding: 24 }}>
-          <p>Please sign in to view this project.</p>
-          <Link href="/login">Go to login</Link>
-        </div>
+      <div style={{ padding: 24 }}>
+        <p>Please sign in to view this project.</p>
+        <Link href="/login">Go to login</Link>
       </div>
     );
   }
@@ -41,12 +37,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   if (!team) {
     return (
-      <div className="stack stack--tabbed" style={{ gap: 16 }}>
-        <ProjectNav projectId={projectId} />
-        <div style={{ padding: 24 }}>
-          <p>You are not in a team for this project.</p>
-          <Link href="/projects">← Back to projects</Link>
-        </div>
+      <div style={{ padding: 24 }}>
+        <p>You are not in a team for this project.</p>
+        <Link href="/projects">← Back to projects</Link>
       </div>
     );
   }
@@ -75,10 +68,5 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     marking = null;
   }
 
-  return (
-    <div className="stack stack--tabbed" style={{ gap: 16 }}>
-      <ProjectNav projectId={projectId} />
-      <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} />
-    </div>
-  );
+  return <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} />;
 }

@@ -7,6 +7,7 @@ import type {
 } from "../types";
 import { Card } from "@/shared/ui/Card";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
+import Link from "next/link";
 
 type DisplayDeadlineState = {
   label: string;
@@ -69,17 +70,24 @@ function ProjectOverviewHero({
     <section className="project-overview-hero">
       <div className="stack project-overview-hero__stack">
         <div className="stack project-overview-hero__meta">
-          <div className="project-overview-hero__chips">
-            <span className="project-overview-hero__chip project-overview-hero__chip--muted">
-              Project #{project.id}
-            </span>
-            <span
-              className={`project-overview-hero__chip ${
-                deadline.isOverridden ? "project-overview-hero__chip--override" : "project-overview-hero__chip--default"
-              }`}
-            >
-              {deadline.isOverridden ? "Deadlines overridden" : "Default deadlines"}
-            </span>
+          <div className="project-overview-hero__top">
+            <div className="project-overview-hero__chips">
+              <span className="project-overview-hero__chip project-overview-hero__chip--muted">
+                Project #{project.id}
+              </span>
+              <span
+                className={`project-overview-hero__chip ${
+                  deadline.isOverridden ? "project-overview-hero__chip--override" : "project-overview-hero__chip--default"
+                }`}
+              >
+                {deadline.isOverridden ? "Deadlines overridden" : "Default deadlines"}
+              </span>
+            </div>
+            <div className="project-overview-hero__actions">
+              <Link href={`/projects/${project.id}/team-health`} className="project-overview-hero__action-link">
+                Team Health
+              </Link>
+            </div>
           </div>
           <h1 className="project-overview-hero__title">{project?.name || "Project"}</h1>
           <p className="muted project-overview-hero__summary">
@@ -102,6 +110,7 @@ function ProjectOverviewHero({
             ) : null}
           </div>
         </div>
+
       </div>
     </section>
   );

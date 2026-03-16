@@ -7,6 +7,7 @@ type AuthPayload = { sub: number; email: string };
 
 export type AuthRequest = Request & { user?: AuthPayload };
 
+/** Ensures the current request is authenticated before continuing. */
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
   const auth = req.headers.authorization || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : null;

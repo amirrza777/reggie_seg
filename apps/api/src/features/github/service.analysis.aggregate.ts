@@ -15,11 +15,13 @@ type AggregatedContributor = {
   commitsByBranch: Record<string, number>;
 };
 
+/** Checks whether merge pull request commit. */
 export function isMergePullRequestCommit(commit: GithubCommitListItem) {
   const message = (commit.commit.message || "").trim().toLowerCase();
   return message.startsWith("merge pull request");
 }
 
+/** Executes the aggregate commit data. */
 export function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
   const contributors = new Map<string, AggregatedContributor>();
   const repoCommitsByDay: Record<string, number> = {};
@@ -141,6 +143,7 @@ export type PreviousSnapshotData = {
   }>;
 };
 
+/** Executes the merge count maps. */
 export function mergeCountMaps(left: CountMap = {}, right: CountMap = {}) {
   const merged: CountMap = { ...left };
   for (const [key, value] of Object.entries(right)) {
@@ -149,6 +152,7 @@ export function mergeCountMaps(left: CountMap = {}, right: CountMap = {}) {
   return merged;
 }
 
+/** Executes the merge line change maps. */
 export function mergeLineChangeMaps(left: LineChangeMap = {}, right: LineChangeMap = {}) {
   const merged: LineChangeMap = { ...left };
   for (const [key, value] of Object.entries(right)) {
@@ -161,6 +165,7 @@ export function mergeLineChangeMaps(left: LineChangeMap = {}, right: LineChangeM
   return merged;
 }
 
+/** Executes the merge user stats. */
 export function mergeUserStats(
   previousUserStats: SnapshotUserStatRow[],
   newUserStats: SnapshotUserStatRecord[]
@@ -214,6 +219,7 @@ export function mergeUserStats(
   return Array.from(mergedByKey.values());
 }
 
+/** Executes the merge sample commits. */
 export function mergeSampleCommits(
   previousSamples: PreviousSnapshotData["sampleCommits"] | undefined,
   newCommits: GithubCommitListItem[]
@@ -247,6 +253,7 @@ export function mergeSampleCommits(
   return merged;
 }
 
+/** Executes the filter commits after. */
 export function filterCommitsAfter(
   commits: GithubCommitListItem[],
   cutoff: Date | null
@@ -264,6 +271,7 @@ export function filterCommitsAfter(
   });
 }
 
+/** Checks whether usable repo commits by day. */
 export function hasUsableRepoCommitsByDay(latestSnapshot: Awaited<ReturnType<typeof findLatestGithubSnapshotByProjectLinkId>> | null) {
   const repoStat = latestSnapshot?.repoStats?.[0];
   if (!repoStat) {

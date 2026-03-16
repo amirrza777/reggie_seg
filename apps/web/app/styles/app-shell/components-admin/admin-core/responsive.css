@@ -1,0 +1,260 @@
+@media (max-width: 860px) {
+  .admin-overview-card.card--has-action .card__action {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  .admin-overview-card.card--has-action .card__header {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .admin-overview-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .admin-overview-actions__btn {
+    flex-basis: 152px;
+    width: 152px;
+    min-height: 48px;
+    padding: 10px 14px;
+  }
+
+  .admin-overview-card .overview-title {
+    font-size: clamp(1.7rem, 7vw, var(--fs-overview-title));
+  }
+
+  .audit-modal__header {
+    padding-right: 52px;
+  }
+
+  .user-management__table {
+    --user-management-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  .user-management__table .table__head {
+    display: none;
+  }
+
+  .user-management__table .user-management__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
+    align-items: start;
+  }
+
+  .user-management__table .user-management__row > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    column-gap: 0;
+    row-gap: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .user-management__table .user-management__row > div::before {
+    display: block;
+    font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--fw-semibold);
+    line-height: 1.2;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .user-management__table .user-management__row > div > * {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(1)::before {
+    content: "Email";
+  }
+
+  .user-management__table .user-management__row > div:nth-child(1) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(2)::before {
+    content: "Name";
+  }
+
+  .user-management__table .user-management__row > div:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(3)::before {
+    content: "Role";
+  }
+
+  .user-management__table .user-management__row > div:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(4)::before {
+    content: "Account status";
+  }
+
+  .user-management__table .user-management__row > div:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+    justify-self: end;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(4) .status-chip {
+    width: fit-content;
+    max-width: 100%;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(3) .user-management__role-toggle {
+    width: 100%;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(3) .user-management__role-toggle-btn {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .user-management__pagination {
+    justify-content: flex-start;
+  }
+
+  .feature-flags-table {
+    --feature-flags-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .feature-flags-table .table__head {
+    display: none;
+  }
+
+  .feature-flags-table .feature-flags-table__row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 12px;
+    align-items: start;
+  }
+
+  .feature-flags-table .feature-flags-table__row > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-items: start;
+    column-gap: 0;
+    row-gap: 8px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .feature-flags-table .feature-flags-table__row > div::before {
+    display: block;
+    font-size: var(--fs-eyebrow);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: var(--fw-semibold);
+    line-height: 1.2;
+    grid-column: 1;
+    padding-top: 2px;
+  }
+
+  .feature-flags-table .feature-flags-table__row > div > * {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .feature-flags-table .feature-flags-table__row > div:nth-child(1)::before {
+    content: "Feature";
+  }
+
+  .feature-flags-table .feature-flags-table__row > div:nth-child(2)::before {
+    content: "Status";
+  }
+
+  .feature-flags-table .feature-flag-action {
+    width: 100%;
+    gap: 8px;
+  }
+
+  .feature-flags-table .feature-flag-action__btn {
+    flex: 1 1 136px;
+    width: auto;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .feature-flags-table {
+    --feature-flags-columns: 1fr;
+  }
+
+  .feature-flags-table .feature-flags-table__row {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management__table {
+    --user-management-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  .user-management__table .user-management__row {
+    gap: 10px;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(1) {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(2) {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(4) {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .user-management__table .user-management__row > div:nth-child(3) {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .user-management__table .user-management__row > div,
+  .feature-flags-table .feature-flags-table__row > div {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+
+  .user-management__table .user-management__row > div::before,
+  .user-management__table .user-management__row > div > *,
+  .feature-flags-table .feature-flags-table__row > div::before,
+  .feature-flags-table .feature-flags-table__row > div > * {
+    grid-column: 1;
+  }
+}
+
+@media (min-width: 861px) {
+  .audit-modal__header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .audit-modal__header-actions {
+    justify-content: flex-end;
+  }
+}

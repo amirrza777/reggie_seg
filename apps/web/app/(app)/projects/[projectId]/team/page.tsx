@@ -1,4 +1,3 @@
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
 import { Card } from "@/shared/ui/Card";
@@ -39,22 +38,19 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
     : "Team Formation";
 
   return (
-    <div className="stack stack--tabbed" style={{ gap: 16 }}>
-      <ProjectNav projectId={projectId} />
-      <div style={{ padding: 20 }}>
-        <Card title={cardTitle}>
-          {user ? (
-            <TeamFormationPanel
-              team={team}
-              projectId={numericProjectId}
-              userId={user.id}
-              initialInvites={initialInvites}
-            />
-          ) : (
-            <p>Please sign in to manage your team.</p>
-          )}
-        </Card>
-      </div>
+    <div style={{ padding: 20 }}>
+      <Card title={cardTitle}>
+        {user ? (
+          <TeamFormationPanel
+            team={team}
+            projectId={numericProjectId}
+            userId={user.id}
+            initialInvites={initialInvites}
+          />
+        ) : (
+          <p>Please sign in to manage your team.</p>
+        )}
+      </Card>
     </div>
   );
 }

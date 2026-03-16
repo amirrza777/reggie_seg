@@ -10,7 +10,7 @@ function GoogleSuccessContent() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const redirect = searchParams.get("redirect") || "/dashboard";
+    const redirect = searchParams.get("redirect") || "/app-home";
 
     if (token) {
       setAccessToken(token);

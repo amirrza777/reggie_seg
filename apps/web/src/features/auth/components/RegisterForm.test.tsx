@@ -55,6 +55,7 @@ describe("RegisterForm", () => {
   });
 
   it("submits form and redirects", async () => {
+    refresh.mockResolvedValue({ role: "STUDENT" });
     render(<RegisterForm />);
 
     fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
@@ -80,6 +81,22 @@ describe("RegisterForm", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"));
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(screen.getByText(/account created/i)).toBeInTheDocument();
+  });
+
+  it("redirects staff accounts to staff overview after signup", async () => {
+    refresh.mockResolvedValue({ role: "STAFF", isStaff: true });
+    render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
+    fireEvent.click(screen.getByRole("radio", { name: /staff/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/staff/dashboard"));
   });
 
   it("starts Google OAuth flow", () => {

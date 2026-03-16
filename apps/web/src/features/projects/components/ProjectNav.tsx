@@ -15,7 +15,8 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
     { href: base, label: "Overview" },
     { href: `${base}/team`, label: "Team" },
     { href: `${base}/meetings`, label: "Team meetings" },
-    { href: `${base}/peer-assessments`, label: "Peer assessment" },
+    { href: `${base}/meeting-scheduler`, label: "Meeting scheduler" },
+    { href: `${base}/peer-assessments`, label: "Peer assessment", flag: "peer_assessment" },
     { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
     { href: `${base}/repos`, label: "Repositories", flag: "repos" },
     { href: `${base}/trello`, label: "Trello", flag: "trello" },
@@ -34,7 +35,7 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
       {links.map((link) => {
         const isActive = link.href === base
           ? pathname === base
-          : pathname?.startsWith(link.href);
+          : pathname === link.href || pathname?.startsWith(`${link.href}/`);
         return (
           <Link
             key={link.href}

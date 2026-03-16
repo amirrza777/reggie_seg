@@ -1,5 +1,4 @@
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { TrelloBoardProvider } from "@/features/trello/context/TrelloBoardContext";
 import { getCurrentUser } from "@/shared/auth/session";
 
@@ -23,14 +22,9 @@ export default async function TrelloLayout({ params, children }: LayoutProps) {
     }
   }
 
-  return (
-    <div className="stack">
-      <ProjectNav projectId={projectId} />
-      {team ? (
-        <TrelloBoardProvider teamId={team.id}>{children}</TrelloBoardProvider>
-      ) : (
-        children
-      )}
-    </div>
-  );
+  if (team) {
+    return <TrelloBoardProvider teamId={team.id}>{children}</TrelloBoardProvider>;
+  }
+
+  return children;
 }

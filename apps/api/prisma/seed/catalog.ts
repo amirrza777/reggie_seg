@@ -4,6 +4,55 @@ import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "./types";
 
+const defaultTemplateQuestions = [
+  {
+    label: "Technical Skills",
+    type: "text",
+    order: 1,
+    configs: { required: true },
+  },
+  {
+    label: "Communication",
+    type: "text",
+    order: 2,
+    configs: { required: true },
+  },
+  {
+    label: "Teamwork",
+    type: "text",
+    order: 3,
+    configs: { required: true },
+  },
+  {
+    label: "Technical Skills Rating",
+    type: "rating",
+    order: 4,
+    configs: { min: 1, max: 5, required: true },
+  },
+  {
+    label: "Communication Rating",
+    type: "multiple-choice",
+    order: 5,
+    configs: {
+      required: true,
+      options: ["Excellent", "Good", "Needs Improvement"],
+    },
+  },
+  {
+    label: "Teamwork Score",
+    type: "slider",
+    order: 6,
+    configs: {
+      min: 0,
+      max: 100,
+      step: 5,
+      left: "Low",
+      right: "High",
+      required: true,
+    },
+  },
+] as const;
+
 export async function seedUsers(enterpriseId: string, seedPasswordHash: string): Promise<SeedUser[]> {
   return withSeedLogging("seedUsers", async () => {
     const created = await prisma.user.createMany({

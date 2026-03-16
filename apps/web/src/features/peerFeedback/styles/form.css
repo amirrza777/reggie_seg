@@ -1,7 +1,8 @@
 .headerContainer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .reviewLabel {
@@ -67,6 +68,48 @@
 .answerText {
   margin: 6px 0;
   color: var(--ink-lede);
+}
+
+.answerPreviewInput {
+  margin-top: 6px;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: var(--surface);
+  color: var(--ink);
+}
+
+.answerPreviewGroup {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.answerPreviewGroup--rating {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.answerPreviewOption {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.answerPreviewSlider {
+  display: grid;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.answerPreviewSliderLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted-subtle);
 }
 
 .select {

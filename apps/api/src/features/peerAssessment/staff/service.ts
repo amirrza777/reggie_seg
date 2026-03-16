@@ -44,6 +44,7 @@ function mapMarkingRecord(
   };
 }
 
+/** Returns the progress for modules i lead. */
 export async function getProgressForModulesILead(staffId: number): Promise<ModuleSummary[]> {
   const modules = await repo.findModulesForStaff(staffId);
   return Promise.all(
@@ -58,6 +59,7 @@ export async function getProgressForModulesILead(staffId: number): Promise<Modul
   );
 }
 
+/** Returns the progress for team. */
 export async function getProgressForTeam(moduleId: number): Promise<ModuleSummary[]> {
   const teams = await repo.findTeamsInModule(moduleId);
   return Promise.all(
@@ -72,6 +74,7 @@ export async function getProgressForTeam(moduleId: number): Promise<ModuleSummar
   );
 }
 
+/** Returns the module details if lead. */
 export async function getModuleDetailsIfLead(
   staffId: number,
   moduleId: number
@@ -85,6 +88,7 @@ export async function getModuleDetailsIfLead(
   };
 }
 
+/** Returns the team details if lead. */
 export async function getTeamDetailsIfLead(
   staffId: number,
   moduleId: number,
@@ -217,6 +221,7 @@ function buildPerformanceSummary(
   };
 }
 
+/** Returns the student details if lead. */
 export async function getStudentDetailsIfLead(
   staffId: number,
   moduleId: number,
@@ -278,6 +283,7 @@ export async function getStudentDetailsIfLead(
   };
 }
 
+/** Saves the team marking if lead. */
 export async function saveTeamMarkingIfLead(
   staffId: number,
   moduleId: number,
@@ -299,6 +305,7 @@ export async function saveTeamMarkingIfLead(
   return mapMarkingRecord(saved);
 }
 
+/** Saves the student marking if lead. */
 export async function saveStudentMarkingIfLead(
   staffId: number,
   moduleId: number,

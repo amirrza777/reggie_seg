@@ -9,6 +9,7 @@ import {
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
 
+/** Handles requests for list live project GitHub repo branches. */
 export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -32,6 +33,7 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
   }
 }
 
+/** Handles requests for list live project GitHub repo branch commits. */
 export async function listLiveProjectGithubRepoBranchCommitsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -68,6 +70,7 @@ export async function listLiveProjectGithubRepoBranchCommitsHandler(req: AuthReq
   }
 }
 
+/** Handles requests for list live project GitHub repo my commits. */
 export async function listLiveProjectGithubRepoMyCommitsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -98,6 +101,7 @@ export async function listLiveProjectGithubRepoMyCommitsHandler(req: AuthRequest
   }
 }
 
+/** Handles requests for update project GitHub sync settings. */
 export async function updateProjectGithubSyncSettingsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {

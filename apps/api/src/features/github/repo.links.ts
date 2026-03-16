@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Checks whether user in project. */
 export async function isUserInProject(userId: number, projectId: number) {
   const project = await prisma.project.findFirst({
     where: {
@@ -47,6 +48,7 @@ export async function isUserInProject(userId: number, projectId: number) {
   return Boolean(project);
 }
 
+/** Returns the project GitHub identity candidates. */
 export async function listProjectGithubIdentityCandidates(projectId: number) {
   const rows = await prisma.teamAllocation.findMany({
     where: {
@@ -86,6 +88,7 @@ type UpsertGithubRepositoryInput = {
   defaultBranch: string | null;
 };
 
+/** Executes the upsert GitHub repository. */
 export function upsertGithubRepository(input: UpsertGithubRepositoryInput) {
   return prisma.githubRepository.upsert({
     where: { githubRepoId: input.githubRepoId },
@@ -119,6 +122,7 @@ export function upsertGithubRepository(input: UpsertGithubRepositoryInput) {
   });
 }
 
+/** Executes the upsert project GitHub repository link. */
 export function upsertProjectGithubRepositoryLink(projectId: number, githubRepositoryId: number, linkedByUserId: number) {
   return prisma.projectGithubRepository.upsert({
     where: {
@@ -153,6 +157,7 @@ export function upsertProjectGithubRepositoryLink(projectId: number, githubRepos
   });
 }
 
+/** Returns the project GitHub repository links. */
 export function listProjectGithubRepositoryLinks(projectId: number) {
   return prisma.projectGithubRepository.findMany({
     where: {
@@ -190,6 +195,7 @@ export function listProjectGithubRepositoryLinks(projectId: number) {
   });
 }
 
+/** Returns the active project GitHub repository link. */
 export function findActiveProjectGithubRepositoryLink(projectId: number) {
   return prisma.projectGithubRepository.findFirst({
     where: {
@@ -209,6 +215,7 @@ export function findActiveProjectGithubRepositoryLink(projectId: number) {
   });
 }
 
+/** Returns the project GitHub repository link by ID. */
 export function findProjectGithubRepositoryLinkById(linkId: number) {
   return prisma.projectGithubRepository.findUnique({
     where: { id: linkId },
@@ -240,6 +247,7 @@ type UpdateProjectGithubRepositorySyncSettingsInput = {
   syncIntervalMinutes: number;
 };
 
+/** Updates the project GitHub repository sync settings. */
 export function updateProjectGithubRepositorySyncSettings(input: UpdateProjectGithubRepositorySyncSettingsInput) {
   const nextSyncAt = input.autoSyncEnabled
     ? new Date(Date.now() + input.syncIntervalMinutes * 60 * 1000)
@@ -265,6 +273,7 @@ export function updateProjectGithubRepositorySyncSettings(input: UpdateProjectGi
   });
 }
 
+/** Deactivates the project GitHub repository link. */
 export function deactivateProjectGithubRepositoryLink(linkId: number) {
   return prisma.projectGithubRepository.update({
     where: { id: linkId },

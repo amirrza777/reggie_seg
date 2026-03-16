@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the meetings by team ID. */
 export function getMeetingsByTeamId(teamId: number) {
   return prisma.meeting.findMany({
     where: { teamId },
@@ -27,6 +28,7 @@ export function getMeetingsByTeamId(teamId: number) {
   });
 }
 
+/** Returns the meeting by ID. */
 export function getMeetingById(meetingId: number) {
   return prisma.meeting.findUnique({
     where: { id: meetingId },
@@ -64,6 +66,7 @@ export function getMeetingById(meetingId: number) {
   });
 }
 
+/** Creates a meeting. */
 export function createMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -78,12 +81,14 @@ export function createMeeting(data: {
   });
 }
 
+/** Deletes the meeting. */
 export function deleteMeeting(meetingId: number) {
   return prisma.meeting.delete({
     where: { id: meetingId },
   });
 }
 
+/** Executes the bulk upsert attendance. */
 export function bulkUpsertAttendance(
   meetingId: number,
   records: { userId: number; status: string }[]
@@ -109,6 +114,7 @@ export function bulkUpsertAttendance(
   return prisma.$transaction(upserts);
 }
 
+/** Executes the upsert minutes. */
 export function upsertMinutes(meetingId: number, writerId: number, content: string) {
   return prisma.meetingMinutes.upsert({
     where: { meetingId },
@@ -117,12 +123,14 @@ export function upsertMinutes(meetingId: number, writerId: number, content: stri
   });
 }
 
+/** Creates a comment. */
 export function createComment(meetingId: number, userId: number, content: string) {
   return prisma.meetingComment.create({
     data: { meetingId, userId, content },
   });
 }
 
+/** Deletes the comment. */
 export function deleteComment(commentId: number) {
   return prisma.meetingComment.delete({
     where: { id: commentId },

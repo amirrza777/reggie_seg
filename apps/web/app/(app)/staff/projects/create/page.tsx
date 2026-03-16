@@ -21,7 +21,7 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
   let modules: Awaited<ReturnType<typeof listModules>> = [];
   let modulesError: string | null = null;
   try {
-    modules = await listModules(user.id, { scope: "staff" });
+    modules = await listModules(user.id, { scope: "staff", compact: true });
   } catch (error) {
     modulesError = error instanceof Error ? error.message : "Failed to load staff modules.";
   }

@@ -1,8 +1,6 @@
 import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPageContent";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import Link from "next/link";
 
 type ProjectPageProps = {
@@ -12,7 +10,6 @@ type ProjectPageProps = {
 export default async function ProjectMeetingsPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
-  const flagMap = await getFeatureFlagMap();
   const user = await getCurrentUser();
 
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
@@ -24,17 +21,14 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
     }
   }
 
+  if (team) {
+    return <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />;
+  }
+
   return (
-    <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} enabledFlags={flagMap} />
-      {team ? (
-        <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />
-      ) : (
-        <div style={{ padding: 24 }}>
-          <p>You are not in a team for this project.</p>
-          <Link href={`/projects/${projectId}`}>← Back to project</Link>
-        </div>
-      )}
+    <div style={{ padding: 24 }}>
+      <p>You are not in a team for this project.</p>
+      <Link href={`/projects/${projectId}`}>← Back to project</Link>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
 import { useUser } from "../context";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" | "text" }> = [
   { name: "email", label: "Email or username", type: "text" },
@@ -33,7 +34,7 @@ const useLoginFormState = () => {
       await login(form);
       const profile = await refresh(); // pull fresh profile into context
       setStatus("success");
-      const destination = profile?.role === "ADMIN" || profile?.isAdmin ? "/admin" : "/dashboard";
+      const destination = profile ? getDefaultSpaceOverviewPath(profile) : "/app-home";
       router.push(destination);
     } catch (err) {
       setStatus("error");

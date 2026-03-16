@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import {
-  getFeedbackReview,
+  getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
@@ -23,39 +22,28 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   const user = await getCurrentUser();
   if (!user) {
     return (
-      <div className="stack stack--tabbed">
-        <ProjectNav projectId={projectId} />
-        <PageSection
-          title="Peer Feedback"
-          description="Collect and review peer feedback for this project."
-        >
-          <p className="muted">Please sign in to view peer feedback.</p>
-        </PageSection>
-      </div>
-    );
-  }
-
-  const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
-  const feedbacks = await Promise.all(
-    feedbacksRaw.map(async (feedback) => {
-      try {
-        await getFeedbackReview(String(feedback.id));
-        return { ...feedback, reviewSubmitted: true };
-      } catch {
-        return { ...feedback, reviewSubmitted: false };
-      }
-    })
-  );
-
-  return (
-    <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} />
       <PageSection
         title="Peer Feedback"
         description="Collect and review peer feedback for this project."
       >
-        <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+        <p className="muted">Please sign in to view peer feedback.</p>
       </PageSection>
-    </div>
+    );
+  }
+
+  const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
+  const reviewStatuses = await getFeedbackReviewStatuses(feedbacksRaw.map((feedback) => String(feedback.id)));
+  const feedbacks = feedbacksRaw.map((feedback) => ({
+    ...feedback,
+    reviewSubmitted: reviewStatuses[String(feedback.id)] === true,
+  }));
+
+  return (
+    <PageSection
+      title="Peer Feedback"
+      description="Collect and review peer feedback for this project."
+    >
+      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+    </PageSection>
   );
 }

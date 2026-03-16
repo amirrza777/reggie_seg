@@ -10,6 +10,7 @@ import {
 } from "./service.js";
 import { toJsonSafe, withQuery } from "./controller.utils.js";
 
+/** Handles requests for get GitHub connect URL. */
 export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -29,6 +30,7 @@ export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response
   }
 }
 
+/** Handles requests for get GitHub connection status. */
 export async function getGithubConnectionStatusHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -47,6 +49,7 @@ export async function getGithubConnectionStatusHandler(req: AuthRequest, res: Re
   }
 }
 
+/** Handles requests for disconnect GitHub account. */
 export async function disconnectGithubAccountHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -65,6 +68,7 @@ export async function disconnectGithubAccountHandler(req: AuthRequest, res: Resp
   }
 }
 
+/** Handles requests for GitHub callback. */
 export async function githubCallbackHandler(req: AuthRequest, res: Response) {
   const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
   const fallbackPath = "/modules";
@@ -93,6 +97,7 @@ export async function githubCallbackHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for list GitHub repos. */
 export async function listGithubReposHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {

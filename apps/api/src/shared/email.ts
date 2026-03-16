@@ -21,6 +21,7 @@ function getTransporter() {
   return cachedTransporter;
 }
 
+/** Sends an email using the configured transport. */
 export async function sendEmail(params: { to: string; subject: string; text: string; html?: string }) {
   const transporter = getTransporter();
   if (!transporter) {

@@ -6,6 +6,7 @@ type AuditMeta = {
   userAgent?: string | null;
 };
 
+/** Records the audit log. */
 export async function recordAuditLog(params: { userId: number; action: AuditAction } & AuditMeta) {
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
@@ -24,6 +25,7 @@ export async function recordAuditLog(params: { userId: number; action: AuditActi
   });
 }
 
+/** Returns the audit logs. */
 export async function listAuditLogs(options: {
   enterpriseId: string;
   from?: Date;

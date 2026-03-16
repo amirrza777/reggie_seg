@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Executes the upsert peer feedback. */
 export async function upsertPeerFeedback(data: {
   peerAssessmentId: number;
   reviewerUserId: number;
@@ -50,17 +51,21 @@ export async function upsertPeerFeedback(data: {
       peerAssessment: {
         select: {
           id: true,
+          templateId: true,
           reviewerUserId: true,
           revieweeUserId: true,
           projectId: true,
           answersJson: true,
           questionnaireTemplate: {
             select: {
+              id: true,
               questions: {
                 select: {
                   id: true,
                   label: true,
+                  type: true,
                   order: true,
+                  configs: true,
                 },
               },
             },
@@ -73,6 +78,7 @@ export async function upsertPeerFeedback(data: {
   });
 }
 
+/** Returns the peer feedback by assessment ID. */
 export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   return prisma.peerFeedback.findUnique({
     where: { peerAssessmentId },
@@ -80,17 +86,21 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
       peerAssessment: {
         select: {
           id: true,
+          templateId: true,
           reviewerUserId: true,
           revieweeUserId: true,
           projectId: true,
           answersJson: true,
           questionnaireTemplate: {
             select: {
+              id: true,
               questions: {
                 select: {
                   id: true,
                   label: true,
+                  type: true,
                   order: true,
+                  configs: true,
                 },
               },
             },
@@ -103,6 +113,7 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   });
 }
 
+/** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({
     where: { id: assessmentId },
