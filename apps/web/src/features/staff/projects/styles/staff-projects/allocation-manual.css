@@ -295,22 +295,38 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
-  display: grid;
-  gap: 8px;
+  display: block;
+  min-width: 0;
 }
 
 .staff-projects__custom-radio-title {
+  display: block;
   padding: 0 4px;
+  margin-bottom: 8px;
   color: var(--muted);
   font-size: var(--fs-caption);
 }
 
 .staff-projects__custom-radio-option {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
   color: var(--text);
   font-size: var(--fs-body-sm);
+  line-height: 1.35;
+}
+
+.staff-projects__custom-radio-option + .staff-projects__custom-radio-option {
+  margin-top: 8px;
+}
+
+.staff-projects__custom-radio-option input[type="radio"] {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 2px 0 0;
 }
 
 .staff-projects__custom-criteria-list {

@@ -1,6 +1,13 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
 import {
+  parseCustomAllocationApplyBody,
+  parseCustomAllocationCoverageTemplateId,
+  parseCustomAllocationPreviewBody,
+  parseCustomAllocationProjectId,
+  type CustomAllocationValidationCode,
+} from "./customAllocation.validation.js";
+import {
   createTeamInvite,
   listTeamInvites,
   listReceivedInvites,
@@ -23,6 +30,38 @@ import {
   previewCustomAllocationForProject,
   previewRandomAllocationForProject,
 } from "./service.js";
+
+function respondCustomAllocationValidationError(
+  res: Response,
+  code: CustomAllocationValidationCode,
+) {
+  if (code === "INVALID_PROJECT_ID") {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (code === "INVALID_TEMPLATE_ID") {
+    return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+  }
+  if (code === "INVALID_TEAM_COUNT") {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (code === "INVALID_SEED") {
+    return res.status(400).json({ error: "seed must be a number when provided" });
+  }
+  if (code === "INVALID_NON_RESPONDENT_STRATEGY") {
+    return res.status(400).json({
+      error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
+    });
+  }
+  if (code === "INVALID_CRITERIA") {
+    return res.status(400).json({
+      error: "Each criterion must include a valid questionId, strategy, and weight between 1 and 5",
+    });
+  }
+  if (code === "INVALID_PREVIEW_ID") {
+    return res.status(400).json({ error: "previewId is required" });
+  }
+  return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+}
 
 export async function createTeamInviteHandler(req: Request, res: Response) {
   const teamId = Number(req.body?.teamId);
@@ -204,17 +243,17 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
 
 export async function listCustomAllocationQuestionnairesHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
+  const parsedProjectId = parseCustomAllocationProjectId(req.params.projectId);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
+  if (!parsedProjectId.ok) {
+    return respondCustomAllocationValidationError(res, parsedProjectId.code);
   }
 
   try {
-    const result = await listCustomAllocationQuestionnairesForProject(staffId, projectId);
+    const result = await listCustomAllocationQuestionnairesForProject(staffId, parsedProjectId.value);
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
@@ -233,21 +272,27 @@ export async function listCustomAllocationQuestionnairesHandler(req: AuthRequest
 
 export async function getCustomAllocationCoverageHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const questionnaireTemplateId = Number(req.query.questionnaireTemplateId);
+  const parsedProjectId = parseCustomAllocationProjectId(req.params.projectId);
+  const parsedQuestionnaireTemplateId = parseCustomAllocationCoverageTemplateId(
+    req.query.questionnaireTemplateId,
+  );
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
+  if (!parsedProjectId.ok) {
+    return respondCustomAllocationValidationError(res, parsedProjectId.code);
   }
-  if (!Number.isInteger(questionnaireTemplateId) || questionnaireTemplateId < 1) {
-    return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
+  if (!parsedQuestionnaireTemplateId.ok) {
+    return respondCustomAllocationValidationError(res, parsedQuestionnaireTemplateId.code);
   }
 
   try {
-    const result = await getCustomAllocationCoverageForProject(staffId, projectId, questionnaireTemplateId);
+    const result = await getCustomAllocationCoverageForProject(
+      staffId,
+      parsedProjectId.value,
+      parsedQuestionnaireTemplateId.value,
+    );
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEMPLATE_ID") {
@@ -272,69 +317,25 @@ export async function getCustomAllocationCoverageHandler(req: AuthRequest, res: 
 
 export async function previewCustomAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const questionnaireTemplateId = Number(req.body?.questionnaireTemplateId);
-  const teamCount = Number(req.body?.teamCount);
-  const rawSeed = req.body?.seed;
-  const seed = rawSeed === undefined || rawSeed === null || rawSeed === "" ? undefined : Number(rawSeed);
-  const nonRespondentStrategy = req.body?.nonRespondentStrategy;
-  const rawCriteria = req.body?.criteria;
+  const parsedProjectId = parseCustomAllocationProjectId(req.params.projectId);
+  const parsedPreviewInput = parseCustomAllocationPreviewBody(req.body);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
+  if (!parsedProjectId.ok) {
+    return respondCustomAllocationValidationError(res, parsedProjectId.code);
   }
-  if (!Number.isInteger(questionnaireTemplateId) || questionnaireTemplateId < 1) {
-    return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
-  }
-  if (!Number.isInteger(teamCount) || teamCount < 1) {
-    return res.status(400).json({ error: "teamCount must be a positive integer" });
-  }
-  if (seed !== undefined && Number.isNaN(seed)) {
-    return res.status(400).json({ error: "seed must be a number when provided" });
-  }
-  if (nonRespondentStrategy !== "distribute_randomly" && nonRespondentStrategy !== "exclude") {
-    return res.status(400).json({
-      error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
-    });
-  }
-  if (!Array.isArray(rawCriteria)) {
-    return res.status(400).json({ error: "criteria must be an array" });
-  }
-
-  const normalizedCriteria = rawCriteria.map((criterion: any) => ({
-    questionId: Number(criterion?.questionId),
-    strategy: criterion?.strategy,
-    weight: Number(criterion?.weight),
-  }));
-
-  const hasInvalidCriteria = normalizedCriteria.some(
-    (criterion) =>
-      !Number.isInteger(criterion.questionId) ||
-      criterion.questionId < 1 ||
-      (criterion.strategy !== "diversify" &&
-        criterion.strategy !== "group" &&
-        criterion.strategy !== "ignore") ||
-      !Number.isInteger(criterion.weight) ||
-      criterion.weight < 1 ||
-      criterion.weight > 5,
-  );
-  if (hasInvalidCriteria) {
-    return res.status(400).json({
-      error: "Each criterion must include a valid questionId, strategy, and weight between 1 and 5",
-    });
+  if (!parsedPreviewInput.ok) {
+    return respondCustomAllocationValidationError(res, parsedPreviewInput.code);
   }
 
   try {
-    const result = await previewCustomAllocationForProject(staffId, projectId, {
-      questionnaireTemplateId,
-      teamCount,
-      ...(seed !== undefined ? { seed } : {}),
-      nonRespondentStrategy,
-      criteria: normalizedCriteria,
-    });
+    const result = await previewCustomAllocationForProject(
+      staffId,
+      parsedProjectId.value,
+      parsedPreviewInput.value,
+    );
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
@@ -448,35 +449,25 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
 
 export async function applyCustomAllocationHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const previewId = typeof req.body?.previewId === "string" ? req.body.previewId.trim() : "";
-  const rawTeamNames = req.body?.teamNames;
-  const hasInvalidTeamNamesPayload =
-    rawTeamNames !== undefined &&
-    (!Array.isArray(rawTeamNames) || rawTeamNames.some((teamName) => typeof teamName !== "string"));
-  const teamNames =
-    !hasInvalidTeamNamesPayload && Array.isArray(rawTeamNames)
-      ? rawTeamNames.map((teamName) => teamName.trim())
-      : undefined;
+  const parsedProjectId = parseCustomAllocationProjectId(req.params.projectId);
+  const parsedApplyInput = parseCustomAllocationApplyBody(req.body);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
+  if (!parsedProjectId.ok) {
+    return respondCustomAllocationValidationError(res, parsedProjectId.code);
   }
-  if (!previewId) {
-    return res.status(400).json({ error: "previewId is required" });
-  }
-  if (hasInvalidTeamNamesPayload) {
-    return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+  if (!parsedApplyInput.ok) {
+    return respondCustomAllocationValidationError(res, parsedApplyInput.code);
   }
 
   try {
-    const result = await applyCustomAllocationForProject(staffId, projectId, {
-      previewId,
-      ...(teamNames !== undefined ? { teamNames } : {}),
-    });
+    const result = await applyCustomAllocationForProject(
+      staffId,
+      parsedProjectId.value,
+      parsedApplyInput.value,
+    );
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_PREVIEW_ID") {

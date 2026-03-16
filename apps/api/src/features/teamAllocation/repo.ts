@@ -46,6 +46,20 @@ export type AppliedManualTeam = {
   memberCount: number;
 };
 
+export type CustomAllocationTemplateQuestion = {
+  id: number;
+  label: string;
+  type: string;
+};
+
+export type CustomAllocationTemplate = {
+  id: number;
+  templateName: string;
+  ownerId: number;
+  isPublic: boolean;
+  questions: CustomAllocationTemplateQuestion[];
+};
+
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -316,6 +330,95 @@ export async function findProjectTeamSummaries(projectId: number): Promise<Proje
     teamName: team.teamName,
     memberCount: team._count.allocations,
   }));
+}
+
+const CUSTOM_ALLOCATION_ELIGIBLE_TYPES = [
+  "multiple-choice",
+  "multiple_choice",
+  "rating",
+  "slider",
+];
+
+export async function findCustomAllocationQuestionnairesForStaff(
+  staffId: number,
+): Promise<CustomAllocationTemplate[]> {
+  return prisma.questionnaireTemplate.findMany({
+    where: {
+      OR: [{ ownerId: staffId }, { isPublic: true }],
+    },
+    select: {
+      id: true,
+      templateName: true,
+      ownerId: true,
+      isPublic: true,
+      questions: {
+        where: {
+          type: {
+            in: CUSTOM_ALLOCATION_ELIGIBLE_TYPES,
+          },
+        },
+        select: {
+          id: true,
+          label: true,
+          type: true,
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: [{ templateName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findCustomAllocationTemplateForStaff(
+  staffId: number,
+  templateId: number,
+): Promise<CustomAllocationTemplate | null> {
+  return prisma.questionnaireTemplate.findFirst({
+    where: {
+      id: templateId,
+      OR: [{ ownerId: staffId }, { isPublic: true }],
+    },
+    select: {
+      id: true,
+      templateName: true,
+      ownerId: true,
+      isPublic: true,
+      questions: {
+        select: {
+          id: true,
+          label: true,
+          type: true,
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+  });
+}
+
+export async function findRespondingStudentIdsForTemplateInProject(
+  projectId: number,
+  templateId: number,
+  studentIds: number[],
+): Promise<number[]> {
+  if (studentIds.length === 0) {
+    return [];
+  }
+
+  const responses = await prisma.peerAssessment.findMany({
+    where: {
+      projectId,
+      templateId,
+      reviewerUserId: {
+        in: studentIds,
+      },
+    },
+    select: {
+      reviewerUserId: true,
+    },
+    distinct: ["reviewerUserId"],
+  });
+
+  return responses.map((response) => response.reviewerUserId);
 }
 
 export async function applyRandomAllocationPlan(

@@ -8,12 +8,15 @@ import {
   applyManualAllocationTeam,
   applyRandomAllocationPlan,
   createTeamInviteRecord,
+  findCustomAllocationQuestionnairesForStaff,
+  findCustomAllocationTemplateForStaff,
   findActiveInvite,
   findInviteContext,
   findPendingInvitesForEmail,
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
+  findRespondingStudentIdsForTemplateInProject,
   findStaffScopedProject,
   getInvitesForTeam,
   TeamService,
@@ -225,19 +228,136 @@ export type CustomAllocationApplied = {
   }>;
 };
 
+const CUSTOM_ALLOCATION_RESPONSE_THRESHOLD = 80;
+
+function normalizeCustomAllocationQuestionType(rawType: string): CustomAllocationQuestionType | null {
+  const normalized = rawType.trim().toLowerCase().replaceAll("_", "-");
+  if (normalized === "multiple-choice") {
+    return "multiple-choice";
+  }
+  if (normalized === "rating") {
+    return "rating";
+  }
+  if (normalized === "slider") {
+    return "slider";
+  }
+  return null;
+}
+
 export async function listCustomAllocationQuestionnairesForProject(
-  _staffId: number,
-  _projectId: number,
+  staffId: number,
+  projectId: number,
 ): Promise<CustomAllocationQuestionnaireListing> {
-  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const templates = await findCustomAllocationQuestionnairesForStaff(staffId);
+  const questionnaires = templates
+    .map((template) => {
+      const eligibleQuestions = template.questions
+        .map((question) => {
+          const normalizedType = normalizeCustomAllocationQuestionType(question.type);
+          if (!normalizedType) {
+            return null;
+          }
+          return {
+            id: question.id,
+            label: question.label,
+            type: normalizedType,
+          };
+        })
+        .filter((question): question is NonNullable<typeof question> => question !== null);
+
+      if (eligibleQuestions.length === 0) {
+        return null;
+      }
+
+      return {
+        id: template.id,
+        templateName: template.templateName,
+        ownerId: template.ownerId,
+        isPublic: template.isPublic,
+        eligibleQuestionCount: eligibleQuestions.length,
+        eligibleQuestions,
+      };
+    })
+    .filter((template): template is NonNullable<typeof template> => template !== null);
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    questionnaires,
+  };
 }
 
 export async function getCustomAllocationCoverageForProject(
-  _staffId: number,
-  _projectId: number,
-  _questionnaireTemplateId: number,
+  staffId: number,
+  projectId: number,
+  questionnaireTemplateId: number,
 ): Promise<CustomAllocationCoverage> {
-  throw { code: "CUSTOM_ALLOCATION_NOT_IMPLEMENTED" };
+  if (!Number.isInteger(questionnaireTemplateId) || questionnaireTemplateId < 1) {
+    throw { code: "INVALID_TEMPLATE_ID" };
+  }
+
+  const project = await findStaffScopedProject(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  const template = await findCustomAllocationTemplateForStaff(staffId, questionnaireTemplateId);
+  if (!template) {
+    throw { code: "TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  const availableStudents = await findVacantModuleStudentsForProject(
+    project.enterpriseId,
+    project.moduleId,
+    project.id,
+  );
+  const availableStudentIds = availableStudents.map((student) => student.id);
+  const respondingStudentIds =
+    availableStudentIds.length === 0
+      ? []
+      : await findRespondingStudentIdsForTemplateInProject(
+          project.id,
+          template.id,
+          availableStudentIds,
+        );
+
+  const totalAvailableStudents = availableStudents.length;
+  const respondingStudents = new Set(respondingStudentIds).size;
+  const nonRespondingStudents = Math.max(0, totalAvailableStudents - respondingStudents);
+  const responseRate =
+    totalAvailableStudents === 0
+      ? 0
+      : Number(((respondingStudents / totalAvailableStudents) * 100).toFixed(2));
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    questionnaireTemplateId: template.id,
+    totalAvailableStudents,
+    respondingStudents,
+    nonRespondingStudents,
+    responseRate,
+    responseThreshold: CUSTOM_ALLOCATION_RESPONSE_THRESHOLD,
+  };
 }
 
 export async function previewCustomAllocationForProject(
