@@ -113,6 +113,20 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   });
 }
 
+/** Returns existing peer feedback assessment ids for bulk status lookups. */
+export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
+  return prisma.peerFeedback.findMany({
+    where: {
+      peerAssessmentId: {
+        in: peerAssessmentIds,
+      },
+    },
+    select: {
+      peerAssessmentId: true,
+    },
+  });
+}
+
 /** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({

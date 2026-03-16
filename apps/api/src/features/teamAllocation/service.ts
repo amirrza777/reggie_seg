@@ -11,6 +11,7 @@ import {
   findActiveInvite,
   findInviteContext,
   findPendingInvitesForEmail,
+  findUserEmailById,
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
@@ -259,6 +260,17 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 /** Returns the team invites. */
 export async function listTeamInvites(teamId: number) {
   return getInvitesForTeam(teamId);
+}
+
+/** Returns the pending invites addressed to the authenticated user. */
+export async function listReceivedInvites(userId: number) {
+  const user = await findUserEmailById(userId);
+  const normalizedEmail = user?.email?.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return [];
+  }
+
+  return findPendingInvitesForEmail(normalizedEmail);
 }
 
 /** Creates a team. */

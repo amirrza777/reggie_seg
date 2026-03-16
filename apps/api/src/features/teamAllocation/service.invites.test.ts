@@ -12,6 +12,7 @@ import {
   getManualAllocationWorkspaceForProject,
   getTeamById,
   getTeamMembers,
+  listReceivedInvites,
   listTeamInvites,
   previewRandomAllocationForProject,
   rejectTeamInvite,
@@ -27,6 +28,8 @@ vi.mock("./repo.js", () => ({
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findPendingInvitesForEmail: vi.fn(),
+  findUserEmailById: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
@@ -170,6 +173,23 @@ describe("teamAllocation service invites", () => {
     await expect(getTeamById(10)).resolves.toEqual({ id: 10 });
     await expect(addUserToTeam(10, 4, "OWNER")).resolves.toEqual({ teamId: 10, userId: 4 });
     await expect(getTeamMembers(10)).resolves.toEqual([{ id: 4 }]);
+  });
+
+  it("lists received invites using the authenticated user's email", async () => {
+    (repo.findUserEmailById as any).mockResolvedValue({ email: " Student@Example.com " });
+    (repo.findPendingInvitesForEmail as any).mockResolvedValue([{ id: "i2" }]);
+
+    await expect(listReceivedInvites(15)).resolves.toEqual([{ id: "i2" }]);
+
+    expect(repo.findUserEmailById).toHaveBeenCalledWith(15);
+    expect(repo.findPendingInvitesForEmail).toHaveBeenCalledWith("student@example.com");
+  });
+
+  it("returns an empty list when the authenticated user has no email", async () => {
+    (repo.findUserEmailById as any).mockResolvedValue(null);
+
+    await expect(listReceivedInvites(20)).resolves.toEqual([]);
+    expect(repo.findPendingInvitesForEmail).not.toHaveBeenCalled();
   });
 
   it("accept/decline/reject/cancel/expire update invite status", async () => {

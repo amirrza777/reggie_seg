@@ -76,6 +76,14 @@ export function getFeedbackReview(assessmentId: number) {
   return getPeerFeedbackByAssessmentId(assessmentId);
 }
 
+/** Returns a boolean status map keyed by peer assessment id. */
+export async function getFeedbackReviewStatuses(assessmentIds: number[]) {
+  const existingReviews = await getPeerFeedbackByAssessmentIds(assessmentIds);
+  const completedAssessmentIds = new Set(existingReviews.map((review) => review.peerAssessmentId));
+
+  return Object.fromEntries(assessmentIds.map((assessmentId) => [String(assessmentId), completedAssessmentIds.has(assessmentId)]));
+}
+
 /** Returns the peer assessment. */
 export function getPeerAssessment(assessmentId: number) {
   return getPeerAssessmentById(assessmentId);
