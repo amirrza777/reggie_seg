@@ -19,7 +19,7 @@
 
 .staff-projects__allocation-mode-toggle {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 7px 12px;
   min-width: 94px;
   background: color-mix(in srgb, var(--surface) 84%, transparent);
@@ -58,7 +58,7 @@
 
 .staff-projects__manual-workspace-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--surface) 90%, transparent);
   padding: 12px;
   display: grid;
@@ -99,7 +99,7 @@
 
 .staff-projects__manual-create-field input {
   width: 100%;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: inherit;
@@ -122,7 +122,7 @@
 
 .staff-projects__manual-student-row {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -156,7 +156,7 @@
 
 .staff-projects__manual-status {
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 4px 10px;
   font-size: var(--fs-caption);
 }
@@ -181,7 +181,7 @@
 
 .staff-projects__manual-select-btn {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 5px 10px;
   background: color-mix(in srgb, var(--surface) 84%, transparent);
   color: inherit;
@@ -217,7 +217,7 @@
 .staff-projects__allocation-team-name-input {
   width: min(100%, 280px);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: inherit;
@@ -230,7 +230,7 @@
 
 .staff-projects__allocation-rename-btn {
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 11px;
   background: color-mix(in srgb, var(--surface) 84%, transparent);
   color: inherit;

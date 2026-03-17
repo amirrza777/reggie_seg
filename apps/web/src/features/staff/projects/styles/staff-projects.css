@@ -5,7 +5,7 @@
 
 .staff-projects__hero {
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 20px;
   background:
     radial-gradient(110% 90% at 0% 0%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 70%),
@@ -44,7 +44,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 12px;
   font-size: var(--fs-body-sm);
   background: color-mix(in srgb, var(--surface) 80%, transparent);
@@ -62,7 +62,7 @@
   text-decoration: none;
   color: inherit;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 16px;
   background: var(--surface);
   transition: border-color 0.2s ease, transform 0.2s ease;
@@ -91,18 +91,6 @@
   font-weight: var(--fw-semibold);
 }
 
-.staff-projects__card-placeholder-btn {
-  margin-top: 4px;
-  width: fit-content;
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--muted);
-  font-size: var(--fs-caption);
-  cursor: not-allowed;
-}
-
 .staff-projects__team-list {
   display: grid;
   gap: 12px;
@@ -110,7 +98,7 @@
 
 .staff-projects__team-card {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 14px;
   display: grid;
@@ -167,13 +155,13 @@
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .staff-projects__avatar {
   width: 34px;
   height: 34px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   display: grid;
   place-items: center;
@@ -199,16 +187,6 @@
   font-size: var(--fs-caption);
 }
 
-.staff-projects__member-placeholder-btn {
-  border: 1px dashed var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--muted);
-  font-size: var(--fs-caption);
-  cursor: not-allowed;
-}
-
 .staff-projects__team-health-review-box {
   border-top: 1px solid var(--border);
   padding-top: 10px;
@@ -224,7 +202,7 @@
 
 .staff-projects__team-health-deadline-box {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px;
   display: grid;
   gap: 10px;
@@ -237,7 +215,7 @@
   align-self: flex-start;
   width: fit-content;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 6px 10px;
   background: var(--surface);
   color: var(--ink);
@@ -277,7 +255,7 @@
 .staff-projects__team-health-shift-label input {
   width: 120px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   background: var(--surface);
   color: var(--ink);
@@ -291,7 +269,7 @@
 
 .staff-projects__team-health-deadline-field input {
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   background: var(--surface);
   color: var(--ink);

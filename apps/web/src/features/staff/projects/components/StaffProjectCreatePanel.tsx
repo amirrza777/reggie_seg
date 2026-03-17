@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createStaffProject } from "@/features/projects/api/client";
+import { listModules } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 
 type StaffProjectCreatePanelProps = {
+  currentUserId: number;
   modules: Module[];
   modulesError: string | null;
   initialModuleId?: string | null;
@@ -96,7 +98,12 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
   };
 }
 
-export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId = null }: StaffProjectCreatePanelProps) {
+export function StaffProjectCreatePanel({
+  currentUserId,
+  modules,
+  modulesError,
+  initialModuleId = null,
+}: StaffProjectCreatePanelProps) {
   const router = useRouter();
   const [templates, setTemplates] = useState<Questionnaire[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -104,53 +111,126 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
 
   const [projectName, setProjectName] = useState("");
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
+  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
   const [deadlinePresetStatus, setDeadlinePresetStatus] = useState<string | null>(null);
   const [deadlinePresetError, setDeadlinePresetError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [moduleSearchError, setModuleSearchError] = useState<string | null>(null);
+  const [isLoadingModules, setIsLoadingModules] = useState(false);
+  const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
 
-  const creatableModules = useMemo(
+  const creatableModulesFromProps = useMemo(
     () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
     [modules]
   );
+  const [moduleOptions, setModuleOptions] = useState<Module[]>(creatableModulesFromProps);
+
+  useEffect(() => {
+    if (moduleSearchQuery.trim().length > 0) return;
+    setModuleOptions(creatableModulesFromProps);
+  }, [creatableModulesFromProps, moduleSearchQuery]);
 
   useEffect(() => {
     if (!initialModuleId) return;
     if (moduleId.trim().length > 0) return;
-    if (!creatableModules.some((module) => module.id === initialModuleId)) return;
+    if (!creatableModulesFromProps.some((module) => module.id === initialModuleId)) return;
     setModuleId(initialModuleId);
-  }, [creatableModules, initialModuleId, moduleId]);
+  }, [creatableModulesFromProps, initialModuleId, moduleId]);
 
   useEffect(() => {
-    let isMounted = true;
-    setIsLoadingTemplates(true);
-    setTemplatesError(null);
+    const normalizedQuery = moduleSearchQuery.trim();
+    if (!normalizedQuery) {
+      setModuleSearchError(null);
+      setIsLoadingModules(false);
+      return;
+    }
 
-    getMyQuestionnaires()
-      .then((result) => {
-        if (!isMounted) return;
-        const sorted = [...result].sort((a, b) => a.templateName.localeCompare(b.templateName));
-        setTemplates(sorted);
-      })
-      .catch((error) => {
-        if (!isMounted) return;
-        setTemplatesError(error instanceof Error ? error.message : "Failed to load your questionnaires.");
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setIsLoadingTemplates(false);
-      });
+    let isMounted = true;
+    const timer = window.setTimeout(() => {
+      setIsLoadingModules(true);
+      setModuleSearchError(null);
+      listModules(currentUserId, { scope: "staff", compact: true, query: normalizedQuery })
+        .then((result) => {
+          if (!isMounted) return;
+          setModuleOptions(result.filter((module) => CREATABLE_ROLES.has(module.accountRole)));
+        })
+        .catch((error) => {
+          if (!isMounted) return;
+          setModuleSearchError(error instanceof Error ? error.message : "Failed to search modules.");
+          setModuleOptions([]);
+        })
+        .finally(() => {
+          if (!isMounted) return;
+          setIsLoadingModules(false);
+        });
+    }, 250);
 
     return () => {
       isMounted = false;
+      window.clearTimeout(timer);
     };
-  }, []);
+  }, [currentUserId, moduleSearchQuery]);
 
-  const hasCreatableModule = creatableModules.length > 0;
-  const hasTemplates = templates.length > 0;
+  useEffect(() => {
+    let isMounted = true;
+    const normalizedQuery = templateSearchQuery.trim();
+    const timer = window.setTimeout(() => {
+      setIsLoadingTemplates(true);
+      setTemplatesError(null);
+
+      getMyQuestionnaires({ query: normalizedQuery || undefined })
+        .then((result) => {
+          if (!isMounted) return;
+          const sorted = [...result].sort((a, b) => a.templateName.localeCompare(b.templateName));
+          setTemplates(sorted);
+          if (templateId.trim().length > 0) {
+            const selected = sorted.find((template) => String(template.id) === templateId) ?? null;
+            if (selected) {
+              setSelectedTemplateOption(selected);
+            }
+          }
+        })
+        .catch((error) => {
+          if (!isMounted) return;
+          setTemplatesError(error instanceof Error ? error.message : "Failed to load your questionnaires.");
+          setTemplates([]);
+        })
+        .finally(() => {
+          if (!isMounted) return;
+          setIsLoadingTemplates(false);
+        });
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [templateId, templateSearchQuery]);
+
+  const hasCreatableModule = creatableModulesFromProps.length > 0;
+  const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
+
+  const visibleModules = useMemo(() => {
+    const selectedModule =
+      creatableModulesFromProps.find((module) => module.id === moduleId) ??
+      moduleOptions.find((module) => module.id === moduleId);
+    if (!selectedModule) return moduleOptions;
+    if (moduleOptions.some((module) => module.id === selectedModule.id)) return moduleOptions;
+    return [selectedModule, ...moduleOptions];
+  }, [creatableModulesFromProps, moduleId, moduleOptions]);
+
+  const visibleTemplates = useMemo(() => {
+    const selectedTemplate = templates.find((template) => String(template.id) === templateId) ?? selectedTemplateOption;
+    if (!selectedTemplate) return templates;
+    if (templates.some((template) => template.id === selectedTemplate.id)) return templates;
+    return [selectedTemplate, ...templates];
+  }, [selectedTemplateOption, templateId, templates]);
+
   const canSubmit =
     !isSubmitting &&
     hasCreatableModule &&
@@ -344,7 +424,9 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
             Questionnaire templates define the assessment form used by students.
           </p>
         </div>
-        <span className="staff-projects__badge">{creatableModules.length} creatable module{creatableModules.length === 1 ? "" : "s"}</span>
+        <span className="staff-projects__badge">
+          {creatableModulesFromProps.length} creatable module{creatableModulesFromProps.length === 1 ? "" : "s"}
+        </span>
       </div>
 
       <form className="staff-projects__create-form" onSubmit={onSubmit}>
@@ -368,38 +450,69 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Module</span>
+              <input
+                className="staff-projects__input"
+                type="search"
+                value={moduleSearchQuery}
+                onChange={(event) => setModuleSearchQuery(event.target.value)}
+                placeholder="Search modules by name or ID"
+                disabled={!hasCreatableModule}
+                aria-label="Search module options"
+              />
               <select
                 className="staff-projects__select"
                 value={moduleId}
                 onChange={(event) => setModuleId(event.target.value)}
-                disabled={!hasCreatableModule}
+                disabled={!hasCreatableModule || isLoadingModules}
               >
                 <option value="">Select module</option>
-                {creatableModules.map((module) => (
+                {visibleModules.map((module) => (
                   <option key={module.id} value={module.id}>
                     {module.title}
                   </option>
                 ))}
               </select>
+              {moduleSearchQuery.trim().length > 0 && !isLoadingModules && visibleModules.length === 0 ? (
+                <span className="staff-projects__field-label">No modules match "{moduleSearchQuery.trim()}".</span>
+              ) : null}
             </label>
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Questionnaire template</span>
+              <input
+                className="staff-projects__input"
+                type="search"
+                value={templateSearchQuery}
+                onChange={(event) => setTemplateSearchQuery(event.target.value)}
+                placeholder="Search templates by name or ID"
+                disabled={isLoadingTemplates || !hasTemplates}
+                aria-label="Search questionnaire template options"
+              />
               <select
                 className="staff-projects__select"
                 value={templateId}
-                onChange={(event) => setTemplateId(event.target.value)}
+                onChange={(event) => {
+                  const nextTemplateId = event.target.value;
+                  setTemplateId(nextTemplateId);
+                  const nextTemplate = templates.find((template) => String(template.id) === nextTemplateId) ?? null;
+                  if (nextTemplate) {
+                    setSelectedTemplateOption(nextTemplate);
+                  }
+                }}
                 disabled={isLoadingTemplates || !hasTemplates}
               >
                 <option value="">
                   {isLoadingTemplates ? "Loading templates..." : "Select template"}
                 </option>
-                {templates.map((template) => (
+                {visibleTemplates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.templateName}
                   </option>
                 ))}
               </select>
+              {templateSearchQuery.trim().length > 0 && !isLoadingTemplates && visibleTemplates.length === 0 ? (
+                <span className="staff-projects__field-label">No templates match "{templateSearchQuery.trim()}".</span>
+              ) : null}
             </label>
           </div>
         </section>
@@ -599,6 +712,7 @@ export function StaffProjectCreatePanel({ modules, modulesError, initialModuleId
       </form>
 
       {modulesError ? <p className="staff-projects__error">{modulesError}</p> : null}
+      {moduleSearchError ? <p className="staff-projects__error">{moduleSearchError}</p> : null}
       {templatesError ? <p className="staff-projects__error">{templatesError}</p> : null}
       {!hasCreatableModule && !modulesError ? (
         <p className="staff-projects__hint">

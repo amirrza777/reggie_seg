@@ -7,6 +7,7 @@ import {
   upsertStaffStudentDeadlineOverride,
 } from "@/features/projects/api/client";
 import type { StaffStudentDeadlineOverride, StaffStudentDeadlineOverridePayload } from "@/features/projects/types";
+import { filterBySearchQuery } from "@/shared/lib/search";
 
 type StaffTeamMemberLite = {
   id: number;
@@ -85,6 +86,7 @@ export function StaffStudentDeadlineOverridesPanel({
   const [expandedStudentId, setExpandedStudentId] = useState<number | null>(initialStudentId ?? null);
   const [overrides, setOverrides] = useState<Record<number, StaffStudentDeadlineOverride>>({});
   const [drafts, setDrafts] = useState<Record<number, Draft>>({});
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
 
   const memberIds = useMemo(() => new Set(members.map((member) => member.id)), [members]);
 
@@ -140,6 +142,15 @@ export function StaffStudentDeadlineOverridesPanel({
     }));
   };
 
+  const filteredMembers = useMemo(
+    () =>
+      filterBySearchQuery(members, memberSearchQuery, {
+        fields: ["firstName", "lastName", "email"],
+        selectors: [(member) => `${member.firstName} ${member.lastName}`.trim()],
+      }),
+    [members, memberSearchQuery]
+  );
+
   const handleSave = async (studentId: number) => {
     const draft = drafts[studentId] ?? fromOverride(overrides[studentId]);
     setSavingStudentId(studentId);
@@ -182,12 +193,34 @@ export function StaffStudentDeadlineOverridesPanel({
         Apply manual extensions or date changes for individual students in this team.
       </p>
 
+      <label className="staff-projects__field" htmlFor="student-overrides-search">
+        <span className="staff-projects__field-label">Search students</span>
+        <input
+          id="student-overrides-search"
+          className="staff-projects__input"
+          type="search"
+          value={memberSearchQuery}
+          onChange={(event) => setMemberSearchQuery(event.target.value)}
+          placeholder="Search by name or email"
+          aria-label="Search students in deadline overrides"
+        />
+      </label>
+
       {loading ? <p className="muted" style={{ margin: 0 }}>Loading overrides...</p> : null}
       {loadError ? <p className="staff-projects__error">{loadError}</p> : null}
       {actionError ? <p className="staff-projects__error">{actionError}</p> : null}
 
       <div className="staff-projects__override-list">
-        {members.map((member) => {
+        {filteredMembers.length === 0 ? (
+          <article className="staff-projects__override-item">
+            <p className="muted" style={{ margin: 0 }}>
+              {memberSearchQuery.trim().length > 0
+                ? `No students match "${memberSearchQuery.trim()}".`
+                : "No students are available for this team."}
+            </p>
+          </article>
+        ) : (
+          filteredMembers.map((member) => {
           const override = overrides[member.id];
           const draft = drafts[member.id] ?? fromOverride(override);
           const isExpanded = expandedStudentId === member.id;
@@ -309,7 +342,8 @@ export function StaffStudentDeadlineOverridesPanel({
               ) : null}
             </article>
           );
-        })}
+        })
+        )}
       </div>
     </section>
   );

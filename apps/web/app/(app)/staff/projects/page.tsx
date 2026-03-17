@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Fragment, type ReactNode } from "react";
 import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
+import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
-import { filterBySearchQuery, matchesSearchQuery, normalizeSearchQuery } from "@/shared/lib/search";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type ProjectTeamLink = {
@@ -54,6 +54,13 @@ type StaffProjectsPageProps = {
   searchParams?: Promise<{ q?: string | string[] }>;
 };
 
+function toStaffLoadErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof ApiError && error.status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default async function StaffProjectsPage({ searchParams }: StaffProjectsPageProps) {
   const user = await getCurrentUser();
   if (!user?.isStaff && user?.role !== "ADMIN") {
@@ -62,13 +69,12 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const rawQuery = Array.isArray(resolvedSearchParams.q) ? resolvedSearchParams.q[0] : resolvedSearchParams.q;
-  const normalizedQuery = normalizeSearchQuery(rawQuery ?? "");
-  const hasQuery = normalizedQuery.length > 0;
+  const hasQuery = typeof rawQuery === "string" && rawQuery.trim().length > 0;
 
   let projects: StaffProjectWithTeams[] = [];
   let errorMessage: string | null = null;
   try {
-    const baseProjects = await getStaffProjects(user.id);
+    const baseProjects = await getStaffProjects(user.id, { query: rawQuery });
     projects = await Promise.all(
       baseProjects.map(async (project) => {
         try {
@@ -94,7 +100,7 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
       }),
     );
   } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Failed to load staff projects.";
+    errorMessage = toStaffLoadErrorMessage(error, "Failed to load staff projects.");
   }
 
   const moduleMap = new Map<number, ModuleGroup>();
@@ -118,52 +124,10 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
     }))
     .sort((a, b) => a.moduleName.localeCompare(b.moduleName));
 
-  const visibleModules = !hasQuery
-    ? modules.map((module) => ({
-        ...module,
-        projects: module.projects.map((project) => ({ ...project, visibleTeams: project.teams })),
-      }))
-    : modules
-        .map((module) => {
-          const moduleMatches = matchesSearchQuery(module, normalizedQuery, { fields: ["moduleName"] });
-
-          const visibleProjects = module.projects
-            .map((project) => {
-              const projectMatches = matchesSearchQuery(project, normalizedQuery, { fields: ["name"] });
-              const matchedTeams = filterBySearchQuery(project.teams, normalizedQuery, { fields: ["teamName"] });
-
-              if (moduleMatches || projectMatches) {
-                return { ...project, visibleTeams: project.teams };
-              }
-              if (matchedTeams.length > 0) {
-                return { ...project, visibleTeams: matchedTeams };
-              }
-              return null;
-            })
-            .filter((project): project is StaffProjectWithTeams & { visibleTeams: ProjectTeamLink[] } => project !== null);
-
-          if (moduleMatches) {
-            return {
-              ...module,
-              projects: module.projects.map((project) => ({ ...project, visibleTeams: project.teams })),
-            };
-          }
-
-          if (visibleProjects.length > 0) {
-            return {
-              ...module,
-              projects: visibleProjects,
-            };
-          }
-
-          return null;
-        })
-        .filter(
-          (
-            module,
-          ): module is ModuleGroup & { projects: Array<StaffProjectWithTeams & { visibleTeams: ProjectTeamLink[] }> } =>
-            module !== null,
-        );
+  const visibleModules = modules.map((module) => ({
+    ...module,
+    projects: module.projects.map((project) => ({ ...project, visibleTeams: project.teams })),
+  }));
 
   const visibleProjectCount = visibleModules.reduce((sum, module) => sum + module.projects.length, 0);
 
@@ -189,9 +153,9 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
           </div>
         ) : null}
 
-        <form action="/staff/projects" method="get" className="staff-projects__search" role="search" aria-label="Search modules or teams">
+        <form action="/staff/projects" method="get" className="staff-projects__search" role="search" aria-label="Search modules or projects">
           <label className="staff-projects__search-label" htmlFor="staff-projects-search">
-            Search modules or teams
+            Search modules or projects
           </label>
           <div className="staff-projects__search-controls">
             <input
@@ -200,7 +164,7 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
               type="search"
               className="staff-projects__search-input"
               defaultValue={rawQuery ?? ""}
-              placeholder="e.g. Data Structures, Team 3"
+              placeholder="e.g. Data Structures, Group Project"
             />
             <button type="submit" className="staff-projects__badge staff-projects__search-btn">
               Search
@@ -219,7 +183,7 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
         <p className="muted">No staff projects found yet. Ask an admin to assign you as a module lead.</p>
       ) : null}
       {!errorMessage && hasQuery && visibleModules.length === 0 ? (
-        <p className="muted">No modules or teams match "{rawQuery}".</p>
+        <p className="muted">No modules or projects match "{rawQuery}".</p>
       ) : null}
 
       <section className="staff-projects__module-list" aria-label="Staff projects grouped by module">
