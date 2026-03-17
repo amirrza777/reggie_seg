@@ -1,5 +1,4 @@
 import { AdminWorkspaceSummary } from "@/features/admin/components/AdminWorkspaceSummary";
-import { FeatureFlagsCard } from "@/features/admin/components/FeatureFlagsCard";
 import { UserManagementTable } from "@/features/admin/components/UserManagementTable";
 
 export default function AdminPage() {
@@ -7,7 +6,6 @@ export default function AdminPage() {
     <div className="stack">
       <AdminWorkspaceSummary />
       <UserManagementTable />
-      <FeatureFlagsCard />
     </div>
   );
 }

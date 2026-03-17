@@ -1,20 +1,21 @@
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { Button } from "@/shared/ui/Button";
-import type { FeatureFlag } from "../types";
+import type { EnterpriseFeatureFlag } from "../types";
 
-type FeatureFlagsPanelProps = {
-  flags: FeatureFlag[];
+type EnterpriseFeatureFlagsPanelProps = {
+  flags: EnterpriseFeatureFlag[];
   onToggle: (key: string, enabled: boolean) => void;
   updating: Record<string, boolean>;
 };
 
-export function FeatureFlagsPanel({ flags, onToggle, updating }: FeatureFlagsPanelProps) {
+export function EnterpriseFeatureFlagsPanel({ flags, onToggle, updating }: EnterpriseFeatureFlagsPanelProps) {
   const rows = flags.map((flag) => {
     const busy = updating[flag.key];
     const nextState = !flag.enabled;
     const statusLabel = flag.enabled ? "Enabled" : "Disabled";
     const statusClass = flag.enabled ? "status-chip status-chip--success" : "status-chip status-chip--danger";
+
     return [
       flag.label,
       <div key={`${flag.key}-action`} className="feature-flag-action">

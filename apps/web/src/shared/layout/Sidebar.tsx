@@ -217,7 +217,7 @@ export function Sidebar({ title = "Navigation", links, footer, mode = "full", mo
     const isActiveGroup = parentActive || childActive;
     const explicit = expandedGroups[link.href];
     if (explicit === undefined) return Boolean(link.defaultExpanded ?? isActiveGroup);
-    return isActiveGroup ? true : explicit;
+    return explicit;
   };
 
   const rootClass = [
@@ -266,7 +266,7 @@ export function Sidebar({ title = "Navigation", links, footer, mode = "full", mo
               </svg>
             </span>
             <span className="sidebar__mobile-trigger-label">{mode === "mobile" ? "Menu" : current?.label ?? "Menu"}</span>
-            {mode === "mobile" ? null : <span className={`sidebar__chevron ${isOpen ? "is-open" : ""}`}>▾</span>}
+            {mode === "mobile" ? null : <span className={`sidebar__chevron ${isOpen ? "is-open" : ""}`}>{isOpen ? "↑" : "↓"}</span>}
           </button>
 
           {isOpen ? (
@@ -348,7 +348,7 @@ export function Sidebar({ title = "Navigation", links, footer, mode = "full", mo
                           aria-expanded={groupOpen}
                         >
                           <span>{link.label}</span>
-                          <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>▾</span>
+                          <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>{groupOpen ? "↑" : "↓"}</span>
                         </button>
                         <div
                           className={`sidebar__mobile-group-collapse ${groupOpen ? "is-open" : ""}`}
@@ -416,7 +416,7 @@ export function Sidebar({ title = "Navigation", links, footer, mode = "full", mo
                 aria-expanded={groupOpen}
               >
                   <span>{link.label}</span>
-                  <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>▾</span>
+                  <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>{groupOpen ? "↑" : "↓"}</span>
                 </button>
                 <div className={`sidebar__group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
                   <div className="sidebar__group-collapse-inner">

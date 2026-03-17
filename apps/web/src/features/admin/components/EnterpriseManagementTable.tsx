@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { FormField } from "@/shared/ui/FormField";
 import { Table } from "@/shared/ui/Table";
 import type { AdminUser, AdminUserRecord, EnterpriseRecord, UserRole } from "../types";
@@ -49,6 +50,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
   const [isCreating, setIsCreating] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteState, setDeleteState] = useState<Record<string, boolean>>({});
+  const [pendingDeleteEnterprise, setPendingDeleteEnterprise] = useState<EnterpriseRecord | null>(null);
 
   const [selectedEnterprise, setSelectedEnterprise] = useState<EnterpriseRecord | null>(null);
   const [enterpriseUsers, setEnterpriseUsers] = useState<AdminUser[]>([]);
@@ -205,9 +207,10 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
     }
   };
 
-  const handleDeleteEnterprise = async (enterprise: EnterpriseRecord) => {
-    const confirmed = window.confirm(`Delete enterprise "${enterprise.name}"? This cannot be undone.`);
-    if (!confirmed) return;
+  const handleDeleteEnterprise = async () => {
+    if (!pendingDeleteEnterprise) return;
+    const enterprise = pendingDeleteEnterprise;
+    setPendingDeleteEnterprise(null);
     setDeleteState((prev) => ({ ...prev, [enterprise.id]: true }));
     setMessage(null);
     try {
@@ -350,7 +353,7 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
       <Button
         type="button"
         variant="danger"
-        onClick={() => void handleDeleteEnterprise(enterprise)}
+        onClick={() => setPendingDeleteEnterprise(enterprise)}
         disabled={deleteState[enterprise.id] === true}
       >
         Delete
@@ -724,6 +727,22 @@ export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagement
           </div>
         </div>
       ) : null}
+
+      <ConfirmationModal
+        open={pendingDeleteEnterprise !== null}
+        title="Delete enterprise?"
+        message={
+          pendingDeleteEnterprise
+            ? `Delete enterprise "${pendingDeleteEnterprise.name}"? This action cannot be undone.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Delete enterprise"
+        confirmVariant="danger"
+        busy={pendingDeleteEnterprise ? deleteState[pendingDeleteEnterprise.id] === true : false}
+        onCancel={() => setPendingDeleteEnterprise(null)}
+        onConfirm={() => void handleDeleteEnterprise()}
+      />
     </>
   );
 }

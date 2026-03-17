@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { normalizeSearchQuery } from "@/shared/lib/search";
 import type { AdminUser, AdminUserRecord, UserRole, AdminSummary } from "../types";
-import { listUsers, updateUserRole, getAdminSummary } from "../api/client";
+import { listUsers, searchUsers, updateUserRole, getAdminSummary } from "../api/client";
 import { AuditLogModal } from "./AuditLogModal";
 
 const demoStaff: AdminUser[] = [
@@ -56,8 +57,10 @@ export function AdminWorkspaceSummary() {
   const [actionStatus, setActionStatus] = useState<Record<number, RequestState>>({});
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [summaryStatus, setSummaryStatus] = useState<RequestState>("idle");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const staffDirectory = useMemo(() => staff.filter(isStaffAccount), [staff]);
+  const normalizedSearchQuery = normalizeSearchQuery(searchQuery);
 
   const setStaffRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
     setStaff((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
@@ -68,20 +71,34 @@ export function AdminWorkspaceSummary() {
     setNotice(null);
 
     try {
-      const response = await listUsers();
-      const normalized = response.map(normalizeUser).filter(isStaffAccount);
+      const response = await searchUsers({
+        q: normalizedSearchQuery || undefined,
+        page: 1,
+        pageSize: 200,
+      });
+      const normalized = response.items.map(normalizeUser).filter(isStaffAccount);
       if (normalized.length === 0) {
-        setNotice("No staff accounts yet. Mark a user as Staff to manage admin access here.");
+        setNotice(
+          normalizedSearchQuery
+            ? `No staff accounts match "${searchQuery.trim()}".`
+            : "No staff accounts yet. Mark a user as Staff to manage admin access here."
+        );
       }
       setStaff(normalized);
       setStatus("success");
     } catch (err) {
-      const fallback = demoStaff;
+      let fallback = demoStaff;
+      try {
+        const users = await listUsers();
+        fallback = users.map(normalizeUser).filter(isStaffAccount);
+      } catch {
+        fallback = demoStaff;
+      }
       setStaff(fallback);
       setStatus("error");
       setNotice(err instanceof Error ? err.message : "Unable to load staff. Showing sample data.");
     }
-  }, []);
+  }, [normalizedSearchQuery, searchQuery]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -198,6 +215,14 @@ export function AdminWorkspaceSummary() {
                     : `Showing ${staffDirectory.length} staff ${staffDirectory.length === 1 ? "account" : "accounts"}.`}
                 </span>
               </div>
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by name, email, role, or ID"
+                aria-label="Search staff directory"
+                className="user-management__search"
+              />
 
               {notice ? (
                 <div

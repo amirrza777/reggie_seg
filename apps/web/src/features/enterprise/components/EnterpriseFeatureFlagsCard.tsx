@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { FeatureFlagsPanel } from "./FeatureFlagsPanel";
-import { listFeatureFlags, updateFeatureFlag } from "../api/client";
-import type { FeatureFlag } from "../types";
+import { listEnterpriseFeatureFlags, updateEnterpriseFeatureFlag } from "../api/client";
+import type { EnterpriseFeatureFlag } from "../types";
+import { EnterpriseFeatureFlagsPanel } from "./EnterpriseFeatureFlagsPanel";
 
 type Status = "idle" | "loading" | "error" | "success";
 
-export function FeatureFlagsCard() {
-  const [flags, setFlags] = useState<FeatureFlag[]>([]);
+export function EnterpriseFeatureFlagsCard() {
+  const [flags, setFlags] = useState<EnterpriseFeatureFlag[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [updating, setUpdating] = useState<Record<string, boolean>>({});
@@ -18,18 +18,18 @@ export function FeatureFlagsCard() {
     const loadFlags = async () => {
       setStatus("loading");
       try {
-        const response = await listFeatureFlags();
+        const response = await listEnterpriseFeatureFlags();
         if (!subscribed) return;
         setFlags(response);
         setStatus("success");
       } catch (err) {
-        if (subscribed) {
-          setStatus("error");
-          setMessage(err instanceof Error ? err.message : "Could not load flags.");
-        }
+        if (!subscribed) return;
+        setStatus("error");
+        setMessage(err instanceof Error ? err.message : "Could not load flags.");
       }
     };
-    loadFlags();
+
+    void loadFlags();
     return () => {
       subscribed = false;
     };
@@ -38,13 +38,14 @@ export function FeatureFlagsCard() {
   const handleToggle = async (key: string, enabled: boolean) => {
     setUpdating((prev) => ({ ...prev, [key]: true }));
     setMessage(null);
-    const previous = flags;
-    setFlags((prev) => prev.map((f) => (f.key === key ? { ...f, enabled } : f)));
+    setFlags((prev) => prev.map((flag) => (flag.key === key ? { ...flag, enabled } : flag)));
     try {
-      const updated = await updateFeatureFlag(key, enabled);
-      setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
+      const updated = await updateEnterpriseFeatureFlag(key, enabled);
+      setFlags((prev) => prev.map((flag) => (flag.key === key ? updated : flag)));
+      setStatus("success");
     } catch (err) {
-      setFlags(previous);
+      setFlags((prev) => prev.map((flag) => (flag.key === key ? { ...flag, enabled: !enabled } : flag)));
+      setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not update flag.");
     } finally {
       setUpdating((prev) => ({ ...prev, [key]: false }));
@@ -61,7 +62,7 @@ export function FeatureFlagsCard() {
           <span>{message}</span>
         </div>
       ) : null}
-      <FeatureFlagsPanel flags={flags} onToggle={handleToggle} updating={updating} />
+      <EnterpriseFeatureFlagsPanel flags={flags} onToggle={handleToggle} updating={updating} />
     </div>
   );
 }

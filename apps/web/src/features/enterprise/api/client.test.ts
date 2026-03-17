@@ -11,12 +11,14 @@ import {
   deleteEnterpriseModule,
   getEnterpriseModuleAccess,
   getEnterpriseModuleAccessSelection,
+  listEnterpriseFeatureFlags,
   getEnterpriseOverview,
   listEnterpriseModules,
   listEnterpriseModuleAccessUsers,
   listEnterpriseModuleStudents,
   searchEnterpriseModuleAccessUsers,
   searchEnterpriseModules,
+  updateEnterpriseFeatureFlag,
   updateEnterpriseModule,
   updateEnterpriseModuleStudents,
 } from "./client";
@@ -44,6 +46,19 @@ describe("enterprise module api client", () => {
   it("fetches enterprise overview", async () => {
     await getEnterpriseOverview();
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/overview");
+  });
+
+  it("lists enterprise feature flags", async () => {
+    await listEnterpriseFeatureFlags();
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/feature-flags");
+  });
+
+  it("updates enterprise feature flag", async () => {
+    await updateEnterpriseFeatureFlag("peer feedback/new", true);
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/feature-flags/peer%20feedback%2Fnew", {
+      method: "PATCH",
+      body: JSON.stringify({ enabled: true }),
+    });
   });
 
   it("creates an enterprise module", async () => {
