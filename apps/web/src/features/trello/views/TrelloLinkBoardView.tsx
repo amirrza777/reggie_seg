@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { assignBoardToTeam, getBoardById } from "@/features/trello/api/client";
+import { useEffect, useMemo, useState } from "react";
+import { assignBoardToTeam, getBoardById, getMyBoards } from "@/features/trello/api/client";
 import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 import { Card } from "@/shared/ui/Card";
 import "@/features/trello/styles/link-board.css";
@@ -21,14 +21,62 @@ type Props = {
 export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAssigned }: Props) {
   const router = useRouter();
   const [selectedBoardId, setSelectedBoardId] = useState(boards[0]?.id ?? "");
+  const [boardSearchQuery, setBoardSearchQuery] = useState("");
+  const [availableBoards, setAvailableBoards] = useState<OwnerBoard[]>(boards);
+  const [isSearchingBoards, setIsSearchingBoards] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<BoardView | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  const visibleBoards = useMemo(() => {
+    const selectedBoard = availableBoards.find((board) => board.id === selectedBoardId) ?? boards.find((board) => board.id === selectedBoardId) ?? null;
+    if (!selectedBoard) return availableBoards;
+    if (availableBoards.some((board) => board.id === selectedBoard.id)) return availableBoards;
+    return [selectedBoard, ...availableBoards];
+  }, [availableBoards, boards, selectedBoardId]);
+
   useEffect(() => {
     if (boards.length > 0 && !selectedBoardId) setSelectedBoardId(boards[0].id);
   }, [boards, selectedBoardId]);
+
+  useEffect(() => {
+    if (boardSearchQuery.trim().length > 0) {
+      return;
+    }
+    setAvailableBoards(boards);
+  }, [boardSearchQuery, boards]);
+
+  useEffect(() => {
+    const normalizedQuery = boardSearchQuery.trim();
+    if (!normalizedQuery) {
+      setIsSearchingBoards(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      setIsSearchingBoards(true);
+      getMyBoards({ query: normalizedQuery })
+        .then((nextBoards) => {
+          if (cancelled) return;
+          setAvailableBoards(nextBoards);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setAvailableBoards([]);
+        })
+        .finally(() => {
+          if (cancelled) return;
+          setIsSearchingBoards(false);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [boardSearchQuery]);
 
   useEffect(() => {
     if (!selectedBoardId) {
@@ -80,6 +128,15 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
       <div className="trello-link-board__controls">
         <label className="trello-link-board__select-wrap">
           <span className="trello-link-board__select-label">BOARD</span>
+          <input
+            type="search"
+            value={boardSearchQuery}
+            onChange={(event) => setBoardSearchQuery(event.target.value)}
+            className="trello-link-board__select"
+            placeholder="Search boards by name or ID"
+            aria-label="Search Trello boards"
+            disabled={boards.length === 0 && boardSearchQuery.trim().length === 0}
+          />
           <select
             value={selectedBoardId}
             onChange={(e) => setSelectedBoardId(e.target.value)}
@@ -88,8 +145,12 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
           >
             {boards.length === 0 ? (
               <option value="">No boards available</option>
+            ) : isSearchingBoards ? (
+              <option value="">Searching boards...</option>
+            ) : visibleBoards.length === 0 ? (
+              <option value="">No boards match "{boardSearchQuery.trim()}"</option>
             ) : (
-              boards.map((board) => (
+              visibleBoards.map((board) => (
                 <option key={board.id} value={board.id}>
                   {board.name}
                 </option>
