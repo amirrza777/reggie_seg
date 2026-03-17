@@ -172,8 +172,17 @@ export async function applyRandomAllocation(
   });
 }
 
-export async function getManualAllocationWorkspace(projectId: number) {
-  return apiFetch<ManualAllocationWorkspace>(`/team-allocation/projects/${projectId}/manual-workspace`, {
+export async function getManualAllocationWorkspace(projectId: number, options?: { query?: string }) {
+  const searchParams = new URLSearchParams();
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  const query = searchParams.toString();
+  const path = query
+    ? `/team-allocation/projects/${projectId}/manual-workspace?${query}`
+    : `/team-allocation/projects/${projectId}/manual-workspace`;
+
+  return apiFetch<ManualAllocationWorkspace>(path, {
     cache: "no-store",
   });
 }
