@@ -9,6 +9,7 @@ import {
   getModuleAccessSelection,
   getModuleStudents,
   getOverview,
+  listFeatureFlags,
   listAssignableUsers,
   listModules,
   parseAccessUserSearchFilters,
@@ -18,6 +19,7 @@ import {
   parsePositiveIntArray,
   searchAssignableUsers,
   searchModules,
+  updateFeatureFlag,
   updateModule,
   updateModuleStudents,
   isEnterpriseAdminRole,
@@ -35,6 +37,31 @@ router.get("/overview", async (req, res) => {
   if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
 
   return res.json(await getOverview(enterpriseUser));
+});
+
+router.get("/feature-flags", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  const result = await listFeatureFlags(enterpriseUser);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json(result.value);
+});
+
+router.patch("/feature-flags/:key", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled boolean required" });
+
+  try {
+    const result = await updateFeatureFlag(enterpriseUser, String(req.params.key), enabled);
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.json(result.value);
+  } catch (err) {
+    console.error("update feature flag error", err);
+    return res.status(500).json({ error: "Could not update feature flag" });
+  }
 });
 
 router.get("/modules", async (req, res) => {

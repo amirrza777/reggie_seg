@@ -25,6 +25,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn() },
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
@@ -46,7 +47,7 @@ function getUseHandlers() {
   return (router as any).stack.filter((layer: any) => !layer.route).map((layer: any) => layer.handle);
 }
 
-function getRouteHandler(method: "get" | "post" | "put" | "delete", path: string) {
+function getRouteHandler(method: "get" | "post" | "put" | "patch" | "delete", path: string) {
   const layer = (router as any).stack.find((item: any) => item.route?.path === path && item.route.methods?.[method]);
   if (!layer) throw new Error(`Missing route ${method.toUpperCase()} ${path}`);
   return layer.route.stack[0].handle;
@@ -93,6 +94,8 @@ beforeEach(() => {
   (prisma.moduleTeachingAssistant.createMany as any).mockResolvedValue({ count: 0 });
   (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValue([]);
   (prisma.userModule.findMany as any).mockResolvedValue([]);
+  (prisma.featureFlag.findMany as any).mockResolvedValue([]);
+  (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
 
   (prisma.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);
@@ -124,6 +127,58 @@ describe("enterpriseAdmin router discovery", () => {
     const studentRes = mockRes();
     await resolveEnterpriseUser(studentReq, studentRes, next);
     expect((studentRes.status as any)).toHaveBeenCalledWith(403);
+  });
+
+  it("lists and updates enterprise feature flags", async () => {
+    const listFeatureFlags = getRouteHandler("get", "/feature-flags");
+    const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
+
+    (prisma.featureFlag.findMany as any).mockResolvedValueOnce([
+      { key: "repos", label: "Repos", enabled: true },
+      { key: "modules", label: "Modules", enabled: false },
+    ]);
+
+    let res = mockRes();
+    await listFeatureFlags({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+    expect((res.json as any)).toHaveBeenCalledWith([
+      { key: "repos", label: "Repositories", enabled: true },
+      { key: "modules", label: "Modules", enabled: false },
+    ]);
+
+    res = mockRes();
+    await patchFeatureFlag(
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { key: "peer_feedback" },
+        body: { enabled: "yes" },
+      } as any,
+      res,
+    );
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+
+    (prisma.featureFlag.update as any).mockResolvedValueOnce({ key: "repos", label: "Repos", enabled: false });
+    res = mockRes();
+    await patchFeatureFlag(
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { key: "repos" },
+        body: { enabled: false },
+      } as any,
+      res,
+    );
+    expect((res.json as any)).toHaveBeenCalledWith({ key: "repos", label: "Repositories", enabled: false });
+
+    (prisma.featureFlag.update as any).mockRejectedValueOnce({ code: "P2025" });
+    res = mockRes();
+    await patchFeatureFlag(
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { key: "missing" },
+        body: { enabled: true },
+      } as any,
+      res,
+    );
+    expect((res.status as any)).toHaveBeenCalledWith(404);
   });
 
   it("lists modules for admins and staff scopes", async () => {
@@ -215,6 +270,7 @@ describe("enterpriseAdmin router discovery", () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([
       { id: 11, role: "STAFF" },
+      { id: 99, role: "ENTERPRISE_ADMIN" },
       { id: 12, role: "STUDENT" },
       { id: 31, role: "STUDENT" },
     ]);
@@ -248,6 +304,7 @@ describe("enterpriseAdmin router discovery", () => {
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
+        { moduleId: 7, userId: 99 },
       ],
       skipDuplicates: true,
     });

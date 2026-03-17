@@ -59,20 +59,6 @@ export function revokeActiveRefreshTokens(userId: number) {
   return prisma.refreshToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
 }
 
-export function listFeatureFlagsByEnterprise(enterpriseId: string) {
-  return prisma.featureFlag.findMany({
-    where: { enterpriseId },
-    orderBy: { key: "asc" },
-  });
-}
-
-export function updateFeatureFlag(enterpriseId: string, key: string, enabled: boolean) {
-  return prisma.featureFlag.update({
-    where: { enterpriseId_key: { enterpriseId, key } },
-    data: { enabled },
-  });
-}
-
 export function listEnterprises() {
   return prisma.enterprise.findMany({
     select: {

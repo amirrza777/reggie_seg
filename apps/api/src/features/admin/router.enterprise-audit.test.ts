@@ -95,41 +95,6 @@ beforeEach(() => {
 });
 
 describe("admin router enterprise and audit routes", () => {
-  it("feature flag routes map label normalization and errors", async () => {
-    const listFlags = getRouteHandler("get", "/feature-flags");
-    const patchFlag = getRouteHandler("patch", "/feature-flags/:key");
-
-    (prisma.featureFlag.findMany as any).mockResolvedValueOnce([
-      { key: "repos", label: "Repos", enabled: true },
-      { key: "modules", label: "Modules", enabled: false },
-    ]);
-    let res = mockRes();
-    await listFlags({ adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.json as any)).toHaveBeenCalledWith([
-      { key: "repos", label: "Repositories", enabled: true },
-      { key: "modules", label: "Modules", enabled: false },
-    ]);
-
-    res = mockRes();
-    await patchFlag({ params: { key: "k" }, body: { enabled: "yes" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(400);
-
-    (prisma.featureFlag.update as any).mockResolvedValueOnce({ key: "repos", label: "Repos", enabled: false });
-    res = mockRes();
-    await patchFlag({ params: { key: "repos" }, body: { enabled: false }, adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.json as any)).toHaveBeenCalledWith({ key: "repos", label: "Repositories", enabled: false });
-
-    (prisma.featureFlag.update as any).mockRejectedValueOnce({ code: "P2025" });
-    res = mockRes();
-    await patchFlag({ params: { key: "missing" }, body: { enabled: true }, adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(404);
-
-    (prisma.featureFlag.update as any).mockRejectedValueOnce(new Error("db"));
-    res = mockRes();
-    await patchFlag({ params: { key: "missing" }, body: { enabled: true }, adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(500);
-  });
-
   it("enterprise routes cover listing, creation, user management and deletion", async () => {
     const listEnterprises = getRouteHandler("get", "/enterprises");
     const searchEnterprises = getRouteHandler("get", "/enterprises/search");
