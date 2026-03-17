@@ -102,6 +102,14 @@ body:has(.app-shell) {
   z-index: 30;
   display: flex;
   align-items: center;
+  transition: filter 180ms ease, opacity 180ms ease;
+}
+
+.app-shell__content:has(.modal[aria-modal="true"]) .app-shell__topbar,
+.app-shell__content:has(.github-chart-info__overlay[aria-modal="true"]) .app-shell__topbar {
+  filter: blur(8px) saturate(0.9);
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 .app-shell__body {
@@ -143,6 +151,12 @@ body:has(.app-shell) {
 
 .app-shell__main--solo {
   grid-template-columns: 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 0;
+}
+
+.app-shell__main--solo .app-shell__workspace {
+  grid-row: 1;
 }
 
 .app-shell__ribbon {
@@ -156,8 +170,17 @@ body:has(.app-shell) {
   padding: 0 14px;
   margin: 0;
   position: relative;
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 10px;
+  box-shadow: var(--glass-ui-shadow);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .app-shell__ribbon {
+    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  }
 }
 
 .app-shell__sidebar,

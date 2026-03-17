@@ -5,7 +5,6 @@ import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
@@ -138,12 +137,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           leading={<Sidebar title="Navigate" links={accessibleLinks} mode="mobile" mobileSpaces={spaceLinks} />}
           title="Team Feedback"
           titleHref={defaultSpaceHref}
-          actions={
-            <>
-              <NotificationBell />
-              <UserMenu />
-            </>
-          }
+          actions={<UserMenu />}
         />
       }
       ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}

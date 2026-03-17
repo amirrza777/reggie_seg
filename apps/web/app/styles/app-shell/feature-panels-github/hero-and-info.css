@@ -110,7 +110,7 @@
 .github-chart-info__overlay {
   position: fixed;
   inset: 0;
-  background: var(--backdrop-strong);
+  background: var(--modal-backdrop, var(--backdrop-strong));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -189,4 +189,3 @@
   line-height: 1.55;
   color: var(--ink);
 }
-
