@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FaqAccordion } from "../components/FaqAccordion";
+import { searchHelpFaqs, type HelpFaqRecord } from "./api/search";
 
 type FaqItem = {
   question: string;
@@ -22,10 +23,12 @@ type HelpFaqSearchProps = {
   initialOpenQuestion?: string;
 };
 
-const normalize = (value: string) => value.toLowerCase().trim();
-
 export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }: HelpFaqSearchProps) {
   const [query, setQuery] = useState(initialQuery);
+  const [matchedIds, setMatchedIds] = useState<Set<string> | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const hasQuery = query.trim().length > 0;
   const groupWithOpenQuestion = useMemo(() => {
     if (!initialOpenQuestion) return undefined;
     return groups.find((group) =>
@@ -40,26 +43,69 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
     }, {});
   });
 
+  const searchableFaqRecords = useMemo<HelpFaqRecord[]>(
+    () =>
+      groups.flatMap((group) =>
+        group.items.map((item) => ({
+          id: toFaqRecordId(group.id, item.question),
+          groupId: group.id,
+          group: group.title,
+          question: item.question,
+          answer: item.answer,
+          links: item.links,
+        })),
+      ),
+    [groups],
+  );
+
   const filteredGroups = useMemo(() => {
-    const needle = normalize(query);
-    if (!needle) return groups;
+    if (!query.trim() || matchedIds === null) return groups;
     return groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) =>
-          normalize(`${item.question} ${item.answer}`).includes(needle),
-        ),
+        items: group.items.filter((item) => matchedIds.has(toFaqRecordId(group.id, item.question))),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, query]);
+  }, [groups, matchedIds, query]);
 
   useEffect(() => {
     setQuery(initialQuery);
   }, [initialQuery]);
 
+  useEffect(() => {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) {
+      setMatchedIds(null);
+      setSearchError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        const results = await searchHelpFaqs(trimmedQuery, searchableFaqRecords, controller.signal);
+        setMatchedIds(new Set(results.map((item) => item.id)));
+      } catch (error) {
+        if (isAbortError(error)) return;
+        setMatchedIds(new Set());
+        setSearchError("Search is temporarily unavailable.");
+      } finally {
+        setIsSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [query, searchableFaqRecords]);
+
   return (
     <div className="help-faq">
-      <div className="help-faq__search">
+      <div className="help-faq__search help-faq__search--wide">
         <label className="help-faq__search-label" htmlFor="faq-search">
           Search FAQs
         </label>
@@ -71,9 +117,14 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
+        <p className="muted help-faq__search-note">Filter answers across all help groups.</p>
       </div>
 
-      {filteredGroups.length === 0 ? (
+      {hasQuery && searchError ? (
+        <p className="muted help-faq__empty">{searchError}</p>
+      ) : hasQuery && isSearching && filteredGroups.length === 0 ? (
+        <p className="muted help-faq__empty">Searching FAQs...</p>
+      ) : filteredGroups.length === 0 ? (
         <p className="muted help-faq__empty">No FAQs match "{query}".</p>
       ) : (
         <div className="help-faq__groups">
@@ -95,8 +146,11 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
                     aria-controls={`${group.id}-panel`}
                     aria-expanded={isOpen}
                   >
-                    <span className="help-faq__group-title" id={group.id}>
-                      {group.title}
+                    <span className="help-faq__group-title-wrap" id={group.id}>
+                      <span className="help-faq__group-title">{group.title}</span>
+                      <span className="help-faq__group-count">
+                        {group.items.length} {group.items.length === 1 ? "article" : "articles"}
+                      </span>
                     </span>
                     <span className="help-faq__group-indicator" aria-hidden="true" />
                   </summary>
@@ -121,4 +175,13 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
       )}
     </div>
   );
+}
+
+function toFaqRecordId(groupId: string, question: string): string {
+  return `${groupId}::${question}`;
+}
+
+function isAbortError(value: unknown): boolean {
+  if (!value || typeof value !== "object") return false;
+  return (value as { name?: string }).name === "AbortError";
 }
