@@ -8,7 +8,7 @@
 .mention-dropdown {
   background: rgba(10, 10, 10, 0.38);
   border-color: rgba(148, 163, 184, 0.22);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow: var(--elevation-popup);
 }
 
 .ui-toast--success {

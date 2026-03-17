@@ -146,7 +146,7 @@
   position: relative;
   z-index: 9001;
   margin: auto;
-  box-shadow: var(--glass-ui-shadow);
+  box-shadow: var(--elevation-popup);
 }
 
 .modal__header,
