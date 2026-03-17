@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
+import "@/features/calendar/styles/calendar.css";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
