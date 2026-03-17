@@ -27,12 +27,7 @@ vi.mock("./services/PeerAssessmentService.js", () => ({
   PeerAssessmentService: vi.fn().mockImplementation(() => ({})),
 }));
 
-import {
-  createAssessmentHandler,
-  getAssessmentHandler,
-  getTeammatesHandler,
-  updateAssessmentHandler,
-} from "./controller.js";
+import { createAssessmentHandler, updateAssessmentHandler } from "./controller.js";
 
 function createMockResponse() {
   const res = {} as Partial<Response> & {
@@ -53,57 +48,19 @@ function createMockResponse() {
   return res as Response & { statusCode?: number; body?: unknown };
 }
 
-describe("peerAssessment controller core handlers", () => {
+const questionnaireTemplate = {
+  id: 10,
+  questions: [
+    { id: 1, type: "text", configs: null },
+    { id: 2, type: "multiple-choice", configs: { options: ["Excellent", "Needs work"] } },
+    { id: 3, type: "rating", configs: { min: 1, max: 5 } },
+    { id: 4, type: "slider", configs: { min: 0, max: 100, step: 5 } },
+  ],
+};
+
+describe("peerAssessment controller mutation handlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  const questionnaireTemplate = {
-    id: 10,
-    questions: [
-      { id: 1, type: "text", configs: null },
-      { id: 2, type: "multiple-choice", configs: { options: ["Excellent", "Needs work"] } },
-      { id: 3, type: "rating", configs: { min: 1, max: 5 } },
-      { id: 4, type: "slider", configs: { min: 0, max: 100, step: 5 } },
-    ],
-  };
-
-  describe("getTeammatesHandler", () => {
-    it("returns 400 for invalid params", async () => {
-      const req = { query: { userId: "abc" }, params: { teamId: "1" } } as any;
-      const res = createMockResponse();
-
-      await getTeammatesHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: "Invalid user ID or team ID" });
-    });
-
-    it("returns teammates on success", async () => {
-      const teammates = [{ user: { id: 2, firstName: "Bob", lastName: "Jones" } }];
-      const req = { query: { userId: "4" }, params: { teamId: "1" } } as any;
-      const res = createMockResponse();
-      serviceMocks.fetchTeammates.mockResolvedValue(teammates);
-
-      await getTeammatesHandler(req, res);
-
-      expect(serviceMocks.fetchTeammates).toHaveBeenCalledWith(4, 1);
-      expect(res.json).toHaveBeenCalledWith(teammates);
-    });
-
-    it("returns 500 on service error", async () => {
-      const req = { query: { userId: "4" }, params: { teamId: "1" } } as any;
-      const res = createMockResponse();
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      serviceMocks.fetchTeammates.mockRejectedValue(new Error("boom"));
-
-      await getTeammatesHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      consoleErrorSpy.mockRestore();
-    });
   });
 
   describe("createAssessmentHandler", () => {
@@ -292,63 +249,6 @@ describe("peerAssessment controller core handlers", () => {
       expect(res.json).toHaveBeenCalledWith({
         error: "Peer assessment deadline has passed for your deadline profile",
       });
-    });
-  });
-
-  describe("getAssessmentHandler", () => {
-    it("returns 400 for invalid query params", async () => {
-      const req = {
-        query: { projectId: "x", teamId: "1", reviewerId: "4", revieweeId: "2" },
-      } as any;
-      const res = createMockResponse();
-
-      await getAssessmentHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(400);
-      expect(res.json).toHaveBeenCalledWith({ error: "Invalid query parameters" });
-    });
-
-    it("returns 404 when assessment is missing", async () => {
-      const req = {
-        query: { projectId: "1", teamId: "1", reviewerId: "4", revieweeId: "2" },
-      } as any;
-      const res = createMockResponse();
-      serviceMocks.fetchAssessment.mockResolvedValue(null);
-
-      await getAssessmentHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(404);
-      expect(res.json).toHaveBeenCalledWith({ error: "Assessment not found" });
-    });
-
-    it("returns assessment on success", async () => {
-      const req = {
-        query: { projectId: "1", teamId: "1", reviewerId: "4", revieweeId: "2" },
-      } as any;
-      const res = createMockResponse();
-      const assessment = { id: 12 };
-      serviceMocks.fetchAssessment.mockResolvedValue(assessment);
-
-      await getAssessmentHandler(req, res);
-
-      expect(serviceMocks.fetchAssessment).toHaveBeenCalledWith(1, 1, 4, 2);
-      expect(res.json).toHaveBeenCalledWith(assessment);
-    });
-
-    it("returns 500 on service error", async () => {
-      const req = {
-        query: { projectId: "1", teamId: "1", reviewerId: "4", revieweeId: "2" },
-      } as any;
-      const res = createMockResponse();
-      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      serviceMocks.fetchAssessment.mockRejectedValue(new Error("boom"));
-
-      await getAssessmentHandler(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(500);
-      expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      consoleErrorSpy.mockRestore();
     });
   });
 

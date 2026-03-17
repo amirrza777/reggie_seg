@@ -14,9 +14,6 @@ import {
   getTeammatesForProjectHandler,
   getUserModulesHandler,
   getUserProjectsHandler,
-  createTeamHealthMessageHandler,
-  getMyTeamHealthMessagesHandler,
-  getStaffTeamHealthMessagesHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -35,6 +32,10 @@ vi.mock("./service.js", () => ({
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
+  updateTeamDeadlineProfileForStaff: vi.fn(),
+  fetchStaffStudentDeadlineOverrides: vi.fn(),
+  upsertStaffStudentDeadlineOverride: vi.fn(),
+  clearStaffStudentDeadlineOverride: vi.fn(),
 }));
 
 function mockResponse() {
@@ -44,19 +45,19 @@ function mockResponse() {
   return res as Response;
 }
 
-describe("projects controller", () => {
-  const deadlinePayload = {
-    taskOpenDate: "2026-03-01T09:00:00.000Z",
-    taskDueDate: "2026-03-08T17:00:00.000Z",
-    taskDueDateMcf: "2026-03-15T17:00:00.000Z",
-    assessmentOpenDate: "2026-03-09T09:00:00.000Z",
-    assessmentDueDate: "2026-03-12T17:00:00.000Z",
-    assessmentDueDateMcf: "2026-03-19T17:00:00.000Z",
-    feedbackOpenDate: "2026-03-13T09:00:00.000Z",
-    feedbackDueDate: "2026-03-16T17:00:00.000Z",
-    feedbackDueDateMcf: "2026-03-23T17:00:00.000Z",
-  };
+const deadlinePayload = {
+  taskOpenDate: "2026-03-01T09:00:00.000Z",
+  taskDueDate: "2026-03-08T17:00:00.000Z",
+  taskDueDateMcf: "2026-03-15T17:00:00.000Z",
+  assessmentOpenDate: "2026-03-09T09:00:00.000Z",
+  assessmentDueDate: "2026-03-12T17:00:00.000Z",
+  assessmentDueDateMcf: "2026-03-19T17:00:00.000Z",
+  feedbackOpenDate: "2026-03-13T09:00:00.000Z",
+  feedbackDueDate: "2026-03-16T17:00:00.000Z",
+  feedbackDueDateMcf: "2026-03-23T17:00:00.000Z",
+};
 
+describe("projects controller core handlers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -188,7 +189,7 @@ describe("projects controller", () => {
     const compactRes = mockResponse();
     await getUserModulesHandler(
       { user: { sub: 7 }, query: { userId: "7", scope: "staff", compact: "1" } } as any,
-      compactRes
+      compactRes,
     );
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
@@ -242,14 +243,14 @@ describe("projects controller", () => {
     const unauthorizedRes = mockResponse();
     await getTeamByUserAndProjectHandler(
       { params: { projectId: "2" }, query: { userId: "1" } } as any,
-      unauthorizedRes
+      unauthorizedRes,
     );
     expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
 
     const badRes = mockResponse();
     await getTeamByUserAndProjectHandler(
       { user: { sub: 1 }, params: { projectId: "x" }, query: { userId: "1" } } as any,
-      badRes
+      badRes,
     );
     expect(badRes.status).toHaveBeenCalledWith(400);
 
@@ -257,7 +258,7 @@ describe("projects controller", () => {
     const missingRes = mockResponse();
     await getTeamByUserAndProjectHandler(
       { user: { sub: 1 }, params: { projectId: "2" }, query: { userId: "1" } } as any,
-      missingRes
+      missingRes,
     );
     expect(missingRes.status).toHaveBeenCalledWith(404);
   });
@@ -276,7 +277,7 @@ describe("projects controller", () => {
     });
     await getStaffProjectTeamsHandler(
       { user: { sub: 12 }, params: { projectId: "9" }, query: { userId: "12" } } as any,
-      staffTeamsRes
+      staffTeamsRes,
     );
     expect(service.fetchProjectTeamsForStaff).toHaveBeenCalledWith(12, 9);
     expect(staffTeamsRes.json).toHaveBeenCalledWith({
@@ -294,7 +295,7 @@ describe("projects controller", () => {
     const res = mockResponse();
     await getProjectMarkingHandler(
       { user: { sub: 4 }, params: { projectId: "5" }, query: { userId: "4" } } as any,
-      res
+      res,
     );
     expect(service.fetchProjectMarking).toHaveBeenCalledWith(4, 5);
     expect(res.json).toHaveBeenCalledWith({
@@ -320,102 +321,5 @@ describe("projects controller", () => {
     const okRes = mockResponse();
     await getQuestionsForProjectHandler({ params: { projectId: "10" } } as any, okRes);
     expect(okRes.json).toHaveBeenCalledWith({ id: 5, questions: [{ id: 1 }] });
-  });
-
-  it("createTeamHealthMessageHandler validates payload and creates request", async () => {
-    const badRes = mockResponse();
-    await createTeamHealthMessageHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, badRes);
-    expect(badRes.status).toHaveBeenCalledWith(400);
-
-    const badBodyRes = mockResponse();
-    await createTeamHealthMessageHandler(
-      { params: { projectId: "2" }, body: { userId: 7, subject: " ", details: "detail" } } as any,
-      badBodyRes
-    );
-    expect(badBodyRes.status).toHaveBeenCalledWith(400);
-
-    (service.submitTeamHealthMessage as any).mockResolvedValue({
-      id: 11,
-      projectId: 2,
-      teamId: 3,
-      requesterUserId: 7,
-      subject: "Need support",
-      details: "Please review team dynamics",
-      resolved: false,
-    });
-    const okRes = mockResponse();
-    await createTeamHealthMessageHandler(
-      {
-        params: { projectId: "2" },
-        body: { userId: 7, subject: " Need support ", details: " Please review team dynamics " },
-      } as any,
-      okRes
-    );
-    expect(service.submitTeamHealthMessage).toHaveBeenCalledWith(7, 2, "Need support", "Please review team dynamics");
-    expect(okRes.status).toHaveBeenCalledWith(201);
-    expect(okRes.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        request: expect.objectContaining({ id: 11, resolved: false }),
-      })
-    );
-
-    (service.submitTeamHealthMessage as any).mockResolvedValue(null);
-    const missingRes = mockResponse();
-    await createTeamHealthMessageHandler(
-      { params: { projectId: "2" }, body: { userId: 7, subject: "Need", details: "Help" } } as any,
-      missingRes
-    );
-    expect(missingRes.status).toHaveBeenCalledWith(404);
-  });
-
-  it("getMyTeamHealthMessagesHandler validates ids and returns requester list", async () => {
-    const badRes = mockResponse();
-    await getMyTeamHealthMessagesHandler({ params: { projectId: "x" }, query: { userId: "7" } } as any, badRes);
-    expect(badRes.status).toHaveBeenCalledWith(400);
-
-    (service.fetchMyTeamHealthMessages as any).mockResolvedValue([
-      { id: 1, subject: "Need support", resolved: false },
-    ]);
-    const okRes = mockResponse();
-    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, okRes);
-    expect(service.fetchMyTeamHealthMessages).toHaveBeenCalledWith(7, 3);
-    expect(okRes.json).toHaveBeenCalledWith({
-      requests: [{ id: 1, subject: "Need support", resolved: false }],
-    });
-
-    (service.fetchMyTeamHealthMessages as any).mockResolvedValue(null);
-    const missingRes = mockResponse();
-    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, missingRes);
-    expect(missingRes.status).toHaveBeenCalledWith(404);
-  });
-
-  it("getStaffTeamHealthMessagesHandler validates ids and returns staff list", async () => {
-    const badRes = mockResponse();
-    await getStaffTeamHealthMessagesHandler(
-      { params: { projectId: "x", teamId: "2" }, query: { userId: "7" } } as any,
-      badRes
-    );
-    expect(badRes.status).toHaveBeenCalledWith(400);
-
-    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue([
-      { id: 4, subject: "Urgent", resolved: false },
-    ]);
-    const okRes = mockResponse();
-    await getStaffTeamHealthMessagesHandler(
-      { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
-      okRes
-    );
-    expect(service.fetchTeamHealthMessagesForStaff).toHaveBeenCalledWith(7, 3, 2);
-    expect(okRes.json).toHaveBeenCalledWith({
-      requests: [{ id: 4, subject: "Urgent", resolved: false }],
-    });
-
-    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue(null);
-    const missingRes = mockResponse();
-    await getStaffTeamHealthMessagesHandler(
-      { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
-      missingRes
-    );
-    expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 });
