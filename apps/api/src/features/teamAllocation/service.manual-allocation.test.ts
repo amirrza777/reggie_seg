@@ -232,7 +232,7 @@ describe("teamAllocation service manual allocation", () => {
     ).rejects.toEqual({ code: "STUDENT_ALREADY_ASSIGNED" });
   });
 
-  it("applyManualAllocationForProject creates a team and notifies students", async () => {
+  it("applyManualAllocationForProject creates a draft team", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValue({
       id: 42,
       name: "Project A",
@@ -256,7 +256,9 @@ describe("teamAllocation service manual allocation", () => {
       studentIds: [1, 2],
     });
 
-    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2]);
+    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2], {
+      draftCreatedById: 3,
+    });
     expect(result).toEqual({
       project: {
         id: 42,
@@ -270,15 +272,10 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    expect((sendEmail as any).mock.calls.map((call: any[]) => call[0]?.to).sort()).toEqual([
-      "a@example.com",
-      "b@example.com",
-    ]);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
-  it("applyManualAllocationForProject does not fail when notification email sending fails", async () => {
-    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("applyManualAllocationForProject does not send notification emails for drafts", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValue({
       id: 42,
       name: "Project A",
@@ -296,8 +293,6 @@ describe("teamAllocation service manual allocation", () => {
       teamName: "Team Gamma",
       memberCount: 2,
     });
-    (sendEmail as any).mockRejectedValueOnce(new Error("smtp"));
-    (sendEmail as any).mockResolvedValueOnce({ suppressed: false });
 
     await expect(
       applyManualAllocationForProject(3, 42, {
@@ -317,7 +312,6 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    logSpy.mockRestore();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

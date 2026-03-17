@@ -38,7 +38,6 @@ describe("customAllocation.validation", () => {
       const result = parseCustomAllocationPreviewBody({
         questionnaireTemplateId: 5,
         teamCount: 3,
-        seed: "123",
         nonRespondentStrategy: "distribute_randomly",
         criteria: [
           { questionId: 11, strategy: "diversify", weight: 5 },
@@ -52,7 +51,6 @@ describe("customAllocation.validation", () => {
         value: {
           questionnaireTemplateId: 5,
           teamCount: 3,
-          seed: 123,
           nonRespondentStrategy: "distribute_randomly",
           criteria: [
             { questionId: 11, strategy: "diversify", weight: 5 },
@@ -63,7 +61,7 @@ describe("customAllocation.validation", () => {
       });
     });
 
-    it("allows preview payloads without seed", () => {
+    it("parses payloads without seed", () => {
       const result = parseCustomAllocationPreviewBody({
         questionnaireTemplateId: 5,
         teamCount: 3,
@@ -79,21 +77,6 @@ describe("customAllocation.validation", () => {
           nonRespondentStrategy: "exclude",
           criteria: [],
         },
-      });
-    });
-
-    it("rejects invalid seed", () => {
-      expect(
-        parseCustomAllocationPreviewBody({
-          questionnaireTemplateId: 5,
-          teamCount: 3,
-          seed: "abc",
-          nonRespondentStrategy: "exclude",
-          criteria: [],
-        }),
-      ).toEqual({
-        ok: false,
-        code: "INVALID_SEED",
       });
     });
 

@@ -479,7 +479,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "distribute_randomly",
       criteria: [
         { questionId: 11, strategy: "diversify", weight: 4 },
@@ -618,7 +617,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "distribute_randomly",
       criteria: [{ questionId: 11, strategy: "diversify", weight: 4 }],
     });
@@ -632,7 +630,10 @@ describe("teamAllocation service custom allocation", () => {
       42,
       "ent-9",
       expect.any(Array),
-      { teamNames: ["Team Orion", "Team Vega"] },
+      {
+        teamNames: ["Team Orion", "Team Vega"],
+        draftCreatedById: 7,
+      },
     );
     const plannedTeams = (repo.applyRandomAllocationPlan as any).mock.calls[0][2];
     expect(plannedTeams).toHaveLength(2);
@@ -654,7 +655,7 @@ describe("teamAllocation service custom allocation", () => {
         { id: 201, teamName: "Team Vega", memberCount: 2 },
       ],
     });
-    expect(sendEmail).toHaveBeenCalledTimes(4);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
   it("applyCustomAllocationForProject rejects duplicate custom team names", async () => {
@@ -685,7 +686,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "exclude",
       criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
     });
@@ -728,7 +728,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "exclude",
       criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
     });
@@ -780,7 +779,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "exclude",
       criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
     });
@@ -831,7 +829,6 @@ describe("teamAllocation service custom allocation", () => {
     const preview = await previewCustomAllocationForProject(7, 42, {
       questionnaireTemplateId: 5,
       teamCount: 2,
-      seed: 2026,
       nonRespondentStrategy: "exclude",
       criteria: [{ questionId: 11, strategy: "group", weight: 3 }],
     });

@@ -36,6 +36,8 @@ model User {
   trelloToken           String?
   trelloMemberId        String?
   ownedTeamTrelloBoards Team[]  @relation("TrelloOwner")
+  draftTeamsCreated     Team[]  @relation("TeamDraftCreatedBy")
+  draftTeamsApproved    Team[]  @relation("TeamDraftApprovedBy")
 
   questionnaires                  QuestionnaireTemplate[]
   reviewerFeedbacks               PeerFeedback[]               @relation("PeerFeedbackReviewer")

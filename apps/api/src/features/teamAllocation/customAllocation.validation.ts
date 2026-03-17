@@ -11,7 +11,6 @@ export type CustomAllocationValidationCode =
   | "INVALID_PROJECT_ID"
   | "INVALID_TEMPLATE_ID"
   | "INVALID_TEAM_COUNT"
-  | "INVALID_SEED"
   | "INVALID_NON_RESPONDENT_STRATEGY"
   | "INVALID_CRITERIA"
   | "INVALID_PREVIEW_ID"
@@ -20,17 +19,6 @@ export type CustomAllocationValidationCode =
 function asPositiveInteger(value: unknown): number | null {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < 1) {
-    return null;
-  }
-  return parsed;
-}
-
-function asOptionalNumber(value: unknown): number | undefined | null {
-  if (value === undefined || value === null || value === "") {
-    return undefined;
-  }
-  const parsed = Number(value);
-  if (Number.isNaN(parsed)) {
     return null;
   }
   return parsed;
@@ -74,12 +62,6 @@ export function parseCustomAllocationPreviewBody(body: unknown): ValidationResul
     return { ok: false, code: "INVALID_TEAM_COUNT" };
   }
 
-  const seedValue = asOptionalNumber(row?.seed);
-  if (seedValue === null) {
-    return { ok: false, code: "INVALID_SEED" };
-  }
-  const seed = seedValue;
-
   const nonRespondentStrategy = row?.nonRespondentStrategy;
   if (!isValidNonRespondentStrategy(nonRespondentStrategy)) {
     return { ok: false, code: "INVALID_NON_RESPONDENT_STRATEGY" };
@@ -115,7 +97,6 @@ export function parseCustomAllocationPreviewBody(body: unknown): ValidationResul
     value: {
       questionnaireTemplateId,
       teamCount,
-      ...(seed !== undefined ? { seed } : {}),
       nonRespondentStrategy,
       criteria: criteria.map((criterion) => ({
         questionId: criterion.questionId!,

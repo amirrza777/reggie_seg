@@ -164,7 +164,6 @@ export type CustomAllocationCoverage = {
 export type CustomAllocationPreviewInput = {
   questionnaireTemplateId: number;
   teamCount: number;
-  seed?: number;
   nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
   criteria: Array<{
     questionId: number;
@@ -713,7 +712,6 @@ export async function previewCustomAllocationForProject(
     criteria: criteriaForAllocator,
     teamCount: input.teamCount,
     nonRespondentStrategy: input.nonRespondentStrategy,
-    ...(input.seed !== undefined ? { seed: input.seed } : {}),
   });
 
   const generatedAt = new Date();
@@ -849,7 +847,10 @@ export async function applyCustomAllocationForProject(
       project.id,
       project.enterpriseId,
       plannedTeams,
-      { teamNames: requestedTeamNames },
+      {
+        teamNames: requestedTeamNames,
+        draftCreatedById: staffId,
+      },
     );
   } catch (error: any) {
     if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
@@ -868,7 +869,6 @@ export async function applyCustomAllocationForProject(
     throw error;
   }
   customAllocationPreviewCache.delete(previewId);
-  await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 
   const studentCount = plannedTeams.reduce((sum, team) => sum + team.members.length, 0);
 
@@ -1182,21 +1182,13 @@ export async function applyManualAllocationForProject(
     throw { code: "STUDENT_ALREADY_ASSIGNED" };
   }
 
-  const selectedStudents = studentIds.map((studentId) => {
-    const student = moduleStudentById.get(studentId)!;
-    return {
-      firstName: student.firstName,
-      email: student.email,
-    };
-  });
-
   const team = await applyManualAllocationTeam(
     project.id,
     project.enterpriseId,
     teamName,
     studentIds,
+    { draftCreatedById: staffId },
   );
-  await notifyStudentsAboutManualAllocation(project.name, team.teamName, selectedStudents);
 
   return {
     project: {
@@ -1213,7 +1205,6 @@ export async function previewRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { seed?: number } = {},
 ): Promise<RandomAllocationPreview> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
@@ -1240,7 +1231,7 @@ export async function previewRandomAllocationForProject(
   }
 
   const [plannedTeams, existingTeams] = await Promise.all([
-    Promise.resolve(planRandomTeams(students, teamCount, { seed: options.seed })),
+    Promise.resolve(planRandomTeams(students, teamCount)),
     findProjectTeamSummaries(projectId),
   ]);
 
@@ -1266,7 +1257,7 @@ export async function applyRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { seed?: number; teamNames?: string[] } = {},
+  options: { teamNames?: string[] } = {},
 ): Promise<RandomAllocationApplied> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
@@ -1294,14 +1285,16 @@ export async function applyRandomAllocationForProject(
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
 
-  const plannedTeams = planRandomTeams(students, teamCount, { seed: options.seed });
+  const plannedTeams = planRandomTeams(students, teamCount);
   const appliedTeams = await applyRandomAllocationPlan(
     projectId,
     project.enterpriseId,
     plannedTeams,
-    { teamNames },
+    {
+      teamNames,
+      draftCreatedById: staffId,
+    },
   );
-  await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 
   return {
     project: {

@@ -121,7 +121,6 @@ describe("teamAllocation controller custom allocation handlers", () => {
       body: {
         questionnaireTemplateId: 2,
         teamCount: 2,
-        seed: 123,
         nonRespondentStrategy: "distribute_randomly",
         criteria: [{ questionId: 11, strategy: "diversify", weight: 4 }],
       },
@@ -133,7 +132,6 @@ describe("teamAllocation controller custom allocation handlers", () => {
     expect(service.previewCustomAllocationForProject).toHaveBeenCalledWith(7, 4, {
       questionnaireTemplateId: 2,
       teamCount: 2,
-      seed: 123,
       nonRespondentStrategy: "distribute_randomly",
       criteria: [{ questionId: 11, strategy: "diversify", weight: 4 }],
     });

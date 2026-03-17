@@ -12,6 +12,13 @@ export type StaffScopedProject = {
   enterpriseId: string;
 };
 
+export type StaffScopedProjectAccess = StaffScopedProject & {
+  actorRole: "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+  isModuleLead: boolean;
+  isModuleTeachingAssistant: boolean;
+  canApproveAllocationDrafts: boolean;
+};
+
 export type ModuleStudent = {
   id: number;
   firstName: string;
@@ -219,6 +226,84 @@ export async function findStaffScopedProject(
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
     enterpriseId: user.enterpriseId,
+  };
+}
+
+export async function findStaffScopedProjectAccess(
+  staffId: number,
+  projectId: number,
+): Promise<StaffScopedProjectAccess | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: staffId },
+    select: { enterpriseId: true, role: true, active: true },
+  });
+
+  if (!user || user.active === false) {
+    return null;
+  }
+
+  const role = user.role as StaffUserRole | "STUDENT";
+  if (role === "STUDENT") {
+    return null;
+  }
+
+  const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId: user.enterpriseId,
+        ...(hasEnterpriseWideAccess
+          ? {}
+          : {
+              OR: [
+                { moduleLeads: { some: { userId: staffId } } },
+                { moduleTeachingAssistants: { some: { userId: staffId } } },
+              ],
+            }),
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      moduleId: true,
+      archivedAt: true,
+      module: {
+        select: {
+          name: true,
+          moduleLeads: {
+            where: { userId: staffId },
+            select: { userId: true },
+            take: 1,
+          },
+          moduleTeachingAssistants: {
+            where: { userId: staffId },
+            select: { userId: true },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  if (!project) {
+    return null;
+  }
+
+  const isModuleLead = project.module.moduleLeads.length > 0;
+  const isModuleTeachingAssistant = project.module.moduleTeachingAssistants.length > 0;
+
+  return {
+    id: project.id,
+    name: project.name,
+    moduleId: project.moduleId,
+    moduleName: project.module.name,
+    archivedAt: project.archivedAt,
+    enterpriseId: user.enterpriseId,
+    actorRole: role,
+    isModuleLead,
+    isModuleTeachingAssistant,
+    canApproveAllocationDrafts: isModuleLead,
   };
 }
 
@@ -479,7 +564,7 @@ export async function applyRandomAllocationPlan(
   projectId: number,
   enterpriseId: string,
   plannedTeams: Array<{ members: Array<{ id: number }> }>,
-  options: { teamNames?: string[] } = {},
+  options: { teamNames?: string[]; draftCreatedById?: number } = {},
 ): Promise<AppliedRandomTeam[]> {
   return prisma.$transaction(async (tx) => {
     const plannedStudentIds = plannedTeams.flatMap((team) => team.members.map((member) => member.id));
@@ -528,6 +613,10 @@ export async function applyRandomAllocationPlan(
           enterpriseId,
           projectId,
           teamName,
+          allocationLifecycle: "DRAFT",
+          draftCreatedById: options.draftCreatedById ?? null,
+          draftApprovedById: null,
+          draftApprovedAt: null,
         },
         select: { id: true, teamName: true },
       });
@@ -563,6 +652,7 @@ export async function applyManualAllocationTeam(
   enterpriseId: string,
   teamName: string,
   studentIds: number[],
+  options: { draftCreatedById?: number } = {},
 ): Promise<AppliedManualTeam> {
   return prisma.$transaction(async (tx) => {
     const existingName = await tx.team.findFirst({
@@ -601,6 +691,10 @@ export async function applyManualAllocationTeam(
         enterpriseId,
         projectId,
         teamName,
+        allocationLifecycle: "DRAFT",
+        draftCreatedById: options.draftCreatedById ?? null,
+        draftApprovedById: null,
+        draftApprovedAt: null,
       },
       select: {
         id: true,

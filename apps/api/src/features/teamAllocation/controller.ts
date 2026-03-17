@@ -44,9 +44,6 @@ function respondCustomAllocationValidationError(
   if (code === "INVALID_TEAM_COUNT") {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
-  if (code === "INVALID_SEED") {
-    return res.status(400).json({ error: "seed must be a number when provided" });
-  }
   if (code === "INVALID_NON_RESPONDENT_STRATEGY") {
     return res.status(400).json({
       error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
@@ -209,8 +206,6 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.query.teamCount);
-  const seedQuery = req.query.seed;
-  const seed = typeof seedQuery === "string" ? Number(seedQuery) : undefined;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -221,12 +216,8 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
-  if (seed !== undefined && Number.isNaN(seed)) {
-    return res.status(400).json({ error: "seed must be a number when provided" });
-  }
-
   try {
-    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount, { seed });
+    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount);
     return res.json(preview);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
@@ -415,8 +406,6 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.body?.teamCount);
-  const rawSeed = req.body?.seed;
-  const seed = rawSeed === undefined || rawSeed === null || rawSeed === "" ? undefined : Number(rawSeed);
   const rawTeamNames = req.body?.teamNames;
   const hasInvalidTeamNamesPayload =
     rawTeamNames !== undefined &&
@@ -435,16 +424,12 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
-  if (seed !== undefined && Number.isNaN(seed)) {
-    return res.status(400).json({ error: "seed must be a number when provided" });
-  }
   if (hasInvalidTeamNamesPayload) {
     return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
   }
 
   try {
     const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
-      seed,
       ...(teamNames !== undefined ? { teamNames } : {}),
     });
     return res.status(201).json(result);

@@ -70,10 +70,6 @@ describe("teamAllocation controller allocation handlers", () => {
     await previewRandomAllocationHandler(badCountReq, badCountRes);
     expect(badCountRes.status).toHaveBeenCalledWith(400);
 
-    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "abc" } };
-    const badSeedRes = mockResponse();
-    await previewRandomAllocationHandler(badSeedReq, badSeedRes);
-    expect(badSeedRes.status).toHaveBeenCalledWith(400);
   });
 
   it("previewRandomAllocationHandler returns preview payload", async () => {
@@ -85,12 +81,12 @@ describe("teamAllocation controller allocation handlers", () => {
       previewTeams: [],
     });
 
-    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "99" } };
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, query: { teamCount: "2" } };
     const res = mockResponse();
 
     await previewRandomAllocationHandler(req, res);
 
-    expect(service.previewRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, { seed: 99 });
+    expect(service.previewRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         project: expect.objectContaining({ id: 4 }),
@@ -291,11 +287,6 @@ describe("teamAllocation controller allocation handlers", () => {
     await applyRandomAllocationHandler(badCountReq, badCountRes);
     expect(badCountRes.status).toHaveBeenCalledWith(400);
 
-    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, body: { teamCount: 2, seed: "abc" } };
-    const badSeedRes = mockResponse();
-    await applyRandomAllocationHandler(badSeedReq, badSeedRes);
-    expect(badSeedRes.status).toHaveBeenCalledWith(400);
-
     const badTeamNamesReq: any = {
       user: { sub: 9 },
       params: { projectId: "4" },
@@ -317,14 +308,13 @@ describe("teamAllocation controller allocation handlers", () => {
     const req: any = {
       user: { sub: 7 },
       params: { projectId: "4" },
-      body: { teamCount: 2, seed: 99, teamNames: ["Team Orion", "Team Vega"] },
+      body: { teamCount: 2, teamNames: ["Team Orion", "Team Vega"] },
     };
     const res = mockResponse();
 
     await applyRandomAllocationHandler(req, res);
 
     expect(service.applyRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, {
-      seed: 99,
       teamNames: ["Team Orion", "Team Vega"],
     });
     expect(res.status).toHaveBeenCalledWith(201);

@@ -262,11 +262,8 @@ export async function createTeamForProject(projectId: number, teamName: string) 
   });
 }
 
-export async function getRandomAllocationPreview(projectId: number, teamCount: number, seed?: number) {
+export async function getRandomAllocationPreview(projectId: number, teamCount: number, _seed?: number) {
   const params = new URLSearchParams({ teamCount: String(teamCount) });
-  if (seed !== undefined) {
-    params.set("seed", String(seed));
-  }
 
   return apiFetch<RandomAllocationPreview>(
     `/team-allocation/projects/${projectId}/random-preview?${params.toString()}`,
@@ -277,14 +274,13 @@ export async function getRandomAllocationPreview(projectId: number, teamCount: n
 export async function applyRandomAllocation(
   projectId: number,
   teamCount: number,
-  seed?: number,
+  _seed?: number,
   teamNames?: string[],
 ) {
   return apiFetch<RandomAllocationApplied>(`/team-allocation/projects/${projectId}/random-allocate`, {
     method: "POST",
     body: JSON.stringify({
       teamCount,
-      ...(seed !== undefined ? { seed } : {}),
       ...(teamNames !== undefined ? { teamNames } : {}),
     }),
   });
@@ -336,9 +332,10 @@ export async function previewCustomAllocation(
     }>;
   },
 ) {
+  const { seed: _seed, ...payloadWithoutSeed } = payload;
   return apiFetch<CustomAllocationPreview>(`/team-allocation/projects/${projectId}/custom-preview`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(payloadWithoutSeed),
   });
 }
 
