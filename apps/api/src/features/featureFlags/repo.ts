@@ -1,11 +1,9 @@
 import { prisma } from "../../shared/db.js";
 
-export function ensureDefaultEnterprise() {
-  return prisma.enterprise.upsert({
-    where: { code: "DEFAULT" },
-    update: {},
-    create: { code: "DEFAULT", name: "Default Enterprise" },
-    select: { id: true },
+export function findActiveUserEnterpriseById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { enterpriseId: true, active: true },
   });
 }
 

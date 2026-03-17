@@ -13,6 +13,7 @@ import type { Question , IncomingQuestion} from "./types.js";
 import jwt from "jsonwebtoken";
 import { verifyRefreshToken } from "../../auth/service.js";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 
@@ -106,7 +107,13 @@ export async function getAllTemplatesHandler(req: Request, res: Response){
 export async function getMyTemplatesHandler(req: Request, res: Response) {
   try {
     const requesterUserId = requireRequesterUserId(req);
-    const templates = await getMyTemplates(requesterUserId);
+    const parsedSearchQuery = parseSearchQuery((req as AuthRequest).query?.q);
+    if (!parsedSearchQuery.ok) {
+      return res.status(400).json({ error: parsedSearchQuery.error });
+    }
+    const templates = parsedSearchQuery.value
+      ? await getMyTemplates(requesterUserId, { query: parsedSearchQuery.value })
+      : await getMyTemplates(requesterUserId);
     res.json(templates);
   } catch (error) {
     if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });

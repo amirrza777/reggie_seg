@@ -68,7 +68,11 @@ async function resolveProjectLinkAccessToken(params: {
 }
 
 /** Returns the live project GitHub repository branches. */
-export async function listLiveProjectGithubRepositoryBranches(userId: number, linkId: number) {
+export async function listLiveProjectGithubRepositoryBranches(
+  userId: number,
+  linkId: number,
+  options?: { query?: string | null },
+) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
     throw new GithubServiceError(404, "Project GitHub repository link not found");
@@ -88,9 +92,14 @@ export async function listLiveProjectGithubRepositoryBranches(userId: number, li
 
   const defaultBranch = link.repository.defaultBranch || "main";
   const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim().toLowerCase() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const scopedBranches = hasQuery
+    ? liveBranches.filter((branch) => branch.name.toLowerCase().includes(normalizedQuery))
+    : liveBranches;
 
   const branchesWithCompare = await Promise.all(
-    liveBranches.map(async (branch) => {
+    scopedBranches.map(async (branch) => {
       const compare = await getBranchAheadBehind(
         accessToken,
         link.repository.fullName,

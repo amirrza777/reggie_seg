@@ -174,7 +174,7 @@ async function fetchUserCollaborativeRepositories(accessToken: string) {
 }
 
 /** Returns the GitHub repositories for user. */
-export async function listGithubRepositoriesForUser(userId: number) {
+export async function listGithubRepositoriesForUser(userId: number, options?: { query?: string | null }) {
   const account = await findGithubAccountByUserId(userId);
   if (!account) {
     throw new GithubServiceError(404, "GitHub account is not connected");
@@ -204,7 +204,24 @@ export async function listGithubRepositoriesForUser(userId: number) {
     allRepositoriesById.set(repository.id, repository);
   }
 
-  return Array.from(allRepositoriesById.values())
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim().toLowerCase() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const filteredRepositories = hasQuery
+    ? Array.from(allRepositoriesById.values()).filter((repo) => {
+        const ownerLogin = repo.owner?.login?.toLowerCase() ?? "";
+        const name = repo.name?.toLowerCase() ?? "";
+        const fullName = repo.full_name?.toLowerCase() ?? "";
+        const idText = String(repo.id);
+        return (
+          name.includes(normalizedQuery) ||
+          fullName.includes(normalizedQuery) ||
+          ownerLogin.includes(normalizedQuery) ||
+          idText.includes(normalizedQuery)
+        );
+      })
+    : Array.from(allRepositoriesById.values());
+
+  return filteredRepositories
     .sort((a, b) => a.full_name.localeCompare(b.full_name))
     .map((repo): GithubRepositoryListItem => ({
       githubRepoId: repo.id,

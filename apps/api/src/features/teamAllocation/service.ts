@@ -117,6 +117,28 @@ export type ManualAllocationApplied = {
   };
 };
 
+function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[]): string[] {
+  if (!teamNames) {
+    return Array.from({ length: teamCount }, (_, index) => `Random Team ${index + 1}`);
+  }
+
+  if (teamNames.length !== teamCount) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const normalized = teamNames.map((teamName) => teamName.trim());
+  if (normalized.some((teamName) => teamName.length === 0)) {
+    throw { code: "INVALID_TEAM_NAMES" };
+  }
+
+  const lowered = normalized.map((teamName) => teamName.toLowerCase());
+  if (new Set(lowered).size !== lowered.length) {
+    throw { code: "DUPLICATE_TEAM_NAMES" };
+  }
+
+  return normalized;
+}
+
 async function notifyStudentsAboutRandomAllocation(
   projectName: string,
   plannedTeams: Array<{
@@ -304,6 +326,7 @@ export async function getTeamMembers(teamId: number) {
 export async function getManualAllocationWorkspaceForProject(
   staffId: number,
   projectId: number,
+  options?: { query?: string | null },
 ): Promise<ManualAllocationWorkspace> {
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -313,8 +336,13 @@ export async function getManualAllocationWorkspaceForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const [students, existingTeams] = await Promise.all([
-    findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
+    normalizedQuery
+      ? findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id, {
+          query: normalizedQuery,
+        })
+      : findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
     findProjectTeamSummaries(project.id),
   ]);
 

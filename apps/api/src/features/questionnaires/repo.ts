@@ -47,9 +47,22 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
 };
 
 /** Returns the my questionnaire templates. */
-export function getMyQuestionnaireTemplates(userId: number) {
+export function getMyQuestionnaireTemplates(userId: number, options?: { query?: string | null }) {
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? Number(normalizedQuery) : Number.NaN;
+
   return prisma.questionnaireTemplate.findMany({
-    where: { ownerId: userId },
+    where: hasQuery
+      ? {
+          ownerId: userId,
+          OR: [
+            { templateName: { contains: normalizedQuery, mode: "insensitive" } },
+            { questions: { some: { label: { contains: normalizedQuery, mode: "insensitive" } } } },
+            ...(Number.isInteger(numericQuery) && numericQuery > 0 ? [{ id: numericQuery }] : []),
+          ],
+        }
+      : { ownerId: userId },
     include: { questions: { orderBy: { order: "asc" } } },
   });
 }
@@ -202,4 +215,3 @@ export async function copyPublicQuestionnaireTemplateToUser(templateId: number, 
     select: { id: true },
   });
 }
-
