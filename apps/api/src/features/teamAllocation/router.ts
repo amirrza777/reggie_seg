@@ -14,6 +14,7 @@ import {
   applyManualAllocationHandler,
   applyRandomAllocationHandler,
   applyCustomAllocationHandler,
+  approveAllocationDraftHandler,
   getCustomAllocationCoverageHandler,
   getManualAllocationWorkspaceHandler,
   listAllocationDraftsHandler,
@@ -47,6 +48,11 @@ router.patch(
   "/projects/:projectId/allocation-drafts/:teamId",
   requireAuth,
   updateAllocationDraftHandler,
+);
+router.patch(
+  "/projects/:projectId/allocation-drafts/:teamId/approve",
+  requireAuth,
+  approveAllocationDraftHandler,
 );
 router.get(
   "/projects/:projectId/custom-questionnaires",

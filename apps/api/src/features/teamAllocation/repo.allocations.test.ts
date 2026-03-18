@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  approveDraftTeam,
   applyManualAllocationTeam,
   applyRandomAllocationPlan,
   createTeamInviteRecord,
@@ -402,5 +403,86 @@ describe("teamAllocation repo allocation transactions", () => {
 
     expect(tx.team.create).not.toHaveBeenCalled();
     expect(tx.teamAllocation.createMany).not.toHaveBeenCalled();
+  });
+
+  it("approveDraftTeam transitions lifecycle to ACTIVE and returns approved members", async () => {
+    const tx = {
+      team: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue({
+          id: 44,
+          teamName: "Draft Team",
+          allocations: [
+            {
+              user: {
+                id: 7,
+                firstName: "Ada",
+                lastName: "Lovelace",
+                email: "ada@example.com",
+              },
+            },
+            {
+              user: {
+                id: 8,
+                firstName: "Linus",
+                lastName: "Torvalds",
+                email: "linus@example.com",
+              },
+            },
+          ],
+          _count: {
+            allocations: 2,
+          },
+        }),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    const result = await approveDraftTeam(44, 99);
+
+    expect(tx.team.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 44,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+      },
+      data: {
+        allocationLifecycle: "ACTIVE",
+        draftApprovedById: 99,
+        draftApprovedAt: expect.any(Date),
+      },
+    });
+    expect(result).toEqual({
+      id: 44,
+      teamName: "Draft Team",
+      memberCount: 2,
+      members: [
+        {
+          id: 7,
+          firstName: "Ada",
+          lastName: "Lovelace",
+          email: "ada@example.com",
+        },
+        {
+          id: 8,
+          firstName: "Linus",
+          lastName: "Torvalds",
+          email: "linus@example.com",
+        },
+      ],
+    });
+  });
+
+  it("approveDraftTeam returns null when draft cannot be approved", async () => {
+    const tx = {
+      team: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findUnique: vi.fn(),
+      },
+    };
+    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+
+    await expect(approveDraftTeam(44, 99)).resolves.toBeNull();
+    expect(tx.team.findUnique).not.toHaveBeenCalled();
   });
 });

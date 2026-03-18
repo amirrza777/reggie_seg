@@ -17,6 +17,7 @@ const expireTeamInviteMock = vi.fn();
 const applyManualAllocationForProjectMock = vi.fn();
 const applyRandomAllocationForProjectMock = vi.fn();
 const applyCustomAllocationForProjectMock = vi.fn();
+const approveAllocationDraftForProjectMock = vi.fn();
 const getCustomAllocationCoverageForProjectMock = vi.fn();
 const listAllocationDraftsForProjectMock = vi.fn();
 const listCustomAllocationQuestionnairesForProjectMock = vi.fn();
@@ -54,6 +55,7 @@ vi.mock("./service.js", () => ({
   applyManualAllocationForProject: (...args: unknown[]) => applyManualAllocationForProjectMock(...args),
   applyRandomAllocationForProject: (...args: unknown[]) => applyRandomAllocationForProjectMock(...args),
   applyCustomAllocationForProject: (...args: unknown[]) => applyCustomAllocationForProjectMock(...args),
+  approveAllocationDraftForProject: (...args: unknown[]) => approveAllocationDraftForProjectMock(...args),
   getCustomAllocationCoverageForProject: (...args: unknown[]) =>
     getCustomAllocationCoverageForProjectMock(...args),
   listAllocationDraftsForProject: (...args: unknown[]) => listAllocationDraftsForProjectMock(...args),
@@ -113,6 +115,7 @@ describe("teamAllocation router custom allocation integration", () => {
     applyManualAllocationForProjectMock.mockReset();
     applyRandomAllocationForProjectMock.mockReset();
     applyCustomAllocationForProjectMock.mockReset();
+    approveAllocationDraftForProjectMock.mockReset();
     getCustomAllocationCoverageForProjectMock.mockReset();
     listAllocationDraftsForProjectMock.mockReset();
     listCustomAllocationQuestionnairesForProjectMock.mockReset();

@@ -22,6 +22,7 @@ import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),

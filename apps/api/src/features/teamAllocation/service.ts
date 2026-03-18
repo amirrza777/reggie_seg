@@ -6,6 +6,7 @@ import { prisma } from "../../shared/db.js";
 import { planCustomAllocationTeams } from "./customAllocator.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
+  approveDraftTeam,
   applyManualAllocationTeam,
   applyRandomAllocationPlan,
   createTeamInviteRecord,
@@ -194,6 +195,20 @@ export type AllocationDraftUpdated = {
       lastName: string;
       email: string;
     }>;
+  };
+};
+
+export type AllocationDraftApproved = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  approvedTeam: {
+    id: number;
+    teamName: string;
+    memberCount: number;
   };
 };
 
@@ -1072,6 +1087,14 @@ async function notifyStudentsAboutManualAllocation(
   }
 }
 
+async function notifyStudentsAboutApprovedDraftTeam(
+  projectName: string,
+  teamName: string,
+  students: Array<{ firstName: string; email: string }>,
+) {
+  await notifyStudentsAboutManualAllocation(projectName, teamName, students);
+}
+
 function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[]) {
   if (teamNames === undefined) {
     return Array.from({ length: teamCount }, (_, index) => `Random Team ${index + 1}`);
@@ -1393,6 +1416,78 @@ export async function updateAllocationDraftForProject(
       canApproveAllocationDrafts: project.canApproveAllocationDrafts,
     },
     draft: mapAllocationDraftTeamForResponse(updatedDraft),
+  };
+}
+
+export async function approveAllocationDraftForProject(
+  staffId: number,
+  projectId: number,
+  teamId: number,
+): Promise<AllocationDraftApproved> {
+  if (!Number.isInteger(teamId) || teamId < 1) {
+    throw { code: "INVALID_DRAFT_TEAM_ID" };
+  }
+
+  const project = await findStaffScopedProjectAccess(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+  if (!project.canApproveAllocationDrafts) {
+    throw { code: "APPROVAL_FORBIDDEN" };
+  }
+
+  if (!(await findDraftTeamInProject(project.id, teamId))) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+
+  const draft = await findDraftTeamById(teamId);
+  if (!draft) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+  if (draft.memberCount === 0) {
+    throw { code: "DRAFT_TEAM_HAS_NO_MEMBERS" };
+  }
+
+  const studentIds = draft.members.map((member) => member.id);
+  const activeConflicts = await findStudentAllocationConflictsInProject(
+    project.id,
+    studentIds,
+    "ACTIVE",
+    { excludeTeamId: teamId },
+  );
+  if (activeConflicts.length > 0) {
+    throw { code: "STUDENTS_NO_LONGER_AVAILABLE", conflicts: activeConflicts };
+  }
+
+  const approvedTeam = await approveDraftTeam(teamId, staffId);
+  if (!approvedTeam) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+
+  await notifyStudentsAboutApprovedDraftTeam(
+    project.name,
+    approvedTeam.teamName,
+    approvedTeam.members.map((member) => ({
+      firstName: member.firstName,
+      email: member.email,
+    })),
+  );
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    approvedTeam: {
+      id: approvedTeam.id,
+      teamName: approvedTeam.teamName,
+      memberCount: approvedTeam.memberCount,
+    },
   };
 }
 

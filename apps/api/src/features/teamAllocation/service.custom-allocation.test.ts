@@ -12,6 +12,7 @@ import { prisma } from "../../shared/db.js";
 const originalCustomAllocationThreshold = process.env.CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
 
 vi.mock("./repo.js", () => ({
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),

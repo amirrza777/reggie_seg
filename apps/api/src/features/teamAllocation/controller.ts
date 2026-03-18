@@ -24,6 +24,7 @@ import {
   applyManualAllocationForProject,
   applyRandomAllocationForProject,
   applyCustomAllocationForProject,
+  approveAllocationDraftForProject,
   listAllocationDraftsForProject,
   getCustomAllocationCoverageForProject,
   listCustomAllocationQuestionnairesForProject,
@@ -377,6 +378,53 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
       return res.status(409).json({ error: "Project is archived" });
     }
     console.error("Error updating allocation draft:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function approveAllocationDraftHandler(req: AuthRequest, res: Response) {
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid draft team ID" });
+  }
+
+  try {
+    const result = await approveAllocationDraftForProject(staffId, projectId, teamId);
+    return res.status(201).json(result);
+  } catch (error: any) {
+    if (error?.code === "INVALID_DRAFT_TEAM_ID") {
+      return res.status(400).json({ error: "Invalid draft team ID" });
+    }
+    if (error?.code === "APPROVAL_FORBIDDEN") {
+      return res.status(403).json({ error: "Only module owners can approve allocation drafts" });
+    }
+    if (error?.code === "DRAFT_TEAM_HAS_NO_MEMBERS") {
+      return res.status(409).json({ error: "Draft team has no members and cannot be approved" });
+    }
+    if (error?.code === "STUDENTS_NO_LONGER_AVAILABLE") {
+      return res.status(409).json({
+        error: "Some selected students are already assigned in active teams. Refresh drafts and try again.",
+      });
+    }
+    if (error?.code === "DRAFT_TEAM_NOT_FOUND") {
+      return res.status(404).json({ error: "Draft team not found" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (error?.code === "PROJECT_ARCHIVED") {
+      return res.status(409).json({ error: "Project is archived" });
+    }
+    console.error("Error approving allocation draft:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

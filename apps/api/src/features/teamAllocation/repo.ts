@@ -82,6 +82,18 @@ export type ProjectDraftTeamConflict = {
   teamName: string;
 };
 
+export type ApprovedDraftTeam = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+  members: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>;
+};
+
 export type CustomAllocationTemplateQuestion = {
   id: number;
   label: string;
@@ -743,6 +755,65 @@ export async function updateDraftTeam(
       id: updated.id,
       teamName: updated.teamName,
       memberCount: updated._count.allocations,
+    };
+  });
+}
+
+export async function approveDraftTeam(teamId: number, approverId: number): Promise<ApprovedDraftTeam | null> {
+  return prisma.$transaction(async (tx) => {
+    const approvedAt = new Date();
+    const updateResult = await tx.team.updateMany({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+      },
+      data: {
+        allocationLifecycle: "ACTIVE",
+        draftApprovedById: approverId,
+        draftApprovedAt: approvedAt,
+      },
+    });
+
+    if (updateResult.count === 0) {
+      return null;
+    }
+
+    const approvedTeam = await tx.team.findUnique({
+      where: { id: teamId },
+      select: {
+        id: true,
+        teamName: true,
+        allocations: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+              },
+            },
+          },
+          orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }, { userId: "asc" }],
+        },
+        _count: {
+          select: {
+            allocations: true,
+          },
+        },
+      },
+    });
+
+    if (!approvedTeam) {
+      return null;
+    }
+
+    return {
+      id: approvedTeam.id,
+      teamName: approvedTeam.teamName,
+      memberCount: approvedTeam._count.allocations,
+      members: approvedTeam.allocations.map((allocation) => allocation.user),
     };
   });
 }

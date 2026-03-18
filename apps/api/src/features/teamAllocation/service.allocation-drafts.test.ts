@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  approveAllocationDraftForProject,
   listAllocationDraftsForProject,
   updateAllocationDraftForProject,
 } from "./service.js";
 import * as repo from "./repo.js";
+import { sendEmail } from "../../shared/email.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
@@ -391,6 +394,178 @@ describe("teamAllocation service allocation drafts", () => {
             email: "linus@example.com",
           },
         ],
+      },
+    });
+  });
+
+  it("approveAllocationDraftForProject validates basic guard rails", async () => {
+    await expect(approveAllocationDraftForProject(7, 42, 0)).rejects.toEqual({
+      code: "INVALID_DRAFT_TEAM_ID",
+    });
+
+    (repo.findStaffScopedProjectAccess as any).mockResolvedValueOnce(null);
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toEqual({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+
+    (repo.findStaffScopedProjectAccess as any).mockResolvedValueOnce({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: new Date(),
+      enterpriseId: "ent-9",
+      actorRole: "STAFF",
+      isModuleLead: false,
+      isModuleTeachingAssistant: true,
+      canApproveAllocationDrafts: false,
+    });
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toEqual({
+      code: "PROJECT_ARCHIVED",
+    });
+
+    (repo.findStaffScopedProjectAccess as any).mockResolvedValueOnce({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+      actorRole: "STAFF",
+      isModuleLead: false,
+      isModuleTeachingAssistant: true,
+      canApproveAllocationDrafts: false,
+    });
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toEqual({
+      code: "APPROVAL_FORBIDDEN",
+    });
+  });
+
+  it("approveAllocationDraftForProject validates draft eligibility and conflicts", async () => {
+    (repo.findStaffScopedProjectAccess as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+      actorRole: "STAFF",
+      isModuleLead: true,
+      isModuleTeachingAssistant: false,
+      canApproveAllocationDrafts: true,
+    });
+
+    (repo.findDraftTeamInProject as any).mockResolvedValueOnce(null);
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toEqual({
+      code: "DRAFT_TEAM_NOT_FOUND",
+    });
+
+    (repo.findDraftTeamInProject as any).mockResolvedValueOnce({
+      id: 9,
+      teamName: "Draft A",
+      projectId: 42,
+      enterpriseId: "ent-9",
+    });
+    (repo.findDraftTeamById as any).mockResolvedValueOnce({
+      id: 9,
+      teamName: "Draft A",
+      memberCount: 0,
+      createdAt: new Date("2026-03-17T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-17T10:05:00.000Z"),
+      draftCreatedBy: null,
+      members: [],
+    });
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toEqual({
+      code: "DRAFT_TEAM_HAS_NO_MEMBERS",
+    });
+
+    (repo.findDraftTeamInProject as any).mockResolvedValueOnce({
+      id: 9,
+      teamName: "Draft A",
+      projectId: 42,
+      enterpriseId: "ent-9",
+    });
+    (repo.findDraftTeamById as any).mockResolvedValueOnce({
+      id: 9,
+      teamName: "Draft A",
+      memberCount: 1,
+      createdAt: new Date("2026-03-17T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-17T10:05:00.000Z"),
+      draftCreatedBy: null,
+      members: [{ id: 81, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" }],
+    });
+    (repo.findStudentAllocationConflictsInProject as any).mockResolvedValueOnce([
+      {
+        userId: 81,
+        firstName: "Ada",
+        lastName: "Lovelace",
+        email: "ada@example.com",
+        teamId: 501,
+        teamName: "Active Team",
+      },
+    ]);
+    await expect(approveAllocationDraftForProject(7, 42, 9)).rejects.toMatchObject({
+      code: "STUDENTS_NO_LONGER_AVAILABLE",
+    });
+  });
+
+  it("approveAllocationDraftForProject activates draft and sends emails", async () => {
+    (repo.findStaffScopedProjectAccess as any).mockResolvedValue({
+      id: 42,
+      name: "Project A",
+      moduleId: 11,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-9",
+      actorRole: "STAFF",
+      isModuleLead: true,
+      isModuleTeachingAssistant: false,
+      canApproveAllocationDrafts: true,
+    });
+    (repo.findDraftTeamInProject as any).mockResolvedValue({
+      id: 9,
+      teamName: "Draft A",
+      projectId: 42,
+      enterpriseId: "ent-9",
+    });
+    (repo.findDraftTeamById as any).mockResolvedValue({
+      id: 9,
+      teamName: "Draft A",
+      memberCount: 2,
+      createdAt: new Date("2026-03-17T10:00:00.000Z"),
+      updatedAt: new Date("2026-03-17T10:05:00.000Z"),
+      draftCreatedBy: null,
+      members: [
+        { id: 81, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
+        { id: 82, firstName: "Linus", lastName: "Torvalds", email: "linus@example.com" },
+      ],
+    });
+    (repo.findStudentAllocationConflictsInProject as any).mockResolvedValue([]);
+    (repo.approveDraftTeam as any).mockResolvedValue({
+      id: 9,
+      teamName: "Draft A",
+      memberCount: 2,
+      members: [
+        { id: 81, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
+        { id: 82, firstName: "Linus", lastName: "Torvalds", email: "linus@example.com" },
+      ],
+    });
+
+    const result = await approveAllocationDraftForProject(7, 42, 9);
+
+    expect(repo.approveDraftTeam).toHaveBeenCalledWith(9, 7);
+    expect(sendEmail).toHaveBeenCalledTimes(2);
+    expect(result).toEqual({
+      project: {
+        id: 42,
+        name: "Project A",
+        moduleId: 11,
+        moduleName: "Module A",
+      },
+      approvedTeam: {
+        id: 9,
+        teamName: "Draft A",
+        memberCount: 2,
       },
     });
   });
