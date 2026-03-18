@@ -18,10 +18,12 @@ const applyManualAllocationForProjectMock = vi.fn();
 const applyRandomAllocationForProjectMock = vi.fn();
 const applyCustomAllocationForProjectMock = vi.fn();
 const getCustomAllocationCoverageForProjectMock = vi.fn();
+const listAllocationDraftsForProjectMock = vi.fn();
 const listCustomAllocationQuestionnairesForProjectMock = vi.fn();
 const getManualAllocationWorkspaceForProjectMock = vi.fn();
 const previewCustomAllocationForProjectMock = vi.fn();
 const previewRandomAllocationForProjectMock = vi.fn();
+const updateAllocationDraftForProjectMock = vi.fn();
 
 vi.mock("../../auth/middleware.js", () => ({
   requireAuth: (req: any, res: any, next: any) => {
@@ -54,6 +56,7 @@ vi.mock("./service.js", () => ({
   applyCustomAllocationForProject: (...args: unknown[]) => applyCustomAllocationForProjectMock(...args),
   getCustomAllocationCoverageForProject: (...args: unknown[]) =>
     getCustomAllocationCoverageForProjectMock(...args),
+  listAllocationDraftsForProject: (...args: unknown[]) => listAllocationDraftsForProjectMock(...args),
   listCustomAllocationQuestionnairesForProject: (...args: unknown[]) =>
     listCustomAllocationQuestionnairesForProjectMock(...args),
   getManualAllocationWorkspaceForProject: (...args: unknown[]) =>
@@ -61,6 +64,7 @@ vi.mock("./service.js", () => ({
   previewCustomAllocationForProject: (...args: unknown[]) =>
     previewCustomAllocationForProjectMock(...args),
   previewRandomAllocationForProject: (...args: unknown[]) => previewRandomAllocationForProjectMock(...args),
+  updateAllocationDraftForProject: (...args: unknown[]) => updateAllocationDraftForProjectMock(...args),
 }));
 
 import router from "./router.js";
@@ -110,10 +114,12 @@ describe("teamAllocation router custom allocation integration", () => {
     applyRandomAllocationForProjectMock.mockReset();
     applyCustomAllocationForProjectMock.mockReset();
     getCustomAllocationCoverageForProjectMock.mockReset();
+    listAllocationDraftsForProjectMock.mockReset();
     listCustomAllocationQuestionnairesForProjectMock.mockReset();
     getManualAllocationWorkspaceForProjectMock.mockReset();
     previewCustomAllocationForProjectMock.mockReset();
     previewRandomAllocationForProjectMock.mockReset();
+    updateAllocationDraftForProjectMock.mockReset();
   });
 
   it("enforces auth and maps permission errors for custom questionnaires", async () => {

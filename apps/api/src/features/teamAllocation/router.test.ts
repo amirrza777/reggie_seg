@@ -24,6 +24,8 @@ describe("teamAllocation router", () => {
         { path: "/projects/:projectId/manual-allocate", methods: { post: true } },
         { path: "/projects/:projectId/random-preview", methods: { get: true } },
         { path: "/projects/:projectId/manual-workspace", methods: { get: true } },
+        { path: "/projects/:projectId/allocation-drafts", methods: { get: true } },
+        { path: "/projects/:projectId/allocation-drafts/:teamId", methods: { patch: true } },
         { path: "/projects/:projectId/custom-questionnaires", methods: { get: true } },
         { path: "/projects/:projectId/custom-coverage", methods: { get: true } },
         { path: "/projects/:projectId/custom-preview", methods: { post: true } },
