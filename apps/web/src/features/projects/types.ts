@@ -167,12 +167,6 @@ export type CreatedStaffProject = {
   } | null;
 };
 
-export type TeamMember = {
-  id: string;
-  name: string;
-  role: string;
-};
-
 export type StaffMarkingSummary = {
   mark: number | null;
   formativeFeedback: string | null;
@@ -201,9 +195,4 @@ export type DeadlineItem = {
   label: string;
   value: string | null;
   group: string;
-};
-
-export type DeadlineState = {
-  label: string;
-  color: string;
 };

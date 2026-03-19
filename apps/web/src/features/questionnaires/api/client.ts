@@ -1,8 +1,14 @@
 import { apiFetch } from "@/shared/api/http";
 import type { QuestionConfigs, QuestionType, Questionnaire } from "../types";
 
-export async function getMyQuestionnaires(): Promise<Questionnaire[]> {
-  return apiFetch("/questionnaires/mine");
+export async function getMyQuestionnaires(options?: { query?: string }): Promise<Questionnaire[]> {
+  const searchParams = new URLSearchParams();
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  const query = searchParams.toString();
+  const path = query ? `/questionnaires/mine?${query}` : "/questionnaires/mine";
+  return apiFetch(path);
 }
 
 export async function getPublicQuestionnairesFromOthers(): Promise<Questionnaire[]> {

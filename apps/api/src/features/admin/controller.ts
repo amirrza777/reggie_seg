@@ -10,13 +10,11 @@ import {
   isRole,
   listEnterpriseUsers,
   listEnterprises,
-  listFeatureFlags,
   listUsers,
   searchEnterpriseUsers,
   searchEnterprises,
   searchUsers,
   updateEnterpriseUser,
-  updateFeatureFlag,
   updateOwnEnterpriseUser,
   updateOwnEnterpriseUserRole,
 } from "./service.js";
@@ -61,23 +59,6 @@ export async function updateUserHandler(req: AdminRequest, res: Response) {
   });
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
-}
-
-export async function listFeatureFlagsHandler(req: AdminRequest, res: Response) {
-  return res.json(await listFeatureFlags(req.adminUser?.enterpriseId as string));
-}
-
-export async function updateFeatureFlagHandler(req: AdminRequest, res: Response) {
-  const enabled = req.body?.enabled;
-  if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled boolean required" });
-  try {
-    const result = await updateFeatureFlag(req.adminUser?.enterpriseId as string, String(req.params.key), enabled);
-    if (!result.ok) return res.status(result.status).json({ error: result.error });
-    return res.json(result.value);
-  } catch (err) {
-    console.error("update feature flag error", err);
-    return res.status(500).json({ error: "Could not update feature flag" });
-  }
 }
 
 export async function listEnterprisesHandler(_req: AdminRequest, res: Response) {

@@ -13,13 +13,11 @@ import {
   listEnterpriseUsers,
   listEnterprises,
   listAuditLogs,
-  listFeatureFlags,
   listUsers,
   searchEnterprises,
   searchEnterpriseUsers,
   searchUsers,
   updateEnterpriseUser,
-  updateFeatureFlag,
   updateUser,
   updateUserRole,
 } from "./client";
@@ -28,11 +26,6 @@ describe("admin api client", () => {
   beforeEach(() => {
     apiFetchMock.mockReset();
     apiFetchMock.mockResolvedValue({ ok: true });
-  });
-
-  it("lists feature flags", async () => {
-    await listFeatureFlags();
-    expect(apiFetchMock).toHaveBeenCalledWith("/admin/feature-flags");
   });
 
   it("lists users", async () => {
@@ -79,14 +72,6 @@ describe("admin api client", () => {
   it("gets summary", async () => {
     await getAdminSummary();
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/summary");
-  });
-
-  it("encodes feature-flag key during update", async () => {
-    await updateFeatureFlag("peer feedback/new", true);
-    expect(apiFetchMock).toHaveBeenCalledWith("/admin/feature-flags/peer%20feedback%2Fnew", {
-      method: "PATCH",
-      body: JSON.stringify({ enabled: true }),
-    });
   });
 
   it("lists enterprises", async () => {

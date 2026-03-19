@@ -52,7 +52,10 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   const [linking, setLinking] = useState(false);
   const [availableRepos, setAvailableRepos] = useState<GithubRepositoryOption[]>([]);
   const [selectedRepoId, setSelectedRepoId] = useState<string>("");
+  const [repoSearchQuery, setRepoSearchQuery] = useState("");
+  const [searchingRepos, setSearchingRepos] = useState(false);
   const didAutoSelectInitialTabRef = useRef(false);
+  const repoSearchRequestRef = useRef(0);
 
   const numericProjectId = Number(projectId);
   const activeLinkCount = links.filter((link) => link.isActive).length;
@@ -79,6 +82,8 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     fetchBranchCommits,
     fetchMyCommits,
     handleRefreshLiveBranches,
+    setBranchSearchQuery,
+    getBranchSearchQuery,
   } = useGithubProjectReposLiveData({
     activeTab,
     loading,
@@ -86,6 +91,41 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     connection,
     latestSnapshotByLinkId,
   });
+
+  function applyRepositoryOptions(repos: GithubRepositoryOption[]) {
+    setAvailableRepos(repos);
+    setSelectedRepoId((currentSelectedRepoId) => {
+      if (repos.length === 0) {
+        return "";
+      }
+      const selectedRepoStillExists = repos.some((repo) => String(repo.githubRepoId) === currentSelectedRepoId);
+      if (selectedRepoStillExists) {
+        return currentSelectedRepoId;
+      }
+      const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
+      return String(preferredRepo?.githubRepoId || "");
+    });
+  }
+
+  async function loadRepositoryOptions(query?: string, options?: { suppressLoadingState?: boolean }) {
+    const requestId = repoSearchRequestRef.current + 1;
+    repoSearchRequestRef.current = requestId;
+    if (!options?.suppressLoadingState) {
+      setSearchingRepos(true);
+    }
+
+    try {
+      const repos = await listGithubRepositories({ query: query?.trim() || undefined });
+      if (repoSearchRequestRef.current !== requestId) {
+        return;
+      }
+      applyRepositoryOptions(repos);
+    } finally {
+      if (repoSearchRequestRef.current === requestId && !options?.suppressLoadingState) {
+        setSearchingRepos(false);
+      }
+    }
+  }
 
   async function load() {
     if (Number.isNaN(numericProjectId)) {
@@ -105,20 +145,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       setConnection(status);
       setLinks(repoLinks);
       if (status.connected) {
-        const repos = await listGithubRepositories();
-        setAvailableRepos(repos);
-        if (repos.length === 0) {
-          setSelectedRepoId("");
-        } else {
-          const selectedRepoStillExists = repos.some((repo) => String(repo.githubRepoId) === selectedRepoId);
-          if (!selectedRepoStillExists) {
-            const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
-            setSelectedRepoId(String(preferredRepo?.githubRepoId || ""));
-          }
-        }
+        await loadRepositoryOptions(repoSearchQuery, { suppressLoadingState: true });
       } else {
         setAvailableRepos([]);
         setSelectedRepoId("");
+        setRepoSearchQuery("");
       }
       if (repoLinks.length > 0) {
         const [coverageEntries, snapshotEntries] = await Promise.all([
@@ -164,6 +195,19 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     didAutoSelectInitialTabRef.current = false;
     setActiveTab(null);
   }, [projectId]);
+
+  useEffect(() => {
+    if (!connection?.connected) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      void loadRepositoryOptions(repoSearchQuery).catch((err) => {
+        setError(err instanceof Error ? err.message : "Failed to search repositories.");
+      });
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [connection?.connected, repoSearchQuery]);
 
   useEffect(() => {
     if (loading || didAutoSelectInitialTabRef.current) {
@@ -343,6 +387,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           availableRepos={availableRepos}
           selectedRepoId={selectedRepoId}
           setSelectedRepoId={setSelectedRepoId}
+          repoSearchQuery={repoSearchQuery}
+          onRepoSearchQueryChange={setRepoSearchQuery}
+          searchingRepos={searchingRepos}
           coverageByLinkId={coverageByLinkId}
           latestSnapshotByLinkId={latestSnapshotByLinkId}
           currentGithubLogin={connection?.account?.login ?? null}
@@ -381,6 +428,8 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
           buildBranchRows={buildBranchRows}
           handleRefreshLiveBranches={handleRefreshLiveBranches}
+          getBranchQuery={getBranchSearchQuery}
+          onBranchQueryChange={setBranchSearchQuery}
           onSelectBranch={(linkId, nextBranch) => {
             setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
             void fetchBranchCommits(linkId, nextBranch);

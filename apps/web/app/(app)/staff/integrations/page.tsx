@@ -6,9 +6,10 @@ import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSumma
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffIntegrationsPageProps = {
-  searchParams: Promise<{ projectId?: string | string[] }>;
+  searchParams: Promise<{ projectId?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function StaffIntegrationsPage({ searchParams }: StaffIntegrationsPageProps) {
@@ -21,18 +22,22 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
   const requestedProjectId = Array.isArray(resolvedSearchParams.projectId)
     ? resolvedSearchParams.projectId[0]
     : resolvedSearchParams.projectId;
+  const rawProjectQuery = Array.isArray(resolvedSearchParams.q) ? resolvedSearchParams.q[0] : resolvedSearchParams.q;
+  const hasProjectQuery = typeof rawProjectQuery === "string" && rawProjectQuery.trim().length > 0;
 
   let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let projectLoadError: string | null = null;
 
   try {
-    projects = await getStaffProjects(user.id);
+    projects = await getStaffProjects(user.id, { query: rawProjectQuery });
   } catch (err) {
     projectLoadError = err instanceof Error ? err.message : "Failed to load your projects.";
   }
 
+  const visibleProjects = projects;
+
   const selectedProject =
-    projects.find((project) => String(project.id) === String(requestedProjectId)) ?? projects[0] ?? null;
+    visibleProjects.find((project) => String(project.id) === String(requestedProjectId)) ?? visibleProjects[0] ?? null;
   const selectedProjectId = selectedProject ? String(selectedProject.id) : null;
 
   let team: Awaited<ReturnType<typeof getStaffProjectTeams>>["teams"][number] | null = null;
@@ -56,23 +61,56 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
       />
 
       {projectLoadError ? <p className="muted">{projectLoadError}</p> : null}
+      {!projectLoadError ? (
+        <form method="get" action="/staff/integrations" className="staff-projects__search" role="search" aria-label="Search projects for integrations">
+          <label className="staff-projects__search-label" htmlFor="staff-integrations-project-search">
+            Search projects
+          </label>
+          <div className="staff-projects__search-controls">
+            <input
+              id="staff-integrations-project-search"
+              name="q"
+              type="search"
+              className="staff-projects__search-input"
+              defaultValue={rawProjectQuery ?? ""}
+              placeholder="Search by project or module name"
+            />
+            {selectedProjectId ? <input type="hidden" name="projectId" value={selectedProjectId} /> : null}
+            <button type="submit" className="staff-projects__badge staff-projects__search-btn">
+              Search
+            </button>
+            {hasProjectQuery ? (
+              <Link href="/staff/integrations" className="staff-projects__badge staff-projects__search-btn">
+                Clear
+              </Link>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
 
       {!selectedProjectId && !projectLoadError ? (
-        <p className="muted">No projects are available for your account yet.</p>
+        <p className="muted">
+          {hasProjectQuery
+            ? `No projects match "${rawProjectQuery}".`
+            : "No projects are available for your account yet."}
+        </p>
       ) : null}
 
       {selectedProjectId ? (
         <div className="stack stack--loose">
-          {projects.length > 1 ? (
+          {visibleProjects.length > 1 ? (
             <nav className="pill-nav" aria-label="Select project for integrations">
-              {projects.map((project) => {
+              {visibleProjects.map((project) => {
                 const projectId = String(project.id);
                 const isActive = projectId === selectedProjectId;
+                const href = hasProjectQuery
+                  ? `/staff/integrations?projectId=${encodeURIComponent(projectId)}&q=${encodeURIComponent(rawProjectQuery ?? "")}`
+                  : `/staff/integrations?projectId=${encodeURIComponent(projectId)}`;
 
                 return (
                   <Link
                     key={projectId}
-                    href={`/staff/integrations?projectId=${encodeURIComponent(projectId)}`}
+                    href={href}
                     className={`pill-nav__link${isActive ? " pill-nav__link--active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >

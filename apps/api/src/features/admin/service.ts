@@ -86,21 +86,6 @@ export async function updateOwnEnterpriseUser(
   return { ok: true as const, value: { ...updated, isStaff: updated.role !== "STUDENT" } };
 }
 
-export async function listFeatureFlags(enterpriseId: string) {
-  const flags = await repo.listFeatureFlagsByEnterprise(enterpriseId);
-  return flags.map(normalizeFeatureFlagLabel);
-}
-
-export async function updateFeatureFlag(enterpriseId: string, key: string, enabled: boolean) {
-  try {
-    const updated = await repo.updateFeatureFlag(enterpriseId, key, enabled);
-    return { ok: true as const, value: normalizeFeatureFlagLabel(updated) };
-  } catch (err: any) {
-    if (err.code === "P2025") return { ok: false as const, status: 404, error: "Feature flag not found" };
-    throw err;
-  }
-}
-
 export async function listEnterprises() {
   const enterprises = await repo.listEnterprises();
   return enterprises.map(toAdminEnterprisePayload);
@@ -216,13 +201,6 @@ export async function getAuditLogs(enterpriseId: string, filters: { from?: Date;
       role: entry.user.role,
     },
   }));
-}
-
-function normalizeFeatureFlagLabel<T extends { key: string; label: string }>(flag: T): T {
-  if (flag.key === "repos" && flag.label === "Repos") {
-    return { ...flag, label: "Repositories" };
-  }
-  return flag;
 }
 
 function toAdminUserPayload(user: {

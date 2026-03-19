@@ -33,6 +33,36 @@ export function getOverview(enterpriseUser: EnterpriseUser) {
   return buildOverview(enterpriseUser);
 }
 
+/** Returns enterprise feature flags for admin roles. */
+export async function listFeatureFlags(enterpriseUser: EnterpriseUser) {
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {
+    return { ok: false as const, status: 403, error: "Forbidden" };
+  }
+
+  const flags = await prisma.featureFlag.findMany({
+    where: { enterpriseId: enterpriseUser.enterpriseId },
+    orderBy: { key: "asc" },
+  });
+  return { ok: true as const, value: flags.map(normalizeFeatureFlagLabel) };
+}
+
+/** Updates an enterprise feature flag for admin roles. */
+export async function updateFeatureFlag(enterpriseUser: EnterpriseUser, key: string, enabled: boolean) {
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {
+    return { ok: false as const, status: 403, error: "Forbidden" };
+  }
+  try {
+    const updated = await prisma.featureFlag.update({
+      where: { enterpriseId_key: { enterpriseId: enterpriseUser.enterpriseId, key } },
+      data: { enabled },
+    });
+    return { ok: true as const, value: normalizeFeatureFlagLabel(updated) };
+  } catch (err: any) {
+    if (err.code === "P2025") return { ok: false as const, status: 404, error: "Feature flag not found" };
+    throw err;
+  }
+}
+
 async function buildOverview(enterpriseUser: EnterpriseUser) {
   const thirtyDaysAgo = getUtcStartOfDaysAgo(30);
 
@@ -129,7 +159,7 @@ export async function listModules(enterpriseUser: EnterpriseUser) {
 
   return modules.map((module) => ({
     ...mapModuleRecord(module),
-    canManageAccess: module.moduleLeads.length > 0,
+    canManageAccess: isEnterpriseAdminRole(enterpriseUser.role) || module.moduleLeads.length > 0,
   }));
 }
 
@@ -159,7 +189,7 @@ export async function searchModules(
   return toEnterpriseModuleSearchResponse(
     modules.map((module) => ({
       ...mapModuleRecord(module),
-      canManageAccess: module.moduleLeads.length > 0,
+      canManageAccess: isEnterpriseAdminRole(enterpriseUser.role) || module.moduleLeads.length > 0,
     })),
     filters,
     total,
@@ -621,6 +651,10 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
 
 /** Checks whether manage module access. */
 export async function canManageModuleAccess(user: EnterpriseUser, moduleId: number): Promise<boolean> {
+  if (isEnterpriseAdminRole(user.role)) {
+    return true;
+  }
+
   const membership = await prisma.moduleLead.findFirst({
     where: {
       moduleId,
@@ -671,6 +705,13 @@ function getUtcStartOfDaysAgo(days: number): Date {
   const now = new Date();
   const utcMidnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   return new Date(utcMidnight - days * 24 * 60 * 60 * 1000);
+}
+
+function normalizeFeatureFlagLabel<T extends { key: string; label: string }>(flag: T): T {
+  if (flag.key === "repos" && flag.label === "Repos") {
+    return { ...flag, label: "Repositories" };
+  }
+  return flag;
 }
 
 function parseOptionalTextField(

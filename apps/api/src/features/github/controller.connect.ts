@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   buildGithubConnectUrl,
   connectGithubAccount,
@@ -103,9 +104,15 @@ export async function listGithubReposHandler(req: AuthRequest, res: Response) {
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  const parsedSearchQuery = parseSearchQuery(req.query?.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const repos = await listGithubRepositoriesForUser(userId);
+    const repos = parsedSearchQuery.value
+      ? await listGithubRepositoriesForUser(userId, { query: parsedSearchQuery.value })
+      : await listGithubRepositoriesForUser(userId);
     return res.json(toJsonSafe({ repos }));
   } catch (error) {
     if (error instanceof GithubServiceError) {

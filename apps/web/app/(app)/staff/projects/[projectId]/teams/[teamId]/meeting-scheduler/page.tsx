@@ -1,4 +1,4 @@
-import { StaffTeamSectionPlaceholder } from "@/features/staff/projects/components/StaffTeamSectionPlaceholder";
+import { redirect } from "next/navigation";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -6,13 +6,5 @@ type PageProps = {
 
 export default async function StaffMeetingSchedulerSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
-  return (
-    <StaffTeamSectionPlaceholder
-      projectId={projectId}
-      teamId={teamId}
-      title="Meeting Scheduler"
-      description="Scheduling and slot management placeholders are set up here."
-    />
-  );
+  redirect(`/staff/projects/${projectId}/teams/${teamId}/team-meetings`);
 }
-

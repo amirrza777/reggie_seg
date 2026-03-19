@@ -222,6 +222,8 @@ describe("projects api client", () => {
       }),
     });
     expect(result).toEqual(response);
+  });
+
   it("creates a staff project", async () => {
     const deadline = {
       taskOpenDate: "2026-03-01T09:00:00.000Z",

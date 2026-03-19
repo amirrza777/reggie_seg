@@ -61,18 +61,19 @@ export default async function StaffDashboardPage() {
           <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
           <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link href="/staff/projects" className="pill-nav__link">Open staff projects</Link>
-            <Link href="/staff/analytics" className="pill-nav__link">Open analytics</Link>
             <Link href="/staff/questionnaires" className="pill-nav__link">Open questionnaires</Link>
           </div>
         </Card>
-        <Card title="Grade distribution">
-          <p className="muted">Bar chart placeholder.</p>
-        </Card>
-        <Card title="Submission velocity">
-          <p className="muted">Line chart placeholder (submissions vs time).</p>
-        </Card>
-        <Card title="Engagement score">
-          <p className="muted">Radial gauge placeholder (% active in last 48h).</p>
+        <Card title="Where to review delivery signals">
+          <p className="muted">
+            Delivery and engagement signals are available in dedicated team workspaces, GitHub insights, and Trello
+            summaries.
+          </p>
+          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link href="/staff/projects" className="pill-nav__link">Team health by project</Link>
+            <Link href="/staff/repos" className="pill-nav__link">Repository analytics</Link>
+            <Link href="/staff/integrations" className="pill-nav__link">Trello velocity</Link>
+          </div>
         </Card>
       </div>
     </div>

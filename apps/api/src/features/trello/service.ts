@@ -152,10 +152,22 @@ export const TrelloService = {
     await TrelloRepo.setTeamTrelloSectionConfig(teamId, normalized)
   },
 
-  async fetchMyBoards(userId: number) {
+  async fetchMyBoards(userId: number, options?: { query?: string | null }) {
     const user = await TrelloRepo.getUserById(userId)
     if (!user?.trelloToken) throw new Error("User not connected to Trello")
-    return TrelloService.getUserBoards(user.trelloToken)
+    const boards = await TrelloService.getUserBoards(user.trelloToken)
+    const normalizedQuery = typeof options?.query === "string" ? options.query.trim().toLowerCase() : ""
+    if (!normalizedQuery) {
+      return boards
+    }
+
+    return Array.isArray(boards)
+      ? boards.filter((board: any) => {
+          const boardName = typeof board?.name === "string" ? board.name.toLowerCase() : ""
+          const boardId = typeof board?.id === "string" ? board.id.toLowerCase() : ""
+          return boardName.includes(normalizedQuery) || boardId.includes(normalizedQuery)
+        })
+      : []
   },
 
   async fetchBoardById(userId: number, boardId: string) {

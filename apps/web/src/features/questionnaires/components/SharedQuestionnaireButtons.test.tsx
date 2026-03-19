@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/shared/api/errors";
 import {
@@ -22,7 +22,6 @@ vi.mock("../api/client", () => ({
 
 describe("SharedQuestionnaireButtons", () => {
   const deleteQuestionnaireMock = vi.mocked(deleteQuestionnaire);
-  let confirmSpy: ReturnType<typeof vi.spyOn>;
   let alertSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -30,7 +29,6 @@ describe("SharedQuestionnaireButtons", () => {
     push.mockReset();
     refresh.mockReset();
     deleteQuestionnaireMock.mockReset();
-    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
@@ -53,15 +51,16 @@ describe("SharedQuestionnaireButtons", () => {
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog", { name: /discard unsaved changes/i })).not.toBeInTheDocument();
   });
 
   it("blocks cancel when confirmation is rejected", () => {
-    confirmSpy.mockReturnValueOnce(false);
     const onCancel = vi.fn();
     render(<CancelQuestionnaireButton onCancel={onCancel} confirmWhen />);
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    const dialog = screen.getByRole("dialog", { name: /discard unsaved changes/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /stay here/i }));
 
     expect(onCancel).not.toHaveBeenCalled();
   });
@@ -75,10 +74,11 @@ describe("SharedQuestionnaireButtons", () => {
   });
 
   it("does not delete when confirmation is rejected", async () => {
-    confirmSpy.mockReturnValueOnce(false);
     render(<DeleteQuestionnaireButton questionnaireId={12} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /^cancel$/i }));
 
     await waitFor(() => expect(deleteQuestionnaireMock).not.toHaveBeenCalled());
   });
@@ -89,6 +89,8 @@ describe("SharedQuestionnaireButtons", () => {
     render(<DeleteQuestionnaireButton questionnaireId={12} onDeleted={onDeleted} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete questionnaire/i }));
 
     await waitFor(() => expect(deleteQuestionnaireMock).toHaveBeenCalledWith(12));
     expect(onDeleted).toHaveBeenCalledWith(12);
@@ -100,6 +102,8 @@ describe("SharedQuestionnaireButtons", () => {
     render(<DeleteQuestionnaireButton questionnaireId={99} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete questionnaire/i }));
 
     await waitFor(() => expect(deleteQuestionnaireMock).toHaveBeenCalledWith(99));
     expect(push).toHaveBeenCalledWith("/staff/questionnaires");
@@ -111,6 +115,8 @@ describe("SharedQuestionnaireButtons", () => {
     render(<DeleteQuestionnaireButton questionnaireId={22} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete questionnaire/i }));
 
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalledWith("Cannot delete in use template");
@@ -124,6 +130,8 @@ describe("SharedQuestionnaireButtons", () => {
     render(<DeleteQuestionnaireButton questionnaireId={23} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete questionnaire/i }));
 
     await waitFor(() => {
       expect(errorSpy).toHaveBeenCalledWith(unknownError);

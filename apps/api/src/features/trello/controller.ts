@@ -2,6 +2,7 @@ import type { Request, Response } from "express"
 import jwt from "jsonwebtoken"
 import { TrelloRepo } from "./repo.js"
 import { TrelloService } from "./service.js"
+import { parseSearchQuery } from "../../shared/search.js"
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || ""
 
@@ -158,7 +159,11 @@ export const TrelloController = {
   async fetchMyBoards(req: Request, res: Response) {
     try {
       const userId = (req.user as any).sub
-      const boards = await TrelloService.fetchMyBoards(userId)
+      const parsedSearchQuery = parseSearchQuery(req.query?.q)
+      if (!parsedSearchQuery.ok) {
+        return res.status(400).json({ error: parsedSearchQuery.error })
+      }
+      const boards = await TrelloService.fetchMyBoards(userId, { query: parsedSearchQuery.value })
       res.status(200).json(boards)
     } catch (err: any) {
       res.status(400).json({ error: err.message })

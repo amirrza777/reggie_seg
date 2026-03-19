@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   createTeamInvite,
   listTeamInvites,
@@ -179,6 +180,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
 export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
+  const parsedSearchQuery = parseSearchQuery(req.query?.q);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -186,9 +188,14 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
   }
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const workspace = await getManualAllocationWorkspaceForProject(staffId, projectId);
+    const workspace = parsedSearchQuery.value
+      ? await getManualAllocationWorkspaceForProject(staffId, projectId, { query: parsedSearchQuery.value })
+      : await getManualAllocationWorkspaceForProject(staffId, projectId);
     return res.json(workspace);
   } catch (error: any) {
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {

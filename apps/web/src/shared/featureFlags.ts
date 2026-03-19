@@ -1,20 +1,19 @@
-import { unstable_cache } from "next/cache";
+import { unstable_noStore as noStore } from "next/cache";
 import { API_BASE_URL } from "./api/env";
+import { ApiError } from "./api/errors";
 import { apiFetch } from "./api/http";
-import type { FeatureFlag } from "@/features/admin/types";
+import type { EnterpriseFeatureFlag } from "@/features/enterprise/types";
 
-const getFeatureFlagsCached = unstable_cache(
-  async (): Promise<FeatureFlag[]> =>
-    apiFetch<FeatureFlag[]>("/feature-flags", {
+async function getFeatureFlags(): Promise<EnterpriseFeatureFlag[]> {
+  noStore();
+  try {
+    return await apiFetch<EnterpriseFeatureFlag[]>("/feature-flags", {
       baseUrl: API_BASE_URL,
-      auth: false,
-    }),
-  ["feature-flags"],
-  { revalidate: 60 }
-);
-
-export async function getFeatureFlags(): Promise<FeatureFlag[]> {
-  return getFeatureFlagsCached();
+    });
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return [];
+    throw err;
+  }
 }
 
 export async function getFeatureFlagMap(): Promise<Record<string, boolean>> {
@@ -23,12 +22,4 @@ export async function getFeatureFlagMap(): Promise<Record<string, boolean>> {
     acc[flag.key] = flag.enabled;
     return acc;
   }, {});
-}
-
-export async function ensureFeatureEnabled(key: string): Promise<Record<string, boolean>> {
-  const map = await getFeatureFlagMap();
-  if (!map[key]) {
-    map[key] = false;
-  }
-  return map;
 }

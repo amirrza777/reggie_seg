@@ -20,7 +20,6 @@ vi.mock("@/shared/api/http", () => ({
 
 describe("EditQuestionnaireClient behavior", () => {
   const apiFetchMock = vi.mocked(apiFetch);
-  let confirmSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     routeParams.id = "12";
@@ -28,7 +27,6 @@ describe("EditQuestionnaireClient behavior", () => {
     back.mockReset();
     push.mockReset();
     apiFetchMock.mockReset();
-    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
@@ -116,15 +114,12 @@ describe("EditQuestionnaireClient behavior", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(confirmSpy).toHaveBeenCalledWith(
-      "You have unsaved changes. Are you sure you want to exit without saving?"
-    );
+    screen.getByRole("dialog", { name: /discard unsaved changes/i });
+    fireEvent.click(screen.getByRole("button", { name: /exit without saving/i }));
     expect(back).toHaveBeenCalledTimes(1);
   });
 
   it("stays on page when cancel confirmation is rejected", async () => {
-    confirmSpy.mockReturnValueOnce(false);
     apiFetchMock.mockResolvedValueOnce({
       templateName: "Team Pulse",
       questions: [{ id: 3, label: "Q", type: "text", configs: {} }],
@@ -137,6 +132,7 @@ describe("EditQuestionnaireClient behavior", () => {
       target: { value: "Team Pulse v2" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: /stay here/i }));
 
     expect(back).not.toHaveBeenCalled();
   });

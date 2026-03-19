@@ -49,8 +49,16 @@ export async function getProjectMarking(userId: number, projectId: number): Prom
   });
 }
 
-export async function getStaffProjects(userId: number): Promise<StaffProject[]> {
-  return apiFetch<StaffProject[]>(`/projects/staff/mine?userId=${userId}`);
+type StaffProjectSearchOptions = {
+  query?: string;
+};
+
+export async function getStaffProjects(userId: number, options?: StaffProjectSearchOptions): Promise<StaffProject[]> {
+  const searchParams = new URLSearchParams({ userId: String(userId) });
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  return apiFetch<StaffProject[]>(`/projects/staff/mine?${searchParams.toString()}`);
 }
 
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {

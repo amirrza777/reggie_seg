@@ -20,6 +20,7 @@ import enterpriseAdminRouter from "./features/enterpriseAdmin/router.js";
 import calendarRouter from "./features/calendar/router.js";
 import archiveRouter from "./features/archive/router.js";
 import teamsRouter from "./features/teams/router.js";
+import helpRouter from "./features/help/router.js";
 
 const app = express();
 
@@ -81,5 +82,6 @@ app.use("/notifications", notificationsRouter);
 app.use("/calendar", calendarRouter);
 app.use("/archive", archiveRouter);
 app.use("/teams", teamsRouter);
+app.use("/help", helpRouter);
 
 export { app };

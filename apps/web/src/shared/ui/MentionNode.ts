@@ -1,7 +1,6 @@
 import {
   type DOMExportOutput,
   type EditorConfig,
-  type LexicalNode,
   type NodeKey,
   type SerializedTextNode,
   type Spread,
@@ -80,8 +79,4 @@ export function $createMentionNode(mentionName: string): MentionNode {
   const node = new MentionNode(mentionName);
   node.setMode("segmented").toggleDirectionless();
   return $applyNodeReplacement(node);
-}
-
-export function $isMentionNode(node: LexicalNode | null | undefined): node is MentionNode {
-  return node instanceof MentionNode;
 }

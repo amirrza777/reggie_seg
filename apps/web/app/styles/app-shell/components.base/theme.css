@@ -16,10 +16,6 @@
   .workspace-shell .help-page__toc a:hover {
     color: var(--ink);
   }
-
-  .workspace-shell .help-page__content {
-    padding-left: 16px;
-  }
 }
 
 .ui-toast-layer {

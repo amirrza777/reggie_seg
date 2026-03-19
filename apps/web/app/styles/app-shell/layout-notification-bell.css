@@ -7,19 +7,21 @@
   align-items: center;
   justify-content: center;
   position: relative;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg-soft);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 12px;
   padding: 8px;
   color: var(--ink);
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
 }
 
 .notification-bell__trigger:hover,
 .notification-bell__trigger:focus-visible {
-  background: color-mix(in srgb, var(--surface) 92%, var(--ink) 4%);
-  border-color: color-mix(in srgb, var(--border) 60%, var(--accent-border));
+  background: var(--glass-ui-hover);
+  border-color: color-mix(in srgb, var(--glass-ui-border) 68%, var(--accent-border) 32%);
+  transform: translateY(-1px);
 }
 
 .notification-bell__badge {
@@ -44,11 +46,11 @@
   right: 0;
   top: calc(100% + 12px);
   min-width: min(340px, 92vw);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 18px;
   z-index: 20;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--glass-ui-shadow);
   overflow: hidden;
 }
 
@@ -95,7 +97,7 @@
 
 .notification-bell__item {
   display: flex;
-  align-items: start;
+  align-items: flex-start;
   gap: 8px;
   width: 100%;
   padding: 12px 16px;
@@ -137,15 +139,15 @@
 }
 
 .notification-bell__item:hover {
-  background: var(--glass-hover);
+  background: var(--glass-ui-hover);
 }
 
 .notification-bell__item--unread {
-  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 8%, var(--glass-ui-bg-soft));
 }
 
 .notification-bell__item--unread:hover {
-  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  background: color-mix(in srgb, var(--accent) 12%, var(--glass-ui-bg-soft));
 }
 
 .notification-bell__message {
@@ -156,4 +158,12 @@
 .notification-bell__time {
   font-size: var(--fs-caption);
   color: var(--muted-subtle);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .notification-bell__trigger,
+  .notification-bell__dropdown {
+    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  }
 }

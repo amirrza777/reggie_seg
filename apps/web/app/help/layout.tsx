@@ -4,6 +4,7 @@ import { Topbar } from "@/shared/layout/Topbar";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser } from "@/shared/auth/session";
 import { HelpNavGate } from "./HelpNavGate";
+import { HelpSectionScroll } from "./HelpSectionScroll";
 import { Footer } from "@/shared/layout/Footer";
 
 export const dynamic = "force-dynamic";
@@ -35,11 +36,28 @@ export default async function HelpLayout({ children }: { children: ReactNode }) 
         <div className="help-page">
           <div className="help-page__content stack">
             <div className="help-hub__hero">
-              <p className="eyebrow">Help Center</p>
-              <h1>Help</h1>
-              <p className="lede">Find guidance by topic or jump straight to common tasks.</p>
+              <div className="help-hub__hero-copy">
+                <p className="eyebrow">Help Center</p>
+                <h1>Help</h1>
+                <p className="lede">Find guidance by topic or jump straight to common tasks.</p>
+              </div>
+              <div className="help-hub__hero-metrics" aria-label="Help center highlights">
+                <p className="help-hub__hero-metric">
+                  <span>Coverage</span>
+                  <strong>Guides for students, staff, and admins</strong>
+                </p>
+                <p className="help-hub__hero-metric">
+                  <span>Knowledge Base</span>
+                  <strong>Searchable FAQs and task-based walkthroughs</strong>
+                </p>
+                <p className="help-hub__hero-metric">
+                  <span>Support</span>
+                  <strong>Email support@teamfeedback.app for urgent issues</strong>
+                </p>
+              </div>
             </div>
             <HelpNavGate />
+            <HelpSectionScroll />
             {children}
           </div>
           <Footer />

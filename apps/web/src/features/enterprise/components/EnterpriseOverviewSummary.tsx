@@ -142,8 +142,8 @@ export function EnterpriseOverviewSummary() {
         label: "Create team structure",
         detail: `${students} students exist, but no teams are configured yet.`,
         tone: "critical",
-        href: "/enterprise/groups",
-        cta: "Set up teams",
+        href: "/enterprise/modules",
+        cta: "Open modules",
         impact: students,
       });
     }
@@ -411,11 +411,8 @@ export function EnterpriseOverviewSummary() {
               <Link href="/enterprise/modules" className="btn btn--ghost">
                 Open module management
               </Link>
-              <Link href="/enterprise/groups" className="btn btn--ghost">
-                Open group management
-              </Link>
             </div>
-            <p className="ui-note ui-note--muted">Use module management first, then set up groups per module.</p>
+            <p className="ui-note ui-note--muted">Use module management to set up modules and allocate coverage.</p>
           </Card>
 
           <Card title="Top risks" className="enterprise-overview__card">

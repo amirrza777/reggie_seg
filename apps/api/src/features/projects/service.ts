@@ -51,7 +51,10 @@ export async function fetchProjectsForUser(userId: number) {
 }
 
 /** Returns the modules for user. */
-export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
+export async function fetchModulesForUser(
+  userId: number,
+  options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
+) {
   const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
@@ -92,8 +95,8 @@ export async function fetchQuestionsForProject(projectId: number) {
 }
 
 /** Returns the projects for staff. */
-export async function fetchProjectsForStaff(userId: number) {
-  const projects = await getStaffProjects(userId);
+export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null }) {
+  const projects = await getStaffProjects(userId, options);
   const now = Date.now();
   return projects.map((project) => {
     const allAllocations = project.teams.flatMap((t) => t.allocations);

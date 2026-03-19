@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   createProject,
   fetchProjectById,
@@ -26,6 +27,7 @@ function parsePositiveInt(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
 function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | null {
   const authUserId = req.user?.sub;
   if (!authUserId) {
@@ -309,9 +311,20 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 
   const scope = req.query.scope === "staff" ? "staff" : "workspace";
   const compact = req.query.compact === "1";
+  const parsedSearchQuery = parseSearchQuery(req.query.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff", compact });
+    const options: { staffOnly: boolean; compact: boolean; query?: string | null } = {
+      staffOnly: scope === "staff",
+      compact,
+    };
+    if (parsedSearchQuery.value) {
+      options.query = parsedSearchQuery.value;
+    }
+    const modules = await fetchModulesForUser(userId, options);
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
@@ -431,9 +444,15 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   if (userId === null) {
     return;
   }
+  const parsedSearchQuery = parseSearchQuery(req.query.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const projects = await fetchProjectsForStaff(userId);
+    const projects = parsedSearchQuery.value
+      ? await fetchProjectsForStaff(userId, { query: parsedSearchQuery.value })
+      : await fetchProjectsForStaff(userId);
     res.json(projects);
   } catch (error) {
     console.error("Error fetching staff projects:", error);

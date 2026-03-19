@@ -2,6 +2,9 @@
   "name": "web",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=20 <25"
+  },
   "scripts": {
     "dev": "cross-env NEXT_DIST_DIR=.next-dev next dev -p 3001",
     "dev:clean": "rimraf .next .next-dev && cross-env NEXT_DIST_DIR=.next-dev next dev -p 3001",

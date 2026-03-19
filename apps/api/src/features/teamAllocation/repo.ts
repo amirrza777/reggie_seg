@@ -259,7 +259,12 @@ export async function findModuleStudentsForManualAllocation(
   enterpriseId: string,
   moduleId: number,
   projectId: number,
+  options?: { query?: string | null },
 ): Promise<ManualAllocationStudent[]> {
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? Number(normalizedQuery) : Number.NaN;
+
   const students = await prisma.user.findMany({
     where: {
       enterpriseId,
@@ -271,6 +276,27 @@ export async function findModuleStudentsForManualAllocation(
           moduleId,
         },
       },
+      ...(hasQuery
+        ? {
+            OR: [
+              { firstName: { contains: normalizedQuery, mode: "insensitive" as const } },
+              { lastName: { contains: normalizedQuery, mode: "insensitive" as const } },
+              { email: { contains: normalizedQuery, mode: "insensitive" as const } },
+              {
+                teamAllocations: {
+                  some: {
+                    team: {
+                      projectId,
+                      archivedAt: null,
+                      teamName: { contains: normalizedQuery, mode: "insensitive" as const },
+                    },
+                  },
+                },
+              },
+              ...(Number.isInteger(numericQuery) && numericQuery > 0 ? [{ id: numericQuery }] : []),
+            ],
+          }
+        : {}),
     },
     select: {
       id: true,

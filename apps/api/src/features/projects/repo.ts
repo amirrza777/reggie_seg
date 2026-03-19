@@ -67,7 +67,10 @@ export async function getUserProjects(userId: number) {
 }
 
 /** Returns the modules for user. */
-export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
+export async function getModulesForUser(
+  userId: number,
+  options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
+) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true, enterpriseId: true },
@@ -100,9 +103,27 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
                 }),
           };
 
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? Number(normalizedQuery) : Number.NaN;
+  const searchFilter = hasQuery
+    ? {
+        OR: [
+          { name: { contains: normalizedQuery, mode: "insensitive" as const } },
+          ...(Number.isInteger(numericQuery) && numericQuery > 0 ? [{ id: numericQuery }] : []),
+        ],
+      }
+    : null;
+
+  const scopedMembershipFilter = searchFilter
+    ? {
+        AND: [membershipFilter, searchFilter],
+      }
+    : membershipFilter;
+
   if (options?.compact) {
     const compactModules = await prisma.module.findMany({
-      where: membershipFilter,
+      where: scopedMembershipFilter,
       select: {
         id: true,
         name: true,
@@ -141,7 +162,7 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
   }
 
   const modules = await prisma.module.findMany({
-    where: membershipFilter,
+    where: scopedMembershipFilter,
     select: {
       id: true,
       name: true,
@@ -206,7 +227,7 @@ async function getScopedStaffUser(userId: number) {
 }
 
 /** Returns the staff projects. */
-export async function getStaffProjects(userId: number) {
+export async function getStaffProjects(userId: number, options?: { query?: string | null }) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
 
@@ -230,8 +251,26 @@ export async function getStaffProjects(userId: number) {
           },
         };
 
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? Number(normalizedQuery) : Number.NaN;
+  const scopedWhere = hasQuery
+    ? {
+        AND: [
+          where,
+          {
+            OR: [
+              { name: { contains: normalizedQuery, mode: "insensitive" as const } },
+              { module: { name: { contains: normalizedQuery, mode: "insensitive" as const } } },
+              ...(Number.isInteger(numericQuery) && numericQuery > 0 ? [{ id: numericQuery }] : []),
+            ],
+          },
+        ],
+      }
+    : where;
+
   return prisma.project.findMany({
-    where,
+    where: scopedWhere,
     orderBy: { id: "asc" },
     select: {
       id: true,
