@@ -1,4 +1,5 @@
 import argon2 from "argon2";
+import { SEED_GITHUB_STAFF_EMAIL, SEED_GITHUB_STAFF_PASSWORD, SEED_GITHUB_STUDENT_EMAIL, SEED_GITHUB_STUDENT_PASSWORD } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedUser, SeedUsersByRole } from "./types";
@@ -167,10 +168,10 @@ export async function seedGithubE2EUsers(enterpriseId: string, projects: SeedPro
       return { value: undefined, rows: 0, details: "skipped (no team for first project)" };
     }
 
-    const staffEmail = (process.env.SEED_GITHUB_STAFF_EMAIL || "github.staff@example.com").toLowerCase();
-    const staffPassword = process.env.SEED_GITHUB_STAFF_PASSWORD || "Password123!";
-    const studentEmail = (process.env.SEED_GITHUB_STUDENT_EMAIL || "github.student@example.com").toLowerCase();
-    const studentPassword = process.env.SEED_GITHUB_STUDENT_PASSWORD || "Password123!";
+    const staffEmail = SEED_GITHUB_STAFF_EMAIL;
+    const staffPassword = SEED_GITHUB_STAFF_PASSWORD;
+    const studentEmail = SEED_GITHUB_STUDENT_EMAIL;
+    const studentPassword = SEED_GITHUB_STUDENT_PASSWORD;
 
     const [staffPasswordHash, studentPasswordHash] = await Promise.all([
       argon2.hash(staffPassword),
