@@ -99,6 +99,14 @@ export async function findInviteContext(teamId: number, inviterId: number) {
   return { team, inviter };
 }
 
+/** Returns a team archive status by id. */
+export async function findTeamArchiveStatus(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    select: { archivedAt: true },
+  });
+}
+
 /** Returns the invites for team. */
 export async function getInvitesForTeam(teamId: number) {
   return prisma.teamInvite.findMany({
@@ -127,6 +135,22 @@ export async function findUserEmailById(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
     select: { email: true },
+  });
+}
+
+/** Returns a user id by email when present. */
+export async function findUserIdByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: { email },
+    select: { id: true },
+  });
+}
+
+/** Returns a user's enterprise id by user id when present. */
+export async function findUserEnterpriseById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { enterpriseId: true },
   });
 }
 
@@ -513,61 +537,57 @@ export async function applyManualAllocationTeam(
   });
 }
 
-export const TeamService = {
-  // Create a team and add the creator as an owner in TeamAllocation.
-  async createTeam(userId: number, teamData: Prisma.TeamUncheckedCreateInput) {
-    return prisma.$transaction(async (tx) => {
-      const team = await tx.team.create({ data: teamData });
-      await tx.teamAllocation.create({
-        data: {
-          teamId: team.id,
-          userId,
-          // role "OWNER" is implied; TeamAllocation has no role column in schema.
-        },
-      });
-      return team;
-    });
-  },
-
-  // Fetch a team and include members via TeamAllocation.
-  async getTeamById(teamId: number) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
-      include: {
-        allocations: {
-          include: { user: true },
-        },
+/** Creates a team and owner allocation. */
+export async function createTeamWithOwner(userId: number, teamData: Prisma.TeamUncheckedCreateInput) {
+  return prisma.$transaction(async (tx) => {
+    const team = await tx.team.create({ data: teamData });
+    await tx.teamAllocation.create({
+      data: {
+        teamId: team.id,
+        userId,
       },
     });
-    if (!team) throw { code: "TEAM_NOT_FOUND" };
     return team;
-  },
+  });
+}
 
-  // Add a user to a team (role defaults to MEMBER, not stored in schema).
-  async addUserToTeam(teamId: number, userId: number, _role: "OWNER" | "MEMBER" = "MEMBER") {
-    const team = await prisma.team.findUnique({ where: { id: teamId } });
-    if (!team) throw { code: "TEAM_NOT_FOUND" };
+/** Creates a team record only. */
+export async function createTeamRecord(data: Prisma.TeamUncheckedCreateInput) {
+  return prisma.team.create({ data });
+}
 
-    const existing = await prisma.teamAllocation.findUnique({
-      where: { teamId_userId: { teamId, userId } },
-    });
-    if (existing) throw { code: "MEMBER_ALREADY_EXISTS" };
+/** Creates a team allocation. */
+export async function createTeamAllocation(teamId: number, userId: number) {
+  return prisma.teamAllocation.create({
+    data: { teamId, userId },
+  });
+}
 
-    return prisma.teamAllocation.create({
-      data: { teamId, userId },
-    });
-  },
+/** Returns a team by id with allocations. */
+export async function findTeamById(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    include: {
+      allocations: {
+        include: { user: true },
+      },
+    },
+  });
+}
 
-  // Return all users allocated to a team.
-  async getTeamMembers(teamId: number) {
-    const team = await prisma.team.findUnique({ where: { id: teamId } });
-    if (!team) throw { code: "TEAM_NOT_FOUND" };
+/** Returns a team allocation by team and user. */
+export async function findTeamAllocation(teamId: number, userId: number) {
+  return prisma.teamAllocation.findUnique({
+    where: { teamId_userId: { teamId, userId } },
+  });
+}
 
-    const allocations = await prisma.teamAllocation.findMany({
-      where: { teamId },
-      include: { user: true },
-    });
+/** Returns member users for a team. */
+export async function listTeamMemberUsers(teamId: number) {
+  const allocations = await prisma.teamAllocation.findMany({
+    where: { teamId },
+    include: { user: true },
+  });
 
-    return allocations.map((entry) => entry.user);
-  },
-};
+  return allocations.map((entry) => entry.user);
+}

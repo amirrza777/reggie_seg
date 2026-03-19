@@ -1,115 +1,71 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  applyManualAllocationTeam,
-  applyRandomAllocationPlan,
-  createTeamInviteRecord,
-  findModuleStudentsForManualAllocation,
-  findVacantModuleStudentsForProject,
-  findProjectTeamSummaries,
-  findStaffScopedProject,
-  findActiveInvite,
-  findInviteContext,
-  getInvitesForTeam,
-  TeamService,
-  updateInviteStatusFromPending,
+  createTeamAllocation,
+  createTeamRecord,
+  createTeamWithOwner,
+  findTeamAllocation,
+  findTeamById,
+  listTeamMemberUsers,
 } from "./repo.js";
-import { prisma } from "../../shared/db.js";
+import * as repo from "./repo.js";
+import { createTeam, getTeamById, addUserToTeam, getTeamMembers } from "./team.service.js";
 
-vi.mock("../../shared/db.js", () => ({
-  prisma: {
-    teamInvite: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      findMany: vi.fn(),
-      updateMany: vi.fn(),
-      findUnique: vi.fn(),
-    },
-    team: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-    project: {
-      findFirst: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-    },
-    teamAllocation: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      createMany: vi.fn(),
-      deleteMany: vi.fn(),
-      findMany: vi.fn(),
-    },
-    $transaction: vi.fn(),
-  },
-}));
+vi.mock("./repo.js", async () => {
+  const actual = await vi.importActual<typeof import("./repo.js")>("./repo.js");
+  return {
+    ...actual,
+    createTeamWithOwner: vi.fn(),
+    createTeamRecord: vi.fn(),
+    findTeamById: vi.fn(),
+    findTeamAllocation: vi.fn(),
+    createTeamAllocation: vi.fn(),
+    findUserEnterpriseById: vi.fn(),
+    listTeamMemberUsers: vi.fn(),
+  };
+});
 
 describe("teamAllocation repo team service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
-  it("updateInviteStatusFromPending returns null when no rows updated", async () => {
-    (prisma.teamInvite.updateMany as any).mockResolvedValue({ count: 0 });
 
-    await expect(updateInviteStatusFromPending("inv-1", "ACCEPTED", new Date())).resolves.toBeNull();
-  });
+  it("createTeam delegates to createTeamWithOwner", async () => {
+    (repo.createTeamWithOwner as any).mockResolvedValue({ id: 77, teamName: "Delta" });
 
-  it("updateInviteStatusFromPending returns updated invite when status changes", async () => {
-    (prisma.teamInvite.updateMany as any).mockResolvedValue({ count: 1 });
-    (prisma.teamInvite.findUnique as any).mockResolvedValue({ id: "inv-1", status: "ACCEPTED" });
+    const team = await createTeam(5, { teamName: "Delta", projectId: 3 } as any);
 
-    await expect(updateInviteStatusFromPending("inv-1", "ACCEPTED", new Date())).resolves.toEqual({
-      id: "inv-1",
-      status: "ACCEPTED",
-    });
-    expect(prisma.teamInvite.findUnique).toHaveBeenCalledWith({ where: { id: "inv-1" } });
-  });
-
-  it("TeamService.createTeam creates team and allocation in transaction", async () => {
-    const tx = {
-      team: { create: vi.fn().mockResolvedValue({ id: 77, teamName: "Delta" }) },
-      teamAllocation: { create: vi.fn().mockResolvedValue({ teamId: 77, userId: 5 }) },
-    };
-    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(tx));
-
-    const team = await TeamService.createTeam(5, { teamName: "Delta", projectId: 3 } as any);
-
-    expect(tx.team.create).toHaveBeenCalledWith({ data: { teamName: "Delta", projectId: 3 } });
-    expect(tx.teamAllocation.create).toHaveBeenCalledWith({ data: { teamId: 77, userId: 5 } });
+    expect(repo.createTeamWithOwner).toHaveBeenCalledWith(5, { teamName: "Delta", projectId: 3 });
     expect(team).toEqual({ id: 77, teamName: "Delta" });
   });
 
-  it("TeamService.getTeamById throws TEAM_NOT_FOUND for missing team", async () => {
-    (prisma.team.findUnique as any).mockResolvedValue(null);
+  it("getTeamById throws TEAM_NOT_FOUND for missing team", async () => {
+    (repo.findTeamById as any).mockResolvedValue(null);
 
-    await expect(TeamService.getTeamById(44)).rejects.toEqual({ code: "TEAM_NOT_FOUND" });
+    await expect(getTeamById(44)).rejects.toEqual({ code: "TEAM_NOT_FOUND" });
   });
 
-  it("TeamService.addUserToTeam validates team and duplicate membership", async () => {
-    (prisma.team.findUnique as any).mockResolvedValueOnce(null);
-    await expect(TeamService.addUserToTeam(1, 2)).rejects.toEqual({ code: "TEAM_NOT_FOUND" });
+  it("addUserToTeam validates team and duplicate membership", async () => {
+    (repo.findTeamById as any).mockResolvedValueOnce(null);
+    await expect(addUserToTeam(1, 2)).rejects.toEqual({ code: "TEAM_NOT_FOUND" });
 
-    (prisma.team.findUnique as any).mockResolvedValueOnce({ id: 1 });
-    (prisma.teamAllocation.findUnique as any).mockResolvedValueOnce({ teamId: 1, userId: 2 });
-    await expect(TeamService.addUserToTeam(1, 2)).rejects.toEqual({ code: "MEMBER_ALREADY_EXISTS" });
+    (repo.findTeamById as any).mockResolvedValueOnce({ id: 1 });
+    (repo.findTeamAllocation as any).mockResolvedValueOnce({ teamId: 1, userId: 2 });
+    await expect(addUserToTeam(1, 2)).rejects.toEqual({ code: "MEMBER_ALREADY_EXISTS" });
 
-    (prisma.team.findUnique as any).mockResolvedValueOnce({ id: 1 });
-    (prisma.teamAllocation.findUnique as any).mockResolvedValueOnce(null);
-    (prisma.teamAllocation.create as any).mockResolvedValueOnce({ teamId: 1, userId: 2 });
-    await expect(TeamService.addUserToTeam(1, 2)).resolves.toEqual({ teamId: 1, userId: 2 });
+    (repo.findTeamById as any).mockResolvedValueOnce({ id: 1 });
+    (repo.findTeamAllocation as any).mockResolvedValueOnce(null);
+    (repo.createTeamAllocation as any).mockResolvedValueOnce({ teamId: 1, userId: 2 });
+    await expect(addUserToTeam(1, 2)).resolves.toEqual({ teamId: 1, userId: 2 });
   });
 
-  it("TeamService.getTeamMembers returns mapped user list", async () => {
-    (prisma.team.findUnique as any).mockResolvedValue({ id: 3 });
-    (prisma.teamAllocation.findMany as any).mockResolvedValue([
-      { user: { id: 1, email: "a@test.com" } },
-      { user: { id: 2, email: "b@test.com" } },
+  it("getTeamMembers returns repo member list", async () => {
+    (repo.findTeamById as any).mockResolvedValue({ id: 3 });
+    (repo.listTeamMemberUsers as any).mockResolvedValue([
+      { id: 1, email: "a@test.com" },
+      { id: 2, email: "b@test.com" },
     ]);
 
-    const result = await TeamService.getTeamMembers(3);
+    const result = await getTeamMembers(3);
 
     expect(result).toEqual([
       { id: 1, email: "a@test.com" },

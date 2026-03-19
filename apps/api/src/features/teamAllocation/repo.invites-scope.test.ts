@@ -10,7 +10,6 @@ import {
   findActiveInvite,
   findInviteContext,
   getInvitesForTeam,
-  TeamService,
   updateInviteStatusFromPending,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
