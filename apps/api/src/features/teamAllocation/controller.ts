@@ -83,6 +83,24 @@ function parseOptionalPositiveInteger(value: unknown): number | null | "invalid"
   return parsed;
 }
 
+function parseManualAllocationSearchQuery(value: unknown): string | null | "invalid" {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  if (typeof value !== "string") {
+    return "invalid";
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (trimmed.length > 120) {
+    return "invalid";
+  }
+  return trimmed;
+}
+
 function formatCustomAllocationStaleStudentNames(staleStudents: unknown): string | null {
   if (!Array.isArray(staleStudents) || staleStudents.length === 0) {
     return null;
@@ -365,6 +383,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
 export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res: Response) {
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
+  const searchQuery = parseManualAllocationSearchQuery(req.query?.q);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -372,11 +391,20 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
   }
+  if (searchQuery === "invalid") {
+    return res.status(400).json({ error: "q must be a string with up to 120 characters" });
+  }
 
   try {
-    const workspace = await getManualAllocationWorkspaceForProject(staffId, projectId);
+    const workspace =
+      searchQuery !== null
+        ? await getManualAllocationWorkspaceForProject(staffId, projectId, searchQuery)
+        : await getManualAllocationWorkspaceForProject(staffId, projectId);
     return res.json(workspace);
   } catch (error: any) {
+    if (error?.code === "INVALID_SEARCH_QUERY") {
+      return res.status(400).json({ error: "q must be a string with up to 120 characters" });
+    }
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }

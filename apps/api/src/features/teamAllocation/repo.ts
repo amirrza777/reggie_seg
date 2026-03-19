@@ -398,7 +398,23 @@ export async function findModuleStudentsForManualAllocation(
   enterpriseId: string,
   moduleId: number,
   projectId: number,
+  searchQuery?: string,
 ): Promise<ManualAllocationStudent[]> {
+  const normalizedSearchQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
+  const searchFilters: Prisma.UserWhereInput[] = [];
+  if (normalizedSearchQuery.length > 0) {
+    const queryFilters: Prisma.UserWhereInput[] = [
+      { email: { contains: normalizedSearchQuery } },
+      { firstName: { contains: normalizedSearchQuery } },
+      { lastName: { contains: normalizedSearchQuery } },
+    ];
+    const numericQuery = Number(normalizedSearchQuery);
+    if (Number.isInteger(numericQuery) && numericQuery > 0) {
+      queryFilters.push({ id: numericQuery });
+    }
+    searchFilters.push({ OR: queryFilters });
+  }
+
   const students = await prisma.user.findMany({
     where: {
       enterpriseId,
@@ -410,6 +426,7 @@ export async function findModuleStudentsForManualAllocation(
           moduleId,
         },
       },
+      ...(searchFilters.length > 0 ? { AND: searchFilters } : {}),
     },
     select: {
       id: true,

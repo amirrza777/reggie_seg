@@ -742,6 +742,21 @@ function mapAllocationDraftTeamForResponse(team: {
   };
 }
 
+function normalizeManualAllocationSearchQuery(searchQuery: string | null | undefined) {
+  if (typeof searchQuery !== "string") {
+    return null;
+  }
+
+  const trimmed = searchQuery.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+  if (trimmed.length > 120) {
+    throw { code: "INVALID_SEARCH_QUERY" };
+  }
+  return trimmed;
+}
+
 export async function listCustomAllocationQuestionnairesForProject(
   staffId: number,
   projectId: number,
@@ -1563,6 +1578,7 @@ export async function getTeamMembers(teamId: number) {
 export async function getManualAllocationWorkspaceForProject(
   staffId: number,
   projectId: number,
+  searchQuery: string | null = null,
 ): Promise<ManualAllocationWorkspace> {
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -1572,8 +1588,16 @@ export async function getManualAllocationWorkspaceForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
+  const normalizedSearchQuery = normalizeManualAllocationSearchQuery(searchQuery);
   const [students, existingTeams] = await Promise.all([
-    findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
+    normalizedSearchQuery
+      ? findModuleStudentsForManualAllocation(
+          project.enterpriseId,
+          project.moduleId,
+          project.id,
+          normalizedSearchQuery,
+        )
+      : findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
     findProjectTeamSummaries(project.id),
   ]);
 

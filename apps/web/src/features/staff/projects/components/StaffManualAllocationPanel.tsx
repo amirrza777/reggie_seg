@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState, useTransition } from "react";
+import { type FormEvent, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   applyManualAllocation,
@@ -23,21 +23,47 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
   const router = useRouter();
   const [workspace, setWorkspace] = useState<ManualAllocationWorkspace | null>(null);
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
+  const [studentSearchInput, setStudentSearchInput] = useState("");
   const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
   const [teamNameInput, setTeamNameInput] = useState("");
   const [formNotice, setFormNotice] = useState<{ type: "error" | "success"; text: string } | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, startTransition] = useTransition();
   const [isSubmitting, startSubmitTransition] = useTransition();
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function loadWorkspace(openAfterLoad: boolean) {
+  function clearSearchDebounceTimer() {
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+      searchDebounceRef.current = null;
+    }
+  }
+
+  useEffect(() => () => clearSearchDebounceTimer(), []);
+
+  function loadWorkspace(
+    openAfterLoad: boolean,
+    options: { query?: string; preserveSelection?: boolean } = {},
+  ) {
+    const normalizedQuery =
+      typeof options.query === "string" ? options.query.trim() : studentSearchInput.trim();
     setErrorMessage("");
     startTransition(async () => {
       try {
-        const result = await getManualAllocationWorkspace(projectId);
+        const result =
+          normalizedQuery.length > 0
+            ? await getManualAllocationWorkspace(projectId, normalizedQuery)
+            : await getManualAllocationWorkspace(projectId);
         setWorkspace(result);
-        setSelectedStudentIds([]);
-        setTeamNameInput("");
+        if (options.preserveSelection) {
+          const availableStudentIds = new Set(
+            result.students.filter((student) => student.status === "AVAILABLE").map((student) => student.id),
+          );
+          setSelectedStudentIds((current) => current.filter((studentId) => availableStudentIds.has(studentId)));
+        } else {
+          setSelectedStudentIds([]);
+          setTeamNameInput("");
+        }
         setFormNotice(null);
         if (openAfterLoad) {
           setIsWorkspaceOpen(true);
@@ -50,6 +76,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
 
   function handleToggleWorkspace() {
     if (isWorkspaceOpen) {
+      clearSearchDebounceTimer();
       setIsWorkspaceOpen(false);
       return;
     }
@@ -57,11 +84,12 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
       setIsWorkspaceOpen(true);
       return;
     }
-    loadWorkspace(true);
+    loadWorkspace(true, { query: studentSearchInput });
   }
 
   function handleRefreshWorkspace() {
-    loadWorkspace(isWorkspaceOpen);
+    clearSearchDebounceTimer();
+    loadWorkspace(isWorkspaceOpen, { query: studentSearchInput });
   }
 
   const isBusy = isLoading || isSubmitting;
@@ -115,7 +143,11 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
         });
 
         try {
-          const refreshedWorkspace = await getManualAllocationWorkspace(projectId);
+          const trimmedQuery = studentSearchInput.trim();
+          const refreshedWorkspace =
+            trimmedQuery.length > 0
+              ? await getManualAllocationWorkspace(projectId, trimmedQuery)
+              : await getManualAllocationWorkspace(projectId);
           setWorkspace(refreshedWorkspace);
         } catch (error) {
           setErrorMessage(
@@ -140,6 +172,22 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
     setTeamNameInput("");
     setSelectedStudentIds([]);
     setFormNotice(null);
+  }
+
+  function handleStudentSearchChange(nextValue: string) {
+    setStudentSearchInput(nextValue);
+    clearSearchDebounceTimer();
+
+    if (!isWorkspaceOpen || !workspace) {
+      return;
+    }
+
+    searchDebounceRef.current = setTimeout(() => {
+      loadWorkspace(true, {
+        query: nextValue,
+        preserveSelection: true,
+      });
+    }, 300);
   }
 
   return (
@@ -234,6 +282,17 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                 Reset form
               </button>
             </div>
+            <label className="staff-projects__manual-create-field">
+              Search students
+              <input
+                type="search"
+                value={studentSearchInput}
+                onChange={(event) => handleStudentSearchChange(event.target.value)}
+                disabled={isBusy}
+                placeholder="Search by name or email"
+                aria-label="Search students"
+              />
+            </label>
           </form>
 
           {formNotice ? (
@@ -243,7 +302,11 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
           ) : null}
 
           {workspace.students.length === 0 ? (
-            <p className="staff-projects__card-sub">No students found in this module.</p>
+            <p className="staff-projects__card-sub">
+              {studentSearchInput.trim().length > 0
+                ? `No students match "${studentSearchInput.trim()}".`
+                : "No students found in this module."}
+            </p>
           ) : (
             <div className="staff-projects__manual-student-list" role="list" aria-label="Manual allocation student list">
               {workspace.students.map((student) => (
