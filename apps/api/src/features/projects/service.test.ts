@@ -12,6 +12,7 @@ import {
   submitTeamHealthMessage,
   fetchMyTeamHealthMessages,
   fetchTeamHealthMessagesForStaff,
+  updateProjectWarningsEnabledForStaff,
 } from "./service.js";
 import * as repo from "./repo.js";
 
@@ -29,6 +30,7 @@ vi.mock("./repo.js", () => ({
   getTeamHealthMessagesForUserInProject: vi.fn(),
   getTeamHealthMessagesForTeamInProject: vi.fn(),
   canStaffAccessTeamInProject: vi.fn(),
+  updateStaffProjectWarningsEnabled: vi.fn(),
 }));
 
 describe("projects service", () => {
@@ -151,5 +153,14 @@ describe("projects service", () => {
     (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 4 }]);
     await expect(fetchTeamHealthMessagesForStaff(9, 3, 22)).resolves.toEqual([{ id: 4 }]);
     expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
+  });
+
+  it("updateProjectWarningsEnabledForStaff delegates to repo", async () => {
+    (repo.updateStaffProjectWarningsEnabled as any).mockResolvedValue({ id: 3, warningsEnabled: true });
+    await expect(updateProjectWarningsEnabledForStaff(9, 3, true)).resolves.toEqual({
+      id: 3,
+      warningsEnabled: true,
+    });
+    expect(repo.updateStaffProjectWarningsEnabled).toHaveBeenCalledWith(9, 3, true);
   });
 });

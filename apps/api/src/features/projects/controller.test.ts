@@ -17,6 +17,7 @@ import {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
+  updateProjectWarningsEnabledHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -35,6 +36,7 @@ vi.mock("./service.js", () => ({
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
+  updateProjectWarningsEnabledForStaff: vi.fn(),
 }));
 
 function mockResponse() {
@@ -417,5 +419,56 @@ describe("projects controller", () => {
       missingRes
     );
     expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updateProjectWarningsEnabledHandler validates input and updates setting", async () => {
+    const unauthorizedRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { params: { projectId: "3" }, body: { warningsEnabled: true } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, body: { warningsEnabled: true } } as any,
+      badProjectRes,
+    );
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badBodyRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: "true" } } as any,
+      badBodyRes,
+    );
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateProjectWarningsEnabledForStaff as any).mockResolvedValueOnce({ id: 3, warningsEnabled: true });
+    const okRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: true } } as any,
+      okRes,
+    );
+    expect(service.updateProjectWarningsEnabledForStaff).toHaveBeenCalledWith(7, 3, true);
+    expect(okRes.json).toHaveBeenCalledWith({ id: 3, warningsEnabled: true });
+
+    (service.updateProjectWarningsEnabledForStaff as any).mockRejectedValueOnce({
+      code: "FORBIDDEN",
+      message: "Only module leads can update warning settings",
+    });
+    const forbiddenRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: false } } as any,
+      forbiddenRes,
+    );
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+
+    (service.updateProjectWarningsEnabledForStaff as any).mockRejectedValueOnce({ code: "PROJECT_NOT_FOUND" });
+    const notFoundRes = mockResponse();
+    await updateProjectWarningsEnabledHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: false } } as any,
+      notFoundRes,
+    );
+    expect(notFoundRes.status).toHaveBeenCalledWith(404);
   });
 });

@@ -16,6 +16,7 @@ import {
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
   canStaffAccessTeamInProject,
+  updateStaffProjectWarningsEnabled,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
 
@@ -27,6 +28,7 @@ vi.mock("../../shared/db.js", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
+      update: vi.fn(),
     },
     teamAllocation: {
       findMany: vi.fn(),
@@ -257,6 +259,49 @@ describe("projects repo staff and deadline queries", () => {
         },
       }),
     );
+  });
+
+  it("updateStaffProjectWarningsEnabled allows admins and module leads, but forbids non-lead staff", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 12,
+      role: "ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 9 });
+    (prisma.project.update as any).mockResolvedValueOnce({ id: 9, warningsEnabled: true });
+
+    await expect(updateStaffProjectWarningsEnabled(12, 9, true)).resolves.toEqual({
+      id: 9,
+      warningsEnabled: true,
+    });
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 21,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any)
+      .mockResolvedValueOnce({ id: 9 })
+      .mockResolvedValueOnce({ id: 9 });
+    (prisma.project.update as any).mockResolvedValueOnce({ id: 9, warningsEnabled: false });
+
+    await expect(updateStaffProjectWarningsEnabled(21, 9, false)).resolves.toEqual({
+      id: 9,
+      warningsEnabled: false,
+    });
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 31,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any)
+      .mockResolvedValueOnce({ id: 9 })
+      .mockResolvedValueOnce(null);
+
+    await expect(updateStaffProjectWarningsEnabled(31, 9, true)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
   });
 
   it("getQuestionsForProject fetches template questions ordered by `order`", async () => {

@@ -23,6 +23,7 @@ describe("projects router", () => {
         { path: "/staff/:projectId/teams/:teamId/team-health-messages", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/deadline", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/review", methods: { patch: true } },
+        { path: "/staff/:projectId/warnings-enabled", methods: { patch: true } },
         {
           path: "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/deadline-override",
           methods: { post: true },

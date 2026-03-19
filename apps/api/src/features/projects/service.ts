@@ -17,6 +17,7 @@ import {
   getTeamHealthMessagesForTeamInProject,
   canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
+  updateStaffProjectWarningsEnabled as updateStaffProjectWarningsEnabledInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
   type ProjectDeadlineInput,
@@ -178,6 +179,14 @@ export async function updateTeamDeadlineProfileForStaff(
   deadlineProfile: "STANDARD" | "MCF",
 ) {
   return updateStaffTeamDeadlineProfileInDb(actorUserId, teamId, deadlineProfile);
+}
+
+export async function updateProjectWarningsEnabledForStaff(
+  actorUserId: number,
+  projectId: number,
+  warningsEnabled: boolean,
+) {
+  return updateStaffProjectWarningsEnabledInDb(actorUserId, projectId, warningsEnabled);
 }
 
 export async function fetchStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {

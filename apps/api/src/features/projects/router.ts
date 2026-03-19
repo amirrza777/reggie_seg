@@ -17,6 +17,7 @@ import {
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
   updateTeamDeadlineProfileHandler,
+  updateProjectWarningsEnabledHandler,
   getStaffStudentDeadlineOverridesHandler,
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
@@ -45,6 +46,7 @@ router.post(
   resolveStaffTeamHealthMessageHandler,
 );
 router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
+router.patch("/staff/:projectId/warnings-enabled", requireAuth, updateProjectWarningsEnabledHandler);
 router.get("/staff/:projectId/students/deadline-overrides", requireAuth, getStaffStudentDeadlineOverridesHandler);
 router.put(
   "/staff/:projectId/students/:studentId/deadline-override",
