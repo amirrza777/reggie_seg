@@ -2,6 +2,7 @@ import type { Prisma, TeamAllocationLifecycle, TeamInviteStatus } from "@prisma/
 import { prisma } from "../../shared/db.js";
 
 type StaffUserRole = "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+type StaffScopedActorRole = StaffUserRole | "STUDENT";
 
 export type StaffScopedProject = {
   id: number;
@@ -240,10 +241,7 @@ export async function findStaffScopedProject(
     return null;
   }
 
-  const role = user.role as StaffUserRole | "STUDENT";
-  if (role === "STUDENT") {
-    return null;
-  }
+  const role = user.role as StaffScopedActorRole;
 
   const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
   const project = await prisma.project.findFirst({
@@ -299,10 +297,7 @@ export async function findStaffScopedProjectAccess(
     return null;
   }
 
-  const role = user.role as StaffUserRole | "STUDENT";
-  if (role === "STUDENT") {
-    return null;
-  }
+  const role = user.role as StaffScopedActorRole;
 
   const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
   const project = await prisma.project.findFirst({
@@ -357,7 +352,7 @@ export async function findStaffScopedProjectAccess(
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
     enterpriseId: user.enterpriseId,
-    actorRole: role,
+    actorRole: role === "STUDENT" ? "STAFF" : role,
     isModuleLead,
     isModuleTeachingAssistant,
     canApproveAllocationDrafts: isModuleLead,
