@@ -19,26 +19,30 @@ import {
 import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
 import { addNotification } from "../notifications/service.js";
-import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  createTeamAllocation: vi.fn(),
+  createTeamRecord: vi.fn(),
+  createTeamWithOwner: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findTeamArchiveStatus: vi.fn(),
+  findPendingInvitesForEmail: vi.fn(),
+  findTeamAllocation: vi.fn(),
+  findTeamById: vi.fn(),
+  findUserEmailById: vi.fn(),
+  findUserEnterpriseById: vi.fn(),
+  findUserIdByEmail: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
   findStaffScopedProject: vi.fn(),
   getInvitesForTeam: vi.fn(),
+  listTeamMemberUsers: vi.fn(),
   updateInviteStatusFromPending: vi.fn(),
-  TeamService: {
-    createTeam: vi.fn(),
-    getTeamById: vi.fn(),
-    addUserToTeam: vi.fn(),
-    getTeamMembers: vi.fn(),
-  },
 }));
 
 vi.mock("../../shared/email.js", () => ({
@@ -49,22 +53,9 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
-vi.mock("../../shared/db.js", () => ({
-  prisma: {
-    team: {
-      findUnique: vi.fn(),
-    },
-    user: {
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-    },
-  },
-}));
-
 describe("teamAllocation service manual allocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (prisma.team.findUnique as any).mockResolvedValue(null);
   });
   it("getManualAllocationWorkspaceForProject enforces staff scope and archived guard", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);

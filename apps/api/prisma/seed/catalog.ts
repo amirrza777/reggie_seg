@@ -4,55 +4,6 @@ import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "./types";
 
-const defaultTemplateQuestions = [
-  {
-    label: "Technical Skills",
-    type: "text",
-    order: 1,
-    configs: { required: true },
-  },
-  {
-    label: "Communication",
-    type: "text",
-    order: 2,
-    configs: { required: true },
-  },
-  {
-    label: "Teamwork",
-    type: "text",
-    order: 3,
-    configs: { required: true },
-  },
-  {
-    label: "Technical Skills Rating",
-    type: "rating",
-    order: 4,
-    configs: { min: 1, max: 5, required: true },
-  },
-  {
-    label: "Communication Rating",
-    type: "multiple-choice",
-    order: 5,
-    configs: {
-      required: true,
-      options: ["Excellent", "Good", "Needs Improvement"],
-    },
-  },
-  {
-    label: "Teamwork Score",
-    type: "slider",
-    order: 6,
-    configs: {
-      min: 0,
-      max: 100,
-      step: 5,
-      left: "Low",
-      right: "High",
-      required: true,
-    },
-  },
-] as const;
-
 export async function seedUsers(enterpriseId: string, seedPasswordHash: string): Promise<SeedUser[]> {
   return withSeedLogging("seedUsers", async () => {
     const created = await prisma.user.createMany({
@@ -64,7 +15,6 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
       where: {
         enterpriseId,
         email: { in: userData.map((u) => u.email) },
-        OR: [{ passwordHash: "dev-hash" }],
       },
       data: { passwordHash: seedPasswordHash },
     });
@@ -113,66 +63,73 @@ export async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
   });
 }
 
-export async function seedQuestionnaireTemplates(): Promise<SeedTemplate[]> {
+export async function seedQuestionnaireTemplates(ownerId?: number): Promise<SeedTemplate[]> {
   return withSeedLogging("seedQuestionnaireTemplates", async () => {
-    const staffUser = await prisma.user.findFirst({
-      where: { role: { in: ["STAFF", "ADMIN"] } },
-    });
-
-    if (!staffUser) {
+    if (!ownerId) {
       return {
         value: [] as SeedTemplate[],
         rows: 0,
-        details: "skipped (no STAFF/ADMIN user found)",
+        details: "skipped (no template owner found)",
       };
     }
 
     const templates: SeedTemplate[] = [];
     let questionCount = 0;
+    let createdCount = 0;
 
     for (let index = 0; index < questionnaireTemplateData.length; index += 1) {
       const config = questionnaireTemplateData[index];
-      const template = await prisma.questionnaireTemplate.upsert({
-        where: { id: index + 1 },
-        update: {
+      const existingTemplate = await prisma.questionnaireTemplate.findFirst({
+        where: {
+          ownerId,
           templateName: config.templateName,
-          isPublic: config.isPublic,
-          ownerId: staffUser.id,
-          questions: {
-            deleteMany: {},
-            create: config.questions.map((label, questionIndex) => ({
-              label,
-              type: "text",
-              order: questionIndex + 1,
-            })),
-          },
         },
-        create: {
-          id: index + 1,
-          templateName: config.templateName,
-          isPublic: config.isPublic,
-          ownerId: staffUser.id,
-          questions: {
-            create: config.questions.map((label, questionIndex) => ({
-              label,
-              type: "text",
-              order: questionIndex + 1,
-            })),
-          },
-        },
-        include: { questions: { orderBy: { order: "asc" } } },
+        select: { id: true },
       });
+      const templateData = buildTemplateQuestionData(config.questions);
+      const include = { questions: { orderBy: { order: "asc" } } } as const;
 
-      questionCount += template.questions.length;
+      const template = existingTemplate
+        ? await prisma.questionnaireTemplate.update({
+            where: { id: existingTemplate.id },
+            data: {
+              templateName: config.templateName,
+              isPublic: config.isPublic,
+              ownerId,
+              questions: {
+                deleteMany: {},
+                create: templateData,
+              },
+            },
+            include,
+          })
+        : await prisma.questionnaireTemplate.create({
+            data: {
+              templateName: config.templateName,
+              isPublic: config.isPublic,
+              ownerId,
+              questions: {
+                create: templateData,
+              },
+            },
+            include,
+          });
+
+      if (!existingTemplate) {
+        createdCount += 1;
+      }
+
       templates.push({
         id: template.id,
         questionLabels: template.questions.map((question) => question.label),
       });
+
+      questionCount += template.questions.length;
     }
 
     return {
       value: templates,
-      rows: templates.length,
+      rows: createdCount,
       details: `questions generated=${questionCount}`,
     };
   });
@@ -277,6 +234,14 @@ function buildUserSeedData(enterpriseId: string, seedPasswordHash: string) {
 
 function buildModuleSeedData(enterpriseId: string) {
   return moduleData.map((module) => ({ ...module, enterpriseId }));
+}
+
+function buildTemplateQuestionData(questionLabels: string[]) {
+  return questionLabels.map((label, questionIndex) => ({
+    label,
+    type: "text" as const,
+    order: questionIndex + 1,
+  }));
 }
 
 function buildProjectSeedRow(
