@@ -44,6 +44,11 @@ type CreateTeamInviteParams = {
   expiresInMs?: number;
 };
 
+type StudentTeamCreationScope = {
+  enterpriseId: string;
+  projectId: number;
+};
+
 export type RandomAllocationPreview = {
   project: {
     id: number;
@@ -1120,8 +1125,24 @@ function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
-  const teamRecord = await prisma.team.findUnique({ where: { id: params.teamId }, select: { archivedAt: true } });
-  if (teamRecord?.archivedAt) throw { code: "TEAM_ARCHIVED" };
+  const teamRecord = await prisma.team.findUnique({
+    where: { id: params.teamId },
+    select: { archivedAt: true, allocationLifecycle: true },
+  });
+  if (!teamRecord) throw { code: "TEAM_NOT_FOUND" };
+  if (teamRecord.archivedAt) throw { code: "TEAM_ARCHIVED" };
+  if (teamRecord.allocationLifecycle !== "ACTIVE") throw { code: "TEAM_NOT_ACTIVE" };
+
+  const inviterAllocation = await prisma.teamAllocation.findUnique({
+    where: {
+      teamId_userId: {
+        teamId: params.teamId,
+        userId: params.inviterId,
+      },
+    },
+    select: { teamId: true },
+  });
+  if (!inviterAllocation) throw { code: "TEAM_ACCESS_FORBIDDEN" };
 
   const existing = await findActiveInvite(params.teamId, normalizedEmail);
   if (existing) {
@@ -1176,7 +1197,31 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   return { invite, rawToken };
 }
 
-export async function listTeamInvites(teamId: number) {
+export async function listTeamInvites(teamId: number, requesterId?: number) {
+  const teamRecord = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: { id: true, archivedAt: true, allocationLifecycle: true },
+  });
+  if (!teamRecord || teamRecord.archivedAt || teamRecord.allocationLifecycle !== "ACTIVE") {
+    throw { code: "TEAM_NOT_FOUND_OR_INACTIVE" };
+  }
+  if (!Number.isInteger(requesterId) || requesterId < 1) {
+    throw { code: "TEAM_ACCESS_FORBIDDEN" };
+  }
+
+  const requesterAllocation = await prisma.teamAllocation.findUnique({
+    where: {
+      teamId_userId: {
+        teamId,
+        userId: requesterId,
+      },
+    },
+    select: { teamId: true },
+  });
+  if (!requesterAllocation) {
+    throw { code: "TEAM_ACCESS_FORBIDDEN" };
+  }
+
   return getInvitesForTeam(teamId);
 }
 
@@ -1187,13 +1232,27 @@ export async function listReceivedInvites(userId: number) {
 }
 
 export async function createTeam(userId: number, teamData: Parameters<typeof TeamService.createTeam>[1]) {
-  return TeamService.createTeam(userId, teamData);
+  const projectId = Number(teamData.projectId);
+  if (!Number.isInteger(projectId) || projectId < 1) {
+    throw { code: "INVALID_PROJECT_ID" };
+  }
+
+  const teamName = typeof teamData.teamName === "string" ? teamData.teamName.trim() : "";
+  if (teamName.length === 0) {
+    throw { code: "INVALID_TEAM_NAME" };
+  }
+
+  const scope = await resolveStudentTeamCreationScope(userId, projectId);
+  return createStudentTeam(userId, scope, teamName);
 }
 
 export async function createTeamForProject(userId: number, projectId: number, teamName: string) {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { enterpriseId: true } });
-  if (!user) throw { code: "USER_NOT_FOUND" };
-  return TeamService.createTeam(userId, { enterpriseId: user.enterpriseId, projectId, teamName });
+  const normalizedTeamName = teamName.trim();
+  if (!normalizedTeamName) {
+    throw { code: "INVALID_TEAM_NAME" };
+  }
+  const scope = await resolveStudentTeamCreationScope(userId, projectId);
+  return createStudentTeam(userId, scope, normalizedTeamName);
 }
 
 export async function getTeamById(teamId: number) {
@@ -1745,4 +1804,80 @@ export async function cancelTeamInvite(inviteId: string) {
 
 export async function expireTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "EXPIRED");
+}
+
+async function resolveStudentTeamCreationScope(
+  userId: number,
+  projectId: number,
+): Promise<StudentTeamCreationScope> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { enterpriseId: true, role: true, active: true },
+  });
+  if (!user || !user.active) {
+    throw { code: "USER_NOT_FOUND" };
+  }
+  if (user.role !== "STUDENT") {
+    throw { code: "TEAM_CREATION_FORBIDDEN" };
+  }
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      archivedAt: null,
+      module: {
+        enterpriseId: user.enterpriseId,
+        userModules: {
+          some: {
+            userId,
+            enterpriseId: user.enterpriseId,
+          },
+        },
+      },
+    },
+    select: { id: true, module: { select: { enterpriseId: true } } },
+  });
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  const existingAllocation = await prisma.teamAllocation.findFirst({
+    where: {
+      userId,
+      team: {
+        projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    },
+    select: { teamId: true },
+  });
+  if (existingAllocation) {
+    throw { code: "STUDENT_ALREADY_IN_TEAM" };
+  }
+
+  return {
+    enterpriseId: project.module.enterpriseId,
+    projectId: project.id,
+  };
+}
+
+async function createStudentTeam(
+  userId: number,
+  scope: StudentTeamCreationScope,
+  teamName: string,
+) {
+  try {
+    return await TeamService.createTeam(userId, {
+      enterpriseId: scope.enterpriseId,
+      projectId: scope.projectId,
+      teamName,
+      allocationLifecycle: "ACTIVE",
+    });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      throw { code: "TEAM_NAME_ALREADY_EXISTS" };
+    }
+    throw error;
+  }
 }

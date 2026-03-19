@@ -19,7 +19,6 @@ import "@/features/projects/styles/team-formation.css";
 type Props = {
   team: Team | null;
   projectId: number;
-  userId: number;
   initialInvites: TeamInvite[];
 };
 
@@ -27,7 +26,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
-export function TeamFormationPanel({ team, projectId, userId, initialInvites }: Props) {
+export function TeamFormationPanel({ team, projectId, initialInvites }: Props) {
   const router = useRouter();
 
   // Create team state
@@ -105,7 +104,7 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
     setInviteSuccess("");
     startInviting(async () => {
       try {
-        await sendTeamInvite(team.id, userId, email);
+        await sendTeamInvite(team.id, email);
         setInviteEmail("");
         setInviteSuccess(`Invitation sent to ${email}.`);
         await refreshInvites(team.id);

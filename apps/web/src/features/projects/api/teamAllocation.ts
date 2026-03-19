@@ -286,10 +286,30 @@ export type CustomAllocationApplied = {
   }>;
 };
 
-export async function sendTeamInvite(teamId: number, inviterId: number, inviteeEmail: string, message?: string) {
+export async function sendTeamInvite(
+  teamId: number,
+  inviteeEmail: string,
+  message?: string,
+): Promise<{ ok: boolean; inviteId: string }>;
+export async function sendTeamInvite(
+  teamId: number,
+  _inviterId: number,
+  inviteeEmail: string,
+  message?: string,
+): Promise<{ ok: boolean; inviteId: string }>;
+export async function sendTeamInvite(
+  teamId: number,
+  inviteeEmailOrInviterId: string | number,
+  inviteeEmailOrMessage?: string,
+  maybeMessage?: string,
+) {
+  const inviteeEmail =
+    typeof inviteeEmailOrInviterId === "number" ? inviteeEmailOrMessage ?? "" : inviteeEmailOrInviterId;
+  const message = typeof inviteeEmailOrInviterId === "number" ? maybeMessage : inviteeEmailOrMessage;
+
   return apiFetch<{ ok: boolean; inviteId: string }>("/team-allocation/invites", {
     method: "POST",
-    body: JSON.stringify({ teamId, inviterId, inviteeEmail, message }),
+    body: JSON.stringify({ teamId, inviteeEmail, message }),
   });
 }
 

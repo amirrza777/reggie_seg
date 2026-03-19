@@ -120,6 +120,10 @@ export async function findActiveInvite(teamId: number, inviteeEmail: string) {
       inviteeEmail,
       active: true,
       status: "PENDING",
+      team: {
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
     },
   });
 }
@@ -175,7 +179,15 @@ export async function getInvitesForTeam(teamId: number) {
 
 export async function findPendingInvitesForEmail(email: string) {
   return prisma.teamInvite.findMany({
-    where: { inviteeEmail: email, status: "PENDING", active: true },
+    where: {
+      inviteeEmail: email,
+      status: "PENDING",
+      active: true,
+      team: {
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    },
     include: {
       team: { select: { id: true, teamName: true, projectId: true } },
       inviter: { select: { id: true, firstName: true, lastName: true, email: true } },
@@ -194,6 +206,10 @@ export async function updateInviteStatusFromPending(
       id: inviteId,
       status: "PENDING",
       active: true,
+      team: {
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
     },
     data: {
       status,
@@ -1247,8 +1263,12 @@ export const TeamService = {
 
   // Fetch a team and include members via TeamAllocation.
   async getTeamById(teamId: number) {
-    const team = await prisma.team.findUnique({
-      where: { id: teamId },
+    const team = await prisma.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
       include: {
         allocations: {
           include: { user: true },
@@ -1261,7 +1281,13 @@ export const TeamService = {
 
   // Add a user to a team (role defaults to MEMBER, not stored in schema).
   async addUserToTeam(teamId: number, userId: number, _role: "OWNER" | "MEMBER" = "MEMBER") {
-    const team = await prisma.team.findUnique({ where: { id: teamId } });
+    const team = await prisma.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    });
     if (!team) throw { code: "TEAM_NOT_FOUND" };
 
     const existing = await prisma.teamAllocation.findUnique({
@@ -1276,7 +1302,13 @@ export const TeamService = {
 
   // Return all users allocated to a team.
   async getTeamMembers(teamId: number) {
-    const team = await prisma.team.findUnique({ where: { id: teamId } });
+    const team = await prisma.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    });
     if (!team) throw { code: "TEAM_NOT_FOUND" };
 
     const allocations = await prisma.teamAllocation.findMany({
