@@ -19,30 +19,39 @@ import {
 import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
 import { addNotification } from "../notifications/service.js";
+import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
-  createTeamAllocation: vi.fn(),
-  createTeamRecord: vi.fn(),
-  createTeamWithOwner: vi.fn(),
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
+  findDraftTeamById: vi.fn(),
+  findDraftTeamInProject: vi.fn(),
+  findCustomAllocationQuestionnairesForStaff: vi.fn(),
+  findCustomAllocationTemplateForStaff: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
-  findTeamArchiveStatus: vi.fn(),
-  findPendingInvitesForEmail: vi.fn(),
-  findTeamAllocation: vi.fn(),
-  findTeamById: vi.fn(),
-  findUserEmailById: vi.fn(),
-  findUserEnterpriseById: vi.fn(),
-  findUserIdByEmail: vi.fn(),
+  findLatestCustomAllocationResponsesForStudents: vi.fn(),
+  findModuleStudentsByIdsInModule: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
+  findProjectDraftTeams: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
+  findRespondingStudentIdsForTemplateInProject: vi.fn(),
+  findStaffScopedProjectAccess: vi.fn(),
   findStaffScopedProject: vi.fn(),
+  findStudentAllocationConflictsInProject: vi.fn(),
+  findTeamNameConflictInEnterprise: vi.fn(),
   getInvitesForTeam: vi.fn(),
-  listTeamMemberUsers: vi.fn(),
+  updateDraftTeam: vi.fn(),
   updateInviteStatusFromPending: vi.fn(),
+  TeamService: {
+    createTeam: vi.fn(),
+    getTeamById: vi.fn(),
+    addUserToTeam: vi.fn(),
+    getTeamMembers: vi.fn(),
+  },
 }));
 
 vi.mock("../../shared/email.js", () => ({
@@ -53,9 +62,22 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    team: {
+      findUnique: vi.fn(),
+    },
+    user: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
 describe("teamAllocation service manual allocation", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.team.findUnique as any).mockResolvedValue(null);
   });
   it("getManualAllocationWorkspaceForProject enforces staff scope and archived guard", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValueOnce(null);
@@ -219,7 +241,7 @@ describe("teamAllocation service manual allocation", () => {
     ).rejects.toEqual({ code: "STUDENT_ALREADY_ASSIGNED" });
   });
 
-  it("applyManualAllocationForProject creates a team and notifies students", async () => {
+  it("applyManualAllocationForProject creates a draft team", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValue({
       id: 42,
       name: "Project A",
@@ -243,7 +265,9 @@ describe("teamAllocation service manual allocation", () => {
       studentIds: [1, 2],
     });
 
-    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2]);
+    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2], {
+      draftCreatedById: 3,
+    });
     expect(result).toEqual({
       project: {
         id: 42,
@@ -257,15 +281,10 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    expect((sendEmail as any).mock.calls.map((call: any[]) => call[0]?.to).sort()).toEqual([
-      "a@example.com",
-      "b@example.com",
-    ]);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
-  it("applyManualAllocationForProject does not fail when notification email sending fails", async () => {
-    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  it("applyManualAllocationForProject does not send notification emails for drafts", async () => {
     (repo.findStaffScopedProject as any).mockResolvedValue({
       id: 42,
       name: "Project A",
@@ -283,8 +302,6 @@ describe("teamAllocation service manual allocation", () => {
       teamName: "Team Gamma",
       memberCount: 2,
     });
-    (sendEmail as any).mockRejectedValueOnce(new Error("smtp"));
-    (sendEmail as any).mockResolvedValueOnce({ suppressed: false });
 
     await expect(
       applyManualAllocationForProject(3, 42, {
@@ -304,7 +321,6 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    logSpy.mockRestore();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,7 @@ import {
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
+  findStaffScopedProjectAccess,
   findStaffScopedProject,
   findActiveInvite,
   findInviteContext,
@@ -209,6 +210,104 @@ describe("teamAllocation repo invites and scope", () => {
           select: { name: true },
         },
       },
+    });
+  });
+
+  it("findStaffScopedProjectAccess returns module lead approval capability", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      archivedAt: null,
+      module: {
+        name: "Module A",
+        moduleLeads: [{ userId: 12 }],
+        moduleTeachingAssistants: [],
+      },
+    });
+
+    await expect(findStaffScopedProjectAccess(12, 4)).resolves.toEqual({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+      actorRole: "STAFF",
+      isModuleLead: true,
+      isModuleTeachingAssistant: false,
+      canApproveAllocationDrafts: true,
+    });
+
+    expect(prisma.project.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 4,
+        module: {
+          enterpriseId: "ent-1",
+          OR: [
+            { moduleLeads: { some: { userId: 12 } } },
+            { moduleTeachingAssistants: { some: { userId: 12 } } },
+          ],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        moduleId: true,
+        archivedAt: true,
+        module: {
+          select: {
+            name: true,
+            moduleLeads: {
+              where: { userId: 12 },
+              select: { userId: true },
+              take: 1,
+            },
+            moduleTeachingAssistants: {
+              where: { userId: 12 },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it("findStaffScopedProjectAccess denies approval for teaching assistants", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      archivedAt: null,
+      module: {
+        name: "Module A",
+        moduleLeads: [],
+        moduleTeachingAssistants: [{ userId: 22 }],
+      },
+    });
+
+    await expect(findStaffScopedProjectAccess(22, 4)).resolves.toEqual({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+      actorRole: "STAFF",
+      isModuleLead: false,
+      isModuleTeachingAssistant: true,
+      canApproveAllocationDrafts: false,
     });
   });
 

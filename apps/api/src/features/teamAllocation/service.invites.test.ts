@@ -12,7 +12,6 @@ import {
   getManualAllocationWorkspaceForProject,
   getTeamById,
   getTeamMembers,
-  listReceivedInvites,
   listTeamInvites,
   previewRandomAllocationForProject,
   rejectTeamInvite,
@@ -20,30 +19,39 @@ import {
 import * as repo from "./repo.js";
 import { sendEmail } from "../../shared/email.js";
 import { addNotification } from "../notifications/service.js";
+import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
-  createTeamAllocation: vi.fn(),
-  createTeamRecord: vi.fn(),
-  createTeamWithOwner: vi.fn(),
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
+  findDraftTeamById: vi.fn(),
+  findDraftTeamInProject: vi.fn(),
+  findCustomAllocationQuestionnairesForStaff: vi.fn(),
+  findCustomAllocationTemplateForStaff: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
-  findTeamArchiveStatus: vi.fn(),
-  findPendingInvitesForEmail: vi.fn(),
-  findTeamAllocation: vi.fn(),
-  findTeamById: vi.fn(),
-  findUserEmailById: vi.fn(),
-  findUserEnterpriseById: vi.fn(),
-  findUserIdByEmail: vi.fn(),
+  findLatestCustomAllocationResponsesForStudents: vi.fn(),
+  findModuleStudentsByIdsInModule: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
+  findProjectDraftTeams: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
+  findRespondingStudentIdsForTemplateInProject: vi.fn(),
+  findStaffScopedProjectAccess: vi.fn(),
   findStaffScopedProject: vi.fn(),
+  findStudentAllocationConflictsInProject: vi.fn(),
+  findTeamNameConflictInEnterprise: vi.fn(),
   getInvitesForTeam: vi.fn(),
-  listTeamMemberUsers: vi.fn(),
+  updateDraftTeam: vi.fn(),
   updateInviteStatusFromPending: vi.fn(),
+  TeamService: {
+    createTeam: vi.fn(),
+    getTeamById: vi.fn(),
+    addUserToTeam: vi.fn(),
+    getTeamMembers: vi.fn(),
+  },
 }));
 
 vi.mock("../../shared/email.js", () => ({
@@ -54,10 +62,22 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    team: {
+      findUnique: vi.fn(),
+    },
+    user: {
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
 describe("teamAllocation service invites", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (repo.findTeamArchiveStatus as any).mockResolvedValue(null);
+    (prisma.team.findUnique as any).mockResolvedValue(null);
   });
   it("createTeamInvite throws when invite already pending", async () => {
     (repo.findActiveInvite as any).mockResolvedValue({ id: "existing" });
@@ -130,7 +150,7 @@ describe("teamAllocation service invites", () => {
       team: { teamName: "Team Beta", projectId: 5 },
       inviter: { firstName: "Reggie", lastName: "Jones", email: "reggie@example.com" },
     });
-    (repo.findUserIdByEmail as any).mockResolvedValue({ id: 42 });
+    (prisma.user.findFirst as any).mockResolvedValue({ id: 42 });
 
     await createTeamInvite({
       teamId: 1,
@@ -139,7 +159,10 @@ describe("teamAllocation service invites", () => {
       baseUrl: "http://localhost:3001",
     });
 
-    expect(repo.findUserIdByEmail).toHaveBeenCalledWith("newuser@example.com");
+    expect(prisma.user.findFirst).toHaveBeenCalledWith({
+      where: { email: "newuser@example.com" },
+      select: { id: true },
+    });
     expect(addNotification).toHaveBeenCalledWith({
       userId: 42,
       type: "TEAM_INVITE",
@@ -148,13 +171,12 @@ describe("teamAllocation service invites", () => {
     });
   });
 
-  it("delegates list/get/create/add/members to repo team functions", async () => {
+  it("delegates list/get/create/add/members to repo TeamService", async () => {
     (repo.getInvitesForTeam as any).mockResolvedValue([{ id: "i1" }]);
-    (repo.createTeamWithOwner as any).mockResolvedValue({ id: 10 });
-    (repo.findTeamById as any).mockResolvedValue({ id: 10 });
-    (repo.findTeamAllocation as any).mockResolvedValue(null);
-    (repo.createTeamAllocation as any).mockResolvedValue({ teamId: 10, userId: 4 });
-    (repo.listTeamMemberUsers as any).mockResolvedValue([{ id: 4 }]);
+    (repo.TeamService.createTeam as any).mockResolvedValue({ id: 10 });
+    (repo.TeamService.getTeamById as any).mockResolvedValue({ id: 10 });
+    (repo.TeamService.addUserToTeam as any).mockResolvedValue({ teamId: 10, userId: 4 });
+    (repo.TeamService.getTeamMembers as any).mockResolvedValue([{ id: 4 }]);
 
     await expect(listTeamInvites(10)).resolves.toEqual([{ id: "i1" }]);
     await expect(createTeam(1, { teamName: "T1", projectId: 2 })).resolves.toEqual({ id: 10 });
@@ -163,31 +185,11 @@ describe("teamAllocation service invites", () => {
     await expect(getTeamMembers(10)).resolves.toEqual([{ id: 4 }]);
   });
 
-  it("lists received invites using the authenticated user's email", async () => {
-    (repo.findUserEmailById as any).mockResolvedValue({ email: " Student@Example.com " });
-    (repo.findPendingInvitesForEmail as any).mockResolvedValue([{ id: "i2" }]);
-
-    await expect(listReceivedInvites(15)).resolves.toEqual([{ id: "i2" }]);
-
-    expect(repo.findUserEmailById).toHaveBeenCalledWith(15);
-    expect(repo.findPendingInvitesForEmail).toHaveBeenCalledWith("student@example.com");
-  });
-
-  it("returns an empty list when the authenticated user has no email", async () => {
-    (repo.findUserEmailById as any).mockResolvedValue(null);
-
-    await expect(listReceivedInvites(20)).resolves.toEqual([]);
-    expect(repo.findPendingInvitesForEmail).not.toHaveBeenCalled();
-  });
-
   it("accept/decline/reject/cancel/expire update invite status", async () => {
     (repo.updateInviteStatusFromPending as any).mockResolvedValue({ id: "i1", teamId: 10, status: "ACCEPTED" });
-    (repo.findTeamById as any).mockResolvedValue({ id: 10 });
-    (repo.findTeamAllocation as any).mockResolvedValue(null);
-    (repo.createTeamAllocation as any).mockResolvedValue({ teamId: 10, userId: 5 });
     await expect(acceptTeamInvite("i1", 5)).resolves.toEqual({ id: "i1", teamId: 10, status: "ACCEPTED" });
     expect(repo.updateInviteStatusFromPending).toHaveBeenCalledWith("i1", "ACCEPTED", expect.any(Date));
-    expect(repo.createTeamAllocation).toHaveBeenCalledWith(10, 5);
+    expect(repo.TeamService.addUserToTeam).toHaveBeenCalledWith(10, 5);
 
     (repo.updateInviteStatusFromPending as any).mockResolvedValue({ id: "i1", status: "DECLINED" });
     await expect(declineTeamInvite("i1")).resolves.toEqual({ id: "i1", status: "DECLINED" });

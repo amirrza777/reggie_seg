@@ -45,6 +45,8 @@ export async function getUserProjects(userId: number) {
     where: {
       teams: {
         some: {
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
           allocations: {
             some: {
               userId,
@@ -290,7 +292,7 @@ export async function getStaffProjects(userId: number, options?: { query?: strin
         },
       },
       teams: {
-        where: { archivedAt: null },
+        where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
         select: {
           allocations: {
             select: {
@@ -339,11 +341,13 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
         },
       },
       teams: {
+        where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
         orderBy: { id: "asc" },
         select: {
           id: true,
           teamName: true,
           projectId: true,
+          allocationLifecycle: true,
           createdAt: true,
           inactivityFlag: true,
           deadlineProfile: true,
@@ -497,6 +501,8 @@ export async function updateStaffTeamDeadlineProfile(
   const team = await prisma.team.findFirst({
     where: {
       id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
       project: {
         module: {
           enterpriseId: actor.enterpriseId,
@@ -536,6 +542,8 @@ export async function getTeammatesInProject(userId: number, projectId: number) {
     where: {
       team: {
         projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
         allocations: {
           some: {
             userId,
@@ -564,6 +572,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
       userId,
       team: {
         projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
       },
     },
     select: {
@@ -668,8 +678,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
 
 /** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
-  return prisma.team.findUnique({
-    where: { id: teamId },
+  return prisma.team.findFirst({
+    where: { id: teamId, archivedAt: null, allocationLifecycle: "ACTIVE" },
     select: {
       id: true,
       teamName: true,
@@ -697,6 +707,8 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
   return prisma.team.findFirst({
     where: {
       projectId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
       allocations: {
         some: {
           userId,
@@ -775,7 +787,7 @@ export async function getUserProjectMarking(userId: number, projectId: number) {
   const enrollment = await prisma.teamAllocation.findFirst({
     where: {
       userId,
-      team: { projectId },
+      team: { projectId, archivedAt: null, allocationLifecycle: "ACTIVE" },
     },
     select: {
       teamId: true,
@@ -923,7 +935,7 @@ export async function canStaffAccessTeamInProject(userId: number, projectId: num
     where: {
       id: projectId,
       teams: {
-        some: { id: teamId },
+        some: { id: teamId, archivedAt: null, allocationLifecycle: "ACTIVE" },
       },
       module: {
         enterpriseId: user.enterpriseId,

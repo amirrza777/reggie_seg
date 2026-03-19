@@ -35,8 +35,15 @@ vi.mock("./service.js", () => ({
   expireTeamInvite: vi.fn(),
   applyManualAllocationForProject: vi.fn(),
   applyRandomAllocationForProject: vi.fn(),
+  applyCustomAllocationForProject: vi.fn(),
+  approveAllocationDraftForProject: vi.fn(),
+  getCustomAllocationCoverageForProject: vi.fn(),
+  listAllocationDraftsForProject: vi.fn(),
   getManualAllocationWorkspaceForProject: vi.fn(),
+  listCustomAllocationQuestionnairesForProject: vi.fn(),
+  previewCustomAllocationForProject: vi.fn(),
   previewRandomAllocationForProject: vi.fn(),
+  updateAllocationDraftForProject: vi.fn(),
 }));
 
 function mockResponse() {
