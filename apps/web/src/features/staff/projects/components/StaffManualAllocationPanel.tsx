@@ -7,6 +7,7 @@ import {
   getManualAllocationWorkspace,
   type ManualAllocationWorkspace,
 } from "@/features/projects/api/teamAllocation";
+import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffManualAllocationPanelProps = {
@@ -110,7 +111,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
         setTeamNameInput("");
         setFormNotice({
           type: "success",
-          text: `Created "${applied.team.teamName}" with ${applied.team.memberCount} student${applied.team.memberCount === 1 ? "" : "s"}.`,
+          text: `Saved draft "${applied.team.teamName}" with ${applied.team.memberCount} student${applied.team.memberCount === 1 ? "" : "s"}.`,
         });
 
         try {
@@ -119,16 +120,17 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
         } catch (error) {
           setErrorMessage(
             error instanceof Error
-              ? `Team created, but workspace refresh failed: ${error.message}`
-              : "Team created, but workspace refresh failed.",
+              ? `Draft saved, but workspace refresh failed: ${error.message}`
+              : "Draft saved, but workspace refresh failed.",
           );
         }
 
+        emitStaffAllocationDraftsRefresh();
         router.refresh();
       } catch (error) {
         setFormNotice({
           type: "error",
-          text: error instanceof Error ? error.message : "Failed to create team.",
+          text: error instanceof Error ? error.message : "Failed to save draft team.",
         });
       }
     });
@@ -221,7 +223,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                 className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
                 disabled={isBusy}
               >
-                {isSubmitting ? "Creating..." : "Create team"}
+                {isSubmitting ? "Saving draft..." : "Create draft team"}
               </button>
               <button
                 type="button"
@@ -258,7 +260,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
                           : "staff-projects__manual-status staff-projects__manual-status--available"
                       }
                     >
-                      {student.status === "ALREADY_IN_TEAM" ? "Already in a team" : "Available"}
+                      {student.status === "ALREADY_IN_TEAM" ? "Already assigned" : "Available"}
                     </span>
                     {student.currentTeam ? (
                       <p className="staff-projects__manual-student-team">Team: {student.currentTeam.teamName}</p>

@@ -64,7 +64,10 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
       />
 
       <section className="staff-projects__team-card staff-projects__allocation-methods" aria-label="Project teams">
-        <h2 className="staff-projects__card-title">Teams</h2>
+        <h2 className="staff-projects__card-title">Active Teams</h2>
+        <p className="staff-projects__allocation-note">
+          Draft teams are managed in the Allocation Drafts panel and appear here only after owner approval.
+        </p>
         <section className="staff-projects__team-list" aria-label="Project teams list">
           {data.teams.map((team) => (
             <article key={team.id} className="staff-projects__team-card">

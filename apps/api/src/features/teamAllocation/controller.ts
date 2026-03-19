@@ -290,6 +290,11 @@ export async function listAllocationDraftsHandler(req: AuthRequest, res: Respons
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
     }
+    if (error?.code === "P2021" || error?.code === "P2022") {
+      return res.status(503).json({
+        error: "Allocation drafts are unavailable until the latest database migration is applied",
+      });
+    }
     console.error("Error loading allocation drafts:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
@@ -302,8 +307,10 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
   const body = req.body && typeof req.body === "object" ? req.body : {};
   const hasTeamName = Object.prototype.hasOwnProperty.call(body, "teamName");
   const hasStudentIds = Object.prototype.hasOwnProperty.call(body, "studentIds");
+  const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(body, "expectedUpdatedAt");
   const rawTeamName = (body as Record<string, unknown>).teamName;
   const rawStudentIds = (body as Record<string, unknown>).studentIds;
+  const rawExpectedUpdatedAt = (body as Record<string, unknown>).expectedUpdatedAt;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -323,6 +330,9 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
   if (hasStudentIds && !Array.isArray(rawStudentIds)) {
     return res.status(400).json({ error: "studentIds must be an array of numbers when provided" });
   }
+  if (hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt !== "string") {
+    return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+  }
 
   const studentIds =
     hasStudentIds && Array.isArray(rawStudentIds) ? rawStudentIds.map((studentId) => Number(studentId)) : undefined;
@@ -337,6 +347,9 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
     const result = await updateAllocationDraftForProject(staffId, projectId, teamId, {
       ...(hasTeamName && typeof rawTeamName === "string" ? { teamName: rawTeamName } : {}),
       ...(hasStudentIds && studentIds !== undefined ? { studentIds } : {}),
+      ...(hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt === "string"
+        ? { expectedUpdatedAt: rawExpectedUpdatedAt }
+        : {}),
     });
     return res.json(result);
   } catch (error: any) {
@@ -351,6 +364,9 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
     }
     if (error?.code === "INVALID_STUDENT_IDS") {
       return res.status(400).json({ error: "studentIds must contain unique positive integers" });
+    }
+    if (error?.code === "INVALID_EXPECTED_UPDATED_AT") {
+      return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
     }
     if (error?.code === "STUDENT_NOT_IN_MODULE") {
       return res.status(400).json({ error: "All selected students must belong to this module" });
@@ -371,11 +387,21 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
     if (error?.code === "DRAFT_TEAM_NOT_FOUND") {
       return res.status(404).json({ error: "Draft team not found" });
     }
+    if (error?.code === "DRAFT_OUTDATED") {
+      return res.status(409).json({
+        error: "Draft team was updated by another staff member. Refresh drafts and try again.",
+      });
+    }
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "P2021" || error?.code === "P2022") {
+      return res.status(503).json({
+        error: "Allocation drafts are unavailable until the latest database migration is applied",
+      });
     }
     console.error("Error updating allocation draft:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -386,6 +412,9 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamId = Number(req.params.teamId);
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(body, "expectedUpdatedAt");
+  const rawExpectedUpdatedAt = (body as Record<string, unknown>).expectedUpdatedAt;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -396,9 +425,16 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
   if (Number.isNaN(teamId)) {
     return res.status(400).json({ error: "Invalid draft team ID" });
   }
+  if (hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt !== "string") {
+    return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+  }
 
   try {
-    const result = await approveAllocationDraftForProject(staffId, projectId, teamId);
+    const result = await approveAllocationDraftForProject(staffId, projectId, teamId, {
+      ...(hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt === "string"
+        ? { expectedUpdatedAt: rawExpectedUpdatedAt }
+        : {}),
+    });
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_DRAFT_TEAM_ID") {
@@ -410,9 +446,17 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
     if (error?.code === "DRAFT_TEAM_HAS_NO_MEMBERS") {
       return res.status(409).json({ error: "Draft team has no members and cannot be approved" });
     }
+    if (error?.code === "INVALID_EXPECTED_UPDATED_AT") {
+      return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+    }
     if (error?.code === "STUDENTS_NO_LONGER_AVAILABLE") {
       return res.status(409).json({
         error: "Some selected students are already assigned in active teams. Refresh drafts and try again.",
+      });
+    }
+    if (error?.code === "DRAFT_OUTDATED") {
+      return res.status(409).json({
+        error: "Draft team was updated by another staff member. Refresh drafts and try again.",
       });
     }
     if (error?.code === "DRAFT_TEAM_NOT_FOUND") {
@@ -423,6 +467,11 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
     }
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
+    }
+    if (error?.code === "P2021" || error?.code === "P2022") {
+      return res.status(503).json({
+        error: "Allocation drafts are unavailable until the latest database migration is applied",
+      });
     }
     console.error("Error approving allocation draft:", error);
     return res.status(500).json({ error: "Internal server error" });

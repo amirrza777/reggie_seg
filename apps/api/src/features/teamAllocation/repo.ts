@@ -445,7 +445,7 @@ export async function findModuleStudentsForManualAllocation(
 
 export async function findProjectTeamSummaries(projectId: number): Promise<ProjectTeamSummary[]> {
   const teams = await prisma.team.findMany({
-    where: { projectId },
+    where: { projectId, archivedAt: null, allocationLifecycle: "ACTIVE" },
     select: {
       id: true,
       teamName: true,
@@ -486,6 +486,21 @@ function mapProjectDraftTeam(team: {
     allocations: number;
   };
 }): ProjectDraftTeam {
+  const members = team.allocations
+    .map((allocation) => allocation.user)
+    .filter((user): user is NonNullable<typeof user> => Boolean(user))
+    .sort((left, right) => {
+      const leftLastName = typeof left.lastName === "string" ? left.lastName : "";
+      const rightLastName = typeof right.lastName === "string" ? right.lastName : "";
+      const leftFirstName = typeof left.firstName === "string" ? left.firstName : "";
+      const rightFirstName = typeof right.firstName === "string" ? right.firstName : "";
+      const lastNameComparison = leftLastName.localeCompare(rightLastName);
+      if (lastNameComparison !== 0) return lastNameComparison;
+      const firstNameComparison = leftFirstName.localeCompare(rightFirstName);
+      if (firstNameComparison !== 0) return firstNameComparison;
+      return left.id - right.id;
+    });
+
   return {
     id: team.id,
     teamName: team.teamName,
@@ -493,7 +508,7 @@ function mapProjectDraftTeam(team: {
     createdAt: team.createdAt,
     updatedAt: team.updatedAt,
     draftCreatedBy: team.draftCreatedBy,
-    members: team.allocations.map((allocation) => allocation.user),
+    members,
   };
 }
 
@@ -528,7 +543,7 @@ export async function findProjectDraftTeams(projectId: number): Promise<ProjectD
             },
           },
         },
-        orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }, { userId: "asc" }],
+        orderBy: [{ userId: "asc" }],
       },
       _count: {
         select: {
@@ -588,7 +603,7 @@ export async function findDraftTeamById(teamId: number): Promise<ProjectDraftTea
             },
           },
         },
-        orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }, { userId: "asc" }],
+        orderBy: [{ userId: "asc" }],
       },
       _count: {
         select: {
@@ -706,24 +721,72 @@ export async function updateDraftTeam(
   input: {
     teamName?: string;
     studentIds?: number[];
+    expectedUpdatedAt?: Date;
   },
 ): Promise<AppliedManualTeam> {
   return prisma.$transaction(async (tx) => {
-    if (input.teamName !== undefined) {
-      await tx.team.update({
-        where: { id: teamId },
-        data: {
-          teamName: input.teamName,
-        },
-      });
+    const draftTeam = await tx.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+      },
+      select: {
+        id: true,
+        updatedAt: true,
+      },
+    });
+    if (!draftTeam) {
+      throw { code: "DRAFT_TEAM_NOT_FOUND" };
+    }
+    if (
+      input.expectedUpdatedAt &&
+      draftTeam.updatedAt.getTime() !== input.expectedUpdatedAt.getTime()
+    ) {
+      throw { code: "DRAFT_OUTDATED" };
+    }
+
+    const baselineUpdatedAt = draftTeam.updatedAt;
+    const writeResult = await tx.team.updateMany({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+        updatedAt: baselineUpdatedAt,
+      },
+      data: {
+        ...(input.teamName !== undefined ? { teamName: input.teamName } : {}),
+        updatedAt: new Date(),
+      },
+    });
+    if (writeResult.count === 0) {
+      throw { code: "DRAFT_OUTDATED" };
     }
 
     if (input.studentIds !== undefined) {
       await tx.teamAllocation.deleteMany({
-        where: { teamId },
+        where: {
+          teamId,
+          team: {
+            archivedAt: null,
+            allocationLifecycle: "DRAFT",
+          },
+        },
       });
 
       if (input.studentIds.length > 0) {
+        const latestDraftTeam = await tx.team.findFirst({
+          where: {
+            id: teamId,
+            archivedAt: null,
+            allocationLifecycle: "DRAFT",
+          },
+          select: { id: true },
+        });
+        if (!latestDraftTeam) {
+          throw { code: "DRAFT_OUTDATED" };
+        }
+
         await tx.teamAllocation.createMany({
           data: input.studentIds.map((studentId) => ({
             teamId,
@@ -759,14 +822,66 @@ export async function updateDraftTeam(
   });
 }
 
-export async function approveDraftTeam(teamId: number, approverId: number): Promise<ApprovedDraftTeam | null> {
+export async function approveDraftTeam(
+  teamId: number,
+  approverId: number,
+  options: { expectedUpdatedAt?: Date } = {},
+): Promise<ApprovedDraftTeam | null> {
   return prisma.$transaction(async (tx) => {
+    const draftTeam = await tx.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+      },
+      select: {
+        id: true,
+        projectId: true,
+        updatedAt: true,
+      },
+    });
+    if (!draftTeam) {
+      return null;
+    }
+    if (
+      options.expectedUpdatedAt &&
+      draftTeam.updatedAt.getTime() !== options.expectedUpdatedAt.getTime()
+    ) {
+      throw { code: "DRAFT_OUTDATED" };
+    }
+
+    const draftMemberRows = await tx.teamAllocation.findMany({
+      where: { teamId },
+      select: { userId: true },
+      orderBy: { userId: "asc" },
+    });
+    const draftMemberIds = draftMemberRows.map((row) => row.userId);
+    if (draftMemberIds.length > 0) {
+      const activeConflicts = await tx.teamAllocation.findMany({
+        where: {
+          userId: { in: draftMemberIds },
+          team: {
+            projectId: draftTeam.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+            id: { not: teamId },
+          },
+        },
+        select: { userId: true },
+        orderBy: [{ userId: "asc" }, { teamId: "asc" }],
+      });
+      if (activeConflicts.length > 0) {
+        throw { code: "STUDENTS_NO_LONGER_AVAILABLE" };
+      }
+    }
+
     const approvedAt = new Date();
     const updateResult = await tx.team.updateMany({
       where: {
         id: teamId,
         archivedAt: null,
         allocationLifecycle: "DRAFT",
+        updatedAt: draftTeam.updatedAt,
       },
       data: {
         allocationLifecycle: "ACTIVE",
@@ -776,7 +891,7 @@ export async function approveDraftTeam(teamId: number, approverId: number): Prom
     });
 
     if (updateResult.count === 0) {
-      return null;
+      throw { code: "DRAFT_OUTDATED" };
     }
 
     const approvedTeam = await tx.team.findUnique({
@@ -795,7 +910,7 @@ export async function approveDraftTeam(teamId: number, approverId: number): Prom
               },
             },
           },
-          orderBy: [{ user: { lastName: "asc" } }, { user: { firstName: "asc" } }, { userId: "asc" }],
+          orderBy: [{ userId: "asc" }],
         },
         _count: {
           select: {

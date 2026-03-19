@@ -1300,7 +1300,7 @@ export async function updateAllocationDraftForProject(
   staffId: number,
   projectId: number,
   teamId: number,
-  input: { teamName?: string; studentIds?: number[] },
+  input: { teamName?: string; studentIds?: number[]; expectedUpdatedAt?: string },
 ): Promise<AllocationDraftUpdated> {
   if (!Number.isInteger(teamId) || teamId < 1) {
     throw { code: "INVALID_DRAFT_TEAM_ID" };
@@ -1338,6 +1338,22 @@ export async function updateAllocationDraftForProject(
     normalizedStudentIds = uniqueStudentIds;
   }
 
+  let expectedUpdatedAt: Date | undefined;
+  if (Object.prototype.hasOwnProperty.call(input, "expectedUpdatedAt")) {
+    if (typeof input.expectedUpdatedAt !== "string") {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const trimmedExpectedUpdatedAt = input.expectedUpdatedAt.trim();
+    if (!trimmedExpectedUpdatedAt) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const parsedExpectedUpdatedAt = new Date(trimmedExpectedUpdatedAt);
+    if (Number.isNaN(parsedExpectedUpdatedAt.getTime())) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    expectedUpdatedAt = parsedExpectedUpdatedAt;
+  }
+
   const project = await findStaffScopedProjectAccess(staffId, projectId);
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
@@ -1348,6 +1364,14 @@ export async function updateAllocationDraftForProject(
 
   if (!(await findDraftTeamInProject(project.id, teamId))) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+
+  const currentDraft = await findDraftTeamById(teamId);
+  if (!currentDraft) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+  if (expectedUpdatedAt && currentDraft.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+    throw { code: "DRAFT_OUTDATED" };
   }
 
   if (normalizedTeamName !== undefined) {
@@ -1395,6 +1419,7 @@ export async function updateAllocationDraftForProject(
   await updateDraftTeam(teamId, {
     ...(normalizedTeamName !== undefined ? { teamName: normalizedTeamName } : {}),
     ...(normalizedStudentIds !== undefined ? { studentIds: normalizedStudentIds } : {}),
+    ...(expectedUpdatedAt !== undefined ? { expectedUpdatedAt } : {}),
   });
 
   const updatedDraft = await findDraftTeamById(teamId);
@@ -1423,9 +1448,26 @@ export async function approveAllocationDraftForProject(
   staffId: number,
   projectId: number,
   teamId: number,
+  input: { expectedUpdatedAt?: string } = {},
 ): Promise<AllocationDraftApproved> {
   if (!Number.isInteger(teamId) || teamId < 1) {
     throw { code: "INVALID_DRAFT_TEAM_ID" };
+  }
+
+  let expectedUpdatedAt: Date | undefined;
+  if (Object.prototype.hasOwnProperty.call(input, "expectedUpdatedAt")) {
+    if (typeof input.expectedUpdatedAt !== "string") {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const trimmedExpectedUpdatedAt = input.expectedUpdatedAt.trim();
+    if (!trimmedExpectedUpdatedAt) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const parsedExpectedUpdatedAt = new Date(trimmedExpectedUpdatedAt);
+    if (Number.isNaN(parsedExpectedUpdatedAt.getTime())) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    expectedUpdatedAt = parsedExpectedUpdatedAt;
   }
 
   const project = await findStaffScopedProjectAccess(staffId, projectId);
@@ -1447,6 +1489,9 @@ export async function approveAllocationDraftForProject(
   if (!draft) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
   }
+  if (expectedUpdatedAt && draft.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+    throw { code: "DRAFT_OUTDATED" };
+  }
   if (draft.memberCount === 0) {
     throw { code: "DRAFT_TEAM_HAS_NO_MEMBERS" };
   }
@@ -1462,7 +1507,9 @@ export async function approveAllocationDraftForProject(
     throw { code: "STUDENTS_NO_LONGER_AVAILABLE", conflicts: activeConflicts };
   }
 
-  const approvedTeam = await approveDraftTeam(teamId, staffId);
+  const approvedTeam = await approveDraftTeam(teamId, staffId, {
+    ...(expectedUpdatedAt !== undefined ? { expectedUpdatedAt } : {}),
+  });
   if (!approvedTeam) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
   }

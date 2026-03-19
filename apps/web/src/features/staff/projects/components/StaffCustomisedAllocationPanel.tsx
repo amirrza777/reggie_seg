@@ -13,6 +13,7 @@ import {
   type CustomAllocationPreview,
   type CustomAllocationQuestionnaireListing,
 } from "@/features/projects/api/teamAllocation";
+import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type CriteriaStrategy = CustomAllocationCriteriaStrategy;
@@ -32,7 +33,6 @@ type CustomAllocationCriteriaInput = {
 type CustomisedPreviewInputSnapshot = {
   questionnaireTemplateId: number;
   teamCount: number;
-  seed?: number;
   nonRespondentStrategy: NonRespondentStrategy;
   criteria: CustomAllocationCriteriaInput[];
 };
@@ -79,7 +79,6 @@ function toPreviewInputKey(input: CustomisedPreviewInputSnapshot) {
   return JSON.stringify({
     questionnaireTemplateId: input.questionnaireTemplateId,
     teamCount: input.teamCount,
-    seed: input.seed ?? null,
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteria: input.criteria.map((criterion) => ({
       questionId: criterion.questionId,
@@ -122,7 +121,6 @@ export function StaffCustomisedAllocationPanel({
     Record<number, CriteriaConfig>
   >({});
   const [teamCountInput, setTeamCountInput] = useState(String(Math.max(1, initialTeamCount || 2)));
-  const [seedInput, setSeedInput] = useState("");
   const [preview, setPreview] = useState<CustomAllocationPreview | null>(null);
   const [previewInputKey, setPreviewInputKey] = useState<string | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
@@ -296,11 +294,6 @@ export function StaffCustomisedAllocationPanel({
       return "Team count must be a positive integer.";
     }
 
-    const trimmedSeed = seedInput.trim();
-    if (trimmedSeed.length > 0 && Number.isNaN(Number(trimmedSeed))) {
-      return "Seed must be a number.";
-    }
-
     return null;
   }
 
@@ -314,16 +307,9 @@ export function StaffCustomisedAllocationPanel({
       return null;
     }
 
-    const trimmedSeed = seedInput.trim();
-    const parsedSeed = trimmedSeed.length > 0 ? Number(trimmedSeed) : undefined;
-    if (trimmedSeed.length > 0 && Number.isNaN(parsedSeed)) {
-      return null;
-    }
-
     return {
       questionnaireTemplateId: selectedQuestionnaire.id,
       teamCount: parsedTeamCount,
-      ...(parsedSeed !== undefined ? { seed: parsedSeed } : {}),
       nonRespondentStrategy,
       criteria: criteriaPayload,
     };
@@ -484,13 +470,14 @@ export function StaffCustomisedAllocationPanel({
           teamNames: teamNamesForApply,
         });
         setSuccessMessage(
-          `Applied customised allocation across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
+          `Saved customised allocation as draft across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
         );
         setConfirmApply(false);
         setPreview(null);
         setPreviewInputKey(null);
         setTeamNames({});
         setRenamingTeams({});
+        emitStaffAllocationDraftsRefresh();
         router.refresh();
       } catch (error) {
         const message =
@@ -736,20 +723,6 @@ export function StaffCustomisedAllocationPanel({
               disabled={confirmApply || isPreviewPending || isApplyPending}
             />
           </label>
-          <label className="staff-projects__allocation-field">
-            Seed (optional)
-            <input
-              type="number"
-              step={1}
-              value={seedInput}
-              onChange={(event) => {
-                setSeedInput(event.target.value);
-                setSuccessMessage("");
-              }}
-              aria-label="Customised seed"
-              disabled={confirmApply || isPreviewPending || isApplyPending}
-            />
-          </label>
         </div>
         <div className="staff-projects__allocation-actions">
           <button
@@ -769,7 +742,7 @@ export function StaffCustomisedAllocationPanel({
             onClick={runApplyAllocation}
             disabled={!isPreviewCurrent || !confirmApply || isPreviewPending || isApplyPending}
           >
-            {isApplyPending ? "Applying..." : "Apply allocation"}
+            {isApplyPending ? "Saving draft..." : "Save draft allocation"}
           </button>
         </div>
         {errorMessage ? <p className="staff-projects__allocation-error">{errorMessage}</p> : null}
@@ -795,7 +768,7 @@ export function StaffCustomisedAllocationPanel({
                 {confirmApply ? "Confirmed (click to unlock)" : "Confirm allocation"}
               </button>
               <p className="staff-projects__allocation-confirm-text">
-                This applies the exact generated preview (including any non-respondent placement strategy).
+                This saves the exact generated preview as draft teams (including any non-respondent placement strategy).
                 {confirmApply ? " Team names and inputs are locked until you unlock confirmation." : ""}
               </p>
             </div>

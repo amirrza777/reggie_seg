@@ -70,6 +70,8 @@ describe("projects repo read and create flows", () => {
       where: {
         teams: {
           some: {
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
             allocations: {
               some: { userId: 11 },
             },

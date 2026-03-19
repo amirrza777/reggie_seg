@@ -7,6 +7,7 @@ import {
   getRandomAllocationPreview,
   type RandomAllocationPreview,
 } from "@/features/projects/api/teamAllocation";
+import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffRandomAllocationPreviewProps = {
@@ -28,9 +29,8 @@ export function StaffRandomAllocationPreview({
   const router = useRouter();
   const defaultTeamCount = Math.max(1, initialTeamCount || 2);
   const [teamCountInput, setTeamCountInput] = useState(String(defaultTeamCount));
-  const [seedInput, setSeedInput] = useState("");
   const [preview, setPreview] = useState<RandomAllocationPreview | null>(null);
-  const [previewInput, setPreviewInput] = useState<{ teamCount: number; seed?: number } | null>(null);
+  const [previewInput, setPreviewInput] = useState<{ teamCount: number } | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
   const [renamingTeams, setRenamingTeams] = useState<Record<number, boolean>>({});
   const [confirmApply, setConfirmApply] = useState(false);
@@ -43,21 +43,13 @@ export function StaffRandomAllocationPreview({
     const parsedTeamCount = Number(teamCountInput);
     if (!Number.isInteger(parsedTeamCount) || parsedTeamCount < 1) return null;
 
-    const trimmedSeed = seedInput.trim();
-    const parsedSeed = trimmedSeed.length > 0 ? Number(trimmedSeed) : undefined;
-    if (trimmedSeed.length > 0 && Number.isNaN(parsedSeed)) return null;
-
-    return { parsedTeamCount, parsedSeed };
+    return { parsedTeamCount };
   }
 
   function getInputValidationError() {
     const parsedTeamCount = Number(teamCountInput);
     if (!Number.isInteger(parsedTeamCount) || parsedTeamCount < 1) {
       return "Team count must be a positive integer.";
-    }
-    const trimmedSeed = seedInput.trim();
-    if (trimmedSeed.length > 0 && Number.isNaN(Number(trimmedSeed))) {
-      return "Seed must be a number.";
     }
     return null;
   }
@@ -70,10 +62,7 @@ export function StaffRandomAllocationPreview({
     if (!parsed) {
       return false;
     }
-    return (
-      parsed.parsedTeamCount === previewInput.teamCount &&
-      (parsed.parsedSeed ?? null) === (previewInput.seed ?? null)
-    );
+    return parsed.parsedTeamCount === previewInput.teamCount;
   }
 
   const isPreviewCurrent = isCurrentInputMatchingPreview();
@@ -143,9 +132,9 @@ export function StaffRandomAllocationPreview({
     setSuccessMessage("");
     startPreviewTransition(async () => {
       try {
-        const result = await getRandomAllocationPreview(projectId, parsed.parsedTeamCount, parsed.parsedSeed);
+        const result = await getRandomAllocationPreview(projectId, parsed.parsedTeamCount);
         setPreview(result);
-        setPreviewInput({ teamCount: parsed.parsedTeamCount, ...(parsed.parsedSeed !== undefined ? { seed: parsed.parsedSeed } : {}) });
+        setPreviewInput({ teamCount: parsed.parsedTeamCount });
         setTeamNames(toDefaultTeamNameMap(result));
         setRenamingTeams({});
         setConfirmApply(false);
@@ -188,17 +177,17 @@ export function StaffRandomAllocationPreview({
         const result = await applyRandomAllocation(
           projectId,
           parsed.parsedTeamCount,
-          parsed.parsedSeed,
           teamNamesForApply,
         );
         setSuccessMessage(
-          `Applied random allocation for vacant students across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
+          `Saved random allocation as draft across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
         );
         setConfirmApply(false);
         setPreview(null);
         setPreviewInput(null);
         setTeamNames({});
         setRenamingTeams({});
+        emitStaffAllocationDraftsRefresh();
         router.refresh();
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to apply random allocation.";
@@ -251,21 +240,6 @@ export function StaffRandomAllocationPreview({
             aria-label="Team count"
           />
         </label>
-        <label className="staff-projects__allocation-field">
-          Seed (optional)
-          <input
-            type="number"
-            step={1}
-            value={seedInput}
-            onChange={(event) => {
-              setSeedInput(event.target.value);
-              setSuccessMessage("");
-            }}
-            disabled={confirmApply || isPreviewPending || isApplyPending}
-            aria-label="Seed"
-            placeholder="e.g. 20260311"
-          />
-        </label>
       </div>
 
       <div className="staff-projects__allocation-actions">
@@ -283,7 +257,7 @@ export function StaffRandomAllocationPreview({
           onClick={runApplyAllocation}
           disabled={!isPreviewCurrent || !confirmApply || isPreviewPending || isApplyPending}
         >
-          {isApplyPending ? "Applying..." : "Apply allocation"}
+          {isApplyPending ? "Saving draft..." : "Save draft allocation"}
         </button>
       </div>
 
@@ -308,7 +282,7 @@ export function StaffRandomAllocationPreview({
               {confirmApply ? "Confirmed (click to unlock)" : "Confirm allocation"}
             </button>
             <p className="staff-projects__allocation-confirm-text">
-              This assigns vacant students only. Existing team memberships in this project stay unchanged.
+              This creates draft teams for vacant students only. Existing team memberships in this project stay unchanged.
               {confirmApply ? " Team names and preview settings are locked until you unlock confirmation." : ""}
             </p>
           </div>

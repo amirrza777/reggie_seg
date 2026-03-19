@@ -74,6 +74,8 @@ describe("projects repo staff and deadline queries", () => {
       where: {
         team: {
           projectId: 9,
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
           allocations: {
             some: { userId: 5 },
           },
@@ -141,9 +143,9 @@ describe("projects repo staff and deadline queries", () => {
 
   it("getTeamById and getTeamByUserAndProject query with expected selects", async () => {
     await getTeamById(3);
-    expect(prisma.team.findUnique).toHaveBeenCalledWith(
+    expect(prisma.team.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: 3 },
+        where: { id: 3, archivedAt: null, allocationLifecycle: "ACTIVE" },
         select: expect.objectContaining({
           id: true,
           teamName: true,
@@ -157,6 +159,8 @@ describe("projects repo staff and deadline queries", () => {
       expect.objectContaining({
         where: {
           projectId: 2,
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
           allocations: { some: { userId: 1 } },
         },
         select: expect.objectContaining({
@@ -385,7 +389,7 @@ describe("projects repo staff and deadline queries", () => {
       expect.objectContaining({
         where: expect.objectContaining({
           id: 3,
-          teams: { some: { id: 4 } },
+          teams: { some: { id: 4, archivedAt: null, allocationLifecycle: "ACTIVE" } },
           module: expect.objectContaining({
             enterpriseId: "ent-1",
             OR: expect.any(Array),

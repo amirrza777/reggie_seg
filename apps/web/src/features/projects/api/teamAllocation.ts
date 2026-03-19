@@ -104,6 +104,70 @@ export type ManualAllocationApplied = {
   };
 };
 
+export type AllocationDraftsWorkspace = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  access: {
+    actorRole: "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+    isModuleLead: boolean;
+    isModuleTeachingAssistant: boolean;
+    canApproveAllocationDrafts: boolean;
+  };
+  drafts: Array<{
+    id: number;
+    teamName: string;
+    memberCount: number;
+    createdAt: string;
+    updatedAt: string;
+    draftCreatedBy: {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    } | null;
+    members: Array<{
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+    }>;
+  }>;
+};
+
+export type AllocationDraftUpdated = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  access: {
+    actorRole: "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+    isModuleLead: boolean;
+    isModuleTeachingAssistant: boolean;
+    canApproveAllocationDrafts: boolean;
+  };
+  draft: AllocationDraftsWorkspace["drafts"][number];
+};
+
+export type AllocationDraftApproved = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  approvedTeam: {
+    id: number;
+    teamName: string;
+    memberCount: number;
+  };
+};
+
 export type CustomAllocationQuestionType = "multiple-choice" | "rating" | "slider";
 export type CustomAllocationCriteriaStrategy = "diversify" | "group" | "ignore";
 export type CustomAllocationNonRespondentStrategy = "distribute_randomly" | "exclude";
@@ -262,7 +326,7 @@ export async function createTeamForProject(projectId: number, teamName: string) 
   });
 }
 
-export async function getRandomAllocationPreview(projectId: number, teamCount: number, _seed?: number) {
+export async function getRandomAllocationPreview(projectId: number, teamCount: number) {
   const params = new URLSearchParams({ teamCount: String(teamCount) });
 
   return apiFetch<RandomAllocationPreview>(
@@ -274,7 +338,6 @@ export async function getRandomAllocationPreview(projectId: number, teamCount: n
 export async function applyRandomAllocation(
   projectId: number,
   teamCount: number,
-  _seed?: number,
   teamNames?: string[],
 ) {
   return apiFetch<RandomAllocationApplied>(`/team-allocation/projects/${projectId}/random-allocate`, {
@@ -297,6 +360,40 @@ export async function applyManualAllocation(projectId: number, teamName: string,
     method: "POST",
     body: JSON.stringify({ teamName, studentIds }),
   });
+}
+
+export async function getAllocationDrafts(projectId: number) {
+  return apiFetch<AllocationDraftsWorkspace>(`/team-allocation/projects/${projectId}/allocation-drafts`, {
+    cache: "no-store",
+  });
+}
+
+export async function updateAllocationDraft(
+  projectId: number,
+  teamId: number,
+  payload: { teamName?: string; studentIds?: number[]; expectedUpdatedAt?: string },
+) {
+  return apiFetch<AllocationDraftUpdated>(
+    `/team-allocation/projects/${projectId}/allocation-drafts/${teamId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function approveAllocationDraft(
+  projectId: number,
+  teamId: number,
+  payload?: { expectedUpdatedAt?: string },
+) {
+  return apiFetch<AllocationDraftApproved>(
+    `/team-allocation/projects/${projectId}/allocation-drafts/${teamId}/approve`,
+    {
+      method: "PATCH",
+      ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+    },
+  );
 }
 
 export async function getCustomAllocationQuestionnaires(projectId: number) {
@@ -323,7 +420,6 @@ export async function previewCustomAllocation(
   payload: {
     questionnaireTemplateId: number;
     teamCount: number;
-    seed?: number;
     nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
     criteria: Array<{
       questionId: number;
@@ -332,10 +428,9 @@ export async function previewCustomAllocation(
     }>;
   },
 ) {
-  const { seed: _seed, ...payloadWithoutSeed } = payload;
   return apiFetch<CustomAllocationPreview>(`/team-allocation/projects/${projectId}/custom-preview`, {
     method: "POST",
-    body: JSON.stringify(payloadWithoutSeed),
+    body: JSON.stringify(payload),
   });
 }
 

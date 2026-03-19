@@ -4,6 +4,7 @@ import { useState } from "react";
 import { StaffRandomAllocationPreview } from "./StaffRandomAllocationPreview";
 import { StaffManualAllocationPanel } from "./StaffManualAllocationPanel";
 import { StaffCustomisedAllocationPanel } from "./StaffCustomisedAllocationPanel";
+import { StaffAllocationDraftsPanel } from "./StaffAllocationDraftsPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type AllocationMode = "random" | "manual" | "custom";
@@ -13,19 +14,19 @@ const MODES: Array<{ key: AllocationMode; title: string; subtitle: string }> = [
     key: "random",
     title: "Random Allocation",
     subtitle:
-      "Randomly distribute students into teams. Preview the distribution before applying.",
+      "Randomly distribute students into teams. Preview first, then save as a draft for owner approval.",
   },
   {
     key: "manual",
     title: "Manual Allocation",
     subtitle:
-      "Manually assign students to teams. Select and place each student where needed.",
+      "Manually assign students to teams and save draft teams for owner approval.",
   },
   {
     key: "custom",
     title: "Customised Allocation",
     subtitle:
-      "Distribute students into teams based on selected criteria. Results are randomised within your chosen parameters.",
+      "Distribute students into teams based on selected criteria, then save drafts for owner approval.",
   },
 ];
 
@@ -85,6 +86,7 @@ export function StaffAllocationModesPanel({
           );
         })}
       </div>
+      <StaffAllocationDraftsPanel projectId={projectId} />
     </section>
   );
 }
