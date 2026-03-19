@@ -66,6 +66,8 @@ export type CustomAllocationPlannerInput<TStudent extends { id: number }> = {
   nonRespondentStrategy: NonRespondentStrategy;
   seed?: number;
   iterations?: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
 };
 
 type CriterionRuntime = {
@@ -440,6 +442,108 @@ function pickDistinctTeamPair(teams: number[][], rng: () => number): [number, nu
   return [first, second];
 }
 
+function resolveTeamSizeTargets(
+  totalAssignedStudents: number,
+  teamCount: number,
+  minTeamSize?: number,
+  maxTeamSize?: number,
+) {
+  if (
+    minTeamSize !== undefined &&
+    (!Number.isInteger(minTeamSize) || minTeamSize < 1)
+  ) {
+    throw new Error("minTeamSize must be a positive integer");
+  }
+
+  if (
+    maxTeamSize !== undefined &&
+    (!Number.isInteger(maxTeamSize) || maxTeamSize < 1)
+  ) {
+    throw new Error("maxTeamSize must be a positive integer");
+  }
+
+  if (
+    minTeamSize !== undefined &&
+    maxTeamSize !== undefined &&
+    minTeamSize > maxTeamSize
+  ) {
+    throw new Error("minTeamSize cannot exceed maxTeamSize");
+  }
+
+  const minimum = minTeamSize ?? 0;
+  const maximum = maxTeamSize ?? totalAssignedStudents;
+  if (
+    minimum * teamCount > totalAssignedStudents ||
+    maximum * teamCount < totalAssignedStudents
+  ) {
+    throw new Error("team size constraints cannot be satisfied for the given student count");
+  }
+
+  const targets = Array.from({ length: teamCount }, () => minimum);
+  let remaining = totalAssignedStudents - minimum * teamCount;
+  while (remaining > 0) {
+    let progressed = false;
+    for (let teamIndex = 0; teamIndex < teamCount && remaining > 0; teamIndex += 1) {
+      if (targets[teamIndex] >= maximum) {
+        continue;
+      }
+      targets[teamIndex] += 1;
+      remaining -= 1;
+      progressed = true;
+    }
+    if (!progressed) {
+      throw new Error("team size constraints cannot be satisfied for the given student count");
+    }
+  }
+
+  return targets;
+}
+
+function distributeCountAcrossTeamCapacities(totalCount: number, teamCapacities: number[]) {
+  const targets = Array.from({ length: teamCapacities.length }, () => 0);
+  let remaining = totalCount;
+
+  while (remaining > 0) {
+    let progressed = false;
+    for (let teamIndex = 0; teamIndex < teamCapacities.length && remaining > 0; teamIndex += 1) {
+      if (targets[teamIndex] >= teamCapacities[teamIndex]) {
+        continue;
+      }
+      targets[teamIndex] += 1;
+      remaining -= 1;
+      progressed = true;
+    }
+
+    if (!progressed) {
+      throw new Error("respondents cannot fit into constrained team sizes");
+    }
+  }
+
+  return targets;
+}
+
+function assignIndexesToTeamTargets(indexes: number[], teamTargets: number[]) {
+  const teams = Array.from({ length: teamTargets.length }, () => [] as number[]);
+
+  let teamIndex = 0;
+  for (const index of indexes) {
+    let attempts = 0;
+    while (attempts < teamTargets.length && teams[teamIndex].length >= teamTargets[teamIndex]) {
+      teamIndex = (teamIndex + 1) % teamTargets.length;
+      attempts += 1;
+    }
+
+    if (attempts >= teamTargets.length) {
+      throw new Error("team size targets are overfilled");
+    }
+
+    teams[teamIndex].push(index);
+    teamIndex = (teamIndex + 1) % teamTargets.length;
+  }
+
+  return teams;
+}
+
 function stripResponses<TStudent extends { id: number }>(
   student: TStudent | CustomAllocationRespondent<TStudent>,
 ): TStudent {
@@ -470,16 +574,28 @@ export function planCustomAllocationTeams<TStudent extends { id: number }>(
     throw new Error("criterion weights must be between 1 and 5");
   }
 
+  const totalAssignedStudents =
+    input.nonRespondentStrategy === "exclude"
+      ? respondents.length
+      : respondents.length + nonRespondents.length;
+  const teamSizeTargets = resolveTeamSizeTargets(
+    totalAssignedStudents,
+    input.teamCount,
+    input.minTeamSize,
+    input.maxTeamSize,
+  );
+
   const rng = createSeededRng(
     typeof input.seed === "number" && Number.isFinite(input.seed) ? input.seed : Date.now(),
   );
 
   const respondentIndexes = respondents.map((_unused, index) => index);
   const shuffledRespondentIndexes = shuffle(respondentIndexes, rng);
-  const teams: number[][] = Array.from({ length: input.teamCount }, () => []);
-  shuffledRespondentIndexes.forEach((respondentIndex, index) => {
-    teams[index % input.teamCount].push(respondentIndex);
-  });
+  const respondentTeamTargets = distributeCountAcrossTeamCapacities(
+    respondents.length,
+    teamSizeTargets,
+  );
+  const teams = assignIndexesToTeamTargets(shuffledRespondentIndexes, respondentTeamTargets);
 
   const criteriaRuntime = input.criteria.map((criterion) => buildCriterionRuntime(respondents, criterion));
   const iterationCount =
@@ -554,14 +670,48 @@ export function planCustomAllocationTeams<TStudent extends { id: number }>(
   let unassignedNonRespondents: TStudent[] = [];
   if (input.nonRespondentStrategy === "distribute_randomly") {
     const shuffledNonRespondents = shuffle(nonRespondents, rng);
+    const remainingCapacities = teamSizeTargets.map(
+      (target, teamIndex) => target - teamsWithMembers[teamIndex].members.length,
+    );
+    if (remainingCapacities.some((capacity) => capacity < 0)) {
+      throw new Error("team size targets are overfilled");
+    }
+
+    const totalRemainingCapacity = remainingCapacities.reduce((sum, capacity) => sum + capacity, 0);
+    if (totalRemainingCapacity !== shuffledNonRespondents.length) {
+      throw new Error("team size constraints cannot be satisfied for non-respondent distribution");
+    }
+
+    const teamOrder = Array.from({ length: input.teamCount }, (_unused, index) => index);
     const startOffset = input.teamCount === 1 ? 0 : Math.floor(rng() * input.teamCount);
-    shuffledNonRespondents.forEach((student, index) => {
-      const teamIndex = (startOffset + index) % input.teamCount;
+    const rotatedTeamOrder = [
+      ...teamOrder.slice(startOffset),
+      ...teamOrder.slice(0, startOffset),
+    ];
+
+    let orderIndex = 0;
+    for (const student of shuffledNonRespondents) {
+      let attempts = 0;
+      while (
+        attempts < rotatedTeamOrder.length &&
+        remainingCapacities[rotatedTeamOrder[orderIndex]] <= 0
+      ) {
+        orderIndex = (orderIndex + 1) % rotatedTeamOrder.length;
+        attempts += 1;
+      }
+
+      if (attempts >= rotatedTeamOrder.length) {
+        throw new Error("team size targets are overfilled");
+      }
+
+      const teamIndex = rotatedTeamOrder[orderIndex];
       teamsWithMembers[teamIndex].members.push({
         ...stripResponses(student),
         responseStatus: "NO_RESPONSE",
       });
-    });
+      remainingCapacities[teamIndex] -= 1;
+      orderIndex = (orderIndex + 1) % rotatedTeamOrder.length;
+    }
   } else {
     unassignedNonRespondents = nonRespondents.map((student) => stripResponses(student));
   }

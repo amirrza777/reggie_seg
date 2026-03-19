@@ -47,6 +47,15 @@ function respondCustomAllocationValidationError(
   if (code === "INVALID_TEAM_COUNT") {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
+  if (code === "INVALID_MIN_TEAM_SIZE") {
+    return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+  }
+  if (code === "INVALID_MAX_TEAM_SIZE") {
+    return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+  }
+  if (code === "INVALID_TEAM_SIZE_RANGE") {
+    return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+  }
   if (code === "INVALID_NON_RESPONDENT_STRATEGY") {
     return res.status(400).json({
       error: "nonRespondentStrategy must be either 'distribute_randomly' or 'exclude'",
@@ -61,6 +70,17 @@ function respondCustomAllocationValidationError(
     return res.status(400).json({ error: "previewId is required" });
   }
   return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+}
+
+function parseOptionalPositiveInteger(value: unknown): number | null | "invalid" {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return "invalid";
+  }
+  return parsed;
 }
 
 function formatCustomAllocationStaleStudentNames(staleStudents: unknown): string | null {
@@ -270,6 +290,8 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.query.teamCount);
+  const minTeamSize = parseOptionalPositiveInteger(req.query.minTeamSize);
+  const maxTeamSize = parseOptionalPositiveInteger(req.query.maxTeamSize);
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -280,12 +302,48 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
+  if (minTeamSize === "invalid") {
+    return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+  }
+  if (maxTeamSize === "invalid") {
+    return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+  }
+  if (
+    minTeamSize !== null &&
+    minTeamSize !== "invalid" &&
+    maxTeamSize !== null &&
+    maxTeamSize !== "invalid" &&
+    minTeamSize > maxTeamSize
+  ) {
+    return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+  }
   try {
-    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount);
+    const randomOptions = {
+      ...(minTeamSize !== null && minTeamSize !== "invalid" ? { minTeamSize } : {}),
+      ...(maxTeamSize !== null && maxTeamSize !== "invalid" ? { maxTeamSize } : {}),
+    };
+    const preview =
+      Object.keys(randomOptions).length > 0
+        ? await previewRandomAllocationForProject(staffId, projectId, teamCount, randomOptions)
+        : await previewRandomAllocationForProject(staffId, projectId, teamCount);
     return res.json(preview);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
       return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "INVALID_MIN_TEAM_SIZE") {
+      return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_MAX_TEAM_SIZE") {
+      return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_TEAM_SIZE_RANGE") {
+      return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+    }
+    if (error?.code === "TEAM_SIZE_CONSTRAINTS_UNSATISFIABLE") {
+      return res.status(400).json({
+        error: "Current team size constraints cannot be satisfied for the available students",
+      });
     }
     if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
       return res.status(400).json({ error: "teamCount cannot be greater than available students" });
@@ -639,6 +697,15 @@ export async function previewCustomAllocationHandler(req: AuthRequest, res: Resp
     if (error?.code === "INVALID_TEAM_COUNT") {
       return res.status(400).json({ error: "teamCount must be a positive integer" });
     }
+    if (error?.code === "INVALID_MIN_TEAM_SIZE") {
+      return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_MAX_TEAM_SIZE") {
+      return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_TEAM_SIZE_RANGE") {
+      return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+    }
     if (error?.code === "INVALID_TEMPLATE_ID") {
       return res.status(400).json({ error: "questionnaireTemplateId must be a positive integer" });
     }
@@ -654,6 +721,11 @@ export async function previewCustomAllocationHandler(req: AuthRequest, res: Resp
     }
     if (error?.code === "TEAM_COUNT_EXCEEDS_STUDENT_COUNT") {
       return res.status(400).json({ error: "teamCount cannot be greater than available students" });
+    }
+    if (error?.code === "TEAM_SIZE_CONSTRAINTS_UNSATISFIABLE") {
+      return res.status(400).json({
+        error: "Current team size constraints cannot be satisfied for the generated allocation",
+      });
     }
     if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(403).json({ error: "Questionnaire template is not accessible" });
@@ -679,6 +751,8 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.body?.teamCount);
+  const minTeamSize = parseOptionalPositiveInteger(req.body?.minTeamSize);
+  const maxTeamSize = parseOptionalPositiveInteger(req.body?.maxTeamSize);
   const rawTeamNames = req.body?.teamNames;
   const hasInvalidTeamNamesPayload =
     rawTeamNames !== undefined &&
@@ -697,6 +771,21 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
   }
+  if (minTeamSize === "invalid") {
+    return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+  }
+  if (maxTeamSize === "invalid") {
+    return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+  }
+  if (
+    minTeamSize !== null &&
+    minTeamSize !== "invalid" &&
+    maxTeamSize !== null &&
+    maxTeamSize !== "invalid" &&
+    minTeamSize > maxTeamSize
+  ) {
+    return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+  }
   if (hasInvalidTeamNamesPayload) {
     return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
   }
@@ -704,11 +793,27 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   try {
     const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
       ...(teamNames !== undefined ? { teamNames } : {}),
+      ...(minTeamSize !== null && minTeamSize !== "invalid" ? { minTeamSize } : {}),
+      ...(maxTeamSize !== null && maxTeamSize !== "invalid" ? { maxTeamSize } : {}),
     });
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
       return res.status(400).json({ error: "teamCount must be a positive integer" });
+    }
+    if (error?.code === "INVALID_MIN_TEAM_SIZE") {
+      return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_MAX_TEAM_SIZE") {
+      return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+    }
+    if (error?.code === "INVALID_TEAM_SIZE_RANGE") {
+      return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+    }
+    if (error?.code === "TEAM_SIZE_CONSTRAINTS_UNSATISFIABLE") {
+      return res.status(400).json({
+        error: "Current team size constraints cannot be satisfied for the available students",
+      });
     }
     if (error?.code === "INVALID_TEAM_NAMES") {
       return res.status(400).json({ error: "teamNames must contain one non-empty name per generated team" });

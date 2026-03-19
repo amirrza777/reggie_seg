@@ -73,6 +73,12 @@ export type RandomAllocationPreview = {
       email: string;
     }>;
   }>;
+  unassignedStudents: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>;
 };
 
 export type RandomAllocationApplied = {
@@ -260,6 +266,8 @@ export type CustomAllocationCoverage = {
 export type CustomAllocationPreviewInput = {
   questionnaireTemplateId: number;
   teamCount: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
   nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
   criteria: Array<{
     questionId: number;
@@ -326,6 +334,13 @@ export type CustomAllocationPreview = {
       email: string;
       responseStatus: "RESPONDED" | "NO_RESPONSE";
     }>;
+  }>;
+  unassignedStudents: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    responseStatus: "RESPONDED" | "NO_RESPONSE";
   }>;
 };
 
@@ -448,6 +463,137 @@ function getCustomAllocationResponseThreshold() {
     return DEFAULT_CUSTOM_ALLOCATION_RESPONSE_THRESHOLD;
   }
   return Math.min(100, Math.max(0, Number(parsedThreshold.toFixed(2))));
+}
+
+type TeamSizeConstraints = {
+  minTeamSize?: number;
+  maxTeamSize?: number;
+};
+
+function normalizeTeamSizeConstraints(input: TeamSizeConstraints): TeamSizeConstraints {
+  const { minTeamSize, maxTeamSize } = input;
+
+  if (
+    minTeamSize !== undefined &&
+    (!Number.isInteger(minTeamSize) || minTeamSize < 1)
+  ) {
+    throw { code: "INVALID_MIN_TEAM_SIZE" };
+  }
+
+  if (
+    maxTeamSize !== undefined &&
+    (!Number.isInteger(maxTeamSize) || maxTeamSize < 1)
+  ) {
+    throw { code: "INVALID_MAX_TEAM_SIZE" };
+  }
+
+  if (
+    minTeamSize !== undefined &&
+    maxTeamSize !== undefined &&
+    minTeamSize > maxTeamSize
+  ) {
+    throw { code: "INVALID_TEAM_SIZE_RANGE" };
+  }
+
+  return {
+    ...(minTeamSize !== undefined ? { minTeamSize } : {}),
+    ...(maxTeamSize !== undefined ? { maxTeamSize } : {}),
+  };
+}
+
+function resolveConstrainedPlanningShape(
+  studentCount: number,
+  teamCount: number,
+  constraints: TeamSizeConstraints,
+) {
+  const minimum = constraints.minTeamSize ?? 0;
+  const maximum = constraints.maxTeamSize ?? studentCount;
+
+  const maxTeamsByMinimum = minimum === 0 ? teamCount : Math.floor(studentCount / minimum);
+  const activeTeamCount = Math.max(0, Math.min(teamCount, maxTeamsByMinimum));
+  if (activeTeamCount === 0) {
+    return { activeTeamCount: 0, assignableStudentCount: 0 };
+  }
+
+  const assignableStudentCount = Math.min(studentCount, activeTeamCount * maximum);
+  return { activeTeamCount, assignableStudentCount };
+}
+
+function shuffleForPlanning<T>(students: T[]): T[] {
+  if (students.length <= 1) {
+    return [...students];
+  }
+  const shuffledSingletonTeams = planRandomTeams(students, students.length);
+  return shuffledSingletonTeams.flatMap((team) => team.members);
+}
+
+function buildConstrainedRandomPlan<TStudent>(
+  students: TStudent[],
+  teamCount: number,
+  constraints: TeamSizeConstraints,
+) {
+  const shape = resolveConstrainedPlanningShape(students.length, teamCount, constraints);
+  const shuffledStudents = shuffleForPlanning(students);
+  const assignedStudents = shuffledStudents.slice(0, shape.assignableStudentCount);
+  const unassignedStudents = shuffledStudents.slice(shape.assignableStudentCount);
+
+  const activeTeams =
+    shape.activeTeamCount > 0 && assignedStudents.length > 0
+      ? planRandomTeams(assignedStudents, shape.activeTeamCount, constraints)
+      : [];
+
+  const teams = Array.from({ length: teamCount }, (_unused, index) => {
+    const activeTeam = activeTeams[index];
+    return {
+      index,
+      members: activeTeam ? activeTeam.members : ([] as TStudent[]),
+    };
+  });
+
+  return {
+    teams,
+    unassignedStudents,
+  };
+}
+
+function buildConstrainedCustomPopulation<TRespondent, TNonRespondent>(
+  respondents: TRespondent[],
+  nonRespondents: TNonRespondent[],
+  teamCount: number,
+  constraints: TeamSizeConstraints,
+  nonRespondentStrategy: CustomAllocationNonRespondentStrategy,
+) {
+  const candidateCount =
+    nonRespondentStrategy === "exclude"
+      ? respondents.length
+      : respondents.length + nonRespondents.length;
+  const shape = resolveConstrainedPlanningShape(candidateCount, teamCount, constraints);
+
+  const shuffledRespondents = shuffleForPlanning(respondents);
+  const shuffledNonRespondents = shuffleForPlanning(nonRespondents);
+  const assignableRespondentCount = Math.min(
+    shuffledRespondents.length,
+    shape.assignableStudentCount,
+  );
+  const remainingNonRespondentCapacity =
+    nonRespondentStrategy === "distribute_randomly"
+      ? Math.max(0, shape.assignableStudentCount - assignableRespondentCount)
+      : 0;
+  const assignableNonRespondentCount = Math.min(
+    shuffledNonRespondents.length,
+    remainingNonRespondentCapacity,
+  );
+
+  return {
+    activeTeamCount: shape.activeTeamCount,
+    assignableRespondents: shuffledRespondents.slice(0, assignableRespondentCount),
+    unassignedRespondents: shuffledRespondents.slice(assignableRespondentCount),
+    assignableNonRespondents: shuffledNonRespondents.slice(0, assignableNonRespondentCount),
+    unassignedNonRespondents:
+      nonRespondentStrategy === "exclude"
+        ? shuffledNonRespondents
+        : shuffledNonRespondents.slice(assignableNonRespondentCount),
+  };
 }
 
 function storeCustomAllocationPreview(preview: StoredCustomAllocationPreview) {
@@ -746,6 +892,10 @@ export async function previewCustomAllocationForProject(
   ) {
     throw { code: "INVALID_CRITERIA" };
   }
+  const teamSizeConstraints = normalizeTeamSizeConstraints({
+    ...(input.minTeamSize !== undefined ? { minTeamSize: input.minTeamSize } : {}),
+    ...(input.maxTeamSize !== undefined ? { maxTeamSize: input.maxTeamSize } : {}),
+  });
 
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -832,18 +982,75 @@ export async function previewCustomAllocationForProject(
       weight: criterion.weight,
     })) as Array<{ questionId: number; strategy: "diversify" | "group"; weight: number }>;
 
-  const allocationPlan = planCustomAllocationTeams({
+  const constrainedPopulation = buildConstrainedCustomPopulation(
     respondents,
     nonRespondents,
-    criteria: criteriaForAllocator,
-    teamCount: input.teamCount,
-    nonRespondentStrategy: input.nonRespondentStrategy,
-  });
+    input.teamCount,
+    teamSizeConstraints,
+    input.nonRespondentStrategy,
+  );
+  const plannedStudentCount =
+    constrainedPopulation.assignableRespondents.length +
+    constrainedPopulation.assignableNonRespondents.length;
+
+  const allocationPlan =
+    constrainedPopulation.activeTeamCount > 0 && plannedStudentCount > 0
+      ? planCustomAllocationTeams({
+          respondents: constrainedPopulation.assignableRespondents,
+          nonRespondents: constrainedPopulation.assignableNonRespondents,
+          criteria: criteriaForAllocator,
+          teamCount: constrainedPopulation.activeTeamCount,
+          nonRespondentStrategy: input.nonRespondentStrategy,
+          ...(teamSizeConstraints.minTeamSize !== undefined
+            ? { minTeamSize: teamSizeConstraints.minTeamSize }
+            : {}),
+          ...(teamSizeConstraints.maxTeamSize !== undefined
+            ? { maxTeamSize: teamSizeConstraints.maxTeamSize }
+            : {}),
+        })
+      : {
+          teams: [] as Array<{
+            index: number;
+            members: Array<{
+              id: number;
+              firstName: string;
+              lastName: string;
+              email: string;
+              responseStatus: "RESPONDED" | "NO_RESPONSE";
+            }>;
+          }>,
+          unassignedNonRespondents: [] as Array<{
+            id: number;
+            firstName: string;
+            lastName: string;
+            email: string;
+          }>,
+          criterionScores: [] as Array<{
+            questionId: number;
+            strategy: "diversify" | "group";
+            weight: number;
+            satisfactionScore: number;
+          }>,
+          teamCriterionBreakdowns: [] as Array<{
+            teamIndex: number;
+            criteria: Array<{
+              questionId: number;
+              strategy: "diversify" | "group";
+              weight: number;
+              responseCount: number;
+              summary:
+                | { kind: "none" }
+                | { kind: "numeric"; average: number; min: number; max: number }
+                | { kind: "categorical"; categories: Array<{ value: string; count: number }> };
+            }>;
+          }>,
+          overallScore: 0,
+        };
 
   const generatedAt = new Date();
   const expiresAt = new Date(generatedAt.getTime() + CUSTOM_ALLOCATION_PREVIEW_TTL_MS);
   const previewId = `custom-preview-${crypto.randomUUID()}`;
-  const previewTeams = allocationPlan.teams.map((team, index) => ({
+  const basePreviewTeams = allocationPlan.teams.map((team, index) => ({
     index: team.index,
     suggestedName: `Custom Team ${index + 1}`,
     members: team.members.map((member) => ({
@@ -854,22 +1061,107 @@ export async function previewCustomAllocationForProject(
       responseStatus: member.responseStatus,
     })),
   }));
-  const criteriaSummary = allocationPlan.criterionScores.map((criterionScore) => ({
-    questionId: criterionScore.questionId,
-    strategy: criterionScore.strategy,
-    weight: criterionScore.weight,
-    satisfactionScore: criterionScore.satisfactionScore,
+  const previewTeamByIndex = new Map(basePreviewTeams.map((team) => [team.index, team] as const));
+  const previewTeams = Array.from({ length: input.teamCount }, (_unused, index) => ({
+    index,
+    suggestedName: `Custom Team ${index + 1}`,
+    members: previewTeamByIndex.get(index)?.members ?? [],
   }));
-  const teamCriteriaSummary = allocationPlan.teamCriterionBreakdowns.map((team) => ({
-    teamIndex: team.teamIndex,
-    criteria: team.criteria.map((criterion) => ({
-      questionId: criterion.questionId,
-      strategy: criterion.strategy,
-      weight: criterion.weight,
-      responseCount: criterion.responseCount,
-      summary: criterion.summary,
-    })),
+
+  const hasAssignedRespondents = constrainedPopulation.assignableRespondents.length > 0;
+  const criteriaSummary = hasAssignedRespondents
+    ? allocationPlan.criterionScores.map((criterionScore) => ({
+        questionId: criterionScore.questionId,
+        strategy: criterionScore.strategy,
+        weight: criterionScore.weight,
+        satisfactionScore: criterionScore.satisfactionScore,
+      }))
+    : criteriaForAllocator.map((criterion) => ({
+        questionId: criterion.questionId,
+        strategy: criterion.strategy,
+        weight: criterion.weight,
+        satisfactionScore: 0,
+      }));
+  const baseTeamCriteriaSummary = hasAssignedRespondents
+    ? allocationPlan.teamCriterionBreakdowns.map((team) => ({
+        teamIndex: team.teamIndex,
+        criteria: team.criteria.map((criterion) => ({
+          questionId: criterion.questionId,
+          strategy: criterion.strategy,
+          weight: criterion.weight,
+          responseCount: criterion.responseCount,
+          summary: criterion.summary,
+        })),
+      }))
+    : Array.from({ length: constrainedPopulation.activeTeamCount }, (_unused, teamIndex) => ({
+        teamIndex,
+        criteria: criteriaForAllocator.map((criterion) => ({
+          questionId: criterion.questionId,
+          strategy: criterion.strategy,
+          weight: criterion.weight,
+          responseCount: 0,
+          summary: { kind: "none" as const },
+        })),
+      }));
+  const teamCriteriaSummaryByIndex = new Map(
+    baseTeamCriteriaSummary.map((team) => [team.teamIndex, team] as const),
+  );
+  const teamCriteriaSummary = Array.from({ length: input.teamCount }, (_unused, teamIndex) => ({
+    teamIndex,
+    criteria:
+      teamCriteriaSummaryByIndex.get(teamIndex)?.criteria ??
+      criteriaForAllocator.map((criterion) => ({
+        questionId: criterion.questionId,
+        strategy: criterion.strategy,
+        weight: criterion.weight,
+        responseCount: 0,
+        summary: { kind: "none" as const },
+      })),
   }));
+
+  const unassignedStudentsById = new Map<
+    number,
+    {
+      id: number;
+      firstName: string;
+      lastName: string;
+      email: string;
+      responseStatus: "RESPONDED" | "NO_RESPONSE";
+    }
+  >();
+  for (const student of constrainedPopulation.unassignedRespondents) {
+    unassignedStudentsById.set(student.id, {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      responseStatus: "RESPONDED",
+    });
+  }
+  for (const student of constrainedPopulation.unassignedNonRespondents) {
+    unassignedStudentsById.set(student.id, {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      responseStatus: "NO_RESPONSE",
+    });
+  }
+  for (const student of allocationPlan.unassignedNonRespondents) {
+    if (unassignedStudentsById.has(student.id)) {
+      continue;
+    }
+    unassignedStudentsById.set(student.id, {
+      id: student.id,
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      responseStatus: "NO_RESPONSE",
+    });
+  }
+  const unassignedStudents = Array.from(unassignedStudentsById.values());
+
+  const overallScore = hasAssignedRespondents ? allocationPlan.overallScore : 0;
   const storedPreview: StoredCustomAllocationPreview = {
     previewId,
     staffId,
@@ -881,7 +1173,7 @@ export async function previewCustomAllocationForProject(
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteriaSummary,
     teamCriteriaSummary,
-    overallScore: allocationPlan.overallScore,
+    overallScore,
     previewTeams,
   };
   storeCustomAllocationPreview(storedPreview);
@@ -903,8 +1195,9 @@ export async function previewCustomAllocationForProject(
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteriaSummary,
     teamCriteriaSummary,
-    overallScore: allocationPlan.overallScore,
+    overallScore,
     previewTeams,
+    unassignedStudents,
   };
 }
 
@@ -1666,10 +1959,12 @@ export async function previewRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
+  options: { minTeamSize?: number; maxTeamSize?: number } = {},
 ): Promise<RandomAllocationPreview> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
   }
+  const teamSizeConstraints = normalizeTeamSizeConstraints(options);
 
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -1691,8 +1986,8 @@ export async function previewRandomAllocationForProject(
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
 
-  const [plannedTeams, existingTeams] = await Promise.all([
-    Promise.resolve(planRandomTeams(students, teamCount)),
+  const [plannedAllocation, existingTeams] = await Promise.all([
+    Promise.resolve(buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints)),
     findProjectTeamSummaries(projectId),
   ]);
 
@@ -1706,11 +2001,12 @@ export async function previewRandomAllocationForProject(
     studentCount: students.length,
     teamCount,
     existingTeams,
-    previewTeams: plannedTeams.map((team, index) => ({
+    previewTeams: plannedAllocation.teams.map((team, index) => ({
       index: team.index,
       suggestedName: `Random Team ${index + 1}`,
       members: team.members,
     })),
+    unassignedStudents: plannedAllocation.unassignedStudents,
   };
 }
 
@@ -1718,13 +2014,17 @@ export async function applyRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { teamNames?: string[] } = {},
+  options: { teamNames?: string[]; minTeamSize?: number; maxTeamSize?: number } = {},
 ): Promise<RandomAllocationApplied> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
   }
 
   const teamNames = resolveRandomAllocationTeamNames(teamCount, options.teamNames);
+  const teamSizeConstraints = normalizeTeamSizeConstraints({
+    ...(options.minTeamSize !== undefined ? { minTeamSize: options.minTeamSize } : {}),
+    ...(options.maxTeamSize !== undefined ? { maxTeamSize: options.maxTeamSize } : {}),
+  });
 
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -1745,8 +2045,8 @@ export async function applyRandomAllocationForProject(
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
-
-  const plannedTeams = planRandomTeams(students, teamCount);
+  const plannedAllocation = buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints);
+  const plannedTeams = plannedAllocation.teams;
   const appliedTeams = await applyRandomAllocationPlan(
     projectId,
     project.enterpriseId,
@@ -1756,6 +2056,7 @@ export async function applyRandomAllocationForProject(
       draftCreatedById: staffId,
     },
   );
+  const assignedStudentCount = plannedTeams.reduce((sum, team) => sum + team.members.length, 0);
 
   return {
     project: {
@@ -1764,7 +2065,7 @@ export async function applyRandomAllocationForProject(
       moduleId: project.moduleId,
       moduleName: project.moduleName,
     },
-    studentCount: students.length,
+    studentCount: assignedStudentCount,
     teamCount,
     appliedTeams,
   };

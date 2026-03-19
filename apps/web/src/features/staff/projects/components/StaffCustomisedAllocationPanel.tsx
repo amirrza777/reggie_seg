@@ -33,6 +33,8 @@ type CustomAllocationCriteriaInput = {
 type CustomisedPreviewInputSnapshot = {
   questionnaireTemplateId: number;
   teamCount: number;
+  minTeamSize?: number;
+  maxTeamSize?: number;
   nonRespondentStrategy: NonRespondentStrategy;
   criteria: CustomAllocationCriteriaInput[];
 };
@@ -79,6 +81,8 @@ function toPreviewInputKey(input: CustomisedPreviewInputSnapshot) {
   return JSON.stringify({
     questionnaireTemplateId: input.questionnaireTemplateId,
     teamCount: input.teamCount,
+    minTeamSize: input.minTeamSize ?? null,
+    maxTeamSize: input.maxTeamSize ?? null,
     nonRespondentStrategy: input.nonRespondentStrategy,
     criteria: input.criteria.map((criterion) => ({
       questionId: criterion.questionId,
@@ -86,6 +90,18 @@ function toPreviewInputKey(input: CustomisedPreviewInputSnapshot) {
       weight: criterion.weight,
     })),
   });
+}
+
+function parseOptionalPositiveIntegerInput(rawValue: string) {
+  const trimmed = rawValue.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null;
+  }
+  return parsed;
 }
 
 function formatTeamCriterionSummary(
@@ -121,6 +137,8 @@ export function StaffCustomisedAllocationPanel({
     Record<number, CriteriaConfig>
   >({});
   const [teamCountInput, setTeamCountInput] = useState(String(Math.max(1, initialTeamCount || 2)));
+  const [minTeamSizeInput, setMinTeamSizeInput] = useState("");
+  const [maxTeamSizeInput, setMaxTeamSizeInput] = useState("");
   const [preview, setPreview] = useState<CustomAllocationPreview | null>(null);
   const [previewInputKey, setPreviewInputKey] = useState<string | null>(null);
   const [teamNames, setTeamNames] = useState<Record<number, string>>({});
@@ -277,8 +295,7 @@ export function StaffCustomisedAllocationPanel({
     [criteriaPayload],
   );
 
-  const isTeamCountValid = Number.isInteger(Number(teamCountInput)) && Number(teamCountInput) > 0;
-  const canPreparePreview = Boolean(selectedQuestionnaire) && isTeamCountValid;
+  const canPreparePreview = getInputValidationError() === null;
   const hasLowCoverage =
     coverage !== null &&
     coverage.totalAvailableStudents > 0 &&
@@ -294,6 +311,24 @@ export function StaffCustomisedAllocationPanel({
       return "Team count must be a positive integer.";
     }
 
+    const parsedMinTeamSize = parseOptionalPositiveIntegerInput(minTeamSizeInput);
+    if (parsedMinTeamSize === null) {
+      return "Minimum students per team must be a positive integer when provided.";
+    }
+
+    const parsedMaxTeamSize = parseOptionalPositiveIntegerInput(maxTeamSizeInput);
+    if (parsedMaxTeamSize === null) {
+      return "Maximum students per team must be a positive integer when provided.";
+    }
+
+    if (
+      parsedMinTeamSize !== undefined &&
+      parsedMaxTeamSize !== undefined &&
+      parsedMinTeamSize > parsedMaxTeamSize
+    ) {
+      return "Minimum students per team cannot be greater than maximum students per team.";
+    }
+
     return null;
   }
 
@@ -306,10 +341,24 @@ export function StaffCustomisedAllocationPanel({
     if (!Number.isInteger(parsedTeamCount) || parsedTeamCount < 1) {
       return null;
     }
+    const parsedMinTeamSize = parseOptionalPositiveIntegerInput(minTeamSizeInput);
+    const parsedMaxTeamSize = parseOptionalPositiveIntegerInput(maxTeamSizeInput);
+    if (parsedMinTeamSize === null || parsedMaxTeamSize === null) {
+      return null;
+    }
+    if (
+      parsedMinTeamSize !== undefined &&
+      parsedMaxTeamSize !== undefined &&
+      parsedMinTeamSize > parsedMaxTeamSize
+    ) {
+      return null;
+    }
 
     return {
       questionnaireTemplateId: selectedQuestionnaire.id,
       teamCount: parsedTeamCount,
+      ...(parsedMinTeamSize !== undefined ? { minTeamSize: parsedMinTeamSize } : {}),
+      ...(parsedMaxTeamSize !== undefined ? { maxTeamSize: parsedMaxTeamSize } : {}),
       nonRespondentStrategy,
       criteria: criteriaPayload,
     };
@@ -723,6 +772,36 @@ export function StaffCustomisedAllocationPanel({
               disabled={confirmApply || isPreviewPending || isApplyPending}
             />
           </label>
+          <label className="staff-projects__allocation-field">
+            Minimum students per team (optional)
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={minTeamSizeInput}
+              onChange={(event) => {
+                setMinTeamSizeInput(event.target.value);
+                setSuccessMessage("");
+              }}
+              aria-label="Customised minimum students per team"
+              disabled={confirmApply || isPreviewPending || isApplyPending}
+            />
+          </label>
+          <label className="staff-projects__allocation-field">
+            Maximum students per team (optional)
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={maxTeamSizeInput}
+              onChange={(event) => {
+                setMaxTeamSizeInput(event.target.value);
+                setSuccessMessage("");
+              }}
+              aria-label="Customised maximum students per team"
+              disabled={confirmApply || isPreviewPending || isApplyPending}
+            />
+          </label>
         </div>
         <div className="staff-projects__allocation-actions">
           <button
@@ -785,6 +864,32 @@ export function StaffCustomisedAllocationPanel({
                 Quality: {getQualityLabel(preview.overallScore)} ({Math.round(preview.overallScore * 100)}%)
               </span>
             </div>
+            {preview.unassignedStudents.length > 0 ? (
+              <div className="staff-projects__manual-workspace-card">
+                <p className="staff-projects__allocation-warning">
+                  {preview.unassignedStudents.length} student
+                  {preview.unassignedStudents.length === 1 ? "" : "s"} could not be assigned with the current
+                  team size limits.
+                </p>
+                <ul className="staff-projects__allocation-members">
+                  {preview.unassignedStudents.map((student) => (
+                    <li key={student.id} className="staff-projects__custom-member-row">
+                      <span>{toFullName(student)}</span>
+                      {student.responseStatus === "NO_RESPONSE" ? (
+                        <span className="staff-projects__custom-response-badge">
+                          No questionnaire response
+                        </span>
+                      ) : (
+                        <span className="staff-projects__badge">Responded</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <p className="staff-projects__allocation-note">
+                  You can place these students later by editing the saved draft teams.
+                </p>
+              </div>
+            ) : null}
 
             {preview.criteriaSummary.length > 0 ? (
               <div className="staff-projects__custom-summary-list">

@@ -40,6 +40,12 @@ export type RandomAllocationPreview = {
       email: string;
     }>;
   }>;
+  unassignedStudents: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  }>;
 };
 
 export type RandomAllocationApplied = {
@@ -267,6 +273,13 @@ export type CustomAllocationPreview = {
       responseStatus: "RESPONDED" | "NO_RESPONSE";
     }>;
   }>;
+  unassignedStudents: Array<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    responseStatus: "RESPONDED" | "NO_RESPONSE";
+  }>;
 };
 
 export type CustomAllocationApplied = {
@@ -346,8 +359,18 @@ export async function createTeamForProject(projectId: number, teamName: string) 
   });
 }
 
-export async function getRandomAllocationPreview(projectId: number, teamCount: number) {
+export async function getRandomAllocationPreview(
+  projectId: number,
+  teamCount: number,
+  options: { minTeamSize?: number; maxTeamSize?: number } = {},
+) {
   const params = new URLSearchParams({ teamCount: String(teamCount) });
+  if (options.minTeamSize !== undefined) {
+    params.set("minTeamSize", String(options.minTeamSize));
+  }
+  if (options.maxTeamSize !== undefined) {
+    params.set("maxTeamSize", String(options.maxTeamSize));
+  }
 
   return apiFetch<RandomAllocationPreview>(
     `/team-allocation/projects/${projectId}/random-preview?${params.toString()}`,
@@ -359,12 +382,15 @@ export async function applyRandomAllocation(
   projectId: number,
   teamCount: number,
   teamNames?: string[],
+  options: { minTeamSize?: number; maxTeamSize?: number } = {},
 ) {
   return apiFetch<RandomAllocationApplied>(`/team-allocation/projects/${projectId}/random-allocate`, {
     method: "POST",
     body: JSON.stringify({
       teamCount,
       ...(teamNames !== undefined ? { teamNames } : {}),
+      ...(options.minTeamSize !== undefined ? { minTeamSize: options.minTeamSize } : {}),
+      ...(options.maxTeamSize !== undefined ? { maxTeamSize: options.maxTeamSize } : {}),
     }),
   });
 }
@@ -440,6 +466,8 @@ export async function previewCustomAllocation(
   payload: {
     questionnaireTemplateId: number;
     teamCount: number;
+    minTeamSize?: number;
+    maxTeamSize?: number;
     nonRespondentStrategy: CustomAllocationNonRespondentStrategy;
     criteria: Array<{
       questionId: number;

@@ -11,6 +11,9 @@ export type CustomAllocationValidationCode =
   | "INVALID_PROJECT_ID"
   | "INVALID_TEMPLATE_ID"
   | "INVALID_TEAM_COUNT"
+  | "INVALID_MIN_TEAM_SIZE"
+  | "INVALID_MAX_TEAM_SIZE"
+  | "INVALID_TEAM_SIZE_RANGE"
   | "INVALID_NON_RESPONDENT_STRATEGY"
   | "INVALID_CRITERIA"
   | "INVALID_PREVIEW_ID"
@@ -22,6 +25,13 @@ function asPositiveInteger(value: unknown): number | null {
     return null;
   }
   return parsed;
+}
+
+function asOptionalPositiveInteger(value: unknown): number | undefined | null {
+  if (value === undefined || value === null || value === "") {
+    return undefined;
+  }
+  return asPositiveInteger(value);
 }
 
 function isValidCriteriaStrategy(value: unknown): value is CustomAllocationCriteriaStrategy {
@@ -62,6 +72,22 @@ export function parseCustomAllocationPreviewBody(body: unknown): ValidationResul
     return { ok: false, code: "INVALID_TEAM_COUNT" };
   }
 
+  const minTeamSize = asOptionalPositiveInteger(row?.minTeamSize);
+  if (minTeamSize === null) {
+    return { ok: false, code: "INVALID_MIN_TEAM_SIZE" };
+  }
+  const maxTeamSize = asOptionalPositiveInteger(row?.maxTeamSize);
+  if (maxTeamSize === null) {
+    return { ok: false, code: "INVALID_MAX_TEAM_SIZE" };
+  }
+  if (
+    minTeamSize !== undefined &&
+    maxTeamSize !== undefined &&
+    minTeamSize > maxTeamSize
+  ) {
+    return { ok: false, code: "INVALID_TEAM_SIZE_RANGE" };
+  }
+
   const nonRespondentStrategy = row?.nonRespondentStrategy;
   if (!isValidNonRespondentStrategy(nonRespondentStrategy)) {
     return { ok: false, code: "INVALID_NON_RESPONDENT_STRATEGY" };
@@ -97,6 +123,8 @@ export function parseCustomAllocationPreviewBody(body: unknown): ValidationResul
     value: {
       questionnaireTemplateId,
       teamCount,
+      ...(minTeamSize !== undefined ? { minTeamSize } : {}),
+      ...(maxTeamSize !== undefined ? { maxTeamSize } : {}),
       nonRespondentStrategy,
       criteria: criteria.map((criterion) => ({
         questionId: criterion.questionId!,
