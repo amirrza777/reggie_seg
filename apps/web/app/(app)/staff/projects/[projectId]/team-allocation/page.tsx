@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
+import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -62,6 +63,8 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         projectId={data.project.id}
         initialTeamCount={Math.max(1, data.teams.length)}
       />
+
+      <StaffAllocationDraftsPanel projectId={data.project.id} />
 
       <section className="staff-projects__team-card staff-projects__allocation-methods" aria-label="Project teams">
         <h2 className="staff-projects__card-title">Active Teams</h2>
