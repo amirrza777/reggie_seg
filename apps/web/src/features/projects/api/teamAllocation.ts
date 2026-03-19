@@ -174,6 +174,19 @@ export type AllocationDraftApproved = {
   };
 };
 
+export type AllocationDraftDeleted = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  deletedDraft: {
+    id: number;
+    teamName: string;
+  };
+};
+
 export type CustomAllocationQuestionType = "multiple-choice" | "rating" | "slider";
 export type CustomAllocationCriteriaStrategy = "diversify" | "group" | "ignore";
 export type CustomAllocationNonRespondentStrategy = "distribute_randomly" | "exclude";
@@ -444,6 +457,20 @@ export async function approveAllocationDraft(
     `/team-allocation/projects/${projectId}/allocation-drafts/${teamId}/approve`,
     {
       method: "PATCH",
+      ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
+    },
+  );
+}
+
+export async function deleteAllocationDraft(
+  projectId: number,
+  teamId: number,
+  payload?: { expectedUpdatedAt?: string },
+) {
+  return apiFetch<AllocationDraftDeleted>(
+    `/team-allocation/projects/${projectId}/allocation-drafts/${teamId}`,
+    {
+      method: "DELETE",
       ...(payload !== undefined ? { body: JSON.stringify(payload) } : {}),
     },
   );

@@ -850,6 +850,57 @@ export async function updateDraftTeam(
   });
 }
 
+export async function deleteDraftTeam(
+  teamId: number,
+  options: { expectedUpdatedAt?: Date } = {},
+): Promise<{ id: number; teamName: string } | null> {
+  return prisma.$transaction(async (tx) => {
+    const draftTeam = await tx.team.findFirst({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+      },
+      select: {
+        id: true,
+        teamName: true,
+        updatedAt: true,
+      },
+    });
+    if (!draftTeam) {
+      return null;
+    }
+    if (
+      options.expectedUpdatedAt &&
+      draftTeam.updatedAt.getTime() !== options.expectedUpdatedAt.getTime()
+    ) {
+      throw { code: "DRAFT_OUTDATED" };
+    }
+
+    const archivedAt = new Date();
+    const deleteResult = await tx.team.updateMany({
+      where: {
+        id: teamId,
+        archivedAt: null,
+        allocationLifecycle: "DRAFT",
+        ...(options.expectedUpdatedAt !== undefined ? { updatedAt: draftTeam.updatedAt } : {}),
+      },
+      data: {
+        archivedAt,
+        updatedAt: archivedAt,
+      },
+    });
+    if (deleteResult.count === 0) {
+      throw { code: "DRAFT_OUTDATED" };
+    }
+
+    return {
+      id: draftTeam.id,
+      teamName: draftTeam.teamName,
+    };
+  });
+}
+
 export async function approveDraftTeam(
   teamId: number,
   approverId: number,

@@ -15,6 +15,7 @@ import {
   applyRandomAllocationHandler,
   applyCustomAllocationHandler,
   approveAllocationDraftHandler,
+  deleteAllocationDraftHandler,
   getCustomAllocationCoverageHandler,
   getManualAllocationWorkspaceHandler,
   listAllocationDraftsHandler,
@@ -53,6 +54,11 @@ router.patch(
   "/projects/:projectId/allocation-drafts/:teamId/approve",
   requireAuth,
   approveAllocationDraftHandler,
+);
+router.delete(
+  "/projects/:projectId/allocation-drafts/:teamId",
+  requireAuth,
+  deleteAllocationDraftHandler,
 );
 router.get(
   "/projects/:projectId/custom-questionnaires",

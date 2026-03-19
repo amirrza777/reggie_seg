@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useRouter } from "next/navigation";
 import {
   approveAllocationDraft,
+  deleteAllocationDraft,
   getAllocationDrafts,
   getManualAllocationWorkspace,
   updateAllocationDraft,
@@ -298,6 +299,50 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
     });
   }
 
+  function handleDelete(teamId: number) {
+    const draft = workspace?.drafts.find((item) => item.id === teamId);
+    if (!draft) {
+      setNotice({ type: "error", text: "Draft not found. Refresh drafts and try again." });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete draft "${draft.teamName}"? This will remove it from Allocation Drafts.`,
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setNotice(null);
+    startSavingTransition(async () => {
+      try {
+        const response = await deleteAllocationDraft(projectId, teamId, {
+          expectedUpdatedAt: draft.updatedAt,
+        });
+        setWorkspace((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            drafts: current.drafts.filter((item) => item.id !== teamId),
+          };
+        });
+        if (editingNameTeamId === teamId || editingMembersTeamId === teamId) {
+          resetEditors();
+        }
+        setNotice({
+          type: "success",
+          text: `Deleted draft "${response.deletedDraft.teamName}".`,
+        });
+        router.refresh();
+      } catch (error) {
+        setNotice({
+          type: "error",
+          text: normalizeMessage(error, "Failed to delete draft team."),
+        });
+      }
+    });
+  }
+
   return (
     <section className="staff-projects__team-card staff-projects__allocation-methods" aria-label="Allocation drafts">
       <div className="staff-projects__allocation-mode-head">
@@ -491,6 +536,15 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
                       Approve and activate
                     </button>
                   ) : null}
+
+                  <button
+                    type="button"
+                    className="staff-projects__allocation-btn staff-projects__allocation-btn--danger"
+                    onClick={() => handleDelete(draft.id)}
+                    disabled={isBusy || isEditingName || isEditingMembers}
+                  >
+                    Delete draft
+                  </button>
                 </div>
               </article>
             );
@@ -507,6 +561,7 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
       {workspace && !canApprove ? (
         <p className="staff-projects__allocation-note">
           You can create and edit drafts. Only module owners can approve drafts and activate teams.
+          You can delete only drafts that you created.
         </p>
       ) : null}
     </section>

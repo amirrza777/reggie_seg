@@ -10,6 +10,7 @@ import {
   applyManualAllocationTeam,
   applyRandomAllocationPlan,
   createTeamInviteRecord,
+  deleteDraftTeam,
   findDraftTeamById,
   findDraftTeamInProject,
   findCustomAllocationQuestionnairesForStaff,
@@ -220,6 +221,19 @@ export type AllocationDraftApproved = {
     id: number;
     teamName: string;
     memberCount: number;
+  };
+};
+
+export type AllocationDraftDeleted = {
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+  };
+  deletedDraft: {
+    id: number;
+    teamName: string;
   };
 };
 
@@ -1911,6 +1925,76 @@ export async function approveAllocationDraftForProject(
       teamName: approvedTeam.teamName,
       memberCount: approvedTeam.memberCount,
     },
+  };
+}
+
+export async function deleteAllocationDraftForProject(
+  staffId: number,
+  projectId: number,
+  teamId: number,
+  input: { expectedUpdatedAt?: string } = {},
+): Promise<AllocationDraftDeleted> {
+  if (!Number.isInteger(teamId) || teamId < 1) {
+    throw { code: "INVALID_DRAFT_TEAM_ID" };
+  }
+
+  let expectedUpdatedAt: Date | undefined;
+  if (Object.prototype.hasOwnProperty.call(input, "expectedUpdatedAt")) {
+    if (typeof input.expectedUpdatedAt !== "string") {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const trimmedExpectedUpdatedAt = input.expectedUpdatedAt.trim();
+    if (!trimmedExpectedUpdatedAt) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    const parsedExpectedUpdatedAt = new Date(trimmedExpectedUpdatedAt);
+    if (Number.isNaN(parsedExpectedUpdatedAt.getTime())) {
+      throw { code: "INVALID_EXPECTED_UPDATED_AT" };
+    }
+    expectedUpdatedAt = parsedExpectedUpdatedAt;
+  }
+
+  const project = await findStaffScopedProjectAccess(staffId, projectId);
+  if (!project) {
+    throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.archivedAt) {
+    throw { code: "PROJECT_ARCHIVED" };
+  }
+
+  if (!(await findDraftTeamInProject(project.id, teamId))) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+
+  const draft = await findDraftTeamById(teamId);
+  if (!draft) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+  if (expectedUpdatedAt && draft.updatedAt.getTime() !== expectedUpdatedAt.getTime()) {
+    throw { code: "DRAFT_OUTDATED" };
+  }
+
+  const isModuleOwner = project.canApproveAllocationDrafts;
+  const isDraftCreator = draft.draftCreatedBy?.id === staffId;
+  if (!isModuleOwner && !isDraftCreator) {
+    throw { code: "DELETE_DRAFT_FORBIDDEN" };
+  }
+
+  const deletedDraft = await deleteDraftTeam(teamId, {
+    ...(expectedUpdatedAt !== undefined ? { expectedUpdatedAt } : {}),
+  });
+  if (!deletedDraft) {
+    throw { code: "DRAFT_TEAM_NOT_FOUND" };
+  }
+
+  return {
+    project: {
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.moduleName,
+    },
+    deletedDraft,
   };
 }
 

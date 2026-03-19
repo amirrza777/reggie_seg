@@ -156,6 +156,18 @@
   color: color-mix(in srgb, #111827 62%, white 38%);
 }
 
+.staff-projects__allocation-btn--danger {
+  border-color: color-mix(in srgb, var(--status-danger-border) 70%, var(--border) 30%);
+  background: color-mix(in srgb, var(--status-danger-soft) 65%, var(--surface) 35%);
+  color: var(--status-danger-text);
+}
+
+.staff-projects__allocation-btn--danger:hover,
+.staff-projects__allocation-btn--danger:focus-visible {
+  border-color: var(--status-danger-border);
+  background: color-mix(in srgb, var(--status-danger-soft) 78%, var(--surface) 22%);
+}
+
 .staff-projects__allocation-error {
   margin: 0;
   color: rgb(185, 28, 28);
