@@ -18,6 +18,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   const [date, setDate] = useState("");
   const [subject, setSubject] = useState("");
   const [location, setLocation] = useState("");
+  const [videoCallLink, setVideoCallLink] = useState("");
   const [agenda, setAgenda] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -36,6 +37,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
         date,
         subject: subject || undefined,
         location: location || undefined,
+        videoCallLink: videoCallLink || undefined,
         agenda: agenda || undefined,
       });
       setStatus("success");
@@ -44,6 +46,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
       setDate("");
       setSubject("");
       setLocation("");
+      setVideoCallLink("");
       setAgenda("");
       onCreated();
     } catch (error) {
@@ -70,6 +73,10 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
         <label className="stack">
           <span>Location</span>
           <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label className="stack">
+          <span>Video call link</span>
+          <input type="url" value={videoCallLink} onChange={(e) => setVideoCallLink(e.target.value)} placeholder="https://meet.google.com/..." />
         </label>
         <label className="stack">
           <span>Agenda</span>

@@ -16,6 +16,7 @@ export async function createMeeting(data: {
   date: string;
   subject?: string;
   location?: string;
+  videoCallLink?: string;
   agenda?: string;
 }) {
   return apiFetch("/meetings", {

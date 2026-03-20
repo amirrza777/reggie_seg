@@ -5,6 +5,7 @@ export type Meeting = {
   title: string;
   subject: string | null;
   location: string | null;
+  videoCallLink: string | null;
   agenda: string | null;
   date: string;
   createdAt: string;
@@ -44,6 +45,11 @@ export type MeetingMinutesRecord = {
   id: number;
   meetingId: number;
   writerId: number;
+  writer: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
   content: string;
   createdAt: string;
   updatedAt: string;
