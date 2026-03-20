@@ -18,8 +18,8 @@
 .workspace-shell .help-page__content {
   width: 100%;
   max-width: none;
-  margin: 0 auto;
-  padding: clamp(10px, 1.8vw, 22px) clamp(10px, 1.8vw, 22px) 0;
+  margin: 0;
+  padding: 0;
   gap: clamp(20px, 2.8vw, 30px);
 }
 
@@ -341,4 +341,3 @@
   border-color: var(--accent-border);
   box-shadow: var(--shadow-sm);
 }
-

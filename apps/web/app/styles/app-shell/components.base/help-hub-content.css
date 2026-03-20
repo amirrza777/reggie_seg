@@ -286,7 +286,7 @@
 
 @media (max-width: 1024px) {
   .workspace-shell .help-page__content {
-    padding: 8px 8px 0;
+    padding: 0;
   }
 
   .workspace-shell .help-hub__hero {
