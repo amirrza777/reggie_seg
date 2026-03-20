@@ -1,383 +1,355 @@
 "use client";
+
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { GithubDonutChartCard } from "./GithubDonutChartCard";
-import { GithubChartTitleWithInfo } from "./GithubChartInfo";
+import { GithubChartCard } from "./GithubChartCard";
+import { GithubContributorCard } from "./GithubContributorCard";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
+import {
+  buildBranchScopeCommitShareSeries,
+  buildCommitTimelineSeries,
+  buildContributorRows,
+  buildCoverageShareSeries,
+  buildLineChangesByDaySeries,
+  buildPersonalShareSeries,
+  buildTopContributorBarSeries,
+  buildWeeklyCommitSeries,
+  CHART_COLOR_ADDITIONS,
+  CHART_COLOR_COMMITS,
+  CHART_COLOR_DELETIONS,
+  formatDateRange,
+  formatNumber,
+  formatShortDate,
+  getChartMinWidth,
+  getContributorAxisWidth,
+  getLineChangeDomain,
+} from "./GithubRepoChartsDashboard.helpers";
+import { GithubSectionContainer } from "./GithubSectionContainer";
 import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
+
+type ChartViewMode = "team" | "personal" | "staff";
 
 type GithubRepoChartsDashboardProps = {
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   coverage: GithubMappingCoverage | null;
   currentGithubLogin: string | null;
   viewerMode?: "student" | "staff";
+  viewMode?: ChartViewMode;
+  repositoryFullName?: string | null;
 };
 
-const CHART_COLOR_PRIMARY = "#36c98f";
-const CHART_COLOR_SECONDARY = "#f59b3a";
+const tooltipStyle = {
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+};
 
-function getCommitsByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const commitsByDay = snapshot?.repoStats?.[0]?.commitsByDay;
-  if (!commitsByDay || typeof commitsByDay !== "object") {
-    return [];
-  }
-  return Object.entries(commitsByDay)
-    .map(([date, commits]) => ({ date, commits: Number(commits) || 0 }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+function EmptyState() {
+  return <p className="muted">No chart data available for this snapshot yet.</p>;
 }
 
-function getPersonalCommitsByDay(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined, currentGithubLogin: string | null) {
-  const normalizedLogin = currentGithubLogin?.trim().toLowerCase();
-  if (!normalizedLogin || !snapshot?.userStats?.length) {
-    return {};
-  }
-  const personalStat = snapshot.userStats.find((stat) => stat.githubLogin?.trim().toLowerCase() === normalizedLogin);
-  const commitsByDay = personalStat?.commitsByDay;
-  return commitsByDay && typeof commitsByDay === "object" ? commitsByDay : {};
-}
-
-function buildCommitTimelineSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined, currentGithubLogin: string | null) {
-  const totalSeries = getCommitsByDaySeries(snapshot);
-  const personalByDay = getPersonalCommitsByDay(snapshot, currentGithubLogin);
-  return totalSeries.map((item) => ({
-    date: item.date,
-    commits: item.commits,
-    personalCommits: Number(personalByDay[item.date]) || 0,
-  }));
-}
-
-function buildLineChangesByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const byDay = snapshot?.data?.timeSeries?.defaultBranch?.lineChangesByDay;
-  if (!byDay || typeof byDay !== "object") {
-    return [];
-  }
-  return Object.entries(byDay)
-    .map(([date, values]) => ({
-      date,
-      additions: Number(values?.additions ?? 0),
-      deletions: -Math.abs(Number(values?.deletions ?? 0)),
-      net: Number(values?.additions ?? 0) - Number(values?.deletions ?? 0),
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-function isoWeekKey(dateKey: string) {
-  const date = new Date(`${dateKey}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) return null;
-  const day = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-  return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, "0")}`;
-}
-
-function buildWeeklyCommitSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const daily = getCommitsByDaySeries(snapshot);
-  const bucket: Record<string, { commits: number; start: string; end: string }> = {};
-  for (const row of daily) {
-    const wk = isoWeekKey(row.date);
-    if (!wk) continue;
-    const existing = bucket[wk];
-    if (!existing) {
-      bucket[wk] = { commits: row.commits, start: row.date, end: row.date };
-      continue;
-    }
-    existing.commits += row.commits;
-    if (row.date < existing.start) existing.start = row.date;
-    if (row.date > existing.end) existing.end = row.date;
-  }
-  return Object.entries(bucket)
-    .map(([weekKey, stats]) => ({
-      weekKey,
-      weekLabel: weekKey,
-      rangeStart: stats.start,
-      rangeEnd: stats.end,
-      commits: stats.commits,
-    }))
-    .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
-}
-
-function buildCoverageShareSeries(coverage: GithubMappingCoverage | null) {
-  const totalCommits = Number(coverage?.coverage?.totalCommits ?? 0);
-  const unmatchedCommits = Number(coverage?.coverage?.unmatchedCommits ?? 0);
-  const matchedCommits = Math.max(0, totalCommits - unmatchedCommits);
-  if (!totalCommits) return [];
-  return [
-    { name: "Matched commits", value: matchedCommits, fill: CHART_COLOR_PRIMARY },
-    { name: "Unmatched commits", value: unmatchedCommits, fill: CHART_COLOR_SECONDARY },
-  ];
-}
-
-function buildBranchScopeCommitShareSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const defaultCommits = Number(snapshot?.data?.branchScopeStats?.defaultBranch?.totalCommits ?? 0);
-  const allCommits = Number(snapshot?.data?.branchScopeStats?.allBranches?.totalCommits ?? 0);
-  const otherBranchCommits = Math.max(0, allCommits - defaultCommits);
-
-  if (allCommits <= 0) {
-    return [];
-  }
-
-  return [
-    { name: "Default branch", value: defaultCommits, fill: CHART_COLOR_PRIMARY },
-    { name: "Other branches", value: otherBranchCommits, fill: CHART_COLOR_SECONDARY },
-  ].filter((row) => row.value > 0);
-}
-
-function buildTopContributorsSeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
-  const stats = snapshot?.userStats ?? [];
-  const mapped = stats
-    .filter((row) => row.isMatched)
-    .map((row) => ({
-      contributor: row.githubLogin || `User ${row.mappedUserId ?? ""}`.trim(),
-      commits: Number(row.commits ?? 0),
-    }))
-    .filter((row) => row.commits > 0)
-    .sort((a, b) => b.commits - a.commits);
-
-  const unmatchedCommits = stats
-    .filter((row) => !row.isMatched)
-    .reduce((sum, row) => sum + Number(row.commits ?? 0), 0);
-
-  if (unmatchedCommits > 0) {
-    mapped.push({
-      contributor: "Unmapped / others",
-      commits: unmatchedCommits,
-    });
-  }
-
-  return mapped;
-}
-
-function formatShortDate(dateKey: string) {
-  const parsed = new Date(`${dateKey}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) return dateKey;
-  return parsed.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-}
-
-function formatDateRange(start: string, end: string) {
-  if (!start || !end) return "";
-  if (start === end) return formatShortDate(start);
-  return `${formatShortDate(start)} - ${formatShortDate(end)}`;
-}
-
-function clampScore(value: number) {
-  return Math.max(0, Math.min(10, Math.round(value * 10) / 10));
-}
-
-function countActiveDays(dailySeries: Array<{ date: string; commits: number }>) {
-  return dailySeries.filter((row) => row.commits > 0).length;
-}
-
-function buildDerivedSignals(params: {
-  snapshot: GithubLatestSnapshot["snapshot"] | null;
-  coverage: GithubMappingCoverage | null;
-  commitTimelineSeries: Array<{ date: string; commits: number; personalCommits: number }>;
-  weeklyCommitSeries: Array<{ commits: number }>;
+function RepositoryAnalyticsCharts({
+  commitTimelineSeries,
+  lineChangesByDaySeries,
+  weeklyCommitSeries,
+  lineChangeDomain,
+  showPersonalCommitSeries,
+}: {
+  commitTimelineSeries: Array<{ date: string; commits: number; personalCommits?: number }>;
+  lineChangesByDaySeries: Array<{ date: string; additions: number; deletions: number }>;
+  weeklyCommitSeries: Array<{ weekKey: string; weekLabel: string; rangeStart: string; rangeEnd: string; commits: number }>;
+  lineChangeDomain: readonly [number, number] | undefined;
+  showPersonalCommitSeries: boolean;
 }) {
-  const { snapshot, coverage, commitTimelineSeries, weeklyCommitSeries } = params;
-
-  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
-  const totalContributors = Number(snapshot?.repoStats?.[0]?.totalContributors ?? 0);
-  const personalCommits = commitTimelineSeries.reduce((sum, row) => sum + (row.personalCommits || 0), 0);
-  const activeDays = countActiveDays(commitTimelineSeries);
-  const weeksWithCommits = weeklyCommitSeries.filter((row) => row.commits > 0).length;
-  const totalWeeks = Math.max(weeklyCommitSeries.length, 1);
-  const matchedRatio = coverage?.coverage?.totalCommits
-    ? (coverage.coverage.totalCommits - coverage.coverage.unmatchedCommits) / coverage.coverage.totalCommits
-    : 0;
-  const personalShare = totalCommits > 0 ? personalCommits / totalCommits : 0;
-  const consistencyScore = clampScore((weeksWithCommits / totalWeeks) * 10);
-  const visibilityScore = clampScore(matchedRatio * 10);
-  const participationScore = clampScore(Math.min(1, personalShare * 2.5) * 10);
-  const overallSignal = clampScore((consistencyScore + visibilityScore + participationScore) / 3);
-
-  return {
-    overallSignal,
-    consistencyScore,
-    visibilityScore,
-    participationScore,
-    activeDays,
-    weeksWithCommits,
-    totalWeeks,
-    personalCommits,
-    totalCommits,
-    totalContributors,
-  };
-}
-
-export function GithubRepoChartsDashboard({
-  snapshot,
-  coverage,
-  currentGithubLogin,
-  viewerMode = "student",
-}: GithubRepoChartsDashboardProps) {
-  const isStaffView = viewerMode === "staff";
-  const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin);
-  const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
-  const weeklyCommitSeries = buildWeeklyCommitSeries(snapshot);
-  const coverageShareSeries = buildCoverageShareSeries(coverage);
-  const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
-  const topContributorsSeries = buildTopContributorsSeries(snapshot);
-  const topContributorsChartHeight = Math.max(220, topContributorsSeries.length * 34);
-  const signals = buildDerivedSignals({
-    snapshot,
-    coverage,
-    commitTimelineSeries,
-    weeklyCommitSeries,
-  });
-
-  if (
-    commitTimelineSeries.length === 0 &&
-    lineChangesByDaySeries.length === 0 &&
-    weeklyCommitSeries.length === 0 &&
-    coverageShareSeries.length === 0 &&
-    branchScopeCommitShareSeries.length === 0 &&
-    topContributorsSeries.length === 0
-  ) {
-    return null;
-  }
+  const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, { base: 820, pointWidth: 60 });
+  const linesChartMinWidth = getChartMinWidth(lineChangesByDaySeries.length, { base: 820, pointWidth: 62 });
+  const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 620, pointWidth: 80 });
 
   return (
-    <section className="github-chart-section" aria-label="Repository charts">
-      <p className="github-chart-section__label">Charts</p>
-      <div className="github-chart-section__insights">
-        <div className="github-chart-section__insight">
-          <div className="github-chart-section__insight-label">Overall contribution signal</div>
-          <div className="github-chart-section__insight-value">{signals.overallSignal}/10</div>
-          <div className="github-chart-section__insight-subtext">Heuristic only, not a grade</div>
-        </div>
-        <div className="github-chart-section__insight">
-          <div className="github-chart-section__insight-label">Consistency signal</div>
-          <div className="github-chart-section__insight-value">{signals.consistencyScore}/10</div>
-          <div className="github-chart-section__insight-subtext">
-            {signals.weeksWithCommits}/{signals.totalWeeks} active weeks
-          </div>
-        </div>
-        <div className="github-chart-section__insight">
-          <div className="github-chart-section__insight-label">Mapping visibility</div>
-          <div className="github-chart-section__insight-value">{signals.visibilityScore}/10</div>
-          <div className="github-chart-section__insight-subtext">
-            {coverage?.coverage?.unmatchedCommits ?? 0} unmatched commits
-          </div>
-        </div>
-        {isStaffView ? (
-          <div className="github-chart-section__insight">
-            <div className="github-chart-section__insight-label">Active coding days</div>
-            <div className="github-chart-section__insight-value">{signals.activeDays}</div>
-            <div className="github-chart-section__insight-subtext">Days with at least one commit</div>
-          </div>
-        ) : (
-          <div className="github-chart-section__insight">
-            <div className="github-chart-section__insight-label">Personal activity share</div>
-            <div className="github-chart-section__insight-value">{signals.participationScore}/10</div>
-            <div className="github-chart-section__insight-subtext">
-              {signals.personalCommits}/{signals.totalCommits || 0} commits
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="github-chart-section__grid">
-        {commitTimelineSeries.length > 0 ? (
-          <div className="github-chart-section__panel github-chart-section__panel--full">
-            <GithubChartTitleWithInfo
-              title={isStaffView ? "Commits over time (team total)" : "Commits over time (total vs your commits)"}
-              info={chartInfo.commitsTimeline}
-            />
-            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={commitTimelineSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
-                  <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
-                  <Tooltip labelFormatter={(label) => formatShortDate(String(label))} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
-                  <Line type="monotone" dataKey="commits" name="Total commits" stroke={CHART_COLOR_PRIMARY} strokeWidth={2} dot={false} />
-                  {!isStaffView ? (
-                    <Line type="monotone" dataKey="personalCommits" name="Your commits" stroke={CHART_COLOR_SECONDARY} strokeWidth={2} dot={false} />
-                  ) : null}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        ) : null}
-
-        {lineChangesByDaySeries.length > 0 ? (
-          <div className="github-chart-section__panel github-chart-section__panel--full">
-            <GithubChartTitleWithInfo
-              title="Additions and deletions over time (default branch)"
-              info={chartInfo.lineChanges}
-            />
-            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={lineChangesByDaySeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="date" tick={{ fill: "var(--muted)" }} tickFormatter={formatShortDate} />
-                  <YAxis tick={{ fill: "var(--muted)" }} />
-                  <Tooltip labelFormatter={(label) => formatShortDate(String(label))} formatter={(value, name) => [Math.abs(Number(value ?? 0)), name]} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
-                  <Legend />
-                  <Bar dataKey="additions" name="Additions" fill="#36c98f" />
-                  <Bar dataKey="deletions" name="Deletions" fill="#f59b3a" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        ) : null}
-
-        {weeklyCommitSeries.length > 0 ? (
-          <div className="github-chart-section__panel github-chart-section__panel--half">
-            <GithubChartTitleWithInfo title="Weekly commit totals" info={chartInfo.weeklyCommits} />
-            <div className="github-chart-section__canvas github-chart-section__canvas--md">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyCommitSeries} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis dataKey="weekLabel" tick={{ fill: "var(--muted)" }} tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")} interval="preserveStartEnd" minTickGap={22} />
-                  <YAxis allowDecimals={false} tick={{ fill: "var(--muted)" }} />
-                  <Tooltip
-                    labelFormatter={(_, payload) => {
-                      const row = payload?.[0]?.payload as { weekKey?: string; rangeStart?: string; rangeEnd?: string } | undefined;
-                      return row?.rangeStart && row?.rangeEnd ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}` : "Week";
-                    }}
-                    contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}
+    <div className="github-chart-section__grid">
+      {commitTimelineSeries.length > 0 ? (
+        <GithubChartCard
+          title={showPersonalCommitSeries ? "Commits over time (team vs you)" : "Commits over time"}
+          info={chartInfo.commitsTimeline}
+          size="full"
+          minChartWidth={commitsChartMinWidth}
+        >
+          <div className="github-chart-section__canvas github-chart-section__canvas--xl">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={commitTimelineSeries}
+                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                barCategoryGap="22%"
+                barGap={4}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis
+                  dataKey="date"
+                  interval={0}
+                  tickMargin={14}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                  tickFormatter={formatShortDate}
+                  label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fill: "var(--muted)" }}
+                  label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                />
+                <Tooltip
+                  labelFormatter={(label) => formatShortDate(String(label))}
+                  contentStyle={tooltipStyle}
+                />
+                <Legend />
+                <Bar
+                  dataKey="commits"
+                  name="Team commits"
+                  fill={CHART_COLOR_COMMITS}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={30}
+                  animationDuration={420}
+                />
+                {showPersonalCommitSeries ? (
+                  <Bar
+                    dataKey="personalCommits"
+                    name="Your commits"
+                    fill={CHART_COLOR_ADDITIONS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={30}
+                    animationDuration={420}
                   />
-                  <Bar dataKey="commits" name="Commits" fill={CHART_COLOR_PRIMARY} maxBarSize={34} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+                ) : null}
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        ) : null}
+        </GithubChartCard>
+      ) : null}
 
-        {topContributorsSeries.length > 0 ? (
-          <div className="github-chart-section__panel github-chart-section__panel--half">
-            <GithubChartTitleWithInfo title="Top contributors by commits" info={chartInfo.topContributors} />
-            <div className="github-chart-section__canvas github-chart-section__canvas--md" style={{ height: topContributorsChartHeight }}>
+      {lineChangesByDaySeries.length > 0 ? (
+        <GithubChartCard
+          title="Additions and deletions over time"
+          info={chartInfo.lineChanges}
+          size="full"
+          minChartWidth={linesChartMinWidth}
+        >
+          <div className="github-chart-section__canvas github-chart-section__canvas--xl">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={lineChangesByDaySeries}
+                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                barCategoryGap="24%"
+                barGap={8}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis
+                  dataKey="date"
+                  interval={0}
+                  tickMargin={14}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                  tickFormatter={formatShortDate}
+                  label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                />
+                <YAxis
+                  domain={lineChangeDomain}
+                  tick={{ fill: "var(--muted)" }}
+                  label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                />
+                <Tooltip
+                  labelFormatter={(label) => formatShortDate(String(label))}
+                  formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
+                  contentStyle={tooltipStyle}
+                />
+                <Legend />
+                <Bar
+                  stackId="line-change-stack"
+                  dataKey="additions"
+                  name="Additions"
+                  fill={CHART_COLOR_ADDITIONS}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={24}
+                  animationDuration={420}
+                />
+                <Bar
+                  stackId="line-change-stack"
+                  dataKey="deletions"
+                  name="Deletions"
+                  fill={CHART_COLOR_DELETIONS}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={24}
+                  animationDuration={420}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </GithubChartCard>
+      ) : null}
+
+      {weeklyCommitSeries.length > 0 ? (
+        <GithubChartCard
+          title="Weekly commit totals"
+          info={chartInfo.weeklyCommits}
+          size="half"
+          minChartWidth={weeklyChartMinWidth}
+        >
+          <div className="github-chart-section__canvas github-chart-section__canvas--md">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={weeklyCommitSeries}
+                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                barCategoryGap="26%"
+                barGap={6}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <XAxis
+                  dataKey="weekLabel"
+                  interval={0}
+                  tickMargin={14}
+                  tick={{ fill: "var(--muted)", fontSize: 11 }}
+                  tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
+                  label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fill: "var(--muted)" }}
+                  label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                />
+                <Tooltip
+                  labelFormatter={(_, payload) => {
+                    const row = payload?.[0]?.payload as
+                      | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
+                      | undefined;
+                    return row?.rangeStart && row?.rangeEnd
+                      ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
+                      : "Week";
+                  }}
+                  contentStyle={tooltipStyle}
+                />
+                <Bar
+                  dataKey="commits"
+                  name="Commits"
+                  fill={CHART_COLOR_COMMITS}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={34}
+                  animationDuration={420}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </GithubChartCard>
+      ) : null}
+    </div>
+  );
+}
+
+function ContributorBreakdown({
+  contributors,
+  repositoryFullName,
+  topContributorsBarSeries,
+}: {
+  contributors: ReturnType<typeof buildContributorRows>;
+  repositoryFullName?: string | null;
+  topContributorsBarSeries: ReturnType<typeof buildTopContributorBarSeries>;
+}) {
+  const axisWidth = getContributorAxisWidth(contributors);
+  const chartHeight = Math.max(320, topContributorsBarSeries.length * 36);
+
+  return (
+    <>
+      <div className="github-chart-section__grid">
+        {topContributorsBarSeries.length > 0 ? (
+          <GithubChartCard title="Top contributors by commits" info={chartInfo.topContributors} size="full">
+            <div className="github-chart-section__canvas" style={{ height: `${chartHeight}px` }}>
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={topContributorsSeries} layout="vertical" margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
+                <BarChart
+                  data={topContributorsBarSeries}
+                  layout="vertical"
+                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                  barCategoryGap="22%"
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis type="number" allowDecimals={false} tick={{ fill: "var(--muted)" }} />
-                  <YAxis type="category" dataKey="contributor" width={160} tick={{ fill: "var(--muted)" }} tickFormatter={(value) => {
-                    const text = String(value);
-                    return text.length > 22 ? `${text.slice(0, 22)}...` : text;
-                  }} />
-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }} />
-                  <Bar dataKey="commits" name="Commits" fill={CHART_COLOR_PRIMARY} />
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    tick={{ fill: "var(--muted)" }}
+                    label={{ value: "Commits", position: "insideBottomRight", offset: -2, fill: "var(--muted)" }}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="contributor"
+                    width={axisWidth}
+                    tick={{ fill: "var(--muted)", fontSize: 12 }}
+                    interval={0}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar
+                    dataKey="commits"
+                    name="Commits"
+                    fill={CHART_COLOR_COMMITS}
+                    radius={[0, 4, 4, 0]}
+                    maxBarSize={26}
+                    animationDuration={420}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </GithubChartCard>
         ) : null}
+      </div>
 
+      {contributors.length > 0 ? (
+        <div className="github-chart-section__contributor-grid" role="list">
+          {contributors.map((contributor) => (
+            <GithubContributorCard
+              key={contributor.key}
+              contributor={contributor}
+              repositoryFullName={repositoryFullName}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState />
+      )}
+    </>
+  );
+}
+
+function BranchActivity({
+  branchScopeCommitShareSeries,
+  coverageShareSeries,
+  branchCount,
+  defaultBranchName,
+}: {
+  branchScopeCommitShareSeries: ReturnType<typeof buildBranchScopeCommitShareSeries>;
+  coverageShareSeries: ReturnType<typeof buildCoverageShareSeries>;
+  branchCount: number;
+  defaultBranchName: string;
+}) {
+  return (
+    <>
+      <div className="github-chart-section__metrics">
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Default branch</p>
+          <p className="github-chart-section__metric-value">{defaultBranchName}</p>
+        </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Tracked branches</p>
+          <p className="github-chart-section__metric-value">{formatNumber(branchCount)}</p>
+        </article>
+      </div>
+
+      <div className="github-chart-section__grid">
         {branchScopeCommitShareSeries.length > 0 ? (
           <GithubDonutChartCard
-            title="Default vs other branches (commit share)"
+            title="Default vs other branches"
             data={branchScopeCommitShareSeries}
             info={chartInfo.branchScope}
             className="github-chart-section__panel github-chart-section__panel--half"
@@ -386,13 +358,328 @@ export function GithubRepoChartsDashboard({
 
         {coverageShareSeries.length > 0 ? (
           <GithubDonutChartCard
-            title="Mapping coverage (matched vs unmatched)"
+            title="Matched vs unmatched commits"
             data={coverageShareSeries}
             info={chartInfo.mappingCoverage}
             className="github-chart-section__panel github-chart-section__panel--half"
           />
         ) : null}
       </div>
+    </>
+  );
+}
+
+function PersonalActivity({
+  commitTimelineSeries,
+  personalWeeklySeries,
+  personalShares,
+}: {
+  commitTimelineSeries: ReturnType<typeof buildCommitTimelineSeries>;
+  personalWeeklySeries: ReturnType<typeof buildWeeklyCommitSeries>;
+  personalShares: ReturnType<typeof buildPersonalShareSeries>;
+}) {
+  const personalTimeline = commitTimelineSeries.map((row) => ({
+    date: row.date,
+    commits: Number(row.personalCommits ?? 0),
+  }));
+
+  const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 760, pointWidth: 58 });
+  const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 620, pointWidth: 80 });
+
+  return (
+    <GithubSectionContainer
+      kicker="My code activity"
+      title="Personal contribution analytics"
+      description="Your contribution share and commit rhythm based on the latest repository snapshot."
+    >
+      <div className="github-chart-section__metrics">
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Your commits</p>
+          <p className="github-chart-section__metric-value">{formatNumber(personalShares.personalCommits)}</p>
+        </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Your line changes</p>
+          <p className="github-chart-section__metric-value">{formatNumber(personalShares.personalLineChanges)}</p>
+        </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Commit share</p>
+          <p className="github-chart-section__metric-value">
+            {personalShares.totalCommits > 0
+              ? `${((personalShares.personalCommits / personalShares.totalCommits) * 100).toFixed(1)}%`
+              : "0%"}
+          </p>
+        </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Line share</p>
+          <p className="github-chart-section__metric-value">
+            {personalShares.totalLineChanges > 0
+              ? `${((personalShares.personalLineChanges / personalShares.totalLineChanges) * 100).toFixed(1)}%`
+              : "0%"}
+          </p>
+        </article>
+      </div>
+
+      <div className="github-chart-section__grid">
+        {personalShares.commitShare.length > 0 ? (
+          <GithubDonutChartCard
+            title="You vs team (commits)"
+            data={personalShares.commitShare}
+            info={chartInfo.personalCommitShare}
+            className="github-chart-section__panel github-chart-section__panel--half"
+          />
+        ) : null}
+
+        {personalShares.lineShare.length > 0 ? (
+          <GithubDonutChartCard
+            title="You vs team (line changes)"
+            data={personalShares.lineShare}
+            info={chartInfo.personalLineShare}
+            className="github-chart-section__panel github-chart-section__panel--half"
+          />
+        ) : null}
+
+        {personalTimeline.length > 0 ? (
+          <GithubChartCard
+            title="My commits over time"
+            info={chartInfo.personalCommitsTimeline}
+            size="full"
+            minChartWidth={timelineMinWidth}
+          >
+            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={personalTimeline}
+                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                  barCategoryGap="26%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="date"
+                    interval={0}
+                    tickMargin={14}
+                    tick={{ fill: "var(--muted)", fontSize: 11 }}
+                    tickFormatter={formatShortDate}
+                    label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "var(--muted)" }}
+                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                  />
+                  <Tooltip labelFormatter={(label) => formatShortDate(String(label))} contentStyle={tooltipStyle} />
+                  <Bar
+                    dataKey="commits"
+                    name="Commits"
+                    fill={CHART_COLOR_COMMITS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={34}
+                    animationDuration={420}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </GithubChartCard>
+        ) : null}
+
+        {personalWeeklySeries.length > 0 ? (
+          <GithubChartCard
+            title="My weekly commit totals"
+            info={chartInfo.personalWeeklyCommits}
+            size="full"
+            minChartWidth={weeklyMinWidth}
+          >
+            <div className="github-chart-section__canvas github-chart-section__canvas--md">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={personalWeeklySeries}
+                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                  barCategoryGap="26%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="weekLabel"
+                    interval={0}
+                    tickMargin={14}
+                    tick={{ fill: "var(--muted)", fontSize: 11 }}
+                    tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
+                    label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "var(--muted)" }}
+                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                  />
+                  <Tooltip
+                    labelFormatter={(_, payload) => {
+                      const row = payload?.[0]?.payload as
+                        | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
+                        | undefined;
+                      return row?.rangeStart && row?.rangeEnd
+                        ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
+                        : "Week";
+                    }}
+                    contentStyle={tooltipStyle}
+                  />
+                  <Bar
+                    dataKey="commits"
+                    name="Commits"
+                    fill={CHART_COLOR_COMMITS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={34}
+                    animationDuration={420}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </GithubChartCard>
+        ) : null}
+      </div>
+    </GithubSectionContainer>
+  );
+}
+
+export function GithubRepoChartsDashboard({
+  snapshot,
+  coverage,
+  currentGithubLogin,
+  viewerMode = "student",
+  viewMode,
+  repositoryFullName,
+}: GithubRepoChartsDashboardProps) {
+  const resolvedMode: ChartViewMode = viewMode || (viewerMode === "staff" ? "staff" : "team");
+
+  const showPersonalCommitSeries = resolvedMode !== "staff";
+  const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin, {
+    includePersonal: showPersonalCommitSeries,
+  });
+  const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
+  const weeklyCommitSeries = buildWeeklyCommitSeries(
+    commitTimelineSeries.map((row) => ({ date: row.date, commits: row.commits }))
+  );
+  const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
+  const coverageShareSeries = buildCoverageShareSeries(coverage);
+  const contributors = buildContributorRows(snapshot);
+  const topContributorsBarSeries = buildTopContributorBarSeries(contributors);
+  const lineChangeDomain = getLineChangeDomain(lineChangesByDaySeries);
+  const personalShares = buildPersonalShareSeries({ snapshot, currentGithubLogin });
+  const personalWeeklySeries = buildWeeklyCommitSeries(
+    commitTimelineSeries
+      .map((row) => ({ date: row.date, commits: Number(row.personalCommits ?? 0) }))
+      .filter((row) => row.commits > 0)
+  );
+
+  const totalContributors = Number(snapshot?.repoStats?.[0]?.totalContributors ?? 0);
+  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
+  const totalAdditions = Number(snapshot?.repoStats?.[0]?.totalAdditions ?? 0);
+  const totalDeletions = Number(snapshot?.repoStats?.[0]?.totalDeletions ?? 0);
+  const branchCount = Number(snapshot?.data?.branchScopeStats?.allBranches?.branchCount ?? 0);
+  const defaultBranchName = snapshot?.data?.branchScopeStats?.defaultBranch?.branch || "main";
+
+  const hasData =
+    commitTimelineSeries.length > 0 ||
+    lineChangesByDaySeries.length > 0 ||
+    weeklyCommitSeries.length > 0 ||
+    contributors.length > 0 ||
+    personalShares.commitShare.length > 0 ||
+    personalShares.lineShare.length > 0;
+
+  if (!hasData) {
+    return (
+      <section className="github-chart-section" aria-label="Repository charts">
+        <EmptyState />
+      </section>
+    );
+  }
+
+  if (resolvedMode === "personal") {
+    return (
+      <section className="github-chart-section" aria-label="My code activity charts">
+        <PersonalActivity
+          commitTimelineSeries={commitTimelineSeries}
+          personalWeeklySeries={personalWeeklySeries}
+          personalShares={personalShares}
+        />
+      </section>
+    );
+  }
+
+  const sectionLabels =
+    resolvedMode === "staff"
+      ? {
+          analyticsKicker: "Team Overview",
+          analyticsTitle: "Repository analytics",
+          analyticsDescription:
+            "A clean view of commit trends and line-change activity for staff review.",
+          contributorsKicker: "Contributor Breakdown",
+          contributorsTitle: "Commit and line-change leaders",
+          branchKicker: "Repository Activity",
+          branchTitle: "Branch scope and mapping confidence",
+        }
+      : {
+          analyticsKicker: "Repository Analytics",
+          analyticsTitle: "Team code activity",
+          analyticsDescription:
+            "Team-level trends across commits and line changes with consistent date-based charts.",
+          contributorsKicker: "Contributor Breakdown",
+          contributorsTitle: "Contributor cards and rankings",
+          branchKicker: "Branch Activity",
+          branchTitle: "Default vs branch activity",
+        };
+
+  return (
+    <section className="github-chart-section" aria-label="Repository charts">
+      <GithubSectionContainer
+        kicker={sectionLabels.analyticsKicker}
+        title={sectionLabels.analyticsTitle}
+        description={sectionLabels.analyticsDescription}
+      >
+        <div className="github-chart-section__metrics">
+          <article className="github-chart-section__metric">
+            <p className="github-chart-section__metric-label">Total commits</p>
+            <p className="github-chart-section__metric-value">{formatNumber(totalCommits)}</p>
+          </article>
+          <article className="github-chart-section__metric">
+            <p className="github-chart-section__metric-label">Contributors</p>
+            <p className="github-chart-section__metric-value">{formatNumber(totalContributors)}</p>
+          </article>
+          <article className="github-chart-section__metric">
+            <p className="github-chart-section__metric-label">Additions</p>
+            <p className="github-chart-section__metric-value">{formatNumber(totalAdditions)}</p>
+          </article>
+          <article className="github-chart-section__metric">
+            <p className="github-chart-section__metric-label">Deletions</p>
+            <p className="github-chart-section__metric-value">{formatNumber(totalDeletions)}</p>
+          </article>
+        </div>
+
+        <RepositoryAnalyticsCharts
+          commitTimelineSeries={commitTimelineSeries}
+          lineChangesByDaySeries={lineChangesByDaySeries}
+          weeklyCommitSeries={weeklyCommitSeries}
+          lineChangeDomain={lineChangeDomain}
+          showPersonalCommitSeries={showPersonalCommitSeries}
+        />
+      </GithubSectionContainer>
+
+      <GithubSectionContainer
+        kicker={sectionLabels.contributorsKicker}
+        title={sectionLabels.contributorsTitle}
+      >
+        <ContributorBreakdown
+          contributors={contributors}
+          repositoryFullName={repositoryFullName}
+          topContributorsBarSeries={topContributorsBarSeries}
+        />
+      </GithubSectionContainer>
+
+      <GithubSectionContainer kicker={sectionLabels.branchKicker} title={sectionLabels.branchTitle}>
+        <BranchActivity
+          branchScopeCommitShareSeries={branchScopeCommitShareSeries}
+          coverageShareSeries={coverageShareSeries}
+          branchCount={branchCount}
+          defaultBranchName={defaultBranchName}
+        />
+      </GithubSectionContainer>
     </section>
   );
 }
