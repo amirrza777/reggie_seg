@@ -100,11 +100,13 @@ beforeEach(() => {
 });
 
 describe("enterpriseAdmin router access control", () => {
-  it("returns module access payload and allows leader to update module", async () => {
-    const getAccess = getRouteHandler("get", "/modules/:moduleId/access");
-    const getAccessSelection = getRouteHandler("get", "/modules/:moduleId/access-selection");
-    const updateModule = getRouteHandler("put", "/modules/:moduleId");
+  const getAccess = getRouteHandler("get", "/modules/:moduleId/access");
+  const getAccessSelection = getRouteHandler("get", "/modules/:moduleId/access-selection");
+  const updateModule = getRouteHandler("put", "/modules/:moduleId");
+  const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
+  const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
 
+  it("returns module access payload", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
       name: "Databases",
@@ -141,14 +143,17 @@ describe("enterpriseAdmin router access control", () => {
         },
       ]);
 
-    let res = mockRes();
+    const res = mockRes();
     await getAccess({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         module: expect.objectContaining({ id: 2, leaderCount: 1, teachingAssistantCount: 1, studentCount: 1 }),
       }),
     );
+  });
 
+  it("returns module access selection ids", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
       name: "Databases",
@@ -164,8 +169,10 @@ describe("enterpriseAdmin router access control", () => {
     (prisma.moduleLead.findMany as any).mockResolvedValueOnce([{ userId: 11 }]);
     (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValueOnce([{ userId: 12 }]);
     (prisma.userModule.findMany as any).mockResolvedValueOnce([{ userId: 31 }]);
-    res = mockRes();
+
+    const res = mockRes();
     await getAccessSelection({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         module: expect.objectContaining({ id: 2 }),
@@ -174,7 +181,9 @@ describe("enterpriseAdmin router access control", () => {
         studentIds: [31],
       }),
     );
+  });
 
+  it("allows module update for module lead", async () => {
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
     (prisma.module.findFirst as any)
       .mockResolvedValueOnce(null)
@@ -192,7 +201,7 @@ describe("enterpriseAdmin router access control", () => {
       });
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
 
-    res = mockRes();
+    const res = mockRes();
     await updateModule(
       {
         enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" },
@@ -217,8 +226,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("deletes module for users who can manage module access", async () => {
-    const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
-
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 2 });
 
@@ -233,7 +240,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("forbids module deletion for non-leaders", async () => {
-    const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce(null);
 
     const res = mockRes();
@@ -244,8 +250,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("allows enterprise admin module updates as an override without module-lead membership", async () => {
-    const updateModule = getRouteHandler("put", "/modules/:moduleId");
-
     (prisma.module.findFirst as any).mockResolvedValue(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
 
@@ -265,8 +269,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("forbids feature flag updates for staff users", async () => {
-    const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
-
     const res = mockRes();
     await patchFeatureFlag(
       {

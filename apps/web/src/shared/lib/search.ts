@@ -122,13 +122,13 @@ function isWithinEditDistance(left: string, right: string, maxDistance: number):
     let rowMinimum = currentRow[0];
 
     for (let column = 1; column <= rightLength; column += 1) {
-      const substitutionCost = left[row - 1] === right[column - 1] ? 0 : 1;
+      const substitutionCost = getSubstitutionCost(left[row - 1], right[column - 1]);
       const deletion = previousRow[column] + 1;
       const insertion = currentRow[column - 1] + 1;
       const substitution = previousRow[column - 1] + substitutionCost;
       const distance = Math.min(deletion, insertion, substitution);
       currentRow[column] = distance;
-      if (distance < rowMinimum) rowMinimum = distance;
+      rowMinimum = Math.min(rowMinimum, distance);
     }
 
     if (rowMinimum > maxDistance) return false;
@@ -139,6 +139,24 @@ function isWithinEditDistance(left: string, right: string, maxDistance: number):
   }
 
   return previousRow[rightLength] <= maxDistance;
+}
+
+function getSubstitutionCost(leftChar: string, rightChar: string) {
+  if (leftChar === rightChar) return 0;
+  return 1;
+}
+
+function isOrderedSubsequence(source: string, query: string): boolean {
+  if (!query) return true;
+  let queryIndex = 0;
+
+  for (let sourceIndex = 0; sourceIndex < source.length && queryIndex < query.length; sourceIndex += 1) {
+    if (source[sourceIndex] === query[queryIndex]) {
+      queryIndex += 1;
+    }
+  }
+
+  return queryIndex === query.length;
 }
 
 function hasFuzzyTokenMatch(searchText: string, normalizedQuery: string): boolean {
@@ -153,6 +171,7 @@ function hasFuzzyTokenMatch(searchText: string, normalizedQuery: string): boolea
     return searchTokens.some((searchToken) => {
       if (searchToken.includes(queryToken)) return true;
       if (queryToken.includes(searchToken) && queryToken.length > 3) return true;
+      if (queryToken.length >= 2 && isOrderedSubsequence(searchToken, queryToken)) return true;
       return isWithinEditDistance(searchToken, queryToken, maxDistance);
     });
   });

@@ -62,81 +62,20 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
 
 /** Returns the module access. */
 export async function getModuleAccess(enterpriseUser: EnterpriseUser, moduleId: number) {
-  const module = await prisma.module.findFirst({
-    where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
-    select: MODULE_SELECT,
-  });
+  const module = await findManagedModule(enterpriseUser.enterpriseId, moduleId);
   if (!module) return { ok: false as const, status: 404, error: "Module not found" };
 
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
   if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
 
-  const [staffUsers, students] = await Promise.all([
-    prisma.user.findMany({
-      where: {
-        enterpriseId: enterpriseUser.enterpriseId,
-        role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] },
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        active: true,
-        moduleLeads: {
-          where: { moduleId },
-          select: { moduleId: true },
-        },
-        moduleTeachingAssistants: {
-          where: { moduleId },
-          select: { moduleId: true },
-        },
-      },
-      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
-    }),
-    prisma.user.findMany({
-      where: { enterpriseId: enterpriseUser.enterpriseId, role: "STUDENT" },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        active: true,
-        userModules: {
-          where: { enterpriseId: enterpriseUser.enterpriseId, moduleId },
-          select: { moduleId: true },
-        },
-        moduleTeachingAssistants: {
-          where: { moduleId },
-          select: { moduleId: true },
-        },
-      },
-      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
-    }),
-  ]);
+  const { staffUsers, students } = await loadModuleAccessUsers(enterpriseUser.enterpriseId, moduleId);
 
   return {
     ok: true as const,
     value: {
       module: mapModuleRecord(module),
-      staff: staffUsers.map((user) => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        active: user.active,
-        isLeader: user.moduleLeads.length > 0,
-        isTeachingAssistant: user.moduleTeachingAssistants.length > 0,
-      })),
-      students: students.map((student) => ({
-        id: student.id,
-        email: student.email,
-        firstName: student.firstName,
-        lastName: student.lastName,
-        active: student.active,
-        enrolled: student.userModules.length > 0,
-        isTeachingAssistant: student.moduleTeachingAssistants.length > 0,
-      })),
+      staff: staffUsers.map(mapStaffAccessUser),
+      students: students.map(mapStudentAccessUser),
     },
   };
 }
@@ -187,17 +126,10 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
     return { ok: false as const, status: 400, error: "At least one module leader is required" };
   }
 
-  const taIds = payload.taIds.filter((id) => !payload.leaderIds.includes(id));
+  const taIds = removeLeaderIds(payload.taIds, payload.leaderIds);
 
-  const existing = await prisma.module.findFirst({
-    where: {
-      enterpriseId: enterpriseUser.enterpriseId,
-      name: payload.name,
-      id: { not: moduleId },
-    },
-    select: { id: true },
-  });
-  if (existing) return { ok: false as const, status: 409, error: "Module name already exists" };
+  const nameExists = await moduleNameExists(enterpriseUser.enterpriseId, payload.name, moduleId);
+  if (nameExists) return { ok: false as const, status: 409, error: "Module name already exists" };
 
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
@@ -207,38 +139,151 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
-  const updated = await prisma.$transaction(async (tx) => {
+  const updated = await updateModuleRecord({
+    enterpriseId: enterpriseUser.enterpriseId,
+    moduleId,
+    payload,
+    taIds,
+  });
+
+  if (!updated) return { ok: false as const, status: 404, error: "Module not found" };
+  return { ok: true as const, value: mapModuleRecord(updated) };
+}
+
+async function findManagedModule(enterpriseId: string, moduleId: number) {
+  return prisma.module.findFirst({
+    where: { id: moduleId, enterpriseId },
+    select: MODULE_SELECT,
+  });
+}
+
+async function loadModuleAccessUsers(enterpriseId: string, moduleId: number) {
+  const [staffUsers, students] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        enterpriseId,
+        role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+        moduleLeads: { where: { moduleId }, select: { moduleId: true } },
+        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+      },
+      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
+    }),
+    prisma.user.findMany({
+      where: { enterpriseId, role: "STUDENT" },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+        userModules: { where: { enterpriseId, moduleId }, select: { moduleId: true } },
+        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+      },
+      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
+    }),
+  ]);
+
+  return { staffUsers, students };
+}
+
+function mapStaffAccessUser(user: {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  moduleLeads: { moduleId: number }[];
+  moduleTeachingAssistants: { moduleId: number }[];
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    active: user.active,
+    isLeader: user.moduleLeads.length > 0,
+    isTeachingAssistant: user.moduleTeachingAssistants.length > 0,
+  };
+}
+
+function mapStudentAccessUser(student: {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  userModules: { moduleId: number }[];
+  moduleTeachingAssistants: { moduleId: number }[];
+}) {
+  return {
+    id: student.id,
+    email: student.email,
+    firstName: student.firstName,
+    lastName: student.lastName,
+    active: student.active,
+    enrolled: student.userModules.length > 0,
+    isTeachingAssistant: student.moduleTeachingAssistants.length > 0,
+  };
+}
+
+function removeLeaderIds(taIds: number[], leaderIds: number[]) {
+  return taIds.filter((id) => !leaderIds.includes(id));
+}
+
+async function moduleNameExists(enterpriseId: string, moduleName: string, excludeModuleId: number) {
+  const existing = await prisma.module.findFirst({
+    where: {
+      enterpriseId,
+      name: moduleName,
+      id: { not: excludeModuleId },
+    },
+    select: { id: true },
+  });
+  return Boolean(existing);
+}
+
+async function updateModuleRecord(params: {
+  enterpriseId: string;
+  moduleId: number;
+  payload: ParsedModulePayload;
+  taIds: number[];
+}) {
+  return prisma.$transaction(async (tx) => {
     const module = await tx.module.findFirst({
-      where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
+      where: { id: params.moduleId, enterpriseId: params.enterpriseId },
       select: { id: true },
     });
     if (!module) return null;
 
     await tx.module.update({
-      where: { id: moduleId },
+      where: { id: params.moduleId },
       data: {
-        name: payload.name,
-        briefText: payload.briefText,
-        timelineText: payload.timelineText,
-        expectationsText: payload.expectationsText,
-        readinessNotesText: payload.readinessNotesText,
+        name: params.payload.name,
+        briefText: params.payload.briefText,
+        timelineText: params.payload.timelineText,
+        expectationsText: params.payload.expectationsText,
+        readinessNotesText: params.payload.readinessNotesText,
       },
       select: { id: true },
     });
 
     await replaceModuleAssignments(tx, {
-      enterpriseId: enterpriseUser.enterpriseId,
-      moduleId,
-      leaderIds: payload.leaderIds,
-      taIds,
-      studentIds: payload.studentIds,
+      enterpriseId: params.enterpriseId,
+      moduleId: params.moduleId,
+      leaderIds: params.payload.leaderIds,
+      taIds: params.taIds,
+      studentIds: params.payload.studentIds,
     });
 
-    return tx.module.findUnique({ where: { id: moduleId }, select: MODULE_SELECT });
+    return tx.module.findUnique({ where: { id: params.moduleId }, select: MODULE_SELECT });
   });
-
-  if (!updated) return { ok: false as const, status: 404, error: "Module not found" };
-  return { ok: true as const, value: mapModuleRecord(updated) };
 }
 
 /** Deletes the module. */
