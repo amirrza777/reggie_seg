@@ -124,6 +124,24 @@
   background: var(--surface);
 }
 
+.table__header--sortable {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.table__header--sortable:hover {
+  color: var(--ink);
+}
+
+.table__sort-indicator {
+  display: flex;
+  align-items: center;
+  opacity: 0.7;
+}
+
 .module-dashboard__brief {
   display: grid;
   gap: 12px;
