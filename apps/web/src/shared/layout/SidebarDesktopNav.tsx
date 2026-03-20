@@ -60,25 +60,43 @@ function DesktopSidebarGroup({
       </button>
       <div className={`sidebar__group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
         <div className="sidebar__group-collapse-inner">
-          <div className="sidebar__group-items">
-            {(link.children ?? []).map((child, index) => {
-              const isChildActive = activeChildHref === child.href;
-              return (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  className={`sidebar__sublink ${isChildActive ? "is-active" : ""}`}
-                  aria-current={isChildActive ? "page" : undefined}
-                  style={getDropdownItemStyle(index)}
-                  tabIndex={groupOpen ? undefined : -1}
-                >
-                  {child.label}
-                </Link>
-              );
-            })}
-          </div>
+          <DesktopSidebarChildLinks
+            childrenLinks={link.children ?? []}
+            activeChildHref={activeChildHref}
+            groupOpen={groupOpen}
+          />
         </div>
       </div>
+    </div>
+  );
+}
+
+function DesktopSidebarChildLinks({
+  childrenLinks,
+  activeChildHref,
+  groupOpen,
+}: {
+  childrenLinks: NonNullable<SidebarLink["children"]>;
+  activeChildHref: string | null;
+  groupOpen: boolean;
+}) {
+  return (
+    <div className="sidebar__group-items">
+      {childrenLinks.map((child, index) => {
+        const isChildActive = activeChildHref === child.href;
+        return (
+          <Link
+            key={child.href}
+            href={child.href}
+            className={`sidebar__sublink ${isChildActive ? "is-active" : ""}`}
+            aria-current={isChildActive ? "page" : undefined}
+            style={getDropdownItemStyle(index)}
+            tabIndex={groupOpen ? undefined : -1}
+          >
+            {child.label}
+          </Link>
+        );
+      })}
     </div>
   );
 }
