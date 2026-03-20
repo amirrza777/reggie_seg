@@ -1,5 +1,7 @@
 import type { Prisma, TeamAllocationLifecycle, TeamInviteStatus } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
+import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
 type StaffUserRole = "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 type StaffScopedActorRole = StaffUserRole | "STUDENT";
@@ -114,6 +116,33 @@ export type CustomAllocationLatestResponse = {
   answersJson: unknown;
 };
 
+type ManualAllocationStudentCandidate = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  teamAllocations: Array<{ team: { id: number; teamName: string } }>;
+};
+
+function matchesManualAllocationStudentQuery(
+  student: ManualAllocationStudentCandidate,
+  query: string,
+): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: student.id,
+    sources: [
+      student.firstName,
+      student.lastName,
+      student.email,
+      `${student.firstName} ${student.lastName}`,
+      ...student.teamAllocations.map((allocation) => allocation.team.teamName),
+      `student ${student.id}`,
+    ],
+  });
+}
+
+/** Returns the active invite. */
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
   return prisma.teamInvite.findFirst({
     where: {
@@ -400,22 +429,11 @@ export async function findModuleStudentsForManualAllocation(
   projectId: number,
   searchQuery?: string,
 ): Promise<ManualAllocationStudent[]> {
-  const normalizedSearchQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
-  const searchFilters: Prisma.UserWhereInput[] = [];
-  if (normalizedSearchQuery.length > 0) {
-    const queryFilters: Prisma.UserWhereInput[] = [
-      { email: { contains: normalizedSearchQuery, mode: "insensitive" } },
-      { firstName: { contains: normalizedSearchQuery, mode: "insensitive" } },
-      { lastName: { contains: normalizedSearchQuery, mode: "insensitive" } },
-    ];
-    const numericQuery = Number(normalizedSearchQuery);
-    if (Number.isInteger(numericQuery) && numericQuery > 0) {
-      queryFilters.push({ id: numericQuery });
-    }
-    searchFilters.push({ OR: queryFilters });
-  }
+  const normalizedQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
 
-  const students = await prisma.user.findMany({
+  let students: ManualAllocationStudentCandidate[] = await prisma.user.findMany({
     where: {
       enterpriseId,
       active: true,
@@ -426,7 +444,27 @@ export async function findModuleStudentsForManualAllocation(
           moduleId,
         },
       },
-      ...(searchFilters.length > 0 ? { AND: searchFilters } : {}),
+      ...(hasQuery
+        ? {
+            OR: [
+              { firstName: { contains: normalizedQuery, mode: "insensitive" } },
+              { lastName: { contains: normalizedQuery, mode: "insensitive" } },
+              { email: { contains: normalizedQuery, mode: "insensitive" } },
+              {
+                teamAllocations: {
+                  some: {
+                    team: {
+                      projectId,
+                      archivedAt: null,
+                      teamName: { contains: normalizedQuery, mode: "insensitive" },
+                    },
+                  },
+                },
+              },
+              ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+            ],
+          }
+        : {}),
     },
     select: {
       id: true,
@@ -455,6 +493,52 @@ export async function findModuleStudentsForManualAllocation(
       },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+  students = await applyFuzzyFallback<ManualAllocationStudentCandidate>(students, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: async (limit) =>
+      prisma.user.findMany({
+        where: {
+          enterpriseId,
+          active: true,
+          role: "STUDENT",
+          userModules: {
+            some: {
+              enterpriseId,
+              moduleId,
+            },
+          },
+        },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          teamAllocations: {
+            where: {
+              team: {
+                projectId,
+                archivedAt: null,
+              },
+            },
+            select: {
+              team: {
+                select: {
+                  id: true,
+                  teamName: true,
+                },
+              },
+            },
+            orderBy: {
+              teamId: "asc",
+            },
+            take: 1,
+          },
+        },
+        orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+        take: limit,
+      }),
+    matches: (student, query) => matchesManualAllocationStudentQuery(student, query),
   });
 
   return students.map((student) => {
@@ -1190,7 +1274,11 @@ export async function applyRandomAllocationPlan(
     }
 
     for (let index = 0; index < requestedTeamNames.length; index += 1) {
-      const teamName = requestedTeamNames[index].trim();
+      const requestedTeamName = requestedTeamNames[index];
+      if (!requestedTeamName) {
+        throw { code: "INVALID_TEAM_NAMES" };
+      }
+      const teamName = requestedTeamName.trim();
       if (teamName.length === 0) {
         throw { code: "INVALID_TEAM_NAMES" };
       }
@@ -1216,7 +1304,11 @@ export async function applyRandomAllocationPlan(
 
     for (let index = 0; index < plannedTeams.length; index += 1) {
       const team = targetTeams[index];
-      const allocations = plannedTeams[index].members.map((member) => ({
+      const plan = plannedTeams[index];
+      if (!team || !plan) {
+        throw { code: "INVALID_TEAM_NAMES" };
+      }
+      const allocations = plan.members.map((member) => ({
         teamId: team.id,
         userId: member.id,
       }));
@@ -1229,11 +1321,17 @@ export async function applyRandomAllocationPlan(
       }
     }
 
-    return plannedTeams.map((plan, index) => ({
-      id: targetTeams[index].id,
-      teamName: targetTeams[index].teamName,
-      memberCount: plan.members.length,
-    }));
+    return plannedTeams.map((plan, index) => {
+      const team = targetTeams[index];
+      if (!team) {
+        throw { code: "INVALID_TEAM_NAMES" };
+      }
+      return {
+        id: team.id,
+        teamName: team.teamName,
+        memberCount: plan.members.length,
+      };
+    });
   });
 }
 

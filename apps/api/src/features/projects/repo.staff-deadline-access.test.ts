@@ -198,13 +198,19 @@ describe("projects repo staff and deadline access queries", () => {
     expect(prisma.project.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
-          module: {
-            enterpriseId: "ent-1",
-            OR: [
-              { moduleLeads: { some: { userId: 21 } } },
-              { moduleTeachingAssistants: { some: { userId: 21 } } },
-            ],
-          },
+          AND: [
+            {
+              module: {
+                enterpriseId: "ent-1",
+              },
+            },
+            {
+              OR: [
+                { module: { moduleLeads: { some: { userId: 21 } } } },
+                { module: { moduleTeachingAssistants: { some: { userId: 21 } } } },
+              ],
+            },
+          ],
         },
       }),
     );

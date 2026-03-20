@@ -75,6 +75,30 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 describe("teamAllocation service manual allocation", () => {
+  const scopedProject = {
+    id: 42,
+    name: "Project A",
+    moduleId: 11,
+    moduleName: "Module A",
+    archivedAt: null,
+    enterpriseId: "ent-9",
+  };
+
+  const availableStudents = [
+    { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
+    { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
+  ];
+
+  function mockManualAllocationSuccessContext() {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue(availableStudents);
+    (repo.applyManualAllocationTeam as any).mockResolvedValue({
+      id: 90,
+      teamName: "Team Gamma",
+      memberCount: 2,
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue(null);
@@ -98,15 +122,8 @@ describe("teamAllocation service manual allocation", () => {
     });
   });
 
-  it("getManualAllocationWorkspaceForProject returns students with statuses and counts", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
+  it("getManualAllocationWorkspaceForProject maps project metadata and aggregate counts", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
     (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
       {
         id: 1,
@@ -139,6 +156,37 @@ describe("teamAllocation service manual allocation", () => {
       moduleId: 11,
       moduleName: "Module A",
     });
+    expect(result.counts).toEqual({
+      totalStudents: 2,
+      availableStudents: 1,
+      alreadyInTeamStudents: 1,
+    });
+  });
+
+  it("getManualAllocationWorkspaceForProject maps student availability statuses", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
+      {
+        id: 1,
+        firstName: "A",
+        lastName: "A",
+        email: "a@example.com",
+        currentTeamId: 91,
+        currentTeamName: "Team Alpha",
+      },
+      {
+        id: 2,
+        firstName: "B",
+        lastName: "B",
+        email: "b@example.com",
+        currentTeamId: null,
+        currentTeamName: null,
+      },
+    ]);
+    (repo.findProjectTeamSummaries as any).mockResolvedValue([]);
+
+    const result = await getManualAllocationWorkspaceForProject(3, 42);
+
     expect(result.students).toEqual([
       {
         id: 1,
@@ -157,11 +205,6 @@ describe("teamAllocation service manual allocation", () => {
         currentTeam: null,
       },
     ]);
-    expect(result.counts).toEqual({
-      totalStudents: 2,
-      availableStudents: 1,
-      alreadyInTeamStudents: 1,
-    });
   });
 
   it("applyManualAllocationForProject validates team name and student ids", async () => {
@@ -242,24 +285,7 @@ describe("teamAllocation service manual allocation", () => {
   });
 
   it("applyManualAllocationForProject creates a draft team", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
-    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
-    ]);
-    (repo.applyManualAllocationTeam as any).mockResolvedValue({
-      id: 90,
-      teamName: "Team Gamma",
-      memberCount: 2,
-    });
-
+    mockManualAllocationSuccessContext();
     const result = await applyManualAllocationForProject(3, 42, {
       teamName: "Team Gamma",
       studentIds: [1, 2],
@@ -285,23 +311,7 @@ describe("teamAllocation service manual allocation", () => {
   });
 
   it("applyManualAllocationForProject does not send notification emails for drafts", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
-    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
-    ]);
-    (repo.applyManualAllocationTeam as any).mockResolvedValue({
-      id: 90,
-      teamName: "Team Gamma",
-      memberCount: 2,
-    });
+    mockManualAllocationSuccessContext();
 
     await expect(
       applyManualAllocationForProject(3, 42, {

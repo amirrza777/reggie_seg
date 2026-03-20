@@ -84,6 +84,17 @@ function parseOptionalPositiveInteger(value: unknown): number | null | "invalid"
   return parsed;
 }
 
+function parseOptionalInteger(value: unknown): number | null | "invalid" {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed)) {
+    return "invalid";
+  }
+  return parsed;
+}
+
 function parseManualAllocationSearchQuery(value: unknown): string | null | "invalid" {
   if (value === undefined || value === null || value === "") {
     return null;
@@ -309,6 +320,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.query.teamCount);
+  const seed = parseOptionalInteger(req.query.seed);
   const minTeamSize = parseOptionalPositiveInteger(req.query.minTeamSize);
   const maxTeamSize = parseOptionalPositiveInteger(req.query.maxTeamSize);
 
@@ -320,6 +332,9 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   }
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (seed === "invalid") {
+    return res.status(400).json({ error: "seed must be an integer when provided" });
   }
   if (minTeamSize === "invalid") {
     return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
@@ -337,7 +352,8 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
     return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
   }
   try {
-    const randomOptions = {
+    const randomOptions: { seed?: number; minTeamSize?: number; maxTeamSize?: number } = {
+      ...(seed !== null && seed !== "invalid" ? { seed } : {}),
       ...(minTeamSize !== null && minTeamSize !== "invalid" ? { minTeamSize } : {}),
       ...(maxTeamSize !== null && maxTeamSize !== "invalid" ? { maxTeamSize } : {}),
     };
@@ -844,6 +860,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamCount = Number(req.body?.teamCount);
+  const seed = parseOptionalInteger(req.body?.seed);
   const minTeamSize = parseOptionalPositiveInteger(req.body?.minTeamSize);
   const maxTeamSize = parseOptionalPositiveInteger(req.body?.maxTeamSize);
   const rawTeamNames = req.body?.teamNames;
@@ -863,6 +880,9 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
   }
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (seed === "invalid") {
+    return res.status(400).json({ error: "seed must be an integer when provided" });
   }
   if (minTeamSize === "invalid") {
     return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
@@ -885,6 +905,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
 
   try {
     const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
+      ...(seed !== null && seed !== "invalid" ? { seed } : {}),
       ...(teamNames !== undefined ? { teamNames } : {}),
       ...(minTeamSize !== null && minTeamSize !== "invalid" ? { minTeamSize } : {}),
       ...(maxTeamSize !== null && maxTeamSize !== "invalid" ? { maxTeamSize } : {}),
@@ -1004,7 +1025,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
   const projectId = Number(req.params.projectId);
   const teamName = typeof req.body?.teamName === "string" ? req.body.teamName : "";
   const rawStudentIds = Array.isArray(req.body?.studentIds) ? req.body.studentIds : null;
-  const studentIds = rawStudentIds ? rawStudentIds.map((studentId) => Number(studentId)) : null;
+  const studentIds = rawStudentIds ? rawStudentIds.map((studentId: unknown) => Number(studentId)) : null;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -1012,7 +1033,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
   }
-  if (rawStudentIds === null || studentIds === null || studentIds.some((studentId) => Number.isNaN(studentId))) {
+  if (rawStudentIds === null || studentIds === null || studentIds.some((studentId: number) => Number.isNaN(studentId))) {
     return res.status(400).json({ error: "studentIds must be an array of numbers" });
   }
 

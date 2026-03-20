@@ -41,18 +41,22 @@ describe("projects controller team health handlers", () => {
     vi.clearAllMocks();
   });
 
-  it("createTeamHealthMessageHandler validates payload and creates request", async () => {
-    const badRes = mockResponse();
-    await createTeamHealthMessageHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, badRes);
-    expect(badRes.status).toHaveBeenCalledWith(400);
+  it("createTeamHealthMessageHandler validates project id", async () => {
+    const res = mockResponse();
+    await createTeamHealthMessageHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
 
-    const badBodyRes = mockResponse();
+  it("createTeamHealthMessageHandler validates message payload", async () => {
+    const res = mockResponse();
     await createTeamHealthMessageHandler(
       { params: { projectId: "2" }, body: { userId: 7, subject: " ", details: "detail" } } as any,
-      badBodyRes,
+      res,
     );
-    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
 
+  it("createTeamHealthMessageHandler creates a request when payload is valid", async () => {
     (service.submitTeamHealthMessage as any).mockResolvedValue({
       id: 11,
       projectId: 2,
@@ -62,29 +66,31 @@ describe("projects controller team health handlers", () => {
       details: "Please review team dynamics",
       resolved: false,
     });
-    const okRes = mockResponse();
+    const res = mockResponse();
     await createTeamHealthMessageHandler(
       {
         params: { projectId: "2" },
         body: { userId: 7, subject: " Need support ", details: " Please review team dynamics " },
       } as any,
-      okRes,
+      res,
     );
     expect(service.submitTeamHealthMessage).toHaveBeenCalledWith(7, 2, "Need support", "Please review team dynamics");
-    expect(okRes.status).toHaveBeenCalledWith(201);
-    expect(okRes.json).toHaveBeenCalledWith(
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         request: expect.objectContaining({ id: 11, resolved: false }),
       }),
     );
+  });
 
+  it("createTeamHealthMessageHandler returns 404 when project/team membership is missing", async () => {
     (service.submitTeamHealthMessage as any).mockResolvedValue(null);
-    const missingRes = mockResponse();
+    const res = mockResponse();
     await createTeamHealthMessageHandler(
       { params: { projectId: "2" }, body: { userId: 7, subject: "Need", details: "Help" } } as any,
-      missingRes,
+      res,
     );
-    expect(missingRes.status).toHaveBeenCalledWith(404);
+    expect(res.status).toHaveBeenCalledWith(404);
   });
 
   it("getMyTeamHealthMessagesHandler validates ids and returns requester list", async () => {

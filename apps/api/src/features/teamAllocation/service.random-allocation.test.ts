@@ -75,6 +75,22 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 describe("teamAllocation service random allocation", () => {
+  const scopedProject = {
+    id: 42,
+    name: "Project A",
+    moduleId: 11,
+    moduleName: "Module A",
+    archivedAt: null,
+    enterpriseId: "ent-9",
+  };
+
+  const fourStudents = [
+    { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
+    { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
+    { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
+    { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+  ];
+
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue(null);
@@ -126,19 +142,9 @@ describe("teamAllocation service random allocation", () => {
   });
 
   it("previewRandomAllocationForProject returns random preview payload", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
     (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
-      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
-      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
+      ...fourStudents,
       { id: 5, firstName: "E", lastName: "E", email: "e@example.com" },
     ]);
     (repo.findProjectTeamSummaries as any).mockResolvedValue([
@@ -154,6 +160,20 @@ describe("teamAllocation service random allocation", () => {
       moduleId: 11,
       moduleName: "Module A",
     });
+  });
+
+  it("previewRandomAllocationForProject balances members across preview teams", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
+      ...fourStudents,
+      { id: 5, firstName: "E", lastName: "E", email: "e@example.com" },
+    ]);
+    (repo.findProjectTeamSummaries as any).mockResolvedValue([
+      { id: 7, teamName: "Team Alpha", memberCount: 3 },
+    ]);
+
+    const preview = await previewRandomAllocationForProject(3, 42, 2, { seed: 123 });
+
     expect(preview.teamCount).toBe(2);
     expect(preview.studentCount).toBe(5);
     expect(preview.existingTeams).toEqual([{ id: 7, teamName: "Team Alpha", memberCount: 3 }]);
@@ -188,21 +208,9 @@ describe("teamAllocation service random allocation", () => {
     ).rejects.toEqual({ code: "DUPLICATE_TEAM_NAMES" });
   });
 
-  it("applyRandomAllocationForProject applies planned teams and returns summary", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
-    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com" },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com" },
-      { id: 3, firstName: "C", lastName: "C", email: "c@example.com" },
-      { id: 4, firstName: "D", lastName: "D", email: "d@example.com" },
-    ]);
+  it("applyRandomAllocationForProject passes planned teams to repo allocation layer", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue(fourStudents);
     (repo.applyRandomAllocationPlan as any).mockResolvedValue([
       { id: 8, teamName: "Random Team 1", memberCount: 2 },
       { id: 9, teamName: "Random Team 2", memberCount: 2 },
@@ -220,6 +228,18 @@ describe("teamAllocation service random allocation", () => {
     expect(planned.flatMap((team: any) => team.members).map((student: any) => student.id).sort((a: number, b: number) => a - b)).toEqual([
       1, 2, 3, 4,
     ]);
+  });
+
+  it("applyRandomAllocationForProject returns draft allocation summary", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findVacantModuleStudentsForProject as any).mockResolvedValue(fourStudents);
+    (repo.applyRandomAllocationPlan as any).mockResolvedValue([
+      { id: 8, teamName: "Random Team 1", memberCount: 2 },
+      { id: 9, teamName: "Random Team 2", memberCount: 2 },
+    ]);
+
+    const result = await applyRandomAllocationForProject(3, 42, 2, { seed: 999 });
+
     expect(result).toEqual({
       project: {
         id: 42,

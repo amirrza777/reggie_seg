@@ -533,11 +533,15 @@ function resolveConstrainedPlanningShape(
   return { activeTeamCount, assignableStudentCount };
 }
 
-function shuffleForPlanning<T>(students: T[]): T[] {
+function shuffleForPlanning<T>(students: T[], seed?: number): T[] {
   if (students.length <= 1) {
     return [...students];
   }
-  const shuffledSingletonTeams = planRandomTeams(students, students.length);
+  const shuffledSingletonTeams = planRandomTeams(
+    students,
+    students.length,
+    seed !== undefined ? { seed } : {},
+  );
   return shuffledSingletonTeams.flatMap((team) => team.members);
 }
 
@@ -545,15 +549,20 @@ function buildConstrainedRandomPlan<TStudent>(
   students: TStudent[],
   teamCount: number,
   constraints: TeamSizeConstraints,
+  options: { seed?: number } = {},
 ) {
   const shape = resolveConstrainedPlanningShape(students.length, teamCount, constraints);
-  const shuffledStudents = shuffleForPlanning(students);
+  const seed = typeof options.seed === "number" && Number.isFinite(options.seed) ? options.seed : undefined;
+  const shuffledStudents = shuffleForPlanning(students, seed);
   const assignedStudents = shuffledStudents.slice(0, shape.assignableStudentCount);
   const unassignedStudents = shuffledStudents.slice(shape.assignableStudentCount);
 
   const activeTeams =
     shape.activeTeamCount > 0 && assignedStudents.length > 0
-      ? planRandomTeams(assignedStudents, shape.activeTeamCount, constraints)
+      ? planRandomTeams(assignedStudents, shape.activeTeamCount, {
+          ...constraints,
+          ...(seed !== undefined ? { seed: seed + 1 } : {}),
+        })
       : [];
 
   const teams = Array.from({ length: teamCount }, (_unused, index) => {
@@ -1617,10 +1626,11 @@ export async function getManualAllocationWorkspaceForProject(
 
   const studentsWithStatus = students.map((student) => {
     const isAssigned = student.currentTeamId !== null;
+    const currentTeamId = student.currentTeamId;
     const currentTeam =
-      isAssigned && student.currentTeamName
+      currentTeamId !== null && student.currentTeamName
         ? {
-            id: student.currentTeamId,
+            id: currentTeamId,
             teamName: student.currentTeamName,
           }
         : null;
@@ -1630,7 +1640,7 @@ export async function getManualAllocationWorkspaceForProject(
       firstName: student.firstName,
       lastName: student.lastName,
       email: student.email,
-      status: isAssigned ? "ALREADY_IN_TEAM" : "AVAILABLE",
+      status: isAssigned ? ("ALREADY_IN_TEAM" as const) : ("AVAILABLE" as const),
       currentTeam,
     };
   });
@@ -2067,12 +2077,15 @@ export async function previewRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { minTeamSize?: number; maxTeamSize?: number } = {},
+  options: { seed?: number; minTeamSize?: number; maxTeamSize?: number } = {},
 ): Promise<RandomAllocationPreview> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
   }
-  const teamSizeConstraints = normalizeTeamSizeConstraints(options);
+  const teamSizeConstraints = normalizeTeamSizeConstraints({
+    ...(options.minTeamSize !== undefined ? { minTeamSize: options.minTeamSize } : {}),
+    ...(options.maxTeamSize !== undefined ? { maxTeamSize: options.maxTeamSize } : {}),
+  });
 
   const project = await findStaffScopedProject(staffId, projectId);
   if (!project) {
@@ -2095,7 +2108,9 @@ export async function previewRandomAllocationForProject(
   }
 
   const [plannedAllocation, existingTeams] = await Promise.all([
-    Promise.resolve(buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints)),
+    Promise.resolve(
+      buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints, { seed: options.seed }),
+    ),
     findProjectTeamSummaries(projectId),
   ]);
 
@@ -2122,7 +2137,7 @@ export async function applyRandomAllocationForProject(
   staffId: number,
   projectId: number,
   teamCount: number,
-  options: { teamNames?: string[]; minTeamSize?: number; maxTeamSize?: number } = {},
+  options: { seed?: number; teamNames?: string[]; minTeamSize?: number; maxTeamSize?: number } = {},
 ): Promise<RandomAllocationApplied> {
   if (!Number.isInteger(teamCount) || teamCount < 1) {
     throw { code: "INVALID_TEAM_COUNT" };
@@ -2153,7 +2168,9 @@ export async function applyRandomAllocationForProject(
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
-  const plannedAllocation = buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints);
+  const plannedAllocation = buildConstrainedRandomPlan(students, teamCount, teamSizeConstraints, {
+    seed: options.seed,
+  });
   const plannedTeams = plannedAllocation.teams;
   const appliedTeams = await applyRandomAllocationPlan(
     projectId,

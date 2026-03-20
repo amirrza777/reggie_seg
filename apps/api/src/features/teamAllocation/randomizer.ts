@@ -24,7 +24,12 @@ function shuffle<T>(items: T[], rng: () => number): T[] {
   const result = [...items];
   for (let index = result.length - 1; index > 0; index -= 1) {
     const swapIndex = Math.floor(rng() * (index + 1));
-    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+    const current = result[index];
+    const swapValue = result[swapIndex];
+    if (current === undefined || swapValue === undefined) {
+      continue;
+    }
+    [result[index], result[swapIndex]] = [swapValue, current];
   }
   return result;
 }

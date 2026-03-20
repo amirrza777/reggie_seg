@@ -95,6 +95,7 @@ describe("QuestionnaireTemplate repository read paths", () => {
   });
 
   it("fetches my templates by owner id", async () => {
+    (prisma.questionnaireTemplate.findMany as any).mockResolvedValue([]);
     await getMyQuestionnaireTemplates(14);
 
     expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
