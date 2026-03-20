@@ -6,6 +6,13 @@
   margin-bottom: 8px;
 }
 
+.github-repo-link-card--personal {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background:
+    radial-gradient(100% 120% at 0% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 68%),
+    var(--glass-surface);
+}
+
 .github-repo-link-card__header {
   display: flex;
   align-items: flex-start;
@@ -100,4 +107,3 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-
