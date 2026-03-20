@@ -26,6 +26,7 @@
     "@ngneat/falso": "^8.0.2",
     "@prisma/client": "^6.19.2",
     "argon2": "^0.44.0",
+    "class-validator": "^0.15.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -40,11 +41,14 @@
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
-    "@types/node-cron": "^3.0.11",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.0.9",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^7.0.11",
     "@types/passport": "^1.0.17",
+    "@types/passport-google-oauth20": "^2.0.17",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^2.1.2",
     "supertest": "^7.0.0",
@@ -56,6 +60,12 @@
     "seed": "tsx prisma/seed/seed.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "argon2", "esbuild", "prisma"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "@prisma/engines",
+      "argon2",
+      "esbuild",
+      "prisma"
+    ]
   }
 }

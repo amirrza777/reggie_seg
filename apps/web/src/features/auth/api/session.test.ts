@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearAccessToken, getAccessToken, setAccessToken } from "./session";
 
 const ACCESS_COOKIE_KEY = "tf_access_token";
@@ -8,8 +8,25 @@ function clearTokenCookie() {
   document.cookie = `${ACCESS_COOKIE_KEY}=; path=/; max-age=0`;
 }
 
+function installLocalStorageMock() {
+  const store = new Map<string, string>();
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      getItem: vi.fn((key: string) => (store.has(key) ? store.get(key)! : null)),
+      setItem: vi.fn((key: string, value: string) => {
+        store.set(key, value);
+      }),
+      removeItem: vi.fn((key: string) => {
+        store.delete(key);
+      }),
+    },
+  });
+}
+
 describe("auth session token storage", () => {
   beforeEach(() => {
+    installLocalStorageMock();
     clearAccessToken();
     window.localStorage.removeItem(ACCESS_TOKEN_KEY);
     clearTokenCookie();

@@ -27,6 +27,20 @@ const normalizeUser = (user: SessionUser): SessionUser => {
   };
 };
 
+type SessionError = {
+  status?: number;
+  message?: string;
+};
+
+function readSessionError(error: unknown): SessionError {
+  if (typeof error !== "object" || error === null) return {};
+  const maybe = error as Record<string, unknown>;
+  return {
+    status: typeof maybe.status === "number" ? maybe.status : undefined,
+    message: typeof maybe.message === "string" ? maybe.message : undefined,
+  };
+}
+
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   try {
     const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
@@ -52,9 +66,10 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     });
 
     return normalizeUser(user);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const sessionError = readSessionError(err);
     // If suspended, surface as inactive user so layouts can show a suspension notice.
-    if (err?.status === 403 && String(err?.message || "").toLowerCase().includes("suspend")) {
+    if (sessionError.status === 403 && String(sessionError.message || "").toLowerCase().includes("suspend")) {
       return { id: -1, email: "", firstName: "", lastName: "", isStaff: false, role: "STUDENT", active: false, suspended: true };
     }
     return null;

@@ -134,13 +134,17 @@ afterAll(() => {
 });
 
 describe("auth service", () => {
-  it("signUpWithProvider returns existing user or creates a new provider user", async () => {
+  it("signUpWithProvider returns existing user when account already exists", async () => {
     const svc = await loadService();
 
     prismaMock.user.findFirst.mockResolvedValueOnce({ id: 91, email: "provider@x.com", role: "STUDENT" });
     await expect(
       svc.signUpWithProvider({ email: "provider@x.com", provider: "google" }),
     ).resolves.toMatchObject({ id: 91 });
+  });
+
+  it("signUpWithProvider creates a provider user with provided names", async () => {
+    const svc = await loadService();
 
     prismaMock.user.findFirst.mockResolvedValueOnce(null);
     prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-ent" });
@@ -161,6 +165,10 @@ describe("auth service", () => {
         enterpriseId: "default-ent",
       },
     });
+  });
+
+  it("signUpWithProvider falls back to empty names when profile names are omitted", async () => {
+    const svc = await loadService();
 
     prismaMock.user.findFirst.mockResolvedValueOnce(null);
     prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-ent" });
