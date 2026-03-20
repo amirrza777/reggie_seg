@@ -37,7 +37,7 @@ export async function getMeetingHandler(req: Request, res: Response) {
 }
 
 export async function createMeetingHandler(req: Request, res: Response) {
-  const { teamId, organiserId, title, date, subject, location, agenda } = req.body;
+  const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda } = req.body;
 
   if (!teamId || !organiserId || !title || !date) {
     return res.status(400).json({ error: "Missing required fields: teamId, organiserId, title, date" });
@@ -51,6 +51,7 @@ export async function createMeetingHandler(req: Request, res: Response) {
       date: new Date(date),
       subject,
       location,
+      videoCallLink,
       agenda,
     });
     res.status(201).json(meeting);

@@ -15,7 +15,13 @@ export function getMeetingsByTeamId(teamId: number) {
           },
         },
       },
-      minutes: true,
+      minutes: {
+        include: {
+          writer: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       comments: {
         include: {
           user: {
@@ -52,7 +58,13 @@ export function getMeetingById(meetingId: number) {
           },
         },
       },
-      minutes: true,
+      minutes: {
+        include: {
+          writer: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       comments: {
         include: {
           user: {
@@ -71,6 +83,7 @@ export function createMeeting(data: {
   date: Date;
   subject?: string;
   location?: string;
+  videoCallLink?: string;
   agenda?: string;
 }) {
   return prisma.meeting.create({

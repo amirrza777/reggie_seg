@@ -14,6 +14,7 @@ import {
 } from "./repo.js";
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
+import { sendEmail } from "../../shared/email.js";
 
 const ABSENCES_BEFORE_ALERT = 3;
 
@@ -25,6 +26,37 @@ export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
+function buildIcs(meeting: {
+  title: string;
+  date: Date;
+  location?: string | null;
+  videoCallLink?: string | null;
+  agenda?: string | null;
+}): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+  const start = fmt(meeting.date);
+  const end = fmt(new Date(meeting.date.getTime() + 60 * 60 * 1000));
+  const descParts = [];
+  if (meeting.agenda) descParts.push(meeting.agenda);
+  if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
+  const description = descParts.join("\\n\\n");
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Reggie//Reggie//EN",
+    "BEGIN:VEVENT",
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${meeting.title}`,
+    meeting.location ? `LOCATION:${meeting.location}` : null,
+    description ? `DESCRIPTION:${description}` : null,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+}
+
 export async function addMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -32,6 +64,7 @@ export async function addMeeting(data: {
   date: Date;
   subject?: string;
   location?: string;
+  videoCallLink?: string;
   agenda?: string;
 }) {
   const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true, inactivityFlag: true } });
@@ -40,6 +73,25 @@ export async function addMeeting(data: {
   if (team?.inactivityFlag === "YELLOW") {
     await prisma.team.update({ where: { id: data.teamId }, data: { inactivityFlag: "NONE" } });
   }
+  const members = await getTeamMembers(data.teamId);
+  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
+  const body = [
+    `A new meeting has been scheduled: ${data.title}`,
+    `Date: ${data.date.toUTCString()}`,
+    data.location ? `Location: ${data.location}` : null,
+    data.videoCallLink ? `Video call: ${data.videoCallLink}` : null,
+    data.agenda ? `\nAgenda:\n${data.agenda}` : null,
+  ].filter(Boolean).join("\n");
+  await Promise.all(
+    members.map((member) =>
+      sendEmail({
+        to: member.email,
+        subject: `New meeting: ${data.title}`,
+        text: body,
+        attachments: [{ filename: "meeting.ics", content: ics }],
+      })
+    )
+  );
   return meeting;
 }
 
