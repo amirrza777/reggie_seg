@@ -16,12 +16,12 @@ type Member = {
 
 type CommentSectionProps = {
   meetingId: number;
-  teamId: number;
-  members: Member[];
-  initialComments: MeetingCommentRecord[];
+  teamId?: number;
+  members?: Member[];
+  initialComments?: MeetingCommentRecord[];
 };
 
-export function CommentSection({ meetingId, teamId, members, initialComments }: CommentSectionProps) {
+export function CommentSection({ meetingId, teamId, members = [], initialComments = [] }: CommentSectionProps) {
   const { user } = useUser();
   const [comments, setComments] = useState(initialComments);
   const [message, setMessage] = useState<string | null>(null);
@@ -30,7 +30,11 @@ export function CommentSection({ meetingId, teamId, members, initialComments }: 
     if (!user) return;
     setMessage(null);
     try {
-      await addComment(meetingId, user.id, text, teamId);
+      if (typeof teamId === "number") {
+        await addComment(meetingId, user.id, text, teamId);
+      } else {
+        await addComment(meetingId, user.id, text);
+      }
       setComments((prev) => [
         ...prev,
         {

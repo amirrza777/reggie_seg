@@ -16,6 +16,8 @@ vi.mock("./repo.js", () => ({
   getMeetingsByTeamId: vi.fn(),
   getMeetingById: vi.fn(),
   createMeeting: vi.fn(),
+  getTeamMeetingState: vi.fn(),
+  clearTeamInactivityFlag: vi.fn(),
   deleteMeeting: vi.fn(),
   bulkUpsertAttendance: vi.fn(),
   upsertMinutes: vi.fn(),
@@ -53,10 +55,12 @@ describe("meetings service", () => {
       title: "Team Meeting",
       date: new Date("2026-03-01"),
     };
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE" });
     (repo.createMeeting as any).mockResolvedValue({ id: 3 });
 
     const result = await addMeeting(data);
 
+    expect(repo.getTeamMeetingState).toHaveBeenCalledWith(1);
     expect(repo.createMeeting).toHaveBeenCalledWith(data);
     expect(result).toEqual({ id: 3 });
   });

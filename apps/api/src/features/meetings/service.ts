@@ -1,8 +1,9 @@
-import { prisma } from "../../shared/db.js";
 import {
   getMeetingsByTeamId,
   getMeetingById,
   createMeeting,
+  getTeamMeetingState,
+  clearTeamInactivityFlag,
   deleteMeeting,
   bulkUpsertAttendance,
   upsertMinutes,
@@ -37,11 +38,11 @@ export async function addMeeting(data: {
   location?: string;
   agenda?: string;
 }) {
-  const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true, inactivityFlag: true } });
+  const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
   const meeting = await createMeeting(data);
   if (team?.inactivityFlag === "YELLOW") {
-    await prisma.team.update({ where: { id: data.teamId }, data: { inactivityFlag: "NONE" } });
+    await clearTeamInactivityFlag(data.teamId);
   }
   return meeting;
 }
@@ -62,7 +63,10 @@ export function saveMinutes(meetingId: number, writerId: number, content: string
 }
 
 /** Adds a comment. */
-export function addComment(meetingId: number, userId: number, content: string) {
+export function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
+  if (typeof teamId === "number") {
+    return createComment(meetingId, userId, content, teamId);
+  }
   return createComment(meetingId, userId, content);
 }
 
