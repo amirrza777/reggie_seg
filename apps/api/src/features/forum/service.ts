@@ -18,9 +18,10 @@ export async function createDiscussionPost(
   userId: number,
   projectId: number,
   title: string,
-  body: string
+  body: string,
+  parentPostId?: number | null
 ) {
-  return createDiscussionPostForProject(userId, projectId, title, body);
+  return createDiscussionPostForProject(userId, projectId, title, body, parentPostId);
 }
 
 export async function fetchDiscussionPost(userId: number, projectId: number, postId: number) {

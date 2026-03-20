@@ -10,7 +10,7 @@ export async function getDiscussionPosts(userId: number, projectId: number): Pro
 export async function createDiscussionPost(
   userId: number,
   projectId: number,
-  payload: { title: string; body: string }
+  payload: { title?: string; body: string; parentPostId?: number | null }
 ): Promise<DiscussionPost> {
   return apiFetch<DiscussionPost>(`/forum/projects/${projectId}/posts`, {
     method: "POST",

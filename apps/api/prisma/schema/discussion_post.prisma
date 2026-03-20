@@ -2,6 +2,7 @@ model DiscussionPost {
   id        Int      @id @default(autoincrement())
   projectId Int
   authorId  Int
+  parentPostId Int?
   title     String
   body      String
   createdAt DateTime @default(now())
@@ -9,8 +10,11 @@ model DiscussionPost {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentPost DiscussionPost? @relation("DiscussionPostReplies", fields: [parentPostId], references: [id], onDelete: Cascade)
+  replies    DiscussionPost[] @relation("DiscussionPostReplies")
   reactions ForumReaction[]
 
   @@index([projectId, createdAt])
   @@index([authorId])
+  @@index([parentPostId])
 }

@@ -1,5 +1,6 @@
 export type DiscussionPost = {
   id: number;
+  parentPostId: number | null;
   title: string;
   body: string;
   createdAt: string;
@@ -12,6 +13,7 @@ export type DiscussionPost = {
     lastName: string;
     role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
   };
+  replies: DiscussionPost[];
 };
 
 export type ForumSettings = {

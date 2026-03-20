@@ -12,10 +12,70 @@ async function isUserInProject(userId: number, projectId: number) {
   return Boolean(enrollment);
 }
 
-export async function getDiscussionPostsForProject(userId: number, projectId: number) {
-  const hasAccess = await isUserInProject(userId, projectId);
-  if (!hasAccess) return null;
+type ForumAuthor = { id: number; firstName: string; lastName: string; role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN" };
 
+function mapForumAuthor(author: ForumAuthor, hideStudentNames: boolean, viewerId: number) {
+  const shouldHide = hideStudentNames && author.role === "STUDENT" && author.id !== viewerId;
+  return {
+    id: author.id,
+    firstName: shouldHide ? "Anonymous" : author.firstName,
+    lastName: shouldHide ? "Student" : author.lastName,
+    role: author.role,
+  };
+}
+
+type EnrichedPost = {
+  id: number;
+  title: string;
+  body: string;
+  createdAt: Date;
+  updatedAt: Date;
+  parentPostId: number | null;
+  author: ForumAuthor;
+  reactionScore: number;
+  myReaction: "LIKE" | "DISLIKE" | null;
+  replies: EnrichedPost[];
+};
+
+function buildPostTree(posts: EnrichedPost[]) {
+  const byId = new Map<number, EnrichedPost>();
+  for (const post of posts) {
+    byId.set(post.id, { ...post, replies: [] });
+  }
+
+  const roots: EnrichedPost[] = [];
+  for (const post of byId.values()) {
+    if (post.parentPostId) {
+      const parent = byId.get(post.parentPostId);
+      if (parent) {
+        parent.replies.push(post);
+      } else {
+        roots.push(post);
+      }
+    } else {
+      roots.push(post);
+    }
+  }
+
+  const sortReplies = (items: EnrichedPost[]) => {
+    items.sort((a, b) => {
+      if (b.reactionScore !== a.reactionScore) {
+        return b.reactionScore - a.reactionScore;
+      }
+      return a.createdAt.getTime() - b.createdAt.getTime();
+    });
+    for (const item of items) {
+      if (item.replies.length > 0) sortReplies(item.replies);
+    }
+  };
+
+  sortReplies(roots);
+  roots.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+  return { roots, byId };
+}
+
+async function getFlatPostsForProject(userId: number, projectId: number) {
   const [posts, project] = await Promise.all([
     prisma.discussionPost.findMany({
       where: { projectId },
@@ -26,6 +86,7 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
         body: true,
         createdAt: true,
         updatedAt: true,
+        parentPostId: true,
         author: {
           select: {
             id: true,
@@ -43,6 +104,9 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
   ]);
 
   const postIds = posts.map((post) => post.id);
+  if (postIds.length === 0) {
+    return [];
+  }
   const [myReactions, reactionCounts] = await Promise.all([
     prisma.forumReaction.findMany({
       where: { userId, postId: { in: postIds } },
@@ -68,86 +132,33 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
 
   const hideStudentNames = project?.forumIsAnonymous ?? false;
   return posts.map((post) => {
-    const shouldHide =
-      hideStudentNames && post.author.role === "STUDENT" && post.author.id !== userId;
     const counts = countsByPostId.get(post.id) ?? { likeCount: 0, dislikeCount: 0 };
     const score = counts.likeCount - counts.dislikeCount;
     return {
       ...post,
-      author: {
-        id: post.author.id,
-        firstName: shouldHide ? "Anonymous" : post.author.firstName,
-        lastName: shouldHide ? "Student" : post.author.lastName,
-        role: post.author.role,
-      },
+      author: mapForumAuthor(post.author, hideStudentNames, userId),
       reactionScore: score,
       myReaction: reactionByPostId.get(post.id) ?? null,
+      replies: [],
     };
   });
+}
+
+export async function getDiscussionPostsForProject(userId: number, projectId: number) {
+  const hasAccess = await isUserInProject(userId, projectId);
+  if (!hasAccess) return null;
+
+  const posts = await getFlatPostsForProject(userId, projectId);
+  return buildPostTree(posts).roots;
 }
 
 export async function getDiscussionPostById(userId: number, projectId: number, postId: number) {
   const hasAccess = await isUserInProject(userId, projectId);
   if (!hasAccess) return null;
 
-  const [post, project, myReaction, reactionCounts] = await Promise.all([
-    prisma.discussionPost.findFirst({
-      where: { id: postId, projectId },
-      select: {
-        id: true,
-        title: true,
-        body: true,
-        createdAt: true,
-        updatedAt: true,
-        author: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-          },
-        },
-      },
-    }),
-    prisma.project.findUnique({
-      where: { id: projectId },
-      select: { forumIsAnonymous: true },
-    }),
-    prisma.forumReaction.findUnique({
-      where: { postId_userId: { postId, userId } },
-      select: { type: true },
-    }),
-    prisma.forumReaction.groupBy({
-      by: ["type"],
-      where: { postId },
-      _count: { _all: true },
-    }),
-  ]);
-
-  if (!post) return null;
-  const hideStudentNames = project?.forumIsAnonymous ?? false;
-  const shouldHide =
-    hideStudentNames && post.author.role === "STUDENT" && post.author.id !== userId;
-  const counts = reactionCounts.reduce(
-    (acc, entry) => {
-      if (entry.type === "LIKE") acc.likeCount = entry._count._all;
-      if (entry.type === "DISLIKE") acc.dislikeCount = entry._count._all;
-      return acc;
-    },
-    { likeCount: 0, dislikeCount: 0 }
-  );
-  const score = counts.likeCount - counts.dislikeCount;
-  return {
-    ...post,
-    author: {
-      id: post.author.id,
-      firstName: shouldHide ? "Anonymous" : post.author.firstName,
-      lastName: shouldHide ? "Student" : post.author.lastName,
-      role: post.author.role,
-    },
-    reactionScore: score,
-    myReaction: myReaction?.type ?? null,
-  };
+  const posts = await getFlatPostsForProject(userId, projectId);
+  const { byId } = buildPostTree(posts);
+  return byId.get(postId) ?? null;
 }
 
 async function getScopedStaffUser(userId: number) {
@@ -208,10 +219,19 @@ export async function createDiscussionPostForProject(
   userId: number,
   projectId: number,
   title: string,
-  body: string
+  body: string,
+  parentPostId?: number | null
 ) {
   const hasAccess = await isUserInProject(userId, projectId);
   if (!hasAccess) return null;
+
+  if (parentPostId) {
+    const parent = await prisma.discussionPost.findFirst({
+      where: { id: parentPostId, projectId },
+      select: { id: true },
+    });
+    if (!parent) return null;
+  }
 
   const created = await prisma.discussionPost.create({
     data: {
@@ -219,6 +239,7 @@ export async function createDiscussionPostForProject(
       authorId: userId,
       title,
       body,
+      parentPostId: parentPostId ?? null,
     },
     select: { id: true },
   });

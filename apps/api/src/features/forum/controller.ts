@@ -33,10 +33,11 @@ export async function getProjectDiscussionPostsHandler(req: Request, res: Respon
 
 export async function createProjectDiscussionPostHandler(req: Request, res: Response) {
   const projectId = Number(req.params.projectId);
-  const { userId, title, body } = req.body as {
+  const { userId, title, body, parentPostId } = req.body as {
     userId?: number;
     title?: string;
     body?: string;
+    parentPostId?: number | null;
   };
 
   if (isNaN(projectId)) {
@@ -45,12 +46,19 @@ export async function createProjectDiscussionPostHandler(req: Request, res: Resp
   if (typeof userId !== "number") {
     return res.status(400).json({ error: "Invalid user ID" });
   }
-  if (!title || typeof title !== "string" || !body || typeof body !== "string") {
+  if (typeof parentPostId !== "undefined" && parentPostId !== null && typeof parentPostId !== "number") {
+    return res.status(400).json({ error: "Invalid parent post ID" });
+  }
+  if (!body || typeof body !== "string") {
+    return res.status(400).json({ error: "Body is required" });
+  }
+  if ((!title || typeof title !== "string") && !parentPostId) {
     return res.status(400).json({ error: "Title and body are required" });
   }
 
   try {
-    const post = await createDiscussionPost(userId, projectId, title.trim(), body.trim());
+    const safeTitle = typeof title === "string" ? title.trim() : "";
+    const post = await createDiscussionPost(userId, projectId, safeTitle, body.trim(), parentPostId ?? null);
     if (!post) {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -97,7 +105,7 @@ export async function updateProjectDiscussionPostHandler(req: Request, res: Resp
   if (typeof userId !== "number") {
     return res.status(400).json({ error: "Invalid user ID" });
   }
-  if (!title || typeof title !== "string" || !body || typeof body !== "string") {
+  if (typeof title !== "string" || typeof body !== "string" || body.trim().length === 0) {
     return res.status(400).json({ error: "Title and body are required" });
   }
 

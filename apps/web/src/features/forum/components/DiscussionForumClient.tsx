@@ -31,6 +31,13 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
   const [reactingPostId, setReactingPostId] = useState<number | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
+  const [savingReplyPostId, setSavingReplyPostId] = useState<number | null>(null);
+  const [collapsedReplyIds, setCollapsedReplyIds] = useState<Record<number, boolean>>({});
+  const [expandedDepthByPostId, setExpandedDepthByPostId] = useState<Record<number, number>>({});
+  const [showAllImmediateRepliesByPostId, setShowAllImmediateRepliesByPostId] = useState<Record<number, boolean>>({});
+  const [replyOpenByPostId, setReplyOpenByPostId] = useState<Record<number, boolean>>({});
+  const [hoveredPostId, setHoveredPostId] = useState<number | null>(null);
 
   const isStaff =
     Boolean(user?.isStaff) ||
@@ -65,6 +72,32 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       .finally(() => setLoadingPosts(false));
   }, [user, projectId]);
 
+  const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost) =>
+    items.map((post) => {
+      if (post.id === parentPostId) {
+        return { ...post, replies: [...post.replies, reply] };
+      }
+      if (post.replies.length === 0) return post;
+      return { ...post, replies: addReplyToTree(post.replies, parentPostId, reply) };
+    });
+
+  const updatePostInTree = (items: DiscussionPost[], updated: DiscussionPost): DiscussionPost[] =>
+    items.map((post) => {
+      if (post.id === updated.id) {
+        return updated;
+      }
+      if (post.replies.length === 0) return post;
+      return { ...post, replies: updatePostInTree(post.replies, updated) };
+    });
+
+  const removePostFromTree = (items: DiscussionPost[], postId: number): DiscussionPost[] =>
+    items
+      .filter((post) => post.id !== postId)
+      .map((post) => ({
+        ...post,
+        replies: post.replies.length ? removePostFromTree(post.replies, postId) : post.replies,
+      }));
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit || !user) return;
@@ -95,19 +128,19 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setEditingBody("");
   };
 
-  const handleUpdate = async (postId: number) => {
+  const handleUpdate = async (post: DiscussionPost) => {
     if (!user) return;
-    const trimmedTitle = editingTitle.trim();
+    const trimmedTitle = post.parentPostId === null ? editingTitle.trim() : post.title;
     const trimmedBody = editingBody.trim();
-    if (!trimmedTitle || !trimmedBody) return;
+    if ((post.parentPostId === null && !trimmedTitle) || !trimmedBody) return;
 
-    setSavingPostId(postId);
+    setSavingPostId(post.id);
     try {
-      const updated = await updateDiscussionPost(user.id, Number(projectId), postId, {
+      const updated = await updateDiscussionPost(user.id, Number(projectId), post.id, {
         title: trimmedTitle,
         body: trimmedBody,
       });
-      setPosts((prev) => prev.map((post) => (post.id === postId ? updated : post)));
+      setPosts((prev) => updatePostInTree(prev, updated));
       cancelEditing();
     } catch (err) {
       console.error(err);
@@ -122,7 +155,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setDeletingPostId(postId);
     try {
       await deleteDiscussionPost(user.id, Number(projectId), postId);
-      setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setPosts((prev) => removePostFromTree(prev, postId));
       if (editingPostId === postId) cancelEditing();
     } catch (err) {
       console.error(err);
@@ -137,7 +170,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReportingPostId(postId);
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
-      setPosts((prev) => prev.filter((post) => post.id !== postId));
+      setPosts((prev) => removePostFromTree(prev, postId));
     } catch (err) {
       console.error(err);
       setError("Failed to report post.");
@@ -151,13 +184,297 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReactingPostId(postId);
     try {
       const updated = await reactToDiscussionPost(user.id, Number(projectId), postId, type);
-      setPosts((prev) => prev.map((post) => (post.id === postId ? updated : post)));
+      setPosts((prev) => updatePostInTree(prev, updated));
     } catch (err) {
       console.error(err);
       setError("Failed to update reaction.");
     } finally {
       setReactingPostId(null);
     }
+  };
+
+  const handleReplyChange = (postId: number, value: string) => {
+    setReplyDrafts((prev) => ({ ...prev, [postId]: value }));
+  };
+
+  const handleReplySubmit = async (parentPostId: number) => {
+    if (!user) return;
+    const draft = replyDrafts[parentPostId] ?? "";
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+
+    setSavingReplyPostId(parentPostId);
+    try {
+      const reply = await createDiscussionPost(user.id, Number(projectId), {
+        title: "",
+        body: trimmed,
+        parentPostId,
+      });
+      setPosts((prev) => addReplyToTree(prev, parentPostId, reply));
+      setReplyDrafts((prev) => ({ ...prev, [parentPostId]: "" }));
+      setReplyOpenByPostId((prev) => ({ ...prev, [parentPostId]: false }));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to add reply.");
+    } finally {
+      setSavingReplyPostId(null);
+    }
+  };
+
+  const toggleReplies = (postId: number, shouldExpand: boolean) => {
+    setCollapsedReplyIds((prev) => ({ ...prev, [postId]: !shouldExpand }));
+    setExpandedDepthByPostId((prev) => ({
+      ...prev,
+      [postId]: shouldExpand ? Math.max(prev[postId] ?? 0, 3) : 0,
+    }));
+    setShowAllImmediateRepliesByPostId((prev) => ({
+      ...prev,
+      [postId]: shouldExpand ? prev[postId] ?? false : false,
+    }));
+  };
+
+  const showMoreReplies = (postId: number) => {
+    setShowAllImmediateRepliesByPostId((prev) => ({ ...prev, [postId]: true }));
+  };
+
+  const toggleReplyBox = (postId: number) => {
+    setReplyOpenByPostId((prev) => ({ ...prev, [postId]: !prev[postId] }));
+  };
+
+  const renderPost = (post: DiscussionPost, depth = 0, inheritedDepth = 0) => {
+    const isAuthor = user?.id === post.author.id;
+    const isEditing = editingPostId === post.id;
+    const isRoot = post.parentPostId === null;
+    const isCollapsed = collapsedReplyIds[post.id] ?? false;
+    const localDepth = isCollapsed ? 0 : Math.max(inheritedDepth, expandedDepthByPostId[post.id] ?? 0);
+    const canToggleReplies = post.replies.length > 0;
+    const showAllImmediate = showAllImmediateRepliesByPostId[post.id] ?? false;
+    const showMore = canToggleReplies && localDepth > 0 && !showAllImmediate && post.replies.length > 3;
+    const immediateReplies = showAllImmediate ? post.replies : post.replies.slice(0, 3);
+    const canShowMoreButton = showMore && depth === 0;
+
+    return (
+      <article
+        key={post.id}
+        className="card stack"
+        style={{ padding: 20, marginLeft: depth * 16 }}
+        onMouseEnter={() => setHoveredPostId(post.id)}
+        onMouseLeave={() => setHoveredPostId((prev) => (prev === post.id ? null : prev))}
+      >
+        <div className="stack" style={{ gap: 6 }}>
+          {isEditing ? (
+            <>
+              {isRoot ? (
+                <>
+                  <label htmlFor={`edit-title-${post.id}`}>Title</label>
+                  <input
+                    id={`edit-title-${post.id}`}
+                    value={editingTitle}
+                    onChange={(event) => setEditingTitle(event.target.value)}
+                    disabled={savingPostId === post.id}
+                  />
+                </>
+              ) : null}
+              <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
+              <textarea
+                id={`edit-body-${post.id}`}
+                rows={4}
+                value={editingBody}
+                onChange={(event) => setEditingBody(event.target.value)}
+                disabled={savingPostId === post.id}
+              />
+            </>
+          ) : (
+            <>
+              {isRoot ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <strong>{post.title}</strong>
+                  {canToggleReplies ? (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn--ghost"
+                        onClick={() => toggleReplies(post.id, localDepth === 0)}
+                      >
+                        {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
+                      </button>
+                      {canShowMoreButton ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => showMoreReplies(post.id)}
+                        >
+                          Show more
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                  {post.author.firstName} {post.author.lastName}
+                  {isAuthor ? " (You)" : ""} - {new Date(post.createdAt).toLocaleString()}
+                </p>
+                {!isRoot && canToggleReplies ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => toggleReplies(post.id, localDepth === 0)}
+                    >
+                      {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+              {post.updatedAt !== post.createdAt ? (
+                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                  Edited: {new Date(post.updatedAt).toLocaleString()}
+                </p>
+              ) : null}
+            </>
+          )}
+        </div>
+
+        {isEditing ? null : <p style={{ margin: 0 }}>{post.body}</p>}
+
+        <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span className="muted">Score {post.reactionScore}</span>
+            {!isAuthor ? (
+              <div style={{ display: hoveredPostId === post.id ? "flex" : "none", gap: 12 }}>
+                <button
+                  type="button"
+                  className={`btn ${post.myReaction === "LIKE" ? "btn--primary" : "btn--ghost"}`}
+                  onClick={() => handleReaction(post.id, "LIKE")}
+                  disabled={reactingPostId === post.id}
+                >
+                  {post.myReaction === "LIKE" ? "Liked" : "Like"}
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${post.myReaction === "DISLIKE" ? "btn--primary" : "btn--ghost"}`}
+                  onClick={() => handleReaction(post.id, "DISLIKE")}
+                  disabled={reactingPostId === post.id}
+                >
+                  {post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            {isAuthor ? (
+              isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={cancelEditing}
+                    disabled={savingPostId === post.id}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => handleUpdate(post)}
+                    disabled={
+                      savingPostId === post.id ||
+                      (isRoot && editingTitle.trim().length === 0) ||
+                      editingBody.trim().length === 0
+                    }
+                  >
+                    Save
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: hoveredPostId === post.id ? "flex" : "none", gap: 12 }}>
+                  <button type="button" className="btn btn--ghost" onClick={() => startEditing(post)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => handleDelete(post.id)}
+                    disabled={deletingPostId === post.id}
+                  >
+                    {deletingPostId === post.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              )
+            ) : null}
+
+            {isStaff && post.author.role === "STUDENT" ? (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => handleReport(post.id)}
+                disabled={reportingPostId === post.id}
+                style={{ display: hoveredPostId === post.id ? "inline-flex" : "none" }}
+              >
+                {reportingPostId === post.id ? "Reporting..." : "Report"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => toggleReplyBox(post.id)}
+            style={{
+              display: hoveredPostId === post.id ? "inline-flex" : "none",
+            }}
+          >
+            {replyOpenByPostId[post.id] ? "Cancel reply" : "Reply"}
+          </button>
+          {replyOpenByPostId[post.id] ? (
+            <>
+              <label htmlFor={`reply-${post.id}`}>Reply</label>
+              <textarea
+                id={`reply-${post.id}`}
+                rows={3}
+                value={replyDrafts[post.id] ?? ""}
+                onChange={(event) => handleReplyChange(post.id, event.target.value)}
+                placeholder="Write a reply"
+                disabled={!user || userLoading || savingReplyPostId === post.id}
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => handleReplySubmit(post.id)}
+                  disabled={
+                    !user ||
+                    userLoading ||
+                    savingReplyPostId === post.id ||
+                    (replyDrafts[post.id] ?? "").trim().length === 0
+                  }
+                >
+                  {savingReplyPostId === post.id ? "Replyingâ€¦" : "Post reply"}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
+
+        {post.replies.length && localDepth > 0 ? (
+          <div className="stack">
+            {immediateReplies.map((child) => renderPost(child, depth + 1, localDepth - 1))}
+          </div>
+        ) : null}
+      </article>
+    );
   };
 
   return (
@@ -224,133 +541,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
           ) : posts.length === 0 ? (
             emptyState
           ) : (
-            posts.map((post) => {
-              const isAuthor = user?.id === post.author.id;
-              const isEditing = editingPostId === post.id;
-
-              return (
-                <article key={post.id} className="card stack" style={{ padding: 20 }}>
-                  <div className="stack" style={{ gap: 6 }}>
-                    {isEditing ? (
-                      <>
-                        <label htmlFor={`edit-title-${post.id}`}>Title</label>
-                        <input
-                          id={`edit-title-${post.id}`}
-                          value={editingTitle}
-                          onChange={(event) => setEditingTitle(event.target.value)}
-                          disabled={savingPostId === post.id}
-                        />
-                        <label htmlFor={`edit-body-${post.id}`}>Post</label>
-                        <textarea
-                          id={`edit-body-${post.id}`}
-                          rows={4}
-                          value={editingBody}
-                          onChange={(event) => setEditingBody(event.target.value)}
-                          disabled={savingPostId === post.id}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <strong>{post.title}</strong>
-                        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                          {post.author.firstName} {post.author.lastName}
-                          {isAuthor ? " (You)" : ""} • {new Date(post.createdAt).toLocaleString()}
-                        </p>
-                        {post.updatedAt !== post.createdAt ? (
-                          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                            Edited: {new Date(post.updatedAt).toLocaleString()}
-                          </p>
-                        ) : null}
-                      </>
-                    )}
-                  </div>
-
-                  {isEditing ? null : <p style={{ margin: 0 }}>{post.body}</p>}
-
-                  <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      <span className="muted">Score {post.reactionScore}</span>
-                      {!isAuthor ? (
-                        <>
-                          <button
-                            type="button"
-                            className={`btn ${post.myReaction === "LIKE" ? "btn--primary" : "btn--ghost"}`}
-                            onClick={() => handleReaction(post.id, "LIKE")}
-                            disabled={reactingPostId === post.id}
-                          >
-                            {post.myReaction === "LIKE" ? "Liked" : "Like"}
-                          </button>
-                          <button
-                            type="button"
-                            className={`btn ${post.myReaction === "DISLIKE" ? "btn--primary" : "btn--ghost"}`}
-                            onClick={() => handleReaction(post.id, "DISLIKE")}
-                            disabled={reactingPostId === post.id}
-                          >
-                            {post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-
-                    <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-                      {isAuthor ? (
-                        isEditing ? (
-                          <>
-                            <button
-                              type="button"
-                              className="btn btn--ghost"
-                              onClick={cancelEditing}
-                              disabled={savingPostId === post.id}
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn--primary"
-                              onClick={() => handleUpdate(post.id)}
-                              disabled={
-                                savingPostId === post.id ||
-                                editingTitle.trim().length === 0 ||
-                                editingBody.trim().length === 0
-                              }
-                            >
-                              Save
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button type="button" className="btn btn--ghost" onClick={() => startEditing(post)}>
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn--ghost"
-                              onClick={() => handleDelete(post.id)}
-                              disabled={deletingPostId === post.id}
-                            >
-                              {deletingPostId === post.id ? "Deleting…" : "Delete"}
-                            </button>
-                          </>
-                        )
-                      ) : null}
-
-                      {isStaff && post.author.role === "STUDENT" ? (
-                        <button
-                          type="button"
-                          className="btn btn--ghost"
-                          onClick={() => handleReport(post.id)}
-                          disabled={reportingPostId === post.id}
-                        >
-                          {reportingPostId === post.id ? "Reporting…" : "Report"}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  
-                </article>
-              );
-            })
+            posts.map((post) => renderPost(post))
           )}
         </section>
       </section>
