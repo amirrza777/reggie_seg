@@ -1,13 +1,9 @@
 "use client";
 
-import { normalizeSearchQuery } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
-import { FormField } from "@/shared/ui/FormField";
-import { Table } from "@/shared/ui/Table";
 import { EnterpriseAccountsModal } from "./EnterpriseAccountsModal";
 import { EnterpriseCreateModal } from "./EnterpriseCreateModal";
+import { EnterpriseManagementListCard } from "./EnterpriseManagementListCard";
 import { buildEnterpriseRows, buildEnterpriseUserRows } from "./enterpriseManagementRows";
 import { useEnterpriseManagementState } from "./useEnterpriseManagementState";
 
@@ -15,248 +11,148 @@ type EnterpriseManagementTableProps = {
   isSuperAdmin: boolean;
 };
 
-export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagementTableProps) {
-  const {
-    status,
-    enterpriseTableStatus,
-    message,
-    toastMessage,
-    searchQuery,
-    setSearchQuery,
-    enterprises,
-    currentPage,
-    setCurrentPage,
-    pageInput,
-    setPageInput,
-    enterpriseTotal,
-    enterpriseTotalPages,
-    effectiveEnterpriseTotalPages,
-    enterpriseStart,
-    enterpriseEnd,
-    createModalOpen,
-    setCreateModalOpen,
-    nameInput,
-    setNameInput,
-    codeInput,
-    setCodeInput,
-    isCreating,
-    closeCreateModal,
-    handleCreateEnterprise,
-    deleteState,
-    pendingDeleteEnterprise,
-    setPendingDeleteEnterprise,
-    handleDeleteEnterprise,
-    selectedEnterprise,
-    setSelectedEnterprise,
-    enterpriseUsers,
-    enterpriseUsersStatus,
-    enterpriseUsersMessage,
-    enterpriseUserActionState,
-    enterpriseUserSearchQuery,
-    setEnterpriseUserSearchQuery,
-    enterpriseUserPage,
-    setEnterpriseUserPage,
-    enterpriseUserPageInput,
-    setEnterpriseUserPageInput,
-    enterpriseUserTotal,
-    enterpriseUserTotalPages,
-    effectiveEnterpriseUserTotalPages,
-    enterpriseUserStart,
-    enterpriseUserEnd,
-    openEnterpriseAccounts,
-    handleEnterpriseUserRoleChange,
-    handleEnterpriseUserStatusToggle,
-    handlePageJump,
-    handleEnterpriseUserPageJump,
-    applyPageInput,
-    applyEnterpriseUserPageInput,
-  } = useEnterpriseManagementState(isSuperAdmin);
+type ManagementState = ReturnType<typeof useEnterpriseManagementState>;
 
+type EnterpriseManagementTableBodyProps = {
+  state: ManagementState;
+  rows: ReturnType<typeof buildEnterpriseRows>;
+  enterpriseUserRows: ReturnType<typeof buildEnterpriseUserRows>;
+};
+
+export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagementTableProps) {
+  const state = useEnterpriseManagementState(isSuperAdmin);
   if (!isSuperAdmin) return null;
 
   const rows = buildEnterpriseRows({
-    enterprises,
-    deleteState,
-    onOpenAccounts: openEnterpriseAccounts,
-    onRequestDelete: setPendingDeleteEnterprise,
+    enterprises: state.enterprises,
+    deleteState: state.deleteState,
+    onOpenAccounts: state.openEnterpriseAccounts,
+    onRequestDelete: state.setPendingDeleteEnterprise,
     formatDate,
   });
 
   const enterpriseUserRows = buildEnterpriseUserRows({
-    users: enterpriseUsers,
-    actionState: enterpriseUserActionState,
+    users: state.enterpriseUsers,
+    actionState: state.enterpriseUserActionState,
     onRoleChange: (userId, role) => {
-      void handleEnterpriseUserRoleChange(userId, role);
+      void state.handleEnterpriseUserRoleChange(userId, role);
     },
     onStatusToggle: (userId, nextStatus) => {
-      void handleEnterpriseUserStatusToggle(userId, nextStatus);
+      void state.handleEnterpriseUserStatusToggle(userId, nextStatus);
     },
   });
 
+  return <EnterpriseManagementTableBody state={state} rows={rows} enterpriseUserRows={enterpriseUserRows} />;
+}
+
+function EnterpriseManagementTableBody({ state, rows, enterpriseUserRows }: EnterpriseManagementTableBodyProps) {
   return (
     <>
-      {toastMessage ? (
-        <div className="ui-toast-layer" aria-live="polite" aria-atomic="true">
-          <div className="ui-toast ui-toast--success" role="status">
-            {toastMessage}
-          </div>
-        </div>
-      ) : null}
+      <EnterpriseSuccessToast toastMessage={state.toastMessage} />
+      <EnterpriseManagementListCard
+        status={state.status}
+        enterpriseTableStatus={state.enterpriseTableStatus}
+        message={state.message}
+        searchQuery={state.searchQuery}
+        setSearchQuery={state.setSearchQuery}
+        rows={rows}
+        currentPage={state.currentPage}
+        setCurrentPage={state.setCurrentPage}
+        pageInput={state.pageInput}
+        setPageInput={state.setPageInput}
+        enterpriseTotal={state.enterpriseTotal}
+        enterpriseTotalPages={state.enterpriseTotalPages}
+        effectiveEnterpriseTotalPages={state.effectiveEnterpriseTotalPages}
+        enterpriseStart={state.enterpriseStart}
+        enterpriseEnd={state.enterpriseEnd}
+        onOpenCreateModal={() => state.setCreateModalOpen(true)}
+        handlePageJump={state.handlePageJump}
+        applyPageInput={state.applyPageInput}
+      />
+      <EnterpriseManagementModals state={state} enterpriseUserRows={enterpriseUserRows} />
+    </>
+  );
+}
 
-      <Card
-        title="Enterprises"
-        className="user-management-card"
-        action={
-          <div className="ui-row enterprise-management__actions">
-            <FormField
-              type="search"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="enterprise-management__search"
-              placeholder="Search by enterprise name, code, or account breakdown"
-              aria-label="Search enterprises"
-            />
-            <Button
-              type="button"
-              className="enterprise-management__create-trigger"
-              onClick={() => setCreateModalOpen(true)}
-            >
-              Create
-            </Button>
-          </div>
-        }
-      >
-        {message && status === "error" ? (
-          <div className="status-alert status-alert--error status-alert--spaced">
-            <span>{message}</span>
-          </div>
-        ) : null}
+function EnterpriseSuccessToast({ toastMessage }: { toastMessage: string | null }) {
+  if (!toastMessage) return null;
 
-        <div className="user-management__toolbar">
-          <span className="ui-note ui-note--muted">
-            {enterpriseTableStatus === "loading" && enterpriseTotal === 0
-              ? "Loading enterprises..."
-              : enterpriseTotal === 0
-                ? "Showing 0 enterprises."
-                : `Showing ${enterpriseStart}-${enterpriseEnd} of ${enterpriseTotal} enterprise${
-                    enterpriseTotal === 1 ? "" : "s"
-                  }.`}
-          </span>
-        </div>
+  return (
+    <div className="ui-toast-layer" aria-live="polite" aria-atomic="true">
+      <div className="ui-toast ui-toast--success" role="status">
+        {toastMessage}
+      </div>
+    </div>
+  );
+}
 
-        {rows.length > 0 ? (
-          <>
-            <Table
-              headers={["Enterprise", "Accounts", "Workspace", "Created", "Manage accounts and delete"]}
-              rows={rows}
-              className="enterprise-management__table"
-              rowClassName="enterprise-management__row"
-              columnTemplate="var(--enterprise-management-columns)"
-            />
-            {enterpriseTotalPages > 1 ? (
-              <div className="user-management__pagination" aria-label="Enterprise pagination">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                <form className="user-management__page-jump" onSubmit={handlePageJump}>
-                  <label htmlFor="enterprise-page-input" className="user-management__page-jump-label">
-                    Page
-                  </label>
-                  <FormField
-                    id="enterprise-page-input"
-                    type="number"
-                    min={1}
-                    max={effectiveEnterpriseTotalPages}
-                    step={1}
-                    inputMode="numeric"
-                    value={pageInput}
-                    onChange={(event) => setPageInput(event.target.value)}
-                    onBlur={() => applyPageInput(pageInput)}
-                    className="user-management__page-jump-input"
-                    aria-label="Go to enterprise page number"
-                  />
-                  <span className="muted user-management__page-total">of {effectiveEnterpriseTotalPages}</span>
-                </form>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(effectiveEnterpriseTotalPages, prev + 1))}
-                  disabled={currentPage === effectiveEnterpriseTotalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            ) : null}
-          </>
-        ) : (
-          <div className="ui-empty-state">
-            <p>
-              {enterpriseTableStatus === "loading"
-                ? "Loading enterprises..."
-                : normalizeSearchQuery(searchQuery)
-                  ? `No enterprises match "${searchQuery.trim()}".`
-                  : "No enterprises found."}
-            </p>
-          </div>
-        )}
-      </Card>
-
+function EnterpriseManagementModals({
+  state,
+  enterpriseUserRows,
+}: {
+  state: ManagementState;
+  enterpriseUserRows: ReturnType<typeof buildEnterpriseUserRows>;
+}) {
+  return (
+    <>
       <EnterpriseCreateModal
-        open={createModalOpen}
-        nameInput={nameInput}
-        codeInput={codeInput}
-        isCreating={isCreating}
-        onNameInputChange={setNameInput}
-        onCodeInputChange={setCodeInput}
-        onClose={closeCreateModal}
-        onSubmit={handleCreateEnterprise}
+        open={state.createModalOpen}
+        nameInput={state.nameInput}
+        codeInput={state.codeInput}
+        isCreating={state.isCreating}
+        onNameInputChange={state.setNameInput}
+        onCodeInputChange={state.setCodeInput}
+        onClose={state.closeCreateModal}
+        onSubmit={state.handleCreateEnterprise}
       />
 
       <EnterpriseAccountsModal
-        enterprise={selectedEnterprise}
-        usersStatus={enterpriseUsersStatus}
-        usersMessage={enterpriseUsersMessage}
-        userSearchQuery={enterpriseUserSearchQuery}
-        onUserSearchQueryChange={setEnterpriseUserSearchQuery}
+        enterprise={state.selectedEnterprise}
+        usersStatus={state.enterpriseUsersStatus}
+        usersMessage={state.enterpriseUsersMessage}
+        userSearchQuery={state.enterpriseUserSearchQuery}
+        onUserSearchQueryChange={state.setEnterpriseUserSearchQuery}
         userRows={enterpriseUserRows}
-        userTotal={enterpriseUserTotal}
-        userStart={enterpriseUserStart}
-        userEnd={enterpriseUserEnd}
-        userPage={enterpriseUserPage}
-        userPageInput={enterpriseUserPageInput}
-        userTotalPages={enterpriseUserTotalPages}
-        effectiveUserTotalPages={effectiveEnterpriseUserTotalPages}
-        onClose={() => setSelectedEnterprise(null)}
-        onUserPageChange={setEnterpriseUserPage}
-        onUserPageInputChange={setEnterpriseUserPageInput}
-        onUserPageInputBlur={() => applyEnterpriseUserPageInput(enterpriseUserPageInput)}
-        onUserPageJump={handleEnterpriseUserPageJump}
+        userTotal={state.enterpriseUserTotal}
+        userStart={state.enterpriseUserStart}
+        userEnd={state.enterpriseUserEnd}
+        userPage={state.enterpriseUserPage}
+        userPageInput={state.enterpriseUserPageInput}
+        userTotalPages={state.enterpriseUserTotalPages}
+        effectiveUserTotalPages={state.effectiveEnterpriseUserTotalPages}
+        onClose={() => state.setSelectedEnterprise(null)}
+        onUserPageChange={state.setEnterpriseUserPage}
+        onUserPageInputChange={state.setEnterpriseUserPageInput}
+        onUserPageInputBlur={() => state.applyEnterpriseUserPageInput(state.enterpriseUserPageInput)}
+        onUserPageJump={state.handleEnterpriseUserPageJump}
       />
 
       <ConfirmationModal
-        open={pendingDeleteEnterprise !== null}
+        open={state.pendingDeleteEnterprise !== null}
         title="Delete enterprise?"
-        message={
-          pendingDeleteEnterprise
-            ? `Delete enterprise "${pendingDeleteEnterprise.name}"? This action cannot be undone.`
-            : ""
-        }
+        message={formatDeleteMessage(state.pendingDeleteEnterprise)}
         cancelLabel="Cancel"
         confirmLabel="Delete enterprise"
         confirmVariant="danger"
-        busy={pendingDeleteEnterprise ? deleteState[pendingDeleteEnterprise.id] === true : false}
-        onCancel={() => setPendingDeleteEnterprise(null)}
-        onConfirm={() => void handleDeleteEnterprise()}
+        busy={isDeleteBusy(state.pendingDeleteEnterprise, state.deleteState)}
+        onCancel={() => state.setPendingDeleteEnterprise(null)}
+        onConfirm={() => void state.handleDeleteEnterprise()}
       />
     </>
   );
+}
+
+function formatDeleteMessage(pendingDeleteEnterprise: ManagementState["pendingDeleteEnterprise"]): string {
+  if (!pendingDeleteEnterprise) return "";
+  return `Delete enterprise "${pendingDeleteEnterprise.name}"? This action cannot be undone.`;
+}
+
+function isDeleteBusy(
+  pendingDeleteEnterprise: ManagementState["pendingDeleteEnterprise"],
+  deleteState: ManagementState["deleteState"]
+): boolean {
+  if (!pendingDeleteEnterprise) return false;
+  return deleteState[pendingDeleteEnterprise.id] === true;
 }
 
 function formatDate(value: string): string {

@@ -15,141 +15,103 @@ type EnterpriseModuleCreateFormProps = {
   workspace?: "enterprise" | "staff";
 };
 
+type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
+
 export function EnterpriseModuleCreateForm({
   mode = "create",
   moduleId,
   workspace = "enterprise",
 }: EnterpriseModuleCreateFormProps) {
-  const {
-    isEditMode,
-    moduleName,
-    moduleNameError,
-    briefText,
-    timelineText,
-    expectationsText,
-    readinessNotesText,
-    leaderIds,
-    taIds,
-    studentIds,
-    staffSearchQuery,
-    taSearchQuery,
-    studentSearchQuery,
-    staffUsers,
-    taUsers,
-    studentUsers,
-    staffStatus,
-    taStatus,
-    studentStatus,
-    staffMessage,
-    taMessage,
-    studentMessage,
-    staffPage,
-    taPage,
-    studentPage,
-    staffPageInput,
-    taPageInput,
-    studentPageInput,
-    staffTotalPages,
-    taTotalPages,
-    studentTotalPages,
-    staffTotal,
-    taTotal,
-    studentTotal,
-    staffStart,
-    taStart,
-    studentStart,
-    staffEnd,
-    taEnd,
-    studentEnd,
-    isLoadingAccess,
-    canEditModule,
-    errorMessage,
-    isSubmitting,
-    isDeleting,
-    confirmDeleteModule,
-    leaderSet,
-    taSet,
-    studentSet,
-    setBriefText,
-    setTimelineText,
-    setExpectationsText,
-    setReadinessNotesText,
-    setStaffSearchQuery,
-    setTaSearchQuery,
-    setStudentSearchQuery,
-    setStaffPage,
-    setTaPage,
-    setStudentPage,
-    setStaffPageInput,
-    setTaPageInput,
-    setStudentPageInput,
-    setConfirmDeleteModule,
-    handleModuleNameChange,
-    handleSubmit,
-    handleDeleteModule,
-    toggleLeader,
-    toggleTeachingAssistant,
-    toggleStudent,
-    applyPageInput,
-    handlePageJump,
-    navigateHome,
-  } = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
+  const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
 
-  if (isLoadingAccess) {
+  if (state.isLoadingAccess) {
     return <p className="muted">Loading module access options...</p>;
   }
 
-  if (isEditMode && !canEditModule) {
-    return (
-      <div className="ui-stack-sm">
-        <div className="status-alert status-alert--error enterprise-module-create__error">
-          <span>{errorMessage ?? "Only module owners/leaders can edit this module."}</span>
-        </div>
-        <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-          <Button type="button" variant="ghost" onClick={navigateHome}>
-            Back to modules
-          </Button>
-        </div>
+  if (state.isEditMode && !state.canEditModule) {
+    return <ModuleEditBlockedNotice state={state} />;
+  }
+
+  return <EnterpriseModuleCreateFormBody state={state} />;
+}
+
+function EnterpriseModuleCreateFormBody({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
+      <ModuleNameField state={state} />
+      <ModuleEditFieldsSection state={state} />
+      <ModuleLeaderAccessSection state={state} />
+      {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
+      {state.isEditMode ? <ModuleDeleteSection state={state} /> : null}
+      <ModuleErrorMessage errorMessage={state.errorMessage} />
+      <ModuleFormActions state={state} />
+    </form>
+  );
+}
+
+function ModuleEditBlockedNotice({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="ui-stack-sm">
+      <div className="status-alert status-alert--error enterprise-module-create__error">
+        <span>{state.errorMessage ?? "Only module owners/leaders can edit this module."}</span>
       </div>
+      <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
+        <Button type="button" variant="ghost" onClick={state.navigateHome}>
+          Back to modules
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function ModuleNameField({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--name">
+      <label htmlFor="module-name-input" className="enterprise-modules__create-field-label">
+        Module name
+      </label>
+      <FormField
+        id="module-name-input"
+        value={state.moduleName}
+        onChange={(event) => state.handleModuleNameChange(event.target.value)}
+        placeholder="Module name"
+        aria-label="Module name"
+        aria-invalid={state.moduleNameError ? true : undefined}
+      />
+      {state.moduleNameError ? <span className="enterprise-module-create__field-error">{state.moduleNameError}</span> : null}
+      <CharacterCount value={state.moduleName} limit={MODULE_NAME_MAX_LENGTH} />
+    </div>
+  );
+}
+
+function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
+  if (!state.isEditMode) {
+    return (
+      <p className="ui-note ui-note--muted">
+        You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating
+        the module.
+      </p>
     );
   }
 
   return (
-    <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={handleSubmit} noValidate>
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--name">
-        <label htmlFor="module-name-input" className="enterprise-modules__create-field-label">
-          Module name
-        </label>
-        <FormField
-          id="module-name-input"
-          value={moduleName}
-          onChange={(event) => handleModuleNameChange(event.target.value)}
-          placeholder="Module name"
-          aria-label="Module name"
-          aria-invalid={moduleNameError ? true : undefined}
-        />
-        {moduleNameError ? <span className="enterprise-module-create__field-error">{moduleNameError}</span> : null}
-        <CharacterCount value={moduleName} limit={MODULE_NAME_MAX_LENGTH} />
-      </div>
+    <EnterpriseModuleEditFields
+      briefText={state.briefText}
+      timelineText={state.timelineText}
+      expectationsText={state.expectationsText}
+      readinessNotesText={state.readinessNotesText}
+      maxLength={MODULE_SECTION_MAX_LENGTH}
+      onBriefTextChange={state.setBriefText}
+      onTimelineTextChange={state.setTimelineText}
+      onExpectationsTextChange={state.setExpectationsText}
+      onReadinessNotesTextChange={state.setReadinessNotesText}
+    />
+  );
+}
 
-      {isEditMode ? (
-        <EnterpriseModuleEditFields
-          briefText={briefText}
-          timelineText={timelineText}
-          expectationsText={expectationsText}
-          readinessNotesText={readinessNotesText}
-          maxLength={MODULE_SECTION_MAX_LENGTH}
-          onBriefTextChange={setBriefText}
-          onTimelineTextChange={setTimelineText}
-          onExpectationsTextChange={setExpectationsText}
-          onReadinessNotesTextChange={setReadinessNotesText}
-        />
-      ) : (
-        <p className="ui-note ui-note--muted">
-          You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating the module.
-        </p>
-      )}
-
+function ModuleLeaderAccessSection({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <>
       <EnterpriseModuleAccessSection
         label="Module owners/leaders"
         helperText="Owners can edit this module and manage role assignments."
@@ -157,156 +119,165 @@ export function EnterpriseModuleCreateForm({
         searchId="module-staff-search"
         searchAriaLabel="Search staff"
         searchPlaceholder="Search staff by name, email, or ID"
-        searchQuery={staffSearchQuery}
-        onSearchChange={setStaffSearchQuery}
-        status={staffStatus}
-        total={staffTotal}
-        start={staffStart}
-        end={staffEnd}
-        users={staffUsers}
-        selectedSet={leaderSet}
-        onToggle={toggleLeader}
-        isCheckedDisabled={() => isSubmitting || isDeleting}
-        message={staffMessage}
-        page={staffPage}
-        pageInput={staffPageInput}
-        totalPages={staffTotalPages}
+        searchQuery={state.staffSearchQuery}
+        onSearchChange={state.setStaffSearchQuery}
+        status={state.staffStatus}
+        total={state.staffTotal}
+        start={state.staffStart}
+        end={state.staffEnd}
+        users={state.staffUsers}
+        selectedSet={state.leaderSet}
+        onToggle={state.toggleLeader}
+        isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+        message={state.staffMessage}
+        page={state.staffPage}
+        pageInput={state.staffPageInput}
+        totalPages={state.staffTotalPages}
         pageInputId="module-staff-page-input"
         pageJumpAriaLabel="Go to staff page"
-        onPageInputChange={setStaffPageInput}
-        onPageInputBlur={() => applyPageInput("staff", staffPageInput)}
-        onPageJump={(event) => handlePageJump(event, "staff", staffPageInput)}
-        onPreviousPage={() => setStaffPage((prev) => Math.max(1, prev - 1))}
-        onNextPage={() => setStaffPage((prev) => Math.min(Math.max(1, staffTotalPages), prev + 1))}
+        onPageInputChange={state.setStaffPageInput}
+        onPageInputBlur={() => state.applyPageInput("staff", state.staffPageInput)}
+        onPageJump={(event) => state.handlePageJump(event, "staff", state.staffPageInput)}
+        onPreviousPage={() => state.setStaffPage((prev) => Math.max(1, prev - 1))}
+        onNextPage={() => state.setStaffPage((prev) => Math.min(Math.max(1, state.staffTotalPages), prev + 1))}
         loadingLabel="Loading staff..."
         zeroLabel="Showing 0 accounts"
         noResultsLabel={(query) => `No staff match "${query}".`}
         emptyLabel="No staff accounts found."
-        selectedCountLabel={`${leaderIds.length} selected`}
+        selectedCountLabel={`${state.leaderIds.length} selected`}
       />
-      {!isEditMode && leaderIds.length === 0 ? (
+      {!state.isEditMode && state.leaderIds.length === 0 ? (
         <span className="enterprise-module-create__field-error">Select at least one module leader to continue.</span>
       ) : null}
+    </>
+  );
+}
 
-      {isEditMode ? (
-        <>
-          <EnterpriseModuleAccessSection
-            label="Teaching assistants"
-            helperText="TAs can be any account type and can access module workflows, but cannot manage role assignments."
-            groupLabel="Teaching assistants"
-            searchId="module-ta-search"
-            searchAriaLabel="Search teaching assistant accounts"
-            searchPlaceholder="Search accounts by name, email, or ID"
-            searchQuery={taSearchQuery}
-            onSearchChange={setTaSearchQuery}
-            status={taStatus}
-            total={taTotal}
-            start={taStart}
-            end={taEnd}
-            users={taUsers}
-            selectedSet={taSet}
-            onToggle={toggleTeachingAssistant}
-            isCheckedDisabled={(user) => isSubmitting || isDeleting || leaderSet.has(user.id)}
-            message={taMessage}
-            page={taPage}
-            pageInput={taPageInput}
-            totalPages={taTotalPages}
-            pageInputId="module-ta-page-input"
-            pageJumpAriaLabel="Go to teaching assistant page"
-            onPageInputChange={setTaPageInput}
-            onPageInputBlur={() => applyPageInput("ta", taPageInput)}
-            onPageJump={(event) => handlePageJump(event, "ta", taPageInput)}
-            onPreviousPage={() => setTaPage((prev) => Math.max(1, prev - 1))}
-            onNextPage={() => setTaPage((prev) => Math.min(Math.max(1, taTotalPages), prev + 1))}
-            loadingLabel="Loading accounts..."
-            zeroLabel="Showing 0 accounts"
-            noResultsLabel={(query) => `No accounts match "${query}".`}
-            emptyLabel="No assignable accounts found."
-            selectedCountLabel={`${taIds.length} selected`}
+function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <>
+      <EnterpriseModuleAccessSection
+        label="Teaching assistants"
+        helperText="TAs can be any account type and can access module workflows, but cannot manage role assignments."
+        groupLabel="Teaching assistants"
+        searchId="module-ta-search"
+        searchAriaLabel="Search teaching assistant accounts"
+        searchPlaceholder="Search accounts by name, email, or ID"
+        searchQuery={state.taSearchQuery}
+        onSearchChange={state.setTaSearchQuery}
+        status={state.taStatus}
+        total={state.taTotal}
+        start={state.taStart}
+        end={state.taEnd}
+        users={state.taUsers}
+        selectedSet={state.taSet}
+        onToggle={state.toggleTeachingAssistant}
+        isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting || state.leaderSet.has(user.id)}
+        message={state.taMessage}
+        page={state.taPage}
+        pageInput={state.taPageInput}
+        totalPages={state.taTotalPages}
+        pageInputId="module-ta-page-input"
+        pageJumpAriaLabel="Go to teaching assistant page"
+        onPageInputChange={state.setTaPageInput}
+        onPageInputBlur={() => state.applyPageInput("ta", state.taPageInput)}
+        onPageJump={(event) => state.handlePageJump(event, "ta", state.taPageInput)}
+        onPreviousPage={() => state.setTaPage((prev) => Math.max(1, prev - 1))}
+        onNextPage={() => state.setTaPage((prev) => Math.min(Math.max(1, state.taTotalPages), prev + 1))}
+        loadingLabel="Loading accounts..."
+        zeroLabel="Showing 0 accounts"
+        noResultsLabel={(query) => `No accounts match "${query}".`}
+        emptyLabel="No assignable accounts found."
+        selectedCountLabel={`${state.taIds.length} selected`}
+      />
+
+      <EnterpriseModuleAccessSection
+        label="Students"
+        helperText="Enrolled students can participate in module projects and assessments."
+        groupLabel="Module students"
+        searchId="module-student-search"
+        searchAriaLabel="Search students"
+        searchPlaceholder="Search students by name, email, or ID"
+        searchQuery={state.studentSearchQuery}
+        onSearchChange={state.setStudentSearchQuery}
+        status={state.studentStatus}
+        total={state.studentTotal}
+        start={state.studentStart}
+        end={state.studentEnd}
+        users={state.studentUsers}
+        selectedSet={state.studentSet}
+        onToggle={state.toggleStudent}
+        isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+        message={state.studentMessage}
+        page={state.studentPage}
+        pageInput={state.studentPageInput}
+        totalPages={state.studentTotalPages}
+        pageInputId="module-student-page-input"
+        pageJumpAriaLabel="Go to student page"
+        onPageInputChange={state.setStudentPageInput}
+        onPageInputBlur={() => state.applyPageInput("students", state.studentPageInput)}
+        onPageJump={(event) => state.handlePageJump(event, "students", state.studentPageInput)}
+        onPreviousPage={() => state.setStudentPage((prev) => Math.max(1, prev - 1))}
+        onNextPage={() => state.setStudentPage((prev) => Math.min(Math.max(1, state.studentTotalPages), prev + 1))}
+        loadingLabel="Loading students..."
+        zeroLabel="Showing 0 students"
+        noResultsLabel={(query) => `No students match "${query}".`}
+        emptyLabel="No students found."
+        selectedCountLabel={`${state.studentIds.length} selected`}
+      />
+    </>
+  );
+}
+
+function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger">
+      <div className="enterprise-module-create__danger-zone">
+        <h3 className="enterprise-module-create__danger-title">Delete module</h3>
+        <p className="ui-note">This permanently deletes the module and its related projects, teams, and access assignments.</p>
+        <label htmlFor="module-delete-confirmation" className="enterprise-module-create__danger-confirm">
+          <input
+            id="module-delete-confirmation"
+            type="checkbox"
+            checked={state.confirmDeleteModule}
+            onChange={(event) => state.setConfirmDeleteModule(event.target.checked)}
+            disabled={state.isSubmitting || state.isDeleting}
           />
-
-          <EnterpriseModuleAccessSection
-            label="Students"
-            helperText="Enrolled students can participate in module projects and assessments."
-            groupLabel="Module students"
-            searchId="module-student-search"
-            searchAriaLabel="Search students"
-            searchPlaceholder="Search students by name, email, or ID"
-            searchQuery={studentSearchQuery}
-            onSearchChange={setStudentSearchQuery}
-            status={studentStatus}
-            total={studentTotal}
-            start={studentStart}
-            end={studentEnd}
-            users={studentUsers}
-            selectedSet={studentSet}
-            onToggle={toggleStudent}
-            isCheckedDisabled={() => isSubmitting || isDeleting}
-            message={studentMessage}
-            page={studentPage}
-            pageInput={studentPageInput}
-            totalPages={studentTotalPages}
-            pageInputId="module-student-page-input"
-            pageJumpAriaLabel="Go to student page"
-            onPageInputChange={setStudentPageInput}
-            onPageInputBlur={() => applyPageInput("students", studentPageInput)}
-            onPageJump={(event) => handlePageJump(event, "students", studentPageInput)}
-            onPreviousPage={() => setStudentPage((prev) => Math.max(1, prev - 1))}
-            onNextPage={() => setStudentPage((prev) => Math.min(Math.max(1, studentTotalPages), prev + 1))}
-            loadingLabel="Loading students..."
-            zeroLabel="Showing 0 students"
-            noResultsLabel={(query) => `No students match "${query}".`}
-            emptyLabel="No students found."
-            selectedCountLabel={`${studentIds.length} selected`}
-          />
-        </>
-      ) : null}
-
-      {isEditMode ? (
-        <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger">
-          <div className="enterprise-module-create__danger-zone">
-            <h3 className="enterprise-module-create__danger-title">Delete module</h3>
-            <p className="ui-note">
-              This permanently deletes the module and its related projects, teams, and access assignments.
-            </p>
-            <label htmlFor="module-delete-confirmation" className="enterprise-module-create__danger-confirm">
-              <input
-                id="module-delete-confirmation"
-                type="checkbox"
-                checked={confirmDeleteModule}
-                onChange={(event) => setConfirmDeleteModule(event.target.checked)}
-                disabled={isSubmitting || isDeleting}
-              />
-              <span>I understand this action cannot be undone.</span>
-            </label>
-            <div className="ui-row ui-row--end">
-              <Button
-                type="button"
-                variant="danger"
-                onClick={handleDeleteModule}
-                disabled={isSubmitting || isDeleting || !confirmDeleteModule}
-              >
-                {isDeleting ? "Deleting..." : "Delete module"}
-              </Button>
-            </div>
-          </div>
+          <span>I understand this action cannot be undone.</span>
+        </label>
+        <div className="ui-row ui-row--end">
+          <Button
+            type="button"
+            variant="danger"
+            onClick={state.handleDeleteModule}
+            disabled={state.isSubmitting || state.isDeleting || !state.confirmDeleteModule}
+          >
+            {state.isDeleting ? "Deleting..." : "Delete module"}
+          </Button>
         </div>
-      ) : null}
-
-      {errorMessage ? (
-        <div className="status-alert status-alert--error enterprise-module-create__error">
-          <span>{errorMessage}</span>
-        </div>
-      ) : null}
-
-      <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-        <Button type="button" variant="ghost" onClick={navigateHome} disabled={isSubmitting || isDeleting}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={isSubmitting || isDeleting || (!isEditMode && leaderIds.length === 0)}>
-          {isSubmitting ? (isEditMode ? "Saving..." : "Creating...") : isEditMode ? "Save module" : "Create module"}
-        </Button>
       </div>
-    </form>
+    </div>
+  );
+}
+
+function ModuleErrorMessage({ errorMessage }: { errorMessage: string | null }) {
+  if (!errorMessage) return null;
+  return (
+    <div className="status-alert status-alert--error enterprise-module-create__error">
+      <span>{errorMessage}</span>
+    </div>
+  );
+}
+
+function ModuleFormActions({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
+      <Button type="button" variant="ghost" onClick={state.navigateHome} disabled={state.isSubmitting || state.isDeleting}>
+        Cancel
+      </Button>
+      <Button type="submit" disabled={state.isSubmitting || state.isDeleting || (!state.isEditMode && state.leaderIds.length === 0)}>
+        {state.isSubmitting ? (state.isEditMode ? "Saving..." : "Creating...") : state.isEditMode ? "Save module" : "Create module"}
+      </Button>
+    </div>
   );
 }

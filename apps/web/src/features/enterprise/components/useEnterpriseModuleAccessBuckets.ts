@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { searchEnterpriseModuleAccessUsers } from "../api/client";
 import type { EnterpriseAccessUserSearchScope, EnterpriseAssignableUser } from "../types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
@@ -16,6 +16,18 @@ type UseEnterpriseModuleAccessBucketsParams = {
   isEditMode: boolean;
   isLoadingAccess: boolean;
   canEditModule: boolean;
+};
+
+type AccessUsersResponse = Awaited<ReturnType<typeof searchEnterpriseModuleAccessUsers>>;
+
+type BucketStateSetters = {
+  setUsers: Dispatch<SetStateAction<EnterpriseAssignableUser[]>>;
+  setStatus: Dispatch<SetStateAction<RequestState>>;
+  setMessage: Dispatch<SetStateAction<string | null>>;
+  setPage: Dispatch<SetStateAction<number>>;
+  setPageInput: Dispatch<SetStateAction<string>>;
+  setTotal: Dispatch<SetStateAction<number>>;
+  setTotalPages: Dispatch<SetStateAction<number>>;
 };
 
 export function useEnterpriseModuleAccessBuckets({
@@ -55,6 +67,36 @@ export function useEnterpriseModuleAccessBuckets({
   const latestRequestIdRef = useRef<Record<AccessBucket, number>>({ staff: 0, ta: 0, students: 0 });
 
   const loadAccessUsers = useCallback(async (bucket: AccessBucket, query: string, page: number) => {
+    const setters = resolveBucketValue(bucket, {
+      staff: {
+        setUsers: setStaffUsers,
+        setStatus: setStaffStatus,
+        setMessage: setStaffMessage,
+        setPage: setStaffPage,
+        setPageInput: setStaffPageInput,
+        setTotal: setStaffTotal,
+        setTotalPages: setStaffTotalPages,
+      },
+      ta: {
+        setUsers: setTaUsers,
+        setStatus: setTaStatus,
+        setMessage: setTaMessage,
+        setPage: setTaPage,
+        setPageInput: setTaPageInput,
+        setTotal: setTaTotal,
+        setTotalPages: setTaTotalPages,
+      },
+      students: {
+        setUsers: setStudentUsers,
+        setStatus: setStudentStatus,
+        setMessage: setStudentMessage,
+        setPage: setStudentPage,
+        setPageInput: setStudentPageInput,
+        setTotal: setStudentTotal,
+        setTotalPages: setStudentTotalPages,
+      },
+    });
+
     const requestId = latestRequestIdRef.current[bucket] + 1;
     latestRequestIdRef.current[bucket] = requestId;
 
@@ -63,16 +105,7 @@ export function useEnterpriseModuleAccessBuckets({
       apply();
     };
 
-    if (bucket === "staff") {
-      setStaffStatus("loading");
-      setStaffMessage(null);
-    } else if (bucket === "ta") {
-      setTaStatus("loading");
-      setTaMessage(null);
-    } else {
-      setStudentStatus("loading");
-      setStudentMessage(null);
-    }
+    setBucketLoading(setters);
 
     try {
       const response = await searchEnterpriseModuleAccessUsers({
@@ -84,59 +117,15 @@ export function useEnterpriseModuleAccessBuckets({
 
       applyIfCurrent(() => {
         if (response.totalPages > 0 && response.page > response.totalPages) {
-          if (bucket === "staff") setStaffPage(response.totalPages);
-          else if (bucket === "ta") setTaPage(response.totalPages);
-          else setStudentPage(response.totalPages);
+          setters.setPage(response.totalPages);
           return;
         }
-
-        if (bucket === "staff") {
-          setStaffUsers(response.items);
-          setStaffTotal(response.total);
-          setStaffTotalPages(response.totalPages);
-          setStaffStatus("success");
-          return;
-        }
-
-        if (bucket === "ta") {
-          setTaUsers(response.items);
-          setTaTotal(response.total);
-          setTaTotalPages(response.totalPages);
-          setTaStatus("success");
-          return;
-        }
-
-        setStudentUsers(response.items);
-        setStudentTotal(response.total);
-        setStudentTotalPages(response.totalPages);
-        setStudentStatus("success");
+        setBucketSuccess(setters, response);
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Could not load users.";
       applyIfCurrent(() => {
-        if (bucket === "staff") {
-          setStaffUsers([]);
-          setStaffTotal(0);
-          setStaffTotalPages(0);
-          setStaffStatus("error");
-          setStaffMessage(message);
-          return;
-        }
-
-        if (bucket === "ta") {
-          setTaUsers([]);
-          setTaTotal(0);
-          setTaTotalPages(0);
-          setTaStatus("error");
-          setTaMessage(message);
-          return;
-        }
-
-        setStudentUsers([]);
-        setStudentTotal(0);
-        setStudentTotalPages(0);
-        setStudentStatus("error");
-        setStudentMessage(message);
+        setBucketError(setters, message);
       });
     }
   }, []);
@@ -185,31 +174,25 @@ export function useEnterpriseModuleAccessBuckets({
   }, [studentPage]);
 
   const applyPageInput = (bucket: AccessBucket, rawValue: string) => {
-    const parsedPage = Number(rawValue);
-    const maxPage =
-      bucket === "staff"
-        ? Math.max(1, staffTotalPages)
-        : bucket === "ta"
-          ? Math.max(1, taTotalPages)
-          : Math.max(1, studentTotalPages);
+    const currentPage = resolveBucketValue(bucket, { staff: staffPage, ta: taPage, students: studentPage });
+    const totalPages = resolveBucketValue(bucket, { staff: staffTotalPages, ta: taTotalPages, students: studentTotalPages });
+    const setPage = resolveBucketValue(bucket, { staff: setStaffPage, ta: setTaPage, students: setStudentPage });
+    const setPageInput = resolveBucketValue(bucket, {
+      staff: setStaffPageInput,
+      ta: setTaPageInput,
+      students: setStudentPageInput,
+    });
 
-    const fallback =
-      bucket === "staff"
-        ? String(staffPage)
-        : bucket === "ta"
-          ? String(taPage)
-          : String(studentPage);
+    const parsedPage = Number(rawValue);
+    const maxPage = Math.max(1, totalPages);
+    const fallback = String(currentPage);
 
     if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > maxPage) {
-      if (bucket === "staff") setStaffPageInput(fallback);
-      else if (bucket === "ta") setTaPageInput(fallback);
-      else setStudentPageInput(fallback);
+      setPageInput(fallback);
       return;
     }
 
-    if (bucket === "staff") setStaffPage(parsedPage);
-    else if (bucket === "ta") setTaPage(parsedPage);
-    else setStudentPage(parsedPage);
+    setPage(parsedPage);
   };
 
   const handlePageJump = (event: FormEvent<HTMLFormElement>, bucket: AccessBucket, inputValue: string) => {
@@ -273,6 +256,30 @@ function resolveScopeForBucket(bucket: AccessBucket): EnterpriseAccessUserSearch
   if (bucket === "staff") return "staff";
   if (bucket === "students") return "students";
   return "all";
+}
+
+function resolveBucketValue<T>(bucket: AccessBucket, values: Record<AccessBucket, T>): T {
+  return values[bucket];
+}
+
+function setBucketLoading(setters: BucketStateSetters) {
+  setters.setStatus("loading");
+  setters.setMessage(null);
+}
+
+function setBucketSuccess(setters: BucketStateSetters, response: AccessUsersResponse) {
+  setters.setUsers(response.items);
+  setters.setTotal(response.total);
+  setters.setTotalPages(response.totalPages);
+  setters.setStatus("success");
+}
+
+function setBucketError(setters: BucketStateSetters, message: string) {
+  setters.setUsers([]);
+  setters.setTotal(0);
+  setters.setTotalPages(0);
+  setters.setStatus("error");
+  setters.setMessage(message);
 }
 
 function getListStart(total: number, page: number, pageSize: number) {

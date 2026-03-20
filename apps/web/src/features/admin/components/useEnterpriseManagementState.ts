@@ -1,24 +1,14 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import {
-  createEnterprise,
-  deleteEnterprise,
-  searchEnterpriseUsers,
-  searchEnterprises,
-  updateEnterpriseUser,
-} from "../api/client";
-import type { AdminUser, AdminUserRecord, EnterpriseRecord, UserRole } from "../types";
+import { createEnterprise, deleteEnterprise, searchEnterprises } from "../api/client";
+import type { EnterpriseRecord } from "../types";
+import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
 const ENTERPRISES_PER_PAGE = 8;
-const ENTERPRISE_USERS_PER_PAGE = 10;
 
-const normalizeUser = (user: AdminUserRecord): AdminUser => ({
-  ...user,
-  role: user.role ?? (user.isStaff ? "STAFF" : "STUDENT"),
-  active: user.active ?? true,
-});
+type EnterpriseSearchResponse = Awaited<ReturnType<typeof searchEnterprises>>;
 
 export function useEnterpriseManagementState(isSuperAdmin: boolean) {
   const [enterprises, setEnterprises] = useState<EnterpriseRecord[]>([]);
@@ -40,26 +30,15 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
   const [deleteState, setDeleteState] = useState<Record<string, boolean>>({});
   const [pendingDeleteEnterprise, setPendingDeleteEnterprise] = useState<EnterpriseRecord | null>(null);
 
-  const [selectedEnterprise, setSelectedEnterprise] = useState<EnterpriseRecord | null>(null);
-  const [enterpriseUsers, setEnterpriseUsers] = useState<AdminUser[]>([]);
-  const [enterpriseUsersStatus, setEnterpriseUsersStatus] = useState<RequestState>("idle");
-  const [enterpriseUsersMessage, setEnterpriseUsersMessage] = useState<string | null>(null);
-  const [enterpriseUserActionState, setEnterpriseUserActionState] = useState<Record<number, RequestState>>({});
-  const [enterpriseUserSearchQuery, setEnterpriseUserSearchQuery] = useState("");
-  const [enterpriseUserPage, setEnterpriseUserPage] = useState(1);
-  const [enterpriseUserPageInput, setEnterpriseUserPageInput] = useState("1");
-  const [enterpriseUserTotal, setEnterpriseUserTotal] = useState(0);
-  const [enterpriseUserTotalPages, setEnterpriseUserTotalPages] = useState(0);
-  const latestEnterpriseUsersRequestId = useRef(0);
-
-  const normalizedEnterpriseSearch = normalizeSearchQuery(searchQuery);
-  const normalizedEnterpriseUserSearch = normalizeSearchQuery(enterpriseUserSearchQuery);
-  const effectiveEnterpriseTotalPages = Math.max(1, enterpriseTotalPages);
-  const effectiveEnterpriseUserTotalPages = Math.max(1, enterpriseUserTotalPages);
-
   const showSuccessToast = useCallback((nextMessage: string) => {
     setToastMessage(nextMessage);
   }, []);
+
+  const userState = useEnterpriseUserManagementState({ showSuccessToast });
+  const { clearSelectedEnterpriseIfDeleted } = userState;
+
+  const normalizedEnterpriseSearch = normalizeSearchQuery(searchQuery);
+  const effectiveEnterpriseTotalPages = Math.max(1, enterpriseTotalPages);
 
   const loadEnterprises = useCallback(async (query: string, page: number) => {
     const requestId = latestEnterpriseRequestId.current + 1;
@@ -73,74 +52,35 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
         pageSize: ENTERPRISES_PER_PAGE,
       });
       if (latestEnterpriseRequestId.current !== requestId) return;
-
-      if (response.totalPages > 0 && response.page > response.totalPages) {
-        setCurrentPage(response.totalPages);
-        return;
-      }
-
-      setEnterprises(response.items);
-      setEnterpriseTotal(response.total);
-      setEnterpriseTotalPages(response.totalPages);
-      setEnterpriseTableStatus("success");
+      const applied = applyEnterpriseResponse(response, {
+        setCurrentPage,
+        setEnterprises,
+        setEnterpriseTotal,
+        setEnterpriseTotalPages,
+        setEnterpriseTableStatus,
+      });
+      if (!applied) return;
     } catch (err) {
       if (latestEnterpriseRequestId.current !== requestId) return;
-      setEnterprises([]);
-      setEnterpriseTotal(0);
-      setEnterpriseTotalPages(0);
-      setEnterpriseTableStatus("error");
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not load enterprises.");
-    }
-  }, []);
-
-  const loadEnterpriseUsers = useCallback(async (enterpriseId: string, query: string, page: number) => {
-    const requestId = latestEnterpriseUsersRequestId.current + 1;
-    latestEnterpriseUsersRequestId.current = requestId;
-    setEnterpriseUsersStatus("loading");
-    setEnterpriseUsersMessage(null);
-
-    try {
-      const response = await searchEnterpriseUsers(enterpriseId, {
-        q: query.trim() || undefined,
-        page,
-        pageSize: ENTERPRISE_USERS_PER_PAGE,
+      clearEnterpriseResults({
+        setEnterprises,
+        setEnterpriseTotal,
+        setEnterpriseTotalPages,
+        setEnterpriseTableStatus,
       });
-      if (latestEnterpriseUsersRequestId.current !== requestId) return;
-
-      if (response.totalPages > 0 && response.page > response.totalPages) {
-        setEnterpriseUserPage(response.totalPages);
-        return;
-      }
-
-      setEnterpriseUsers(response.items.map(normalizeUser));
-      setEnterpriseUserTotal(response.total);
-      setEnterpriseUserTotalPages(response.totalPages);
-      setEnterpriseUsersStatus("success");
-      if (response.total === 0) {
-        setEnterpriseUsersMessage("No user accounts found in this enterprise.");
-      }
-    } catch (err) {
-      if (latestEnterpriseUsersRequestId.current !== requestId) return;
-      setEnterpriseUsers([]);
-      setEnterpriseUserTotal(0);
-      setEnterpriseUserTotalPages(0);
-      setEnterpriseUsersStatus("error");
-      setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not load enterprise users.");
+      setStatus("error");
+      setMessage(resolveUnknownError(err, "Could not load enterprises."));
     }
-  }, []);
-
-  const setEnterpriseUserRow = useCallback((userId: number, update: (user: AdminUser) => AdminUser) => {
-    setEnterpriseUsers((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
   }, []);
 
   const handleCreateEnterprise = useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = nameInput.trim();
     const code = codeInput.trim().toUpperCase();
-    if (!name) {
+    const validationError = validateEnterpriseCreateInput(name);
+    if (validationError) {
       setStatus("error");
-      setMessage("Enterprise name is required.");
+      setMessage(validationError);
       return;
     }
 
@@ -150,14 +90,16 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
       const created = await createEnterprise({ name, ...(code ? { code } : {}) });
       setStatus("success");
       showSuccessToast(`Enterprise "${created.name}" created with code ${created.code}.`);
-      setNameInput("");
-      setCodeInput("");
-      setCreateModalOpen(false);
+      resetCreateModal({
+        setNameInput,
+        setCodeInput,
+        setCreateModalOpen,
+      });
       setCurrentPage(1);
       void loadEnterprises(searchQuery, 1);
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not create enterprise.");
+      setMessage(resolveUnknownError(err, "Could not create enterprise."));
     } finally {
       setIsCreating(false);
     }
@@ -169,73 +111,20 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     setPendingDeleteEnterprise(null);
     setDeleteState((prev) => ({ ...prev, [enterprise.id]: true }));
     setMessage(null);
+
     try {
       await deleteEnterprise(enterprise.id);
       setStatus("success");
       showSuccessToast(`Enterprise "${enterprise.name}" deleted.`);
-      if (selectedEnterprise?.id === enterprise.id) {
-        setSelectedEnterprise(null);
-        setEnterpriseUsers([]);
-      }
+      clearSelectedEnterpriseIfDeleted(enterprise.id);
       void loadEnterprises(searchQuery, currentPage);
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not delete enterprise.");
+      setMessage(resolveUnknownError(err, "Could not delete enterprise."));
     } finally {
       setDeleteState((prev) => ({ ...prev, [enterprise.id]: false }));
     }
-  }, [currentPage, loadEnterprises, pendingDeleteEnterprise, searchQuery, selectedEnterprise?.id, showSuccessToast]);
-
-  const openEnterpriseAccounts = useCallback((enterprise: EnterpriseRecord) => {
-    setSelectedEnterprise(enterprise);
-    setEnterpriseUsers([]);
-    setEnterpriseUserTotal(0);
-    setEnterpriseUserTotalPages(0);
-    setEnterpriseUsersMessage(null);
-    setEnterpriseUserSearchQuery("");
-    setEnterpriseUserPage(1);
-    setEnterpriseUserActionState({});
-  }, []);
-
-  const handleEnterpriseUserRoleChange = useCallback(async (userId: number, role: UserRole) => {
-    if (!selectedEnterprise) return;
-    const previous = enterpriseUsers.map((user) => ({ ...user }));
-    setEnterpriseUserActionState((prev) => ({ ...prev, [userId]: "loading" }));
-    setEnterpriseUsersMessage(null);
-    setEnterpriseUserRow(userId, (user) => ({ ...user, role, isStaff: role !== "STUDENT" }));
-
-    try {
-      const updated = await updateEnterpriseUser(selectedEnterprise.id, userId, { role });
-      setEnterpriseUserRow(userId, () => normalizeUser(updated));
-      showSuccessToast(`Updated role to ${role.toLowerCase()}.`);
-      void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
-    } catch (err) {
-      setEnterpriseUsers(previous);
-      setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not update role.");
-    } finally {
-      setEnterpriseUserActionState((prev) => ({ ...prev, [userId]: "idle" }));
-    }
-  }, [enterpriseUserPage, enterpriseUserSearchQuery, enterpriseUsers, loadEnterpriseUsers, selectedEnterprise, setEnterpriseUserRow, showSuccessToast]);
-
-  const handleEnterpriseUserStatusToggle = useCallback(async (userId: number, nextStatus: boolean) => {
-    if (!selectedEnterprise) return;
-    const previous = enterpriseUsers.map((user) => ({ ...user }));
-    setEnterpriseUserActionState((prev) => ({ ...prev, [userId]: "loading" }));
-    setEnterpriseUsersMessage(null);
-    setEnterpriseUserRow(userId, (user) => ({ ...user, active: nextStatus }));
-
-    try {
-      const updated = await updateEnterpriseUser(selectedEnterprise.id, userId, { active: nextStatus });
-      setEnterpriseUserRow(userId, () => normalizeUser(updated));
-      showSuccessToast(nextStatus ? "Account activated." : "Account suspended.");
-      void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
-    } catch (err) {
-      setEnterpriseUsers(previous);
-      setEnterpriseUsersMessage(err instanceof Error ? err.message : "Could not update account status.");
-    } finally {
-      setEnterpriseUserActionState((prev) => ({ ...prev, [userId]: "idle" }));
-    }
-  }, [enterpriseUserPage, enterpriseUserSearchQuery, enterpriseUsers, loadEnterpriseUsers, selectedEnterprise, setEnterpriseUserRow, showSuccessToast]);
+  }, [clearSelectedEnterpriseIfDeleted, currentPage, loadEnterprises, pendingDeleteEnterprise, searchQuery, showSuccessToast]);
 
   const applyPageInput = useCallback((value: string) => {
     const parsedPage = Number(value);
@@ -246,24 +135,10 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     setCurrentPage(parsedPage);
   }, [currentPage, effectiveEnterpriseTotalPages]);
 
-  const applyEnterpriseUserPageInput = useCallback((value: string) => {
-    const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveEnterpriseUserTotalPages) {
-      setEnterpriseUserPageInput(String(enterpriseUserPage));
-      return;
-    }
-    setEnterpriseUserPage(parsedPage);
-  }, [effectiveEnterpriseUserTotalPages, enterpriseUserPage]);
-
   const handlePageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     applyPageInput(pageInput);
   }, [applyPageInput, pageInput]);
-
-  const handleEnterpriseUserPageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    applyEnterpriseUserPageInput(enterpriseUserPageInput);
-  }, [applyEnterpriseUserPageInput, enterpriseUserPageInput]);
 
   const closeCreateModal = useCallback(() => {
     setCreateModalOpen(false);
@@ -275,11 +150,6 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     if (!isSuperAdmin) return;
     void loadEnterprises(searchQuery, currentPage);
   }, [isSuperAdmin, searchQuery, currentPage, loadEnterprises]);
-
-  useEffect(() => {
-    if (!selectedEnterprise) return;
-    void loadEnterpriseUsers(selectedEnterprise.id, enterpriseUserSearchQuery, enterpriseUserPage);
-  }, [selectedEnterprise, enterpriseUserSearchQuery, enterpriseUserPage, loadEnterpriseUsers]);
 
   useEffect(() => {
     if (!toastMessage) return;
@@ -297,23 +167,12 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  useEffect(() => {
-    setEnterpriseUserPage(1);
-  }, [normalizedEnterpriseUserSearch, selectedEnterprise?.id]);
-
-  useEffect(() => {
-    setEnterpriseUserPageInput(String(enterpriseUserPage));
-  }, [enterpriseUserPage]);
-
   const enterpriseStart = enterpriseTotal === 0 ? 0 : (currentPage - 1) * ENTERPRISES_PER_PAGE + 1;
-  const enterpriseEnd =
-    enterpriseTotal === 0 ? 0 : Math.min((currentPage - 1) * ENTERPRISES_PER_PAGE + enterprises.length, enterpriseTotal);
-
-  const enterpriseUserStart = enterpriseUserTotal === 0 ? 0 : (enterpriseUserPage - 1) * ENTERPRISE_USERS_PER_PAGE + 1;
-  const enterpriseUserEnd =
-    enterpriseUserTotal === 0
-      ? 0
-      : Math.min((enterpriseUserPage - 1) * ENTERPRISE_USERS_PER_PAGE + enterpriseUsers.length, enterpriseUserTotal);
+  const enterpriseEnd = getEnterpriseListEnd({
+    enterpriseTotal,
+    currentPage,
+    visibleCount: enterprises.length,
+  });
 
   return {
     status,
@@ -345,29 +204,68 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     pendingDeleteEnterprise,
     setPendingDeleteEnterprise,
     handleDeleteEnterprise,
-    selectedEnterprise,
-    setSelectedEnterprise,
-    enterpriseUsers,
-    enterpriseUsersStatus,
-    enterpriseUsersMessage,
-    enterpriseUserActionState,
-    enterpriseUserSearchQuery,
-    setEnterpriseUserSearchQuery,
-    enterpriseUserPage,
-    setEnterpriseUserPage,
-    enterpriseUserPageInput,
-    setEnterpriseUserPageInput,
-    enterpriseUserTotal,
-    enterpriseUserTotalPages,
-    effectiveEnterpriseUserTotalPages,
-    enterpriseUserStart,
-    enterpriseUserEnd,
-    openEnterpriseAccounts,
-    handleEnterpriseUserRoleChange,
-    handleEnterpriseUserStatusToggle,
     handlePageJump,
-    handleEnterpriseUserPageJump,
     applyPageInput,
-    applyEnterpriseUserPageInput,
+    ...userState,
   };
+}
+
+function applyEnterpriseResponse(
+  response: EnterpriseSearchResponse,
+  setters: {
+    setCurrentPage: (value: number) => void;
+    setEnterprises: (value: EnterpriseRecord[]) => void;
+    setEnterpriseTotal: (value: number) => void;
+    setEnterpriseTotalPages: (value: number) => void;
+    setEnterpriseTableStatus: (value: RequestState) => void;
+  }
+): boolean {
+  if (response.totalPages > 0 && response.page > response.totalPages) {
+    setters.setCurrentPage(response.totalPages);
+    return false;
+  }
+
+  setters.setEnterprises(response.items);
+  setters.setEnterpriseTotal(response.total);
+  setters.setEnterpriseTotalPages(response.totalPages);
+  setters.setEnterpriseTableStatus("success");
+  return true;
+}
+
+function clearEnterpriseResults(setters: {
+  setEnterprises: (value: EnterpriseRecord[]) => void;
+  setEnterpriseTotal: (value: number) => void;
+  setEnterpriseTotalPages: (value: number) => void;
+  setEnterpriseTableStatus: (value: RequestState) => void;
+}) {
+  setters.setEnterprises([]);
+  setters.setEnterpriseTotal(0);
+  setters.setEnterpriseTotalPages(0);
+  setters.setEnterpriseTableStatus("error");
+}
+
+function validateEnterpriseCreateInput(name: string): string | null {
+  if (!name) return "Enterprise name is required.";
+  return null;
+}
+
+function resetCreateModal(setters: {
+  setNameInput: (value: string) => void;
+  setCodeInput: (value: string) => void;
+  setCreateModalOpen: (value: boolean) => void;
+}) {
+  setters.setNameInput("");
+  setters.setCodeInput("");
+  setters.setCreateModalOpen(false);
+}
+
+function resolveUnknownError(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  return fallback;
+}
+
+function getEnterpriseListEnd(params: { enterpriseTotal: number; currentPage: number; visibleCount: number }): number {
+  if (params.enterpriseTotal === 0) return 0;
+  const rangeEnd = (params.currentPage - 1) * ENTERPRISES_PER_PAGE + params.visibleCount;
+  return Math.min(rangeEnd, params.enterpriseTotal);
 }

@@ -16,6 +16,19 @@ type UseEnterpriseModuleCreateFormStateParams = {
   workspace: "enterprise" | "staff";
 };
 
+type ModuleSelectionResponse = Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>;
+
+type ModuleUpdatePayload = {
+  name: string;
+  briefText?: string;
+  timelineText?: string;
+  expectationsText?: string;
+  readinessNotesText?: string;
+  leaderIds: number[];
+  taIds: number[];
+  studentIds: number[];
+};
+
 export function useEnterpriseModuleCreateFormState({
   mode,
   moduleId,
@@ -60,26 +73,35 @@ export function useEnterpriseModuleCreateFormState({
       setIsDeleting(false);
       setCanEditModule(mode !== "edit");
 
+      if (mode !== "edit") {
+        if (!isActive) return;
+        setCanEditModule(true);
+        setIsLoadingAccess(false);
+        return;
+      }
+
+      if (!moduleId) {
+        if (!isActive) return;
+        setCanEditModule(false);
+        setErrorMessage("Module id is required for edit mode.");
+        setIsLoadingAccess(false);
+        return;
+      }
+
       try {
-        if (mode !== "edit") {
-          setCanEditModule(true);
-          return;
-        }
-
-        if (!moduleId) throw new Error("Module id is required for edit mode.");
-
         const response = await getEnterpriseModuleAccessSelection(moduleId);
         if (!isActive) return;
-
         setCanEditModule(true);
-        setModuleName(response.module.name ?? "");
-        setBriefText(response.module.briefText ?? "");
-        setTimelineText(response.module.timelineText ?? "");
-        setExpectationsText(response.module.expectationsText ?? "");
-        setReadinessNotesText(response.module.readinessNotesText ?? "");
-        setLeaderIds(response.leaderIds);
-        setTaIds(response.taIds);
-        setStudentIds(response.studentIds);
+        applyModuleSelection(response, {
+          setModuleName,
+          setBriefText,
+          setTimelineText,
+          setExpectationsText,
+          setReadinessNotesText,
+          setLeaderIds,
+          setTaIds,
+          setStudentIds,
+        });
       } catch (err) {
         if (!isActive) return;
         setCanEditModule(false);
@@ -112,14 +134,13 @@ export function useEnterpriseModuleCreateFormState({
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const name = moduleName.trim();
-
-    if (!name) {
-      setModuleNameError("Module name is required.");
+    const validation = validateModuleSubmit({ isEditMode, name, leaderIds });
+    if (validation.moduleNameError) {
+      setModuleNameError(validation.moduleNameError);
       return;
     }
-
-    if (!isEditMode && leaderIds.length === 0) {
-      setErrorMessage("Select at least one module leader before creating the module.");
+    if (validation.formError) {
+      setErrorMessage(validation.formError);
       return;
     }
 
@@ -130,23 +151,21 @@ export function useEnterpriseModuleCreateFormState({
     try {
       if (isEditMode) {
         if (!moduleId) throw new Error("Module id is required for edit mode.");
-        await updateEnterpriseModule(moduleId, {
+        const payload = buildModuleUpdatePayload({
           name,
-          briefText: normalizeOptionalMultilineText(briefText),
-          timelineText: normalizeOptionalMultilineText(timelineText),
-          expectationsText: normalizeOptionalMultilineText(expectationsText),
-          readinessNotesText: normalizeOptionalMultilineText(readinessNotesText),
+          briefText,
+          timelineText,
+          expectationsText,
+          readinessNotesText,
           leaderIds,
           taIds,
           studentIds,
         });
+        await updateEnterpriseModule(moduleId, payload);
         router.push(modulesHomeHref);
       } else {
         const createdModule = await createEnterpriseModule({ name, leaderIds });
-        const nextHref =
-          workspace === "staff"
-            ? `/staff/modules/${createdModule.id}/manage`
-            : `/enterprise/modules/${createdModule.id}/edit`;
+        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id);
         router.push(nextHref);
       }
 
@@ -236,6 +255,75 @@ export function useEnterpriseModuleCreateFormState({
 function includeId(values: number[], id: number): number[] {
   if (values.includes(id)) return values;
   return [...values, id];
+}
+
+function applyModuleSelection(
+  selection: ModuleSelectionResponse,
+  setters: {
+    setModuleName: (value: string) => void;
+    setBriefText: (value: string) => void;
+    setTimelineText: (value: string) => void;
+    setExpectationsText: (value: string) => void;
+    setReadinessNotesText: (value: string) => void;
+    setLeaderIds: (value: number[]) => void;
+    setTaIds: (value: number[]) => void;
+    setStudentIds: (value: number[]) => void;
+  }
+) {
+  setters.setModuleName(selection.module.name ?? "");
+  setters.setBriefText(selection.module.briefText ?? "");
+  setters.setTimelineText(selection.module.timelineText ?? "");
+  setters.setExpectationsText(selection.module.expectationsText ?? "");
+  setters.setReadinessNotesText(selection.module.readinessNotesText ?? "");
+  setters.setLeaderIds(selection.leaderIds);
+  setters.setTaIds(selection.taIds);
+  setters.setStudentIds(selection.studentIds);
+}
+
+function validateModuleSubmit(params: {
+  isEditMode: boolean;
+  name: string;
+  leaderIds: number[];
+}): { moduleNameError: string | null; formError: string | null } {
+  if (!params.name) {
+    return { moduleNameError: "Module name is required.", formError: null };
+  }
+
+  if (!params.isEditMode && params.leaderIds.length === 0) {
+    return {
+      moduleNameError: null,
+      formError: "Select at least one module leader before creating the module.",
+    };
+  }
+
+  return { moduleNameError: null, formError: null };
+}
+
+function buildModuleUpdatePayload(input: {
+  name: string;
+  briefText: string;
+  timelineText: string;
+  expectationsText: string;
+  readinessNotesText: string;
+  leaderIds: number[];
+  taIds: number[];
+  studentIds: number[];
+}): ModuleUpdatePayload {
+  return {
+    name: input.name,
+    briefText: normalizeOptionalMultilineText(input.briefText),
+    timelineText: normalizeOptionalMultilineText(input.timelineText),
+    expectationsText: normalizeOptionalMultilineText(input.expectationsText),
+    readinessNotesText: normalizeOptionalMultilineText(input.readinessNotesText),
+    leaderIds: input.leaderIds,
+    taIds: input.taIds,
+    studentIds: input.studentIds,
+  };
+}
+
+function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number): string {
+  if (workspace === "staff") return `/staff/modules/${moduleId}/manage`;
+  return `/enterprise/modules/${moduleId}/edit`;
 }
 
 function normalizeOptionalMultilineText(value: string): string | undefined {

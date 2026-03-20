@@ -1,5 +1,5 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { Table } from "@/shared/ui/Table";
@@ -13,7 +13,7 @@ type EnterpriseAccountsModalProps = {
   usersMessage: string | null;
   userSearchQuery: string;
   onUserSearchQueryChange: (value: string) => void;
-  userRows: Array<unknown[]>;
+  userRows: Array<Array<ReactNode>>;
   userTotal: number;
   userStart: number;
   userEnd: number;
@@ -27,6 +27,76 @@ type EnterpriseAccountsModalProps = {
   onUserPageInputBlur: () => void;
   onUserPageJump: (event: FormEvent<HTMLFormElement>) => void;
 };
+
+function AccountsCountLabel({ usersStatus, userTotal, userStart, userEnd }: { usersStatus: RequestState; userTotal: number; userStart: number; userEnd: number }) {
+  if (usersStatus === "loading" && userTotal === 0) return "Loading accounts...";
+  if (userTotal === 0) return "Showing 0 accounts.";
+  return `Showing ${userStart}-${userEnd} of ${userTotal} account${userTotal === 1 ? "" : "s"}.`;
+}
+
+function EnterpriseAccountsPagination({
+  userPage,
+  userPageInput,
+  userTotalPages,
+  effectiveUserTotalPages,
+  onUserPageChange,
+  onUserPageInputChange,
+  onUserPageInputBlur,
+  onUserPageJump,
+}: {
+  userPage: number;
+  userPageInput: string;
+  userTotalPages: number;
+  effectiveUserTotalPages: number;
+  onUserPageChange: (update: (prev: number) => number) => void;
+  onUserPageInputChange: (value: string) => void;
+  onUserPageInputBlur: () => void;
+  onUserPageJump: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  if (userTotalPages <= 1) return null;
+
+  return (
+    <div className="user-management__pagination" aria-label="Enterprise users pagination">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => onUserPageChange((prev) => Math.max(1, prev - 1))}
+        disabled={userPage === 1}
+      >
+        Previous
+      </Button>
+      <form className="user-management__page-jump" onSubmit={onUserPageJump}>
+        <label htmlFor="enterprise-user-page-input" className="user-management__page-jump-label">
+          Page
+        </label>
+        <FormField
+          id="enterprise-user-page-input"
+          type="number"
+          min={1}
+          max={effectiveUserTotalPages}
+          step={1}
+          inputMode="numeric"
+          value={userPageInput}
+          onChange={(event) => onUserPageInputChange(event.target.value)}
+          onBlur={onUserPageInputBlur}
+          className="user-management__page-jump-input"
+          aria-label="Go to enterprise user page number"
+        />
+        <span className="muted user-management__page-total">of {effectiveUserTotalPages}</span>
+      </form>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => onUserPageChange((prev) => Math.min(effectiveUserTotalPages, prev + 1))}
+        disabled={userPage === effectiveUserTotalPages}
+      >
+        Next
+      </Button>
+    </div>
+  );
+}
 
 export function EnterpriseAccountsModal({
   enterprise,
@@ -93,11 +163,7 @@ export function EnterpriseAccountsModal({
           ) : null}
 
           <span className="ui-note ui-note--muted">
-            {usersStatus === "loading" && userTotal === 0
-              ? "Loading accounts..."
-              : userTotal === 0
-                ? "Showing 0 accounts."
-                : `Showing ${userStart}-${userEnd} of ${userTotal} account${userTotal === 1 ? "" : "s"}.`}
+            <AccountsCountLabel usersStatus={usersStatus} userTotal={userTotal} userStart={userStart} userEnd={userEnd} />
           </span>
 
           {userRows.length > 0 ? (
@@ -112,47 +178,16 @@ export function EnterpriseAccountsModal({
                   columnTemplate="var(--user-management-columns)"
                 />
               </div>
-              {userTotalPages > 1 ? (
-                <div className="user-management__pagination" aria-label="Enterprise users pagination">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onUserPageChange((prev) => Math.max(1, prev - 1))}
-                    disabled={userPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <form className="user-management__page-jump" onSubmit={onUserPageJump}>
-                    <label htmlFor="enterprise-user-page-input" className="user-management__page-jump-label">
-                      Page
-                    </label>
-                    <FormField
-                      id="enterprise-user-page-input"
-                      type="number"
-                      min={1}
-                      max={effectiveUserTotalPages}
-                      step={1}
-                      inputMode="numeric"
-                      value={userPageInput}
-                      onChange={(event) => onUserPageInputChange(event.target.value)}
-                      onBlur={onUserPageInputBlur}
-                      className="user-management__page-jump-input"
-                      aria-label="Go to enterprise user page number"
-                    />
-                    <span className="muted user-management__page-total">of {effectiveUserTotalPages}</span>
-                  </form>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onUserPageChange((prev) => Math.min(effectiveUserTotalPages, prev + 1))}
-                    disabled={userPage === effectiveUserTotalPages}
-                  >
-                    Next
-                  </Button>
-                </div>
-              ) : null}
+              <EnterpriseAccountsPagination
+                userPage={userPage}
+                userPageInput={userPageInput}
+                userTotalPages={userTotalPages}
+                effectiveUserTotalPages={effectiveUserTotalPages}
+                onUserPageChange={onUserPageChange}
+                onUserPageInputChange={onUserPageInputChange}
+                onUserPageInputBlur={onUserPageInputBlur}
+                onUserPageJump={onUserPageJump}
+              />
             </>
           ) : (
             <div className="ui-empty-state">

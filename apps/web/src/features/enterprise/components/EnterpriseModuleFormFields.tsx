@@ -21,87 +21,106 @@ type EnterpriseModuleEditFieldsProps = {
   onReadinessNotesTextChange: (value: string) => void;
 };
 
-export function EnterpriseModuleEditFields({
-  briefText,
-  timelineText,
-  expectationsText,
-  readinessNotesText,
-  maxLength,
-  onBriefTextChange,
-  onTimelineTextChange,
-  onExpectationsTextChange,
-  onReadinessNotesTextChange,
-}: EnterpriseModuleEditFieldsProps) {
+type ModuleTextareaFieldProps = {
+  id: string;
+  label: string;
+  fieldClassName: string;
+  value: string;
+  maxLength: number;
+  rows: number;
+  placeholder: string;
+  ariaLabel: string;
+  onChange: (value: string) => void;
+};
+
+export function EnterpriseModuleEditFields(props: EnterpriseModuleEditFieldsProps) {
+  const fields = buildEditFieldConfigs(props);
+
   return (
     <>
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--brief">
-        <label htmlFor="module-brief-input" className="enterprise-modules__create-field-label">
-          Module brief
-        </label>
-        <AutoGrowTextarea
-          id="module-brief-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={briefText}
-          onChange={(event) => onBriefTextChange(event.target.value)}
-          placeholder="Add the key context that should appear under Module brief."
-          aria-label="Module brief"
-          rows={5}
-        />
-        <CharacterCount value={briefText} limit={maxLength} />
-      </div>
-
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--timeline">
-        <label htmlFor="module-timeline-input" className="enterprise-modules__create-field-label">
-          Timeline
-        </label>
-        <AutoGrowTextarea
-          id="module-timeline-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={timelineText}
-          onChange={(event) => onTimelineTextChange(event.target.value)}
-          placeholder={
-            "One line per event. Format: YYYY-MM-DD HH:mm | Project | Activity\n2026-09-15 09:00 | Foundation sprint | Project start"
-          }
-          aria-label="Timeline"
-          rows={5}
-        />
-        <CharacterCount value={timelineText} limit={maxLength} />
-      </div>
-
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--expectations">
-        <label htmlFor="module-expectations-input" className="enterprise-modules__create-field-label">
-          Module expectations
-        </label>
-        <AutoGrowTextarea
-          id="module-expectations-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={expectationsText}
-          onChange={(event) => onExpectationsTextChange(event.target.value)}
-          placeholder={
-            "One line per row. Format: Expectation | Target | Owner\nPeer assessment submissions | Fri 5 PM | Module lead"
-          }
-          aria-label="Module expectations"
-          rows={5}
-        />
-        <CharacterCount value={expectationsText} limit={maxLength} />
-      </div>
-
-      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--readiness">
-        <label htmlFor="module-readiness-input" className="enterprise-modules__create-field-label">
-          Readiness notes
-        </label>
-        <AutoGrowTextarea
-          id="module-readiness-input"
-          className="ui-input enterprise-modules__create-textarea"
-          value={readinessNotesText}
-          onChange={(event) => onReadinessNotesTextChange(event.target.value)}
-          placeholder="Capture any operational reminders for this module."
-          aria-label="Readiness notes"
-          rows={4}
-        />
-        <CharacterCount value={readinessNotesText} limit={maxLength} />
-      </div>
+      {fields.map((field) => (
+        <ModuleTextareaField key={field.id} {...field} />
+      ))}
     </>
+  );
+}
+
+function buildEditFieldConfigs(props: EnterpriseModuleEditFieldsProps): ModuleTextareaFieldProps[] {
+  return [
+    {
+      id: "module-brief-input",
+      label: "Module brief",
+      fieldClassName: "enterprise-module-create__field--brief",
+      value: props.briefText,
+      maxLength: props.maxLength,
+      rows: 5,
+      placeholder: "Add the key context that should appear under Module brief.",
+      ariaLabel: "Module brief",
+      onChange: props.onBriefTextChange,
+    },
+    {
+      id: "module-timeline-input",
+      label: "Timeline",
+      fieldClassName: "enterprise-module-create__field--timeline",
+      value: props.timelineText,
+      maxLength: props.maxLength,
+      rows: 5,
+      placeholder: "One line per event. Format: YYYY-MM-DD HH:mm | Project | Activity\n2026-09-15 09:00 | Foundation sprint | Project start",
+      ariaLabel: "Timeline",
+      onChange: props.onTimelineTextChange,
+    },
+    {
+      id: "module-expectations-input",
+      label: "Module expectations",
+      fieldClassName: "enterprise-module-create__field--expectations",
+      value: props.expectationsText,
+      maxLength: props.maxLength,
+      rows: 5,
+      placeholder: "One line per row. Format: Expectation | Target | Owner\nPeer assessment submissions | Fri 5 PM | Module lead",
+      ariaLabel: "Module expectations",
+      onChange: props.onExpectationsTextChange,
+    },
+    {
+      id: "module-readiness-input",
+      label: "Readiness notes",
+      fieldClassName: "enterprise-module-create__field--readiness",
+      value: props.readinessNotesText,
+      maxLength: props.maxLength,
+      rows: 4,
+      placeholder: "Capture any operational reminders for this module.",
+      ariaLabel: "Readiness notes",
+      onChange: props.onReadinessNotesTextChange,
+    },
+  ];
+}
+
+function ModuleTextareaField({
+  id,
+  label,
+  fieldClassName,
+  value,
+  maxLength,
+  rows,
+  placeholder,
+  ariaLabel,
+  onChange,
+}: ModuleTextareaFieldProps) {
+  return (
+    <div className={`enterprise-modules__create-field enterprise-module-create__field ${fieldClassName}`}>
+      <label htmlFor={id} className="enterprise-modules__create-field-label">
+        {label}
+      </label>
+      <AutoGrowTextarea
+        id={id}
+        className="ui-input enterprise-modules__create-textarea"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+        aria-label={ariaLabel}
+        rows={rows}
+      />
+      <CharacterCount value={value} limit={maxLength} />
+    </div>
   );
 }
 
