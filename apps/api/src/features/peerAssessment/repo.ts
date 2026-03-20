@@ -81,10 +81,31 @@ export function getPeerAssessment(
 }
 
 /** Updates the peer assessment. */
-export function updatePeerAssessment(assessmentId: number, answersJson: any) {
+export function updatePeerAssessment(
+  assessmentId: number,
+  answersJson: any,
+  meta?: { submittedLate?: boolean; effectiveDueDate?: Date | null },
+) {
+  const data: {
+    answersJson: any;
+    updatedAt: Date;
+    submittedLate?: boolean;
+    effectiveDueDate?: Date | null;
+  } = {
+    answersJson,
+    updatedAt: new Date(),
+  };
+
+  if (typeof meta?.submittedLate === "boolean") {
+    data.submittedLate = meta.submittedLate;
+  }
+  if (meta && "effectiveDueDate" in meta) {
+    data.effectiveDueDate = meta.effectiveDueDate ?? null;
+  }
+
   return prisma.peerAssessment.update({
     where: { id: assessmentId },
-    data: updateData,
+    data,
   });
 }
 

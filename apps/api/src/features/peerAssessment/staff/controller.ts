@@ -116,6 +116,7 @@ export const getModuleDetailsHandler = (req: Request, res: Response) =>
   handleStaffScope(req, res, [parseStaffId, parseModuleIdParam], getModuleDetailsIfLead, {
     requireResult: true,
     errorContext: "Error fetching module details",
+    notFoundStatus: 403,
   });
 
 /** Handles requests for get team details. */
