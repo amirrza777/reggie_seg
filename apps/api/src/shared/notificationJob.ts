@@ -188,6 +188,22 @@ async function sendInactivityAlerts() {
   }
 }
 
+/**
+ * Placeholder for no-repository reminders.
+ * Keep as a no-op until the final query and recipient rules are confirmed.
+ */
+async function sendNoRepoAlerts() {
+  return;
+}
+
+/**
+ * Placeholder for no-GitHub-account reminders.
+ * Keep as a no-op until the final query and recipient rules are confirmed.
+ */
+async function sendNoGithubAccountAlerts() {
+  return;
+}
+
 /** Starts the background notification scheduler for reminder and inactivity emails. */
 export function startNotificationJob() {
   cron.schedule("0 8 * * *", async () => {
