@@ -167,6 +167,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
   const handleReport = async (postId: number) => {
     if (!user) return;
+    if (!window.confirm("Report this post to staff?")) return;
     setReportingPostId(postId);
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
@@ -229,7 +230,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     }));
     setShowAllImmediateRepliesByPostId((prev) => ({
       ...prev,
-      [postId]: shouldExpand ? prev[postId] ?? false : false,
+      [postId]: shouldExpand ? false : false,
     }));
   };
 

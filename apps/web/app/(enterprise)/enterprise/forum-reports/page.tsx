@@ -1,4 +1,4 @@
-import { ForumReportsTable } from "@/features/enterprise/components/ForumReportsTable";
+import { ForumReportsTable } from "@/features/enterprise/reports/components/ForumReportsTable";
 
 export default function EnterpriseForumReportsPage() {
   return (

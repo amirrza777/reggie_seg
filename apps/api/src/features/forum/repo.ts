@@ -76,7 +76,7 @@ function buildPostTree(posts: EnrichedPost[]) {
 }
 
 async function getFlatPostsForProject(userId: number, projectId: number) {
-  const [posts, project] = await Promise.all([
+  const [posts, project, reports] = await Promise.all([
     prisma.discussionPost.findMany({
       where: { projectId },
       orderBy: { createdAt: "desc" },
@@ -101,9 +101,40 @@ async function getFlatPostsForProject(userId: number, projectId: number) {
       where: { id: projectId },
       select: { forumIsAnonymous: true },
     }),
+    prisma.forumReport.findMany({
+      where: { projectId },
+      select: { postId: true },
+    }),
   ]);
 
-  const postIds = posts.map((post) => post.id);
+  const reportedIds = new Set<number>(reports.map((report) => report.postId));
+  if (reportedIds.size > 0) {
+    const childrenByParent = new Map<number | null, number[]>();
+    for (const post of posts) {
+      const bucket = childrenByParent.get(post.parentPostId ?? null) ?? [];
+      bucket.push(post.id);
+      childrenByParent.set(post.parentPostId ?? null, bucket);
+    }
+
+    const queue = [...reportedIds];
+    while (queue.length > 0) {
+      const current = queue.pop();
+      if (!current) continue;
+      const children = childrenByParent.get(current) ?? [];
+      for (const childId of children) {
+        if (!reportedIds.has(childId)) {
+          reportedIds.add(childId);
+          queue.push(childId);
+        }
+      }
+    }
+  }
+
+  const visiblePosts = reportedIds.size
+    ? posts.filter((post) => !reportedIds.has(post.id))
+    : posts;
+
+  const postIds = visiblePosts.map((post) => post.id);
   if (postIds.length === 0) {
     return [];
   }
@@ -131,7 +162,7 @@ async function getFlatPostsForProject(userId: number, projectId: number) {
   }
 
   const hideStudentNames = project?.forumIsAnonymous ?? false;
-  return posts.map((post) => {
+  return visiblePosts.map((post) => {
     const counts = countsByPostId.get(post.id) ?? { likeCount: 0, dislikeCount: 0 };
     const score = counts.likeCount - counts.dislikeCount;
     return {
@@ -155,6 +186,12 @@ export async function getDiscussionPostsForProject(userId: number, projectId: nu
 export async function getDiscussionPostById(userId: number, projectId: number, postId: number) {
   const hasAccess = await isUserInProject(userId, projectId);
   if (!hasAccess) return null;
+
+  const report = await prisma.forumReport.findFirst({
+    where: { postId, projectId },
+    select: { id: true },
+  });
+  if (report) return null;
 
   const posts = await getFlatPostsForProject(userId, projectId);
   const { byId } = buildPostTree(posts);
@@ -226,11 +263,18 @@ export async function createDiscussionPostForProject(
   if (!hasAccess) return null;
 
   if (parentPostId) {
-    const parent = await prisma.discussionPost.findFirst({
-      where: { id: parentPostId, projectId },
-      select: { id: true },
-    });
+    const [parent, report] = await Promise.all([
+      prisma.discussionPost.findFirst({
+        where: { id: parentPostId, projectId },
+        select: { id: true },
+      }),
+      prisma.forumReport.findFirst({
+        where: { postId: parentPostId, projectId },
+        select: { id: true },
+      }),
+    ]);
     if (!parent) return null;
+    if (report) return null;
   }
 
   const created = await prisma.discussionPost.create({
@@ -334,6 +378,7 @@ export async function reportDiscussionPost(
     where: { id: postId, projectId },
     select: {
       id: true,
+      parentPostId: true,
       authorId: true,
       title: true,
       body: true,
@@ -344,22 +389,20 @@ export async function reportDiscussionPost(
 
   if (!post) return { status: "not_found" };
 
-  await prisma.$transaction([
-    prisma.forumReport.create({
-      data: {
-        projectId,
-        postId: post.id,
-        reporterId: userId,
-        authorId: post.authorId,
-        reason: reason?.trim() || null,
-        title: post.title,
-        body: post.body,
-        postCreatedAt: post.createdAt,
-        postUpdatedAt: post.updatedAt,
-      },
-    }),
-    prisma.discussionPost.delete({ where: { id: post.id } }),
-  ]);
+  await prisma.forumReport.create({
+    data: {
+      projectId,
+      postId: post.id,
+      reporterId: userId,
+      authorId: post.authorId,
+      parentPostId: post.parentPostId,
+      reason: reason?.trim() || null,
+      title: post.title,
+      body: post.body,
+      postCreatedAt: post.createdAt,
+      postUpdatedAt: post.updatedAt,
+    },
+  });
 
   return { status: "ok" };
 }

@@ -4,6 +4,7 @@ model ForumReport {
   postId     Int
   reporterId Int
   authorId   Int
+  parentPostId Int?
   reason     String?
   title      String
   body       String
@@ -17,4 +18,5 @@ model ForumReport {
 
   @@index([projectId, createdAt])
   @@index([reporterId, createdAt])
+  @@index([parentPostId])
 }
