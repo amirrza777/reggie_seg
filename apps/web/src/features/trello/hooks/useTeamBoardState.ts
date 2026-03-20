@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { mergeSectionConfigWithDefaults } from "@/features/trello/api/client";
 import {
   loadTeamBoardState,
@@ -18,13 +18,13 @@ export function useTeamBoardState(teamId: number) {
     loadTeamBoard();
   }, [loadTeamBoard]);
 
-  const mergedSectionConfig = useMemo(() => {
-    if (state.status !== "board") return {};
-    return mergeSectionConfigWithDefaults(
-      (state.view.board.lists ?? []).map((l) => l.name),
-      state.sectionConfig
-    );
-  }, [state.status, state.status === "board" ? state.view?.board?.lists : null, state.status === "board" ? state.sectionConfig : null]);
+  const mergedSectionConfig =
+    state.status !== "board"
+      ? {}
+      : mergeSectionConfigWithDefaults(
+          (state.view.board.lists ?? []).map((l) => l.name),
+          state.sectionConfig
+        );
 
   return { state, setState, loadTeamBoard, mergedSectionConfig };
 }

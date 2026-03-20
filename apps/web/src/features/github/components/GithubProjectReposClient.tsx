@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";

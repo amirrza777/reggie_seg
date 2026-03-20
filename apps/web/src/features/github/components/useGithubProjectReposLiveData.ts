@@ -93,8 +93,10 @@ export function useGithubProjectReposLiveData({
     await Promise.all(
       idsToFetch.map(async (linkId) => {
         try {
-          const query = options?.queryByLinkId?.[linkId]?.trim() || undefined;
-          const data = await listLiveProjectGithubRepoBranches(linkId, { query });
+          const query = options?.queryByLinkId?.[linkId]?.trim() || "";
+          const data = query
+            ? await listLiveProjectGithubRepoBranches(linkId, { query })
+            : await listLiveProjectGithubRepoBranches(linkId);
           setLiveBranchesByLinkId((prev) => ({ ...prev, [linkId]: data }));
           setSelectedBranchByLinkId((prev) => {
             if (prev[linkId]) return prev;
@@ -180,6 +182,9 @@ export function useGithubProjectReposLiveData({
       );
     }, 250);
     return () => window.clearTimeout(timer);
+    // `fetchLiveBranchesForLinks` depends on live branch cache/loading maps by design.
+    // Re-running this effect on each cache mutation causes redundant requests.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, links, branchSearchByLinkId]);
 
   useEffect(() => {
@@ -192,6 +197,8 @@ export function useGithubProjectReposLiveData({
       if (branchCommitsLoadingByLinkId[link.id]) continue;
       void fetchBranchCommits(link.id, selectedBranch);
     }
+    // This effect intentionally reacts to selected-branch changes only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, links, selectedBranchByLinkId]);
 
   useEffect(() => {
@@ -207,6 +214,8 @@ export function useGithubProjectReposLiveData({
         void fetchMyCommits(link.id, 1, { includeTotals: true });
       }
     }
+    // This effect intentionally reacts to tab/link readiness only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, links, connection?.connected]);
 
   useEffect(() => {
@@ -218,6 +227,8 @@ export function useGithubProjectReposLiveData({
       }
     }, 500);
     return () => window.clearTimeout(timer);
+    // This effect intentionally backfills missing data and skips cache/loading deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, activeTab, links, connection?.connected]);
 
   return {
