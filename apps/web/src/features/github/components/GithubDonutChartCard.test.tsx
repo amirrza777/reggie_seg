@@ -6,6 +6,7 @@ vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div data-testid="responsive">{children}</div>,
   PieChart: ({ children }: { children: React.ReactNode }) => <div data-testid="pie-chart">{children}</div>,
   Pie: ({ children }: { children: React.ReactNode }) => <div data-testid="pie">{children}</div>,
+  Label: ({ value }: { value: string }) => <div data-testid="label">{value}</div>,
   Cell: ({ fill }: { fill: string }) => <div data-testid="cell">{fill}</div>,
   Tooltip: () => <div data-testid="tooltip" />,
   Legend: () => <div data-testid="legend" />,
@@ -32,9 +33,9 @@ describe("GithubDonutChartCard", () => {
     expect(screen.getByTestId("responsive")).toBeInTheDocument();
     expect(screen.getByTestId("pie-chart")).toBeInTheDocument();
     expect(screen.getByTestId("pie")).toBeInTheDocument();
+    expect(screen.getByTestId("label")).toHaveTextContent("10");
     expect(screen.getAllByTestId("cell")).toHaveLength(2);
     expect(screen.getByTestId("tooltip")).toBeInTheDocument();
     expect(screen.getByTestId("legend")).toBeInTheDocument();
   });
 });
-

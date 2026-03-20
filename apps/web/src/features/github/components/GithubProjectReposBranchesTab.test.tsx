@@ -2,28 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
 
-vi.mock("@/shared/ui/Table", () => ({
-  Table: ({ headers, rows }: { headers: string[]; rows: unknown[] }) => (
-    <div data-testid="table">
-      <span>{headers.join(" | ")}</span>
-      <span>{rows.length}</span>
-    </div>
-  ),
-}));
-
-const styles = {
-  panel: {},
-  sectionHeader: {},
-  sectionTitleWrap: {},
-  sectionKicker: {},
-  list: {},
-  row: {},
-  select: {},
-} as const;
-
 function makeProps() {
   return {
-    styles,
     loading: false,
     liveBranchesRefreshing: false,
     links: [
@@ -33,7 +13,19 @@ function makeProps() {
       },
     ] as any[],
     latestSnapshotByLinkId: {
-      1: { analysedAt: "2026-02-26T00:00:00.000Z" },
+      1: {
+        analysedAt: "2026-02-26T00:00:00.000Z",
+        data: {
+          branchScopeStats: {
+            allBranches: {
+              commitsByBranch: {
+                main: 11,
+                "feature/a": 6,
+              },
+            },
+          },
+        },
+      },
     } as any,
     liveBranchesByLinkId: {
       1: {
@@ -64,23 +56,23 @@ function makeProps() {
     } as any,
     branchCommitsLoadingByLinkId: {},
     branchCommitsErrorByLinkId: {},
-    buildBranchRows: vi.fn().mockReturnValue([["main", "Yes", 10, 0, 0, "identical"]]),
     handleRefreshLiveBranches: vi.fn().mockResolvedValue(undefined),
     onSelectBranch: vi.fn(),
   };
 }
 
 describe("GithubProjectReposBranchesTab", () => {
-  it("renders branch tables and triggers refresh/select actions", () => {
+  it("renders dropdown-based branch activity and triggers refresh/select actions", () => {
     const props = makeProps();
     render(<GithubProjectReposBranchesTab {...props} />);
 
-    expect(screen.getByText("Branches")).toBeInTheDocument();
+    expect(screen.getByText("Branch commits")).toBeInTheDocument();
     expect(screen.getByText("team/repo")).toBeInTheDocument();
-    expect(screen.getAllByTestId("table").length).toBe(2);
+    expect(screen.getByLabelText("Branch")).toBeInTheDocument();
+    expect(screen.getByText("feat: add login")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    fireEvent.change(screen.getByLabelText("Select branch to view 10 most recent commits"), {
+    fireEvent.click(screen.getByRole("button", { name: "Refresh branches" }));
+    fireEvent.change(screen.getByLabelText("Branch"), {
       target: { value: "feature/a" },
     });
 
@@ -88,7 +80,7 @@ describe("GithubProjectReposBranchesTab", () => {
     expect(props.onSelectBranch).toHaveBeenCalledWith(1, "feature/a");
   });
 
-  it("renders empty/loading/error states", () => {
+  it("renders empty and loading states", () => {
     const props = makeProps();
     props.loading = true;
     props.links = [];
@@ -101,4 +93,3 @@ describe("GithubProjectReposBranchesTab", () => {
     expect(screen.getByText("No linked repository available.")).toBeInTheDocument();
   });
 });
-
