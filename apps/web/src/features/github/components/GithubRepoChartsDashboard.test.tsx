@@ -133,11 +133,12 @@ function makeCoverage(): GithubMappingCoverage {
 
 describe("GithubRepoChartsDashboard", () => {
   it("renders nothing when there is no usable chart data", () => {
-    const { container } = render(
+    render(
       <GithubRepoChartsDashboard snapshot={null} coverage={null} currentGithubLogin={null} />
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByRole("region", { name: "Repository charts" })).toBeInTheDocument();
+    expect(screen.getByText("No chart data available for this snapshot yet.")).toBeInTheDocument();
   });
 
   it("renders signals and chart sections from snapshot data", () => {
@@ -150,25 +151,15 @@ describe("GithubRepoChartsDashboard", () => {
     );
 
     expect(screen.getByRole("region", { name: "Repository charts" })).toBeInTheDocument();
-    expect(screen.getByText("Overall contribution signal")).toBeInTheDocument();
-    expect(screen.getByText("Consistency signal")).toBeInTheDocument();
-    expect(screen.getByText("Mapping visibility")).toBeInTheDocument();
-    expect(screen.getByText("Personal activity share")).toBeInTheDocument();
-    expect(screen.getByText("Heuristic only, not a grade")).toBeInTheDocument();
+    expect(screen.getByText("Repository Analytics")).toBeInTheDocument();
+    expect(screen.getByText("Contributor cards and rankings")).toBeInTheDocument();
+    expect(screen.getByText("Default vs other branches")).toBeInTheDocument();
 
-    expect(screen.getByText("9.3/10")).toBeInTheDocument();
-    expect(screen.getAllByText("10/10")).toHaveLength(2);
-    expect(screen.getByText("8/10")).toBeInTheDocument();
-    expect(screen.getByText("2/2 active weeks")).toBeInTheDocument();
-    expect(screen.getByText("2 unmatched commits")).toBeInTheDocument();
-    expect(screen.getByText("4/10 commits")).toBeInTheDocument();
-
-    expect(screen.getByText("Commits over time (total vs your commits)")).toBeInTheDocument();
-    expect(screen.getByText("Additions and deletions over time (default branch)")).toBeInTheDocument();
+    expect(screen.getByText("Commits over time (team vs you)")).toBeInTheDocument();
+    expect(screen.getByText("Additions and deletions over time")).toBeInTheDocument();
     expect(screen.getByText("Weekly commit totals")).toBeInTheDocument();
     expect(screen.getByText("Top contributors by commits")).toBeInTheDocument();
-    expect(screen.getByText("Default vs other branches (commit share)")).toBeInTheDocument();
-    expect(screen.getByText("Mapping coverage (matched vs unmatched)")).toBeInTheDocument();
+    expect(screen.getByText("madbpopye")).toBeInTheDocument();
 
     expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
     expect(screen.getByText("Default branch:8")).toBeInTheDocument();
@@ -177,7 +168,7 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("Unmatched commits:2")).toBeInTheDocument();
   });
 
-  it("renders staff-focused labels and hides personal signal in staff mode", () => {
+  it("renders staff-focused section labels", () => {
     render(
       <GithubRepoChartsDashboard
         snapshot={makeSnapshot()}
@@ -187,8 +178,28 @@ describe("GithubRepoChartsDashboard", () => {
       />
     );
 
-    expect(screen.getByText("Commits over time (team total)")).toBeInTheDocument();
-    expect(screen.getByText("Active coding days")).toBeInTheDocument();
-    expect(screen.queryByText("Personal activity share")).not.toBeInTheDocument();
+    expect(screen.getByText("Team Overview")).toBeInTheDocument();
+    expect(screen.getByText("Contributor Breakdown")).toBeInTheDocument();
+    expect(screen.getByText("Repository Activity")).toBeInTheDocument();
+  });
+
+  it("renders personal-mode charts and share donuts", () => {
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={makeSnapshot()}
+        coverage={makeCoverage()}
+        currentGithubLogin="madbpopye"
+        viewMode="personal"
+      />
+    );
+
+    expect(screen.getByText("Personal contribution analytics")).toBeInTheDocument();
+    expect(screen.getByText("You vs team (commits)")).toBeInTheDocument();
+    expect(screen.getByText("You vs team (line changes)")).toBeInTheDocument();
+    expect(screen.getByText("My commits over time")).toBeInTheDocument();
+    expect(screen.getByText("My weekly commit totals")).toBeInTheDocument();
+    expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
+    expect(screen.getByText("You:4")).toBeInTheDocument();
+    expect(screen.getByText("Team:6")).toBeInTheDocument();
   });
 });
