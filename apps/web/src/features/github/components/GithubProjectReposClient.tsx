@@ -75,12 +75,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     myCommitsByLinkId,
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
-    buildBranchRows,
     fetchBranchCommits,
     fetchMyCommits,
     handleRefreshLiveBranches,
   } = useGithubProjectReposLiveData({
-    activeTab,
+    activeTab: activeTab === "my-commits" ? "my-commits" : activeTab === "team-code-activity" ? "branches" : null,
     loading,
     links,
     connection,
@@ -169,10 +168,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     if (loading || didAutoSelectInitialTabRef.current) {
       return;
     }
-    const shouldOpenConfigurations = !connection?.connected || needsGithubAppInstall;
-    setActiveTab(shouldOpenConfigurations ? "configurations" : "repositories");
+    setActiveTab("team-code-activity");
     didAutoSelectInitialTabRef.current = true;
-  }, [loading, connection?.connected, needsGithubAppInstall]);
+  }, [loading]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -333,24 +331,41 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         </div>
       </section>
 
-      {activeTab === "repositories" ? (
-        <GithubProjectReposRepositoriesTab
-          loading={loading}
-          busy={busy}
-          linking={linking}
-          connection={connection}
-          links={links}
-          availableRepos={availableRepos}
-          selectedRepoId={selectedRepoId}
-          setSelectedRepoId={setSelectedRepoId}
-          coverageByLinkId={coverageByLinkId}
-          latestSnapshotByLinkId={latestSnapshotByLinkId}
-          currentGithubLogin={connection?.account?.login ?? null}
-          removingLinkId={removingLinkId}
-          onRefresh={handleRefreshSnapshots}
-          onLinkSelected={handleLinkSelectedRepo}
-          onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
-        />
+      {activeTab === "my-code-activity" ? (
+        <div className="stack github-project-repos-section">
+          <section className="github-project-repos-section__header-card">
+            <p className="github-project-repos-section__kicker">My code activity</p>
+            <h2 className="github-project-repos-section__title">Personal contribution analytics</h2>
+            <p className="muted github-project-repos-section__description">
+              Your contribution share, commit rhythm, and personal activity signals for each linked repository.
+            </p>
+          </section>
+
+          <section className="github-repos-tab">
+            <div className="github-repos-tab__list">
+              {loading ? <p className="muted">Loading personal analytics...</p> : null}
+              {!loading && !connection?.connected ? (
+                <p className="muted">Connect GitHub to view your personal activity analytics.</p>
+              ) : null}
+              {!loading && connection?.connected && links.length === 0 ? (
+                <p className="muted">Link a repository first to view personal code activity.</p>
+              ) : null}
+              {!loading &&
+                connection?.connected &&
+                links.map((link) => (
+                  <GithubRepoLinkCard
+                    key={link.id}
+                    link={link}
+                    coverage={coverageByLinkId[link.id] ?? null}
+                    snapshot={latestSnapshotByLinkId[link.id] ?? null}
+                    currentGithubLogin={connection?.account?.login ?? null}
+                    readOnly
+                    chartMode="personal"
+                  />
+                ))}
+            </div>
+          </section>
+        </div>
       ) : null}
 
       {activeTab === "my-commits" ? (
@@ -366,38 +381,65 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         />
       ) : null}
 
-      {activeTab === "branches" ? (
-        <GithubProjectReposBranchesTab
-          loading={loading}
-          liveBranchesRefreshing={liveBranchesRefreshing}
-          links={links}
-          latestSnapshotByLinkId={latestSnapshotByLinkId}
-          liveBranchesByLinkId={liveBranchesByLinkId}
-          liveBranchesLoadingByLinkId={liveBranchesLoadingByLinkId}
-          liveBranchesErrorByLinkId={liveBranchesErrorByLinkId}
-          selectedBranchByLinkId={selectedBranchByLinkId}
-          branchCommitsByLinkId={branchCommitsByLinkId}
-          branchCommitsLoadingByLinkId={branchCommitsLoadingByLinkId}
-          branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
-          buildBranchRows={buildBranchRows}
-          handleRefreshLiveBranches={handleRefreshLiveBranches}
-          onSelectBranch={(linkId, nextBranch) => {
-            setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
-            void fetchBranchCommits(linkId, nextBranch);
-          }}
-        />
-      ) : null}
+      {activeTab === "team-code-activity" ? (
+        <div className="stack github-project-repos-section">
+          <section className="github-project-repos-section__header-card">
+            <p className="github-project-repos-section__kicker">Team code activity</p>
+            <h2 className="github-project-repos-section__title">Repository analytics and contributor evidence</h2>
+            <p className="muted github-project-repos-section__description">
+              Team-level metrics, contributor breakdown, and branch-level repository activity.
+            </p>
+          </section>
 
-      {activeTab === "configurations" ? (
-        <GithubProjectReposConfigurationsTab
-          loading={loading}
-          busy={busy}
-          connection={connection}
-          needsGithubAppInstall={needsGithubAppInstall}
-          onInstallGithubApp={handleOpenGithubAppInstall}
-          onDisconnect={handleDisconnect}
-          onConnect={handleConnect}
-        />
+          {!connection?.connected || needsGithubAppInstall ? (
+            <GithubProjectReposConfigurationsTab
+              loading={loading}
+              busy={busy}
+              connection={connection}
+              needsGithubAppInstall={needsGithubAppInstall}
+              onInstallGithubApp={handleOpenGithubAppInstall}
+              onDisconnect={handleDisconnect}
+              onConnect={handleConnect}
+            />
+          ) : null}
+
+          <GithubProjectReposRepositoriesTab
+            loading={loading}
+            busy={busy}
+            linking={linking}
+            connection={connection}
+            links={links}
+            availableRepos={availableRepos}
+            selectedRepoId={selectedRepoId}
+            setSelectedRepoId={setSelectedRepoId}
+            coverageByLinkId={coverageByLinkId}
+            latestSnapshotByLinkId={latestSnapshotByLinkId}
+            currentGithubLogin={connection?.account?.login ?? null}
+            removingLinkId={removingLinkId}
+            onRefresh={handleRefreshSnapshots}
+            onLinkSelected={handleLinkSelectedRepo}
+            onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
+          />
+
+          <GithubProjectReposBranchesTab
+            loading={loading}
+            liveBranchesRefreshing={liveBranchesRefreshing}
+            links={links}
+            latestSnapshotByLinkId={latestSnapshotByLinkId}
+            liveBranchesByLinkId={liveBranchesByLinkId}
+            liveBranchesLoadingByLinkId={liveBranchesLoadingByLinkId}
+            liveBranchesErrorByLinkId={liveBranchesErrorByLinkId}
+            selectedBranchByLinkId={selectedBranchByLinkId}
+            branchCommitsByLinkId={branchCommitsByLinkId}
+            branchCommitsLoadingByLinkId={branchCommitsLoadingByLinkId}
+            branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
+            handleRefreshLiveBranches={handleRefreshLiveBranches}
+            onSelectBranch={(linkId, nextBranch) => {
+              setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
+              void fetchBranchCommits(linkId, nextBranch);
+            }}
+          />
+        </div>
       ) : null}
     </div>
   );
