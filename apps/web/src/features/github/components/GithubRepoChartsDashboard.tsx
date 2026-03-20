@@ -1,10 +1,13 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,22 +24,23 @@ import {
   buildCoverageShareSeries,
   buildLineChangesByDaySeries,
   buildPersonalShareSeries,
-  buildTopContributorBarSeries,
   buildWeeklyCommitSeries,
   CHART_COLOR_ADDITIONS,
   CHART_COLOR_COMMITS,
   CHART_COLOR_DELETIONS,
   formatDateRange,
   formatNumber,
+  formatPercent,
   formatShortDate,
+  getDateTickInterval,
   getChartMinWidth,
-  getContributorAxisWidth,
   getLineChangeDomain,
 } from "./GithubRepoChartsDashboard.helpers";
 import { GithubSectionContainer } from "./GithubSectionContainer";
 import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
 
 type ChartViewMode = "team" | "personal" | "staff";
+type TeamActivityTab = "teamCharts" | "contributors" | "branchActivity";
 
 type GithubRepoChartsDashboardProps = {
   snapshot: GithubLatestSnapshot["snapshot"] | null;
@@ -70,9 +74,12 @@ function RepositoryAnalyticsCharts({
   lineChangeDomain: readonly [number, number] | undefined;
   showPersonalCommitSeries: boolean;
 }) {
-  const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, { base: 820, pointWidth: 60 });
-  const linesChartMinWidth = getChartMinWidth(lineChangesByDaySeries.length, { base: 820, pointWidth: 62 });
-  const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 620, pointWidth: 80 });
+  const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, { base: 680, pointWidth: 44 });
+  const linesChartMinWidth = getChartMinWidth(lineChangesByDaySeries.length, { base: 680, pointWidth: 44 });
+  const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 560, pointWidth: 68 });
+  const commitTickInterval = getDateTickInterval(commitTimelineSeries.length, { maxTicks: 11 });
+  const lineChangeTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 11 });
+  const weeklyTickInterval = getDateTickInterval(weeklyCommitSeries.length, { maxTicks: 10 });
 
   return (
     <div className="github-chart-section__grid">
@@ -85,19 +92,18 @@ function RepositoryAnalyticsCharts({
         >
           <div className="github-chart-section__canvas github-chart-section__canvas--xl">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
+              <LineChart
                 data={commitTimelineSeries}
                 margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                barCategoryGap="22%"
-                barGap={4}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="date"
-                  interval={0}
+                  interval={commitTickInterval}
                   tickMargin={14}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={formatShortDate}
+                  minTickGap={18}
                   label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
                 />
                 <YAxis
@@ -110,25 +116,29 @@ function RepositoryAnalyticsCharts({
                   contentStyle={tooltipStyle}
                 />
                 <Legend />
-                <Bar
+                <Line
+                  type="monotone"
                   dataKey="commits"
                   name="Team commits"
-                  fill={CHART_COLOR_COMMITS}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={30}
+                  stroke={CHART_COLOR_COMMITS}
+                  strokeWidth={2.4}
+                  dot={false}
+                  activeDot={{ r: 4 }}
                   animationDuration={420}
                 />
                 {showPersonalCommitSeries ? (
-                  <Bar
+                  <Line
+                    type="monotone"
                     dataKey="personalCommits"
                     name="Your commits"
-                    fill={CHART_COLOR_ADDITIONS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={30}
+                    stroke={CHART_COLOR_ADDITIONS}
+                    strokeWidth={2.2}
+                    dot={false}
+                    activeDot={{ r: 3.5 }}
                     animationDuration={420}
                   />
                 ) : null}
-              </BarChart>
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </GithubChartCard>
@@ -146,16 +156,17 @@ function RepositoryAnalyticsCharts({
               <BarChart
                 data={lineChangesByDaySeries}
                 margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                barCategoryGap="24%"
-                barGap={8}
+                barCategoryGap="10%"
+                barGap={2}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="date"
-                  interval={0}
+                  interval={lineChangeTickInterval}
                   tickMargin={14}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={formatShortDate}
+                  minTickGap={18}
                   label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
                 />
                 <YAxis
@@ -170,21 +181,19 @@ function RepositoryAnalyticsCharts({
                 />
                 <Legend />
                 <Bar
-                  stackId="line-change-stack"
                   dataKey="additions"
                   name="Additions"
                   fill={CHART_COLOR_ADDITIONS}
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={24}
+                  maxBarSize={20}
                   animationDuration={420}
                 />
                 <Bar
-                  stackId="line-change-stack"
                   dataKey="deletions"
                   name="Deletions"
                   fill={CHART_COLOR_DELETIONS}
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={24}
+                  maxBarSize={20}
                   animationDuration={420}
                 />
               </BarChart>
@@ -205,16 +214,17 @@ function RepositoryAnalyticsCharts({
               <BarChart
                 data={weeklyCommitSeries}
                 margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                barCategoryGap="26%"
-                barGap={6}
+                barCategoryGap="16%"
+                barGap={3}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                 <XAxis
                   dataKey="weekLabel"
-                  interval={0}
+                  interval={weeklyTickInterval}
                   tickMargin={14}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
+                  minTickGap={20}
                   label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
                 />
                 <YAxis
@@ -253,72 +263,22 @@ function RepositoryAnalyticsCharts({
 function ContributorBreakdown({
   contributors,
   repositoryFullName,
-  topContributorsBarSeries,
 }: {
   contributors: ReturnType<typeof buildContributorRows>;
   repositoryFullName?: string | null;
-  topContributorsBarSeries: ReturnType<typeof buildTopContributorBarSeries>;
 }) {
-  const axisWidth = getContributorAxisWidth(contributors);
-  const chartHeight = Math.max(320, topContributorsBarSeries.length * 36);
+  if (contributors.length <= 0) return <EmptyState />;
 
   return (
-    <>
-      <div className="github-chart-section__grid">
-        {topContributorsBarSeries.length > 0 ? (
-          <GithubChartCard title="Top contributors by commits" info={chartInfo.topContributors} size="full">
-            <div className="github-chart-section__canvas" style={{ height: `${chartHeight}px` }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topContributorsBarSeries}
-                  layout="vertical"
-                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                  barCategoryGap="22%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis
-                    type="number"
-                    allowDecimals={false}
-                    tick={{ fill: "var(--muted)" }}
-                    label={{ value: "Commits", position: "insideBottomRight", offset: -2, fill: "var(--muted)" }}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="contributor"
-                    width={axisWidth}
-                    tick={{ fill: "var(--muted)", fontSize: 12 }}
-                    interval={0}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar
-                    dataKey="commits"
-                    name="Commits"
-                    fill={CHART_COLOR_COMMITS}
-                    radius={[0, 4, 4, 0]}
-                    maxBarSize={26}
-                    animationDuration={420}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </GithubChartCard>
-        ) : null}
-      </div>
-
-      {contributors.length > 0 ? (
-        <div className="github-chart-section__contributor-grid" role="list">
-          {contributors.map((contributor) => (
-            <GithubContributorCard
-              key={contributor.key}
-              contributor={contributor}
-              repositoryFullName={repositoryFullName}
-            />
-          ))}
-        </div>
-      ) : (
-        <EmptyState />
-      )}
-    </>
+    <div className="github-chart-section__contributor-grid" role="list">
+      {contributors.map((contributor) => (
+        <GithubContributorCard
+          key={contributor.key}
+          contributor={contributor}
+          repositoryFullName={repositoryFullName}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -327,12 +287,51 @@ function BranchActivity({
   coverageShareSeries,
   branchCount,
   defaultBranchName,
+  commitsByBranch,
 }: {
   branchScopeCommitShareSeries: ReturnType<typeof buildBranchScopeCommitShareSeries>;
   coverageShareSeries: ReturnType<typeof buildCoverageShareSeries>;
   branchCount: number;
   defaultBranchName: string;
+  commitsByBranch: Record<string, number>;
 }) {
+  const branchRows = useMemo(
+    () =>
+      Object.entries(commitsByBranch)
+        .map(([branch, commits]) => ({
+          branch,
+          commits: Number(commits ?? 0),
+        }))
+        .filter((row) => row.branch)
+        .sort((a, b) => {
+          if (a.branch === defaultBranchName) return -1;
+          if (b.branch === defaultBranchName) return 1;
+          return b.commits - a.commits;
+        }),
+    [commitsByBranch, defaultBranchName]
+  );
+
+  const [selectedBranch, setSelectedBranch] = useState<string>("");
+
+  useEffect(() => {
+    if (branchRows.length <= 0) {
+      setSelectedBranch("");
+      return;
+    }
+
+    const preferred =
+      branchRows.find((row) => row.branch === defaultBranchName)?.branch || branchRows[0].branch;
+    setSelectedBranch((current) =>
+      current && branchRows.some((row) => row.branch === current) ? current : preferred
+    );
+  }, [branchRows, defaultBranchName]);
+
+  const totalBranchCommits = branchRows.reduce((sum, row) => sum + row.commits, 0);
+  const selectedBranchCommits =
+    branchRows.find((row) => row.branch === selectedBranch)?.commits ?? 0;
+  const branchDistributionMinWidth = getChartMinWidth(branchRows.length, { base: 560, pointWidth: 78 });
+  const branchTickInterval = getDateTickInterval(branchRows.length, { maxTicks: 14 });
+
   return (
     <>
       <div className="github-chart-section__metrics">
@@ -344,9 +343,56 @@ function BranchActivity({
           <p className="github-chart-section__metric-label">Tracked branches</p>
           <p className="github-chart-section__metric-value">{formatNumber(branchCount)}</p>
         </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">Selected branch commits</p>
+          <p className="github-chart-section__metric-value">{formatNumber(selectedBranchCommits)}</p>
+        </article>
+        <article className="github-chart-section__metric">
+          <p className="github-chart-section__metric-label">All branch commits</p>
+          <p className="github-chart-section__metric-value">{formatNumber(totalBranchCommits)}</p>
+        </article>
       </div>
 
       <div className="github-chart-section__grid">
+        {branchRows.length > 0 ? (
+          <GithubChartCard
+            title="Branch commit distribution"
+            info={chartInfo.branchDistribution}
+            size="full"
+            minChartWidth={branchDistributionMinWidth}
+          >
+            <div className="github-chart-section__canvas github-chart-section__canvas--md">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={branchRows} margin={{ top: 10, right: 18, left: 12, bottom: 4 }} barCategoryGap="18%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <XAxis
+                    dataKey="branch"
+                    interval={branchTickInterval}
+                    tickMargin={14}
+                    tick={{ fill: "var(--muted)", fontSize: 11 }}
+                    minTickGap={18}
+                    label={{ value: "Branch", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  />
+                  <YAxis
+                    allowDecimals={false}
+                    tick={{ fill: "var(--muted)" }}
+                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+                  />
+                  <Tooltip contentStyle={tooltipStyle} />
+                  <Bar
+                    dataKey="commits"
+                    name="Commits"
+                    fill={CHART_COLOR_COMMITS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={30}
+                    animationDuration={420}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </GithubChartCard>
+        ) : null}
+
         {branchScopeCommitShareSeries.length > 0 ? (
           <GithubDonutChartCard
             title="Default vs other branches"
@@ -365,6 +411,51 @@ function BranchActivity({
           />
         ) : null}
       </div>
+
+      {branchRows.length > 0 ? (
+        <div className="github-chart-section__branch-commits">
+          <div className="github-chart-section__branch-controls">
+            <label className="github-chart-section__branch-label" htmlFor="branch-activity-select">
+              Branch selector
+            </label>
+            <select
+              id="branch-activity-select"
+              className="github-chart-section__branch-select"
+              value={selectedBranch}
+              onChange={(event) => setSelectedBranch(event.target.value)}
+            >
+              {branchRows.map((row) => (
+                <option key={row.branch} value={row.branch}>
+                  {row.branch}
+                  {row.branch === defaultBranchName ? " (default)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="github-chart-section__branch-list">
+            {branchRows.map((row) => (
+              <div
+                key={row.branch}
+                className={`github-chart-section__branch-row${row.branch === selectedBranch ? " is-selected" : ""}`}
+              >
+                <div>
+                  <p className="github-chart-section__branch-name">
+                    {row.branch}
+                    {row.branch === defaultBranchName ? " (default)" : ""}
+                  </p>
+                  <p className="github-chart-section__branch-subtext">
+                    {formatPercent(row.commits, Math.max(1, totalBranchCommits))} of branch commits
+                  </p>
+                </div>
+                <p className="github-chart-section__branch-commit-value">{formatNumber(row.commits)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="muted">No branch commit breakdown available in this snapshot.</p>
+      )}
     </>
   );
 }
@@ -383,8 +474,10 @@ function PersonalActivity({
     commits: Number(row.personalCommits ?? 0),
   }));
 
-  const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 760, pointWidth: 58 });
-  const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 620, pointWidth: 80 });
+  const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 640, pointWidth: 42 });
+  const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 560, pointWidth: 68 });
+  const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 10 });
+  const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 10 });
 
   return (
     <GithubSectionContainer
@@ -447,18 +540,18 @@ function PersonalActivity({
           >
             <div className="github-chart-section__canvas github-chart-section__canvas--xl">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
+                <LineChart
                   data={personalTimeline}
                   margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                  barCategoryGap="26%"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
                     dataKey="date"
-                    interval={0}
+                    interval={personalTimelineTickInterval}
                     tickMargin={14}
                     tick={{ fill: "var(--muted)", fontSize: 11 }}
                     tickFormatter={formatShortDate}
+                    minTickGap={18}
                     label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
                   />
                   <YAxis
@@ -467,15 +560,17 @@ function PersonalActivity({
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
                   <Tooltip labelFormatter={(label) => formatShortDate(String(label))} contentStyle={tooltipStyle} />
-                  <Bar
+                  <Line
+                    type="monotone"
                     dataKey="commits"
                     name="Commits"
-                    fill={CHART_COLOR_COMMITS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={34}
+                    stroke={CHART_COLOR_COMMITS}
+                    strokeWidth={2.4}
+                    dot={false}
+                    activeDot={{ r: 4 }}
                     animationDuration={420}
                   />
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
           </GithubChartCard>
@@ -493,15 +588,16 @@ function PersonalActivity({
                 <BarChart
                   data={personalWeeklySeries}
                   margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                  barCategoryGap="26%"
+                  barCategoryGap="16%"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                   <XAxis
                     dataKey="weekLabel"
-                    interval={0}
+                    interval={personalWeeklyTickInterval}
                     tickMargin={14}
                     tick={{ fill: "var(--muted)", fontSize: 11 }}
                     tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
+                    minTickGap={20}
                     label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
                   />
                   <YAxis
@@ -546,6 +642,7 @@ export function GithubRepoChartsDashboard({
   viewMode,
   repositoryFullName,
 }: GithubRepoChartsDashboardProps) {
+  const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
   const resolvedMode: ChartViewMode = viewMode || (viewerMode === "staff" ? "staff" : "team");
 
   const showPersonalCommitSeries = resolvedMode !== "staff";
@@ -559,7 +656,6 @@ export function GithubRepoChartsDashboard({
   const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
   const coverageShareSeries = buildCoverageShareSeries(coverage);
   const contributors = buildContributorRows(snapshot);
-  const topContributorsBarSeries = buildTopContributorBarSeries(contributors);
   const lineChangeDomain = getLineChangeDomain(lineChangesByDaySeries);
   const personalShares = buildPersonalShareSeries({ snapshot, currentGithubLogin });
   const personalWeeklySeries = buildWeeklyCommitSeries(
@@ -607,24 +703,22 @@ export function GithubRepoChartsDashboard({
     resolvedMode === "staff"
       ? {
           analyticsKicker: "Team Overview",
-          analyticsTitle: "Repository analytics",
+          analyticsTitle: "Team code activity",
           analyticsDescription:
-            "A clean view of commit trends and line-change activity for staff review.",
-          contributorsKicker: "Contributor Breakdown",
-          contributorsTitle: "Commit and line-change leaders",
-          branchKicker: "Repository Activity",
-          branchTitle: "Branch scope and mapping confidence",
+            "Inspect repository activity with focused sections for charts, contributors, and branch-level signals.",
         }
       : {
           analyticsKicker: "Repository Analytics",
           analyticsTitle: "Team code activity",
           analyticsDescription:
             "Team-level trends across commits and line changes with consistent date-based charts.",
-          contributorsKicker: "Contributor Breakdown",
-          contributorsTitle: "Contributor cards and rankings",
-          branchKicker: "Branch Activity",
-          branchTitle: "Default vs branch activity",
         };
+
+  const activityTabs: Array<{ key: TeamActivityTab; label: string }> = [
+    { key: "teamCharts", label: "Team charts" },
+    { key: "contributors", label: "Contributors" },
+    { key: "branchActivity", label: "Branch activity" },
+  ];
 
   return (
     <section className="github-chart-section" aria-label="Repository charts">
@@ -652,33 +746,82 @@ export function GithubRepoChartsDashboard({
           </article>
         </div>
 
-        <RepositoryAnalyticsCharts
-          commitTimelineSeries={commitTimelineSeries}
-          lineChangesByDaySeries={lineChangesByDaySeries}
-          weeklyCommitSeries={weeklyCommitSeries}
-          lineChangeDomain={lineChangeDomain}
-          showPersonalCommitSeries={showPersonalCommitSeries}
-        />
-      </GithubSectionContainer>
+        <nav className="github-chart-section__subnav" role="tablist" aria-label="Team code activity sections">
+          {activityTabs.map((tab) => {
+            const isActive = activeActivityTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                id={`activity-tab-${tab.key}`}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`activity-panel-${tab.key}`}
+                className={`github-chart-section__subnav-btn${isActive ? " is-active" : ""}`}
+                onClick={() => setActiveActivityTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
 
-      <GithubSectionContainer
-        kicker={sectionLabels.contributorsKicker}
-        title={sectionLabels.contributorsTitle}
-      >
-        <ContributorBreakdown
-          contributors={contributors}
-          repositoryFullName={repositoryFullName}
-          topContributorsBarSeries={topContributorsBarSeries}
-        />
-      </GithubSectionContainer>
+        <div
+          id={`activity-panel-${activeActivityTab}`}
+          role="tabpanel"
+          aria-labelledby={`activity-tab-${activeActivityTab}`}
+          className="github-chart-section__tab-panel"
+        >
+          {activeActivityTab === "teamCharts" ? (
+            <div className="github-chart-section__tab-content">
+              <div className="github-chart-section__tab-header">
+                <h4 className="github-chart-section__tab-title">Team charts</h4>
+                <p className="muted github-chart-section__tab-description">
+                  Commit and line-change trends across the linked repository.
+                </p>
+              </div>
+              <RepositoryAnalyticsCharts
+                commitTimelineSeries={commitTimelineSeries}
+                lineChangesByDaySeries={lineChangesByDaySeries}
+                weeklyCommitSeries={weeklyCommitSeries}
+                lineChangeDomain={lineChangeDomain}
+                showPersonalCommitSeries={showPersonalCommitSeries}
+              />
+            </div>
+          ) : null}
 
-      <GithubSectionContainer kicker={sectionLabels.branchKicker} title={sectionLabels.branchTitle}>
-        <BranchActivity
-          branchScopeCommitShareSeries={branchScopeCommitShareSeries}
-          coverageShareSeries={coverageShareSeries}
-          branchCount={branchCount}
-          defaultBranchName={defaultBranchName}
-        />
+          {activeActivityTab === "contributors" ? (
+            <div className="github-chart-section__tab-content">
+              <div className="github-chart-section__tab-header">
+                <h4 className="github-chart-section__tab-title">Contributor breakdown</h4>
+                <p className="muted github-chart-section__tab-description">
+                  Ranked contributor cards with commits, line deltas, and mini activity charts.
+                </p>
+              </div>
+              <ContributorBreakdown
+                contributors={contributors}
+                repositoryFullName={repositoryFullName}
+              />
+            </div>
+          ) : null}
+
+          {activeActivityTab === "branchActivity" ? (
+            <div className="github-chart-section__tab-content">
+              <div className="github-chart-section__tab-header">
+                <h4 className="github-chart-section__tab-title">Branch activity</h4>
+                <p className="muted github-chart-section__tab-description">
+                  Default-branch share, branch coverage, and commit mapping confidence.
+                </p>
+              </div>
+              <BranchActivity
+                branchScopeCommitShareSeries={branchScopeCommitShareSeries}
+                coverageShareSeries={coverageShareSeries}
+                branchCount={branchCount}
+                defaultBranchName={defaultBranchName}
+              />
+            </div>
+          ) : null}
+        </div>
       </GithubSectionContainer>
     </section>
   );

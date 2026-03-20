@@ -43,6 +43,11 @@
     height: 110px;
   }
 
+  .github-chart-section__subnav-btn {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
   .github-repos-tab__summary-grid {
     max-width: none;
     grid-template-columns: 1fr;

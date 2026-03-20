@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubRepoChartsDashboard } from "./GithubRepoChartsDashboard";
 import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
@@ -152,15 +152,19 @@ describe("GithubRepoChartsDashboard", () => {
 
     expect(screen.getByRole("region", { name: "Repository charts" })).toBeInTheDocument();
     expect(screen.getByText("Repository Analytics")).toBeInTheDocument();
-    expect(screen.getByText("Contributor cards and rankings")).toBeInTheDocument();
-    expect(screen.getByText("Default vs other branches")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();
 
     expect(screen.getByText("Commits over time (team vs you)")).toBeInTheDocument();
     expect(screen.getByText("Additions and deletions over time")).toBeInTheDocument();
     expect(screen.getByText("Weekly commit totals")).toBeInTheDocument();
-    expect(screen.getByText("Top contributors by commits")).toBeInTheDocument();
+    expect(screen.queryByText("Top contributors by commits")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
     expect(screen.getByText("madbpopye")).toBeInTheDocument();
 
+    fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
     expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
     expect(screen.getByText("Default branch:8")).toBeInTheDocument();
     expect(screen.getByText("Other branches:2")).toBeInTheDocument();
@@ -179,8 +183,9 @@ describe("GithubRepoChartsDashboard", () => {
     );
 
     expect(screen.getByText("Team Overview")).toBeInTheDocument();
-    expect(screen.getByText("Contributor Breakdown")).toBeInTheDocument();
-    expect(screen.getByText("Repository Activity")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();
   });
 
   it("renders personal-mode charts and share donuts", () => {

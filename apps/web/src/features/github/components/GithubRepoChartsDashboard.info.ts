@@ -27,6 +27,38 @@ export const githubRepoChartInfo = {
     staffUse:
       "Staff can use this to quickly assess continuity of work during the module period and flag long gaps that may need follow-up conversation.",
   } satisfies GithubChartInfoContent,
+  personalCommitShare: {
+    overview:
+      "This donut compares your commit count against the rest of the team in the current repository snapshot.",
+    interpretation:
+      "Use it as a proportional signal only. A lower share can still be valid if your role focused on design, review, or complex low-volume changes.",
+    staffUse:
+      "Staff can use this as a quick contribution-share checkpoint and cross-reference with peer evidence before drawing conclusions.",
+  } satisfies GithubChartInfoContent,
+  personalLineShare: {
+    overview:
+      "This donut compares your total line changes (additions + deletions) against the rest of the team.",
+    interpretation:
+      "Line volume is not a quality metric. Large refactors can inflate totals while meaningful contributions may involve fewer lines.",
+    staffUse:
+      "Staff can use this as context for workload distribution, not as a standalone measure of impact.",
+  } satisfies GithubChartInfoContent,
+  personalCommitsTimeline: {
+    overview:
+      "This line chart tracks your commits over time to show personal coding rhythm throughout the project.",
+    interpretation:
+      "Use it to identify periods of sustained progress, bursts, or inactivity. Compare this with your assigned project responsibilities.",
+    staffUse:
+      "Staff can use this to review personal contribution timing and discuss uneven contribution periods with better context.",
+  } satisfies GithubChartInfoContent,
+  personalWeeklyCommits: {
+    overview:
+      "This weekly bar chart summarizes your commits by week to make pacing trends easier to read.",
+    interpretation:
+      "It reduces daily noise and highlights whether your activity was regular or concentrated in short bursts.",
+    staffUse:
+      "Staff can use this for quick checks on consistency and pacing when reviewing team contribution evidence.",
+  } satisfies GithubChartInfoContent,
   topContributors: {
     overview:
       "This chart ranks contributors by commit count in the latest snapshot, showing who contributed most frequently.",
@@ -34,6 +66,14 @@ export const githubRepoChartInfo = {
       "Higher commit volume does not always mean higher impact. Some valuable contributions involve fewer but larger or more complex commits.",
     staffUse:
       "Staff can use this for quick distribution checks, then cross-reference with line-change trends, branch activity, and qualitative evidence.",
+  } satisfies GithubChartInfoContent,
+  branchDistribution: {
+    overview:
+      "This chart compares commit totals across repository branches in the latest snapshot.",
+    interpretation:
+      "It helps identify where commit activity is concentrated. Higher counts on feature branches can indicate active in-progress work before merge.",
+    staffUse:
+      "Staff can use this to understand branching workflow patterns and whether activity is distributed or concentrated in a single branch.",
   } satisfies GithubChartInfoContent,
   branchScope: {
     overview:
@@ -52,4 +92,3 @@ export const githubRepoChartInfo = {
       "Staff can use this to judge data confidence before drawing conclusions from contribution charts and to identify when identity cleanup is needed.",
   } satisfies GithubChartInfoContent,
 } as const;
-
