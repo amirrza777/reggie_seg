@@ -72,7 +72,9 @@ export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) 
 
 export function buildUsersByRole(users: SeedUser[]): SeedUsersByRole {
   return {
-    adminOrStaff: users.filter((user) => user.role === "STAFF" || user.role === "ADMIN"),
+    adminOrStaff: users.filter(
+      (user) => user.role === "STAFF" || user.role === "ENTERPRISE_ADMIN" || user.role === "ADMIN"
+    ),
     students: users.filter((user) => user.role === "STUDENT"),
   };
 }

@@ -214,6 +214,15 @@ describe("prisma seed script", () => {
     await flushAsyncWork();
 
     expect(prismaMock.user.createMany).toHaveBeenCalled();
+    expect(prismaMock.user.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ email: "marker.staff@example.com", role: "STAFF" }),
+          expect.objectContaining({ email: "marker.enterprise.admin@example.com", role: "ENTERPRISE_ADMIN" }),
+          expect.objectContaining({ email: "marker.admin@example.com", role: "ADMIN" }),
+        ]),
+      }),
+    );
     expect(prismaMock.module.createMany).toHaveBeenCalled();
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
