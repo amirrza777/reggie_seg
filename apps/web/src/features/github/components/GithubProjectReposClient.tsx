@@ -6,7 +6,6 @@ import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
-import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
 import {
@@ -72,14 +71,19 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     branchCommitsByLinkId,
     branchCommitsLoadingByLinkId,
     branchCommitsErrorByLinkId,
+    fetchBranchCommits,
+    handleRefreshLiveBranches,
     myCommitsByLinkId,
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
-    fetchBranchCommits,
     fetchMyCommits,
-    handleRefreshLiveBranches,
   } = useGithubProjectReposLiveData({
-    activeTab: activeTab === "my-commits" ? "my-commits" : activeTab === "team-code-activity" ? "branches" : null,
+    activeTab:
+      activeTab === "my-commits"
+        ? "my-commits"
+        : activeTab === "team-code-activity"
+          ? "branches"
+          : null,
     loading,
     links,
     connection,
@@ -415,29 +419,21 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
             coverageByLinkId={coverageByLinkId}
             latestSnapshotByLinkId={latestSnapshotByLinkId}
             currentGithubLogin={connection?.account?.login ?? null}
-            removingLinkId={removingLinkId}
-            onRefresh={handleRefreshSnapshots}
-            onLinkSelected={handleLinkSelectedRepo}
-            onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
-          />
-
-          <GithubProjectReposBranchesTab
-            loading={loading}
-            liveBranchesRefreshing={liveBranchesRefreshing}
-            links={links}
-            latestSnapshotByLinkId={latestSnapshotByLinkId}
             liveBranchesByLinkId={liveBranchesByLinkId}
             liveBranchesLoadingByLinkId={liveBranchesLoadingByLinkId}
             liveBranchesErrorByLinkId={liveBranchesErrorByLinkId}
+            liveBranchesRefreshing={liveBranchesRefreshing}
             selectedBranchByLinkId={selectedBranchByLinkId}
+            setSelectedBranchByLinkId={setSelectedBranchByLinkId}
             branchCommitsByLinkId={branchCommitsByLinkId}
             branchCommitsLoadingByLinkId={branchCommitsLoadingByLinkId}
             branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
-            handleRefreshLiveBranches={handleRefreshLiveBranches}
-            onSelectBranch={(linkId, nextBranch) => {
-              setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
-              void fetchBranchCommits(linkId, nextBranch);
-            }}
+            removingLinkId={removingLinkId}
+            onRefresh={handleRefreshSnapshots}
+            onRefreshBranches={handleRefreshLiveBranches}
+            onFetchBranchCommits={fetchBranchCommits}
+            onLinkSelected={handleLinkSelectedRepo}
+            onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
           />
         </div>
       ) : null}
