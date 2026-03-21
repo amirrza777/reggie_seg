@@ -95,12 +95,20 @@ function RepositoryAnalyticsCharts({
   lineChangeDomain: readonly [number, number] | undefined;
   showPersonalCommitSeries: boolean;
 }) {
-  const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, { base: 680, pointWidth: 44 });
-  const linesChartMinWidth = getChartMinWidth(lineChangesByDaySeries.length, { base: 680, pointWidth: 44 });
-  const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 560, pointWidth: 68 });
-  const commitTickInterval = getDateTickInterval(commitTimelineSeries.length, { maxTicks: 11 });
-  const lineChangeTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 11 });
-  const weeklyTickInterval = getDateTickInterval(weeklyCommitSeries.length, { maxTicks: 10 });
+  const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, {
+    base: 640,
+    pointWidth: 28,
+    max: 1500,
+  });
+  const linesChartMinWidth = getChartMinWidth(lineChangesByDaySeries.length, {
+    base: 640,
+    pointWidth: 24,
+    max: 1500,
+  });
+  const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 520, pointWidth: 60, max: 980 });
+  const commitTickInterval = getDateTickInterval(commitTimelineSeries.length, { maxTicks: 9 });
+  const lineChangeTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 9 });
+  const weeklyTickInterval = getDateTickInterval(weeklyCommitSeries.length, { maxTicks: 8 });
 
   return (
     <div className="github-chart-section__grid">
@@ -115,28 +123,32 @@ function RepositoryAnalyticsCharts({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart
                 data={commitTimelineSeries}
-                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   interval={commitTickInterval}
-                  tickMargin={14}
+                  tickMargin={12}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={formatShortDate}
                   minTickGap={18}
-                  label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
                   tick={{ fill: "var(--muted)" }}
+                  width={42}
+                  axisLine={false}
+                  tickLine={false}
                   label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                 />
                 <Tooltip
                   labelFormatter={(label) => formatShortDate(String(label))}
                   contentStyle={tooltipStyle}
                 />
-                <Legend />
+                <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
                 <Line
                   type="monotone"
                   dataKey="commits"
@@ -176,23 +188,27 @@ function RepositoryAnalyticsCharts({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={lineChangesByDaySeries}
-                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                barCategoryGap="10%"
-                barGap={2}
+                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+                barCategoryGap="24%"
+                barGap={0}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   interval={lineChangeTickInterval}
-                  tickMargin={14}
+                  tickMargin={12}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={formatShortDate}
                   minTickGap={18}
-                  label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
                   domain={lineChangeDomain}
                   tick={{ fill: "var(--muted)" }}
+                  width={54}
+                  axisLine={false}
+                  tickLine={false}
                   label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                 />
                 <Tooltip
@@ -200,13 +216,13 @@ function RepositoryAnalyticsCharts({
                   formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
                   contentStyle={tooltipStyle}
                 />
-                <Legend />
+                <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
                 <Bar
                   dataKey="additions"
                   name="Additions"
                   fill={CHART_COLOR_ADDITIONS}
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={20}
+                  maxBarSize={14}
                   animationDuration={420}
                 />
                 <Bar
@@ -214,7 +230,7 @@ function RepositoryAnalyticsCharts({
                   name="Deletions"
                   fill={CHART_COLOR_DELETIONS}
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={20}
+                  maxBarSize={14}
                   animationDuration={420}
                 />
               </BarChart>
@@ -234,23 +250,27 @@ function RepositoryAnalyticsCharts({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={weeklyCommitSeries}
-                margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                barCategoryGap="16%"
+                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+                barCategoryGap="22%"
                 barGap={3}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
                   dataKey="weekLabel"
                   interval={weeklyTickInterval}
-                  tickMargin={14}
+                  tickMargin={12}
                   tick={{ fill: "var(--muted)", fontSize: 11 }}
                   tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
                   minTickGap={20}
-                  label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                  axisLine={false}
+                  tickLine={false}
                 />
                 <YAxis
                   allowDecimals={false}
                   tick={{ fill: "var(--muted)" }}
+                  width={42}
+                  axisLine={false}
+                  tickLine={false}
                   label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                 />
                 <Tooltip
@@ -269,7 +289,7 @@ function RepositoryAnalyticsCharts({
                   name="Commits"
                   fill={CHART_COLOR_COMMITS}
                   radius={[4, 4, 0, 0]}
-                  maxBarSize={34}
+                  maxBarSize={30}
                   animationDuration={420}
                 />
               </BarChart>
@@ -482,10 +502,10 @@ function PersonalActivity({
     commits: Number(row.personalCommits ?? 0),
   }));
 
-  const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 640, pointWidth: 42 });
-  const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 560, pointWidth: 68 });
-  const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 10 });
-  const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 10 });
+  const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 620, pointWidth: 28, max: 1500 });
+  const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 520, pointWidth: 60, max: 980 });
+  const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 9 });
+  const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 8 });
 
   return (
     <GithubSectionContainer
@@ -550,21 +570,25 @@ function PersonalActivity({
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
                   data={personalTimeline}
-                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
+                  margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis
                     dataKey="date"
                     interval={personalTimelineTickInterval}
-                    tickMargin={14}
+                    tickMargin={12}
                     tick={{ fill: "var(--muted)", fontSize: 11 }}
                     tickFormatter={formatShortDate}
                     minTickGap={18}
-                    label={{ value: "Date", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
                     tick={{ fill: "var(--muted)" }}
+                    width={42}
+                    axisLine={false}
+                    tickLine={false}
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
                   <Tooltip labelFormatter={(label) => formatShortDate(String(label))} contentStyle={tooltipStyle} />
@@ -595,22 +619,26 @@ function PersonalActivity({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={personalWeeklySeries}
-                  margin={{ top: 10, right: 18, left: 12, bottom: 4 }}
-                  barCategoryGap="16%"
+                  margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+                  barCategoryGap="22%"
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis
                     dataKey="weekLabel"
                     interval={personalWeeklyTickInterval}
-                    tickMargin={14}
+                    tickMargin={12}
                     tick={{ fill: "var(--muted)", fontSize: 11 }}
                     tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
                     minTickGap={20}
-                    label={{ value: "Week", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
+                    axisLine={false}
+                    tickLine={false}
                   />
                   <YAxis
                     allowDecimals={false}
                     tick={{ fill: "var(--muted)" }}
+                    width={42}
+                    axisLine={false}
+                    tickLine={false}
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
                   <Tooltip
@@ -629,7 +657,7 @@ function PersonalActivity({
                     name="Commits"
                     fill={CHART_COLOR_COMMITS}
                     radius={[4, 4, 0, 0]}
-                    maxBarSize={34}
+                    maxBarSize={30}
                     animationDuration={420}
                   />
                 </BarChart>

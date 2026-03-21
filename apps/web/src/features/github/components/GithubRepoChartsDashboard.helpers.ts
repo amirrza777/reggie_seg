@@ -53,17 +53,15 @@ function listContinuousDayKeys(startDay: string, endDay: string) {
   return days;
 }
 
-function resolveSnapshotTimelineBounds(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
+function resolveTimelineBoundsFromDayMaps(dayMaps: Array<Record<string, unknown> | null | undefined>) {
   const dayKeys = new Set<string>();
-  const defaultLineChanges = snapshot?.data?.timeSeries?.defaultBranch?.lineChangesByDay ?? {};
-  const repoCommitsByDay = snapshot?.repoStats?.[0]?.commitsByDay ?? {};
-
-  for (const key of Object.keys(defaultLineChanges || {})) {
-    if (key) dayKeys.add(key);
-  }
-
-  for (const key of Object.keys(repoCommitsByDay || {})) {
-    if (key) dayKeys.add(key);
+  for (const map of dayMaps) {
+    if (!map || typeof map !== "object") {
+      continue;
+    }
+    for (const key of Object.keys(map)) {
+      if (key) dayKeys.add(key);
+    }
   }
 
   const sorted = Array.from(dayKeys).sort((a, b) => a.localeCompare(b));
@@ -75,6 +73,29 @@ function resolveSnapshotTimelineBounds(snapshot: GithubLatestSnapshot["snapshot"
     start: sorted[0],
     end: sorted[sorted.length - 1],
   };
+}
+
+function trimSeriesEdges<T>(series: T[], isEmpty: (value: T) => boolean) {
+  if (series.length <= 0) {
+    return series;
+  }
+
+  let start = 0;
+  let end = series.length - 1;
+
+  while (start <= end && isEmpty(series[start])) {
+    start += 1;
+  }
+
+  while (end >= start && isEmpty(series[end])) {
+    end -= 1;
+  }
+
+  if (start > end) {
+    return [] as T[];
+  }
+
+  return series.slice(start, end + 1);
 }
 
 export function isoWeekKey(dateKey: string) {
@@ -121,23 +142,32 @@ export function buildCommitTimelineSeries(
   const totalSeries = getCommitsByDaySeries(snapshot);
   const totalByDay = new Map(totalSeries.map((row) => [row.date, row.commits]));
   const personalByDay = findPersonalStat(snapshot, currentGithubLogin)?.commitsByDay || {};
-  const bounds = resolveSnapshotTimelineBounds(snapshot);
+  const bounds = resolveTimelineBoundsFromDayMaps([
+    snapshot?.repoStats?.[0]?.commitsByDay ?? null,
+    personalByDay,
+  ]);
 
   if (!bounds) {
-    return totalSeries.map((item) => ({
-      date: item.date,
-      commits: item.commits,
-      personalCommits: includePersonal ? Number(personalByDay[item.date]) || 0 : undefined,
-    }));
+    return trimSeriesEdges(
+      totalSeries.map((item) => ({
+        date: item.date,
+        commits: item.commits,
+        personalCommits: includePersonal ? Number(personalByDay[item.date]) || 0 : undefined,
+      })),
+      (item) => Number(item.commits ?? 0) <= 0 && Number(item.personalCommits ?? 0) <= 0
+    );
   }
 
   const dayKeys = listContinuousDayKeys(bounds.start, bounds.end);
 
-  return dayKeys.map((date) => ({
-    date,
-    commits: Number(totalByDay.get(date) ?? 0),
-    personalCommits: includePersonal ? Number(personalByDay[date]) || 0 : undefined,
-  }));
+  return trimSeriesEdges(
+    dayKeys.map((date) => ({
+      date,
+      commits: Number(totalByDay.get(date) ?? 0),
+      personalCommits: includePersonal ? Number(personalByDay[date]) || 0 : undefined,
+    })),
+    (item) => Number(item.commits ?? 0) <= 0 && Number(item.personalCommits ?? 0) <= 0
+  );
 }
 
 export function buildLineChangesByDaySeries(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
@@ -154,7 +184,7 @@ export function buildLineChangesByDaySeries(snapshot: GithubLatestSnapshot["snap
     ])
   );
 
-  const bounds = resolveSnapshotTimelineBounds(snapshot);
+  const bounds = resolveTimelineBoundsFromDayMaps([byDay ?? null]);
   const dayKeys = bounds
     ? listContinuousDayKeys(bounds.start, bounds.end)
     : Array.from(normalizedByDay.keys()).sort((a, b) => a.localeCompare(b));
@@ -163,11 +193,14 @@ export function buildLineChangesByDaySeries(snapshot: GithubLatestSnapshot["snap
     return [] as Array<{ date: string; additions: number; deletions: number }>;
   }
 
-  return dayKeys.map((date) => ({
-    date,
-    additions: Number(normalizedByDay.get(date)?.additions ?? 0),
-    deletions: Number(normalizedByDay.get(date)?.deletions ?? 0),
-  }));
+  return trimSeriesEdges(
+    dayKeys.map((date) => ({
+      date,
+      additions: Number(normalizedByDay.get(date)?.additions ?? 0),
+      deletions: Number(normalizedByDay.get(date)?.deletions ?? 0),
+    })),
+    (item) => Number(item.additions ?? 0) === 0 && Number(item.deletions ?? 0) === 0
+  );
 }
 
 export function buildWeeklyCommitSeries(dailySeries: Array<{ date: string; commits: number }>) {
@@ -317,10 +350,11 @@ export function getLineChangeDomain(
   return [-maxAbs, maxAbs] as const;
 }
 
-export function getChartMinWidth(points: number, options?: { base?: number; pointWidth?: number }) {
+export function getChartMinWidth(points: number, options?: { base?: number; pointWidth?: number; max?: number }) {
   const base = options?.base ?? 720;
   const pointWidth = options?.pointWidth ?? 54;
-  return Math.max(base, points * pointWidth);
+  const max = options?.max ?? 1600;
+  return Math.min(max, Math.max(base, points * pointWidth));
 }
 
 export function getDateTickInterval(points: number, options?: { maxTicks?: number }) {
