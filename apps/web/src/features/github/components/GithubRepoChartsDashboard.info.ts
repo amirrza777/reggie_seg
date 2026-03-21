@@ -5,7 +5,7 @@ import type { GithubChartInfoContent } from "./GithubChartInfo";
 export const githubRepoChartInfo = {
   commitsTimeline: {
     overview:
-      "This line chart shows commit activity over time for the linked repository, with total team commits and your own commits shown together.",
+      "This chart shows team commit activity over time for the linked repository.",
     interpretation:
       "Use this to spot sustained activity, bursts, or inactivity windows. Commit count alone does not measure quality, but it is useful for understanding contribution rhythm.",
     staffUse:

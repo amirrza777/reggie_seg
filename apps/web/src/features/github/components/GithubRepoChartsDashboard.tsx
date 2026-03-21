@@ -159,18 +159,94 @@ function WeeklyCommitTotalsChart({
   );
 }
 
+function LineChangesTimelineChart({
+  title,
+  data,
+  lineChangeDomain,
+  minChartWidth,
+  tickInterval,
+  size = "full",
+}: {
+  title: string;
+  data: Array<{ date: string; additions: number; deletions: number }>;
+  lineChangeDomain: readonly [number, number] | undefined;
+  minChartWidth: number;
+  tickInterval: number;
+  size?: "half" | "full";
+}) {
+  return (
+    <GithubChartCard
+      title={title}
+      info={chartInfo.lineChanges}
+      size={size}
+      minChartWidth={minChartWidth}
+    >
+      <div className="github-chart-section__canvas github-chart-section__canvas--xl">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+            barCategoryGap="24%"
+            barGap={0}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              interval={tickInterval}
+              tickMargin={12}
+              tick={{ fill: "var(--muted)", fontSize: 11 }}
+              tickFormatter={formatShortDate}
+              minTickGap={18}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              domain={lineChangeDomain}
+              tick={{ fill: "var(--muted)" }}
+              width={54}
+              axisLine={false}
+              tickLine={false}
+              label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+            />
+            <Tooltip
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
+              contentStyle={tooltipStyle}
+            />
+            <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
+            <Bar
+              dataKey="additions"
+              name="Additions"
+              fill={CHART_COLOR_ADDITIONS}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={14}
+              animationDuration={420}
+            />
+            <Bar
+              dataKey="deletions"
+              name="Deletions"
+              fill={CHART_COLOR_DELETIONS}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={14}
+              animationDuration={420}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </GithubChartCard>
+  );
+}
+
 function RepositoryAnalyticsCharts({
   commitTimelineSeries,
   lineChangesByDaySeries,
   weeklyCommitSeries,
   lineChangeDomain,
-  showPersonalCommitSeries,
 }: {
   commitTimelineSeries: Array<{ date: string; commits: number; personalCommits?: number }>;
   lineChangesByDaySeries: Array<{ date: string; additions: number; deletions: number }>;
   weeklyCommitSeries: Array<{ weekKey: string; weekLabel: string; rangeStart: string; rangeEnd: string; commits: number }>;
   lineChangeDomain: readonly [number, number] | undefined;
-  showPersonalCommitSeries: boolean;
 }) {
   const commitsChartMinWidth = getChartMinWidth(commitTimelineSeries.length, {
     base: 640,
@@ -191,7 +267,7 @@ function RepositoryAnalyticsCharts({
     <div className="github-chart-section__grid">
       {commitTimelineSeries.length > 0 ? (
         <GithubChartCard
-          title={showPersonalCommitSeries ? "Commits over time (team vs you)" : "Commits over time"}
+          title="Commits over time"
           info={chartInfo.commitsTimeline}
           size="full"
           minChartWidth={commitsChartMinWidth}
@@ -237,16 +313,6 @@ function RepositoryAnalyticsCharts({
                   maxBarSize={12}
                   animationDuration={300}
                 />
-                {showPersonalCommitSeries ? (
-                  <Bar
-                    dataKey="personalCommits"
-                    name="Your commits"
-                    fill={CHART_COLOR_ADDITIONS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={10}
-                    animationDuration={300}
-                  />
-                ) : null}
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -254,65 +320,14 @@ function RepositoryAnalyticsCharts({
       ) : null}
 
       {lineChangesByDaySeries.length > 0 ? (
-        <GithubChartCard
+        <LineChangesTimelineChart
           title="Additions and deletions over time"
-          info={chartInfo.lineChanges}
-          size="full"
+          data={lineChangesByDaySeries}
+          lineChangeDomain={lineChangeDomain}
           minChartWidth={linesChartMinWidth}
-        >
-          <div className="github-chart-section__canvas github-chart-section__canvas--xl">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={lineChangesByDaySeries}
-                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
-                barCategoryGap="24%"
-                barGap={0}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  interval={lineChangeTickInterval}
-                  tickMargin={12}
-                  tick={{ fill: "var(--muted)", fontSize: 11 }}
-                  tickFormatter={formatShortDate}
-                  minTickGap={18}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  domain={lineChangeDomain}
-                  tick={{ fill: "var(--muted)" }}
-                  width={54}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                />
-                <Tooltip
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
-                  contentStyle={tooltipStyle}
-                />
-                <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
-                <Bar
-                  dataKey="additions"
-                  name="Additions"
-                  fill={CHART_COLOR_ADDITIONS}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={14}
-                  animationDuration={420}
-                />
-                <Bar
-                  dataKey="deletions"
-                  name="Deletions"
-                  fill={CHART_COLOR_DELETIONS}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={14}
-                  animationDuration={420}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </GithubChartCard>
+          tickInterval={lineChangeTickInterval}
+          size="full"
+        />
       ) : null}
 
       {weeklyCommitSeries.length > 0 ? (
@@ -518,10 +533,14 @@ function BranchActivity({
 
 function PersonalActivity({
   commitTimelineSeries,
+  lineChangesByDaySeries,
+  lineChangeDomain,
   personalWeeklySeries,
   personalShares,
 }: {
   commitTimelineSeries: ReturnType<typeof buildCommitTimelineSeries>;
+  lineChangesByDaySeries: ReturnType<typeof buildLineChangesByDaySeries>;
+  lineChangeDomain: ReturnType<typeof getLineChangeDomain>;
   personalWeeklySeries: ReturnType<typeof buildWeeklyCommitSeries>;
   personalShares: ReturnType<typeof buildPersonalShareSeries>;
 }) {
@@ -531,8 +550,14 @@ function PersonalActivity({
   }));
 
   const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 620, pointWidth: 28, max: 1500 });
+  const lineChangesMinWidth = getChartMinWidth(lineChangesByDaySeries.length, {
+    base: 640,
+    pointWidth: 24,
+    max: 1500,
+  });
   const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 520, pointWidth: 60, max: 980 });
   const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 9 });
+  const lineChangesTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 9 });
   const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 12 });
 
   return (
@@ -639,6 +664,17 @@ function PersonalActivity({
           </GithubChartCard>
         ) : null}
 
+        {lineChangesByDaySeries.length > 0 ? (
+          <LineChangesTimelineChart
+            title="Additions and deletions over time"
+            data={lineChangesByDaySeries}
+            lineChangeDomain={lineChangeDomain}
+            minChartWidth={lineChangesMinWidth}
+            tickInterval={lineChangesTickInterval}
+            size="full"
+          />
+        ) : null}
+
         {personalWeeklySeries.length > 0 ? (
           <WeeklyCommitTotalsChart
             title="My weekly commit totals"
@@ -675,9 +711,8 @@ export function GithubRepoChartsDashboard({
   const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
   const resolvedMode: ChartViewMode = viewMode || (viewerMode === "staff" ? "staff" : "team");
 
-  const showPersonalCommitSeries = resolvedMode !== "staff";
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin, {
-    includePersonal: showPersonalCommitSeries,
+    includePersonal: resolvedMode === "personal",
   });
   const lineChangesByDaySeries = buildLineChangesByDaySeries(snapshot);
   const weeklyCommitSeries = buildWeeklyCommitSeries(
@@ -721,6 +756,8 @@ export function GithubRepoChartsDashboard({
       <section className="github-chart-section" aria-label="My code activity charts">
         <PersonalActivity
           commitTimelineSeries={commitTimelineSeries}
+          lineChangesByDaySeries={lineChangesByDaySeries}
+          lineChangeDomain={lineChangeDomain}
           personalWeeklySeries={personalWeeklySeries}
           personalShares={personalShares}
         />
@@ -815,7 +852,6 @@ export function GithubRepoChartsDashboard({
                 lineChangesByDaySeries={lineChangesByDaySeries}
                 weeklyCommitSeries={weeklyCommitSeries}
                 lineChangeDomain={lineChangeDomain}
-                showPersonalCommitSeries={showPersonalCommitSeries}
               />
             </div>
           ) : null}
