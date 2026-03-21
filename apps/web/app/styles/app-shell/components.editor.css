@@ -64,6 +64,11 @@
     margin: 0;
 }
 
+.rich-editor__editable--readonly {
+    min-height: unset;
+    cursor: default;
+}
+
 .rich-editor__placeholder {
     position: absolute;
     top: 10px;
