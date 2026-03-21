@@ -150,7 +150,9 @@ export async function saveMinutesHandler(req: Request, res: Response) {
   try {
     const minutes = await saveMinutes(meetingId, writerId, content);
     res.json(minutes);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the original writer can edit these minutes" });
     console.error("Error saving minutes:", error);
     res.status(500).json({ error: "Internal server error" });
   }

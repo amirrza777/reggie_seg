@@ -157,7 +157,10 @@ export async function markAttendance(meetingId: number, records: { userId: numbe
   await checkAndNotifyConsecutiveAbsences(meetingId, records);
 }
 
-export function saveMinutes(meetingId: number, writerId: number, content: string) {
+export async function saveMinutes(meetingId: number, writerId: number, content: string) {
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) throw { code: "NOT_FOUND" };
+  if (meeting.minutes && meeting.minutes.writerId !== writerId) throw { code: "FORBIDDEN" };
   return upsertMinutes(meetingId, writerId, content);
 }
 
