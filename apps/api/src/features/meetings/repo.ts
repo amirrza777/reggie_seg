@@ -91,6 +91,17 @@ export function createMeeting(data: {
   });
 }
 
+export function updateMeeting(meetingId: number, data: {
+  title?: string;
+  date?: Date;
+  subject?: string;
+  location?: string;
+  videoCallLink?: string;
+  agenda?: string;
+}) {
+  return prisma.meeting.update({ where: { id: meetingId }, data });
+}
+
 export function deleteMeeting(meetingId: number) {
   return prisma.meeting.delete({
     where: { id: meetingId },

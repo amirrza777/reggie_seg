@@ -3,6 +3,7 @@ import {
   getMeetingsByTeamId,
   getMeetingById,
   createMeeting,
+  updateMeeting,
   deleteMeeting,
   bulkUpsertAttendance,
   upsertMinutes,
@@ -93,6 +94,21 @@ export async function addMeeting(data: {
     )
   );
   return meeting;
+}
+
+export async function editMeeting(meetingId: number, userId: number, data: {
+  title?: string;
+  date?: Date;
+  subject?: string;
+  location?: string;
+  videoCallLink?: string;
+  agenda?: string;
+}) {
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) throw { code: "NOT_FOUND" };
+  if (meeting.organiserId !== userId) throw { code: "FORBIDDEN" };
+  if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
+  return updateMeeting(meetingId, data);
 }
 
 export function removeMeeting(meetingId: number) {

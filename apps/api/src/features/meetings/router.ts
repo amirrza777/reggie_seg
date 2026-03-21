@@ -3,6 +3,7 @@ import {
   listMeetingsHandler,
   getMeetingHandler,
   createMeetingHandler,
+  updateMeetingHandler,
   deleteMeetingHandler,
   markAttendanceHandler,
   saveMinutesHandler,
@@ -16,6 +17,7 @@ const router = Router();
 router.get("/team/:teamId", listMeetingsHandler);
 router.get("/:meetingId", getMeetingHandler);
 router.post("/", createMeetingHandler);
+router.patch("/:meetingId", updateMeetingHandler);
 router.delete("/:meetingId", deleteMeetingHandler);
 router.put("/:meetingId/attendance", markAttendanceHandler);
 router.put("/:meetingId/minutes", saveMinutesHandler);
