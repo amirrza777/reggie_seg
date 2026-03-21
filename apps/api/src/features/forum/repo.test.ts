@@ -5,9 +5,9 @@ import {
   approveStudentReport,
   getStaffConversationForPost,
 } from "./repo.js";
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
-vi.mock("../../shared/db.js", () => ({
+vi.mock("../../../shared/db.js", () => ({
   prisma: {
     project: {
       findFirst: vi.fn(),

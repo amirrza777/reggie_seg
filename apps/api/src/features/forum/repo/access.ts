@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 
 export async function isUserInProject(userId: number, projectId: number) {
   const project = await prisma.project.findFirst({

@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import { canManageForumSettings, isUserInProject } from "./access.js";
 
 type ForumAuthor = { id: number; firstName: string; lastName: string; role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN" };

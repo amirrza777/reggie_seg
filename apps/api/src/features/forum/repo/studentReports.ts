@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import { canManageForumSettings, getUserRole, isUserInProject } from "./access.js";
 
 type StudentReportResult =

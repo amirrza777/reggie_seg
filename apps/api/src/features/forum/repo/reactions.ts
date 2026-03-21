@@ -1,4 +1,4 @@
-import { prisma } from "../../shared/db.js";
+import { prisma } from "../../../shared/db.js";
 import { isUserInProject } from "./access.js";
 import { getDiscussionPostById } from "./posts.js";
 
