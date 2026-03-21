@@ -1,6 +1,7 @@
 import { getGitHubApiConfig } from "./config.js";
 import { GithubServiceError } from "./errors.js";
-import { getCachedCommitStats, setCachedCommitStats } from "./service.analysis.commit-stats-cache.js";
+import { parseLastPageFromLinkHeader } from "./service.analysis.link-header.js";
+export { fetchCommitStatsForRepository } from "./service.analysis.commit-stats.js";
 
 export type GithubCommitListItem = {
   sha: string;
@@ -21,14 +22,6 @@ export type GithubCommitListItem = {
   }>;
 };
 
-type GithubCommitDetailResponse = {
-  sha: string;
-  stats?: {
-    additions?: number;
-    deletions?: number;
-  };
-};
-
 type GithubBranchResponseItem = {
   name: string;
   protected?: boolean;
@@ -42,38 +35,6 @@ type GithubCompareResponse = {
   ahead_by?: number;
   behind_by?: number;
 };
-
-function parseLastPageFromLinkHeader(linkHeader: string | null | undefined) {
-  if (!linkHeader) {
-    return null;
-  }
-
-  const parts = linkHeader.split(",");
-  for (const part of parts) {
-    const [rawUrl, rawRel] = part.split(";");
-    if (!rawUrl || !rawRel || !rawRel.includes('rel="last"')) {
-      continue;
-    }
-
-    const trimmedUrl = rawUrl.trim();
-    if (!trimmedUrl.startsWith("<") || !trimmedUrl.endsWith(">")) {
-      continue;
-    }
-
-    const href = trimmedUrl.slice(1, -1);
-    try {
-      const parsed = new URL(href);
-      const page = Number(parsed.searchParams.get("page") ?? "");
-      if (Number.isFinite(page) && page > 0) {
-        return Math.floor(page);
-      }
-    } catch {
-      continue;
-    }
-  }
-
-  return null;
-}
 
 /** Converts the utc day key. */
 export function toUtcDayKey(date: Date) {
@@ -417,74 +378,4 @@ export async function getBranchAheadBehind(
     behindBy: typeof compare.behind_by === "number" ? compare.behind_by : null,
     status: typeof compare.status === "string" ? compare.status : null,
   };
-}
-
-/** Returns the commit stats for repository. */
-export async function fetchCommitStatsForRepository(
-  accessToken: string,
-  fullName: string,
-  commitShas: string[],
-  maxDetailedCommits?: number
-) {
-  const { baseUrl } = getGitHubApiConfig();
-  const statsBySha = new Map<string, { additions: number; deletions: number }>();
-  const limit =
-    typeof maxDetailedCommits === "number" && Number.isFinite(maxDetailedCommits)
-      ? Math.max(0, Math.floor(maxDetailedCommits))
-      : commitShas.length;
-  const shasToFetch = commitShas.slice(0, limit);
-  const missingShas: string[] = [];
-
-  for (const sha of shasToFetch) {
-    const cached = getCachedCommitStats(fullName, sha);
-    if (cached) {
-      statsBySha.set(sha, { additions: cached.additions, deletions: cached.deletions });
-      continue;
-    }
-    missingShas.push(sha);
-  }
-
-  if (missingShas.length > 0) {
-    let shouldStop = false;
-    const concurrency = 6;
-    let nextIndex = 0;
-
-    const workers = Array.from({ length: Math.min(concurrency, missingShas.length) }, async () => {
-      while (!shouldStop) {
-        const currentIndex = nextIndex;
-        nextIndex += 1;
-        if (currentIndex >= missingShas.length) {
-          return;
-        }
-
-        const sha = missingShas[currentIndex];
-        const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
-          headers: {
-            Accept: "application/vnd.github+json",
-            Authorization: `Bearer ${accessToken}`,
-            "X-GitHub-Api-Version": "2022-11-28",
-          },
-        });
-
-        if (!response.ok) {
-          if (response.status === 403 || response.status === 429) {
-            shouldStop = true;
-          }
-          continue;
-        }
-
-        const detail = (await response.json()) as GithubCommitDetailResponse;
-        const stats = {
-          additions: detail.stats?.additions || 0,
-          deletions: detail.stats?.deletions || 0,
-        };
-        statsBySha.set(sha, stats);
-        setCachedCommitStats(fullName, sha, stats);
-      }
-    });
-
-    await Promise.all(workers);
-  }
-
-  return statsBySha;
 }
