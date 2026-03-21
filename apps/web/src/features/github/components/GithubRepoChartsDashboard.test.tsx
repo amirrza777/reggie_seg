@@ -163,11 +163,11 @@ describe("GithubRepoChartsDashboard", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
     expect(screen.getByText("madbpopye")).toBeInTheDocument();
+    expect(screen.queryByText("Active coding weeks")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
-    expect(screen.getAllByTestId("donut-card")).toHaveLength(1);
-    expect(screen.getByText("Default branch:8")).toBeInTheDocument();
-    expect(screen.getByText("Other branches:2")).toBeInTheDocument();
+    expect(screen.queryByText("Default vs other branches")).not.toBeInTheDocument();
+    expect(screen.getByText("All branch commits")).toBeInTheDocument();
   });
 
   it("renders staff mode with team activity labels", () => {
@@ -184,6 +184,9 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
+    expect(screen.getByText("Active coding weeks")).toBeInTheDocument();
   });
 
   it("renders personal-mode charts and share donuts", () => {

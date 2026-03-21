@@ -18,7 +18,6 @@ import type { GithubChartInfoContent } from "./GithubChartInfo";
 import { GithubContributorCard } from "./GithubContributorCard";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
 import {
-  buildBranchScopeCommitShareSeries,
   buildCommitTimelineSeries,
   buildContributorRows,
   buildLineChangesByDaySeries,
@@ -347,9 +346,11 @@ function RepositoryAnalyticsCharts({
 function ContributorBreakdown({
   contributors,
   repositoryFullName,
+  showWeeklyCommitSummary = false,
 }: {
   contributors: ReturnType<typeof buildContributorRows>;
   repositoryFullName?: string | null;
+  showWeeklyCommitSummary?: boolean;
 }) {
   if (contributors.length <= 0) return <EmptyState />;
 
@@ -360,6 +361,7 @@ function ContributorBreakdown({
           key={contributor.key}
           contributor={contributor}
           repositoryFullName={repositoryFullName}
+          showWeeklyCommitSummary={showWeeklyCommitSummary}
         />
       ))}
     </div>
@@ -367,7 +369,7 @@ function ContributorBreakdown({
 }
 
 function BranchActivity({
-  branchScopeCommitShareSeries,
+  totalBranchCommits,
   branchCount,
   defaultBranchName,
   commitsByBranch,
@@ -382,7 +384,7 @@ function BranchActivity({
   branchCommitsError,
   onRefreshBranches,
 }: {
-  branchScopeCommitShareSeries: ReturnType<typeof buildBranchScopeCommitShareSeries>;
+  totalBranchCommits: number;
   branchCount: number;
   defaultBranchName: string;
   commitsByBranch: Record<string, number>;
@@ -397,10 +399,6 @@ function BranchActivity({
   branchCommitsError: string | null;
   onRefreshBranches?: () => void;
 }) {
-  const totalBranchCommits = branchScopeCommitShareSeries.reduce(
-    (sum, row) => sum + Number(row.value ?? 0),
-    0
-  );
   const selectedBranchCommitCount =
     typeof commitsByBranch[selectedBranch] === "number" ? Number(commitsByBranch[selectedBranch]) : null;
   const branchRows = liveBranches?.branches ?? [];
@@ -421,17 +419,6 @@ function BranchActivity({
           <p className="github-chart-section__metric-label">All branch commits</p>
           <p className="github-chart-section__metric-value">{formatNumber(totalBranchCommits)}</p>
         </article>
-      </div>
-
-      <div className="github-chart-section__grid">
-        {branchScopeCommitShareSeries.length > 0 ? (
-          <GithubDonutChartCard
-            title="Default vs other branches"
-            data={branchScopeCommitShareSeries}
-            info={chartInfo.branchScope}
-            className="github-chart-section__panel github-chart-section__panel--half"
-          />
-        ) : null}
       </div>
 
       <div className="github-chart-section__panel github-chart-section__panel--full">
@@ -694,7 +681,7 @@ export function GithubRepoChartsDashboard({
   snapshot,
   coverage: _coverage,
   currentGithubLogin,
-  viewerMode: _viewerMode = "student",
+  viewerMode = "student",
   viewMode,
   repositoryFullName,
   liveBranches = null,
@@ -710,6 +697,7 @@ export function GithubRepoChartsDashboard({
 }: GithubRepoChartsDashboardProps) {
   const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
   const resolvedMode: "team" | "personal" = viewMode === "personal" ? "personal" : "team";
+  const isStaffViewer = viewerMode === "staff";
 
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin, {
     includePersonal: resolvedMode === "personal",
@@ -718,7 +706,6 @@ export function GithubRepoChartsDashboard({
   const weeklyCommitSeries = buildWeeklyCommitSeries(
     commitTimelineSeries.map((row) => ({ date: row.date, commits: row.commits }))
   );
-  const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
   const contributors = buildContributorRows(snapshot);
   const lineChangeDomain = getLineChangeDomain(lineChangesByDaySeries);
   const personalShares = buildPersonalShareSeries({ snapshot, currentGithubLogin });
@@ -736,6 +723,7 @@ export function GithubRepoChartsDashboard({
   const totalAdditions = totals.totalAdditions;
   const totalDeletions = totals.totalDeletions;
   const branchCount = Number(snapshot?.data?.branchScopeStats?.allBranches?.branchCount ?? 0);
+  const totalBranchCommits = Number(snapshot?.data?.branchScopeStats?.allBranches?.totalCommits ?? 0);
   const defaultBranchName = snapshot?.data?.branchScopeStats?.defaultBranch?.branch || "main";
   const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch ?? {};
 
@@ -864,6 +852,7 @@ export function GithubRepoChartsDashboard({
               <ContributorBreakdown
                 contributors={contributors}
                 repositoryFullName={repositoryFullName}
+                showWeeklyCommitSummary={isStaffViewer}
               />
             </div>
           ) : null}
@@ -874,11 +863,11 @@ export function GithubRepoChartsDashboard({
                 <p className="github-chart-section__tab-kicker">Branch activity</p>
                 <h4 className="github-chart-section__tab-title">Branch activity</h4>
                 <p className="muted github-chart-section__tab-description">
-                  Default-branch share, branch coverage, and commit mapping confidence.
+                  Branch coverage and recent commit trails across repository branches.
                 </p>
               </div>
               <BranchActivity
-                branchScopeCommitShareSeries={branchScopeCommitShareSeries}
+                totalBranchCommits={totalBranchCommits}
                 branchCount={branchCount}
                 defaultBranchName={defaultBranchName}
                 commitsByBranch={commitsByBranch}

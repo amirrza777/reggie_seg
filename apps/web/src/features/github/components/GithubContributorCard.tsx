@@ -10,11 +10,13 @@ import {
   CHART_COLOR_ADDITIONS,
   formatNumber,
   formatShortDate,
+  isoWeekKey,
 } from "./GithubRepoChartsDashboard.helpers";
 
 type GithubContributorCardProps = {
   contributor: ContributorRow;
   repositoryFullName?: string | null;
+  showWeeklyCommitSummary?: boolean;
 };
 
 function getInitials(name: string) {
@@ -26,9 +28,54 @@ function getInitials(name: string) {
   return tokens.join("") || "?";
 }
 
-export function GithubContributorCard({ contributor, repositoryFullName }: GithubContributorCardProps) {
+function getWeeklyActivity(commitsByDay: Record<string, number> | null) {
+  if (!commitsByDay || typeof commitsByDay !== "object") {
+    return { activeWeeks: 0, totalWeeks: 0, ratio: 0 };
+  }
+
+  const days = Object.entries(commitsByDay)
+    .map(([date, commits]) => ({ date, commits: Number(commits ?? 0) }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (days.length <= 0) {
+    return { activeWeeks: 0, totalWeeks: 0, ratio: 0 };
+  }
+
+  const activeWeekTotals = new Map<string, number>();
+  for (const day of days) {
+    const week = isoWeekKey(day.date);
+    if (!week) continue;
+    activeWeekTotals.set(week, (activeWeekTotals.get(week) ?? 0) + day.commits);
+  }
+
+  const weekKeys = new Set<string>();
+  const start = new Date(`${days[0].date}T00:00:00Z`);
+  const end = new Date(`${days[days.length - 1].date}T00:00:00Z`);
+
+  if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && start <= end) {
+    const cursor = new Date(start.getTime());
+    while (cursor <= end) {
+      const week = isoWeekKey(cursor.toISOString().slice(0, 10));
+      if (week) weekKeys.add(week);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+  }
+
+  const activeWeeks = Array.from(activeWeekTotals.values()).filter((total) => total > 0).length;
+  const totalWeeks = weekKeys.size;
+  const ratio = totalWeeks > 0 ? activeWeeks / totalWeeks : 0;
+
+  return { activeWeeks, totalWeeks, ratio };
+}
+
+export function GithubContributorCard({
+  contributor,
+  repositoryFullName,
+  showWeeklyCommitSummary = false,
+}: GithubContributorCardProps) {
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const miniSeries = useMemo(() => buildContributorMiniSeries(contributor.commitsByDay), [contributor.commitsByDay]);
+  const weeklyActivity = useMemo(() => getWeeklyActivity(contributor.commitsByDay), [contributor.commitsByDay]);
   const contributorsGraphUrl = repositoryFullName
     ? `https://github.com/${repositoryFullName}/graphs/contributors`
     : null;
@@ -66,6 +113,32 @@ export function GithubContributorCard({ contributor, repositoryFullName }: Githu
         <span style={{ color: CHART_COLOR_ADDITIONS }}>+{formatNumber(contributor.additions)}</span>
         <span style={{ color: CHART_COLOR_DELETIONS }}>-{formatNumber(contributor.deletions)}</span>
       </p>
+
+      {showWeeklyCommitSummary ? (
+        <div className="github-chart-section__contributor-weekly">
+          <p className="muted github-chart-section__contributor-weekly-label">Active coding weeks</p>
+          {weeklyActivity.totalWeeks > 0 ? (
+            <>
+              <div className="github-chart-section__contributor-weekly-row">
+                <p className="github-chart-section__contributor-weekly-score">
+                  {formatNumber(weeklyActivity.activeWeeks)}/{formatNumber(weeklyActivity.totalWeeks)}
+                </p>
+                <p className="muted github-chart-section__contributor-weekly-percent">
+                  {Math.round(weeklyActivity.ratio * 100)}%
+                </p>
+              </div>
+              <div className="github-chart-section__contributor-weekly-bar" aria-hidden="true">
+                <span
+                  className="github-chart-section__contributor-weekly-bar-fill"
+                  style={{ width: `${Math.max(0, Math.min(100, weeklyActivity.ratio * 100))}%` }}
+                />
+              </div>
+            </>
+          ) : (
+            <p className="muted github-chart-section__contributor-weekly-values">No weekly breakdown available</p>
+          )}
+        </div>
+      ) : null}
 
       {miniSeries.length > 0 ? (
         <div className="github-chart-section__contributor-mini">

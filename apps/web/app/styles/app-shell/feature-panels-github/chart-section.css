@@ -309,6 +309,54 @@
   font-weight: 700;
 }
 
+.github-chart-section__contributor-weekly {
+  display: grid;
+  gap: 4px;
+}
+
+.github-chart-section__contributor-weekly-label {
+  margin: 0;
+  font-size: 12px;
+}
+
+.github-chart-section__contributor-weekly-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.github-chart-section__contributor-weekly-score {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.github-chart-section__contributor-weekly-percent {
+  margin: 0;
+  font-size: 12px;
+}
+
+.github-chart-section__contributor-weekly-bar {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 75%, var(--border) 25%);
+  overflow: hidden;
+}
+
+.github-chart-section__contributor-weekly-bar-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 75%, #22c55e 25%), var(--accent));
+  border-radius: 999px;
+}
+
+.github-chart-section__contributor-weekly-values {
+  margin: 0;
+  font-size: 12px;
+}
+
 .github-chart-section__contributor-mini {
   height: 138px;
 }
