@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getMyTeamHealthMessages, getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { Card } from "@/shared/ui/Card";
 import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
-import type { TeamHealthMessage } from "@/features/projects/types";
+import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 
 type ProjectTeamHealthPageProps = {
   params: Promise<{ projectId: string }>;
@@ -49,20 +49,54 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   }
 
   let initialRequests: TeamHealthMessage[] = [];
+  let initialWarnings: TeamWarning[] = [];
   let loadError: string | null = null;
+  let warningsLoadError: string | null = null;
   try {
     initialRequests = await getMyTeamHealthMessages(numericProjectId, user.id);
   } catch (error) {
     loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
   }
+  try {
+    initialWarnings = await getMyTeamWarnings(numericProjectId, user.id);
+  } catch (error) {
+    warningsLoadError = error instanceof Error ? error.message : "Failed to load team warnings.";
+  }
+
+  const activeWarnings = initialWarnings.filter((warning) => warning.active);
   return (
     <div style={{ padding: 20 }}>
       <Card title="Team Health">
         <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
           <h3 style={{ margin: 0 }}>Warnings</h3>
-          <p className="muted" style={{ margin: 0 }}>
-            No warnings for your team right now.
-          </p>
+          {activeWarnings.length === 0 ? (
+            <p className="muted" style={{ margin: 0 }}>
+              No warnings for your team right now.
+            </p>
+          ) : (
+            <div className="stack" style={{ gap: 8 }}>
+              {activeWarnings.map((warning) => (
+                <article
+                  key={warning.id}
+                  style={{
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    padding: "10px 12px",
+                    background:
+                      warning.severity === "HIGH"
+                        ? "color-mix(in srgb, var(--status-danger-text) 12%, var(--surface))"
+                        : warning.severity === "MEDIUM"
+                          ? "color-mix(in srgb, var(--status-warning-text) 12%, var(--surface))"
+                          : "color-mix(in srgb, var(--status-success-text) 12%, var(--surface))",
+                  }}
+                >
+                  <p style={{ margin: 0, fontWeight: 700 }}>{warning.title}</p>
+                  <p className="muted" style={{ margin: "4px 0 0" }}>{warning.details}</p>
+                </article>
+              ))}
+            </div>
+          )}
+          {warningsLoadError ? <p className="error" style={{ margin: 0 }}>{warningsLoadError}</p> : null}
         </div>
 
         <TeamHealthMessagePanel

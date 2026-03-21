@@ -16,6 +16,7 @@ import type {
   StaffStudentDeadlineOverridePayload,
   ProjectWarningsConfig,
   StaffProjectWarningsConfigResponse,
+  TeamWarning,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -167,6 +168,14 @@ export async function getMyTeamHealthMessages(projectId: number, userId: number)
     { cache: "no-store" }
   );
   return Array.isArray(response.requests) ? response.requests : [];
+}
+
+export async function getMyTeamWarnings(projectId: number, userId: number): Promise<TeamWarning[]> {
+  const response = await apiFetch<{ warnings: TeamWarning[] }>(
+    `/projects/${projectId}/team-warnings/me?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.warnings) ? response.warnings : [];
 }
 
 export async function getStaffTeamHealthMessages(

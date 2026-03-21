@@ -18,6 +18,7 @@ import {
   updateProjectWarningsEnabledForStaff,
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
+  evaluateProjectWarningsForStaff,
   getDefaultProjectWarningsConfig,
   parseProjectWarningsConfig,
 } from "./service.js";
@@ -43,6 +44,10 @@ vi.mock("./repo.js", () => ({
   updateStaffProjectWarningsEnabled: vi.fn(),
   getStaffProjectWarningsConfig: vi.fn(),
   updateStaffProjectWarningsConfig: vi.fn(),
+  getProjectWarningsSettings: vi.fn(),
+  getProjectTeamWarningSignals: vi.fn(),
+  getActiveAutoTeamWarningsForProject: vi.fn(),
+  resolveTeamWarningById: vi.fn(),
 }));
 
 describe("projects service", () => {
@@ -278,6 +283,7 @@ describe("projects service", () => {
       expect.objectContaining({
         id: 3,
         warningsEnabled: true,
+        hasPersistedWarningsConfig: false,
         warningsConfig: expect.objectContaining({ version: 1 }),
       }),
     );
@@ -302,6 +308,7 @@ describe("projects service", () => {
     ).resolves.toEqual({
       id: 3,
       warningsEnabled: true,
+      hasPersistedWarningsConfig: true,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
 
@@ -311,6 +318,57 @@ describe("projects service", () => {
       expect.objectContaining({
         version: 1,
         rules: [{ key: "LOW_ATTENDANCE", enabled: true }],
+      }),
+    );
+  });
+
+  it("evaluateProjectWarningsForStaff creates and resolves auto warnings based on config", async () => {
+    (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: {
+        version: 1,
+        rules: [
+          { key: "LOW_ATTENDANCE", enabled: true, severity: "HIGH", params: { minPercent: 70, lookbackDays: 30 } },
+          { key: "MEETING_FREQUENCY", enabled: true, severity: "MEDIUM", params: { minPerWeek: 1, lookbackDays: 28 } },
+        ],
+      },
+    });
+    (repo.getProjectTeamWarningSignals as any).mockResolvedValueOnce([
+      {
+        id: 11,
+        teamName: "Alpha",
+        meetings: [
+          {
+            date: new Date("2026-03-20T10:00:00.000Z"),
+            attendances: [{ status: "Present" }, { status: "Absent" }],
+          },
+        ],
+      },
+    ]);
+    (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValueOnce([
+      { id: 81, teamId: 11, type: "MEETING_FREQUENCY" },
+    ]);
+    (repo.resolveTeamWarningById as any).mockResolvedValue({ id: 81 });
+    (repo.createTeamWarning as any).mockResolvedValue({ id: 99 });
+
+    const summary = await evaluateProjectWarningsForStaff(9, 3);
+    expect(summary).toEqual(
+      expect.objectContaining({
+        projectId: 3,
+        warningsEnabled: true,
+        evaluatedTeams: 1,
+        createdWarnings: 1,
+        resolvedWarnings: 0,
+        activeAutoWarnings: 2,
+      }),
+    );
+    expect(repo.createTeamWarning).toHaveBeenCalledWith(
+      3,
+      11,
+      expect.objectContaining({
+        type: "LOW_ATTENDANCE",
+        source: "AUTO",
       }),
     );
   });

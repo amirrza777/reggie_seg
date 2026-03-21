@@ -88,6 +88,21 @@ export type TeamHealthMessage = {
     | null;
 };
 
+export type TeamWarning = {
+  id: number;
+  projectId: number;
+  teamId: number;
+  type: string;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  title: string;
+  details: string;
+  source: "AUTO" | "MANUAL";
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+};
+
 export type WarningRuleSeverity = "LOW" | "MEDIUM" | "HIGH";
 
 export type ProjectWarningRuleConfig = {
@@ -106,6 +121,7 @@ export type ProjectWarningsConfig = {
 export type StaffProjectWarningsConfigResponse = {
   id: number;
   warningsEnabled: boolean;
+  hasPersistedWarningsConfig: boolean;
   warningsConfig: ProjectWarningsConfig;
 };
 

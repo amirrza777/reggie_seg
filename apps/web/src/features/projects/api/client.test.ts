@@ -10,6 +10,7 @@ import {
   createTeamHealthMessage,
   getStaffTeamDeadline,
   getMyTeamHealthMessages,
+  getMyTeamWarnings,
   resolveStaffTeamHealthMessageWithDeadlineOverride,
   reviewStaffTeamHealthMessage,
   getStaffTeamHealthMessages,
@@ -141,6 +142,17 @@ describe("projects api client", () => {
       cache: "no-store",
     });
     expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it("gets current user's team warnings", async () => {
+    apiFetchMock.mockResolvedValue({ warnings: [{ id: 4 }, { id: 5 }] });
+
+    const result = await getMyTeamWarnings(42, 7);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-warnings/me?userId=7", {
+      cache: "no-store",
+    });
+    expect(result).toEqual([{ id: 4 }, { id: 5 }]);
   });
 
   it("gets team health messages for staff view", async () => {

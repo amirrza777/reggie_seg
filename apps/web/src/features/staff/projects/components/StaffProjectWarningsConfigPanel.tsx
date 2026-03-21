@@ -66,6 +66,14 @@ function cloneDefaultWarningConfig(): WarningConfigState {
   };
 }
 
+function cloneWarningConfig(config: WarningConfigState): WarningConfigState {
+  return {
+    attendance: { ...config.attendance },
+    meetingFrequency: { ...config.meetingFrequency },
+    contributionActivity: { ...config.contributionActivity },
+  };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -126,6 +134,10 @@ export function StaffProjectWarningsConfigPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<WarningConfigState>(() => cloneDefaultWarningConfig());
   const [extraRules, setExtraRules] = useState<ProjectWarningRuleConfig[]>([]);
+  const [savedConfig, setSavedConfig] = useState<WarningConfigState>(() => cloneDefaultWarningConfig());
+  const [savedExtraRules, setSavedExtraRules] = useState<ProjectWarningRuleConfig[]>([]);
+  const [hasPersistedConfig, setHasPersistedConfig] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
@@ -156,11 +168,18 @@ export function StaffProjectWarningsConfigPanel({
         const response = await getStaffProjectWarningsConfig(projectId);
         if (cancelled) return;
         const mapped = mapApiConfigToState(response.warningsConfig);
-        setConfig(mapped.state);
-        setExtraRules(mapped.extraRules);
+        setConfig(cloneWarningConfig(mapped.state));
+        setExtraRules([...mapped.extraRules]);
+        setSavedConfig(cloneWarningConfig(mapped.state));
+        setSavedExtraRules([...mapped.extraRules]);
+        const persisted = Boolean(response.hasPersistedWarningsConfig);
+        setHasPersistedConfig(persisted);
+        setIsEditing(!persisted);
       } catch (error) {
         if (cancelled) return;
         setPanelError(error instanceof Error ? error.message : "Failed to load warning config.");
+        setHasPersistedConfig(false);
+        setIsEditing(true);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -210,6 +229,7 @@ export function StaffProjectWarningsConfigPanel({
   }, [config, extraRules]);
 
   const isBusy = isLoading || isSaving;
+  const formDisabled = isBusy || !isEditing;
 
   const closeModal = () => {
     if (isSaving) return;
@@ -225,14 +245,37 @@ export function StaffProjectWarningsConfigPanel({
     try {
       const response = await updateStaffProjectWarningsConfig(projectId, configPreview);
       const mapped = mapApiConfigToState(response.warningsConfig);
-      setConfig(mapped.state);
-      setExtraRules(mapped.extraRules);
+      setConfig(cloneWarningConfig(mapped.state));
+      setExtraRules([...mapped.extraRules]);
+      setSavedConfig(cloneWarningConfig(mapped.state));
+      setSavedExtraRules([...mapped.extraRules]);
+      setHasPersistedConfig(true);
+      setIsEditing(false);
       setPanelMessage("Warning config saved.");
     } catch (error) {
       setPanelError(error instanceof Error ? error.message : "Failed to save warning config.");
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleCancel = () => {
+    setPanelMessage(null);
+    setPanelError(null);
+
+    if (!isEditing) {
+      closeModal();
+      return;
+    }
+
+    if (!hasPersistedConfig) {
+      closeModal();
+      return;
+    }
+
+    setConfig(cloneWarningConfig(savedConfig));
+    setExtraRules([...savedExtraRules]);
+    setIsEditing(false);
   };
 
   return (
@@ -276,6 +319,12 @@ export function StaffProjectWarningsConfigPanel({
               <p className="muted" style={{ margin: 0 }}>
                 Set project-level warning rules that apply to all teams.
               </p>
+              {isLoading ? <p className="muted" style={{ margin: 0 }}>Loading config...</p> : null}
+              {!isLoading && !isEditing ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  Config is in view mode. Click <strong>Edit config</strong> to make changes.
+                </p>
+              ) : null}
 
               <div className="staff-projects__warning-rule-grid">
                 <article className="staff-projects__warning-rule-card">
@@ -285,7 +334,7 @@ export function StaffProjectWarningsConfigPanel({
                       <input
                         type="checkbox"
                         checked={config.attendance.enabled}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -301,7 +350,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Severity</span>
                       <select
                         value={config.attendance.severity}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -321,7 +370,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Minimum attendance (%)</span>
                       <select
                         value={config.attendance.minPercent}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -340,7 +389,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Lookback window</span>
                       <select
                         value={config.attendance.lookbackDays}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -365,7 +414,7 @@ export function StaffProjectWarningsConfigPanel({
                       <input
                         type="checkbox"
                         checked={config.meetingFrequency.enabled}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -381,7 +430,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Severity</span>
                       <select
                         value={config.meetingFrequency.severity}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -401,7 +450,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Minimum meetings per week</span>
                       <select
                         value={config.meetingFrequency.minPerWeek}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -420,7 +469,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Lookback window</span>
                       <select
                         value={config.meetingFrequency.lookbackDays}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -445,7 +494,7 @@ export function StaffProjectWarningsConfigPanel({
                       <input
                         type="checkbox"
                         checked={config.contributionActivity.enabled}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -461,7 +510,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Severity</span>
                       <select
                         value={config.contributionActivity.severity}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -481,7 +530,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Minimum commits</span>
                       <select
                         value={config.contributionActivity.minCommits}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -500,7 +549,7 @@ export function StaffProjectWarningsConfigPanel({
                       <span>Lookback window</span>
                       <select
                         value={config.contributionActivity.lookbackDays}
-                        disabled={isBusy}
+                        disabled={formDisabled}
                         onChange={(event) =>
                           setConfig((prev) => ({
                             ...prev,
@@ -531,25 +580,34 @@ export function StaffProjectWarningsConfigPanel({
             </div>
 
             <footer className="staff-projects__config-modal-actions">
-              <Button type="button" variant="ghost" size="sm" onClick={closeModal} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="quiet"
-                size="sm"
-                onClick={() => {
-                  setConfig(cloneDefaultWarningConfig());
-                  setPanelMessage("Defaults restored.");
-                  setPanelError(null);
-                }}
-                disabled={isBusy}
-              >
-                Reset defaults
-              </Button>
-              <Button type="button" size="sm" onClick={() => void handleSave()} disabled={isBusy}>
-                {isSaving ? "Saving..." : "Save warnings"}
-              </Button>
+              {isEditing ? (
+                <>
+                  <Button type="button" variant="ghost" size="sm" onClick={handleCancel} disabled={isSaving}>
+                    Cancel
+                  </Button>
+                  <Button type="button" size="sm" onClick={() => void handleSave()} disabled={formDisabled}>
+                    {isSaving ? "Saving..." : "Save warnings"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button type="button" variant="ghost" size="sm" onClick={closeModal} disabled={isSaving}>
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      setPanelMessage(null);
+                      setPanelError(null);
+                      setIsEditing(true);
+                    }}
+                    disabled={isBusy}
+                  >
+                    Edit config
+                  </Button>
+                </>
+              )}
             </footer>
           </section>
         </div>

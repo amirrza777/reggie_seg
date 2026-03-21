@@ -24,6 +24,7 @@ import {
   updateProjectWarningsEnabledForStaff,
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
+  evaluateProjectWarningsForStaff,
   fetchStaffStudentDeadlineOverrides,
   upsertStaffStudentDeadlineOverride,
   clearStaffStudentDeadlineOverride,
@@ -829,6 +830,35 @@ export async function updateProjectWarningsConfigHandler(req: AuthRequest, res: 
     }
     console.error("Error updating project warning config:", error);
     return res.status(500).json({ error: "Failed to update project warning config" });
+  }
+}
+
+export async function evaluateProjectWarningsHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const evaluation = await evaluateProjectWarningsForStaff(actorUserId, projectId);
+    if (!evaluation) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    return res.json(evaluation);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error evaluating project warnings:", error);
+    return res.status(500).json({ error: "Failed to evaluate project warnings" });
   }
 }
 

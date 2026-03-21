@@ -736,6 +736,83 @@ export async function updateStaffProjectWarningsConfig(
   });
 }
 
+export async function getProjectWarningsSettings(projectId: number) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      id: true,
+      warningsEnabled: true,
+      warningsConfig: true,
+    },
+  });
+}
+
+export type TeamWarningSignalSnapshot = {
+  id: number;
+  teamName: string;
+  meetings: Array<{
+    date: Date;
+    attendances: Array<{ status: string }>;
+  }>;
+};
+
+export async function getProjectTeamWarningSignals(projectId: number, sinceDate: Date): Promise<TeamWarningSignalSnapshot[]> {
+  return prisma.team.findMany({
+    where: {
+      projectId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      id: true,
+      teamName: true,
+      meetings: {
+        where: {
+          date: {
+            gte: sinceDate,
+          },
+        },
+        select: {
+          date: true,
+          attendances: {
+            select: {
+              status: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getActiveAutoTeamWarningsForProject(projectId: number) {
+  return prisma.teamWarning.findMany({
+    where: {
+      projectId,
+      source: "AUTO",
+      active: true,
+    },
+    select: {
+      id: true,
+      teamId: true,
+      type: true,
+    },
+  });
+}
+
+export async function resolveTeamWarningById(warningId: number) {
+  return prisma.teamWarning.update({
+    where: { id: warningId },
+    data: {
+      active: false,
+      resolvedAt: new Date(),
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
 /** Returns the teammates in project. */
 export async function getTeammatesInProject(userId: number, projectId: number) {
   return prisma.teamAllocation.findMany({
