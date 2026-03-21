@@ -207,41 +207,135 @@ function formatDateTime(value: string | null) {
   return parsed.toLocaleString();
 }
 
-function buildHealthFlags(input: {
+type HealthSignalStatus = "ALERT" | "OK" | "UNKNOWN";
+
+type HealthSignal = {
+  key: string;
+  label: string;
+  status: HealthSignalStatus;
+  detail: string;
+};
+
+function buildHealthSignals(input: {
   teamSize: number;
   repo: RepoHealthSummary | null;
   meetings: MeetingHealthSummary | null;
   peer: PeerAssessmentHealthSummary | null;
   requests: TeamHealthMessage[];
 }) {
-  const flags: string[] = [];
+  const signals: HealthSignal[] = [];
 
-  if (input.repo?.commitsLast14Days != null) {
-    const commitTargetFloor = Math.max(2, input.teamSize);
-    if (input.repo.commitsLast14Days < commitTargetFloor) {
-      flags.push("Low commit activity in the last 14 days.");
-    }
+  const commitTargetFloor = Math.max(2, input.teamSize);
+  if (input.repo?.commitsLast14Days == null) {
+    signals.push({
+      key: "LOW_COMMIT_ACTIVITY",
+      label: "Commit activity (14d)",
+      status: "UNKNOWN",
+      detail: "No repository activity data available yet.",
+    });
+  } else if (input.repo.commitsLast14Days < commitTargetFloor) {
+    signals.push({
+      key: "LOW_COMMIT_ACTIVITY",
+      label: "Commit activity (14d)",
+      status: "ALERT",
+      detail: `${input.repo.commitsLast14Days} commits in last 14 days (expected at least ${commitTargetFloor}).`,
+    });
+  } else {
+    signals.push({
+      key: "LOW_COMMIT_ACTIVITY",
+      label: "Commit activity (14d)",
+      status: "OK",
+      detail: `${input.repo.commitsLast14Days} commits in last 14 days.`,
+    });
   }
 
-  if (input.meetings) {
-    if (input.meetings.recentThirtyDays === 0) {
-      flags.push("No team meetings in the last 30 days.");
-    }
-    if (input.meetings.attendanceRate != null && input.meetings.attendanceRate < 70) {
-      flags.push("Meeting attendance trend is below 70%.");
-    }
+  if (!input.meetings) {
+    signals.push({
+      key: "MEETING_FREQUENCY",
+      label: "Meeting frequency (30d)",
+      status: "UNKNOWN",
+      detail: "No meeting data available.",
+    });
+  } else if (input.meetings.recentThirtyDays === 0) {
+    signals.push({
+      key: "MEETING_FREQUENCY",
+      label: "Meeting frequency (30d)",
+      status: "ALERT",
+      detail: "No team meetings in the last 30 days.",
+    });
+  } else {
+    signals.push({
+      key: "MEETING_FREQUENCY",
+      label: "Meeting frequency (30d)",
+      status: "OK",
+      detail: `${input.meetings.recentThirtyDays} meeting(s) in the last 30 days.`,
+    });
   }
 
-  if (input.peer?.completionRate != null && input.peer.completionRate < 80) {
-    flags.push("Peer assessment completion is below 80%.");
+  if (input.meetings?.attendanceRate == null) {
+    signals.push({
+      key: "LOW_ATTENDANCE",
+      label: "Attendance trend (30d)",
+      status: "UNKNOWN",
+      detail: "Attendance data has not been marked yet.",
+    });
+  } else if (input.meetings.attendanceRate < 70) {
+    signals.push({
+      key: "LOW_ATTENDANCE",
+      label: "Attendance trend (30d)",
+      status: "ALERT",
+      detail: `Attendance is ${input.meetings.attendanceRate}% (threshold: 70%).`,
+    });
+  } else {
+    signals.push({
+      key: "LOW_ATTENDANCE",
+      label: "Attendance trend (30d)",
+      status: "OK",
+      detail: `Attendance is ${input.meetings.attendanceRate}%.`,
+    });
+  }
+
+  if (input.peer?.completionRate == null) {
+    signals.push({
+      key: "PEER_COMPLETION",
+      label: "Peer assessment completion",
+      status: "UNKNOWN",
+      detail: "Peer-assessment completion data not available.",
+    });
+  } else if (input.peer.completionRate < 80) {
+    signals.push({
+      key: "PEER_COMPLETION",
+      label: "Peer assessment completion",
+      status: "ALERT",
+      detail: `${input.peer.completionRate}% completion (threshold: 80%).`,
+    });
+  } else {
+    signals.push({
+      key: "PEER_COMPLETION",
+      label: "Peer assessment completion",
+      status: "OK",
+      detail: `${input.peer.completionRate}% completion.`,
+    });
   }
 
   const openSupportRequests = input.requests.filter((request) => !request.resolved).length;
   if (openSupportRequests > 0) {
-    flags.push(`${openSupportRequests} open support request${openSupportRequests === 1 ? "" : "s"} awaiting action.`);
+    signals.push({
+      key: "OPEN_SUPPORT_REQUESTS",
+      label: "Open support requests",
+      status: "ALERT",
+      detail: `${openSupportRequests} request${openSupportRequests === 1 ? "" : "s"} awaiting action.`,
+    });
+  } else {
+    signals.push({
+      key: "OPEN_SUPPORT_REQUESTS",
+      label: "Open support requests",
+      status: "OK",
+      detail: "No open support requests.",
+    });
   }
 
-  return flags;
+  return signals;
 }
 
 export default async function StaffTeamHealthPage({ params }: PageProps) {
@@ -330,35 +424,14 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         : "Failed to load peer-assessment signals."
       : null;
 
-  const healthFlags = buildHealthFlags({
+  const healthSignals = buildHealthSignals({
     teamSize: team.allocations.length,
     repo: repoSummary,
     meetings: meetingSummary,
     peer: peerSummary,
     requests,
   });
-  const summaryMetrics = [
-    {
-      label: "Open warnings",
-      value: String(openWarnings.length),
-      isAvailable: true,
-    },
-    {
-      label: "Open support requests",
-      value: String(requests.filter((request) => !request.resolved).length),
-      isAvailable: true,
-    },
-    {
-      label: "Meetings (30d)",
-      value: meetingSummary?.recentThirtyDays != null ? `${meetingSummary.recentThirtyDays}` : "Not available",
-      isAvailable: meetingSummary?.recentThirtyDays != null,
-    },
-    {
-      label: "Assessment completion",
-      value: peerSummary?.completionRate != null ? `${peerSummary.completionRate}%` : "Not available",
-      isAvailable: peerSummary?.completionRate != null,
-    },
-  ] as const;
+  const openSupportRequests = requests.filter((request) => !request.resolved).length;
 
   return (
     <div className="staff-projects">
@@ -379,21 +452,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
       </section>
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
-      <section className="staff-projects__grid staff-projects__health-metrics" aria-label="Team health summary">
-        {summaryMetrics.map((metric) => (
-          <article key={metric.label} className="staff-projects__card staff-projects__health-metric-card">
-            <p className="staff-projects__health-metric-label">{metric.label}</p>
-            <p
-              className={`staff-projects__health-metric-value${
-                metric.isAvailable ? "" : " staff-projects__health-metric-value--muted"
-              }`}
-            >
-              {metric.value}
-            </p>
-          </article>
-        ))}
-      </section>
 
       <section className="staff-projects__team-list" aria-label="Team health signals">
         <article className="staff-projects__team-card staff-projects__team-card--signal">
@@ -440,7 +498,7 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
                 Students with zero submissions: {peerSummary?.missingStudents ?? "Not available"}
               </p>
               <p className="staff-projects__team-count">
-                Open support requests: {requests.filter((request) => !request.resolved).length}
+                Open support requests: {openSupportRequests}
               </p>
             </article>
           </div>
@@ -460,16 +518,24 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               </ul>
             )}
           </div>
-          {healthFlags.length > 0 ? (
-            <div className="staff-projects__signal-issues">
-              <h4 className="staff-projects__signal-section-title">Signals to monitor</h4>
-              <ul className="staff-projects__signal-flags">
-                {healthFlags.map((flag) => (
-                  <li key={flag} className="staff-projects__team-count">{flag}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <div className="staff-projects__signal-issues">
+            <h4 className="staff-projects__signal-section-title">Signals to monitor</h4>
+            <dl className="staff-projects__signal-stats">
+              {healthSignals.map((signal) => (
+                <div key={signal.key} className="staff-projects__signal-stat">
+                  <dt>
+                    {signal.label}{" "}
+                    <span
+                      className={`staff-projects__signal-status staff-projects__signal-status--${signal.status.toLowerCase()}`}
+                    >
+                      {signal.status}
+                    </span>
+                  </dt>
+                  <dd>{signal.detail}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}

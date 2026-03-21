@@ -13,7 +13,7 @@ export default async function ProjectLayout({ params, children }: LayoutProps) {
   const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
-      <ProjectNav projectId={projectId} enabledFlags={navFlags} />
+      <ProjectNav projectId={projectId} />
       {children}
     </div>
   );

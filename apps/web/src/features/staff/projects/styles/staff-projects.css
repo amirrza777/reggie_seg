@@ -198,6 +198,9 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--fs-caption);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .staff-projects__signal-stat dd {
@@ -205,6 +208,35 @@
   color: var(--ink-strong);
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
+}
+
+.staff-projects__signal-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+}
+
+.staff-projects__signal-status--alert {
+  color: var(--danger-ink, #fca5a5);
+  border-color: color-mix(in srgb, var(--danger-ink, #fca5a5) 45%, var(--border));
+  background: color-mix(in srgb, var(--danger-ink, #fca5a5) 14%, transparent);
+}
+
+.staff-projects__signal-status--ok {
+  color: var(--success-ink, #86efac);
+  border-color: color-mix(in srgb, var(--success-ink, #86efac) 45%, var(--border));
+  background: color-mix(in srgb, var(--success-ink, #86efac) 14%, transparent);
+}
+
+.staff-projects__signal-status--unknown {
+  color: var(--muted);
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
 }
 
 .staff-projects__signal-sections {
