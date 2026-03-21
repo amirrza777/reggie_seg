@@ -27,6 +27,7 @@
   line-height: 1.2;
   letter-spacing: -0.015em;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .github-repo-link-card__meta-row {
