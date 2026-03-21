@@ -62,14 +62,28 @@ export function contributorKeyFromCommit(commit: GithubCommitListItem) {
 }
 
 /** Returns the commits for linked repository. */
-export async function fetchCommitsForLinkedRepository(accessToken: string, fullName: string, branch: string, sinceIso: string) {
+export async function fetchCommitsForLinkedRepository(
+  accessToken: string,
+  fullName: string,
+  branch: string,
+  sinceIso?: string | null
+) {
   const { baseUrl } = getGitHubApiConfig();
   const commits: GithubCommitListItem[] = [];
   let page = 1;
 
   while (true) {
+    const params = new URLSearchParams({
+      sha: branch,
+      per_page: "100",
+      page: String(page),
+    });
+    if (sinceIso) {
+      params.set("since", sinceIso);
+    }
+
     const response = await fetch(
-      `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&since=${encodeURIComponent(sinceIso)}&per_page=100&page=${page}`,
+      `${baseUrl}/repos/${fullName}/commits?${params.toString()}`,
       {
         headers: {
           Accept: "application/vnd.github+json",
@@ -100,9 +114,6 @@ export async function fetchCommitsForLinkedRepository(accessToken: string, fullN
       break;
     }
     page += 1;
-    if (page > 10) {
-      break;
-    }
   }
 
   return commits;
@@ -197,9 +208,6 @@ export async function fetchAllUserCommitsForRepository(accessToken: string, full
       break;
     }
     page += 1;
-    if (page > 30) {
-      break;
-    }
   }
 
   return commits;
@@ -233,9 +241,6 @@ export async function listRepositoryBranches(accessToken: string, fullName: stri
       break;
     }
     page += 1;
-    if (page > 5) {
-      break;
-    }
   }
 
   return Array.from(new Set(branches));
@@ -288,9 +293,6 @@ export async function listRepositoryBranchesLive(
       break;
     }
     page += 1;
-    if (page > 5) {
-      break;
-    }
   }
 
   return branches;

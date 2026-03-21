@@ -72,6 +72,22 @@ describe("github service.analysis.fetch", () => {
     ).resolves.toEqual([]);
   });
 
+  it("fetches beyond 10 pages and can run without a since filter", async () => {
+    const page = new Array(100).fill({ sha: "x", commit: { author: null }, author: null });
+    const fetchMock = vi.fn();
+    for (let i = 0; i < 11; i += 1) {
+      fetchMock.mockResolvedValueOnce(response(200, page));
+    }
+    fetchMock.mockResolvedValueOnce(response(200, []));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const commits = await fetchCommitsForLinkedRepository("token", "org/repo", "main");
+
+    expect(commits).toHaveLength(1100);
+    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(String(fetchMock.mock.calls[0]?.[0] ?? "")).not.toContain("since=");
+  });
+
   it("throws typed errors for recent branch commit fetch", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(404, {})));
     await expect(fetchRecentCommitsForBranch("token", "org/repo", "main", 10)).rejects.toEqual(

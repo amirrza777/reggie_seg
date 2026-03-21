@@ -72,14 +72,6 @@ function hasIncompleteSnapshotCommitStatsCoverage(data: PreviousSnapshotData | n
   );
 }
 
-function isLikelyMergeCommit(commit: GithubCommitListItem) {
-  const message = (commit.commit?.message || "").trim().toLowerCase();
-  if (message.startsWith("merge pull request")) {
-    return true;
-  }
-  return (commit.parents?.length ?? 0) > 1;
-}
-
 function addUniqueUserId(userIds: number[], value: number | null | undefined) {
   if (typeof value !== "number" || Number.isNaN(value) || userIds.includes(value)) {
     return;
@@ -159,13 +151,12 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     useLatestSnapshotAsBaseline && !shouldRebuildFromBackfillWindow ? latestSnapshot : null;
   const previousAnalysedAt = baselineSnapshot?.analysedAt ?? null;
   const now = new Date();
-  const fallbackSinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-  const sinceDate = backfillWindowStart ?? previousAnalysedAt ?? fallbackSinceDate;
-  const sinceIso = sinceDate.toISOString();
+  const sinceDate = backfillWindowStart ?? previousAnalysedAt;
+  const sinceIso = sinceDate?.toISOString() ?? null;
   const commits = filterCommitsAfter(
     await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceIso),
     previousAnalysedAt
-  ).filter((commit) => !isLikelyMergeCommit(commit));
+  );
   const branchNames = await listRepositoryBranches(accessToken, link.repository.fullName);
   const allBranchNames = branchNames.length > 0 ? branchNames : [defaultBranch];
   const allBranchCommitBySha = new Map<string, GithubCommitListItem>();
@@ -179,7 +170,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         sinceIso
       ),
       previousAnalysedAt
-    ).filter((commit) => !isLikelyMergeCommit(commit));
+    );
     allBranchCommitCountByBranch[branchName] = branchCommits.length;
     for (const branchCommit of branchCommits) {
       if (!allBranchCommitBySha.has(branchCommit.sha)) {
@@ -253,7 +244,6 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     userStat.deletions += stat.deletions;
   }
 
-  const newTotalCommits = userStats.reduce((sum, stat) => sum + stat.commits, 0);
   const newAllBranchesTotalCommits = allBranchCommits.length;
   const previousData = (baselineSnapshot?.data ?? {}) as PreviousSnapshotData;
 
@@ -308,8 +298,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
 
   const previousAllBranchesTotalCommits = previousAllBranchesStats?.totalCommits ?? previousRepoStats?.totalCommits ?? 0;
   const mergedSampleCommits = mergeSampleCommits(previousData.sampleCommits, commits);
-  const analysedWindowSinceIso =
-    backfillWindowStart?.toISOString() ?? previousData?.analysedWindow?.since ?? fallbackSinceDate.toISOString();
+  const analysedWindowSinceIso = sinceIso ?? previousData?.analysedWindow?.since ?? null;
 
   const finalSnapshotData = {
     repository: {
