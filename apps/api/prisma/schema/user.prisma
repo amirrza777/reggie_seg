@@ -36,6 +36,8 @@ model User {
   trelloToken           String?
   trelloMemberId        String?
   ownedTeamTrelloBoards Team[]  @relation("TrelloOwner")
+  draftTeamsCreated     Team[]  @relation("TeamDraftCreatedBy")
+  draftTeamsApproved    Team[]  @relation("TeamDraftApprovedBy")
 
   questionnaires                  QuestionnaireTemplate[]
   reviewerFeedbacks               PeerFeedback[]               @relation("PeerFeedbackReviewer")
@@ -57,6 +59,12 @@ model User {
   auditLogs                       AuditLog[]
   mentions                        Mention[]                    @relation("Mention")
   notifications                   Notification[]               @relation("Notification")
+  discussionPosts     DiscussionPost[]
+  forumReportsFiled   ForumReport[]           @relation("ForumReportReporter")
+  forumReportsAgainst ForumReport[]           @relation("ForumReportAuthor")
+  forumReactions      ForumReaction[]
+  forumStudentReports ForumStudentReport[]    @relation("ForumStudentReportReporter")
+  forumStudentReportsReviewed ForumStudentReport[] @relation("ForumStudentReportReviewer")
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

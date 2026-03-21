@@ -43,6 +43,7 @@ export function computeCumulativeByWeek(
   projectStartDateKey?: string | null,
   projectEndDateKey?: string | null
 ): CumulativeByWeekPoint[] {
+  void _lastNWeeks;
   const currentState = buildCurrentState(cardsByList);
   const allActions = Object.values(actionsByDate).flat();
   const allActionsDesc = [...allActions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

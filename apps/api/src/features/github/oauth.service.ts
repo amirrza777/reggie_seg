@@ -53,6 +53,15 @@ type GithubAccountTokenState = {
   scopes: string | null;
 };
 
+type GithubExchangedToken = {
+  accessToken: string;
+  refreshToken: string | null;
+  tokenType: string | null;
+  scope: string | null;
+  expiresIn: number | undefined;
+  refreshTokenExpiresIn: number | undefined;
+};
+
 function getStateSecret() {
   return process.env.GITHUB_OAUTH_STATE_SECRET || process.env.JWT_ACCESS_SECRET || "";
 }
@@ -157,6 +166,29 @@ function addSecondsToNow(seconds?: number) {
   return new Date(Date.now() + seconds * 1000);
 }
 
+function parseGithubOAuthStatePayload(payload: string | jwt.JwtPayload): GithubOAuthStatePayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return null;
+  }
+  const sub = payload.sub;
+  const nonce = payload.nonce;
+  const returnTo = payload.returnTo;
+  if (typeof sub !== "number" || !Number.isFinite(sub)) {
+    return null;
+  }
+  if (typeof nonce !== "string" || nonce.length === 0) {
+    return null;
+  }
+  if (returnTo !== undefined && typeof returnTo !== "string") {
+    return null;
+  }
+  return {
+    sub,
+    nonce,
+    returnTo,
+  };
+}
+
 /** Builds the GitHub connect URL. */
 export async function buildGithubConnectUrl(userId: number, returnTo?: string | null) {
   const githubApp = getGitHubAppConfig();
@@ -204,7 +236,12 @@ export function validateGithubCallback(code: string, state: string) {
 
   let payload: GithubOAuthStatePayload;
   try {
-    payload = jwt.verify(state, secret) as GithubOAuthStatePayload;
+    const verified = jwt.verify(state, secret);
+    const parsed = parseGithubOAuthStatePayload(verified);
+    if (!parsed) {
+      throw new Error("Invalid payload");
+    }
+    payload = parsed;
   } catch {
     throw new GithubServiceError(400, "Invalid OAuth state");
   }
@@ -250,7 +287,14 @@ async function exchangeGithubCallbackCode(code: string, state: string) {
     throw new GithubServiceError(400, data.error_description || data.error || "GitHub access token missing");
   }
 
-  return data;
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? null,
+    tokenType: data.token_type ?? null,
+    scope: data.scope ?? null,
+    expiresIn: data.expires_in,
+    refreshTokenExpiresIn: data.refresh_token_expires_in,
+  } satisfies GithubExchangedToken;
 }
 
 async function refreshGithubAccessToken(refreshToken: string) {
@@ -282,7 +326,14 @@ async function refreshGithubAccessToken(refreshToken: string) {
     throw new GithubServiceError(401, data.error_description || data.error || "GitHub refresh token is invalid");
   }
 
-  return data;
+  return {
+    accessToken: data.access_token,
+    refreshToken: data.refresh_token ?? null,
+    tokenType: data.token_type ?? null,
+    scope: data.scope ?? null,
+    expiresIn: data.expires_in,
+    refreshTokenExpiresIn: data.refresh_token_expires_in,
+  } satisfies GithubExchangedToken;
 }
 
 async function fetchGithubUser(accessToken: string) {
@@ -337,7 +388,7 @@ export async function connectGithubAccount(code: string, state: string) {
   }
 
   const tokenResponse = await exchangeGithubCallbackCode(validated.code, state);
-  const githubUser = await fetchGithubUser(tokenResponse.access_token);
+  const githubUser = await fetchGithubUser(tokenResponse.accessToken);
   const existingGithubAccount = await findGithubAccountByGithubUserId(BigInt(githubUser.id));
   if (existingGithubAccount && existingGithubAccount.userId !== user.id) {
     throw new GithubServiceError(409, "This GitHub account is already linked to another user");
@@ -348,12 +399,12 @@ export async function connectGithubAccount(code: string, state: string) {
     githubUserId: BigInt(githubUser.id),
     login: githubUser.login,
     email: githubUser.email,
-    accessTokenEncrypted: encryptToken(tokenResponse.access_token),
-    refreshTokenEncrypted: tokenResponse.refresh_token ? encryptToken(tokenResponse.refresh_token) : null,
-    tokenType: tokenResponse.token_type || null,
+    accessTokenEncrypted: encryptToken(tokenResponse.accessToken),
+    refreshTokenEncrypted: tokenResponse.refreshToken ? encryptToken(tokenResponse.refreshToken) : null,
+    tokenType: tokenResponse.tokenType || null,
     scopes: tokenResponse.scope || null,
-    accessTokenExpiresAt: addSecondsToNow(tokenResponse.expires_in),
-    refreshTokenExpiresAt: addSecondsToNow(tokenResponse.refresh_token_expires_in),
+    accessTokenExpiresAt: addSecondsToNow(tokenResponse.expiresIn),
+    refreshTokenExpiresAt: addSecondsToNow(tokenResponse.refreshTokenExpiresIn),
   });
 
   return {
@@ -385,15 +436,15 @@ export async function getValidGithubAccessToken(account: GithubAccountTokenState
   const refreshed = await refreshGithubAccessToken(decryptedRefreshToken);
   const updated = await updateGithubAccountTokens({
     userId: account.userId,
-    accessTokenEncrypted: encryptToken(refreshed.access_token),
-    refreshTokenEncrypted: refreshed.refresh_token
-      ? encryptToken(refreshed.refresh_token)
+    accessTokenEncrypted: encryptToken(refreshed.accessToken),
+    refreshTokenEncrypted: refreshed.refreshToken
+      ? encryptToken(refreshed.refreshToken)
       : account.refreshTokenEncrypted,
-    tokenType: refreshed.token_type || account.tokenType,
+    tokenType: refreshed.tokenType || account.tokenType,
     scopes: refreshed.scope || account.scopes,
-    accessTokenExpiresAt: addSecondsToNow(refreshed.expires_in),
-    refreshTokenExpiresAt: refreshed.refresh_token_expires_in
-      ? addSecondsToNow(refreshed.refresh_token_expires_in)
+    accessTokenExpiresAt: addSecondsToNow(refreshed.expiresIn),
+    refreshTokenExpiresAt: refreshed.refreshTokenExpiresIn
+      ? addSecondsToNow(refreshed.refreshTokenExpiresIn)
       : account.refreshTokenExpiresAt,
   });
 

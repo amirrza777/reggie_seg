@@ -79,7 +79,7 @@ describe("projects service", () => {
     ]);
   });
 
-  it("maps modules and forwards module scope options", async () => {
+  it("fetchModulesForUser maps module fields to API shape", async () => {
     (repo.getModulesForUser as any).mockResolvedValue([
       {
         id: 9,
@@ -107,7 +107,11 @@ describe("projects service", () => {
         accountRole: "OWNER",
       },
     ]);
+  });
 
+  it("fetchModulesForUser forwards module scope options to repo", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([]);
+    await fetchModulesForUser(7, { staffOnly: true, compact: true });
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 

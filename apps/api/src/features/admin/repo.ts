@@ -95,6 +95,35 @@ export function listEnterprisesByWhere(where: Prisma.EnterpriseWhereInput, page:
   });
 }
 
+export function listEnterpriseFuzzyCandidatesByWhere(where: Prisma.EnterpriseWhereInput, page: number, pageSize: number) {
+  const offset = (page - 1) * pageSize;
+  return prisma.enterprise.findMany({
+    where,
+    select: {
+      id: true,
+      code: true,
+      name: true,
+    },
+    orderBy: [{ createdAt: "desc" }, { name: "asc" }],
+    skip: offset,
+    take: pageSize,
+  });
+}
+
+export function listEnterprisesByIds(ids: string[]) {
+  return prisma.enterprise.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      createdAt: true,
+      users: { select: { role: true } },
+      _count: { select: { users: true, modules: true, teams: true } },
+    },
+  });
+}
+
 export function findEnterpriseByCode(code: string) {
   return prisma.enterprise.findUnique({ where: { code }, select: { id: true } });
 }

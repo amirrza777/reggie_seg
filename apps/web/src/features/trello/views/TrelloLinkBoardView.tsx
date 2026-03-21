@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { assignBoardToTeam, getBoardById, getMyBoards } from "@/features/trello/api/client";
 import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
+import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { Card } from "@/shared/ui/Card";
+import { SearchField } from "@/shared/ui/SearchField";
 import "@/features/trello/styles/link-board.css";
 
 const MAX_PREVIEW_CARDS_PER_LIST = 5;
@@ -70,7 +71,7 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
           if (cancelled) return;
           setIsSearchingBoards(false);
         });
-    }, 250);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       cancelled = true;
@@ -128,8 +129,7 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
       <div className="trello-link-board__controls">
         <label className="trello-link-board__select-wrap">
           <span className="trello-link-board__select-label">BOARD</span>
-          <input
-            type="search"
+          <SearchField
             value={boardSearchQuery}
             onChange={(event) => setBoardSearchQuery(event.target.value)}
             className="trello-link-board__select"

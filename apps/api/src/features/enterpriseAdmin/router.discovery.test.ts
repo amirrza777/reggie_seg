@@ -104,10 +104,16 @@ beforeEach(() => {
 });
 
 describe("enterpriseAdmin router discovery", () => {
-  it("resolve middleware rejects students and stores enterprise user for staff/admin", async () => {
-    const [requireAuth, resolveEnterpriseUser] = getUseHandlers();
-    const next = vi.fn() as NextFunction;
+  const [requireAuth, resolveEnterpriseUser] = getUseHandlers();
+  const listFeatureFlags = getRouteHandler("get", "/feature-flags");
+  const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
+  const listModules = getRouteHandler("get", "/modules");
+  const searchModules = getRouteHandler("get", "/modules/search");
+  const createModule = getRouteHandler("post", "/modules");
+  const searchAccessUsers = getRouteHandler("get", "/modules/access-users/search");
 
+  it("stores enterprise user for authorised staff/admin accounts", async () => {
+    const next = vi.fn() as NextFunction;
     const req: any = { headers: { "x-user-id": "99" } };
     const res = mockRes();
 
@@ -115,37 +121,42 @@ describe("enterpriseAdmin router discovery", () => {
     await resolveEnterpriseUser(req, res, next);
 
     expect(req.enterpriseUser).toEqual({ id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" });
+  });
 
+  it("rejects student users in enterprise middleware", async () => {
+    const next = vi.fn() as NextFunction;
     (prisma.user.findUnique as any).mockResolvedValueOnce({
       id: 5,
       enterpriseId: "ent-1",
       role: "STUDENT",
       active: true,
     });
-
     const studentReq: any = { user: { sub: 5 } };
     const studentRes = mockRes();
+
     await resolveEnterpriseUser(studentReq, studentRes, next);
+
     expect((studentRes.status as any)).toHaveBeenCalledWith(403);
   });
 
-  it("lists and updates enterprise feature flags", async () => {
-    const listFeatureFlags = getRouteHandler("get", "/feature-flags");
-    const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
-
+  it("lists enterprise feature flags with label mappings", async () => {
     (prisma.featureFlag.findMany as any).mockResolvedValueOnce([
       { key: "repos", label: "Repos", enabled: true },
       { key: "modules", label: "Modules", enabled: false },
     ]);
+    const res = mockRes();
 
-    let res = mockRes();
     await listFeatureFlags({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith([
       { key: "repos", label: "Repositories", enabled: true },
       { key: "modules", label: "Modules", enabled: false },
     ]);
+  });
 
-    res = mockRes();
+  it("rejects feature-flag patch requests with non-boolean enabled", async () => {
+    const res = mockRes();
+
     await patchFeatureFlag(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
@@ -154,10 +165,14 @@ describe("enterpriseAdmin router discovery", () => {
       } as any,
       res,
     );
-    expect((res.status as any)).toHaveBeenCalledWith(400);
 
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
+
+  it("updates feature flag values", async () => {
     (prisma.featureFlag.update as any).mockResolvedValueOnce({ key: "repos", label: "Repos", enabled: false });
-    res = mockRes();
+    const res = mockRes();
+
     await patchFeatureFlag(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
@@ -166,10 +181,14 @@ describe("enterpriseAdmin router discovery", () => {
       } as any,
       res,
     );
-    expect((res.json as any)).toHaveBeenCalledWith({ key: "repos", label: "Repositories", enabled: false });
 
+    expect((res.json as any)).toHaveBeenCalledWith({ key: "repos", label: "Repositories", enabled: false });
+  });
+
+  it("maps missing feature flags to 404", async () => {
     (prisma.featureFlag.update as any).mockRejectedValueOnce({ code: "P2025" });
-    res = mockRes();
+    const res = mockRes();
+
     await patchFeatureFlag(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
@@ -178,25 +197,29 @@ describe("enterpriseAdmin router discovery", () => {
       } as any,
       res,
     );
+
     expect((res.status as any)).toHaveBeenCalledWith(404);
   });
 
-  it("lists modules for admins and staff scopes", async () => {
-    const listModules = getRouteHandler("get", "/modules");
-    const searchModules = getRouteHandler("get", "/modules/search");
-
+  it("queries modules in enterprise-admin scope", async () => {
     (prisma.module.findMany as any).mockResolvedValueOnce([]);
-    let res = mockRes();
+    const res = mockRes();
+
     await listModules({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+
     expect(prisma.module.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { enterpriseId: "ent-1" },
       }),
     );
+  });
 
+  it("queries modules in staff scope with lead/ta filters", async () => {
     (prisma.module.findMany as any).mockResolvedValueOnce([]);
-    res = mockRes();
+    const res = mockRes();
+
     await listModules({ enterpriseUser: { id: 44, enterpriseId: "ent-1", role: "STAFF" } } as any, res);
+
     expect(prisma.module.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: {
@@ -208,7 +231,9 @@ describe("enterpriseAdmin router discovery", () => {
         },
       }),
     );
+  });
 
+  it("maps listModules response to include canManageAccess", async () => {
     (prisma.module.findMany as any).mockResolvedValueOnce([
       {
         id: 8,
@@ -223,16 +248,24 @@ describe("enterpriseAdmin router discovery", () => {
         moduleLeads: [],
       },
     ]);
-    res = mockRes();
+    const res = mockRes();
+
     await listModules({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.arrayContaining([expect.objectContaining({ id: 8, canManageAccess: true })]),
     );
+  });
 
-    res = mockRes();
+  it("rejects module search with invalid page", async () => {
+    const res = mockRes();
+
     await searchModules({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { page: "0" } } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(400);
 
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
+
+  it("returns paginated module search results", async () => {
     (prisma.module.count as any).mockResolvedValueOnce(2);
     (prisma.module.findMany as any).mockResolvedValueOnce([
       {
@@ -248,11 +281,13 @@ describe("enterpriseAdmin router discovery", () => {
         moduleLeads: [{ userId: 99 }],
       },
     ]);
-    res = mockRes();
+    const res = mockRes();
+
     await searchModules(
       { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { q: "software", pageSize: "1" } } as any,
       res,
     );
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         total: 2,
@@ -264,9 +299,47 @@ describe("enterpriseAdmin router discovery", () => {
     );
   });
 
-  it("creates module with role assignments, including student teaching assistants", async () => {
-    const createModule = getRouteHandler("post", "/modules");
+  it("falls back to fuzzy module search when strict contains search has no hits", async () => {
+    (prisma.module.count as any).mockResolvedValueOnce(0);
+    (prisma.module.findMany as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 8, name: "Internet Systems" },
+        { id: 7, name: "Software Engineering" },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 8,
+          name: "Internet Systems",
+          briefText: null,
+          timelineText: null,
+          expectationsText: null,
+          readinessNotesText: null,
+          createdAt: new Date("2026-03-01"),
+          updatedAt: new Date("2026-03-02"),
+          _count: { userModules: 0, moduleLeads: 1, moduleTeachingAssistants: 0 },
+          moduleLeads: [{ userId: 99 }],
+        },
+      ]);
+    const res = mockRes();
 
+    await searchModules(
+      { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { q: "internt systms" } } as any,
+      res,
+    );
+
+    expect((res.json as any)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        total: 1,
+        page: 1,
+        pageSize: 10,
+        totalPages: 1,
+        items: [expect.objectContaining({ id: 8, canManageAccess: true })],
+      }),
+    );
+  });
+
+  it("creates module and persists role assignments", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([
       { id: 11, role: "STAFF" },
@@ -274,8 +347,8 @@ describe("enterpriseAdmin router discovery", () => {
       { id: 12, role: "STUDENT" },
       { id: 31, role: "STUDENT" },
     ]);
-
     const res = mockRes();
+
     await createModule(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
@@ -300,7 +373,6 @@ describe("enterpriseAdmin router discovery", () => {
       },
       select: { id: true },
     });
-
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
@@ -319,22 +391,26 @@ describe("enterpriseAdmin router discovery", () => {
     expect((res.status as any)).toHaveBeenCalledWith(201);
   });
 
-  it("searches assignable access users with scope and pagination", async () => {
-    const searchAccessUsers = getRouteHandler("get", "/modules/access-users/search");
+  it("validates access-user scope", async () => {
+    const res = mockRes();
 
-    let res = mockRes();
     await searchAccessUsers({ enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { scope: "owners" } } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(400);
 
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
+
+  it("returns paginated access users", async () => {
     (prisma.user.count as any).mockResolvedValueOnce(2);
     (prisma.user.findMany as any).mockResolvedValueOnce([
       { id: 11, email: "lead@x.com", firstName: "Lead", lastName: "User", active: true },
     ]);
-    res = mockRes();
+    const res = mockRes();
+
     await searchAccessUsers(
       { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { scope: "staff", q: "lead", pageSize: "1" } } as any,
       res,
     );
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         total: 2,
@@ -343,6 +419,32 @@ describe("enterpriseAdmin router discovery", () => {
         totalPages: 2,
         scope: "staff",
         items: [expect.objectContaining({ id: 11 })],
+      }),
+    );
+  });
+
+  it("falls back to fuzzy access-user search when strict search has no hits", async () => {
+    (prisma.user.count as any).mockResolvedValueOnce(0).mockResolvedValueOnce(2);
+    (prisma.user.findMany as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        { id: 11, email: "nora@x.com", firstName: "Nora", lastName: "Patel", active: true },
+        { id: 12, email: "bob@x.com", firstName: "Bob", lastName: "Stone", active: true },
+      ]);
+    const res = mockRes();
+
+    await searchAccessUsers(
+      { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, query: { scope: "all", q: "nra patl" } } as any,
+      res,
+    );
+
+    expect((res.json as any)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        total: 1,
+        page: 1,
+        pageSize: 20,
+        totalPages: 1,
+        items: [expect.objectContaining({ id: 11, email: "nora@x.com" })],
       }),
     );
   });

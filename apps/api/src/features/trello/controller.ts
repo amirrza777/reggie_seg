@@ -6,6 +6,17 @@ import { parseSearchQuery } from "../../shared/search.js"
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || ""
 
+type TrelloLinkTokenPayload = { sub: number; purpose?: string }
+
+function parseTrelloLinkTokenPayload(payload: string | jwt.JwtPayload): TrelloLinkTokenPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null
+  const sub = payload.sub
+  const purpose = payload.purpose
+  if (typeof sub !== "number" || !Number.isFinite(sub)) return null
+  if (purpose !== undefined && typeof purpose !== "string") return null
+  return { sub, purpose }
+}
+
 export const TrelloController = {
 
   async getMyTrelloMemberId(req: Request, res: Response) {
@@ -103,7 +114,11 @@ export const TrelloController = {
       if (!linkToken || !token) {
         return res.status(400).json({ error: "Missing linkToken or token" })
       }
-      const payload = jwt.verify(linkToken, accessSecret) as { sub: number; purpose?: string }
+      const verified = jwt.verify(linkToken, accessSecret)
+      const payload = parseTrelloLinkTokenPayload(verified)
+      if (!payload) {
+        return res.status(400).json({ error: "Invalid link token" })
+      }
       if (payload.purpose !== "trello-link") {
         return res.status(400).json({ error: "Invalid link token" })
       }

@@ -16,7 +16,7 @@ export function HelpNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="help-nav" aria-label="Help sections">
+    <nav className="help-nav" data-elevation="sticky" aria-label="Help sections">
       {navItems.map((item) => (
         <Link
           key={item.href}

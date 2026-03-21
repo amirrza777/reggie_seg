@@ -16,6 +16,7 @@ import {
   listRepositoryBranchesLive,
 } from "./service.analysis.fetch.js";
 import { isMergePullRequestCommit } from "./service.analysis.aggregate.js";
+import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type IdentityCandidate = {
   userId: number;
@@ -26,6 +27,13 @@ function addUniqueUserId(userIds: number[], value: number | null | undefined) {
     return;
   }
   userIds.push(value);
+}
+
+function matchesBranchQuery(branchName: string, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    sources: [branchName],
+  });
 }
 
 async function resolveProjectLinkAccessToken(params: {
@@ -92,10 +100,10 @@ export async function listLiveProjectGithubRepositoryBranches(
 
   const defaultBranch = link.repository.defaultBranch || "main";
   const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
-  const normalizedQuery = typeof options?.query === "string" ? options.query.trim().toLowerCase() : "";
-  const hasQuery = normalizedQuery.length > 0;
+  const searchQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = searchQuery.length > 0;
   const scopedBranches = hasQuery
-    ? liveBranches.filter((branch) => branch.name.toLowerCase().includes(normalizedQuery))
+    ? liveBranches.filter((branch) => matchesBranchQuery(branch.name, searchQuery))
     : liveBranches;
 
   const branchesWithCompare = await Promise.all(

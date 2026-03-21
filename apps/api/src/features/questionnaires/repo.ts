@@ -1,11 +1,28 @@
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
 import type { Question, IncomingQuestion } from "./types.js";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
+import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
+
+function matchesTemplateSearchQuery(
+  template: { id: number; templateName: string; questions?: Array<{ label: string }> },
+  query: string,
+): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: template.id,
+    sources: [template.templateName, ...(template.questions ?? []).map((question) => question.label)],
+  });
+}
+
+function toQuestionConfigsValue(configs: unknown): Prisma.InputJsonValue {
+  return (configs ?? null) as Prisma.InputJsonValue;
+}
 
 /** Creates a questionnaire template. */
 export function createQuestionnaireTemplate(
   templateName: string,
-  questions: any[],
+  questions: IncomingQuestion[],
   userId: number,
   isPublic: boolean
 ) {
@@ -18,7 +35,7 @@ export function createQuestionnaireTemplate(
           label: q.label,
           type: q.type,
           order: index,
-          configs: q.configs ?? null,
+          configs: toQuestionConfigsValue(q.configs),
         })),
       },
       ownerId: userId,
@@ -47,23 +64,34 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
 };
 
 /** Returns the my questionnaire templates. */
-export function getMyQuestionnaireTemplates(userId: number, options?: { query?: string | null }) {
+export async function getMyQuestionnaireTemplates(userId: number, options?: { query?: string | null }) {
   const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const hasQuery = normalizedQuery.length > 0;
-  const numericQuery = hasQuery ? Number(normalizedQuery) : Number.NaN;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
 
-  return prisma.questionnaireTemplate.findMany({
+  const templates = await prisma.questionnaireTemplate.findMany({
     where: hasQuery
       ? {
           ownerId: userId,
           OR: [
-            { templateName: { contains: normalizedQuery, mode: "insensitive" } },
-            { questions: { some: { label: { contains: normalizedQuery, mode: "insensitive" } } } },
-            ...(Number.isInteger(numericQuery) && numericQuery > 0 ? [{ id: numericQuery }] : []),
+            { templateName: { contains: normalizedQuery } },
+            { questions: { some: { label: { contains: normalizedQuery } } } },
+            ...(numericQuery !== null ? [{ id: numericQuery }] : []),
           ],
         }
       : { ownerId: userId },
     include: { questions: { orderBy: { order: "asc" } } },
+  });
+
+  return applyFuzzyFallback(templates, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: async (limit) =>
+      prisma.questionnaireTemplate.findMany({
+        where: { ownerId: userId },
+        include: { questions: { orderBy: { order: "asc" } } },
+        take: limit,
+      }),
+    matches: (template, query) => matchesTemplateSearchQuery(template, query),
   });
 }
 
@@ -206,9 +234,9 @@ export async function copyPublicQuestionnaireTemplateToUser(templateId: number, 
       questions: {
         create: source.questions.map((q, index) => ({
           label: q.label,
-          type: q.type,
+          type: q.type as Prisma.QuestionCreateWithoutTemplateInput["type"],
           order: index,
-          configs: q.configs ?? null,
+          configs: toQuestionConfigsValue(q.configs),
         })),
       },
     },

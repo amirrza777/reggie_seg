@@ -17,7 +17,16 @@ import { parseSearchQuery } from "../../shared/search.js";
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 
-type AccessPayload = { sub: number; email: string };
+type AccessPayload = { sub: number; email?: string };
+
+function parseAccessPayload(payload: string | jwt.JwtPayload): AccessPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const sub = payload.sub;
+  const email = payload.email;
+  if (typeof sub !== "number" || !Number.isFinite(sub)) return null;
+  if (email !== undefined && (typeof email !== "string" || email.length === 0)) return null;
+  return email !== undefined ? { sub, email } : { sub };
+}
 
 function resolveUserId(req: AuthRequest): number | null {
   if (req.user?.sub) return req.user.sub;
@@ -26,7 +35,8 @@ function resolveUserId(req: AuthRequest): number | null {
   const accessToken = auth.startsWith("Bearer ") ? auth.slice(7) : null;
   if (accessToken) {
     try {
-      const payload = jwt.verify(accessToken, accessSecret) as AccessPayload;
+      const verified = jwt.verify(accessToken, accessSecret);
+      const payload = parseAccessPayload(verified);
       if (payload?.sub) return payload.sub;
     } catch {
       //Access token invalid or expired

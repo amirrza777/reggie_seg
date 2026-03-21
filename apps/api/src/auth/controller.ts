@@ -38,14 +38,15 @@ export async function signupHandler(req: Request, res: Response) {
       ? normalizedRole
       : undefined;
   try {
-    const tokens = await signUp({
+    const signupPayload = {
       enterpriseCode,
       email,
       password,
       firstName,
       lastName,
-      role: requestedRole,
-    });
+      ...(requestedRole ? { role: requestedRole } : {}),
+    };
+    const tokens = await signUp(signupPayload);
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
@@ -62,9 +63,13 @@ export async function loginHandler(req: Request, res: Response) {
   const { email, password } = req.body ?? {};
   if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   try {
+    const meta = {
+      userAgent: req.get("user-agent") ?? null,
+      ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
+    };
     const tokens = await login(
       { email, password },
-      { ip: req.ip, userAgent: req.get("user-agent") ?? null }
+      meta
     );
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
@@ -101,7 +106,11 @@ export async function logoutHandler(req: Request, res: Response) {
   const token = req.cookies?.refresh_token || req.body?.refreshToken;
   if (token) {
     try {
-      await logout(token, { ip: req.ip, userAgent: req.get("user-agent") ?? null });
+      const meta = {
+        userAgent: req.get("user-agent") ?? null,
+        ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
+      };
+      await logout(token, meta);
     } catch {
       // Token may already be expired/revoked; clear cookie and continue logout.
     }

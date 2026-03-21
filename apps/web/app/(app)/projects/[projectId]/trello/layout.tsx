@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { TrelloBoardProvider } from "@/features/trello/context/TrelloBoardContext";
 import { getCurrentUser } from "@/shared/auth/session";

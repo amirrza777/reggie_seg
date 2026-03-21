@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { normalizeSearchQuery } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 import type { AdminUser, AdminUserRecord, UserRole, AdminSummary } from "../types";
 import { listUsers, searchUsers, updateUserRole, getAdminSummary } from "../api/client";
 import { AuditLogModal } from "./AuditLogModal";
@@ -215,8 +216,7 @@ export function AdminWorkspaceSummary() {
                     : `Showing ${staffDirectory.length} staff ${staffDirectory.length === 1 ? "account" : "accounts"}.`}
                 </span>
               </div>
-              <input
-                type="search"
+              <SearchField
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search by name, email, role, or ID"

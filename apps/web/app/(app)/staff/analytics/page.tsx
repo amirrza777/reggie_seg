@@ -4,6 +4,49 @@ import { Card } from "@/shared/ui/Card";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
 
+type MetricItem = {
+  label: string;
+  value: number | string;
+};
+
+function MetricsGrid({ items }: { items: MetricItem[] }) {
+  return (
+    <div className="ui-grid-metrics">
+      {items.map((item) => (
+        <div key={item.label} className="ui-metric-card">
+          <span className="eyebrow">{item.label}</span>
+          <strong className="ui-metric-value">{item.value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnalyticsHeader() {
+  return (
+    <header className="ui-page__header">
+      <h1 className="overview-title ui-page__title">Analytics</h1>
+      <p className="ui-page__description">Project-level delivery and engagement indicators across your staff workspace.</p>
+    </header>
+  );
+}
+
+function EmptyAnalyticsState() {
+  return (
+    <Card title="No analytics yet">
+      <p className="muted">No staff projects are available yet. Create or open projects to start tracking analytics indicators.</p>
+      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Link href="/staff/modules" className="pill-nav__link">
+          Open modules
+        </Link>
+        <Link href="/staff/projects" className="pill-nav__link">
+          Open projects
+        </Link>
+      </div>
+    </Card>
+  );
+}
+
 export default async function StaffAnalyticsPage() {
   const user = await getCurrentUser();
   if (!isElevatedStaff(user)) {
@@ -31,66 +74,34 @@ export default async function StaffAnalyticsPage() {
   ).length;
   const oldestProjectDays = projects.reduce((max, project) => Math.max(max, project.daysOld), 0);
 
+  const summaryItems: MetricItem[] = [
+    { label: "Modules", value: moduleCount },
+    { label: "Projects", value: projects.length },
+    { label: "Teams", value: teamCount },
+    { label: "Students", value: studentsTotal },
+    { label: "GitHub connected", value: `${githubConnectionRate}%` },
+  ];
+  const priorityItems: MetricItem[] = [
+    { label: "Projects without repo", value: projectsWithoutRepo },
+    { label: "Projects without teams", value: projectsWithoutTeams },
+    { label: "Low GitHub coverage projects", value: lowConnectionProjects },
+    { label: "Oldest project age (days)", value: oldestProjectDays },
+  ];
+
   return (
     <div className="stack ui-page">
-      <header className="ui-page__header">
-        <h1 className="overview-title ui-page__title">Analytics</h1>
-        <p className="ui-page__description">
-          Project-level delivery and engagement indicators across your staff workspace.
-        </p>
-      </header>
+      <AnalyticsHeader />
 
       {errorMessage ? <p className="muted">{errorMessage}</p> : null}
-
-      {!errorMessage && projects.length === 0 ? (
-        <Card title="No analytics yet">
-          <p className="muted">
-            No staff projects are available yet. Create or open projects to start tracking analytics indicators.
-          </p>
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/staff/modules" className="pill-nav__link">
-              Open modules
-            </Link>
-            <Link href="/staff/projects" className="pill-nav__link">
-              Open projects
-            </Link>
-          </div>
-        </Card>
-      ) : null}
-
+      {!errorMessage && projects.length === 0 ? <EmptyAnalyticsState /> : null}
       {!errorMessage && projects.length > 0 ? (
         <>
           <Card title="Workspace summary">
-            <div className="ui-grid-metrics">
-              {[
-                { label: "Modules", value: moduleCount },
-                { label: "Projects", value: projects.length },
-                { label: "Teams", value: teamCount },
-                { label: "Students", value: studentsTotal },
-                { label: "GitHub connected", value: `${githubConnectionRate}%` },
-              ].map((item) => (
-                <div key={item.label} className="ui-metric-card">
-                  <span className="eyebrow">{item.label}</span>
-                  <strong className="ui-metric-value">{item.value}</strong>
-                </div>
-              ))}
-            </div>
+            <MetricsGrid items={summaryItems} />
           </Card>
 
           <Card title="Priority checks">
-            <div className="ui-grid-metrics">
-              {[
-                { label: "Projects without repo", value: projectsWithoutRepo },
-                { label: "Projects without teams", value: projectsWithoutTeams },
-                { label: "Low GitHub coverage projects", value: lowConnectionProjects },
-                { label: "Oldest project age (days)", value: oldestProjectDays },
-              ].map((item) => (
-                <div key={item.label} className="ui-metric-card">
-                  <span className="eyebrow">{item.label}</span>
-                  <strong className="ui-metric-value">{item.value}</strong>
-                </div>
-              ))}
-            </div>
+            <MetricsGrid items={priorityItems} />
           </Card>
 
           <Card title="Explore detailed views">

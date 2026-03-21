@@ -33,7 +33,29 @@ const randomStaff = Array.from({ length: SEED_STAFF_COUNT }, (_, index) => {
   };
 });
 
-export const userData = [...randomStaff, ...randomStudents];
+const specialMarkerUsers = [
+  {
+    firstName: "Marker",
+    lastName: "Staff",
+    email: "marker.staff@example.com",
+    role: "STAFF" as const,
+  },
+  {
+    firstName: "Marker",
+    lastName: "Enterprise Admin",
+    email: "marker.enterprise.admin@example.com",
+    role: "ENTERPRISE_ADMIN" as const,
+  },
+  {
+    firstName: "Marker",
+    lastName: "Platform Admin",
+    email: "marker.admin@example.com",
+    role: "ADMIN" as const,
+  },
+];
+
+export const seedMarkerUserData = specialMarkerUsers;
+export const userData = [...specialMarkerUsers, ...randomStaff, ...randomStudents];
 
 const baseModuleNames = [
   "Software Engineering Group Project",

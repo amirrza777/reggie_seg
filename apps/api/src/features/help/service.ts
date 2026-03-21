@@ -58,27 +58,39 @@ function parseRecord(value: unknown): ParseResult<HelpSearchRecord> {
         .map((entry) => {
           if (!entry || typeof entry !== "object") return null;
           const candidate = entry as Record<string, unknown>;
-          const label = parseString(candidate.label) ?? undefined;
-          const href = parseString(candidate.href) ?? undefined;
+          const label = parseString(candidate.label)?.trim() || undefined;
+          const href = parseString(candidate.href)?.trim() || undefined;
           if (!label && !href) return null;
-          return { label, href };
+          const link: { label?: string; href?: string } = {};
+          if (label) link.label = label;
+          if (href) link.href = href;
+          return link;
         })
-        .filter((entry): entry is { label?: string; href?: string } => Boolean(entry))
+        .filter((entry): entry is { label?: string; href?: string } => entry !== null)
     : undefined;
+
+  const title = parseString(input.title) ?? undefined;
+  const description = parseString(input.description) ?? undefined;
+  const group = parseString(input.group) ?? undefined;
+  const kind = parseString(input.kind) ?? undefined;
+  const href = parseString(input.href) ?? undefined;
+  const question = parseString(input.question) ?? undefined;
+  const answer = parseString(input.answer) ?? undefined;
+  const groupId = parseString(input.groupId) ?? undefined;
 
   return {
     ok: true,
     value: {
       id,
-      title: parseString(input.title) ?? undefined,
-      description: parseString(input.description) ?? undefined,
-      group: parseString(input.group) ?? undefined,
-      kind: parseString(input.kind) ?? undefined,
-      href: parseString(input.href) ?? undefined,
-      question: parseString(input.question) ?? undefined,
-      answer: parseString(input.answer) ?? undefined,
-      groupId: parseString(input.groupId) ?? undefined,
-      links,
+      ...(title !== undefined ? { title } : {}),
+      ...(description !== undefined ? { description } : {}),
+      ...(group !== undefined ? { group } : {}),
+      ...(kind !== undefined ? { kind } : {}),
+      ...(href !== undefined ? { href } : {}),
+      ...(question !== undefined ? { question } : {}),
+      ...(answer !== undefined ? { answer } : {}),
+      ...(groupId !== undefined ? { groupId } : {}),
+      ...(links ? { links } : {}),
     },
   };
 }

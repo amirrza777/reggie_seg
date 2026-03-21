@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -18,7 +17,7 @@ type Props = {
   teamName?: string;
 };
 
-export function ConfigureTrelloContent({ projectId, teamId, teamName }: Props) {
+export function ConfigureTrelloContent({ projectId, teamId }: Props) {
   const router = useRouter();
   const trelloBoard = useTrelloBoard();
   const [loading, setLoading] = useState(true);

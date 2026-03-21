@@ -75,6 +75,7 @@ export type AuditLogEntry = {
   };
 };
 
+
 export type AdminSummary = {
   users: number;
   modules: number;

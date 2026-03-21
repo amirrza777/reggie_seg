@@ -13,6 +13,7 @@ import {
 import { getValidGithubAccessToken } from "./oauth.service.js";
 import { GithubServiceError } from "./errors.js";
 import { analyseProjectGithubRepository } from "./service.analysis.run.js";
+import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type GithubRepoResponse = {
   id: number;
@@ -36,6 +37,14 @@ type GithubRepositoryListItem = {
   defaultBranch: string | null;
   isAppInstalled: boolean;
 };
+
+function matchesGithubRepositoryQuery(repo: GithubRepoResponse, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: repo.id,
+    sources: [repo.name, repo.full_name, repo.owner?.login ?? "", `repo ${repo.id}`],
+  });
+}
 
 async function fetchUserRepositories(accessToken: string) {
   return fetchUserCollaborativeRepositories(accessToken);
@@ -204,21 +213,10 @@ export async function listGithubRepositoriesForUser(userId: number, options?: { 
     allRepositoriesById.set(repository.id, repository);
   }
 
-  const normalizedQuery = typeof options?.query === "string" ? options.query.trim().toLowerCase() : "";
-  const hasQuery = normalizedQuery.length > 0;
+  const searchQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = searchQuery.length > 0;
   const filteredRepositories = hasQuery
-    ? Array.from(allRepositoriesById.values()).filter((repo) => {
-        const ownerLogin = repo.owner?.login?.toLowerCase() ?? "";
-        const name = repo.name?.toLowerCase() ?? "";
-        const fullName = repo.full_name?.toLowerCase() ?? "";
-        const idText = String(repo.id);
-        return (
-          name.includes(normalizedQuery) ||
-          fullName.includes(normalizedQuery) ||
-          ownerLogin.includes(normalizedQuery) ||
-          idText.includes(normalizedQuery)
-        );
-      })
+    ? Array.from(allRepositoriesById.values()).filter((repo) => matchesGithubRepositoryQuery(repo, searchQuery))
     : Array.from(allRepositoriesById.values());
 
   return filteredRepositories

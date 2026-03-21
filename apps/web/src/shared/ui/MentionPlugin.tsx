@@ -27,7 +27,7 @@ class MentionOption extends MenuOption {
 }
 
 type MentionPluginProps = {
-  members: Member[];
+  members?: Member[];
 };
 
 export function MentionPlugin({ members }: MentionPluginProps) {
@@ -40,7 +40,8 @@ export function MentionPlugin({ members }: MentionPluginProps) {
 
   const options = useMemo(() => {
     const query = queryString?.toLowerCase() ?? "";
-    return members
+    const availableMembers = Array.isArray(members) ? members : [];
+    return availableMembers
       .map((m) => new MentionOption(`${m.firstName} ${m.lastName}`))
       .filter((option) => option.name.toLowerCase().includes(query));
   }, [members, queryString]);

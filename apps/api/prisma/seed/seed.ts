@@ -8,17 +8,16 @@ import {
   seedTeamAllocations,
 } from "./allocation";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
+import { SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
 
-const seedPassword = process.env.SEED_USER_PASSWORD || "password123";
-
 async function main() {
   assertPrismaClientModels();
 
-  const seedPasswordHash = await argon2.hash(seedPassword);
+  const seedPasswordHash = await argon2.hash(SEED_USER_PASSWORD);
   const enterprises = await getSeedEnterprises();
 
   for (const enterprise of enterprises) {
@@ -32,8 +31,10 @@ async function main() {
 async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
   await seedAdminUser(enterprise.id);
   const users = await seedUsers(enterprise.id, passwordHash);
+  const usersByRole = buildUsersByRole(users);
   const modules = await seedModules(enterprise.id);
-  const templates = await seedQuestionnaireTemplates();
+  const templateOwner = usersByRole.adminOrStaff[0];
+  const templates = await seedQuestionnaireTemplates(templateOwner?.id);
   const projects = await seedProjects(modules, templates);
   const teams = await seedTeams(enterprise.id, projects);
 
@@ -41,13 +42,15 @@ async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string
     enterprise,
     passwordHash,
     users,
-    usersByRole: buildUsersByRole(users),
+    usersByRole,
     modules,
     templates,
     projects,
     teams,
   };
 }
+
+const seedPassword = SEED_USER_PASSWORD;
 
 async function runSeedSteps(context: SeedContext) {
   await seedModuleLeads(context.usersByRole.adminOrStaff, context.modules);
@@ -67,5 +70,5 @@ main()
   .catch(async (err) => {
     console.error(err);
     await prisma.$disconnect();
-    throw err;
+    process.exitCode = 1;
   });

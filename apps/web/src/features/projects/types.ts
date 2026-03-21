@@ -53,6 +53,7 @@ export type Team = {
   id: number;
   teamName: string;
   projectId: number;
+  allocationLifecycle?: "DRAFT" | "ACTIVE";
   createdAt: string;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -183,6 +184,7 @@ export type ProjectMarkingSummary = {
   teamMarking: StaffMarkingSummary | null;
   studentMarking: StaffMarkingSummary | null;
 };
+
 
 export type ProjectOverviewDashboardProps = {
   project: Project;

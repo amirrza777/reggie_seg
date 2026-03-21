@@ -8,6 +8,8 @@ import { listModules } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
+import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 
 type StaffProjectCreatePanelProps = {
   currentUserId: number;
@@ -168,7 +170,7 @@ export function StaffProjectCreatePanel({
           if (!isMounted) return;
           setIsLoadingModules(false);
         });
-    }, 250);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       isMounted = false;
@@ -204,7 +206,7 @@ export function StaffProjectCreatePanel({
           if (!isMounted) return;
           setIsLoadingTemplates(false);
         });
-    }, 250);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       isMounted = false;
@@ -450,9 +452,8 @@ export function StaffProjectCreatePanel({
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Module</span>
-              <input
+              <SearchField
                 className="staff-projects__input"
-                type="search"
                 value={moduleSearchQuery}
                 onChange={(event) => setModuleSearchQuery(event.target.value)}
                 placeholder="Search modules by name or ID"
@@ -479,9 +480,8 @@ export function StaffProjectCreatePanel({
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Questionnaire template</span>
-              <input
+              <SearchField
                 className="staff-projects__input"
-                type="search"
                 value={templateSearchQuery}
                 onChange={(event) => setTemplateSearchQuery(event.target.value)}
                 placeholder="Search templates by name or ID"
