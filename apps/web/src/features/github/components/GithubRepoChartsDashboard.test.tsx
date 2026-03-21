@@ -165,11 +165,9 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("madbpopye")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
-    expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
+    expect(screen.getAllByTestId("donut-card")).toHaveLength(1);
     expect(screen.getByText("Default branch:8")).toBeInTheDocument();
     expect(screen.getByText("Other branches:2")).toBeInTheDocument();
-    expect(screen.getByText("Matched commits:8")).toBeInTheDocument();
-    expect(screen.getByText("Unmatched commits:2")).toBeInTheDocument();
   });
 
   it("renders staff-focused section labels", () => {

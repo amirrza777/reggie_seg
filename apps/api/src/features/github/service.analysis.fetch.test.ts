@@ -112,4 +112,21 @@ describe("github service.analysis.fetch", () => {
       deletions: 4,
     });
   });
+
+  it("fetches all provided commit stats when no explicit limit is passed", async () => {
+    cacheMocks.getCachedCommitStats.mockReturnValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(response(200, { sha: "one", stats: { additions: 1, deletions: 0 } }))
+        .mockResolvedValueOnce(response(200, { sha: "two", stats: { additions: 2, deletions: 1 } }))
+    );
+
+    const result = await fetchCommitStatsForRepository("token", "org/repo", ["one", "two"]);
+
+    expect(result.get("one")).toEqual({ additions: 1, deletions: 0 });
+    expect(result.get("two")).toEqual({ additions: 2, deletions: 1 });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
 });
