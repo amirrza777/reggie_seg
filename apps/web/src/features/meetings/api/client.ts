@@ -25,6 +25,20 @@ export async function createMeeting(data: {
   });
 }
 
+export async function updateMeeting(meetingId: number, userId: number, data: {
+  title?: string;
+  date?: string;
+  subject?: string;
+  location?: string;
+  videoCallLink?: string;
+  agenda?: string;
+}) {
+  return apiFetch(`/meetings/${meetingId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ userId, ...data }),
+  });
+}
+
 export async function deleteMeeting(meetingId: number) {
   await apiFetch(`/meetings/${meetingId}`, { method: "DELETE" });
 }

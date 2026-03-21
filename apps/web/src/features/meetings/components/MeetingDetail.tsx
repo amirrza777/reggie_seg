@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Pencil, UserCheck, BookOpen } from "lucide-react";
+import { ChevronLeft, Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
@@ -30,7 +30,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
 
   const cardAction = (
     <div className="meeting-list__actions">
-      {upcoming && <AddToCalendarDropdown meeting={meeting} />}
+      {upcoming && <AddToCalendarDropdown meeting={meeting} compact />}
       {isOrganiser && upcoming && (
         <AnchorLink
           href={`/projects/${projectId}/meetings/${meeting.id}/edit`}
@@ -58,7 +58,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
           aria-label="Meeting minutes"
           title="Meeting minutes"
         >
-          <BookOpen size={16} />
+          <NotebookPen size={16} />
         </AnchorLink>
       )}
     </div>

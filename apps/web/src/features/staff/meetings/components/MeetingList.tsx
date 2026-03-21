@@ -64,7 +64,7 @@ export function MeetingList({ meetings }: MeetingListProps) {
       formatDate(meeting.date),
       `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
       total > 0 ? `${present} / ${total}` : <span className="muted">Not recorded</span>,
-      meeting.minutes ? "Yes" : <span className="muted">No</span>,
+      meeting.minutes ? `${meeting.minutes.writer.firstName} ${meeting.minutes.writer.lastName}` : <span className="muted">No</span>,
     ];
   });
 

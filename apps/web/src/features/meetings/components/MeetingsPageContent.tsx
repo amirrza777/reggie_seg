@@ -28,7 +28,6 @@ export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentPr
   const now = new Date();
   const upcoming = meetings.filter((m) => new Date(m.date) >= now);
   const previous = meetings.filter((m) => new Date(m.date) < now);
-  const displayed = tab === "upcoming" ? upcoming : previous;
 
   return (
     <div className="stack">
@@ -67,9 +66,10 @@ export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentPr
         />
       ) : (
         <MeetingList
-          meetings={displayed}
+          meetings={tab === "upcoming" ? upcoming : previous}
           projectId={projectId}
           title={tab === "upcoming" ? "Upcoming meetings" : "Previous meetings"}
+          showMinutesWriter={tab === "previous"}
           emptyMessage={
             tab === "upcoming"
               ? "There are no scheduled meetings to list at this time."
