@@ -34,6 +34,52 @@ type IdentityCandidate = {
   userId: number;
 };
 
+function parseIsoDate(value: string | null | undefined) {
+  if (!value) {
+    return null;
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+  return parsed;
+}
+
+function hasCompleteCommitStatsCoverage(
+  coverage:
+    | {
+        detailedCommitCount?: number;
+        requestedCommitCount?: number;
+      }
+    | null
+    | undefined
+) {
+  const requested = Number(coverage?.requestedCommitCount ?? 0);
+  if (requested <= 0) {
+    return true;
+  }
+  const detailed = Number(coverage?.detailedCommitCount ?? 0);
+  return detailed >= requested;
+}
+
+function hasIncompleteSnapshotCommitStatsCoverage(data: PreviousSnapshotData | null | undefined) {
+  if (!data) {
+    return false;
+  }
+  return (
+    !hasCompleteCommitStatsCoverage(data.commitStatsCoverage) ||
+    !hasCompleteCommitStatsCoverage(data.branchScopeStats?.allBranches?.commitStatsCoverage)
+  );
+}
+
+function isLikelyMergeCommit(commit: GithubCommitListItem) {
+  const message = (commit.commit?.message || "").trim().toLowerCase();
+  if (message.startsWith("merge pull request")) {
+    return true;
+  }
+  return (commit.parents?.length ?? 0) > 1;
+}
+
 function addUniqueUserId(userIds: number[], value: number | null | undefined) {
   if (typeof value !== "number" || Number.isNaN(value) || userIds.includes(value)) {
     return;
@@ -102,16 +148,24 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const defaultBranch = link.repository.defaultBranch || "main";
   const latestSnapshot = await findLatestGithubSnapshotByProjectLinkId(link.id);
   const useLatestSnapshotAsBaseline = hasUsableRepoCommitsByDay(latestSnapshot);
-  const baselineSnapshot = useLatestSnapshotAsBaseline ? latestSnapshot : null;
+  const latestSnapshotData = (latestSnapshot?.data ?? null) as PreviousSnapshotData | null;
+  const shouldBackfillFromWindowStart =
+    useLatestSnapshotAsBaseline && hasIncompleteSnapshotCommitStatsCoverage(latestSnapshotData);
+  const backfillWindowStart = shouldBackfillFromWindowStart
+    ? parseIsoDate(latestSnapshotData?.analysedWindow?.since)
+    : null;
+  const shouldRebuildFromBackfillWindow = Boolean(backfillWindowStart);
+  const baselineSnapshot =
+    useLatestSnapshotAsBaseline && !shouldRebuildFromBackfillWindow ? latestSnapshot : null;
   const previousAnalysedAt = baselineSnapshot?.analysedAt ?? null;
   const now = new Date();
   const fallbackSinceDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-  const sinceDate = previousAnalysedAt ?? fallbackSinceDate;
+  const sinceDate = backfillWindowStart ?? previousAnalysedAt ?? fallbackSinceDate;
   const sinceIso = sinceDate.toISOString();
   const commits = filterCommitsAfter(
     await fetchCommitsForLinkedRepository(accessToken, link.repository.fullName, defaultBranch, sinceIso),
     previousAnalysedAt
-  );
+  ).filter((commit) => !isLikelyMergeCommit(commit));
   const branchNames = await listRepositoryBranches(accessToken, link.repository.fullName);
   const allBranchNames = branchNames.length > 0 ? branchNames : [defaultBranch];
   const allBranchCommitBySha = new Map<string, GithubCommitListItem>();
@@ -125,7 +179,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         sinceIso
       ),
       previousAnalysedAt
-    );
+    ).filter((commit) => !isLikelyMergeCommit(commit));
     allBranchCommitCountByBranch[branchName] = branchCommits.length;
     for (const branchCommit of branchCommits) {
       if (!allBranchCommitBySha.has(branchCommit.sha)) {
@@ -200,17 +254,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   }
 
   const newTotalCommits = userStats.reduce((sum, stat) => sum + stat.commits, 0);
-  const newTotalAdditions = userStats.reduce((sum, stat) => sum + stat.additions, 0);
-  const newTotalDeletions = userStats.reduce((sum, stat) => sum + stat.deletions, 0);
   const newAllBranchesTotalCommits = allBranchCommits.length;
-  const newAllBranchesTotalAdditions = Array.from(allBranchCommitStatsBySha.values()).reduce(
-    (sum, stat) => sum + stat.additions,
-    0
-  );
-  const newAllBranchesTotalDeletions = Array.from(allBranchCommitStatsBySha.values()).reduce(
-    (sum, stat) => sum + stat.deletions,
-    0
-  );
   const previousData = (baselineSnapshot?.data ?? {}) as PreviousSnapshotData;
 
   const mergedUserStats = baselineSnapshot
@@ -235,25 +279,37 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     ((previousRepoStats?.commitsByBranch as CountMap | undefined) ?? {}),
     aggregated.repoCommitsByBranch
   );
-  const mergedDefaultBranchCommits = (previousRepoStats?.defaultBranchCommits || 0) + newTotalCommits;
+  const mergedDefaultBranchCommits = mergedTotalCommits;
 
-  const previousDefaultBranchStats = previousData?.branchScopeStats?.defaultBranch;
   const previousAllBranchesStats = previousData?.branchScopeStats?.allBranches;
   const previousDefaultLineChanges = previousData.timeSeries?.defaultBranch?.lineChangesByDay ?? {};
   const previousAllBranchesLineChanges = previousData.timeSeries?.allBranches?.lineChangesByDay ?? {};
   const mergedDefaultLineChangesByDay = mergeLineChangeMaps(previousDefaultLineChanges, defaultBranchLineChangesByDay);
   const mergedAllBranchesLineChangesByDay = mergeLineChangeMaps(previousAllBranchesLineChanges, allBranchesLineChangesByDay);
+  const mergedDefaultLineTotals = Object.values(mergedDefaultLineChangesByDay).reduce(
+    (totals, row) => ({
+      additions: totals.additions + Number(row?.additions ?? 0),
+      deletions: totals.deletions + Number(row?.deletions ?? 0),
+    }),
+    { additions: 0, deletions: 0 }
+  );
+  const mergedAllBranchesLineTotals = Object.values(mergedAllBranchesLineChangesByDay).reduce(
+    (totals, row) => ({
+      additions: totals.additions + Number(row?.additions ?? 0),
+      deletions: totals.deletions + Number(row?.deletions ?? 0),
+    }),
+    { additions: 0, deletions: 0 }
+  );
 
-  const previousCommitCount = previousData.commitCount ?? previousRepoStats?.defaultBranchCommits ?? 0;
   const previousCommitStatsCoverage = previousData.commitStatsCoverage;
   const previousAllBranchesCommitStatsCoverage = previousAllBranchesStats?.commitStatsCoverage;
   const previousAllBranchesCommitsByBranch = previousAllBranchesStats?.commitsByBranch ?? {};
   const mergedAllBranchesCommitsByBranch = mergeCountMaps(previousAllBranchesCommitsByBranch, allBranchCommitCountByBranch);
 
   const previousAllBranchesTotalCommits = previousAllBranchesStats?.totalCommits ?? previousRepoStats?.totalCommits ?? 0;
-  const previousAllBranchesTotalAdditions = previousAllBranchesStats?.totalAdditions ?? previousRepoStats?.totalAdditions ?? 0;
-  const previousAllBranchesTotalDeletions = previousAllBranchesStats?.totalDeletions ?? previousRepoStats?.totalDeletions ?? 0;
   const mergedSampleCommits = mergeSampleCommits(previousData.sampleCommits, commits);
+  const analysedWindowSinceIso =
+    backfillWindowStart?.toISOString() ?? previousData?.analysedWindow?.since ?? fallbackSinceDate.toISOString();
 
   const finalSnapshotData = {
     repository: {
@@ -264,7 +320,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       defaultBranch,
     },
     analysedWindow: {
-      since: previousData?.analysedWindow?.since || fallbackSinceDate.toISOString(),
+      since: analysedWindowSinceIso,
       until: now.toISOString(),
     },
     timeSeries: {
@@ -275,7 +331,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         lineChangesByDay: mergedAllBranchesLineChangesByDay,
       },
     },
-    commitCount: previousCommitCount + commits.length,
+    commitCount: mergedTotalCommits,
     commitStatsCoverage: {
       detailedCommitCount: (previousCommitStatsCoverage?.detailedCommitCount ?? 0) + commitStatsBySha.size,
       requestedCommitCount: (previousCommitStatsCoverage?.requestedCommitCount ?? 0) + commits.length,
@@ -283,15 +339,15 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     branchScopeStats: {
       defaultBranch: {
         branch: defaultBranch,
-        totalCommits: (previousDefaultBranchStats?.totalCommits ?? 0) + newTotalCommits,
-        totalAdditions: (previousDefaultBranchStats?.totalAdditions ?? 0) + newTotalAdditions,
-        totalDeletions: (previousDefaultBranchStats?.totalDeletions ?? 0) + newTotalDeletions,
+        totalCommits: mergedTotalCommits,
+        totalAdditions: mergedDefaultLineTotals.additions,
+        totalDeletions: mergedDefaultLineTotals.deletions,
       },
       allBranches: {
         branchCount: allBranchNames.length,
         totalCommits: previousAllBranchesTotalCommits + newAllBranchesTotalCommits,
-        totalAdditions: previousAllBranchesTotalAdditions + newAllBranchesTotalAdditions,
-        totalDeletions: previousAllBranchesTotalDeletions + newAllBranchesTotalDeletions,
+        totalAdditions: mergedAllBranchesLineTotals.additions,
+        totalDeletions: mergedAllBranchesLineTotals.deletions,
         commitsByBranch: mergedAllBranchesCommitsByBranch,
         commitStatsCoverage: {
           detailedCommitCount: (previousAllBranchesCommitStatsCoverage?.detailedCommitCount ?? 0) + allBranchCommitStatsBySha.size,
