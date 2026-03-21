@@ -7,8 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Legend,
-  Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -200,9 +198,11 @@ function RepositoryAnalyticsCharts({
         >
           <div className="github-chart-section__canvas github-chart-section__canvas--xl">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart
+              <BarChart
                 data={commitTimelineSeries}
                 margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+                barCategoryGap="26%"
+                barGap={2}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis
@@ -225,32 +225,29 @@ function RepositoryAnalyticsCharts({
                 />
                 <Tooltip
                   labelFormatter={(label) => formatShortDate(String(label))}
+                  formatter={(value, name) => [formatNumber(Number(value ?? 0)), name]}
                   contentStyle={tooltipStyle}
                 />
                 <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
-                <Line
-                  type="monotone"
+                <Bar
                   dataKey="commits"
                   name="Team commits"
-                  stroke={CHART_COLOR_COMMITS}
-                  strokeWidth={2.4}
-                  dot={false}
-                  activeDot={{ r: 4 }}
-                  animationDuration={420}
+                  fill={CHART_COLOR_COMMITS}
+                  radius={[4, 4, 0, 0]}
+                  maxBarSize={12}
+                  animationDuration={300}
                 />
                 {showPersonalCommitSeries ? (
-                  <Line
-                    type="monotone"
+                  <Bar
                     dataKey="personalCommits"
                     name="Your commits"
-                    stroke={CHART_COLOR_ADDITIONS}
-                    strokeWidth={2.2}
-                    dot={false}
-                    activeDot={{ r: 3.5 }}
-                    animationDuration={420}
+                    fill={CHART_COLOR_ADDITIONS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={10}
+                    animationDuration={300}
                   />
                 ) : null}
-              </LineChart>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </GithubChartCard>
@@ -599,9 +596,10 @@ function PersonalActivity({
           >
             <div className="github-chart-section__canvas github-chart-section__canvas--xl">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
+                <BarChart
                   data={personalTimeline}
                   margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+                  barCategoryGap="30%"
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis
@@ -622,18 +620,20 @@ function PersonalActivity({
                     tickLine={false}
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
-                  <Tooltip labelFormatter={(label) => formatShortDate(String(label))} contentStyle={tooltipStyle} />
-                  <Line
-                    type="monotone"
+                  <Tooltip
+                    labelFormatter={(label) => formatShortDate(String(label))}
+                    formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
+                    contentStyle={tooltipStyle}
+                  />
+                  <Bar
                     dataKey="commits"
                     name="Commits"
-                    stroke={CHART_COLOR_COMMITS}
-                    strokeWidth={2.4}
-                    dot={false}
-                    activeDot={{ r: 4 }}
-                    animationDuration={420}
+                    fill={CHART_COLOR_COMMITS}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={14}
+                    animationDuration={300}
                   />
-                </LineChart>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </GithubChartCard>
