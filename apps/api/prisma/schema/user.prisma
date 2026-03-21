@@ -51,6 +51,7 @@ model User {
   teamInvitesReceived             TeamInvite[]                 @relation("TeamInvitesReceived")
   teamHealthMessagesCreated       TeamHealthMessage[]          @relation("TeamHealthMessageRequester")
   teamHealthMessagesReviewed      TeamHealthMessage[]          @relation("TeamHealthMessageReviewer")
+  createdTeamWarnings             TeamWarning[]                @relation("TeamWarningCreatedBy")
   studentDeadlineOverrides        StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideStudent")
   createdStudentDeadlineOverrides StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideCreatedBy")
   auditLogs                       AuditLog[]

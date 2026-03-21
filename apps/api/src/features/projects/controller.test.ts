@@ -17,6 +17,9 @@ import {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
+  createStaffTeamWarningHandler,
+  getStaffTeamWarningsHandler,
+  getMyTeamWarningsHandler,
   updateProjectWarningsEnabledHandler,
 } from "./controller.js";
 
@@ -36,6 +39,9 @@ vi.mock("./service.js", () => ({
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
+  createTeamWarningForStaff: vi.fn(),
+  fetchTeamWarningsForStaff: vi.fn(),
+  fetchMyTeamWarnings: vi.fn(),
   updateProjectWarningsEnabledForStaff: vi.fn(),
 }));
 
@@ -470,5 +476,122 @@ describe("projects controller", () => {
       notFoundRes,
     );
     expect(notFoundRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("createStaffTeamWarningHandler validates payload and delegates create", async () => {
+    const unauthorizedRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        query: {},
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW", severity: "HIGH", title: "T", details: "D" },
+      } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badBodyRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      { user: { sub: 7 }, query: {}, params: { projectId: "3", teamId: "2" }, body: { type: "", severity: "BAD" } } as any,
+      badBodyRes,
+    );
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.createTeamWarningForStaff as any).mockResolvedValueOnce({ id: 101, active: true });
+    const okRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      okRes,
+    );
+    expect(service.createTeamWarningForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      2,
+      expect.objectContaining({ type: "LOW_ATTENDANCE", severity: "HIGH" }),
+    );
+    expect(okRes.status).toHaveBeenCalledWith(201);
+
+    (service.createTeamWarningForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.createTeamWarningForStaff as any).mockRejectedValueOnce({ code: "WARNINGS_DISABLED" });
+    const disabledRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      disabledRes,
+    );
+    expect(disabledRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("getStaffTeamWarningsHandler validates ids and returns warnings", async () => {
+    const badRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: {}, params: { projectId: "x", teamId: "2" } } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchTeamWarningsForStaff as any).mockResolvedValueOnce([{ id: 7 }]);
+    const okRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: { userId: "7" }, params: { projectId: "3", teamId: "2" } } as any,
+      okRes,
+    );
+    expect(service.fetchTeamWarningsForStaff).toHaveBeenCalledWith(7, 3, 2);
+    expect(okRes.json).toHaveBeenCalledWith({ warnings: [{ id: 7 }] });
+
+    (service.fetchTeamWarningsForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: { userId: "7" }, params: { projectId: "3", teamId: "2" } } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getMyTeamWarningsHandler validates project id and returns warnings", async () => {
+    const badRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, query: { userId: "7" } } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchMyTeamWarnings as any).mockResolvedValueOnce([{ id: 5, active: true }]);
+    const okRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, query: { userId: "7" } } as any,
+      okRes,
+    );
+    expect(service.fetchMyTeamWarnings).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({ warnings: [{ id: 5, active: true }] });
+
+    (service.fetchMyTeamWarnings as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, query: { userId: "7" } } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 });

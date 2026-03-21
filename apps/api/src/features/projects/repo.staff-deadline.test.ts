@@ -15,6 +15,9 @@ import {
   createTeamHealthMessage,
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
+  createTeamWarning,
+  getTeamWarningsForTeamInProject,
+  getProjectWarningsEnabledForTeam,
   canStaffAccessTeamInProject,
   updateStaffProjectWarningsEnabled,
 } from "./repo.js";
@@ -57,6 +60,10 @@ vi.mock("../../shared/db.js", () => ({
       findFirst: vi.fn(),
       update: vi.fn(),
       delete: vi.fn(),
+    },
+    teamWarning: {
+      create: vi.fn(),
+      findMany: vi.fn(),
     },
     teamDeadlineOverride: {
       deleteMany: vi.fn(),
@@ -366,6 +373,62 @@ describe("projects repo staff and deadline queries", () => {
         orderBy: { createdAt: "desc" },
       })
     );
+  });
+
+  it("creates and lists team warnings with expected filters and selected fields", async () => {
+    await createTeamWarning(3, 4, {
+      type: "LOW_ATTENDANCE",
+      severity: "HIGH",
+      title: "Attendance below threshold",
+      details: "Attendance below 70% in last 30 days.",
+      source: "MANUAL",
+      createdByUserId: 7,
+    });
+
+    expect(prisma.teamWarning.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          projectId: 3,
+          teamId: 4,
+          type: "LOW_ATTENDANCE",
+          severity: "HIGH",
+          title: "Attendance below threshold",
+          source: "MANUAL",
+          createdByUserId: 7,
+        }),
+        select: expect.objectContaining({
+          id: true,
+          type: true,
+          severity: true,
+          createdBy: expect.any(Object),
+        }),
+      }),
+    );
+
+    await getTeamWarningsForTeamInProject(3, 4);
+    expect(prisma.teamWarning.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { projectId: 3, teamId: 4 },
+        orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+      }),
+    );
+
+    await getTeamWarningsForTeamInProject(3, 4, { activeOnly: true });
+    expect(prisma.teamWarning.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { projectId: 3, teamId: 4, active: true },
+      }),
+    );
+  });
+
+  it("getProjectWarningsEnabledForTeam reads warningsEnabled from project scope", async () => {
+    (prisma.team.findFirst as any).mockResolvedValueOnce({
+      project: { warningsEnabled: true },
+    });
+    await expect(getProjectWarningsEnabledForTeam(3, 4)).resolves.toBe(true);
+
+    (prisma.team.findFirst as any).mockResolvedValueOnce(null);
+    await expect(getProjectWarningsEnabledForTeam(3, 4)).resolves.toBeNull();
   });
 
   it("reviewTeamHealthMessage marks request as unresolved without deleting override", async () => {

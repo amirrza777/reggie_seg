@@ -14,6 +14,7 @@ model Project {
   teams                 Team[]
   peerAssessments       PeerAssessment[]
   teamHealthMessages    TeamHealthMessage[]
+  teamWarnings          TeamWarning[]
   deadline              ProjectDeadline?
   githubRepositories    ProjectGithubRepository[]
 

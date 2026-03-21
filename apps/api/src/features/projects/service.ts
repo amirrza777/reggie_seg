@@ -15,12 +15,16 @@ import {
   createTeamHealthMessage,
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
+  getProjectWarningsEnabledForTeam,
+  createTeamWarning,
+  getTeamWarningsForTeamInProject,
   canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   updateStaffProjectWarningsEnabled as updateStaffProjectWarningsEnabledInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
   type ProjectDeadlineInput,
+  type TeamWarningCreateInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
 
@@ -171,6 +175,45 @@ export async function fetchTeamHealthMessagesForStaff(userId: number, projectId:
   if (!canAccess) return null;
 
   return getTeamHealthMessagesForTeamInProject(projectId, teamId);
+}
+
+export async function createTeamWarningForStaff(
+  userId: number,
+  projectId: number,
+  teamId: number,
+  payload: Omit<TeamWarningCreateInput, "createdByUserId" | "source">,
+) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  const warningsEnabled = await getProjectWarningsEnabledForTeam(projectId, teamId);
+  if (warningsEnabled === null) return null;
+  if (!warningsEnabled) {
+    throw { code: "WARNINGS_DISABLED", message: "Warnings are disabled for this project" };
+  }
+
+  return createTeamWarning(projectId, teamId, {
+    ...payload,
+    source: "MANUAL",
+    createdByUserId: userId,
+  });
+}
+
+export async function fetchTeamWarningsForStaff(userId: number, projectId: number, teamId: number) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  return getTeamWarningsForTeamInProject(projectId, teamId);
+}
+
+export async function fetchMyTeamWarnings(userId: number, projectId: number) {
+  const team = await getTeamByUserAndProject(userId, projectId);
+  if (!team) return null;
+
+  const warningsEnabled = await getProjectWarningsEnabledForTeam(projectId, team.id);
+  if (!warningsEnabled) return [];
+
+  return getTeamWarningsForTeamInProject(projectId, team.id, { activeOnly: true });
 }
 
 export async function updateTeamDeadlineProfileForStaff(

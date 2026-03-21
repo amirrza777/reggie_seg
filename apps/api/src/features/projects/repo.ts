@@ -916,6 +916,39 @@ const teamHealthMessageSelect = {
   },
 } as const;
 
+const teamWarningSelect = {
+  id: true,
+  projectId: true,
+  teamId: true,
+  type: true,
+  severity: true,
+  title: true,
+  details: true,
+  source: true,
+  active: true,
+  createdByUserId: true,
+  createdAt: true,
+  updatedAt: true,
+  resolvedAt: true,
+  createdBy: {
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  },
+} as const;
+
+export type TeamWarningCreateInput = {
+  type: string;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  title: string;
+  details: string;
+  source?: "AUTO" | "MANUAL";
+  createdByUserId?: number | null;
+};
+
 export async function createTeamHealthMessage(
   projectId: number,
   teamId: number,
@@ -954,6 +987,53 @@ export async function getTeamHealthMessagesForTeamInProject(projectId: number, t
     },
     orderBy: { createdAt: "desc" },
     select: teamHealthMessageSelect,
+  });
+}
+
+export async function getProjectWarningsEnabledForTeam(projectId: number, teamId: number) {
+  const team = await prisma.team.findFirst({
+    where: { id: teamId, projectId },
+    select: {
+      project: {
+        select: {
+          warningsEnabled: true,
+        },
+      },
+    },
+  });
+  if (!team) return null;
+  return team.project.warningsEnabled;
+}
+
+export async function createTeamWarning(projectId: number, teamId: number, input: TeamWarningCreateInput) {
+  return prisma.teamWarning.create({
+    data: {
+      projectId,
+      teamId,
+      type: input.type,
+      severity: input.severity,
+      title: input.title,
+      details: input.details,
+      source: input.source ?? "MANUAL",
+      createdByUserId: input.createdByUserId ?? null,
+    },
+    select: teamWarningSelect,
+  });
+}
+
+export async function getTeamWarningsForTeamInProject(
+  projectId: number,
+  teamId: number,
+  options?: { activeOnly?: boolean },
+) {
+  return prisma.teamWarning.findMany({
+    where: {
+      projectId,
+      teamId,
+      ...(options?.activeOnly ? { active: true } : {}),
+    },
+    orderBy: [{ active: "desc" }, { createdAt: "desc" }],
+    select: teamWarningSelect,
   });
 }
 

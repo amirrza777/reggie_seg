@@ -17,6 +17,9 @@ import {
   submitTeamHealthMessage,
   fetchMyTeamHealthMessages,
   fetchTeamHealthMessagesForStaff,
+  createTeamWarningForStaff,
+  fetchTeamWarningsForStaff,
+  fetchMyTeamWarnings,
   updateTeamDeadlineProfileForStaff,
   updateProjectWarningsEnabledForStaff,
   fetchStaffStudentDeadlineOverrides,
@@ -578,6 +581,105 @@ export async function getStaffTeamHealthMessagesHandler(req: Request, res: Respo
   } catch (error) {
     console.error("Error fetching staff team team health messages:", error);
     return res.status(500).json({ error: "Failed to fetch team team health messages" });
+  }
+}
+
+export async function createStaffTeamWarningHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+  const typeRaw = req.body?.type;
+  const severityRaw = req.body?.severity;
+  const titleRaw = req.body?.title;
+  const detailsRaw = req.body?.details;
+
+  if (userId === null) {
+    return;
+  }
+  if (Number.isNaN(projectId) || Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid project ID or team ID" });
+  }
+  if (typeof typeRaw !== "string" || !typeRaw.trim()) {
+    return res.status(400).json({ error: "type is required" });
+  }
+  if (typeof severityRaw !== "string" || !["LOW", "MEDIUM", "HIGH"].includes(severityRaw)) {
+    return res.status(400).json({ error: "severity must be LOW, MEDIUM, or HIGH" });
+  }
+  if (typeof titleRaw !== "string" || !titleRaw.trim()) {
+    return res.status(400).json({ error: "title is required" });
+  }
+  if (typeof detailsRaw !== "string" || !detailsRaw.trim()) {
+    return res.status(400).json({ error: "details are required" });
+  }
+
+  const type = typeRaw.trim().slice(0, 64);
+  const title = titleRaw.trim().slice(0, 160);
+  const details = detailsRaw.trim();
+
+  try {
+    const warning = await createTeamWarningForStaff(userId, projectId, teamId, {
+      type,
+      severity: severityRaw as "LOW" | "MEDIUM" | "HIGH",
+      title,
+      details,
+    });
+    if (!warning) {
+      return res.status(404).json({ error: "Project or team not found for staff scope" });
+    }
+    return res.status(201).json({ warning });
+  } catch (error: any) {
+    if (error?.code === "WARNINGS_DISABLED") {
+      return res.status(409).json({ error: error.message || "Warnings are disabled for this project" });
+    }
+    console.error("Error creating team warning:", error);
+    return res.status(500).json({ error: "Failed to create team warning" });
+  }
+}
+
+export async function getStaffTeamWarningsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+
+  if (userId === null) {
+    return;
+  }
+  if (Number.isNaN(projectId) || Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid project ID or team ID" });
+  }
+
+  try {
+    const warnings = await fetchTeamWarningsForStaff(userId, projectId, teamId);
+    if (!warnings) {
+      return res.status(404).json({ error: "Project or team not found for staff scope" });
+    }
+    return res.json({ warnings });
+  } catch (error) {
+    console.error("Error fetching staff team warnings:", error);
+    return res.status(500).json({ error: "Failed to fetch team warnings" });
+  }
+}
+
+export async function getMyTeamWarningsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+
+  if (userId === null) {
+    return;
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const warnings = await fetchMyTeamWarnings(userId, projectId);
+    if (!warnings) {
+      return res.status(404).json({ error: "Team not found for user in this project" });
+    }
+    return res.json({ warnings });
+  } catch (error) {
+    console.error("Error fetching my team warnings:", error);
+    return res.status(500).json({ error: "Failed to fetch team warnings" });
   }
 }
 

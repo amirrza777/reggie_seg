@@ -16,6 +16,9 @@ import {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
+  createStaffTeamWarningHandler,
+  getStaffTeamWarningsHandler,
+  getMyTeamWarningsHandler,
   updateTeamDeadlineProfileHandler,
   updateProjectWarningsEnabledHandler,
   getStaffStudentDeadlineOverridesHandler,
@@ -34,6 +37,8 @@ router.get("/modules", requireAuth, getUserModulesHandler);
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
+router.post("/staff/:projectId/teams/:teamId/warnings", requireAuth, createStaffTeamWarningHandler);
+router.get("/staff/:projectId/teams/:teamId/warnings", requireAuth, getStaffTeamWarningsHandler);
 router.get("/staff/:projectId/teams/:teamId/deadline", requireAuth, getStaffTeamDeadlineHandler);
 router.patch(
   "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/review",
@@ -62,6 +67,7 @@ router.get("/", requireAuth, getUserProjectsHandler);
 router.get("/:projectId", requireAuth, getProjectByIdHandler);
 router.post("/:projectId/team-health-messages", requireAuth, createTeamHealthMessageHandler);
 router.get("/:projectId/team-health-messages/me", requireAuth, getMyTeamHealthMessagesHandler);
+router.get("/:projectId/team-warnings/me", requireAuth, getMyTeamWarningsHandler);
 router.get("/:projectId/teammates", requireAuth, getTeammatesForProjectHandler);
 router.get("/:projectId/deadline", requireAuth, getProjectDeadlineHandler);
 router.get("/:projectId/marking", requireAuth, getProjectMarkingHandler);

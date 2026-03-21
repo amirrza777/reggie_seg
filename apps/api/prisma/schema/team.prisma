@@ -28,6 +28,7 @@ model Team {
   peerAssessments      PeerAssessment[]
   peerFeedbacks        PeerFeedback[]
   teamHealthMessages   TeamHealthMessage[]
+  teamWarnings         TeamWarning[]
   staffTeamMarking     StaffTeamMarking?
   staffStudentMarkings StaffStudentMarking[]
   meetings             Meeting[]
