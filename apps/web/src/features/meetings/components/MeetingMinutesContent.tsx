@@ -60,6 +60,18 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
     );
   }
 
+  if (meeting.minutes && meeting.minutes.writerId !== user.id) {
+    return (
+      <div className="stack">
+        {backLink}
+        <Card title="Minutes">
+          <p className="muted">Written by {meeting.minutes.writer.firstName} {meeting.minutes.writer.lastName}</p>
+          <RichTextViewer content={meeting.minutes.content} />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="stack">
       {backLink}
