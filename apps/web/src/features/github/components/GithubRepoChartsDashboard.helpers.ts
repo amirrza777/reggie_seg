@@ -37,13 +37,6 @@ export function formatPercent(numerator: number, denominator: number) {
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
 }
 
-function toDayKeyFromIsoDate(value: string | null | undefined) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed.toISOString().slice(0, 10);
-}
-
 function listContinuousDayKeys(startDay: string, endDay: string) {
   const start = new Date(`${startDay}T00:00:00Z`);
   const end = new Date(`${endDay}T00:00:00Z`);
@@ -72,9 +65,6 @@ function resolveSnapshotTimelineBounds(snapshot: GithubLatestSnapshot["snapshot"
   for (const key of Object.keys(repoCommitsByDay || {})) {
     if (key) dayKeys.add(key);
   }
-
-  const analysedDay = toDayKeyFromIsoDate(snapshot?.analysedAt ?? null);
-  if (analysedDay) dayKeys.add(analysedDay);
 
   const sorted = Array.from(dayKeys).sort((a, b) => a.localeCompare(b));
   if (sorted.length <= 0) {
