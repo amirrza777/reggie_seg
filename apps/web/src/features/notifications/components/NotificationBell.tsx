@@ -55,7 +55,7 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="notification-bell__dropdown">
+        <div className="notification-bell__dropdown" data-elevation="popup">
           <div className="notification-bell__header">
             <span className="notification-bell__title">Notifications</span>
             {unreadCount > 0 && (

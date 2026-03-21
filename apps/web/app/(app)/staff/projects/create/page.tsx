@@ -2,12 +2,20 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
+import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffCreateProjectPageProps = {
   searchParams?: Promise<{ moduleId?: string }>;
 };
+
+function toStaffModuleLoadError(error: unknown, fallback: string) {
+  if (error instanceof ApiError && error.status === 401) {
+    return "Your session has expired. Please sign in again.";
+  }
+  return error instanceof Error ? error.message : fallback;
+}
 
 export default async function StaffCreateProjectPage({ searchParams }: StaffCreateProjectPageProps) {
   const user = await getCurrentUser();
@@ -23,7 +31,7 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
   try {
     modules = await listModules(user.id, { scope: "staff", compact: true });
   } catch (error) {
-    modulesError = error instanceof Error ? error.message : "Failed to load staff modules.";
+    modulesError = toStaffModuleLoadError(error, "Failed to load staff modules.");
   }
 
   return (
@@ -42,7 +50,12 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
       </section>
 
       <section className="staff-projects__create-layout">
-        <StaffProjectCreatePanel modules={modules} modulesError={modulesError} initialModuleId={initialModuleId} />
+        <StaffProjectCreatePanel
+          currentUserId={user.id}
+          modules={modules}
+          modulesError={modulesError}
+          initialModuleId={initialModuleId}
+        />
         <aside className="staff-projects__create-guide" aria-label="Project creation guidance">
           <h2 className="staff-projects__create-title">Before you publish</h2>
           <ol className="staff-projects__guide-list">

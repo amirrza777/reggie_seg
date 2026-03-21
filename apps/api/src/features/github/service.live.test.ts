@@ -92,6 +92,22 @@ describe("service.live", () => {
     expect(fetchMocks.getBranchAheadBehind).toHaveBeenCalledWith("token", "org/repo", "main", "feature-b");
   });
 
+  it("applies shared fuzzy matching to live branch search queries", async () => {
+    fetchMocks.listRepositoryBranchesLive.mockResolvedValue([
+      { name: "Example", protected: false, headSha: "sha-example" },
+      { name: "data-structures", protected: false, headSha: "sha-ds" },
+      { name: "database-systems", protected: false, headSha: "sha-db" },
+      { name: "main", protected: true, headSha: "sha-main" },
+    ]);
+    fetchMocks.getBranchAheadBehind.mockResolvedValue({ aheadBy: 0, behindBy: 0, status: "identical" });
+
+    const droppedLetterMatches = await listLiveProjectGithubRepositoryBranches(7, 4, { query: "eampl" });
+    expect(droppedLetterMatches.branches.map((branch) => branch.name)).toEqual(["Example"]);
+
+    const shortPrefixMatches = await listLiveProjectGithubRepositoryBranches(7, 4, { query: "daa" });
+    expect(shortPrefixMatches.branches.map((branch) => branch.name)).toEqual(["data-structures", "database-systems"]);
+  });
+
   it("returns branch commits with stats and clamps the requested limit", async () => {
     fetchMocks.fetchRecentCommitsForBranch.mockResolvedValue([
       {

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SearchField } from "@/shared/ui/SearchField";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,
@@ -19,6 +20,9 @@ type Props = {
   availableRepos: GithubRepositoryOption[];
   selectedRepoId: string;
   setSelectedRepoId: (value: string) => void;
+  repoSearchQuery: string;
+  onRepoSearchQueryChange: (value: string) => void;
+  searchingRepos: boolean;
   coverageByLinkId: Record<number, GithubMappingCoverage | null>;
   latestSnapshotByLinkId: Record<number, GithubLatestSnapshot["snapshot"] | null>;
   currentGithubLogin: string | null;
@@ -38,6 +42,9 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
     availableRepos,
     selectedRepoId,
     setSelectedRepoId,
+    repoSearchQuery,
+    onRepoSearchQueryChange,
+    searchingRepos,
     coverageByLinkId,
     latestSnapshotByLinkId,
     currentGithubLogin,
@@ -64,6 +71,18 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
       <div className="github-repos-tab__list">
         {connection?.connected && links.length === 0 ? (
           <div className="ui-stack-sm github-repos-tab__link-controls">
+            <label className="muted" htmlFor="github-repo-search">
+              Search repositories
+            </label>
+            <SearchField
+              id="github-repo-search"
+              className="github-repos-tab__select"
+              value={repoSearchQuery}
+              onChange={(event) => onRepoSearchQueryChange(event.target.value)}
+              placeholder="Search by owner, repo, or ID"
+              aria-label="Search repositories to link"
+              disabled={loading || busy}
+            />
             <label className="muted" htmlFor="github-repo-select">
               Select repository to link
             </label>
@@ -74,7 +93,14 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
               onChange={(e) => setSelectedRepoId(e.target.value)}
               disabled={loading || busy || availableRepos.length === 0}
             >
-              {availableRepos.length === 0 ? <option value="">No accessible repositories found</option> : null}
+              {availableRepos.length === 0 ? (
+                <option value="">
+                  {repoSearchQuery.trim().length > 0
+                    ? `No repositories match "${repoSearchQuery.trim()}"`
+                    : "No accessible repositories found"}
+                </option>
+              ) : null}
+              {availableRepos.length > 0 && searchingRepos ? <option value="">Searching repositories...</option> : null}
               {availableRepos.map((repo) => (
                 <option key={repo.githubRepoId} value={String(repo.githubRepoId)}>
                   {repo.fullName} {repo.isPrivate ? "(private)" : "(public)"}{" "}

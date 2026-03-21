@@ -6,7 +6,7 @@
 
 .staff-projects__policy-card {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 14px;
   background:
     radial-gradient(120% 110% at 100% 0%, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 65%),
@@ -27,7 +27,7 @@
   display: inline-flex;
   align-items: center;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 6px 12px;
   font-size: var(--fs-caption);
   font-weight: var(--fw-semibold);
@@ -53,7 +53,7 @@
   justify-content: center;
   min-height: 38px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 0 12px;
   text-decoration: none;
   color: var(--text);
@@ -71,7 +71,7 @@
 
 .staff-projects__team-policy {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px;
   background: color-mix(in srgb, var(--surface) 95%, transparent);
   display: grid;
@@ -127,13 +127,13 @@
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
 }
 
 .staff-projects__avatar {
   width: 34px;
   height: 34px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   display: grid;
   place-items: center;
@@ -166,7 +166,7 @@
 
 .staff-projects__override-item {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px;
   display: grid;
   gap: 10px;
@@ -197,7 +197,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-caption);
   font-weight: 600;
 }
@@ -216,7 +216,7 @@
 
 .team-flag__dismiss {
   padding: 6px 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   border: 1px solid rgba(220, 38, 38, 0.4);
   background: rgba(220, 38, 38, 0.08);
   color: rgb(185, 28, 28);
@@ -296,7 +296,7 @@
   align-items: center;
   gap: 4px;
   padding: 3px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-caption);
   font-weight: 600;
   border: 1px solid transparent;
@@ -325,7 +325,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 10px;
-  border-radius: 20px;
+  border-radius: var(--radius-pill);
   font-size: var(--fs-caption);
   font-weight: 600;
 }

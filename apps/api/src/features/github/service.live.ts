@@ -16,6 +16,7 @@ import {
   listRepositoryBranchesLive,
 } from "./service.analysis.fetch.js";
 import { isMergePullRequestCommit } from "./service.analysis.aggregate.js";
+import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type IdentityCandidate = {
   userId: number;
@@ -26,6 +27,13 @@ function addUniqueUserId(userIds: number[], value: number | null | undefined) {
     return;
   }
   userIds.push(value);
+}
+
+function matchesBranchQuery(branchName: string, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    sources: [branchName],
+  });
 }
 
 async function resolveProjectLinkAccessToken(params: {
@@ -68,7 +76,11 @@ async function resolveProjectLinkAccessToken(params: {
 }
 
 /** Returns the live project GitHub repository branches. */
-export async function listLiveProjectGithubRepositoryBranches(userId: number, linkId: number) {
+export async function listLiveProjectGithubRepositoryBranches(
+  userId: number,
+  linkId: number,
+  options?: { query?: string | null },
+) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
     throw new GithubServiceError(404, "Project GitHub repository link not found");
@@ -88,9 +100,14 @@ export async function listLiveProjectGithubRepositoryBranches(userId: number, li
 
   const defaultBranch = link.repository.defaultBranch || "main";
   const liveBranches = await listRepositoryBranchesLive(accessToken, link.repository.fullName);
+  const searchQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = searchQuery.length > 0;
+  const scopedBranches = hasQuery
+    ? liveBranches.filter((branch) => matchesBranchQuery(branch.name, searchQuery))
+    : liveBranches;
 
   const branchesWithCompare = await Promise.all(
-    liveBranches.map(async (branch) => {
+    scopedBranches.map(async (branch) => {
       const compare = await getBranchAheadBehind(
         accessToken,
         link.repository.fullName,

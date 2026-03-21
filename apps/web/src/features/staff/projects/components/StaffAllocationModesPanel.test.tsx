@@ -14,6 +14,12 @@ vi.mock("./StaffManualAllocationPanel", () => ({
   ),
 }));
 
+vi.mock("./StaffCustomisedAllocationPanel", () => ({
+  StaffCustomisedAllocationPanel: () => (
+    <div data-testid="custom-allocation-content">Custom allocation content</div>
+  ),
+}));
+
 describe("StaffAllocationModesPanel", () => {
   it("renders wrapper and all allocation mode cards", () => {
     render(<StaffAllocationModesPanel projectId={4} initialTeamCount={2} />);
@@ -25,6 +31,8 @@ describe("StaffAllocationModesPanel", () => {
 
     expect(screen.getAllByRole("button", { name: /expand/i })).toHaveLength(3);
     expect(screen.queryByTestId("random-allocation-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-allocation-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("custom-allocation-content")).not.toBeInTheDocument();
   });
 
   it("expands one mode at a time and mounts random content in random mode only", () => {
@@ -38,7 +46,13 @@ describe("StaffAllocationModesPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Expand Manual Allocation" }));
     expect(screen.queryByTestId("random-allocation-content")).not.toBeInTheDocument();
     expect(screen.getByTestId("manual-allocation-content")).toBeInTheDocument();
+    expect(screen.queryByTestId("custom-allocation-content")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Collapse Manual Allocation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Expand Customised Allocation" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Customised Allocation" }));
+    expect(screen.queryByTestId("random-allocation-content")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("manual-allocation-content")).not.toBeInTheDocument();
+    expect(screen.getByTestId("custom-allocation-content")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Collapse Customised Allocation" })).toBeInTheDocument();
   });
 });

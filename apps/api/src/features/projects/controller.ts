@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   createProject,
   fetchProjectById,
@@ -26,6 +27,14 @@ function parsePositiveInt(value: unknown): number | null {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
+
+function isTeamLifecycleMigrationError(error: unknown) {
+  const errorCode = (error as { code?: unknown } | null)?.code;
+  return errorCode === "P2021" || errorCode === "P2022";
+}
+
+const TEAM_LIFECYCLE_MIGRATION_ERROR =
+  "Team allocation lifecycle data is unavailable until the latest database migration is applied";
 function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | null {
   const authUserId = req.user?.sub;
   if (!authUserId) {
@@ -131,13 +140,13 @@ function parseStudentDeadlineOverridePayload(
   return {
     ok: true,
     value: {
-      taskOpenDate: taskOpenDate.value,
-      taskDueDate: taskDueDate.value,
-      assessmentOpenDate: assessmentOpenDate.value,
-      assessmentDueDate: assessmentDueDate.value,
-      feedbackOpenDate: feedbackOpenDate.value,
-      feedbackDueDate: feedbackDueDate.value,
-      reason,
+      ...(taskOpenDate.value !== undefined ? { taskOpenDate: taskOpenDate.value } : {}),
+      ...(taskDueDate.value !== undefined ? { taskDueDate: taskDueDate.value } : {}),
+      ...(assessmentOpenDate.value !== undefined ? { assessmentOpenDate: assessmentOpenDate.value } : {}),
+      ...(assessmentDueDate.value !== undefined ? { assessmentDueDate: assessmentDueDate.value } : {}),
+      ...(feedbackOpenDate.value !== undefined ? { feedbackOpenDate: feedbackOpenDate.value } : {}),
+      ...(feedbackDueDate.value !== undefined ? { feedbackDueDate: feedbackDueDate.value } : {}),
+      ...(reason !== undefined ? { reason } : {}),
     },
   };
 }
@@ -309,9 +318,20 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 
   const scope = req.query.scope === "staff" ? "staff" : "workspace";
   const compact = req.query.compact === "1";
+  const parsedSearchQuery = parseSearchQuery(req.query.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff", compact });
+    const options: { staffOnly: boolean; compact: boolean; query?: string | null } = {
+      staffOnly: scope === "staff",
+      compact,
+    };
+    if (parsedSearchQuery.value) {
+      options.query = parsedSearchQuery.value;
+    }
+    const modules = await fetchModulesForUser(userId, options);
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
@@ -335,6 +355,9 @@ export async function getProjectDeadlineHandler(req: AuthRequest, res: Response)
     const deadline = await fetchProjectDeadline(userId, projectId);
     res.json({ deadline });
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching project deadline:", error);
     res.status(500).json({ error: "Failed to fetch project deadline" });
   }
@@ -356,6 +379,9 @@ export async function getTeammatesForProjectHandler(req: AuthRequest, res: Respo
     const teammates = await fetchTeammatesForProject(userId, projectId);
     res.json({ teammates });
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching teammates for project:", error);
     res.status(500).json({ error: "Failed to fetch teammates" });
   }
@@ -376,6 +402,9 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
     }
     res.json(team);
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching team:", error);
     res.status(500).json({ error: "Failed to fetch team" });
   }
@@ -400,6 +429,9 @@ export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Resp
     }
     res.json(team);
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching team:", error);
     res.status(500).json({ error: "Failed to fetch team" });
   }
@@ -431,9 +463,15 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
   if (userId === null) {
     return;
   }
+  const parsedSearchQuery = parseSearchQuery(req.query.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const projects = await fetchProjectsForStaff(userId);
+    const projects = parsedSearchQuery.value
+      ? await fetchProjectsForStaff(userId, { query: parsedSearchQuery.value })
+      : await fetchProjectsForStaff(userId);
     res.json(projects);
   } catch (error) {
     console.error("Error fetching staff projects:", error);
@@ -459,6 +497,9 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
     }
     res.json(result);
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching staff project teams:", error);
     res.status(500).json({ error: "Failed to fetch staff project teams" });
   }
@@ -483,6 +524,9 @@ export async function getProjectMarkingHandler(req: AuthRequest, res: Response) 
     }
     res.json(marking);
   } catch (error) {
+    if (isTeamLifecycleMigrationError(error)) {
+      return res.status(503).json({ error: TEAM_LIFECYCLE_MIGRATION_ERROR });
+    }
     console.error("Error fetching project marking:", error);
     res.status(500).json({ error: "Failed to fetch project marking" });
   }

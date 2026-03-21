@@ -1,6 +1,3 @@
-import { Card } from "@/shared/ui/Card";
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { Button } from "@/shared/ui/Button";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
 
@@ -9,26 +6,5 @@ export default async function TeamHealthPage() {
   if (!isElevatedStaff(user)) {
     redirect("/dashboard");
   }
-
-  return (
-    <div className="stack ui-page">
-      <Placeholder
-        title="Team health & red flags"
-        description="Identify variance, conflicts, and meeting needs."
-      />
-
-      <Card title="High priority (conflict alerts)">
-        <p className="muted">List of teams/students with high score variance will appear here.</p>
-        <div style={{ marginTop: 12 }}>
-          <Button variant="ghost" disabled>
-            Request meeting
-          </Button>
-        </div>
-      </Card>
-
-      <Card title="Team health table">
-        <p className="muted">Table placeholder: avg score, std dev, submissions done/pending.</p>
-      </Card>
-    </div>
-  );
+  redirect("/staff/projects");
 }

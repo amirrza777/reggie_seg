@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminEnterpriseSearchWhere, parseAdminEnterpriseSearchFilters } from "./enterpriseSearch.js";
+import {
+  buildAdminEnterpriseSearchWhere,
+  matchesAdminEnterpriseSearchCandidate,
+  parseAdminEnterpriseSearchFilters,
+} from "./enterpriseSearch.js";
 
 describe("parseAdminEnterpriseSearchFilters", () => {
   it("returns defaults when no query params are provided", () => {
@@ -95,5 +99,26 @@ describe("buildAdminEnterpriseSearchWhere", () => {
         { users: { some: { role: { in: ["STAFF"] } } } },
       ],
     });
+  });
+});
+
+describe("matchesAdminEnterpriseSearchCandidate", () => {
+  const enterprise = {
+    id: "ent-1",
+    code: "KCL001",
+    name: "King's College London",
+    users: [{ role: "ENTERPRISE_ADMIN" as const }],
+  };
+
+  it("matches typo-tolerant enterprise text", () => {
+    expect(matchesAdminEnterpriseSearchCandidate(enterprise, "kings collge london")).toBe(true);
+  });
+
+  it("matches role-hint queries", () => {
+    expect(matchesAdminEnterpriseSearchCandidate(enterprise, "enterprise admin")).toBe(true);
+  });
+
+  it("does not match unrelated query text", () => {
+    expect(matchesAdminEnterpriseSearchCandidate(enterprise, "physics lab")).toBe(false);
   });
 });

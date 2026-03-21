@@ -1,4 +1,5 @@
 import argon2 from "argon2";
+import { ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_PASSWORD } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedEnterprise } from "./types";
@@ -49,8 +50,8 @@ export async function getSeedEnterprises(): Promise<SeedEnterprise[]> {
 
 export async function seedAdminUser(enterpriseId: string) {
   return withSeedLogging("seedAdminUser", async () => {
-    const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
-    const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const email = ADMIN_BOOTSTRAP_EMAIL;
+    const password = ADMIN_BOOTSTRAP_PASSWORD;
     if (!email || !password) {
       return {
         value: undefined,

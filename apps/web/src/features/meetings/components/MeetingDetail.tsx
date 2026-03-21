@@ -13,7 +13,7 @@ type MeetingDetailProps = {
 
 export function MeetingDetail({ meeting }: MeetingDetailProps) {
   const { user } = useUser();
-  const members = meeting.team.allocations.map((a) => a.user);
+  const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
 
   return (
     <div className="stack">
@@ -29,7 +29,7 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
         )}
       </Card>
 
-      <AttendanceTable meetingId={meeting.id} members={members} initialAttendances={meeting.attendances} />
+      <AttendanceTable meetingId={meeting.id} members={members} initialAttendances={meeting.attendances ?? []} />
 
       {user && (
         <Card title="Minutes">
@@ -45,7 +45,7 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
         meetingId={meeting.id}
         teamId={meeting.teamId}
         members={members}
-        initialComments={meeting.comments}
+        initialComments={meeting.comments ?? []}
       />
     </div>
   );

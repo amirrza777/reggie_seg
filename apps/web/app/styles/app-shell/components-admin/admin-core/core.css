@@ -177,7 +177,8 @@
 }
 
 .user-management__page-total {
-  min-width: 36px;
+  min-width: max-content;
+  white-space: nowrap;
 }
 
 .user-management__role-toggle-btn {
@@ -296,4 +297,3 @@
   background: var(--surface);
   color: var(--muted);
 }
-

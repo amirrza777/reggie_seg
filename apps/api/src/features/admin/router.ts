@@ -6,13 +6,11 @@ import {
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
   listEnterprisesHandler,
-  listFeatureFlagsHandler,
   listUsersHandler,
   searchEnterpriseUsersHandler,
   searchEnterprisesHandler,
   searchUsersHandler,
   updateEnterpriseUserHandler,
-  updateFeatureFlagHandler,
   updateUserHandler,
   updateUserRoleHandler,
 } from "./controller.js";
@@ -28,8 +26,6 @@ router.get("/users", listUsersHandler);
 router.get("/users/search", searchUsersHandler);
 router.patch("/users/:id/role", updateUserRoleHandler);
 router.patch("/users/:id", updateUserHandler);
-router.get("/feature-flags", listFeatureFlagsHandler);
-router.patch("/feature-flags/:key", updateFeatureFlagHandler);
 router.get("/enterprises", listEnterprisesHandler);
 router.get("/enterprises/search", searchEnterprisesHandler);
 router.post("/enterprises", createEnterpriseHandler);

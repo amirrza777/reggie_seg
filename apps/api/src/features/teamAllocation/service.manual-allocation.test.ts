@@ -22,16 +22,29 @@ import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  approveDraftTeam: vi.fn(),
   applyManualAllocationTeam: vi.fn(),
   applyRandomAllocationPlan: vi.fn(),
   createTeamInviteRecord: vi.fn(),
+  findDraftTeamById: vi.fn(),
+  findDraftTeamInProject: vi.fn(),
+  findCustomAllocationQuestionnairesForStaff: vi.fn(),
+  findCustomAllocationTemplateForStaff: vi.fn(),
   findActiveInvite: vi.fn(),
   findInviteContext: vi.fn(),
+  findLatestCustomAllocationResponsesForStudents: vi.fn(),
+  findModuleStudentsByIdsInModule: vi.fn(),
   findModuleStudentsForManualAllocation: vi.fn(),
+  findProjectDraftTeams: vi.fn(),
   findVacantModuleStudentsForProject: vi.fn(),
   findProjectTeamSummaries: vi.fn(),
+  findRespondingStudentIdsForTemplateInProject: vi.fn(),
+  findStaffScopedProjectAccess: vi.fn(),
   findStaffScopedProject: vi.fn(),
+  findStudentAllocationConflictsInProject: vi.fn(),
+  findTeamNameConflictInEnterprise: vi.fn(),
   getInvitesForTeam: vi.fn(),
+  updateDraftTeam: vi.fn(),
   updateInviteStatusFromPending: vi.fn(),
   TeamService: {
     createTeam: vi.fn(),
@@ -62,6 +75,30 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 describe("teamAllocation service manual allocation", () => {
+  const scopedProject = {
+    id: 42,
+    name: "Project A",
+    moduleId: 11,
+    moduleName: "Module A",
+    archivedAt: null,
+    enterpriseId: "ent-9",
+  };
+
+  const availableStudents = [
+    { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
+    { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
+  ];
+
+  function mockManualAllocationSuccessContext() {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue(availableStudents);
+    (repo.applyManualAllocationTeam as any).mockResolvedValue({
+      id: 90,
+      teamName: "Team Gamma",
+      memberCount: 2,
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue(null);
@@ -85,15 +122,8 @@ describe("teamAllocation service manual allocation", () => {
     });
   });
 
-  it("getManualAllocationWorkspaceForProject returns students with statuses and counts", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
+  it("getManualAllocationWorkspaceForProject maps project metadata and aggregate counts", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
     (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
       {
         id: 1,
@@ -126,6 +156,37 @@ describe("teamAllocation service manual allocation", () => {
       moduleId: 11,
       moduleName: "Module A",
     });
+    expect(result.counts).toEqual({
+      totalStudents: 2,
+      availableStudents: 1,
+      alreadyInTeamStudents: 1,
+    });
+  });
+
+  it("getManualAllocationWorkspaceForProject maps student availability statuses", async () => {
+    (repo.findStaffScopedProject as any).mockResolvedValue(scopedProject);
+    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
+      {
+        id: 1,
+        firstName: "A",
+        lastName: "A",
+        email: "a@example.com",
+        currentTeamId: 91,
+        currentTeamName: "Team Alpha",
+      },
+      {
+        id: 2,
+        firstName: "B",
+        lastName: "B",
+        email: "b@example.com",
+        currentTeamId: null,
+        currentTeamName: null,
+      },
+    ]);
+    (repo.findProjectTeamSummaries as any).mockResolvedValue([]);
+
+    const result = await getManualAllocationWorkspaceForProject(3, 42);
+
     expect(result.students).toEqual([
       {
         id: 1,
@@ -144,11 +205,6 @@ describe("teamAllocation service manual allocation", () => {
         currentTeam: null,
       },
     ]);
-    expect(result.counts).toEqual({
-      totalStudents: 2,
-      availableStudents: 1,
-      alreadyInTeamStudents: 1,
-    });
   });
 
   it("applyManualAllocationForProject validates team name and student ids", async () => {
@@ -228,31 +284,16 @@ describe("teamAllocation service manual allocation", () => {
     ).rejects.toEqual({ code: "STUDENT_ALREADY_ASSIGNED" });
   });
 
-  it("applyManualAllocationForProject creates a team and notifies students", async () => {
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
-    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
-    ]);
-    (repo.applyManualAllocationTeam as any).mockResolvedValue({
-      id: 90,
-      teamName: "Team Gamma",
-      memberCount: 2,
-    });
-
+  it("applyManualAllocationForProject creates a draft team", async () => {
+    mockManualAllocationSuccessContext();
     const result = await applyManualAllocationForProject(3, 42, {
       teamName: "Team Gamma",
       studentIds: [1, 2],
     });
 
-    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2]);
+    expect(repo.applyManualAllocationTeam).toHaveBeenCalledWith(42, "ent-9", "Team Gamma", [1, 2], {
+      draftCreatedById: 3,
+    });
     expect(result).toEqual({
       project: {
         id: 42,
@@ -266,34 +307,11 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    expect((sendEmail as any).mock.calls.map((call: any[]) => call[0]?.to).sort()).toEqual([
-      "a@example.com",
-      "b@example.com",
-    ]);
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 
-  it("applyManualAllocationForProject does not fail when notification email sending fails", async () => {
-    const logSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    (repo.findStaffScopedProject as any).mockResolvedValue({
-      id: 42,
-      name: "Project A",
-      moduleId: 11,
-      moduleName: "Module A",
-      archivedAt: null,
-      enterpriseId: "ent-9",
-    });
-    (repo.findModuleStudentsForManualAllocation as any).mockResolvedValue([
-      { id: 1, firstName: "A", lastName: "A", email: "a@example.com", currentTeamId: null, currentTeamName: null },
-      { id: 2, firstName: "B", lastName: "B", email: "b@example.com", currentTeamId: null, currentTeamName: null },
-    ]);
-    (repo.applyManualAllocationTeam as any).mockResolvedValue({
-      id: 90,
-      teamName: "Team Gamma",
-      memberCount: 2,
-    });
-    (sendEmail as any).mockRejectedValueOnce(new Error("smtp"));
-    (sendEmail as any).mockResolvedValueOnce({ suppressed: false });
+  it("applyManualAllocationForProject does not send notification emails for drafts", async () => {
+    mockManualAllocationSuccessContext();
 
     await expect(
       applyManualAllocationForProject(3, 42, {
@@ -313,7 +331,6 @@ describe("teamAllocation service manual allocation", () => {
         memberCount: 2,
       },
     });
-    expect(sendEmail).toHaveBeenCalledTimes(2);
-    logSpy.mockRestore();
+    expect(sendEmail).not.toHaveBeenCalled();
   });
 });

@@ -4,8 +4,8 @@ import { prisma } from "../../shared/db.js";
 
 vi.mock("../../shared/db.js", () => ({
   prisma: {
-    enterprise: {
-      upsert: vi.fn(),
+    user: {
+      findUnique: vi.fn(),
     },
     featureFlag: {
       findMany: vi.fn(),
@@ -29,8 +29,8 @@ describe("featureFlags router", () => {
     expect(routes).toEqual(expect.arrayContaining([{ path: "/", methods: { get: true } }]));
   });
 
-  it("returns flags for the default enterprise", async () => {
-    (prisma.enterprise.upsert as any).mockResolvedValue({ id: "ent-1" });
+  it("returns flags for the authenticated user's enterprise", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-1", active: true });
     (prisma.featureFlag.findMany as any).mockResolvedValue([
       { id: 1, key: "alpha", enabled: true, enterpriseId: "ent-1" },
       { id: 2, key: "beta", enabled: false, enterpriseId: "ent-1" },
@@ -40,13 +40,11 @@ describe("featureFlags router", () => {
     const handler = layer.route.stack[0].handle;
     const res = { json: vi.fn() } as any;
 
-    await handler({} as any, res);
+    await handler({ user: { sub: 12 } } as any, res);
 
-    expect(prisma.enterprise.upsert).toHaveBeenCalledWith({
-      where: { code: "DEFAULT" },
-      update: {},
-      create: { code: "DEFAULT", name: "Default Enterprise" },
-      select: { id: true },
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 12 },
+      select: { enterpriseId: true, active: true },
     });
     expect(prisma.featureFlag.findMany).toHaveBeenCalledWith({
       where: { enterpriseId: "ent-1" },
@@ -56,5 +54,15 @@ describe("featureFlags router", () => {
       { id: 1, key: "alpha", enabled: true, enterpriseId: "ent-1" },
       { id: 2, key: "beta", enabled: false, enterpriseId: "ent-1" },
     ]);
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const layer = router.stack.find((entry: any) => entry.route?.path === "/" && entry.route?.methods?.get);
+    const handler = layer.route.stack[0].handle;
+    const res = { status: vi.fn(), json: vi.fn() } as any;
+    res.status.mockReturnValue(res);
+
+    await handler({} as any, res);
+    expect(res.status).toHaveBeenCalledWith(401);
   });
 });

@@ -1,7 +1,7 @@
 /* Shared app components */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg-soft);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 14px;
   display: grid;
   gap: 10px;
@@ -77,11 +77,11 @@
 
 .table {
   --table-column-gap: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 12px;
   overflow-x: auto;
   overflow-y: hidden;
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
   width: 100%;
   overflow-anchor: none;
   overscroll-behavior-x: contain;
@@ -107,7 +107,7 @@
 }
 
 .table__head {
-  background: var(--table-head-bg);
+  background: color-mix(in srgb, var(--glass-ui-bg) 92%, var(--table-head-bg) 8%);
   font-weight: var(--fw-bold);
   color: var(--table-head-text);
   padding: 10px 12px;
@@ -116,18 +116,18 @@
 .table__row {
   border-top: 1px solid var(--border);
   padding: 10px 12px;
-  background: var(--surface);
+  background: transparent;
   overflow-anchor: none;
 }
 
 .table__row:nth-child(even) {
-  background: var(--surface);
+  background: transparent;
 }
 
 .calendar {
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 12px;
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
   overflow: hidden;
 }
 
@@ -278,4 +278,3 @@
   border-color: var(--status-success-border);
   color: var(--status-success-text);
 }
-

@@ -1,11 +1,3 @@
-import { StaffTeamSectionPlaceholder } from "@/features/staff/projects/components/StaffTeamSectionPlaceholder";
+import StaffTeamHealthPage from "../teamhealth/page";
 
-export default async function StaffTeamSectionPage() {
-  return (
-    <StaffTeamSectionPlaceholder
-      title="Team"
-      description="Team-specific details will live here."
-    />
-  );
-}
-
+export default StaffTeamHealthPage;

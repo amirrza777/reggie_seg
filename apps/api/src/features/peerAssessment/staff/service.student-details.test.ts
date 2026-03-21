@@ -34,34 +34,63 @@ const twoMembers = [
   { id: 100, firstName: "Alice", lastName: "Smith" },
   { id: 101, firstName: "Bob", lastName: "Jones" },
 ];
+const bobReviewer = { id: 101, firstName: "Bob", lastName: "Jones" };
+const carolReviewer = { id: 102, firstName: "Carol", lastName: "Lee" };
+
+function makeTemplate(questions: Array<{ id: number; label: string; order: number }>) {
+  return { id: 10, questions };
+}
+
+function makeReview(params: {
+  answersJson: unknown;
+  reviewer?: { id: number; firstName: string; lastName: string };
+  id?: number;
+}) {
+  const reviewer = params.reviewer ?? bobReviewer;
+  return {
+    id: params.id ?? 1,
+    reviewerUserId: reviewer.id,
+    answersJson: params.answersJson,
+    templateId: 10,
+    reviewer,
+  };
+}
+
+async function getDefaultStudentDetails() {
+  return getStudentDetailsIfLead(1, 1, 10, 100);
+}
+
+function setupSingleNumericReviewContext() {
+  setupStudentDetailsContext({
+    assessments: [{ reviewerUserId: 101, revieweeUserId: 100 }],
+    reviews: [makeReview({ answersJson: { 1: 4, 2: 5 } })],
+    template: makeTemplate([
+      { id: 1, label: "Q1", order: 0 },
+      { id: 2, label: "Q2", order: 1 },
+    ]),
+  });
+}
+
+function setupStudentDetailsContext(params: {
+  members?: Array<any>;
+  assessments?: Array<any>;
+  reviews?: Array<any>;
+  template?: any;
+}) {
+  mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
+  mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+  mockRepo.getTeamWithAssessments.mockResolvedValue({
+    members: params.members ?? twoMembers,
+    assessments: params.assessments ?? [],
+  });
+  mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue(params.reviews ?? []);
+  mockRepo.findTemplateWithQuestions.mockResolvedValue(params.template ?? null);
+}
 
 describe("getStudentDetailsIfLead (level 4: student details)", () => {
-  it("returns full student performance summary when reviews exist", async () => {
-    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
-    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
-    mockRepo.getTeamWithAssessments.mockResolvedValue({
-      members: twoMembers,
-      assessments: [{ reviewerUserId: 101, revieweeUserId: 100 }],
-    });
-    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
-      {
-        id: 1,
-        reviewerUserId: 101,
-        answersJson: { 1: 4, 2: 5 },
-        templateId: 10,
-        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
-      },
-    ]);
-    mockRepo.findTemplateWithQuestions.mockResolvedValue({
-      id: 10,
-      questions: [
-        { id: 1, label: "Q1", order: 0 },
-        { id: 2, label: "Q2", order: 1 },
-      ],
-    });
-
-    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
-
+  it("returns student info and team member review flags when reviews exist", async () => {
+    setupSingleNumericReviewContext();
+    const result = await getDefaultStudentDetails();
     expect(result).not.toBeNull();
     expect(result!.student).toEqual({ id: 100, firstName: "Alice", lastName: "Smith" });
     expect(result!.teamMembers).toHaveLength(1);
@@ -72,6 +101,11 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
       reviewedByCurrentStudent: false,
       reviewedCurrentStudent: true,
     });
+  });
+
+  it("returns performance summary values when reviews exist", async () => {
+    setupSingleNumericReviewContext();
+    const result = await getDefaultStudentDetails();
     expect(result!.performanceSummary.overallAverage).toBe(4.5);
     expect(result!.performanceSummary.totalReviews).toBe(1);
     expect(result!.performanceSummary.questionAverages).toHaveLength(2);
@@ -134,37 +168,16 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
   });
 
   it("aggregates multiple reviewers and rounds averages correctly", async () => {
-    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
-    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
-    mockRepo.getTeamWithAssessments.mockResolvedValue({
-      members: [
-        ...twoMembers,
-        { id: 102, firstName: "Carol", lastName: "Lee" },
+    setupStudentDetailsContext({
+      members: [...twoMembers, { id: 102, firstName: "Carol", lastName: "Lee" }],
+      reviews: [
+        makeReview({ id: 1, reviewer: bobReviewer, answersJson: { 1: 3 } }),
+        makeReview({ id: 2, reviewer: carolReviewer, answersJson: { 1: 5 } }),
       ],
-      assessments: [],
-    });
-    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
-      {
-        id: 1,
-        reviewerUserId: 101,
-        answersJson: { 1: 3 },
-        templateId: 10,
-        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
-      },
-      {
-        id: 2,
-        reviewerUserId: 102,
-        answersJson: { 1: 5 },
-        templateId: 10,
-        reviewer: { id: 102, firstName: "Carol", lastName: "Lee" },
-      },
-    ]);
-    mockRepo.findTemplateWithQuestions.mockResolvedValue({
-      id: 10,
-      questions: [{ id: 1, label: "Q1", order: 0 }],
+      template: makeTemplate([{ id: 1, label: "Q1", order: 0 }]),
     });
 
-    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+    const result = await getDefaultStudentDetails();
 
     const q0 = result!.performanceSummary.questionAverages[0];
     expect(result!.performanceSummary.totalReviews).toBe(2);
@@ -174,33 +187,22 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
   });
 
   it("parses scores from array-style answersJson payloads", async () => {
-    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
-    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
-    mockRepo.getTeamWithAssessments.mockResolvedValue({
-      members: twoMembers,
-      assessments: [],
-    });
-    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
-      {
-        id: 1,
-        reviewerUserId: 101,
-        answersJson: [
-          { question: "1", answer: "4" },
-          { question: "2", answer: "5" },
-        ],
-        templateId: 10,
-        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
-      },
-    ]);
-    mockRepo.findTemplateWithQuestions.mockResolvedValue({
-      id: 10,
-      questions: [
+    setupStudentDetailsContext({
+      reviews: [
+        makeReview({
+          answersJson: [
+            { question: "1", answer: "4" },
+            { question: "2", answer: "5" },
+          ],
+        }),
+      ],
+      template: makeTemplate([
         { id: 1, label: "Q1", order: 0 },
         { id: 2, label: "Q2", order: 1 },
-      ],
+      ]),
     });
 
-    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+    const result = await getDefaultStudentDetails();
 
     expect(result!.performanceSummary.overallAverage).toBe(4.5);
     expect(result!.performanceSummary.questionAverages[0]?.averageScore).toBe(4);
@@ -208,33 +210,22 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
   });
 
   it("parses scores from array-style answersJson payloads with questionId keys", async () => {
-    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
-    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
-    mockRepo.getTeamWithAssessments.mockResolvedValue({
-      members: twoMembers,
-      assessments: [],
-    });
-    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
-      {
-        id: 1,
-        reviewerUserId: 101,
-        answersJson: [
-          { questionId: 1, answer: "3" },
-          { questionId: 2, answer: 4 },
-        ],
-        templateId: 10,
-        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
-      },
-    ]);
-    mockRepo.findTemplateWithQuestions.mockResolvedValue({
-      id: 10,
-      questions: [
+    setupStudentDetailsContext({
+      reviews: [
+        makeReview({
+          answersJson: [
+            { questionId: 1, answer: "3" },
+            { questionId: 2, answer: 4 },
+          ],
+        }),
+      ],
+      template: makeTemplate([
         { id: 1, label: "Q1", order: 0 },
         { id: 2, label: "Q2", order: 1 },
-      ],
+      ]),
     });
 
-    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+    const result = await getDefaultStudentDetails();
 
     expect(result!.performanceSummary.overallAverage).toBe(3.5);
     expect(result!.performanceSummary.questionAverages[0]?.averageScore).toBe(3);
@@ -242,33 +233,22 @@ describe("getStudentDetailsIfLead (level 4: student details)", () => {
   });
 
   it("excludes non-numeric answers from score averages", async () => {
-    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
-    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
-    mockRepo.getTeamWithAssessments.mockResolvedValue({
-      members: twoMembers,
-      assessments: [],
-    });
-    mockRepo.findAssessmentsForRevieweeInTeam.mockResolvedValue([
-      {
-        id: 1,
-        reviewerUserId: 101,
-        answersJson: [
-          { question: "1", answer: "Great communication" },
-          { question: "2", answer: 5 },
-        ],
-        templateId: 10,
-        reviewer: { id: 101, firstName: "Bob", lastName: "Jones" },
-      },
-    ]);
-    mockRepo.findTemplateWithQuestions.mockResolvedValue({
-      id: 10,
-      questions: [
+    setupStudentDetailsContext({
+      reviews: [
+        makeReview({
+          answersJson: [
+            { question: "1", answer: "Great communication" },
+            { question: "2", answer: 5 },
+          ],
+        }),
+      ],
+      template: makeTemplate([
         { id: 1, label: "Comment", order: 0 },
         { id: 2, label: "Teamwork", order: 1 },
-      ],
+      ]),
     });
 
-    const result = await getStudentDetailsIfLead(1, 1, 10, 100);
+    const result = await getDefaultStudentDetails();
 
     expect(result!.performanceSummary.overallAverage).toBe(5);
     expect(result!.performanceSummary.questionAverages).toHaveLength(1);

@@ -10,13 +10,11 @@ import {
   isRole,
   listEnterpriseUsers,
   listEnterprises,
-  listFeatureFlags,
   listUsers,
   searchEnterpriseUsers,
   searchEnterprises,
   searchUsers,
   updateEnterpriseUser,
-  updateFeatureFlag,
   updateOwnEnterpriseUser,
   updateOwnEnterpriseUserRole,
 } from "./service.js";
@@ -25,6 +23,10 @@ function parsePositiveInt(value: string | undefined): number | null {
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed <= 0) return null;
   return parsed;
+}
+
+function readParamString(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
 
 export async function getSummaryHandler(req: AdminRequest, res: Response) {
@@ -42,7 +44,7 @@ export async function searchUsersHandler(req: AdminRequest, res: Response) {
 }
 
 export async function updateUserRoleHandler(req: AdminRequest, res: Response) {
-  const id = parsePositiveInt(req.params.id);
+  const id = parsePositiveInt(readParamString(req.params.id));
   if (!id) return res.status(400).json({ error: "Invalid user id" });
   const role = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : "";
   if (!isRole(role)) return res.status(400).json({ error: "Invalid role" });
@@ -52,32 +54,20 @@ export async function updateUserRoleHandler(req: AdminRequest, res: Response) {
 }
 
 export async function updateUserHandler(req: AdminRequest, res: Response) {
-  const id = parsePositiveInt(req.params.id);
+  const id = parsePositiveInt(readParamString(req.params.id));
   if (!id) return res.status(400).json({ error: "Invalid user id" });
   const nextRole = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : undefined;
-  const result = await updateOwnEnterpriseUser(req.adminUser?.enterpriseId as string, id, {
-    active: typeof req.body?.active === "boolean" ? req.body.active : undefined,
-    role: nextRole && isRole(nextRole) ? nextRole : undefined,
-  });
+  type RoleUpdate = NonNullable<Parameters<typeof updateOwnEnterpriseUser>[2]["role"]>;
+  const updates: { active?: boolean; role?: RoleUpdate } = {};
+  if (typeof req.body?.active === "boolean") {
+    updates.active = req.body.active;
+  }
+  if (nextRole && isRole(nextRole)) {
+    updates.role = nextRole;
+  }
+  const result = await updateOwnEnterpriseUser(req.adminUser?.enterpriseId as string, id, updates);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
-}
-
-export async function listFeatureFlagsHandler(req: AdminRequest, res: Response) {
-  return res.json(await listFeatureFlags(req.adminUser?.enterpriseId as string));
-}
-
-export async function updateFeatureFlagHandler(req: AdminRequest, res: Response) {
-  const enabled = req.body?.enabled;
-  if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled boolean required" });
-  try {
-    const result = await updateFeatureFlag(req.adminUser?.enterpriseId as string, String(req.params.key), enabled);
-    if (!result.ok) return res.status(result.status).json({ error: result.error });
-    return res.json(result.value);
-  } catch (err) {
-    console.error("update feature flag error", err);
-    return res.status(500).json({ error: "Could not update feature flag" });
-  }
 }
 
 export async function listEnterprisesHandler(_req: AdminRequest, res: Response) {
@@ -124,14 +114,19 @@ export async function searchEnterpriseUsersHandler(req: AdminRequest, res: Respo
 
 export async function updateEnterpriseUserHandler(req: AdminRequest, res: Response) {
   const enterpriseId = String(req.params.enterpriseId || "");
-  const id = parsePositiveInt(req.params.id);
+  const id = parsePositiveInt(readParamString(req.params.id));
   if (!enterpriseId) return res.status(400).json({ error: "Enterprise id is required" });
   if (!id) return res.status(400).json({ error: "Invalid user id" });
   const nextRole = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : undefined;
-  const result = await updateEnterpriseUser(enterpriseId, id, {
-    active: typeof req.body?.active === "boolean" ? req.body.active : undefined,
-    role: nextRole && isRole(nextRole) ? nextRole : undefined,
-  });
+  type RoleUpdate = NonNullable<Parameters<typeof updateEnterpriseUser>[2]["role"]>;
+  const updates: { active?: boolean; role?: RoleUpdate } = {};
+  if (typeof req.body?.active === "boolean") {
+    updates.active = req.body.active;
+  }
+  if (nextRole && isRole(nextRole)) {
+    updates.role = nextRole;
+  }
+  const result = await updateEnterpriseUser(enterpriseId, id, updates);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -152,5 +147,11 @@ export async function listAuditLogsHandler(req: AdminRequest, res: Response) {
   const from = parsedFrom && !isNaN(parsedFrom.getTime()) ? parsedFrom : undefined;
   const to = parsedTo && !isNaN(parsedTo.getTime()) ? parsedTo : undefined;
   const limit = req.query.limit ? Number(req.query.limit) : undefined;
-  return res.json(await getAuditLogs(enterpriseId, { from, to, limit }));
+  return res.json(
+    await getAuditLogs(enterpriseId, {
+      ...(from !== undefined ? { from } : {}),
+      ...(to !== undefined ? { to } : {}),
+      ...(limit !== undefined ? { limit } : {}),
+    })
+  );
 }

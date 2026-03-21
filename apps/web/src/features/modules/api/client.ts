@@ -4,6 +4,7 @@ import type { Module } from "../types";
 type ListModulesOptions = {
   scope?: "staff";
   compact?: boolean;
+  query?: string;
 };
 
 export async function listModules(userId: number, options?: ListModulesOptions): Promise<Module[]> {
@@ -13,6 +14,9 @@ export async function listModules(userId: number, options?: ListModulesOptions):
   }
   if (options?.compact) {
     searchParams.set("compact", "1");
+  }
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
   }
 
   return apiFetch<Module[]>(`/projects/modules?${searchParams.toString()}`);

@@ -9,11 +9,20 @@ enum DeadlineProfile {
   MCF
 }
 
+enum TeamAllocationLifecycle {
+  DRAFT
+  ACTIVE
+}
+
 model Team {
   id                         Int             @id @default(autoincrement())
   enterpriseId               String
   projectId                  Int
   teamName                   String
+  allocationLifecycle        TeamAllocationLifecycle @default(ACTIVE)
+  draftCreatedById           Int?
+  draftApprovedById          Int?
+  draftApprovedAt            DateTime?
   createdAt                  DateTime        @default(now())
   updatedAt                  DateTime        @updatedAt
   archivedAt                 DateTime?
@@ -24,6 +33,8 @@ model Team {
   allocations          TeamAllocation[]
   project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   enterprise           Enterprise            @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
+  draftCreatedBy       User?                 @relation("TeamDraftCreatedBy", fields: [draftCreatedById], references: [id], onDelete: SetNull)
+  draftApprovedBy      User?                 @relation("TeamDraftApprovedBy", fields: [draftApprovedById], references: [id], onDelete: SetNull)
   deadlineOverride     TeamDeadlineOverride? @relation("TeamDeadlineOverride")
   peerAssessments      PeerAssessment[]
   peerFeedbacks        PeerFeedback[]
@@ -42,4 +53,7 @@ model Team {
   @@unique([enterpriseId, teamName])
   @@index([projectId])
   @@index([enterpriseId])
+  @@index([allocationLifecycle])
+  @@index([draftCreatedById])
+  @@index([draftApprovedById])
 }

@@ -20,6 +20,7 @@ export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
     { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
     { href: `${base}/repos`, label: "Repositories", flag: "repos" },
     { href: `${base}/trello`, label: "Trello", flag: "trello" },
+    { href: `${base}/discussion`, label: "Discussion Forum" },
   ].filter((link) => {
     if (link.flag && enabledFlags) {
       if (Object.prototype.hasOwnProperty.call(enabledFlags, link.flag)) {

@@ -166,18 +166,15 @@ const createVisibilityHandler = ({
 }) => (element: HTMLElement, isVisible: boolean) => {
   const group = elementGroup.get(element);
   if (group) {
-    if (once) {
-      if (isVisible) revealGroup(group);
-    } else {
+    if (!once) {
       updateGroupVisibility(group, element, isVisible);
+      return;
     }
+    if (isVisible) revealGroup(group);
     return;
   }
-  if (isVisible) {
-    revealElement(element);
-  } else if (!once) {
-    hide(element);
-  }
+  if (isVisible) return revealElement(element);
+  if (!once) hide(element);
 };
 
 const setupObservers = (

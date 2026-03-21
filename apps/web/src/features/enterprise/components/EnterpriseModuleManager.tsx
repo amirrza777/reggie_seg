@@ -8,6 +8,7 @@ import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 
 type RequestState = "idle" | "loading" | "success" | "error";
@@ -17,6 +18,104 @@ const MODULES_PER_PAGE = 10;
 type EnterpriseModuleManagerProps = {
   canCreateModule?: boolean;
 };
+
+function ModulesSummaryLabel({
+  modulesStatus,
+  totalModules,
+  moduleStart,
+  moduleEnd,
+}: {
+  modulesStatus: RequestState;
+  totalModules: number;
+  moduleStart: number;
+  moduleEnd: number;
+}) {
+  if (modulesStatus === "loading" && totalModules === 0) return "Loading modules...";
+  if (totalModules === 0) return "Showing 0 modules";
+  return `Showing ${moduleStart}-${moduleEnd} of ${totalModules} module${totalModules === 1 ? "" : "s"}`;
+}
+
+function EnterpriseModulesPagination({
+  currentPage,
+  effectiveTotalPages,
+  pageInput,
+  setPageInput,
+  setCurrentPage,
+  handlePageJump,
+  applyPageInput,
+}: {
+  currentPage: number;
+  effectiveTotalPages: number;
+  pageInput: string;
+  setPageInput: (value: string) => void;
+  setCurrentPage: (update: (prev: number) => number) => void;
+  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
+  applyPageInput: (value: string) => void;
+}) {
+  return (
+    <div className="user-management__pagination" aria-label="Enterprise modules pagination">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+        disabled={currentPage === 1}
+      >
+        Previous
+      </Button>
+      <form className="user-management__page-jump" onSubmit={handlePageJump}>
+        <label htmlFor="enterprise-modules-page-input" className="user-management__page-jump-label">
+          Page
+        </label>
+        <FormField
+          id="enterprise-modules-page-input"
+          type="number"
+          min={1}
+          max={effectiveTotalPages}
+          step={1}
+          inputMode="numeric"
+          value={pageInput}
+          onChange={(event) => setPageInput(event.target.value)}
+          onBlur={() => applyPageInput(pageInput)}
+          className="user-management__page-jump-input"
+          aria-label="Go to modules page number"
+        />
+        <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
+      </form>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
+        disabled={currentPage === effectiveTotalPages}
+      >
+        Next
+      </Button>
+    </div>
+  );
+}
+
+function buildModuleRows(modules: EnterpriseModuleRecord[]) {
+  return modules.map((module) => [
+    <div key={`${module.id}-name`} className="ui-stack-xs">
+      <strong>{module.name}</strong>
+      <span className="muted">Module ID {module.id}</span>
+    </div>,
+    <span key={`${module.id}-leaders`}>{module.leaderCount}</span>,
+    <span key={`${module.id}-tas`}>{module.teachingAssistantCount}</span>,
+    <span key={`${module.id}-students`}>{module.studentCount}</span>,
+    <span key={`${module.id}-updated`}>{formatDate(module.updatedAt)}</span>,
+    <div key={`${module.id}-actions`} className="enterprise-modules__row-actions">
+      {module.canManageAccess ? (
+        <Link href={`/enterprise/modules/${module.id}/edit`} className="btn btn--ghost btn--sm">
+          Edit module
+        </Link>
+      ) : (
+        <span className="ui-note ui-note--muted">Leader only</span>
+      )}
+    </div>,
+  ]);
+}
 
 export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseModuleManagerProps) {
   const [modules, setModules] = useState<EnterpriseModuleRecord[]>([]);
@@ -95,25 +194,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
   const moduleEnd =
     totalModules === 0 ? 0 : Math.min((currentPage - 1) * MODULES_PER_PAGE + modules.length, totalModules);
 
-  const moduleRows = modules.map((module) => [
-    <div key={`${module.id}-name`} className="ui-stack-xs">
-      <strong>{module.name}</strong>
-      <span className="muted">Module ID {module.id}</span>
-    </div>,
-    <span key={`${module.id}-leaders`}>{module.leaderCount}</span>,
-    <span key={`${module.id}-tas`}>{module.teachingAssistantCount}</span>,
-    <span key={`${module.id}-students`}>{module.studentCount}</span>,
-    <span key={`${module.id}-updated`}>{formatDate(module.updatedAt)}</span>,
-    <div key={`${module.id}-actions`} className="enterprise-modules__row-actions">
-      {module.canManageAccess ? (
-        <Link href={`/enterprise/modules/${module.id}/edit`} className="btn btn--ghost btn--sm">
-          Edit module
-        </Link>
-      ) : (
-        <span className="ui-note ui-note--muted">Leader only</span>
-      )}
-    </div>,
-  ]);
+  const moduleRows = buildModuleRows(modules);
 
   return (
     <Card
@@ -128,8 +209,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
       <p className="muted">Create modules, set owners/leaders and teaching assistants, and enroll students.</p>
 
       <div className="ui-toolbar enterprise-modules__toolbar">
-        <FormField
-          type="search"
+        <SearchField
           value={moduleSearchQuery}
           onChange={(event) => setModuleSearchQuery(event.target.value)}
           placeholder="Search modules by name or ID"
@@ -137,11 +217,12 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
           className="enterprise-modules__search"
         />
         <span className="ui-note ui-note--muted">
-          {modulesStatus === "loading" && totalModules === 0
-            ? "Loading modules..."
-            : totalModules === 0
-              ? "Showing 0 modules"
-              : `Showing ${moduleStart}-${moduleEnd} of ${totalModules} module${totalModules === 1 ? "" : "s"}`}
+          <ModulesSummaryLabel
+            modulesStatus={modulesStatus}
+            totalModules={totalModules}
+            moduleStart={moduleStart}
+            moduleEnd={moduleEnd}
+          />
         </span>
       </div>
 
@@ -160,45 +241,15 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
             columnTemplate="1.5fr 0.5fr 0.5fr 0.7fr 0.8fr 1fr"
           />
           {totalPages > 1 ? (
-            <div className="user-management__pagination" aria-label="Enterprise modules pagination">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <form className="user-management__page-jump" onSubmit={handlePageJump}>
-                <label htmlFor="enterprise-modules-page-input" className="user-management__page-jump-label">
-                  Page
-                </label>
-                <FormField
-                  id="enterprise-modules-page-input"
-                  type="number"
-                  min={1}
-                  max={effectiveTotalPages}
-                  step={1}
-                  inputMode="numeric"
-                  value={pageInput}
-                  onChange={(event) => setPageInput(event.target.value)}
-                  onBlur={() => applyPageInput(pageInput)}
-                  className="user-management__page-jump-input"
-                  aria-label="Go to modules page number"
-                />
-                <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-              </form>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
-                disabled={currentPage === effectiveTotalPages}
-              >
-                Next
-              </Button>
-            </div>
+            <EnterpriseModulesPagination
+              currentPage={currentPage}
+              effectiveTotalPages={effectiveTotalPages}
+              pageInput={pageInput}
+              setPageInput={setPageInput}
+              setCurrentPage={setCurrentPage}
+              handlePageJump={handlePageJump}
+              applyPageInput={applyPageInput}
+            />
           ) : null}
         </>
       ) : (

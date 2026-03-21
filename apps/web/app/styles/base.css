@@ -211,9 +211,9 @@ a.muted:hover {
 }
 
 .btn--quiet {
-    background: var(--glass-hover);
+    background: var(--glass-ui-bg-soft);
     color: var(--ink);
-    border: 1px solid var(--border);
+    border: 1px solid var(--glass-ui-border);
 }
 
 .btn--sm {
@@ -257,21 +257,21 @@ a.muted:hover {
 .pill-nav__link {
     padding: 8px 12px;
     border-radius: var(--radius-sm);
-    background: var(--surface);
-    border: 1px solid var(--border);
+    background: var(--glass-ui-bg-soft);
+    border: 1px solid var(--glass-ui-border);
     color: var(--ink-strong);
     font-weight: var(--fw-semibold);
     transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
 .pill-nav__link:hover {
-    background: var(--accent-soft);
+    background: var(--glass-ui-hover);
     border-color: var(--accent-border);
     transform: translateY(-1px);
 }
 
 .pill-nav__link--active {
-    background: var(--accent-soft);
+    background: color-mix(in srgb, var(--glass-ui-bg) 74%, var(--accent-soft) 26%);
     border-color: var(--accent-border);
     color: var(--accent-strong);
 }
@@ -299,7 +299,21 @@ a.muted:hover {
 
 .pill-ghost {
   color: var(--muted);
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
+}
+
+.glass-pane {
+    background: var(--glass-ui-bg);
+    border: 1px solid var(--glass-ui-border);
+    box-shadow: var(--glass-ui-shadow);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .pill-nav__link,
+    .glass-pane {
+        backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+        -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    }
 }
 
 .pill-green {

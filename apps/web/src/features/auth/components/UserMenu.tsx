@@ -72,7 +72,7 @@ export function UserMenu() {
       </button>
 
       {open ? (
-        <div className="user-menu__dropdown">
+        <div className="user-menu__dropdown" data-elevation="popup">
           <div className="user-menu__meta">
             {avatarSrc ? (
               <img className="user-menu__avatar user-menu__avatar--large" src={avatarSrc} alt="User avatar" />

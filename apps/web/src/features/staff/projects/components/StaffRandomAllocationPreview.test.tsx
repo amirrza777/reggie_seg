@@ -18,6 +18,15 @@ vi.mock("@/features/projects/api/teamAllocation", () => ({
 }));
 
 describe("StaffRandomAllocationPreview", () => {
+  async function waitForPreviewReady() {
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText("Team count")).toBeEnabled();
+      },
+      { timeout: 5000 },
+    );
+  }
+
   beforeEach(() => {
     getRandomAllocationPreviewMock.mockReset();
     applyRandomAllocationMock.mockReset();
@@ -62,6 +71,7 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, 101);
     });
+    await waitForPreviewReady();
     expect(screen.getByText("Random Team 1")).toBeInTheDocument();
     expect(screen.getByText("Jin Johannesdottir")).toBeInTheDocument();
     expect(screen.getByText("4 vacant students")).toBeInTheDocument();
@@ -105,11 +115,14 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, 101);
     });
+    await waitForPreviewReady();
+    await screen.findByText("Random Team 1");
     await waitFor(() => {
-      expect(screen.getByText("Random Team 1")).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Rename" })[0]).toBeEnabled();
     });
     fireEvent.click(screen.getAllByRole("button", { name: "Rename" })[0]);
-    fireEvent.change(screen.getByLabelText("Team 1 name"), { target: { value: "Team Orion" } });
+    const teamNameInput = await screen.findByLabelText("Team 1 name");
+    fireEvent.change(teamNameInput, { target: { value: "Team Orion" } });
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
     expect(screen.getByText("Team Orion")).toBeInTheDocument();
 
@@ -160,9 +173,7 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, undefined);
     });
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /preview random teams/i })).not.toBeDisabled();
-    });
+    await waitForPreviewReady();
 
     fireEvent.click(screen.getByRole("button", { name: /confirm allocation/i }));
     expect(screen.getByRole("button", { name: /confirmed/i })).toBeInTheDocument();
@@ -209,6 +220,7 @@ describe("StaffRandomAllocationPreview", () => {
     await waitFor(() => {
       expect(getRandomAllocationPreviewMock).toHaveBeenCalledWith(4, 2, undefined);
     });
+    await waitForPreviewReady();
 
     fireEvent.change(screen.getByLabelText("Team count"), { target: { value: "3" } });
     expect(screen.getByText("Inputs changed since last preview. Generate a new preview before applying.")).toBeInTheDocument();

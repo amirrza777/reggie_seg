@@ -1,0 +1,19 @@
+enum ForumReactionType {
+  LIKE
+  DISLIKE
+}
+
+model ForumReaction {
+  id        Int               @id @default(autoincrement())
+  postId    Int
+  userId    Int
+  type      ForumReactionType
+  createdAt DateTime          @default(now())
+
+  post DiscussionPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}

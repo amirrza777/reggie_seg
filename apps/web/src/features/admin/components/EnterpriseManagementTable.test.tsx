@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 
 vi.mock("../api/client", () => ({
@@ -21,6 +22,8 @@ const searchEnterprisesMock = searchEnterprises as MockedFunction<typeof searchE
 const createEnterpriseMock = createEnterprise as MockedFunction<typeof createEnterprise>;
 const searchEnterpriseUsersMock = searchEnterpriseUsers as MockedFunction<typeof searchEnterpriseUsers>;
 const updateEnterpriseUserMock = updateEnterpriseUser as MockedFunction<typeof updateEnterpriseUser>;
+type EnterpriseSearchItem = Awaited<ReturnType<typeof searchEnterprises>>["items"][number];
+type EnterpriseUserSearchItem = Awaited<ReturnType<typeof searchEnterpriseUsers>>["items"][number];
 
 const enterprise = {
   id: "ent_1",
@@ -46,7 +49,7 @@ const enterpriseUser = {
   active: true,
 };
 
-const makeSearchResponse = (items: Array<any>, total: number, page = 1, pageSize = 8) => ({
+const makeSearchResponse = (items: EnterpriseSearchItem[], total: number, page = 1, pageSize = 8) => ({
   items,
   total,
   page,
@@ -57,7 +60,7 @@ const makeSearchResponse = (items: Array<any>, total: number, page = 1, pageSize
   query: null,
 });
 
-const makeUserSearchResponse = (items: Array<any>, total: number, page = 1, pageSize = 10) => ({
+const makeUserSearchResponse = (items: EnterpriseUserSearchItem[], total: number, page = 1, pageSize = 10) => ({
   items,
   total,
   page,
@@ -70,7 +73,7 @@ const makeUserSearchResponse = (items: Array<any>, total: number, page = 1, page
   active: null,
 });
 
-const installEnterpriseSearchMock = (dataset: Array<any>) => {
+const installEnterpriseSearchMock = (dataset: EnterpriseSearchItem[]) => {
   searchEnterprisesMock.mockImplementation(async (params = {}) => {
     const q = (params.q ?? "").trim().toLowerCase();
     const page = params.page ?? 1;
@@ -85,7 +88,7 @@ const installEnterpriseSearchMock = (dataset: Array<any>) => {
   });
 };
 
-const installEnterpriseUserSearchMock = (dataset: Array<any>) => {
+const installEnterpriseUserSearchMock = (dataset: EnterpriseUserSearchItem[]) => {
   searchEnterpriseUsersMock.mockImplementation(async (_enterpriseId, params = {}) => {
     const q = (params.q ?? "").trim().toLowerCase();
     const page = params.page ?? 1;
@@ -98,6 +101,24 @@ const installEnterpriseUserSearchMock = (dataset: Array<any>) => {
     const start = (page - 1) * pageSize;
     return makeUserSearchResponse(filtered.slice(start, start + pageSize), filtered.length, page, pageSize);
   });
+};
+
+const createEnterpriseFromModal = async (
+  user: ReturnType<typeof userEvent.setup>,
+  name: string,
+  code: string
+) => {
+  await user.click(screen.getByRole("button", { name: /^Create$/i }));
+
+  const dialog = screen.getByRole("dialog", { name: /create enterprise/i });
+  const nameInput = within(dialog).getByLabelText(/enterprise name/i);
+  const codeInput = within(dialog).getByLabelText(/enterprise code/i);
+
+  await user.clear(nameInput);
+  await user.type(nameInput, name);
+  await user.clear(codeInput);
+  await user.type(codeInput, code);
+  await user.click(within(dialog).getByRole("button", { name: /create enterprise/i }));
 };
 
 describe("EnterpriseManagementTable", () => {
@@ -121,6 +142,7 @@ describe("EnterpriseManagementTable", () => {
   });
 
   it("creates an enterprise from the create modal", async () => {
+    const user = userEvent.setup();
     createEnterpriseMock.mockResolvedValue({
       ...enterprise,
       id: "ent_2",
@@ -131,13 +153,7 @@ describe("EnterpriseManagementTable", () => {
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByRole("button", { name: /^Create$/i }));
-    const dialog = screen.getByRole("dialog", { name: /create enterprise/i });
-    fireEvent.change(within(dialog).getByLabelText(/enterprise name/i), {
-      target: { value: "King's College London 2" },
-    });
-    fireEvent.change(within(dialog).getByLabelText(/enterprise code/i), { target: { value: "kcl2" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: /create enterprise/i }));
+    await createEnterpriseFromModal(user, "King's College London 2", "kcl2");
 
     await waitFor(() =>
       expect(createEnterpriseMock).toHaveBeenCalledWith({ name: "King's College London 2", code: "KCL2" }),
@@ -146,20 +162,23 @@ describe("EnterpriseManagementTable", () => {
   });
 
   it("opens enterprise accounts and updates role", async () => {
+    const user = userEvent.setup();
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await screen.findByText("King's College London");
 
-    fireEvent.click(screen.getByRole("button", { name: /manage accounts/i }));
+    await user.click(await screen.findByRole("button", { name: /manage accounts/i }));
     await waitFor(() =>
       expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 1, pageSize: 10 }),
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: /staff/i }));
+    await user.click(await screen.findByRole("button", { name: /staff/i }));
     await waitFor(() => expect(updateEnterpriseUserMock).toHaveBeenCalledWith("ent_1", 42, { role: "STAFF" }));
     expect(screen.getByText(/updated role to staff/i)).toBeInTheDocument();
   });
 
   it("dismisses success popup after 2.5 seconds", async () => {
+    const user = userEvent.setup();
     createEnterpriseMock.mockResolvedValue({
       ...enterprise,
       id: "ent_2",
@@ -170,13 +189,7 @@ describe("EnterpriseManagementTable", () => {
     render(<EnterpriseManagementTable isSuperAdmin />);
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
 
-    fireEvent.click(screen.getByRole("button", { name: /^Create$/i }));
-    const dialog = screen.getByRole("dialog", { name: /create enterprise/i });
-    fireEvent.change(within(dialog).getByLabelText(/enterprise name/i), {
-      target: { value: "King's College London 2" },
-    });
-    fireEvent.change(within(dialog).getByLabelText(/enterprise code/i), { target: { value: "kcl2" } });
-    fireEvent.click(within(dialog).getByRole("button", { name: /create enterprise/i }));
+    await createEnterpriseFromModal(user, "King's College London 2", "kcl2");
 
     await waitFor(() =>
       expect(createEnterpriseMock).toHaveBeenCalledWith({ name: "King's College London 2", code: "KCL2" }),

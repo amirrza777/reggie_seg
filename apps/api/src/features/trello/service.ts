@@ -1,4 +1,36 @@
 import { TrelloRepo } from "./repo.js"
+import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js"
+
+type TrelloBoard = Record<string, unknown> & {
+  id?: unknown
+  name?: unknown
+}
+
+function isTrelloBoard(value: unknown): value is TrelloBoard {
+  return typeof value === "object" && value !== null
+}
+
+function parseBoardId(board: TrelloBoard): string {
+  return typeof board.id === "string" ? board.id : ""
+}
+
+function matchesBoardId(value: unknown, boardId: string): boolean {
+  return isTrelloBoard(value) && parseBoardId(value) === boardId
+}
+
+function normalizeBoardCollection(value: unknown): TrelloBoard[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(isTrelloBoard)
+}
+
+function matchesBoardSearchQuery(board: TrelloBoard, query: string): boolean {
+  const boardName = typeof board.name === "string" ? board.name : ""
+  const boardId = parseBoardId(board)
+  return matchesFuzzySearchCandidate({
+    query,
+    sources: [boardName, boardId],
+  })
+}
 
 //Fails early if Trello env is missing.
 function requireTrelloKey() {
@@ -35,7 +67,8 @@ export const TrelloService = {
       `https://api.trello.com/1/members/me/boards?key=${trelloKey}&token=${token}`
     )
     if (!res.ok) throw new Error("Failed to fetch boards")
-    return res.json()
+    const payload: unknown = await res.json()
+    return normalizeBoardCollection(payload)
   },
 
   async getBoardWithData(boardId: string, token: string) {
@@ -101,7 +134,7 @@ export const TrelloService = {
 
     //Ensures only boards from the owner's Trello account can be assigned
     const ownerBoards = await TrelloService.getUserBoards(owner.trelloToken)
-    const boardExists = Array.isArray(ownerBoards) && ownerBoards.some((board: any) => board?.id === boardId)
+    const boardExists = ownerBoards.some((board) => matchesBoardId(board, boardId))
     if (!boardExists) throw new Error("Board does not belong to owner")
 
     return TrelloRepo.assignBoard(teamId, boardId, ownerId)
@@ -152,10 +185,16 @@ export const TrelloService = {
     await TrelloRepo.setTeamTrelloSectionConfig(teamId, normalized)
   },
 
-  async fetchMyBoards(userId: number) {
+  async fetchMyBoards(userId: number, options?: { query?: string | null }) {
     const user = await TrelloRepo.getUserById(userId)
     if (!user?.trelloToken) throw new Error("User not connected to Trello")
-    return TrelloService.getUserBoards(user.trelloToken)
+    const boards = await TrelloService.getUserBoards(user.trelloToken)
+    const searchQuery = typeof options?.query === "string" ? options.query.trim() : ""
+    if (!searchQuery) {
+      return boards
+    }
+
+    return boards.filter((board) => matchesBoardSearchQuery(board, searchQuery))
   },
 
   async fetchBoardById(userId: number, boardId: string) {
@@ -164,7 +203,7 @@ export const TrelloService = {
     const user = await TrelloRepo.getUserById(userId)
     if (!user?.trelloToken) throw new Error("User not connected to Trello")
     const boards = await TrelloService.getUserBoards(user.trelloToken)
-    const isOwnerBoard = Array.isArray(boards) && boards.some((board: any) => board?.id === boardId)
+    const isOwnerBoard = boards.some((board) => matchesBoardId(board, boardId))
     if (!isOwnerBoard) throw new Error("Board not found for this user")
 
     return TrelloService.getBoardWithData(boardId, user.trelloToken)

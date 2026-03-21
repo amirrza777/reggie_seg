@@ -16,12 +16,15 @@ export function useNotifications(userId: number | null) {
 
   useEffect(() => {
     if (!userId) return;
+    const currentUserId = userId;
 
     async function fetchCount() {
       try {
-        const { count } = await getUnreadCount(userId!);
+        const { count } = await getUnreadCount(currentUserId);
         setUnreadCount(count);
-      } catch {}
+      } catch {
+        // Keep the previous unread count if polling fails.
+      }
     }
 
     fetchCount();
@@ -34,7 +37,9 @@ export function useNotifications(userId: number | null) {
     try {
       const data = await getNotifications(userId);
       setNotifications(data);
-    } catch {}
+    } catch {
+      // Keep existing notifications if refresh fails.
+    }
   }, [userId]);
 
   const markRead = useCallback(async (notificationId: number) => {

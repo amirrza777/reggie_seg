@@ -1,5 +1,7 @@
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import Link from "next/link";
+import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { listTeamMeetings } from "@/features/staff/meetings/api/client";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -17,7 +19,35 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
   if (!ctx.ok) return null;
 
-  const { team } = ctx;
+  const { user, project, team } = ctx;
+
+  let openSupportRequestCount: number | null = null;
+  let recordedMeetingCount: number | null = null;
+  let lastMeetingLabel: string | null = null;
+
+  const [supportRequestsResult, meetingsResult] = await Promise.allSettled([
+    getStaffTeamHealthMessages(user.id, project.id, team.id),
+    listTeamMeetings(team.id),
+  ]);
+
+  if (supportRequestsResult.status === "fulfilled") {
+    openSupportRequestCount = supportRequestsResult.value.filter((request) => !request.resolved).length;
+  }
+
+  if (meetingsResult.status === "fulfilled") {
+    recordedMeetingCount = meetingsResult.value.length;
+
+    const latestMeetingTimestamp = meetingsResult.value.reduce<number | null>((latest, meeting) => {
+      const timestamp = new Date(meeting.date).getTime();
+      if (!Number.isFinite(timestamp)) return latest;
+      if (latest == null || timestamp > latest) return timestamp;
+      return latest;
+    }, null);
+
+    if (latestMeetingTimestamp != null) {
+      lastMeetingLabel = new Date(latestMeetingTimestamp).toLocaleDateString();
+    }
+  }
 
   return (
     <>
@@ -25,23 +55,23 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         <article className="staff-projects__card">
           <h3 className="staff-projects__card-title">Team health</h3>
           <p className="staff-projects__card-sub">
-            Placeholder for flagged-risk indicators and team-health metrics.
+            {openSupportRequestCount == null
+              ? "Open team health to review risk indicators and support requests."
+              : `${openSupportRequestCount} open support request${openSupportRequestCount === 1 ? "" : "s"}.`}
+          </p>
+          <p className="staff-projects__card-sub">
+            {recordedMeetingCount == null
+              ? "Meeting activity signals are available in the team health view."
+              : `${recordedMeetingCount} meeting${recordedMeetingCount === 1 ? "" : "s"} recorded${
+                  lastMeetingLabel ? ` · Last meeting ${lastMeetingLabel}` : ""
+                }.`}
           </p>
           <Link
-            href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
+            href={`/staff/projects/${projectId}/teams/${teamId}/team`}
             className="staff-projects__card-action"
           >
-            View team health
+            Open team health
           </Link>
-        </article>
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Schedule meeting with team</h3>
-          <p className="staff-projects__card-sub">
-            Placeholder for meeting scheduling workflow and notifications.
-          </p>
-          <button type="button" className="staff-projects__card-placeholder-btn" disabled>
-            Schedule meeting
-          </button>
         </article>
       </section>
 

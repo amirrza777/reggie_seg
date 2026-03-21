@@ -78,8 +78,6 @@ export async function getBoardById(boardId: string): Promise<BoardView> {
   return rawBoardToBoardView(board);
 }
 
-export type TeamBoardSummary = { id: string; name: string; url?: string };
-
 export type TeamBoardResult =
   | { ok: true; view: BoardView; sectionConfig: Record<string, string> }
   | { ok: false; requireJoin: true; boardUrl: string };
@@ -107,7 +105,6 @@ export const TRELLO_SECTION_STATUSES = [
   "work_in_progress",
   "completed",
 ] as const;
-export type TrelloSectionStatus = (typeof TRELLO_SECTION_STATUSES)[number];
 
 /** Default status from list name */
 export function getDefaultStatusForListName(listName: string): "backlog" | "work_in_progress" | "completed" {
@@ -159,8 +156,14 @@ export async function getConnectUrl(callbackUrl?: string): Promise<{ url: string
 
 export type OwnerBoard = { id: string; name: string };
 
-export async function getMyBoards(): Promise<OwnerBoard[]> {
-  const data = await trelloFetch<OwnerBoard[]>("/trello/boards", { method: "GET" });
+export async function getMyBoards(options?: { query?: string }): Promise<OwnerBoard[]> {
+  const searchParams = new URLSearchParams();
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  const query = searchParams.toString();
+  const path = query ? `/trello/boards?${query}` : "/trello/boards";
+  const data = await trelloFetch<OwnerBoard[]>(path, { method: "GET" });
   return Array.isArray(data) ? data : [];
 }
 

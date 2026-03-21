@@ -172,17 +172,24 @@ export async function resolveStaffTeamHealthMessageHandler(req: Request, res: Re
   }
 
   try {
-    const result = await resolveTeamHealthMessageWithDeadlineOverrideForStaff(userId, projectId, teamId, requestId, {
-      taskOpenDate: taskOpenDateParsed.value,
-      taskDueDate: taskDueDateParsed.value,
-      assessmentOpenDate: assessmentOpenDateParsed.value,
-      assessmentDueDate: assessmentDueDateParsed.value,
-      feedbackOpenDate: feedbackOpenDateParsed.value,
-      feedbackDueDate: feedbackDueDateParsed.value,
-    }, {
-      inputMode: deadlineInputMode,
-      shiftDays,
-    });
+    const result = await resolveTeamHealthMessageWithDeadlineOverrideForStaff(
+      userId,
+      projectId,
+      teamId,
+      requestId,
+      {
+        ...(taskOpenDateParsed.value !== undefined ? { taskOpenDate: taskOpenDateParsed.value } : {}),
+        ...(taskDueDateParsed.value !== undefined ? { taskDueDate: taskDueDateParsed.value } : {}),
+        ...(assessmentOpenDateParsed.value !== undefined ? { assessmentOpenDate: assessmentOpenDateParsed.value } : {}),
+        ...(assessmentDueDateParsed.value !== undefined ? { assessmentDueDate: assessmentDueDateParsed.value } : {}),
+        ...(feedbackOpenDateParsed.value !== undefined ? { feedbackOpenDate: feedbackOpenDateParsed.value } : {}),
+        ...(feedbackDueDateParsed.value !== undefined ? { feedbackDueDate: feedbackDueDateParsed.value } : {}),
+      },
+      {
+        ...(deadlineInputMode !== undefined ? { inputMode: deadlineInputMode } : {}),
+        ...(shiftDays !== undefined ? { shiftDays } : {}),
+      },
+    );
 
     if (!result) {
       return res.status(404).json({ error: "Project, team, request, or deadline not found for staff scope" });
