@@ -726,7 +726,7 @@ export function GithubRepoChartsDashboard({
   const totalAdditions = totals.totalAdditions;
   const totalDeletions = totals.totalDeletions;
   const branchCount = Number(snapshot?.data?.branchScopeStats?.allBranches?.branchCount ?? 0);
-  const totalBranchCommits = Number(snapshot?.data?.branchScopeStats?.allBranches?.totalCommits ?? 0);
+  const totalBranchCommits = Math.max(totalCommits, Number(snapshot?.data?.branchScopeStats?.allBranches?.totalCommits ?? 0));
   const defaultBranchName = snapshot?.data?.branchScopeStats?.defaultBranch?.branch || "main";
   const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch ?? {};
 

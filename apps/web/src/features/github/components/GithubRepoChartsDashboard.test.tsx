@@ -170,6 +170,26 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("All branch commits")).toBeInTheDocument();
   });
 
+  it("normalizes all-branch commit totals in branch activity when default-branch is higher", () => {
+    const snapshot = makeSnapshot();
+    snapshot.data.branchScopeStats.defaultBranch.totalCommits = 10;
+    snapshot.data.branchScopeStats.allBranches.totalCommits = 8;
+    snapshot.repoStats[0].totalCommits = 10;
+
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={snapshot}
+        coverage={makeCoverage()}
+        currentGithubLogin="madbpopye"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
+    const allBranchCommitsMetric = screen.getByText("All branch commits").parentElement;
+    expect(allBranchCommitsMetric).toHaveTextContent("10");
+    expect(allBranchCommitsMetric).not.toHaveTextContent("8");
+  });
+
   it("renders staff mode with team activity labels", () => {
     render(
       <GithubRepoChartsDashboard

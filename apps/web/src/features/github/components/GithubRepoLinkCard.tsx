@@ -83,9 +83,8 @@ export function GithubRepoLinkCard({
   const defaultCommitCount = defaultBranchTotals?.totalCommits ?? fallbackRepoTotals?.totalCommits ?? 0;
   const defaultAdditionCount = defaultBranchTotals?.totalAdditions ?? fallbackRepoTotals?.totalAdditions ?? 0;
   const defaultDeletionCount = defaultBranchTotals?.totalDeletions ?? fallbackRepoTotals?.totalDeletions ?? 0;
-  const allCommitCount = allBranchesTotals?.totalCommits ?? defaultCommitCount;
-  const allAdditionCount = allBranchesTotals?.totalAdditions ?? defaultAdditionCount;
-  const allDeletionCount = allBranchesTotals?.totalDeletions ?? defaultDeletionCount;
+  const allAdditionCount = Math.max(defaultAdditionCount, Number(allBranchesTotals?.totalAdditions ?? 0));
+  const allDeletionCount = Math.max(defaultDeletionCount, Number(allBranchesTotals?.totalDeletions ?? 0));
 
   const personalStats = findPersonalStats(snapshot, currentGithubLogin);
   const canRemove = !readOnly && typeof onRemoveLink === "function";
@@ -149,10 +148,6 @@ export function GithubRepoLinkCard({
               <div className="github-repo-link-card__stat-value">
                 {defaultAdditionCount.toLocaleString()} <span className="github-repo-link-card__stat-subtle">/ {defaultDeletionCount.toLocaleString()}</span>
               </div>
-            </div>
-            <div className="github-repo-link-card__stat">
-              <div className="github-repo-link-card__stat-label">All-branches commits</div>
-              <div className="github-repo-link-card__stat-value">{allCommitCount.toLocaleString()}</div>
             </div>
             <div className="github-repo-link-card__stat">
               <div className="github-repo-link-card__stat-label">All additions / deletions</div>

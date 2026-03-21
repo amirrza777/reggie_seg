@@ -302,6 +302,18 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const mergedAllBranchesCommitsByBranch = mergeCountMaps(previousAllBranchesCommitsByBranch, allBranchCommitCountByBranch);
 
   const previousAllBranchesTotalCommits = previousAllBranchesStats?.totalCommits ?? previousRepoStats?.totalCommits ?? 0;
+  const mergedAllBranchesTotalCommits = Math.max(
+    mergedDefaultBranchCommits,
+    previousAllBranchesTotalCommits + newAllBranchesTotalCommits
+  );
+  const mergedAllBranchesTotalAdditions = Math.max(
+    mergedDefaultLineTotals.additions,
+    mergedAllBranchesLineTotals.additions
+  );
+  const mergedAllBranchesTotalDeletions = Math.max(
+    mergedDefaultLineTotals.deletions,
+    mergedAllBranchesLineTotals.deletions
+  );
   const mergedSampleCommits = mergeSampleCommits(previousData.sampleCommits, commits);
   const analysedWindowSinceIso = sinceIso ?? previousData?.analysedWindow?.since ?? null;
 
@@ -339,9 +351,9 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       },
       allBranches: {
         branchCount: allBranchNames.length,
-        totalCommits: previousAllBranchesTotalCommits + newAllBranchesTotalCommits,
-        totalAdditions: mergedAllBranchesLineTotals.additions,
-        totalDeletions: mergedAllBranchesLineTotals.deletions,
+        totalCommits: mergedAllBranchesTotalCommits,
+        totalAdditions: mergedAllBranchesTotalAdditions,
+        totalDeletions: mergedAllBranchesTotalDeletions,
         commitsByBranch: mergedAllBranchesCommitsByBranch,
         commitStatsCoverage: {
           detailedCommitCount: (previousAllBranchesCommitStatsCoverage?.detailedCommitCount ?? 0) + allBranchCommitStatsBySha.size,
