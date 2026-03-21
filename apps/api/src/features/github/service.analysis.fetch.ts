@@ -345,11 +345,15 @@ export async function fetchCommitStatsForRepository(
   accessToken: string,
   fullName: string,
   commitShas: string[],
-  maxDetailedCommits = 250
+  maxDetailedCommits?: number
 ) {
   const { baseUrl } = getGitHubApiConfig();
   const statsBySha = new Map<string, { additions: number; deletions: number }>();
-  const shasToFetch = commitShas.slice(0, maxDetailedCommits);
+  const limit =
+    typeof maxDetailedCommits === "number" && Number.isFinite(maxDetailedCommits)
+      ? Math.max(0, Math.floor(maxDetailedCommits))
+      : commitShas.length;
+  const shasToFetch = commitShas.slice(0, limit);
   const missingShas: string[] = [];
 
   for (const sha of shasToFetch) {
