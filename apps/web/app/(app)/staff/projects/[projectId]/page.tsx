@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffTeamCard } from "@/features/staff/projects/components/StaffTeamCard";
+import { StaffProjectWarningsConfigPanel } from "@/features/staff/projects/components/StaffProjectWarningsConfigPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectTeamsPageProps = {
@@ -56,15 +57,17 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
           <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
         </div>
         <div className="staff-projects__hero-actions">
-          <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
-            Team allocation
-          </Link>
-          <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
-            Forum
-          </Link>
+          <div className="staff-projects__hero-actions-links">
+            <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
+              Team allocation
+            </Link>
+            <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
+              Forum
+            </Link>
+          </div>
+          <StaffProjectWarningsConfigPanel projectId={data.project.id} />
         </div>
       </section>
-
 
       {data.teams.length === 0 ? <p className="muted">No teams exist in this project yet.</p> : null}
       <section className="staff-projects__team-list" aria-label="Project teams">
