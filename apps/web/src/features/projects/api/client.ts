@@ -14,6 +14,8 @@ import type {
   TeamHealthMessage,
   StaffStudentDeadlineOverride,
   StaffStudentDeadlineOverridePayload,
+  ProjectWarningsConfig,
+  StaffProjectWarningsConfigResponse,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -64,6 +66,24 @@ export async function getStaffProjects(userId: number, options?: StaffProjectSea
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`, {
     cache: "no-store",
+  });
+}
+
+export async function getStaffProjectWarningsConfig(
+  projectId: number,
+): Promise<StaffProjectWarningsConfigResponse> {
+  return apiFetch<StaffProjectWarningsConfigResponse>(`/projects/staff/${projectId}/warnings-config`, {
+    cache: "no-store",
+  });
+}
+
+export async function updateStaffProjectWarningsConfig(
+  projectId: number,
+  warningsConfig: ProjectWarningsConfig,
+): Promise<StaffProjectWarningsConfigResponse> {
+  return apiFetch<StaffProjectWarningsConfigResponse>(`/projects/staff/${projectId}/warnings-config`, {
+    method: "PATCH",
+    body: JSON.stringify({ warningsConfig }),
   });
 }
 

@@ -88,6 +88,27 @@ export type TeamHealthMessage = {
     | null;
 };
 
+export type WarningRuleSeverity = "LOW" | "MEDIUM" | "HIGH";
+
+export type ProjectWarningRuleConfig = {
+  key: string;
+  enabled: boolean;
+  severity?: WarningRuleSeverity;
+  ttlDays?: number;
+  params?: Record<string, unknown>;
+};
+
+export type ProjectWarningsConfig = {
+  version: 1;
+  rules: ProjectWarningRuleConfig[];
+};
+
+export type StaffProjectWarningsConfigResponse = {
+  id: number;
+  warningsEnabled: boolean;
+  warningsConfig: ProjectWarningsConfig;
+};
+
 export type StaffProject = {
   id: number;
   name: string;

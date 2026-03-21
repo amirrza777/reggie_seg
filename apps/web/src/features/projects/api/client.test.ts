@@ -18,10 +18,12 @@ import {
   getProjectDeadline,
   getProjectMarking,
   getStaffProjectTeams,
+  getStaffProjectWarningsConfig,
   getTeamById,
   getTeamByUserAndProject,
   getTeammatesInProject,
   getUserProjects,
+  updateStaffProjectWarningsConfig,
 } from "./client";
 
 describe("projects api client", () => {
@@ -79,6 +81,34 @@ describe("projects api client", () => {
     await getStaffProjectTeams(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams?userId=7", {
       cache: "no-store",
+    });
+  });
+
+  it("gets staff project warning config without cache", async () => {
+    await getStaffProjectWarningsConfig(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/warnings-config", {
+      cache: "no-store",
+    });
+  });
+
+  it("updates staff project warning config", async () => {
+    const warningsConfig = {
+      version: 1 as const,
+      rules: [
+        {
+          key: "LOW_ATTENDANCE",
+          enabled: true,
+          severity: "HIGH" as const,
+          params: { minPercent: 30, lookbackDays: 30 },
+        },
+      ],
+    };
+
+    await updateStaffProjectWarningsConfig(42, warningsConfig);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/warnings-config", {
+      method: "PATCH",
+      body: JSON.stringify({ warningsConfig }),
     });
   });
 
