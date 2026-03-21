@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getStaffProjectTeams, getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { getStaffProjectTeams, getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
 import { listMeetings } from "@/features/meetings/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import "@/features/staff/projects/styles/staff-projects.css";
-import type { TeamHealthMessage } from "@/features/projects/types";
+import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import type { GithubLatestSnapshot } from "@/features/github/types";
 import type { Meeting } from "@/features/meetings/types";
 
@@ -278,8 +278,9 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     );
   }
 
-  const [requestsResult, meetingsResult, repoHealthResult, peerAssessmentResult] = await Promise.allSettled([
+  const [requestsResult, warningsResult, meetingsResult, repoHealthResult, peerAssessmentResult] = await Promise.allSettled([
     getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
+    getStaffTeamWarnings(user.id, numericProjectId, numericTeamId),
     listMeetings(numericTeamId),
     loadRepoHealthSummary(numericProjectId, team.allocations.map((allocation) => allocation.userId)),
     getTeamDetails(user.id, projectData.project.moduleId, numericTeamId),
@@ -292,6 +293,14 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         ? requestsResult.reason.message
         : "Failed to load support requests."
       : null;
+  const warnings: TeamWarning[] = warningsResult.status === "fulfilled" ? warningsResult.value : [];
+  const warningsError =
+    warningsResult.status === "rejected"
+      ? warningsResult.reason instanceof Error
+        ? warningsResult.reason.message
+        : "Failed to load warning signals."
+      : null;
+  const openWarnings = warnings.filter((warning) => warning.active);
 
   const meetingSummary =
     meetingsResult.status === "fulfilled" ? buildMeetingHealthSummary(meetingsResult.value) : null;
@@ -328,37 +337,26 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     peer: peerSummary,
     requests,
   });
-  const healthLabel = healthFlags.length === 0 ? "Healthy" : healthFlags.length <= 2 ? "Watch" : "At Risk";
   const summaryMetrics = [
     {
-      label: "Commits (14d)",
-      value: repoSummary?.commitsLast14Days != null ? String(repoSummary.commitsLast14Days) : "Not available",
-      isAvailable: repoSummary?.commitsLast14Days != null,
-    },
-    {
-      label: "Active coding days (14d)",
-      value: repoSummary?.activeCommitDaysLast14Days != null ? String(repoSummary.activeCommitDaysLast14Days) : "Not available",
-      isAvailable: repoSummary?.activeCommitDaysLast14Days != null,
-    },
-    {
-      label: "Meetings (last 30d)",
-      value: meetingSummary ? String(meetingSummary.recentThirtyDays) : "Not available",
-      isAvailable: Boolean(meetingSummary),
-    },
-    {
-      label: "Attendance rate",
-      value: meetingSummary?.attendanceRate != null ? `${meetingSummary.attendanceRate}%` : "Not available",
-      isAvailable: meetingSummary?.attendanceRate != null,
-    },
-    {
-      label: "Peer assessment completion",
-      value: peerSummary?.completionRate != null ? `${peerSummary.completionRate}%` : "Not available",
-      isAvailable: peerSummary?.completionRate != null,
+      label: "Open warnings",
+      value: String(openWarnings.length),
+      isAvailable: true,
     },
     {
       label: "Open support requests",
       value: String(requests.filter((request) => !request.resolved).length),
       isAvailable: true,
+    },
+    {
+      label: "Meetings (30d)",
+      value: meetingSummary?.recentThirtyDays != null ? `${meetingSummary.recentThirtyDays}` : "Not available",
+      isAvailable: meetingSummary?.recentThirtyDays != null,
+    },
+    {
+      label: "Assessment completion",
+      value: peerSummary?.completionRate != null ? `${peerSummary.completionRate}%` : "Not available",
+      isAvailable: peerSummary?.completionRate != null,
     },
   ] as const;
 
@@ -374,7 +372,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
-          <span className="staff-projects__badge">Health: {healthLabel}</span>
           <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}`} className="staff-projects__badge">
             Back to team overview
           </Link>
@@ -402,53 +399,81 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         <article className="staff-projects__team-card staff-projects__team-card--signal">
           <div className="staff-projects__team-top">
             <div>
-              <h3 className="staff-projects__team-title">Signal overview</h3>
+              <h3 className="staff-projects__team-title">Team signal summary</h3>
               <p className="staff-projects__team-count">
-                A consolidated read of activity, meetings, assessments, and support signals.
+                Focus on the core indicators that affect intervention decisions.
               </p>
             </div>
-            <span className="staff-projects__badge">{healthLabel}</span>
           </div>
-          {healthFlags.length === 0 ? (
-            <p className="staff-projects__team-count">
-              No immediate risk signals found from commits, meetings, peer assessment completion, and support requests.
-            </p>
-          ) : (
-            <ul className="staff-projects__signal-flags">
-              {healthFlags.map((flag) => (
-                <li key={flag} className="staff-projects__team-count">{flag}</li>
-              ))}
-            </ul>
-          )}
-          <dl className="staff-projects__signal-stats">
-            <div className="staff-projects__signal-stat">
-              <dt>Latest meeting</dt>
-              <dd>{formatDateTime(meetingSummary?.lastMeetingAt ?? null)}</dd>
+          <div className="staff-projects__signal-sections">
+            <article className="staff-projects__signal-section">
+              <h4 className="staff-projects__signal-section-title">Meetings</h4>
+              <p className="staff-projects__team-count">
+                Last meeting: {formatDateTime(meetingSummary?.lastMeetingAt ?? null)}
+              </p>
+              <p className="staff-projects__team-count">
+                Attendance (30d):{" "}
+                {meetingSummary?.attendanceRate != null ? `${meetingSummary.attendanceRate}%` : "Not available"}
+              </p>
+              <p className="staff-projects__team-count">
+                Meetings with minutes: {meetingSummary?.withMinutes ?? "Not available"}
+              </p>
+            </article>
+            <article className="staff-projects__signal-section">
+              <h4 className="staff-projects__signal-section-title">Contributions</h4>
+              <p className="staff-projects__team-count">
+                Commits (14d): {repoSummary?.commitsLast14Days ?? "Not available"}
+              </p>
+              <p className="staff-projects__team-count">
+                Active coding days (14d): {repoSummary?.activeCommitDaysLast14Days ?? "Not available"}
+              </p>
+              <p className="staff-projects__team-count">
+                Repositories analysed: {repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "Not available"}
+              </p>
+            </article>
+            <article className="staff-projects__signal-section">
+              <h4 className="staff-projects__signal-section-title">Assessments and support</h4>
+              <p className="staff-projects__team-count">
+                Peer assessments submitted: {peerSummary ? `${peerSummary.submitted}/${peerSummary.expected}` : "Not available"}
+              </p>
+              <p className="staff-projects__team-count">
+                Students with zero submissions: {peerSummary?.missingStudents ?? "Not available"}
+              </p>
+              <p className="staff-projects__team-count">
+                Open support requests: {requests.filter((request) => !request.resolved).length}
+              </p>
+            </article>
+          </div>
+          <div className="staff-projects__signal-issues">
+            <h4 className="staff-projects__signal-section-title">Issues requiring action</h4>
+            {openWarnings.length === 0 ? (
+              <p className="staff-projects__team-count" style={{ margin: 0 }}>
+                No active warnings.
+              </p>
+            ) : (
+              <ul className="staff-projects__signal-flags">
+                {openWarnings.map((warning) => (
+                  <li key={`warning-${warning.id}`} className="staff-projects__team-count">
+                    [{warning.severity}] {warning.title}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {healthFlags.length > 0 ? (
+            <div className="staff-projects__signal-issues">
+              <h4 className="staff-projects__signal-section-title">Signals to monitor</h4>
+              <ul className="staff-projects__signal-flags">
+                {healthFlags.map((flag) => (
+                  <li key={flag} className="staff-projects__team-count">{flag}</li>
+                ))}
+              </ul>
             </div>
-            <div className="staff-projects__signal-stat">
-              <dt>Meetings with minutes</dt>
-              <dd>{meetingSummary?.withMinutes ?? "Not available"}</dd>
-            </div>
-            <div className="staff-projects__signal-stat">
-              <dt>Repositories analysed</dt>
-              <dd>{repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "Not available"}</dd>
-            </div>
-            <div className="staff-projects__signal-stat">
-              <dt>Latest repo snapshot</dt>
-              <dd>{formatDateTime(repoSummary?.latestAnalysedAt ?? null)}</dd>
-            </div>
-            <div className="staff-projects__signal-stat">
-              <dt>Peer assessments submitted</dt>
-              <dd>{peerSummary ? `${peerSummary.submitted}/${peerSummary.expected}` : "Not available"}</dd>
-            </div>
-            <div className="staff-projects__signal-stat">
-              <dt>Students with zero submissions</dt>
-              <dd>{peerSummary?.missingStudents ?? "Not available"}</dd>
-            </div>
-          </dl>
+          ) : null}
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}
+          {warningsError ? <p className="muted" style={{ margin: 0 }}>Warning signal error: {warningsError}</p> : null}
         </article>
       </section>
 

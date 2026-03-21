@@ -190,6 +190,18 @@ export async function getStaffTeamHealthMessages(
   return Array.isArray(response.requests) ? response.requests : [];
 }
 
+export async function getStaffTeamWarnings(
+  userId: number,
+  projectId: number,
+  teamId: number
+): Promise<TeamWarning[]> {
+  const response = await apiFetch<{ warnings: TeamWarning[] }>(
+    `/projects/staff/${projectId}/teams/${teamId}/warnings?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.warnings) ? response.warnings : [];
+}
+
 export async function getStaffTeamDeadline(
   userId: number,
   projectId: number,
