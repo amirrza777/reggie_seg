@@ -1,9 +1,3 @@
-.meetings-page__toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .meeting-list__actions {
   display: flex;
   align-items: center;
