@@ -8,6 +8,11 @@ import {
   updateForumSettings,
   reportDiscussionPost,
   setDiscussionPostReaction,
+  createStudentReport,
+  getStudentReportsForProject,
+  approveStudentReport,
+  ignoreStudentReport,
+  getStaffConversationForPost,
 } from "./repo.js";
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
@@ -66,4 +71,29 @@ export async function reactToDiscussionPost(
   type: "LIKE" | "DISLIKE"
 ) {
   return setDiscussionPostReaction(userId, projectId, postId, type);
+}
+
+export async function createStudentForumReport(
+  userId: number,
+  projectId: number,
+  postId: number,
+  reason?: string | null
+) {
+  return createStudentReport(userId, projectId, postId, reason);
+}
+
+export async function fetchStudentForumReports(userId: number, projectId: number) {
+  return getStudentReportsForProject(userId, projectId);
+}
+
+export async function approveStudentForumReport(userId: number, projectId: number, reportId: number) {
+  return approveStudentReport(userId, projectId, reportId);
+}
+
+export async function ignoreStudentForumReport(userId: number, projectId: number, reportId: number) {
+  return ignoreStudentReport(userId, projectId, reportId);
+}
+
+export async function fetchStaffConversation(userId: number, projectId: number, postId: number) {
+  return getStaffConversationForPost(userId, projectId, postId);
 }

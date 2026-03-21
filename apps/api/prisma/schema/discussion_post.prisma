@@ -13,6 +13,7 @@ model DiscussionPost {
   parentPost DiscussionPost? @relation("DiscussionPostReplies", fields: [parentPostId], references: [id], onDelete: Cascade)
   replies    DiscussionPost[] @relation("DiscussionPostReplies")
   reactions ForumReaction[]
+  studentReports ForumStudentReport[]
 
   @@index([projectId, createdAt])
   @@index([authorId])

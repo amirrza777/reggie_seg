@@ -5,6 +5,7 @@ import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { useUser } from "@/features/auth/context";
 import {
   createDiscussionPost,
+  createStudentForumReport,
   deleteDiscussionPost,
   getDiscussionPosts,
   reportDiscussionPost,
@@ -46,6 +47,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     user?.role === "STAFF" ||
     user?.role === "ADMIN" ||
     user?.role === "ENTERPRISE_ADMIN";
+  const isStudent = user?.role === "STUDENT";
 
   const canSubmit = title.trim().length > 0 && body.trim().length > 0;
   const emptyState = useMemo(
@@ -88,6 +90,19 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       }
       if (post.replies.length === 0) return post;
       return { ...post, replies: updatePostInTree(post.replies, updated) };
+    });
+
+  const updateReportStatusInTree = (
+    items: DiscussionPost[],
+    postId: number,
+    status: DiscussionPost["myStudentReportStatus"]
+  ): DiscussionPost[] =>
+    items.map((post) => {
+      if (post.id === postId) {
+        return { ...post, myStudentReportStatus: status ?? null };
+      }
+      if (post.replies.length === 0) return post;
+      return { ...post, replies: updateReportStatusInTree(post.replies, postId, status) };
     });
 
   const removePostFromTree = (items: DiscussionPost[], postId: number): DiscussionPost[] =>
@@ -172,6 +187,21 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
       setPosts((prev) => removePostFromTree(prev, postId));
+    } catch (err) {
+      console.error(err);
+      setError("Failed to report post.");
+    } finally {
+      setReportingPostId(null);
+    }
+  };
+
+  const handleStudentReport = async (postId: number) => {
+    if (!user) return;
+    if (!window.confirm("Report this post to project staff?")) return;
+    setReportingPostId(postId);
+    try {
+      await createStudentForumReport(user.id, Number(projectId), postId);
+      setPosts((prev) => updateReportStatusInTree(prev, postId, "PENDING"));
     } catch (err) {
       console.error(err);
       setError("Failed to report post.");
@@ -322,7 +352,10 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
               >
                 <p className="muted" style={{ margin: 0, fontSize: 13 }}>
                   {post.author.firstName} {post.author.lastName}
-                  {isAuthor ? " (You)" : ""} - {new Date(post.createdAt).toLocaleString()}
+                  {isAuthor ? " (You)" : ""}
+                  {post.author.role === "STAFF" ? `${isAuthor ? "," : ""} Staff` : ""}
+                  {" - "}
+                  {new Date(post.createdAt).toLocaleString()}
                 </p>
                 {!isRoot && canToggleReplies ? (
                   <div style={{ display: "flex", gap: 8 }}>
@@ -414,7 +447,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
               )
             ) : null}
 
-            {isStaff && post.author.role === "STUDENT" ? (
+            {!isStudent && isStaff && post.author.role === "STUDENT" ? (
               <button
                 type="button"
                 className="btn btn--ghost"
@@ -424,6 +457,22 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
               >
                 {reportingPostId === post.id ? "Reporting..." : "Report"}
               </button>
+            ) : null}
+            {isStudent && !isAuthor && post.myStudentReportStatus !== "PENDING" ? (
+              <button
+                type="button"
+                className="btn btn--ghost"
+                onClick={() => handleStudentReport(post.id)}
+                disabled={reportingPostId === post.id}
+                style={{ display: hoveredPostId === post.id ? "inline-flex" : "none" }}
+              >
+                {reportingPostId === post.id ? "Reporting..." : "Report"}
+              </button>
+            ) : null}
+            {isStudent && !isAuthor && post.myStudentReportStatus === "PENDING" ? (
+              <span className="muted" style={{ fontSize: 13 }}>
+                Reported
+              </span>
             ) : null}
           </div>
         </div>

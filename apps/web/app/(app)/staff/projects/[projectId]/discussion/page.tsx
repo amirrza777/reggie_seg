@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ForumSettingsCard } from "@/features/forum/components/ForumSettingsCard";
+import { StudentForumReportsCard } from "@/features/forum/components/StudentForumReportsCard";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
@@ -69,6 +70,10 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
           Choose whether student names should be visible in the forum.
         </p>
         <ForumSettingsCard projectId={numericProjectId} />
+      </section>
+
+      <section className="staff-projects__team-card" aria-label="Student forum reports">
+        <StudentForumReportsCard projectId={numericProjectId} />
       </section>
     </div>
   );

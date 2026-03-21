@@ -195,12 +195,7 @@ export function ForumReportsTable() {
       ) : null}
       {conversation ? (
         <div className="ui-stack-sm" style={{ marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-            <h3>Conversation</h3>
-            <Button type="button" size="sm" variant="ghost" onClick={handleHideConversation}>
-              Hide conversation
-            </Button>
-          </div>
+          <h3>Conversation</h3>
           {conversation.missingPost ? (
             <p className="muted">The original post is no longer in the forum, so only the reported content is available.</p>
           ) : null}
