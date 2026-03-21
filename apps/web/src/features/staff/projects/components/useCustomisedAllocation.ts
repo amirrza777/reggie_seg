@@ -8,6 +8,7 @@ import {
   type CustomAllocationCoverage,
   type CustomAllocationPreview,
 } from "@/features/projects/api/teamAllocation";
+import { filterBySearchQuery } from "@/shared/lib/search";
 import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import {
   countEligibleQuestions,
@@ -107,13 +108,13 @@ export function useCustomisedAllocation({
   }, [eligibleQuestionnaires, selectedTemplateId]);
 
   const visibleQuestionnaires = useMemo(() => {
-    const normalizedQuery = questionnaireSearch.trim().toLowerCase();
-    const filteredTemplates =
-      normalizedQuery.length === 0
-        ? eligibleQuestionnaires
-        : eligibleQuestionnaires.filter((template) =>
-            template.templateName.toLowerCase().includes(normalizedQuery),
-          );
+    const filteredTemplates = filterBySearchQuery(eligibleQuestionnaires, questionnaireSearch, {
+      fields: ["templateName"],
+      selectors: [
+        (template) => template.id,
+        (template) => template.eligibleQuestions.map((question) => question.label),
+      ],
+    });
 
     if (!selectedQuestionnaire) {
       return filteredTemplates;

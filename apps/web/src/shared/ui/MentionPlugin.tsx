@@ -9,6 +9,7 @@ import {
   MenuOption,
   useBasicTypeaheadTriggerMatch,
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
+import { matchesSearchQuery } from "@/shared/lib/search";
 import { $createMentionNode } from "./MentionNode";
 
 type Member = {
@@ -39,11 +40,15 @@ export function MentionPlugin({ members }: MentionPluginProps) {
   });
 
   const options = useMemo(() => {
-    const query = queryString?.toLowerCase() ?? "";
+    const query = queryString ?? "";
     const availableMembers = Array.isArray(members) ? members : [];
-    return availableMembers
-      .map((m) => new MentionOption(`${m.firstName} ${m.lastName}`))
-      .filter((option) => option.name.toLowerCase().includes(query));
+    const matchedMembers = availableMembers.filter((member) =>
+      matchesSearchQuery(member, query, {
+        fields: ["firstName", "lastName"],
+        selectors: [(candidate) => `${candidate.firstName} ${candidate.lastName}`],
+      }),
+    );
+    return matchedMembers.map((member) => new MentionOption(`${member.firstName} ${member.lastName}`));
   }, [members, queryString]);
 
   const onSelectOption = useCallback(
