@@ -70,7 +70,7 @@ export function GithubRepoLinkCard({
   viewerMode = "student",
   chartMode,
 }: GithubRepoLinkCardProps) {
-  const resolvedChartMode = chartMode || (viewerMode === "staff" ? "staff" : "team");
+  const resolvedChartMode = chartMode === "personal" ? "personal" : "team";
   const isPersonalMode = resolvedChartMode === "personal";
 
   const defaultBranchTotals = snapshot?.data?.branchScopeStats?.defaultBranch;

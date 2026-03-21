@@ -170,7 +170,7 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("Other branches:2")).toBeInTheDocument();
   });
 
-  it("renders staff-focused section labels", () => {
+  it("renders staff mode with team activity labels", () => {
     render(
       <GithubRepoChartsDashboard
         snapshot={makeSnapshot()}
@@ -180,7 +180,7 @@ describe("GithubRepoChartsDashboard", () => {
       />
     );
 
-    expect(screen.getByText("Team Overview")).toBeInTheDocument();
+    expect(screen.getByText("Repository Analytics")).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();

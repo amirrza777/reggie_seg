@@ -694,7 +694,7 @@ export function GithubRepoChartsDashboard({
   snapshot,
   coverage: _coverage,
   currentGithubLogin,
-  viewerMode = "student",
+  viewerMode: _viewerMode = "student",
   viewMode,
   repositoryFullName,
   liveBranches = null,
@@ -709,7 +709,7 @@ export function GithubRepoChartsDashboard({
   onRefreshBranches,
 }: GithubRepoChartsDashboardProps) {
   const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
-  const resolvedMode: ChartViewMode = viewMode || (viewerMode === "staff" ? "staff" : "team");
+  const resolvedMode: "team" | "personal" = viewMode === "personal" ? "personal" : "team";
 
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin, {
     includePersonal: resolvedMode === "personal",
@@ -769,20 +769,12 @@ export function GithubRepoChartsDashboard({
     );
   }
 
-  const sectionLabels =
-    resolvedMode === "staff"
-      ? {
-          analyticsKicker: "Team Overview",
-          analyticsTitle: "Team code activity",
-          analyticsDescription:
-            "Inspect repository activity with focused sections for charts, contributors, and branch-level signals.",
-        }
-      : {
-          analyticsKicker: "Repository Analytics",
-          analyticsTitle: "Team code activity",
-          analyticsDescription:
-            "Team-level trends across commits and line changes with consistent date-based charts.",
-        };
+  const sectionLabels = {
+    analyticsKicker: "Repository Analytics",
+    analyticsTitle: "Team code activity",
+    analyticsDescription:
+      "Team-level trends across commits and line changes with consistent date-based charts.",
+  };
 
   const activityTabs: Array<{ key: TeamActivityTab; label: string }> = [
     { key: "teamCharts", label: "Team charts" },

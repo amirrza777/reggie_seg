@@ -25,13 +25,6 @@ type StaffProjectReposReadOnlyClientProps = {
   teamName: string;
 };
 
-function formatShortDateTime(value: string | null | undefined) {
-  if (!value) return "Unknown date";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString();
-}
-
 export function StaffProjectReposReadOnlyClient({
   projectId,
   projectName,
@@ -306,100 +299,22 @@ export function StaffProjectReposReadOnlyClient({
             coverage={selectedCoverage}
             snapshot={selectedSnapshot}
             currentGithubLogin={null}
+            liveBranches={liveBranchesByLinkId[selectedLink.id] ?? null}
+            liveBranchesLoading={Boolean(liveBranchesLoadingByLinkId[selectedLink.id])}
+            liveBranchesError={liveBranchesErrorByLinkId[selectedLink.id] ?? null}
+            selectedBranch={selectedBranch}
+            onSelectBranch={(branchName) => {
+              setSelectedBranchByLinkId((prev) => ({ ...prev, [selectedLink.id]: branchName }));
+              void fetchBranchCommits(selectedLink.id, branchName);
+            }}
+            branchCommits={branchCommitsByLinkId[selectedLink.id] ?? null}
+            branchCommitsLoading={Boolean(branchCommitsLoadingByLinkId[selectedLink.id])}
+            branchCommitsError={branchCommitsErrorByLinkId[selectedLink.id] ?? null}
+            onRefreshBranches={() => void fetchBranches(selectedLink.id, { force: true })}
             readOnly
             viewerMode="staff"
-            chartMode="staff"
+            chartMode="team"
           />
-
-          <section className="github-repos-tab__subpanel github-repos-tab__subpanel--activity">
-            <div className="github-repos-tab__header">
-              <div className="github-repos-tab__title">
-                <p className="github-repos-tab__kicker">Repository activity</p>
-                <h3 className="github-repos-tab__heading">Branch commits</h3>
-              </div>
-              <Button
-                variant="ghost"
-                onClick={() => void fetchBranches(selectedLink.id, { force: true })}
-                disabled={Boolean(liveBranchesLoadingByLinkId[selectedLink.id])}
-              >
-                {liveBranchesLoadingByLinkId[selectedLink.id] ? "Refreshing branches..." : "Refresh branches"}
-              </Button>
-            </div>
-
-            {liveBranchesErrorByLinkId[selectedLink.id] ? (
-              <p className="muted github-repos-tab__table-wrap">
-                Failed to load branches: {liveBranchesErrorByLinkId[selectedLink.id]}
-              </p>
-            ) : null}
-
-            {(liveBranchesByLinkId[selectedLink.id]?.branches?.length ?? 0) > 0 ? (
-              <div className="stack github-repos-tab__select-wrap">
-                <label className="muted" htmlFor="staff-branch-select">
-                  Branch
-                </label>
-                <select
-                  id="staff-branch-select"
-                  className="github-repos-tab__select"
-                  value={selectedBranch}
-                  onChange={(event) => {
-                    const nextBranch = event.target.value;
-                    setSelectedBranchByLinkId((prev) => ({
-                      ...prev,
-                      [selectedLink.id]: nextBranch,
-                    }));
-                    void fetchBranchCommits(selectedLink.id, nextBranch);
-                  }}
-                >
-                  {liveBranchesByLinkId[selectedLink.id]?.branches.map((branch) => (
-                    <option key={branch.name} value={branch.name}>
-                      {branch.name}
-                      {branch.isDefault ? " (default)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-
-            {branchCommitsLoadingByLinkId[selectedLink.id] ? (
-              <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
-            ) : null}
-
-            {branchCommitsErrorByLinkId[selectedLink.id] ? (
-              <p className="muted github-repos-tab__table-wrap">
-                Failed to load commits: {branchCommitsErrorByLinkId[selectedLink.id]}
-              </p>
-            ) : null}
-
-            {!branchCommitsLoadingByLinkId[selectedLink.id] &&
-            !branchCommitsErrorByLinkId[selectedLink.id] &&
-            selectedBranch &&
-            (branchCommitsByLinkId[selectedLink.id]?.commits?.length ?? 0) === 0 ? (
-              <p className="muted github-repos-tab__table-wrap">No commits were returned for this branch.</p>
-            ) : null}
-
-            {(branchCommitsByLinkId[selectedLink.id]?.commits?.length ?? 0) > 0 ? (
-              <div className="github-repos-tab__table-wrap stack" style={{ gap: 10 }}>
-                {branchCommitsByLinkId[selectedLink.id]?.commits.map((commit) => (
-                  <div key={commit.sha} className="stack github-repos-tab__commit-cell">
-                    <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
-                      {commit.message || "(no message)"}
-                    </a>
-                    <div className="github-repos-tab__commit-meta-row">
-                      <span className="muted github-repos-tab__commit-meta">
-                        {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
-                      </span>
-                      <span className="muted github-repos-tab__commit-meta">{formatShortDateTime(commit.date)}</span>
-                      {typeof commit.additions === "number" || typeof commit.deletions === "number" ? (
-                        <span className="muted github-repos-tab__commit-meta">
-                          +{commit.additions ?? 0} / -{commit.deletions ?? 0}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-          </section>
         </div>
       ) : null}
     </section>

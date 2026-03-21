@@ -26,14 +26,24 @@ vi.mock("./GithubRepoLinkCard", () => ({
     readOnly,
     viewerMode,
     chartMode,
+    onSelectBranch,
+    branchCommits,
   }: {
     link: { repository: { fullName: string } };
     readOnly?: boolean;
     viewerMode?: string;
     chartMode?: string;
+    onSelectBranch?: (branchName: string) => void;
+    branchCommits?: { commits?: Array<unknown> } | null;
   }) => (
-    <div data-testid="staff-repo-card">
-      {link.repository.fullName}:{String(readOnly)}:{viewerMode}:{chartMode}
+    <div>
+      <div data-testid="staff-repo-card">
+        {link.repository.fullName}:{String(readOnly)}:{viewerMode}:{chartMode}
+      </div>
+      <button type="button" onClick={() => onSelectBranch?.("feature/cleanup")}>
+        Select feature branch
+      </button>
+      <div data-testid="staff-branch-commit-count">{branchCommits?.commits?.length ?? 0}</div>
     </div>
   ),
 }));
@@ -116,7 +126,7 @@ describe("StaffProjectReposReadOnlyClient", () => {
       />
     );
 
-    expect(await screen.findByTestId("staff-repo-card")).toHaveTextContent("org/repo-one:true:staff:staff");
+    expect(await screen.findByTestId("staff-repo-card")).toHaveTextContent("org/repo-one:true:staff:team");
     await waitFor(() => {
       expect(listLiveProjectGithubRepoBranchesMock).toHaveBeenCalledWith(7);
     });
@@ -224,10 +234,13 @@ describe("StaffProjectReposReadOnlyClient", () => {
       />
     );
 
-    expect(await screen.findByText("Initial commit")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Branch"), {
-      target: { value: "feature/cleanup" },
+    await screen.findByTestId("staff-repo-card");
+    await waitFor(() => {
+      expect(listLiveProjectGithubRepoBranchCommitsMock).toHaveBeenCalledWith(8, "main", 20);
     });
+    expect(screen.getByTestId("staff-branch-commit-count")).toHaveTextContent("1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select feature branch" }));
 
     await waitFor(() => {
       expect(listLiveProjectGithubRepoBranchCommitsMock).toHaveBeenCalledWith(8, "feature/cleanup", 20);
