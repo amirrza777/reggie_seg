@@ -568,13 +568,6 @@ export function StaffProjectWarningsConfigPanel({
                 </article>
               </div>
 
-              <div className="staff-projects__warning-config-preview">
-                <p className="staff-projects__team-count" style={{ margin: 0 }}>
-                  Draft config preview
-                </p>
-                <pre>{JSON.stringify(configPreview, null, 2)}</pre>
-              </div>
-
               {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}
               {panelError ? <p className="error" style={{ margin: 0 }}>{panelError}</p> : null}
             </div>

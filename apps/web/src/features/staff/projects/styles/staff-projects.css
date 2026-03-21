@@ -460,27 +460,6 @@
   padding: 8px 10px;
 }
 
-.staff-projects__warning-config-preview {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.staff-projects__warning-config-preview pre {
-  margin: 0;
-  overflow: auto;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 86%, black 14%);
-  color: var(--ink);
-  padding: 10px;
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
 @import "./staff-projects/base.css";
 @import "./staff-projects/create.css";
 @import "./staff-projects/allocation-controls.css";
