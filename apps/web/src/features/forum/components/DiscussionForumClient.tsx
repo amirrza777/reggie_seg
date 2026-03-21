@@ -16,9 +16,10 @@ import type { DiscussionPost } from "@/features/forum/types";
 
 type DiscussionForumClientProps = {
   projectId: string;
+  showProjectNav?: boolean;
 };
 
-export function DiscussionForumClient({ projectId }: DiscussionForumClientProps) {
+export function DiscussionForumClient({ projectId, showProjectNav = true }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -529,7 +530,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
   return (
     <div className="stack stack--tabbed">
-      <ProjectNav projectId={projectId} />
+      {showProjectNav ? <ProjectNav projectId={projectId} /> : null}
       <section className="stack" style={{ padding: 24, gap: 24 }}>
         <div>
           <h1>Discussion Forum</h1>

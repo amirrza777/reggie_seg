@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
 import { ForumSettingsCard } from "@/features/forum/components/ForumSettingsCard";
 import { StudentForumReportsCard } from "@/features/forum/components/StudentForumReportsCard";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
@@ -74,6 +75,14 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
 
       <section className="staff-projects__team-card" aria-label="Student forum reports">
         <StudentForumReportsCard projectId={numericProjectId} />
+      </section>
+
+      <section className="staff-projects__team-card" aria-label="Discussion forum">
+        <h2 className="staff-projects__card-title">Discussion forum</h2>
+        <p className="staff-projects__card-sub">
+          View and participate in the forum as staff.
+        </p>
+        <DiscussionForumClient projectId={projectId} showProjectNav={false} />
       </section>
     </div>
   );
