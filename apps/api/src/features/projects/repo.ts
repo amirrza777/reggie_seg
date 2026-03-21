@@ -291,6 +291,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
           createdAt: true,
           inactivityFlag: true,
           deadlineProfile: true,
+          trelloBoardId: true,
           deadlineOverride: {
             select: {
               id: true,

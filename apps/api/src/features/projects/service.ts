@@ -133,6 +133,7 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       inactivityFlag: team.inactivityFlag,
       deadlineProfile: team.deadlineProfile,
       hasDeadlineOverride: Boolean(team.deadlineOverride),
+      trelloBoardId: team.trelloBoardId ?? null,
       allocations: team.allocations,
     })),
   };

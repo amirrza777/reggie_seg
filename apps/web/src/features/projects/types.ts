@@ -57,6 +57,7 @@ export type Team = {
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   deadlineProfile?: "STANDARD" | "MCF";
   hasDeadlineOverride?: boolean;
+  trelloBoardId?: string | null;
   allocations: Array<{
     userId: number;
     user: User;

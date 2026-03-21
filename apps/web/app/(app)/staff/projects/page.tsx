@@ -10,6 +10,8 @@ type ProjectTeamLink = {
   id: number;
   teamName: string;
   memberCount: number;
+  hasRepo: boolean;
+  trelloBoardId: string | null;
 };
 
 type StaffProjectWithTeams = Awaited<ReturnType<typeof getStaffProjects>>[number] & {
@@ -80,6 +82,8 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
                 id: team.id,
                 teamName: team.teamName,
                 memberCount: team.allocations.length,
+                hasRepo: project.hasGithubRepo,
+                trelloBoardId: team.trelloBoardId ?? null,
               }))
               .sort((a, b) => a.teamName.localeCompare(b.teamName)),
             teamFetchFailed: false,
@@ -304,8 +308,22 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
                                 className="staff-projects__module-team-link"
                               >
                                 <span>{highlightSearchText(team.teamName, rawQuery)}</span>
-                                <span className="staff-projects__module-team-meta">
+                                <span className="staff-projects__module-team-meta" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
                                   {team.memberCount} member{team.memberCount === 1 ? "" : "s"}
+                                  <span
+                                    className={`staff-projects__gh-pill ${
+                                      team.hasRepo ? "staff-projects__gh-pill--ok" : "staff-projects__gh-pill--warn"
+                                    }`}
+                                  >
+                                    {team.hasRepo ? "Repo" : "No repo"}
+                                  </span>
+                                  <span
+                                    className={`staff-projects__gh-pill ${
+                                      team.trelloBoardId ? "staff-projects__gh-pill--ok" : "staff-projects__gh-pill--warn"
+                                    }`}
+                                  >
+                                    {team.trelloBoardId ? "Trello" : "No Trello"}
+                                  </span>
                                 </span>
                               </Link>
                             ))

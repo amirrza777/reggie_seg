@@ -53,6 +53,15 @@ export function StaffTeamCard({ team, projectId }: Props) {
               GitHub not connected: {unconnectedMembers.length} member{unconnectedMembers.length === 1 ? "" : "s"}
             </span>
           )}
+          {team.trelloBoardId ? (
+            <span className="github-alert-badge github-alert-badge--trello" title="Trello board linked">
+              Trello
+            </span>
+          ) : (
+            <span className="github-alert-badge github-alert-badge--no-repo" title="No Trello board linked yet">
+              Trello not added
+            </span>
+          )}
         </div>
       </div>
 
