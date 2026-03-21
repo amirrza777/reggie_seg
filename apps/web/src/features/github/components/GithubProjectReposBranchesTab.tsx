@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type {
   GithubLatestSnapshot,
@@ -111,10 +112,9 @@ export function GithubProjectReposBranchesTab({
                       <label className="muted" htmlFor={`branch-search-${link.id}`}>
                         Search branches
                       </label>
-                      <input
+                      <SearchField
                         id={`branch-search-${link.id}`}
                         className="github-repos-tab__select"
-                        type="search"
                         value={branchSearchQuery}
                         onChange={(event) => onBranchQueryChange(link.id, event.target.value)}
                         placeholder="Search branch names"

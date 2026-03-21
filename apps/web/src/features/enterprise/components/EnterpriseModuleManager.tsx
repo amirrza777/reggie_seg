@@ -8,6 +8,7 @@ import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 
 type RequestState = "idle" | "loading" | "success" | "error";
@@ -208,8 +209,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
       <p className="muted">Create modules, set owners/leaders and teaching assistants, and enroll students.</p>
 
       <div className="ui-toolbar enterprise-modules__toolbar">
-        <FormField
-          type="search"
+        <SearchField
           value={moduleSearchQuery}
           onChange={(event) => setModuleSearchQuery(event.target.value)}
           placeholder="Search modules by name or ID"

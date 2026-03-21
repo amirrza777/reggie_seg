@@ -3,6 +3,7 @@ import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 
 type RequestState = "idle" | "loading" | "success" | "error";
@@ -156,8 +157,7 @@ function EnterpriseCardActions({
 }) {
   return (
     <div className="ui-row enterprise-management__actions">
-      <FormField
-        type="search"
+      <SearchField
         value={searchQuery}
         onChange={(event) => setSearchQuery(event.target.value)}
         className="enterprise-management__search"

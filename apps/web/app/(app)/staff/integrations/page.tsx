@@ -4,6 +4,7 @@ import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/
 import { ProjectTrelloContent } from "@/features/trello/components/ProjectTrelloContent";
 import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
 import { Placeholder } from "@/shared/ui/Placeholder";
+import { SearchField } from "@/shared/ui/SearchField";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
@@ -57,10 +58,9 @@ function ProjectSearchForm({
         Search projects
       </label>
       <div className="staff-projects__search-controls">
-        <input
+        <SearchField
           id="staff-integrations-project-search"
           name="q"
-          type="search"
           className="staff-projects__search-input"
           defaultValue={rawProjectQuery ?? ""}
           placeholder="Search by project or module name"

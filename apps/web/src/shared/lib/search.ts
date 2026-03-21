@@ -8,6 +8,7 @@ export type SearchOptions<T> = {
 
 const DEFAULT_MAX_DEPTH = 5;
 const TOKEN_SPLIT_PATTERN = /[^a-z0-9]+/g;
+export const SEARCH_DEBOUNCE_MS = 250;
 
 export function normalizeSearchQuery(value: unknown): string {
   return String(value ?? "")

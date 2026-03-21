@@ -2,6 +2,7 @@ import { normalizeSearchQuery } from "@/shared/lib/search";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { EnterpriseRecord } from "../types";
 
@@ -146,8 +147,7 @@ export function EnterpriseAccountsModal({
 
         <div className="modal__body admin-modal__body">
           <div className="ui-toolbar enterprise-management__modal-toolbar">
-            <FormField
-              type="search"
+            <SearchField
               value={userSearchQuery}
               onChange={(event) => onUserSearchQueryChange(event.target.value)}
               className="enterprise-management__modal-search"

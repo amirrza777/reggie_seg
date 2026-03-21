@@ -4,6 +4,7 @@ import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/
 import { StaffProjectsModuleList, type ModuleGroup } from "@/features/staff/projects/components/StaffProjectsModuleList";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
+import { SearchField } from "@/shared/ui/SearchField";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type ProjectTeamLink = {
@@ -122,10 +123,9 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
             Search modules or projects
           </label>
           <div className="staff-projects__search-controls">
-            <input
+            <SearchField
               id="staff-projects-search"
               name="q"
-              type="search"
               className="staff-projects__search-input"
               defaultValue={rawQuery ?? ""}
               placeholder="e.g. Data Structures, Group Project"

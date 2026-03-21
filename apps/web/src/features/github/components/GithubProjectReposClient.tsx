@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
@@ -203,7 +204,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       void loadRepositoryOptions(repoSearchQuery).catch((err) => {
         setError(err instanceof Error ? err.message : "Failed to search repositories.");
       });
-    }, 250);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
   }, [connection?.connected, repoSearchQuery]);

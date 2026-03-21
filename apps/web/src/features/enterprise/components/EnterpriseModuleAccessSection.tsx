@@ -3,6 +3,7 @@ import type { EnterpriseAssignableUser } from "../types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
@@ -189,9 +190,8 @@ export function EnterpriseModuleAccessSection({
         {label}
       </label>
       <p className="ui-note ui-note--muted">{helperText}</p>
-      <FormField
+      <SearchField
         id={searchId}
-        type="search"
         value={searchQuery}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
