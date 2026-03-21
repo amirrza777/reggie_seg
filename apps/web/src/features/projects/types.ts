@@ -1,7 +1,6 @@
 export type Project = {
   id: string;
   name: string;
-  summary?: string;
   moduleName?: string;
   moduleId?: number;
   teamCount?: number;

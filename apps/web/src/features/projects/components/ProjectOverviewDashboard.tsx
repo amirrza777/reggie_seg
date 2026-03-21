@@ -55,16 +55,45 @@ function getNextDeadline(deadlineItems: DeadlineItem[]) {
     .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
 }
 
+function isProjectCompleted(
+  project: Project,
+  deadline: ProjectDeadline,
+  marking: ProjectOverviewDashboardProps["marking"],
+) {
+  if (project.archivedAt) return true;
+
+  const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((value) => !Number.isNaN(value.getTime()));
+
+  const hasPublishedMark = Boolean(
+    marking?.teamMarking?.mark != null ||
+    marking?.studentMarking?.mark != null ||
+    (marking?.teamMarking?.formativeFeedback ?? "").trim().length > 0 ||
+    (marking?.studentMarking?.formativeFeedback ?? "").trim().length > 0,
+  );
+  if (hasPublishedMark) return true;
+
+  if (dueCandidates.length === 0) return false;
+  const latestDue = dueCandidates.reduce((latest, current) =>
+    current.getTime() > latest.getTime() ? current : latest,
+  );
+  return latestDue.getTime() < Date.now();
+}
+
 function ProjectOverviewHero({
   project,
   deadline,
   teamName,
   nextDeadline,
+  isCompleted,
 }: {
   project: Project;
   deadline: ProjectDeadline;
   teamName: string;
   nextDeadline?: { label: string; value: string | null };
+  isCompleted: boolean;
 }) {
   return (
     <section className="project-overview-hero">
@@ -82,6 +111,9 @@ function ProjectOverviewHero({
               >
                 {deadline.isOverridden ? "Deadlines overridden" : "Default deadlines"}
               </span>
+              {isCompleted ? (
+                <span className="project-overview-hero__chip project-overview-hero__chip--default">Completed</span>
+              ) : null}
             </div>
             <div className="project-overview-hero__actions">
               <Link href={`/projects/${project.id}/team-health`} className="project-overview-hero__action-link">
@@ -90,9 +122,7 @@ function ProjectOverviewHero({
             </div>
           </div>
           <h1 className="project-overview-hero__title">{project?.name || "Project"}</h1>
-          <p className="muted project-overview-hero__summary">
-            {project?.summary?.trim() || "No project summary has been added yet."}
-          </p>
+          <p className="muted project-overview-hero__summary">Overview and key project information.</p>
         </div>
 
         <div className="project-overview-hero__facts">
@@ -100,15 +130,17 @@ function ProjectOverviewHero({
             <p className="muted project-overview-hero__fact-label">Team</p>
             <p className="project-overview-hero__fact-value project-overview-hero__fact-value--lg">{teamName || "Unassigned team"}</p>
           </div>
-          <div className="project-overview-hero__fact">
-            <p className="muted project-overview-hero__fact-label">Next deadline</p>
-            <p className="project-overview-hero__fact-value">
-              {nextDeadline ? nextDeadline.label : "No upcoming deadline"}
-            </p>
-            {nextDeadline ? (
-              <p className="muted project-overview-hero__fact-meta">{formatDateLabel(nextDeadline.value)}</p>
-            ) : null}
-          </div>
+          {!isCompleted ? (
+            <div className="project-overview-hero__fact">
+              <p className="muted project-overview-hero__fact-label">Next deadline</p>
+              <p className="project-overview-hero__fact-value">
+                {nextDeadline ? nextDeadline.label : "No upcoming deadline"}
+              </p>
+              {nextDeadline ? (
+                <p className="muted project-overview-hero__fact-meta">{formatDateLabel(nextDeadline.value)}</p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
       </div>
@@ -245,6 +277,7 @@ function TutorMarkingCard({
 export function ProjectOverviewDashboard({ project, deadline, team, marking }: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
   const nextDeadline = getNextDeadline(deadlineItems);
+  const completed = isProjectCompleted(project, deadline, marking);
 
   return (
     <div className="stack project-overview-dashboard">
@@ -253,18 +286,29 @@ export function ProjectOverviewDashboard({ project, deadline, team, marking }: P
         deadline={deadline}
         teamName={team.teamName}
         nextDeadline={nextDeadline}
+        isCompleted={completed}
       />
 
-      <div className="project-overview-layout">
-        <InformationBoardCard />
+      {completed ? (
+        <TutorMarkingCard
+          teamMarking={marking?.teamMarking ?? null}
+          studentMarking={marking?.studentMarking ?? null}
+        />
+      ) : null}
 
-        <DeadlinesScheduleCard items={deadlineItems} />
-      </div>
+      {!completed ? (
+        <div className="project-overview-layout">
+          <InformationBoardCard />
+          <DeadlinesScheduleCard items={deadlineItems} />
+        </div>
+      ) : null}
 
-      <TutorMarkingCard
-        teamMarking={marking?.teamMarking ?? null}
-        studentMarking={marking?.studentMarking ?? null}
-      />
+      {!completed ? (
+        <TutorMarkingCard
+          teamMarking={marking?.teamMarking ?? null}
+          studentMarking={marking?.studentMarking ?? null}
+        />
+      ) : null}
     </div>
   );
 }
