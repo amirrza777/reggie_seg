@@ -5,6 +5,7 @@ import { useUser } from "@/features/auth/context";
 import { AttendanceTable } from "./AttendanceTable";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { CommentSection } from "./CommentSection";
+import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import type { Meeting } from "../types";
 
 type MeetingDetailProps = {
@@ -15,11 +16,14 @@ export function MeetingDetail({ meeting }: MeetingDetailProps) {
   const { user } = useUser();
   const members = meeting.team.allocations.map((a) => a.user);
 
+  const cardAction = <AddToCalendarDropdown meeting={meeting} />;
+
   return (
     <div className="stack">
-      <Card title={meeting.title}>
+      <Card title={meeting.title} action={cardAction}>
         <p>Date: {new Date(meeting.date).toLocaleString()}</p>
         <p>Organiser: {meeting.organiser.firstName} {meeting.organiser.lastName}</p>
+        {meeting.subject && <p>Subject: {meeting.subject}</p>}
         {meeting.location && <p>Location: {meeting.location}</p>}
         {meeting.agenda && (
           <div>

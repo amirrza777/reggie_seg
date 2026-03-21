@@ -1,0 +1,26 @@
+.meeting-list__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.meeting-list__action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.meeting-list__action:hover {
+  background: var(--glass-hover);
+  color: var(--ink);
+}
+
+.meeting-list__action--join:hover {
+  color: var(--status-success);
+}
