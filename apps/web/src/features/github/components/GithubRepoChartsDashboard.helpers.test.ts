@@ -4,6 +4,7 @@ import {
   buildLineChangesByDaySeries,
   buildWeeklyCommitSeries,
   formatWeekRangeLabel,
+  getContributorWeeklyActivity,
   getSnapshotRepoTotals,
 } from "./GithubRepoChartsDashboard.helpers";
 import type { GithubLatestSnapshot } from "../types";
@@ -151,6 +152,19 @@ describe("GithubRepoChartsDashboard.helpers", () => {
         commits: 0,
       },
     ]);
+  });
+
+  it("counts active contributor weeks against the full observed week span", () => {
+    expect(
+      getContributorWeeklyActivity({
+        "2026-02-02": 2,
+        "2026-02-16": 3,
+      })
+    ).toEqual({
+      activeWeeks: 2,
+      totalWeeks: 3,
+      ratio: 2 / 3,
+    });
   });
 
   it("derives totals defensively when repoStats and fallback fields differ", () => {

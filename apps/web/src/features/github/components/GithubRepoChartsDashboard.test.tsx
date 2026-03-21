@@ -163,7 +163,7 @@ describe("GithubRepoChartsDashboard", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
     expect(screen.getByText("madbpopye")).toBeInTheDocument();
-    expect(screen.queryByText("Active coding weeks")).not.toBeInTheDocument();
+    expect(screen.getByText("Active coding weeks")).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
     expect(screen.queryByText("Default vs other branches")).not.toBeInTheDocument();
@@ -187,6 +187,50 @@ describe("GithubRepoChartsDashboard", () => {
 
     fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
     expect(screen.getByText("Active coding weeks")).toBeInTheDocument();
+  });
+
+  it("uses max active weeks as a shared denominator across contributor cards", () => {
+    const snapshot = makeSnapshot();
+    snapshot.userStats = [
+      {
+        id: 10,
+        mappedUserId: 7,
+        githubLogin: "madbpopye",
+        isMatched: true,
+        commits: 2,
+        additions: 20,
+        deletions: 5,
+        commitsByDay: {
+          "2026-02-02": 1,
+          "2026-02-23": 1,
+        },
+      },
+      {
+        id: 11,
+        mappedUserId: 9,
+        githubLogin: "teammate",
+        isMatched: true,
+        commits: 2,
+        additions: 18,
+        deletions: 6,
+        commitsByDay: {
+          "2026-02-02": 1,
+        },
+      },
+    ];
+
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={snapshot}
+        coverage={makeCoverage()}
+        currentGithubLogin={null}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
+    expect(screen.getAllByText("2/2").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1/2").length).toBeGreaterThan(0);
+    expect(screen.queryByText("1/4")).not.toBeInTheDocument();
   });
 
   it("renders personal-mode charts and share donuts", () => {

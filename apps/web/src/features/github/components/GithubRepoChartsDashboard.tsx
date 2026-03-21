@@ -31,6 +31,7 @@ import {
   formatShortDate,
   getDateTickInterval,
   getChartMinWidth,
+  getContributorWeeklyActivity,
   getLineChangeDomain,
   getSnapshotRepoTotals,
 } from "./GithubRepoChartsDashboard.helpers";
@@ -346,13 +347,15 @@ function RepositoryAnalyticsCharts({
 function ContributorBreakdown({
   contributors,
   repositoryFullName,
-  showWeeklyCommitSummary = false,
 }: {
   contributors: ReturnType<typeof buildContributorRows>;
   repositoryFullName?: string | null;
-  showWeeklyCommitSummary?: boolean;
 }) {
   if (contributors.length <= 0) return <EmptyState />;
+  const weeklyDenominator = contributors.reduce((max, contributor) => {
+    const activity = getContributorWeeklyActivity(contributor.commitsByDay);
+    return Math.max(max, activity.activeWeeks);
+  }, 0);
 
   return (
     <div className="github-chart-section__contributor-grid" role="list">
@@ -361,7 +364,8 @@ function ContributorBreakdown({
           key={contributor.key}
           contributor={contributor}
           repositoryFullName={repositoryFullName}
-          showWeeklyCommitSummary={showWeeklyCommitSummary}
+          showWeeklyCommitSummary
+          weeklyDenominator={weeklyDenominator}
         />
       ))}
     </div>
@@ -681,7 +685,7 @@ export function GithubRepoChartsDashboard({
   snapshot,
   coverage: _coverage,
   currentGithubLogin,
-  viewerMode = "student",
+  viewerMode: _viewerMode = "student",
   viewMode,
   repositoryFullName,
   liveBranches = null,
@@ -697,7 +701,6 @@ export function GithubRepoChartsDashboard({
 }: GithubRepoChartsDashboardProps) {
   const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
   const resolvedMode: "team" | "personal" = viewMode === "personal" ? "personal" : "team";
-  const isStaffViewer = viewerMode === "staff";
 
   const commitTimelineSeries = buildCommitTimelineSeries(snapshot, currentGithubLogin, {
     includePersonal: resolvedMode === "personal",
@@ -852,7 +855,6 @@ export function GithubRepoChartsDashboard({
               <ContributorBreakdown
                 contributors={contributors}
                 repositoryFullName={repositoryFullName}
-                showWeeklyCommitSummary={isStaffViewer}
               />
             </div>
           ) : null}
