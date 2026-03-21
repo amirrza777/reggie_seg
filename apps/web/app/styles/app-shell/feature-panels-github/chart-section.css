@@ -39,7 +39,7 @@
 
 .github-chart-section__metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
   gap: 10px;
 }
 
@@ -76,11 +76,11 @@
 .github-chart-section__subnav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 10px;
+  padding: 8px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
 }
 
@@ -89,8 +89,8 @@
   border-radius: 10px;
   background: var(--surface);
   color: color-mix(in srgb, var(--muted) 82%, var(--ink));
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 36px;
+  padding: 0 14px;
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 0.01em;
@@ -130,7 +130,7 @@
 .github-chart-section__tab-header-card {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 90%, var(--accent) 10%) 0%, var(--surface) 100%);
   box-shadow: var(--shadow-sm);
@@ -158,12 +158,12 @@
 .github-chart-section__panel {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 10px 12px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   min-width: 0;
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .github-chart-section__panel--full {
@@ -180,10 +180,13 @@
   overflow-y: hidden;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
 }
 
 .github-chart-section__chart-surface {
   width: 100%;
+  min-width: 0;
 }
 
 .github-chart-section__canvas {
@@ -191,11 +194,11 @@
 }
 
 .github-chart-section__canvas--xl {
-  height: 300px;
+  height: 276px;
 }
 
 .github-chart-section__canvas--md {
-  height: 240px;
+  height: 216px;
 }
 
 .github-chart-section__contributor-grid {

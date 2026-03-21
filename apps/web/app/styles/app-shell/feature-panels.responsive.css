@@ -28,11 +28,11 @@
   }
 
   .github-chart-section__canvas--xl {
-    height: 240px;
+    height: 220px;
   }
 
   .github-chart-section__canvas--md {
-    height: 210px;
+    height: 190px;
   }
 
   .github-chart-section__contributor-grid {
