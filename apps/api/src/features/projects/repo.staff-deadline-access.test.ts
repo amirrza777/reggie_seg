@@ -12,10 +12,13 @@ import {
   createTeamHealthMessage,
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
+  reviewTeamHealthMessage,
   createTeamWarning,
   getTeamWarningsForTeamInProject,
   getProjectWarningsEnabledForTeam,
   updateStaffProjectWarningsEnabled,
+  getStaffProjectWarningsConfig,
+  updateStaffProjectWarningsConfig,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
 
@@ -313,6 +316,64 @@ describe("projects repo staff and deadline access queries", () => {
       .mockResolvedValueOnce(null);
 
     await expect(updateStaffProjectWarningsEnabled(31, 9, true)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+    });
+  });
+
+  it("getStaffProjectWarningsConfig and updateStaffProjectWarningsConfig enforce scope and persist config", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 12,
+      role: "ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 9 });
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      id: 9,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [] },
+    });
+
+    await expect(getStaffProjectWarningsConfig(12, 9)).resolves.toEqual({
+      id: 9,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [] },
+    });
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 21,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any)
+      .mockResolvedValueOnce({ id: 9 })
+      .mockResolvedValueOnce({ id: 9 });
+    (prisma.project.update as any).mockResolvedValueOnce({
+      id: 9,
+      warningsEnabled: false,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    await expect(
+      updateStaffProjectWarningsConfig(21, 9, {
+        version: 1,
+        rules: [{ key: "LOW_ATTENDANCE", enabled: true }],
+      }),
+    ).resolves.toEqual({
+      id: 9,
+      warningsEnabled: false,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 31,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
+    (prisma.project.findFirst as any)
+      .mockResolvedValueOnce({ id: 9 })
+      .mockResolvedValueOnce(null);
+
+    await expect(getStaffProjectWarningsConfig(31, 9)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
   });

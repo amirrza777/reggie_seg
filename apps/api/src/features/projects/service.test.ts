@@ -16,6 +16,10 @@ import {
   fetchTeamWarningsForStaff,
   fetchMyTeamWarnings,
   updateProjectWarningsEnabledForStaff,
+  fetchProjectWarningsConfigForStaff,
+  updateProjectWarningsConfigForStaff,
+  getDefaultProjectWarningsConfig,
+  parseProjectWarningsConfig,
 } from "./service.js";
 import * as repo from "./repo.js";
 
@@ -37,6 +41,8 @@ vi.mock("./repo.js", () => ({
   getTeamWarningsForTeamInProject: vi.fn(),
   canStaffAccessTeamInProject: vi.fn(),
   updateStaffProjectWarningsEnabled: vi.fn(),
+  getStaffProjectWarningsConfig: vi.fn(),
+  updateStaffProjectWarningsConfig: vi.fn(),
 }));
 
 describe("projects service", () => {
@@ -240,5 +246,72 @@ describe("projects service", () => {
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 5, active: true }]);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toEqual([{ id: 5, active: true }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22, { activeOnly: true });
+  });
+
+  it("parseProjectWarningsConfig validates shape and getDefaultProjectWarningsConfig returns defaults", async () => {
+    const defaults = getDefaultProjectWarningsConfig();
+    expect(defaults.version).toBe(1);
+    expect(defaults.rules.length).toBeGreaterThan(0);
+
+    expect(parseProjectWarningsConfig(null)).toBeNull();
+    expect(parseProjectWarningsConfig({ version: 2, rules: [] })).toBeNull();
+    expect(
+      parseProjectWarningsConfig({
+        version: 1,
+        rules: [{ key: "LOW_ATTENDANCE", enabled: true, severity: "HIGH", params: { minPercent: 30 } }],
+      }),
+    ).toEqual({
+      version: 1,
+      rules: [{ key: "LOW_ATTENDANCE", enabled: true, severity: "HIGH", params: { minPercent: 30 } }],
+    });
+  });
+
+  it("fetchProjectWarningsConfigForStaff returns default config when missing/invalid", async () => {
+    (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: null,
+    });
+
+    const result = await fetchProjectWarningsConfigForStaff(9, 3);
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 3,
+        warningsEnabled: true,
+        warningsConfig: expect.objectContaining({ version: 1 }),
+      }),
+    );
+  });
+
+  it("updateProjectWarningsConfigForStaff validates config and delegates update", async () => {
+    await expect(updateProjectWarningsConfigForStaff(9, 3, null)).rejects.toMatchObject({
+      code: "INVALID_WARNINGS_CONFIG",
+    });
+
+    (repo.updateStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    await expect(
+      updateProjectWarningsConfigForStaff(9, 3, {
+        version: 1,
+        rules: [{ key: "LOW_ATTENDANCE", enabled: true }],
+      }),
+    ).resolves.toEqual({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    expect(repo.updateStaffProjectWarningsConfig).toHaveBeenCalledWith(
+      9,
+      3,
+      expect.objectContaining({
+        version: 1,
+        rules: [{ key: "LOW_ATTENDANCE", enabled: true }],
+      }),
+    );
   });
 });

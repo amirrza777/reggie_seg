@@ -649,6 +649,19 @@ export async function updateStaffProjectWarningsEnabled(
   projectId: number,
   warningsEnabled: boolean,
 ) {
+  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
+
+  return prisma.project.update({
+    where: { id: scope.id },
+    data: { warningsEnabled },
+    select: {
+      id: true,
+      warningsEnabled: true,
+    },
+  });
+}
+
+async function getStaffProjectWarningsSettingsScope(actorUserId: number, projectId: number) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
     throw { code: "FORBIDDEN", message: "User not found" };
@@ -691,12 +704,34 @@ export async function updateStaffProjectWarningsEnabled(
     }
   }
 
-  return prisma.project.update({
-    where: { id: projectId },
-    data: { warningsEnabled },
+  return projectInEnterprise;
+}
+
+export async function getStaffProjectWarningsConfig(actorUserId: number, projectId: number) {
+  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
+  return prisma.project.findUnique({
+    where: { id: scope.id },
     select: {
       id: true,
       warningsEnabled: true,
+      warningsConfig: true,
+    },
+  });
+}
+
+export async function updateStaffProjectWarningsConfig(
+  actorUserId: number,
+  projectId: number,
+  warningsConfig: unknown,
+) {
+  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
+  return prisma.project.update({
+    where: { id: scope.id },
+    data: { warningsConfig: warningsConfig as any },
+    select: {
+      id: true,
+      warningsEnabled: true,
+      warningsConfig: true,
     },
   });
 }

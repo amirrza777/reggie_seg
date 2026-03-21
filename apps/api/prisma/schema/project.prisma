@@ -8,6 +8,7 @@ model Project {
   archivedAt              DateTime?
   noRepoAlertSentAt       DateTime?
   warningsEnabled         Boolean   @default(false)
+  warningsConfig          Json?
 
   module                Module                    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   questionnaireTemplate QuestionnaireTemplate     @relation("ProjectTemplate", fields: [questionnaireTemplateId], references: [id])

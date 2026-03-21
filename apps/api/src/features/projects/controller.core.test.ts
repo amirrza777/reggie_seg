@@ -21,6 +21,8 @@ import {
   getStaffTeamWarningsHandler,
   getMyTeamWarningsHandler,
   updateProjectWarningsEnabledHandler,
+  getProjectWarningsConfigHandler,
+  updateProjectWarningsConfigHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -43,6 +45,8 @@ vi.mock("./service.js", () => ({
   fetchTeamWarningsForStaff: vi.fn(),
   fetchMyTeamWarnings: vi.fn(),
   updateProjectWarningsEnabledForStaff: vi.fn(),
+  fetchProjectWarningsConfigForStaff: vi.fn(),
+  updateProjectWarningsConfigForStaff: vi.fn(),
   updateTeamDeadlineProfileForStaff: vi.fn(),
   fetchStaffStudentDeadlineOverrides: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
@@ -480,6 +484,95 @@ describe("projects controller core handlers", () => {
       notFoundRes,
     );
     expect(notFoundRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getProjectWarningsConfigHandler validates id and returns config", async () => {
+    const unauthorizedRes = mockResponse();
+    await getProjectWarningsConfigHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [] },
+    });
+    const okRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, okRes);
+    expect(service.fetchProjectWarningsConfigForStaff).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [] },
+    });
+
+    (service.fetchProjectWarningsConfigForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updateProjectWarningsConfigHandler validates payload and updates config", async () => {
+    const unauthorizedRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { params: { projectId: "3" }, body: { warningsConfig: { version: 1, rules: [] } } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, body: { warningsConfig: { version: 1, rules: [] } } } as any,
+      badProjectRes,
+    );
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const missingConfigRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: {} } as any,
+      missingConfigRes,
+    );
+    expect(missingConfigRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+    const okRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] } },
+      } as any,
+      okRes,
+    );
+    expect(service.updateProjectWarningsConfigForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    );
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      warningsEnabled: true,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    (service.updateProjectWarningsConfigForStaff as any).mockRejectedValueOnce({ code: "INVALID_WARNINGS_CONFIG" });
+    const invalidRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { warningsConfig: { bad: true } },
+      } as any,
+      invalidRes,
+    );
+    expect(invalidRes.status).toHaveBeenCalledWith(400);
   });
 
   it("createStaffTeamWarningHandler validates payload and delegates create", async () => {

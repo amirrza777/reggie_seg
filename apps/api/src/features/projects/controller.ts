@@ -22,6 +22,8 @@ import {
   fetchMyTeamWarnings,
   updateTeamDeadlineProfileForStaff,
   updateProjectWarningsEnabledForStaff,
+  fetchProjectWarningsConfigForStaff,
+  updateProjectWarningsConfigForStaff,
   fetchStaffStudentDeadlineOverrides,
   upsertStaffStudentDeadlineOverride,
   clearStaffStudentDeadlineOverride,
@@ -765,6 +767,68 @@ export async function updateProjectWarningsEnabledHandler(req: AuthRequest, res:
     }
     console.error("Error updating project warning settings:", error);
     return res.status(500).json({ error: "Failed to update project warning settings" });
+  }
+}
+
+export async function getProjectWarningsConfigHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const config = await fetchProjectWarningsConfigForStaff(actorUserId, projectId);
+    if (!config) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    return res.json(config);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error fetching project warning config:", error);
+    return res.status(500).json({ error: "Failed to fetch project warning config" });
+  }
+}
+
+export async function updateProjectWarningsConfigHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const warningsConfig = req.body?.warningsConfig;
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (warningsConfig === undefined) {
+    return res.status(400).json({ error: "warningsConfig is required" });
+  }
+
+  try {
+    const updated = await updateProjectWarningsConfigForStaff(actorUserId, projectId, warningsConfig);
+    return res.json(updated);
+  } catch (error: any) {
+    if (error?.code === "INVALID_WARNINGS_CONFIG") {
+      return res.status(400).json({ error: error.message || "Invalid warnings config" });
+    }
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error updating project warning config:", error);
+    return res.status(500).json({ error: "Failed to update project warning config" });
   }
 }
 

@@ -16,17 +16,141 @@ import {
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
   getProjectWarningsEnabledForTeam,
+  getStaffProjectWarningsConfig as getStaffProjectWarningsConfigInDb,
   createTeamWarning,
   getTeamWarningsForTeamInProject,
   canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   updateStaffProjectWarningsEnabled as updateStaffProjectWarningsEnabledInDb,
+  updateStaffProjectWarningsConfig as updateStaffProjectWarningsConfigInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
   type ProjectDeadlineInput,
   type TeamWarningCreateInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+
+export type WarningRuleSeverity = "LOW" | "MEDIUM" | "HIGH";
+
+export type ProjectWarningRuleConfig = {
+  key: string;
+  enabled: boolean;
+  severity?: WarningRuleSeverity;
+  ttlDays?: number;
+  params?: Record<string, unknown>;
+};
+
+export type ProjectWarningsConfig = {
+  version: 1;
+  rules: ProjectWarningRuleConfig[];
+};
+
+const DEFAULT_PROJECT_WARNINGS_CONFIG: ProjectWarningsConfig = {
+  version: 1,
+  rules: [
+    {
+      key: "LOW_ATTENDANCE",
+      enabled: true,
+      severity: "HIGH",
+      params: {
+        minPercent: 30,
+        lookbackDays: 30,
+      },
+    },
+    {
+      key: "MEETING_FREQUENCY",
+      enabled: true,
+      severity: "MEDIUM",
+      params: {
+        minPerWeek: 1,
+        lookbackDays: 28,
+      },
+    },
+  ],
+};
+
+function toConfigClone(config: ProjectWarningsConfig): ProjectWarningsConfig {
+  return {
+    version: 1,
+    rules: config.rules.map((rule) => ({
+      key: rule.key,
+      enabled: rule.enabled,
+      ...(rule.severity ? { severity: rule.severity } : {}),
+      ...(typeof rule.ttlDays === "number" ? { ttlDays: rule.ttlDays } : {}),
+      ...(rule.params ? { params: { ...rule.params } } : {}),
+    })),
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function parseWarningRule(raw: unknown): ProjectWarningRuleConfig | null {
+  if (!isRecord(raw)) return null;
+  const key = raw.key;
+  const enabled = raw.enabled;
+  const severity = raw.severity;
+  const ttlDays = raw.ttlDays;
+  const params = raw.params;
+
+  if (typeof key !== "string" || key.trim().length === 0 || key.length > 64) return null;
+  if (typeof enabled !== "boolean") return null;
+  if (
+    severity !== undefined &&
+    severity !== "LOW" &&
+    severity !== "MEDIUM" &&
+    severity !== "HIGH"
+  ) {
+    return null;
+  }
+  if (ttlDays !== undefined) {
+    if (typeof ttlDays !== "number" || !Number.isInteger(ttlDays) || ttlDays < 1 || ttlDays > 365) {
+      return null;
+    }
+  }
+  if (params !== undefined && !isRecord(params)) return null;
+
+  return {
+    key: key.trim(),
+    enabled,
+    ...(severity ? { severity } : {}),
+    ...(typeof ttlDays === "number" ? { ttlDays } : {}),
+    ...(params ? { params } : {}),
+  };
+}
+
+export function parseProjectWarningsConfig(raw: unknown): ProjectWarningsConfig | null {
+  if (!isRecord(raw)) return null;
+  const version = raw.version;
+  const rules = raw.rules;
+
+  if (version !== 1) return null;
+  if (!Array.isArray(rules)) return null;
+  if (rules.length > 100) return null;
+
+  const parsedRules: ProjectWarningRuleConfig[] = [];
+  for (const rule of rules) {
+    const parsed = parseWarningRule(rule);
+    if (!parsed) return null;
+    parsedRules.push(parsed);
+  }
+
+  return {
+    version: 1,
+    rules: parsedRules,
+  };
+}
+
+export function getDefaultProjectWarningsConfig(): ProjectWarningsConfig {
+  return toConfigClone(DEFAULT_PROJECT_WARNINGS_CONFIG);
+}
+
+function normalizeProjectWarningsConfig(raw: unknown): ProjectWarningsConfig {
+  const parsed = parseProjectWarningsConfig(raw);
+  if (!parsed) return getDefaultProjectWarningsConfig();
+  return parsed;
+}
 
 /** Creates a project. */
 export async function createProject(
@@ -231,6 +355,37 @@ export async function updateProjectWarningsEnabledForStaff(
   warningsEnabled: boolean,
 ) {
   return updateStaffProjectWarningsEnabledInDb(actorUserId, projectId, warningsEnabled);
+}
+
+export async function fetchProjectWarningsConfigForStaff(actorUserId: number, projectId: number) {
+  const result = await getStaffProjectWarningsConfigInDb(actorUserId, projectId);
+  if (!result) return null;
+  return {
+    id: result.id,
+    warningsEnabled: result.warningsEnabled,
+    warningsConfig: normalizeProjectWarningsConfig(result.warningsConfig),
+  };
+}
+
+export async function updateProjectWarningsConfigForStaff(
+  actorUserId: number,
+  projectId: number,
+  rawWarningsConfig: unknown,
+) {
+  const parsedWarningsConfig = parseProjectWarningsConfig(rawWarningsConfig);
+  if (!parsedWarningsConfig) {
+    throw {
+      code: "INVALID_WARNINGS_CONFIG",
+      message: "warningsConfig must be an object with version=1 and a valid rules array",
+    };
+  }
+
+  const updated = await updateStaffProjectWarningsConfigInDb(actorUserId, projectId, parsedWarningsConfig);
+  return {
+    id: updated.id,
+    warningsEnabled: updated.warningsEnabled,
+    warningsConfig: normalizeProjectWarningsConfig(updated.warningsConfig),
+  };
 }
 
 export async function fetchStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {
