@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
+import { Button } from "@/shared/ui/Button";
 import {
   Bar,
   BarChart,
@@ -21,7 +22,6 @@ import {
   buildBranchScopeCommitShareSeries,
   buildCommitTimelineSeries,
   buildContributorRows,
-  buildCoverageShareSeries,
   buildLineChangesByDaySeries,
   buildPersonalShareSeries,
   buildWeeklyCommitSeries,
@@ -30,14 +30,18 @@ import {
   CHART_COLOR_DELETIONS,
   formatDateRange,
   formatNumber,
-  formatPercent,
   formatShortDate,
   getDateTickInterval,
   getChartMinWidth,
   getLineChangeDomain,
 } from "./GithubRepoChartsDashboard.helpers";
 import { GithubSectionContainer } from "./GithubSectionContainer";
-import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
+import type {
+  GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
+  GithubLiveProjectRepoBranches,
+  GithubMappingCoverage,
+} from "../types";
 
 type ChartViewMode = "team" | "personal" | "staff";
 type TeamActivityTab = "teamCharts" | "contributors" | "branchActivity";
@@ -49,6 +53,16 @@ type GithubRepoChartsDashboardProps = {
   viewerMode?: "student" | "staff";
   viewMode?: ChartViewMode;
   repositoryFullName?: string | null;
+  liveBranches?: GithubLiveProjectRepoBranches | null;
+  liveBranchesLoading?: boolean;
+  liveBranchesError?: string | null;
+  liveBranchesRefreshing?: boolean;
+  selectedBranch?: string;
+  onSelectBranch?: (branchName: string) => void;
+  branchCommits?: GithubLiveProjectRepoBranchCommits | null;
+  branchCommitsLoading?: boolean;
+  branchCommitsError?: string | null;
+  onRefreshBranches?: () => void;
 };
 
 const tooltipStyle = {
@@ -59,6 +73,13 @@ const tooltipStyle = {
 
 function EmptyState() {
   return <p className="muted">No chart data available for this snapshot yet.</p>;
+}
+
+function formatCommitDateTime(value: string | null) {
+  if (!value) return "Unknown date";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleString();
 }
 
 function RepositoryAnalyticsCharts({
@@ -284,53 +305,43 @@ function ContributorBreakdown({
 
 function BranchActivity({
   branchScopeCommitShareSeries,
-  coverageShareSeries,
   branchCount,
   defaultBranchName,
   commitsByBranch,
+  liveBranches,
+  liveBranchesLoading,
+  liveBranchesError,
+  liveBranchesRefreshing,
+  selectedBranch,
+  onSelectBranch,
+  branchCommits,
+  branchCommitsLoading,
+  branchCommitsError,
+  onRefreshBranches,
 }: {
   branchScopeCommitShareSeries: ReturnType<typeof buildBranchScopeCommitShareSeries>;
-  coverageShareSeries: ReturnType<typeof buildCoverageShareSeries>;
   branchCount: number;
   defaultBranchName: string;
   commitsByBranch: Record<string, number>;
+  liveBranches: GithubLiveProjectRepoBranches | null;
+  liveBranchesLoading: boolean;
+  liveBranchesError: string | null;
+  liveBranchesRefreshing: boolean;
+  selectedBranch: string;
+  onSelectBranch?: (branchName: string) => void;
+  branchCommits: GithubLiveProjectRepoBranchCommits | null;
+  branchCommitsLoading: boolean;
+  branchCommitsError: string | null;
+  onRefreshBranches?: () => void;
 }) {
-  const branchRows = useMemo(
-    () =>
-      Object.entries(commitsByBranch)
-        .map(([branch, commits]) => ({
-          branch,
-          commits: Number(commits ?? 0),
-        }))
-        .filter((row) => row.branch)
-        .sort((a, b) => {
-          if (a.branch === defaultBranchName) return -1;
-          if (b.branch === defaultBranchName) return 1;
-          return b.commits - a.commits;
-        }),
-    [commitsByBranch, defaultBranchName]
+  const totalBranchCommits = branchScopeCommitShareSeries.reduce(
+    (sum, row) => sum + Number(row.value ?? 0),
+    0
   );
-
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
-
-  useEffect(() => {
-    if (branchRows.length <= 0) {
-      setSelectedBranch("");
-      return;
-    }
-
-    const preferred =
-      branchRows.find((row) => row.branch === defaultBranchName)?.branch || branchRows[0].branch;
-    setSelectedBranch((current) =>
-      current && branchRows.some((row) => row.branch === current) ? current : preferred
-    );
-  }, [branchRows, defaultBranchName]);
-
-  const totalBranchCommits = branchRows.reduce((sum, row) => sum + row.commits, 0);
-  const selectedBranchCommits =
-    branchRows.find((row) => row.branch === selectedBranch)?.commits ?? 0;
-  const branchDistributionMinWidth = getChartMinWidth(branchRows.length, { base: 560, pointWidth: 78 });
-  const branchTickInterval = getDateTickInterval(branchRows.length, { maxTicks: 14 });
+  const selectedBranchCommitCount =
+    typeof commitsByBranch[selectedBranch] === "number" ? Number(commitsByBranch[selectedBranch]) : null;
+  const branchRows = liveBranches?.branches ?? [];
+  const recentCommits = branchCommits?.commits ?? [];
 
   return (
     <>
@@ -344,55 +355,12 @@ function BranchActivity({
           <p className="github-chart-section__metric-value">{formatNumber(branchCount)}</p>
         </article>
         <article className="github-chart-section__metric">
-          <p className="github-chart-section__metric-label">Selected branch commits</p>
-          <p className="github-chart-section__metric-value">{formatNumber(selectedBranchCommits)}</p>
-        </article>
-        <article className="github-chart-section__metric">
           <p className="github-chart-section__metric-label">All branch commits</p>
           <p className="github-chart-section__metric-value">{formatNumber(totalBranchCommits)}</p>
         </article>
       </div>
 
       <div className="github-chart-section__grid">
-        {branchRows.length > 0 ? (
-          <GithubChartCard
-            title="Branch commit distribution"
-            info={chartInfo.branchDistribution}
-            size="full"
-            minChartWidth={branchDistributionMinWidth}
-          >
-            <div className="github-chart-section__canvas github-chart-section__canvas--md">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={branchRows} margin={{ top: 10, right: 18, left: 12, bottom: 4 }} barCategoryGap="18%">
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                  <XAxis
-                    dataKey="branch"
-                    interval={branchTickInterval}
-                    tickMargin={14}
-                    tick={{ fill: "var(--muted)", fontSize: 11 }}
-                    minTickGap={18}
-                    label={{ value: "Branch", position: "insideBottom", offset: -2, fill: "var(--muted)" }}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: "var(--muted)" }}
-                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                  />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Bar
-                    dataKey="commits"
-                    name="Commits"
-                    fill={CHART_COLOR_COMMITS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={30}
-                    animationDuration={420}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </GithubChartCard>
-        ) : null}
-
         {branchScopeCommitShareSeries.length > 0 ? (
           <GithubDonutChartCard
             title="Default vs other branches"
@@ -401,61 +369,101 @@ function BranchActivity({
             className="github-chart-section__panel github-chart-section__panel--half"
           />
         ) : null}
-
-        {coverageShareSeries.length > 0 ? (
-          <GithubDonutChartCard
-            title="Matched vs unmatched commits"
-            data={coverageShareSeries}
-            info={chartInfo.mappingCoverage}
-            className="github-chart-section__panel github-chart-section__panel--half"
-          />
-        ) : null}
       </div>
 
-      {branchRows.length > 0 ? (
-        <div className="github-chart-section__branch-commits">
-          <div className="github-chart-section__branch-controls">
-            <label className="github-chart-section__branch-label" htmlFor="branch-activity-select">
-              Branch selector
+      <div className="github-chart-section__panel github-chart-section__panel--full">
+        <div className="github-repos-tab__header">
+          <div className="github-repos-tab__title">
+            <p className="github-repos-tab__kicker">Repository activity</p>
+            <h3 className="github-repos-tab__heading">Branch commits</h3>
+          </div>
+          {onRefreshBranches ? (
+            <Button
+              variant="ghost"
+              onClick={() => onRefreshBranches()}
+              disabled={liveBranchesLoading || liveBranchesRefreshing}
+            >
+              {liveBranchesLoading || liveBranchesRefreshing ? "Refreshing branches..." : "Refresh branches"}
+            </Button>
+          ) : null}
+        </div>
+
+        <p className="muted github-repos-tab__helper">
+          Select a branch to inspect recent commits. The selector defaults to <strong>main</strong> when available.
+        </p>
+
+        {liveBranchesError ? (
+          <p className="muted github-repos-tab__table-wrap">
+            Failed to load branches: {liveBranchesError}
+          </p>
+        ) : null}
+
+        {branchRows.length > 0 ? (
+          <div className="stack github-repos-tab__select-wrap">
+            <label className="muted" htmlFor="branch-activity-select">
+              Select branch
             </label>
             <select
               id="branch-activity-select"
-              className="github-chart-section__branch-select"
+              className="github-repos-tab__select"
               value={selectedBranch}
-              onChange={(event) => setSelectedBranch(event.target.value)}
+              onChange={(event) => onSelectBranch?.(event.target.value)}
+              disabled={liveBranchesLoading}
             >
-              {branchRows.map((row) => (
-                <option key={row.branch} value={row.branch}>
-                  {row.branch}
-                  {row.branch === defaultBranchName ? " (default)" : ""}
+              {branchRows.map((branch) => (
+                <option key={branch.name} value={branch.name}>
+                  {branch.name}
+                  {branch.isDefault ? " (default)" : ""}
                 </option>
               ))}
             </select>
+            {selectedBranchCommitCount != null ? (
+              <p className="muted">
+                {formatNumber(selectedBranchCommitCount)} snapshot commits
+              </p>
+            ) : null}
           </div>
+        ) : liveBranchesLoading ? (
+          <p className="muted github-repos-tab__table-wrap">Loading branches...</p>
+        ) : (
+          <p className="muted github-repos-tab__table-wrap">No branches returned for this repository.</p>
+        )}
 
-          <div className="github-chart-section__branch-list">
-            {branchRows.map((row) => (
-              <div
-                key={row.branch}
-                className={`github-chart-section__branch-row${row.branch === selectedBranch ? " is-selected" : ""}`}
-              >
-                <div>
-                  <p className="github-chart-section__branch-name">
-                    {row.branch}
-                    {row.branch === defaultBranchName ? " (default)" : ""}
-                  </p>
-                  <p className="github-chart-section__branch-subtext">
-                    {formatPercent(row.commits, Math.max(1, totalBranchCommits))} of branch commits
-                  </p>
+        {branchCommitsLoading ? (
+          <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
+        ) : null}
+        {branchCommitsError ? (
+          <p className="muted github-repos-tab__table-wrap">
+            Failed to load commits: {branchCommitsError}
+          </p>
+        ) : null}
+        {!branchCommitsLoading && !branchCommitsError && selectedBranch && recentCommits.length === 0 ? (
+          <p className="muted github-repos-tab__table-wrap">No commits returned for this branch.</p>
+        ) : null}
+
+        {recentCommits.length > 0 ? (
+          <div className="github-repos-tab__table-wrap stack" style={{ gap: 10 }}>
+            {recentCommits.map((commit) => (
+              <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
+                  {commit.message || "(no message)"}
+                </a>
+                <div className="github-repos-tab__commit-meta-row">
+                  <span className="muted github-repos-tab__commit-meta">
+                    {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
+                  </span>
+                  <span className="muted github-repos-tab__commit-meta">{formatCommitDateTime(commit.date)}</span>
+                  {typeof commit.additions === "number" || typeof commit.deletions === "number" ? (
+                    <span className="muted github-repos-tab__commit-meta">
+                      +{commit.additions ?? 0} / -{commit.deletions ?? 0}
+                    </span>
+                  ) : null}
                 </div>
-                <p className="github-chart-section__branch-commit-value">{formatNumber(row.commits)}</p>
               </div>
             ))}
           </div>
-        </div>
-      ) : (
-        <p className="muted">No branch commit breakdown available in this snapshot.</p>
-      )}
+        ) : null}
+      </div>
     </>
   );
 }
@@ -636,11 +644,21 @@ function PersonalActivity({
 
 export function GithubRepoChartsDashboard({
   snapshot,
-  coverage,
+  coverage: _coverage,
   currentGithubLogin,
   viewerMode = "student",
   viewMode,
   repositoryFullName,
+  liveBranches = null,
+  liveBranchesLoading = false,
+  liveBranchesError = null,
+  liveBranchesRefreshing = false,
+  selectedBranch = "",
+  onSelectBranch,
+  branchCommits = null,
+  branchCommitsLoading = false,
+  branchCommitsError = null,
+  onRefreshBranches,
 }: GithubRepoChartsDashboardProps) {
   const [activeActivityTab, setActiveActivityTab] = useState<TeamActivityTab>("teamCharts");
   const resolvedMode: ChartViewMode = viewMode || (viewerMode === "staff" ? "staff" : "team");
@@ -654,7 +672,6 @@ export function GithubRepoChartsDashboard({
     commitTimelineSeries.map((row) => ({ date: row.date, commits: row.commits }))
   );
   const branchScopeCommitShareSeries = buildBranchScopeCommitShareSeries(snapshot);
-  const coverageShareSeries = buildCoverageShareSeries(coverage);
   const contributors = buildContributorRows(snapshot);
   const lineChangeDomain = getLineChangeDomain(lineChangesByDaySeries);
   const personalShares = buildPersonalShareSeries({ snapshot, currentGithubLogin });
@@ -670,6 +687,7 @@ export function GithubRepoChartsDashboard({
   const totalDeletions = Number(snapshot?.repoStats?.[0]?.totalDeletions ?? 0);
   const branchCount = Number(snapshot?.data?.branchScopeStats?.allBranches?.branchCount ?? 0);
   const defaultBranchName = snapshot?.data?.branchScopeStats?.defaultBranch?.branch || "main";
+  const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch ?? {};
 
   const hasData =
     commitTimelineSeries.length > 0 ||
@@ -774,8 +792,9 @@ export function GithubRepoChartsDashboard({
         >
           {activeActivityTab === "teamCharts" ? (
             <div className="github-chart-section__tab-content">
-              <div className="github-chart-section__tab-header">
-                <h4 className="github-chart-section__tab-title">Team charts</h4>
+              <div className="github-chart-section__tab-header github-chart-section__tab-header-card">
+                <p className="github-chart-section__tab-kicker">Team charts</p>
+                <h4 className="github-chart-section__tab-title">Repository analytics charts</h4>
                 <p className="muted github-chart-section__tab-description">
                   Commit and line-change trends across the linked repository.
                 </p>
@@ -792,7 +811,8 @@ export function GithubRepoChartsDashboard({
 
           {activeActivityTab === "contributors" ? (
             <div className="github-chart-section__tab-content">
-              <div className="github-chart-section__tab-header">
+              <div className="github-chart-section__tab-header github-chart-section__tab-header-card">
+                <p className="github-chart-section__tab-kicker">Contributors</p>
                 <h4 className="github-chart-section__tab-title">Contributor breakdown</h4>
                 <p className="muted github-chart-section__tab-description">
                   Ranked contributor cards with commits, line deltas, and mini activity charts.
@@ -807,7 +827,8 @@ export function GithubRepoChartsDashboard({
 
           {activeActivityTab === "branchActivity" ? (
             <div className="github-chart-section__tab-content">
-              <div className="github-chart-section__tab-header">
+              <div className="github-chart-section__tab-header github-chart-section__tab-header-card">
+                <p className="github-chart-section__tab-kicker">Branch activity</p>
                 <h4 className="github-chart-section__tab-title">Branch activity</h4>
                 <p className="muted github-chart-section__tab-description">
                   Default-branch share, branch coverage, and commit mapping confidence.
@@ -815,9 +836,19 @@ export function GithubRepoChartsDashboard({
               </div>
               <BranchActivity
                 branchScopeCommitShareSeries={branchScopeCommitShareSeries}
-                coverageShareSeries={coverageShareSeries}
                 branchCount={branchCount}
                 defaultBranchName={defaultBranchName}
+                commitsByBranch={commitsByBranch}
+                liveBranches={liveBranches}
+                liveBranchesLoading={liveBranchesLoading}
+                liveBranchesError={liveBranchesError}
+                liveBranchesRefreshing={liveBranchesRefreshing}
+                selectedBranch={selectedBranch}
+                onSelectBranch={onSelectBranch}
+                branchCommits={branchCommits}
+                branchCommitsLoading={branchCommitsLoading}
+                branchCommitsError={branchCommitsError}
+                onRefreshBranches={onRefreshBranches}
               />
             </div>
           ) : null}

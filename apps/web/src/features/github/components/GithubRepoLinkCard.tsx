@@ -4,6 +4,8 @@ import { Button } from "@/shared/ui/Button";
 import { GithubRepoChartsDashboard } from "./GithubRepoChartsDashboard";
 import type {
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
+  GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   ProjectGithubRepoLink,
 } from "../types";
@@ -13,6 +15,16 @@ type GithubRepoLinkCardProps = {
   coverage: GithubMappingCoverage | null;
   snapshot: GithubLatestSnapshot["snapshot"] | null;
   currentGithubLogin: string | null;
+  liveBranches?: GithubLiveProjectRepoBranches | null;
+  liveBranchesLoading?: boolean;
+  liveBranchesError?: string | null;
+  liveBranchesRefreshing?: boolean;
+  selectedBranch?: string;
+  onSelectBranch?: (branchName: string) => void;
+  branchCommits?: GithubLiveProjectRepoBranchCommits | null;
+  branchCommitsLoading?: boolean;
+  branchCommitsError?: string | null;
+  onRefreshBranches?: () => void;
   busy?: boolean;
   loading?: boolean;
   removingLinkId?: number | null;
@@ -40,6 +52,16 @@ export function GithubRepoLinkCard({
   coverage,
   snapshot,
   currentGithubLogin,
+  liveBranches = null,
+  liveBranchesLoading = false,
+  liveBranchesError = null,
+  liveBranchesRefreshing = false,
+  selectedBranch = "",
+  onSelectBranch,
+  branchCommits = null,
+  branchCommitsLoading = false,
+  branchCommitsError = null,
+  onRefreshBranches,
   busy = false,
   loading = false,
   removingLinkId = null,
@@ -149,6 +171,16 @@ export function GithubRepoLinkCard({
         viewerMode={viewerMode}
         viewMode={resolvedChartMode}
         repositoryFullName={link.repository.fullName}
+        liveBranches={liveBranches}
+        liveBranchesLoading={liveBranchesLoading}
+        liveBranchesError={liveBranchesError}
+        liveBranchesRefreshing={liveBranchesRefreshing}
+        selectedBranch={selectedBranch}
+        onSelectBranch={onSelectBranch}
+        branchCommits={branchCommits}
+        branchCommitsLoading={branchCommitsLoading}
+        branchCommitsError={branchCommitsError}
+        onRefreshBranches={onRefreshBranches}
       />
 
       {canRemove ? (
