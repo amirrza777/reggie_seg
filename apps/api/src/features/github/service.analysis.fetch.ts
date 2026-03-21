@@ -43,6 +43,38 @@ type GithubCompareResponse = {
   behind_by?: number;
 };
 
+function parseLastPageFromLinkHeader(linkHeader: string | null | undefined) {
+  if (!linkHeader) {
+    return null;
+  }
+
+  const parts = linkHeader.split(",");
+  for (const part of parts) {
+    const [rawUrl, rawRel] = part.split(";");
+    if (!rawUrl || !rawRel || !rawRel.includes('rel="last"')) {
+      continue;
+    }
+
+    const trimmedUrl = rawUrl.trim();
+    if (!trimmedUrl.startsWith("<") || !trimmedUrl.endsWith(">")) {
+      continue;
+    }
+
+    const href = trimmedUrl.slice(1, -1);
+    try {
+      const parsed = new URL(href);
+      const page = Number(parsed.searchParams.get("page") ?? "");
+      if (Number.isFinite(page) && page > 0) {
+        return Math.floor(page);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 /** Converts the utc day key. */
 export function toUtcDayKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -117,6 +149,51 @@ export async function fetchCommitsForLinkedRepository(
   }
 
   return commits;
+}
+
+/** Returns the exact commit count for a repository branch. */
+export async function fetchBranchCommitCount(
+  accessToken: string,
+  fullName: string,
+  branch: string
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const response = await fetch(
+    `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=1&page=1`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new GithubServiceError(404, "Linked GitHub repository was not found");
+    }
+    if (response.status === 409) {
+      return 0;
+    }
+    if (response.status === 401) {
+      throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+    }
+    throw new GithubServiceError(502, "Failed to fetch repository commits");
+  }
+
+  const pageData = (await response.json()) as GithubCommitListItem[];
+  if (pageData.length <= 0) {
+    return 0;
+  }
+
+  const linkHeader = response.headers?.get("link");
+  const lastPage = parseLastPageFromLinkHeader(linkHeader);
+  if (typeof lastPage === "number") {
+    return lastPage;
+  }
+
+  return pageData.length;
 }
 
 /** Returns the recent commits for branch. */

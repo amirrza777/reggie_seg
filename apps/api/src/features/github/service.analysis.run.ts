@@ -11,6 +11,7 @@ import {
 } from "./repo.js";
 import {
   contributorKeyFromCommit,
+  fetchBranchCommitCount,
   fetchCommitStatsForRepository,
   fetchCommitsForLinkedRepository,
   listRepositoryBranches,
@@ -269,7 +270,11 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     ((previousRepoStats?.commitsByBranch as CountMap | undefined) ?? {}),
     aggregated.repoCommitsByBranch
   );
-  const mergedDefaultBranchCommits = mergedTotalCommits;
+  const mergedDefaultBranchCommits = await fetchBranchCommitCount(
+    accessToken,
+    link.repository.fullName,
+    defaultBranch
+  );
 
   const previousAllBranchesStats = previousData?.branchScopeStats?.allBranches;
   const previousDefaultLineChanges = previousData.timeSeries?.defaultBranch?.lineChangesByDay ?? {};
@@ -320,7 +325,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         lineChangesByDay: mergedAllBranchesLineChangesByDay,
       },
     },
-    commitCount: mergedTotalCommits,
+    commitCount: mergedDefaultBranchCommits,
     commitStatsCoverage: {
       detailedCommitCount: (previousCommitStatsCoverage?.detailedCommitCount ?? 0) + commitStatsBySha.size,
       requestedCommitCount: (previousCommitStatsCoverage?.requestedCommitCount ?? 0) + commits.length,
@@ -328,7 +333,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     branchScopeStats: {
       defaultBranch: {
         branch: defaultBranch,
-        totalCommits: mergedTotalCommits,
+        totalCommits: mergedDefaultBranchCommits,
         totalAdditions: mergedDefaultLineTotals.additions,
         totalDeletions: mergedDefaultLineTotals.deletions,
       },

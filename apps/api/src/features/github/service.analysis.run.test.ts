@@ -16,6 +16,7 @@ const oauthMocks = vi.hoisted(() => ({
 
 const fetchMocks = vi.hoisted(() => ({
   contributorKeyFromCommit: vi.fn(),
+  fetchBranchCommitCount: vi.fn(),
   fetchCommitStatsForRepository: vi.fn(),
   fetchCommitsForLinkedRepository: vi.fn(),
   listRepositoryBranches: vi.fn(),
@@ -46,6 +47,7 @@ import { analyseProjectGithubRepository } from "./service.analysis.run.js";
 describe("github service.analysis.run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchMocks.fetchBranchCommitCount.mockResolvedValue(0);
   });
 
   it("throws 404 when link is missing", async () => {
@@ -168,6 +170,7 @@ describe("github service.analysis.run", () => {
         repoStat: expect.objectContaining({ totalCommits: 0, totalContributors: 0 }),
       })
     );
+    expect(fetchMocks.fetchBranchCommitCount).toHaveBeenCalledWith("token", "org/repo", "main");
     expect(result).toEqual({ id: 101 });
   });
 

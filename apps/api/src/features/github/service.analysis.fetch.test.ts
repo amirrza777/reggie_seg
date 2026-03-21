@@ -13,6 +13,7 @@ vi.mock("./service.analysis.commit-stats-cache.js", () => cacheMocks);
 
 import {
   contributorKeyFromCommit,
+  fetchBranchCommitCount,
   fetchCommitsForLinkedRepository,
   fetchCommitStatsForRepository,
   fetchRecentCommitsForBranch,
@@ -21,11 +22,17 @@ import {
   toUtcDayKey,
 } from "./service.analysis.fetch.js";
 
-function response(status: number, body: unknown) {
+function response(status: number, body: unknown, headers?: Record<string, string>) {
   return {
     ok: status >= 200 && status < 300,
     status,
     json: vi.fn().mockResolvedValue(body),
+    headers: {
+      get: vi.fn((name: string) => {
+        const key = Object.keys(headers || {}).find((entry) => entry.toLowerCase() === name.toLowerCase());
+        return key ? headers?.[key] ?? null : null;
+      }),
+    },
   } as any;
 }
 
@@ -70,6 +77,29 @@ describe("github service.analysis.fetch", () => {
     await expect(
       fetchCommitsForLinkedRepository("token", "org/repo", "main", "2026-01-01T00:00:00.000Z")
     ).resolves.toEqual([]);
+  });
+
+  it("fetches exact branch commit count via pagination headers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        response(
+          200,
+          [{ sha: "tip", commit: { author: null }, author: null }],
+          {
+            link:
+              '<https://api.github.com/repositories/1/commits?sha=main&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/1/commits?sha=main&per_page=1&page=371>; rel="last"',
+          }
+        )
+      )
+    );
+
+    await expect(fetchBranchCommitCount("token", "org/repo", "main")).resolves.toBe(371);
+  });
+
+  it("returns zero branch commits for empty repositories", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(409, {})));
+    await expect(fetchBranchCommitCount("token", "org/repo", "main")).resolves.toBe(0);
   });
 
   it("fetches beyond 10 pages and can run without a since filter", async () => {
