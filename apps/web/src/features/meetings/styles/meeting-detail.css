@@ -83,3 +83,8 @@
 .atc-dropdown__item:hover {
   background: var(--glass-hover);
 }
+
+.table--attendance .table__head,
+.table--attendance .table__row {
+  grid-template-columns: 1fr 220px;
+}

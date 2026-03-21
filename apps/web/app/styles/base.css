@@ -308,6 +308,7 @@ h3 {
 }
 
 input,
+select,
 textarea {
     width: 100%;
     border: 1px solid var(--border);
@@ -321,6 +322,7 @@ textarea {
 
 @media (prefers-color-scheme: dark) {
     input,
+    select,
     textarea {
         color-scheme: dark;
     }
