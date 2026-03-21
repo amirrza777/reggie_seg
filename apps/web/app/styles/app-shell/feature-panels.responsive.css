@@ -35,6 +35,10 @@
     height: 190px;
   }
 
+  .github-chart-section__canvas--weekly {
+    height: 204px;
+  }
+
   .github-chart-section__contributor-grid {
     grid-template-columns: 1fr;
   }

@@ -201,6 +201,10 @@
   height: 216px;
 }
 
+.github-chart-section__canvas--weekly {
+  height: 244px;
+}
+
 .github-chart-section__contributor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

@@ -28,6 +28,34 @@ export function formatDateRange(start: string, end: string) {
   return `${formatShortDate(start)} - ${formatShortDate(end)}`;
 }
 
+export function formatWeekRangeLabel(start: string, end: string) {
+  if (!start || !end) return "";
+  if (start === end) return formatShortDate(start);
+
+  const startDate = new Date(`${start}T00:00:00Z`);
+  const endDate = new Date(`${end}T00:00:00Z`);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return `${start} - ${end}`;
+  }
+
+  const sameYear = startDate.getUTCFullYear() === endDate.getUTCFullYear();
+  const sameMonth = sameYear && startDate.getUTCMonth() === endDate.getUTCMonth();
+
+  const startMonth = startDate.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
+  const endMonth = endDate.toLocaleDateString(undefined, { month: "short", timeZone: "UTC" });
+  const startDay = startDate.getUTCDate();
+  const endDay = endDate.getUTCDate();
+
+  if (sameMonth) {
+    return `${startMonth} ${startDay}-${endDay}`;
+  }
+  if (sameYear) {
+    return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  }
+
+  return `${startMonth} ${startDay}, ${startDate.getUTCFullYear()} - ${endMonth} ${endDay}, ${endDate.getUTCFullYear()}`;
+}
+
 export function formatNumber(value: number) {
   return value.toLocaleString();
 }
@@ -222,7 +250,7 @@ export function buildWeeklyCommitSeries(dailySeries: Array<{ date: string; commi
   return Object.entries(bucket)
     .map(([weekKey, stats]) => ({
       weekKey,
-      weekLabel: weekKey,
+      weekLabel: formatWeekRangeLabel(stats.start, stats.end),
       rangeStart: stats.start,
       rangeEnd: stats.end,
       commits: stats.commits,

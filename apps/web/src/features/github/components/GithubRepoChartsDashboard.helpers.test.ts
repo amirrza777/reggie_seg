@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   buildCommitTimelineSeries,
   buildLineChangesByDaySeries,
+  buildWeeklyCommitSeries,
+  formatWeekRangeLabel,
 } from "./GithubRepoChartsDashboard.helpers";
 import type { GithubLatestSnapshot } from "../types";
 
@@ -71,6 +73,82 @@ describe("GithubRepoChartsDashboard.helpers", () => {
 
     expect(buildLineChangesByDaySeries(snapshot)).toEqual([
       { date: "2026-03-19", additions: 12, deletions: -4 },
+    ]);
+  });
+
+  it("does not stretch commit timeline to line-change-only dates", () => {
+    const snapshot = makeSnapshot({
+      data: {
+        timeSeries: {
+          defaultBranch: {
+            lineChangesByDay: {
+              "2026-03-19": { additions: 12, deletions: 4 },
+              "2026-03-20": { additions: 8, deletions: 3 },
+            },
+          },
+        },
+      },
+      repoStats: [
+        {
+          totalCommits: 3,
+          totalAdditions: 20,
+          totalDeletions: 7,
+          totalContributors: 1,
+          matchedContributors: 1,
+          unmatchedContributors: 0,
+          unmatchedCommits: 0,
+          commitsByDay: {
+            "2026-03-15": 1,
+            "2026-03-16": 2,
+          },
+        },
+      ],
+    });
+
+    expect(buildCommitTimelineSeries(snapshot, null)).toEqual([
+      { date: "2026-03-15", commits: 1, personalCommits: 0 },
+      { date: "2026-03-16", commits: 2, personalCommits: 0 },
+    ]);
+  });
+
+  it("formats weekly labels as readable date ranges", () => {
+    expect(formatWeekRangeLabel("2026-03-02", "2026-03-08")).toBe("Mar 2-8");
+    expect(formatWeekRangeLabel("2026-03-30", "2026-04-05")).toBe("Mar 30 - Apr 5");
+  });
+
+  it("keeps zero-commit weeks when daily data spans that week", () => {
+    const series = buildWeeklyCommitSeries([
+      { date: "2026-03-02", commits: 3 },
+      { date: "2026-03-03", commits: 1 },
+      { date: "2026-03-04", commits: 0 },
+      { date: "2026-03-05", commits: 0 },
+      { date: "2026-03-06", commits: 0 },
+      { date: "2026-03-07", commits: 0 },
+      { date: "2026-03-08", commits: 0 },
+      { date: "2026-03-09", commits: 0 },
+      { date: "2026-03-10", commits: 0 },
+      { date: "2026-03-11", commits: 0 },
+      { date: "2026-03-12", commits: 0 },
+      { date: "2026-03-13", commits: 0 },
+      { date: "2026-03-14", commits: 0 },
+      { date: "2026-03-15", commits: 0 },
+    ]);
+
+    expect(series).toEqual([
+      {
+        weekKey: "2026-W10",
+        weekLabel: "Mar 2-8",
+        rangeStart: "2026-03-02",
+        rangeEnd: "2026-03-08",
+        commits: 4,
+      },
+      {
+        weekKey: "2026-W11",
+        weekLabel: "Mar 9-15",
+        rangeStart: "2026-03-09",
+        rangeEnd: "2026-03-15",
+        commits: 0,
+      },
     ]);
   });
 });

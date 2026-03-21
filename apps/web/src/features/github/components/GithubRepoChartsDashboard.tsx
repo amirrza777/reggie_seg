@@ -16,6 +16,7 @@ import {
 } from "recharts";
 import { GithubDonutChartCard } from "./GithubDonutChartCard";
 import { GithubChartCard } from "./GithubChartCard";
+import type { GithubChartInfoContent } from "./GithubChartInfo";
 import { GithubContributorCard } from "./GithubContributorCard";
 import { githubRepoChartInfo as chartInfo } from "./GithubRepoChartsDashboard.info";
 import {
@@ -82,6 +83,83 @@ function formatCommitDateTime(value: string | null) {
   return parsed.toLocaleString();
 }
 
+function resolveCommitAxisMax(dataMax: number) {
+  const numeric = Number(dataMax);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 4;
+  return Math.max(4, Math.ceil(numeric * 1.12));
+}
+
+function WeeklyCommitTotalsChart({
+  title,
+  info,
+  data,
+  minChartWidth,
+  tickInterval,
+  size = "half",
+}: {
+  title: string;
+  info: GithubChartInfoContent;
+  data: Array<{ weekKey: string; weekLabel: string; rangeStart: string; rangeEnd: string; commits: number }>;
+  minChartWidth: number;
+  tickInterval: number;
+  size?: "half" | "full";
+}) {
+  return (
+    <GithubChartCard title={title} info={info} size={size} minChartWidth={minChartWidth}>
+      <div className="github-chart-section__canvas github-chart-section__canvas--weekly">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+            barCategoryGap="12%"
+            barGap={0}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis
+              dataKey="weekLabel"
+              interval={tickInterval}
+              tickMargin={12}
+              tick={{ fill: "var(--muted)", fontSize: 11 }}
+              minTickGap={14}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              allowDecimals={false}
+              domain={[0, resolveCommitAxisMax]}
+              tick={{ fill: "var(--muted)" }}
+              width={42}
+              axisLine={false}
+              tickLine={false}
+              label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+            />
+            <Tooltip
+              labelFormatter={(_, payload) => {
+                const row = payload?.[0]?.payload as
+                  | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
+                  | undefined;
+                return row?.rangeStart && row?.rangeEnd
+                  ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
+                  : "Week";
+              }}
+              formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
+              contentStyle={tooltipStyle}
+            />
+            <Bar
+              dataKey="commits"
+              name="Commits"
+              fill={CHART_COLOR_COMMITS}
+              radius={[6, 6, 0, 0]}
+              minPointSize={2}
+              animationDuration={420}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </GithubChartCard>
+  );
+}
+
 function RepositoryAnalyticsCharts({
   commitTimelineSeries,
   lineChangesByDaySeries,
@@ -108,7 +186,7 @@ function RepositoryAnalyticsCharts({
   const weeklyChartMinWidth = getChartMinWidth(weeklyCommitSeries.length, { base: 520, pointWidth: 60, max: 980 });
   const commitTickInterval = getDateTickInterval(commitTimelineSeries.length, { maxTicks: 9 });
   const lineChangeTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 9 });
-  const weeklyTickInterval = getDateTickInterval(weeklyCommitSeries.length, { maxTicks: 8 });
+  const weeklyTickInterval = getDateTickInterval(weeklyCommitSeries.length, { maxTicks: 12 });
 
   return (
     <div className="github-chart-section__grid">
@@ -240,62 +318,14 @@ function RepositoryAnalyticsCharts({
       ) : null}
 
       {weeklyCommitSeries.length > 0 ? (
-        <GithubChartCard
+        <WeeklyCommitTotalsChart
           title="Weekly commit totals"
           info={chartInfo.weeklyCommits}
-          size="half"
+          data={weeklyCommitSeries}
           minChartWidth={weeklyChartMinWidth}
-        >
-          <div className="github-chart-section__canvas github-chart-section__canvas--md">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={weeklyCommitSeries}
-                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
-                barCategoryGap="22%"
-                barGap={3}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="weekLabel"
-                  interval={weeklyTickInterval}
-                  tickMargin={12}
-                  tick={{ fill: "var(--muted)", fontSize: 11 }}
-                  tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
-                  minTickGap={20}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: "var(--muted)" }}
-                  width={42}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                />
-                <Tooltip
-                  labelFormatter={(_, payload) => {
-                    const row = payload?.[0]?.payload as
-                      | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
-                      | undefined;
-                    return row?.rangeStart && row?.rangeEnd
-                      ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
-                      : "Week";
-                  }}
-                  contentStyle={tooltipStyle}
-                />
-                <Bar
-                  dataKey="commits"
-                  name="Commits"
-                  fill={CHART_COLOR_COMMITS}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={30}
-                  animationDuration={420}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </GithubChartCard>
+          tickInterval={weeklyTickInterval}
+          size="half"
+        />
       ) : null}
     </div>
   );
@@ -505,7 +535,7 @@ function PersonalActivity({
   const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 620, pointWidth: 28, max: 1500 });
   const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 520, pointWidth: 60, max: 980 });
   const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 9 });
-  const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 8 });
+  const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 12 });
 
   return (
     <GithubSectionContainer
@@ -609,61 +639,14 @@ function PersonalActivity({
         ) : null}
 
         {personalWeeklySeries.length > 0 ? (
-          <GithubChartCard
+          <WeeklyCommitTotalsChart
             title="My weekly commit totals"
             info={chartInfo.personalWeeklyCommits}
-            size="full"
+            data={personalWeeklySeries}
             minChartWidth={weeklyMinWidth}
-          >
-            <div className="github-chart-section__canvas github-chart-section__canvas--md">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={personalWeeklySeries}
-                  margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
-                  barCategoryGap="22%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="weekLabel"
-                    interval={personalWeeklyTickInterval}
-                    tickMargin={12}
-                    tick={{ fill: "var(--muted)", fontSize: 11 }}
-                    tickFormatter={(value) => String(value).replace(/^(\d{4})-W/, "W")}
-                    minTickGap={20}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: "var(--muted)" }}
-                    width={42}
-                    axisLine={false}
-                    tickLine={false}
-                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                  />
-                  <Tooltip
-                    labelFormatter={(_, payload) => {
-                      const row = payload?.[0]?.payload as
-                        | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
-                        | undefined;
-                      return row?.rangeStart && row?.rangeEnd
-                        ? `Week ${row.weekKey ?? ""}: ${formatDateRange(row.rangeStart, row.rangeEnd)}`
-                        : "Week";
-                    }}
-                    contentStyle={tooltipStyle}
-                  />
-                  <Bar
-                    dataKey="commits"
-                    name="Commits"
-                    fill={CHART_COLOR_COMMITS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={30}
-                    animationDuration={420}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </GithubChartCard>
+            tickInterval={personalWeeklyTickInterval}
+            size="full"
+          />
         ) : null}
       </div>
     </GithubSectionContainer>
@@ -704,9 +687,7 @@ export function GithubRepoChartsDashboard({
   const lineChangeDomain = getLineChangeDomain(lineChangesByDaySeries);
   const personalShares = buildPersonalShareSeries({ snapshot, currentGithubLogin });
   const personalWeeklySeries = buildWeeklyCommitSeries(
-    commitTimelineSeries
-      .map((row) => ({ date: row.date, commits: Number(row.personalCommits ?? 0) }))
-      .filter((row) => row.commits > 0)
+    commitTimelineSeries.map((row) => ({ date: row.date, commits: Number(row.personalCommits ?? 0) }))
   );
 
   const totalContributors = Number(snapshot?.repoStats?.[0]?.totalContributors ?? 0);
