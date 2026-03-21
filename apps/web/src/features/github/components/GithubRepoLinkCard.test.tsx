@@ -207,4 +207,35 @@ describe("GithubRepoLinkCard", () => {
     expect(screen.queryByRole("button", { name: "Remove link" })).not.toBeInTheDocument();
     expect(onRemoveLink).not.toHaveBeenCalled();
   });
+
+  it("uses default-branch commits for personal team snapshot metric", () => {
+    render(
+      <GithubRepoLinkCard
+        link={makeLink()}
+        coverage={makeCoverage()}
+        snapshot={makeSnapshot({
+          userStats: [
+            {
+              id: 1,
+              mappedUserId: 7,
+              githubLogin: "alice",
+              isMatched: true,
+              commits: 3,
+              additions: 30,
+              deletions: 10,
+              commitsByDay: { "2026-02-26": 3 },
+            },
+          ],
+        })}
+        currentGithubLogin="alice"
+        chartMode="personal"
+        readOnly
+      />
+    );
+
+    expect(screen.getByLabelText("Personal overview")).toBeInTheDocument();
+    const teamSnapshotStat = screen.getByText("Team commits (snapshot)").parentElement;
+    expect(teamSnapshotStat).toHaveTextContent("12");
+    expect(teamSnapshotStat).not.toHaveTextContent("20");
+  });
 });

@@ -132,7 +132,7 @@ export function GithubRepoLinkCard({
             </div>
             <div className="github-repo-link-card__stat">
               <div className="github-repo-link-card__stat-label">Team commits (snapshot)</div>
-              <div className="github-repo-link-card__stat-value">{allCommitCount.toLocaleString()}</div>
+              <div className="github-repo-link-card__stat-value">{defaultCommitCount.toLocaleString()}</div>
             </div>
           </div>
         </section>
