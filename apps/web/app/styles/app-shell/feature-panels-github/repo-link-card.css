@@ -1,7 +1,7 @@
 .github-repo-link-card {
   padding: var(--space-panel-content-inset);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--glass-surface);
   margin-bottom: 8px;
 }
@@ -69,7 +69,7 @@
 
 .github-repo-link-card__stat {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 10px;
 }

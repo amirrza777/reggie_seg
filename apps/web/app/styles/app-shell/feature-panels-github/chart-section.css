@@ -45,8 +45,8 @@
 
 .github-chart-section__metric {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
+  border-radius: var(--radius-md);
+  padding: 10px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%) 0%, var(--surface) 100%);
   box-shadow: var(--shadow-sm);
@@ -157,8 +157,8 @@
 
 .github-chart-section__panel {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  padding: 10px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   min-width: 0;
