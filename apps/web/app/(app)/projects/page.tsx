@@ -1,14 +1,39 @@
-import { getUserProjects } from "@/features/projects/api/client";
+import { getProjectMarking, getUserProjects } from "@/features/projects/api/client";
 import { ProjectList } from "@/features/projects/components/ProjectList";
 import { getCurrentUser } from "@/shared/auth/session";
 
 export default async function ProjectsListPage() {
   const user = await getCurrentUser();
   let projects: Awaited<ReturnType<typeof getUserProjects>> = [];
+  const projectMetaById: Record<string, { completed: boolean; mark: number | null }> = {};
 
   if (user) {
     try {
       projects = await getUserProjects(user.id);
+
+      const metaEntries = await Promise.all(
+        projects.map(async (project) => {
+          const projectId = Number(project.id);
+          if (!Number.isFinite(projectId)) {
+            return [String(project.id), { completed: false, mark: null }] as const;
+          }
+
+          let mark: number | null = null;
+          try {
+            const marking = await getProjectMarking(user.id, projectId);
+            mark = marking.studentMarking?.mark ?? marking.teamMarking?.mark ?? null;
+          } catch {
+            mark = null;
+          }
+          const completed = project.archivedAt != null || mark != null;
+
+          return [String(project.id), { completed, mark }] as const;
+        }),
+      );
+
+      for (const [projectId, meta] of metaEntries) {
+        projectMetaById[projectId] = meta;
+      }
     } catch {
       // leave projects empty
     }
@@ -25,7 +50,7 @@ export default async function ProjectsListPage() {
         </p>
       </header>
       {projects.length > 0 ? (
-        <ProjectList projects={projects} />
+        <ProjectList projects={projects} projectMetaById={projectMetaById} />
       ) : (
         <div className="card">
           <div className="card__body">
