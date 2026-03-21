@@ -60,6 +60,57 @@ export function formatNumber(value: number) {
   return value.toLocaleString();
 }
 
+function toNonNegativeNumber(value: unknown) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0) return 0;
+  return numeric;
+}
+
+function sumCountMapValues(countMap: Record<string, number> | null | undefined) {
+  if (!countMap || typeof countMap !== "object") {
+    return 0;
+  }
+  return Object.values(countMap).reduce((sum, value) => sum + toNonNegativeNumber(value), 0);
+}
+
+export function getSnapshotRepoTotals(snapshot: GithubLatestSnapshot["snapshot"] | null | undefined) {
+  const repoStats = snapshot?.repoStats?.[0];
+  const defaultBranchStats = snapshot?.data?.branchScopeStats?.defaultBranch;
+  const userStats = snapshot?.userStats ?? [];
+
+  const repoCommitsByDayTotal = sumCountMapValues(repoStats?.commitsByDay);
+  const userTotalAdditions = userStats.reduce((sum, row) => sum + toNonNegativeNumber(row.additions), 0);
+  const userTotalDeletions = userStats.reduce((sum, row) => sum + toNonNegativeNumber(row.deletions), 0);
+  const contributorCountFromUsers = userStats.length;
+
+  const totalCommits = Math.max(
+    toNonNegativeNumber(repoStats?.totalCommits),
+    toNonNegativeNumber(defaultBranchStats?.totalCommits),
+    repoCommitsByDayTotal
+  );
+  const totalAdditions = Math.max(
+    toNonNegativeNumber(repoStats?.totalAdditions),
+    toNonNegativeNumber(defaultBranchStats?.totalAdditions),
+    userTotalAdditions
+  );
+  const totalDeletions = Math.max(
+    toNonNegativeNumber(repoStats?.totalDeletions),
+    toNonNegativeNumber(defaultBranchStats?.totalDeletions),
+    userTotalDeletions
+  );
+  const totalContributors = Math.max(
+    toNonNegativeNumber(repoStats?.totalContributors),
+    contributorCountFromUsers
+  );
+
+  return {
+    totalCommits,
+    totalAdditions,
+    totalDeletions,
+    totalContributors,
+  };
+}
+
 export function formatPercent(numerator: number, denominator: number) {
   if (denominator <= 0) return "0%";
   return `${((numerator / denominator) * 100).toFixed(1)}%`;
@@ -319,10 +370,9 @@ export function buildPersonalShareSeries(params: {
 }) {
   const { snapshot, currentGithubLogin } = params;
   const personalStat = findPersonalStat(snapshot, currentGithubLogin);
-  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
-  const totalLineChanges =
-    Number(snapshot?.repoStats?.[0]?.totalAdditions ?? 0) +
-    Number(snapshot?.repoStats?.[0]?.totalDeletions ?? 0);
+  const totals = getSnapshotRepoTotals(snapshot);
+  const totalCommits = totals.totalCommits;
+  const totalLineChanges = totals.totalAdditions + totals.totalDeletions;
   const personalCommits = Number(personalStat?.commits ?? 0);
   const personalLineChanges =
     Number(personalStat?.additions ?? 0) + Number(personalStat?.deletions ?? 0);

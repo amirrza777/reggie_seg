@@ -4,6 +4,7 @@ import {
   buildLineChangesByDaySeries,
   buildWeeklyCommitSeries,
   formatWeekRangeLabel,
+  getSnapshotRepoTotals,
 } from "./GithubRepoChartsDashboard.helpers";
 import type { GithubLatestSnapshot } from "../types";
 
@@ -150,5 +151,64 @@ describe("GithubRepoChartsDashboard.helpers", () => {
         commits: 0,
       },
     ]);
+  });
+
+  it("derives totals defensively when repoStats and fallback fields differ", () => {
+    const snapshot = makeSnapshot({
+      data: {
+        branchScopeStats: {
+          defaultBranch: {
+            branch: "main",
+            totalCommits: 8,
+            totalAdditions: 120,
+            totalDeletions: 50,
+          },
+        },
+      },
+      userStats: [
+        {
+          id: 10,
+          mappedUserId: 1,
+          githubLogin: "a",
+          isMatched: true,
+          commits: 5,
+          additions: 30,
+          deletions: 10,
+          commitsByDay: { "2026-03-02": 5 },
+        },
+        {
+          id: 11,
+          mappedUserId: null,
+          githubLogin: "b",
+          isMatched: false,
+          commits: 3,
+          additions: 90,
+          deletions: 40,
+          commitsByDay: { "2026-03-03": 3 },
+        },
+      ],
+      repoStats: [
+        {
+          totalCommits: 7,
+          totalAdditions: 100,
+          totalDeletions: 45,
+          totalContributors: 1,
+          matchedContributors: 1,
+          unmatchedContributors: 0,
+          unmatchedCommits: 0,
+          commitsByDay: {
+            "2026-03-02": 5,
+            "2026-03-03": 3,
+          },
+        },
+      ],
+    });
+
+    expect(getSnapshotRepoTotals(snapshot)).toEqual({
+      totalCommits: 8,
+      totalAdditions: 120,
+      totalDeletions: 50,
+      totalContributors: 2,
+    });
   });
 });

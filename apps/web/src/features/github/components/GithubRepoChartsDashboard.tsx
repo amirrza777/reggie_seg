@@ -35,6 +35,7 @@ import {
   getDateTickInterval,
   getChartMinWidth,
   getLineChangeDomain,
+  getSnapshotRepoTotals,
 } from "./GithubRepoChartsDashboard.helpers";
 import { GithubSectionContainer } from "./GithubSectionContainer";
 import type {
@@ -690,10 +691,11 @@ export function GithubRepoChartsDashboard({
     commitTimelineSeries.map((row) => ({ date: row.date, commits: Number(row.personalCommits ?? 0) }))
   );
 
-  const totalContributors = Number(snapshot?.repoStats?.[0]?.totalContributors ?? 0);
-  const totalCommits = Number(snapshot?.repoStats?.[0]?.totalCommits ?? 0);
-  const totalAdditions = Number(snapshot?.repoStats?.[0]?.totalAdditions ?? 0);
-  const totalDeletions = Number(snapshot?.repoStats?.[0]?.totalDeletions ?? 0);
+  const totals = getSnapshotRepoTotals(snapshot);
+  const totalContributors = totals.totalContributors;
+  const totalCommits = totals.totalCommits;
+  const totalAdditions = totals.totalAdditions;
+  const totalDeletions = totals.totalDeletions;
   const branchCount = Number(snapshot?.data?.branchScopeStats?.allBranches?.branchCount ?? 0);
   const defaultBranchName = snapshot?.data?.branchScopeStats?.defaultBranch?.branch || "main";
   const commitsByBranch = snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch ?? {};
