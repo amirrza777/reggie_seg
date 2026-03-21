@@ -1,20 +1,22 @@
 model PeerAssessment {
-  id                      Int                   @id @default(autoincrement())
-  projectId               Int
-  teamId                  Int
-  reviewerUserId          Int
-  revieweeUserId          Int
-  templateId              Int
-  answersJson             Json
-  review                  PeerFeedback?
-  submittedAt             DateTime              @default(now())
-  updatedAt               DateTime              @updatedAt
-  
-  project                 Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  team                    Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  questionnaireTemplate   QuestionnaireTemplate @relation("TemplateAssessments", fields: [templateId], references: [id])
-  reviewee                User                  @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
-  reviewer                User                  @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
+  id               Int           @id @default(autoincrement())
+  projectId        Int
+  teamId           Int
+  reviewerUserId   Int
+  revieweeUserId   Int
+  templateId       Int
+  answersJson      Json
+  submittedLate    Boolean       @default(false)
+  effectiveDueDate DateTime?
+  review           PeerFeedback?
+  submittedAt      DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  project               Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  team                  Team                  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  questionnaireTemplate QuestionnaireTemplate @relation("TemplateAssessments", fields: [templateId], references: [id])
+  reviewee              User                  @relation("PeerAssessmentReviewee", fields: [revieweeUserId], references: [id])
+  reviewer              User                  @relation("PeerAssessmentReviewer", fields: [reviewerUserId], references: [id])
 
   @@unique([projectId, teamId, reviewerUserId, revieweeUserId])
   @@index([projectId])

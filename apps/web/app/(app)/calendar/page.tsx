@@ -18,10 +18,10 @@ export default async function CalendarPage() {
   }
 
   return (
-    <div className="stack ui-page">
-      <header>
-        <h1>Calendar</h1>
-        <p className="muted">Your deadlines and meetings in one place.</p>
+    <div className="stack ui-page calendar-page">
+      <header className="ui-page__header">
+        <h1 className="ui-page__title calendar-page__title">Calendar</h1>
+        <p className="ui-page__description calendar-page__description">Your deadlines and meetings in one place.</p>
       </header>
       <CalendarGrid events={events} />
     </div>

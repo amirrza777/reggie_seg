@@ -15,11 +15,13 @@ import adminRouter from "./features/admin/router.js";
 import trelloRouter from "./features/trello/router.js";
 import githubRouter from "./features/github/router.js";
 import featureFlagsRouter from "./features/featureFlags/router.js";
+import notificationsRouter from "./features/notifications/router.js";
 import enterpriseAdminRouter from "./features/enterpriseAdmin/router.js";
 import calendarRouter from "./features/calendar/router.js";
 import archiveRouter from "./features/archive/router.js";
 import teamsRouter from "./features/teams/router.js";
 import forumRouter from "./features/forum/router.js";
+import helpRouter from "./features/help/router.js";
 
 const app = express();
 
@@ -77,9 +79,11 @@ app.use("/enterprise-admin", enterpriseAdminRouter);
 app.use("/trello", trelloRouter);
 app.use("/github", githubRouter);
 app.use("/feature-flags", featureFlagsRouter);
+app.use("/notifications", notificationsRouter);
 app.use("/calendar", calendarRouter);
 app.use("/archive", archiveRouter);
 app.use("/teams", teamsRouter);
 app.use("/forum", forumRouter);
+app.use("/help", helpRouter);
 
 export { app };

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminUserSearchWhere, parseAdminUserSearchFilters } from "./userSearch.js";
+import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
 
 describe("parseAdminUserSearchFilters", () => {
   it("returns defaults when query params are not provided", () => {
@@ -155,7 +155,7 @@ describe("buildAdminUserSearchWhere", () => {
     });
   });
 
-  it("maps student/admin role hints and active status query hints", () => {
+  it("maps student role query hints", () => {
     expect(buildAdminUserSearchWhere("ent_1", { query: "students", role: null, active: null })).toEqual({
       AND: [
         { enterpriseId: "ent_1" },
@@ -169,7 +169,9 @@ describe("buildAdminUserSearchWhere", () => {
         },
       ],
     });
+  });
 
+  it("maps admin role query hints", () => {
     expect(buildAdminUserSearchWhere("ent_1", { query: "admin", role: null, active: null })).toEqual({
       AND: [
         { enterpriseId: "ent_1" },
@@ -183,7 +185,9 @@ describe("buildAdminUserSearchWhere", () => {
         },
       ],
     });
+  });
 
+  it("maps active-status query hints", () => {
     expect(buildAdminUserSearchWhere("ent_1", { query: "active", role: null, active: null })).toEqual({
       AND: [
         { enterpriseId: "ent_1" },
@@ -197,5 +201,33 @@ describe("buildAdminUserSearchWhere", () => {
         },
       ],
     });
+  });
+});
+
+describe("matchesAdminUserSearchCandidate", () => {
+  const user = {
+    id: 12,
+    email: "alice@kcl.ac.uk",
+    firstName: "Alice",
+    lastName: "Nguyen",
+    role: "STAFF",
+    active: false,
+  };
+
+  it("matches typo-tolerant name queries", () => {
+    expect(matchesAdminUserSearchCandidate(user, "alce nguyn")).toBe(true);
+  });
+
+  it("matches role and status hints", () => {
+    expect(matchesAdminUserSearchCandidate(user, "staff")).toBe(true);
+    expect(matchesAdminUserSearchCandidate(user, "inactive")).toBe(true);
+  });
+
+  it("matches exact numeric id query", () => {
+    expect(matchesAdminUserSearchCandidate(user, "12")).toBe(true);
+  });
+
+  it("does not match unrelated query text", () => {
+    expect(matchesAdminUserSearchCandidate(user, "quantum mechanics")).toBe(false);
   });
 });

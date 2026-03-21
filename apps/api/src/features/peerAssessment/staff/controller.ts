@@ -111,12 +111,15 @@ async function handleStaffScope<T>(
   }
 }
 
+/** Handles requests for get module details. */
 export const getModuleDetailsHandler = (req: Request, res: Response) =>
   handleStaffScope(req, res, [parseStaffId, parseModuleIdParam], getModuleDetailsIfLead, {
     requireResult: true,
     errorContext: "Error fetching module details",
+    notFoundStatus: 403,
   });
 
+/** Handles requests for get team details. */
 export const getTeamDetailsHandler = (req: Request, res: Response) =>
   handleStaffScope(
     req,
@@ -126,6 +129,7 @@ export const getTeamDetailsHandler = (req: Request, res: Response) =>
     { requireResult: true, errorContext: "Error fetching team details" }
   );
 
+/** Handles requests for get student details. */
 export const getStudentDetailsHandler = (req: Request, res: Response) =>
   handleStaffScope(
     req,
@@ -135,12 +139,14 @@ export const getStudentDetailsHandler = (req: Request, res: Response) =>
     { requireResult: true, errorContext: "Error fetching student details" }
   );
 
+/** Handles requests for get all modules summary. */
 export const getAllModulesSummaryHandler = (req: Request, res: Response) =>
   handleStaffScope(req, res, [parseStaffId], getProgressForModulesILead, {
     requireResult: false,
     errorContext: "Error fetching staff modules",
   });
 
+/** Handles requests for get module teams summary. */
 export async function getModuleTeamsSummaryHandler(req: Request, res: Response) {
   const moduleId = parseInt(req.query.moduleId as string, 10);
   if (!req.query.moduleId || Number.isNaN(moduleId)) {
@@ -155,6 +161,7 @@ export async function getModuleTeamsSummaryHandler(req: Request, res: Response) 
   }
 }
 
+/** Handles requests for upsert team marking. */
 export async function upsertTeamMarkingHandler(req: Request, res: Response) {
   const staffId = parseStaffId(req, res);
   const moduleId = parseModuleIdParam(req, res);
@@ -175,6 +182,7 @@ export async function upsertTeamMarkingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for upsert student marking. */
 export async function upsertStudentMarkingHandler(req: Request, res: Response) {
   const staffId = parseStaffId(req, res);
   const moduleId = parseModuleIdParam(req, res);

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type {
   GithubLatestSnapshot,
@@ -23,6 +24,8 @@ type Props = {
   branchCommitsErrorByLinkId: Record<number, string | null>;
   buildBranchRows: (link: ProjectGithubRepoLink) => Array<(string | number | null)>[] | null;
   handleRefreshLiveBranches: () => Promise<void>;
+  getBranchQuery: (linkId: number) => string;
+  onBranchQueryChange: (linkId: number, query: string) => void;
   onSelectBranch: (linkId: number, branch: string) => void;
 };
 
@@ -40,6 +43,8 @@ export function GithubProjectReposBranchesTab({
   branchCommitsErrorByLinkId,
   buildBranchRows,
   handleRefreshLiveBranches,
+  getBranchQuery,
+  onBranchQueryChange,
   onSelectBranch,
 }: Props) {
   return (
@@ -60,6 +65,19 @@ export function GithubProjectReposBranchesTab({
           links.map((link) => {
             const snapshot = latestSnapshotByLinkId[link.id];
             const rows = buildBranchRows(link);
+            const branchSearchQuery = getBranchQuery(link.id);
+            const allBranches = liveBranchesByLinkId[link.id]?.branches || [];
+            const selectedBranch = selectedBranchByLinkId[link.id];
+            const selectedBranchItem = selectedBranch
+              ? allBranches.find((branch) => branch.name === selectedBranch) ?? null
+              : null;
+            const visibleBranches = !selectedBranch
+              ? allBranches
+              : allBranches.some((branch) => branch.name === selectedBranch)
+                ? allBranches
+                : selectedBranchItem
+                  ? [selectedBranchItem, ...allBranches]
+                  : allBranches;
             return (
               <div key={link.id} className="github-repos-tab__subpanel">
                 <div className="ui-row ui-row--between ui-row--wrap">
@@ -91,6 +109,18 @@ export function GithubProjectReposBranchesTab({
                       />
                     </div>
                     <div className="stack github-repos-tab__select-wrap">
+                      <label className="muted" htmlFor={`branch-search-${link.id}`}>
+                        Search branches
+                      </label>
+                      <SearchField
+                        id={`branch-search-${link.id}`}
+                        className="github-repos-tab__select"
+                        value={branchSearchQuery}
+                        onChange={(event) => onBranchQueryChange(link.id, event.target.value)}
+                        placeholder="Search branch names"
+                        aria-label={`Search branches for ${link.repository.fullName}`}
+                        disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
+                      />
                       <label className="muted" htmlFor={`branch-commit-select-${link.id}`}>
                         Select branch to view 10 most recent commits
                       </label>
@@ -101,7 +131,10 @@ export function GithubProjectReposBranchesTab({
                         onChange={(e) => onSelectBranch(link.id, e.target.value)}
                         disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
                       >
-                        {(liveBranchesByLinkId[link.id]?.branches || []).map((branch) => (
+                        {visibleBranches.length === 0 ? (
+                          <option value="">No branches match "{branchSearchQuery.trim()}"</option>
+                        ) : null}
+                        {visibleBranches.map((branch) => (
                           <option key={branch.name} value={branch.name}>
                             {branch.name}
                           </option>

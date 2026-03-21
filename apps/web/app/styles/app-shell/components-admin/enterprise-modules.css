@@ -35,7 +35,7 @@
   margin-left: -2px;
 }
 
-@media (min-width: 1100px) {
+@media (min-width: 1025px) {
   .enterprise-module-create__form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 16px;
@@ -98,9 +98,11 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
+  overflow-x: auto;
   max-height: none;
   scrollbar-gutter: stable;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .enterprise-modules__create-modal {
@@ -138,38 +140,6 @@
   max-height: min(42vh, 360px);
   overflow-y: auto;
   padding-right: 2px;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ink) 46%, var(--surface) 54%)
-    color-mix(in srgb, var(--ink) 18%, var(--surface) 82%);
-}
-
-.enterprise-modules__modal-body {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ink) 46%, var(--surface) 54%)
-    color-mix(in srgb, var(--ink) 18%, var(--surface) 82%);
-}
-
-.enterprise-module-create__access-list::-webkit-scrollbar,
-.enterprise-modules__modal-body::-webkit-scrollbar {
-  width: 12px;
-}
-
-.enterprise-module-create__access-list::-webkit-scrollbar-track,
-.enterprise-modules__modal-body::-webkit-scrollbar-track {
-  background: color-mix(in srgb, var(--ink) 18%, var(--surface) 82%);
-  border-radius: 999px;
-}
-
-.enterprise-module-create__access-list::-webkit-scrollbar-thumb,
-.enterprise-modules__modal-body::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ink) 46%, var(--surface) 54%);
-  border-radius: 999px;
-  border: 2px solid color-mix(in srgb, var(--ink) 18%, var(--surface) 82%);
-}
-
-.enterprise-module-create__access-list::-webkit-scrollbar-thumb:hover,
-.enterprise-modules__modal-body::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--ink) 58%, var(--surface) 42%);
 }
 
 .enterprise-module-create__access-item {
@@ -206,13 +176,13 @@
 }
 
 .enterprise-module-create__access-item > input[type="checkbox"]:checked {
-  background: var(--status-success, #22c55e);
-  border-color: var(--status-success, #22c55e);
+  background: var(--status-success);
+  border-color: var(--status-success);
 }
 
 .enterprise-module-create__access-item > input[type="checkbox"]:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success, #22c55e) 32%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--status-success) 32%, transparent);
 }
 
 .enterprise-module-create__access-item > input[type="checkbox"]:disabled {
@@ -252,7 +222,7 @@
 }
 
 .enterprise-module-create__char-count--warning {
-  color: var(--status-warning-text, #f59e0b);
+  color: var(--status-warning-text);
 }
 
 .enterprise-module-create__char-count--danger {
@@ -270,18 +240,47 @@
 
 .enterprise-module-create__danger-title {
   margin: 0;
-  font-size: var(--fs-body-md);
+  font-size: var(--fs-body-lg);
   color: var(--status-danger-text);
 }
 
 .enterprise-module-create__danger-confirm {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .enterprise-module-create__danger-confirm > input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  padding: 0;
+  border-radius: 4px;
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  accent-color: var(--status-danger-text);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  cursor: pointer;
   margin: 0;
+}
+
+.enterprise-module-create__danger-confirm > span {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.enterprise-module-create__danger-zone .ui-note,
+.enterprise-module-create__danger-confirm > span {
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
 }
 
 .enterprise-modules__create-actions {

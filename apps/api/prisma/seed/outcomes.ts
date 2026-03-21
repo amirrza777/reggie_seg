@@ -3,6 +3,39 @@ import { prisma } from "./prismaClient";
 import type { SeedProject, SeedTeam, SeedTemplate } from "./types";
 import { SEED_FEATURE_FLAG_COUNT, SEED_PEER_REVIEWS_PER_MEMBER } from "./volumes";
 
+function getNumberConfig(configs: unknown, key: "min" | "max" | "step", fallback: number): number {
+  if (!configs || typeof configs !== "object" || Array.isArray(configs)) return fallback;
+  const value = (configs as Record<string, unknown>)[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function getMultipleChoiceOptions(configs: unknown): string[] {
+  if (!configs || typeof configs !== "object" || Array.isArray(configs)) return [];
+  const options = (configs as Record<string, unknown>).options;
+  if (!Array.isArray(options)) return [];
+  return options.filter((option): option is string => typeof option === "string" && option.trim().length > 0);
+}
+
+function getTextSeedAnswer(label: string, reviewerId: number): string {
+  const normalizedLabel = label.toLowerCase();
+  if (normalizedLabel.includes("technical")) {
+    return reviewerId % 2 === 0
+      ? "Strong technical implementation and problem-solving."
+      : "Good technical foundation with room for deeper testing.";
+  }
+  if (normalizedLabel.includes("communication")) {
+    return reviewerId % 2 === 0
+      ? "Clear communication and regular updates to the team."
+      : "Communication was generally good but could be more proactive.";
+  }
+  if (normalizedLabel.includes("teamwork")) {
+    return reviewerId % 2 === 0
+      ? "Collaborated well and supported teammates consistently."
+      : "Worked well with the team and contributed reliably.";
+  }
+  return "Constructive feedback provided in this response.";
+}
+
 export async function seedProjectDeadlines(projects: SeedProject[]) {
   return withSeedLogging("seedProjectDeadlines", async () => {
     if (projects.length === 0) {
@@ -85,6 +118,28 @@ export async function seedPeerAssessments(projects: SeedProject[], teams: SeedTe
 
       const teamMemberIds = teamMembers.map((member) => member.user.id);
       const reviewSpan = Math.min(SEED_PEER_REVIEWS_PER_MEMBER, teamMemberIds.length - 1);
+      const existingAssessments = await prisma.peerAssessment.findMany({
+        where: {
+          projectId: team.projectId,
+          teamId: team.id,
+        },
+        select: {
+          id: true,
+          reviewerUserId: true,
+          revieweeUserId: true,
+        },
+      });
+      const assessmentIdByPair = new Map(
+        existingAssessments.map((assessment) => [buildReviewPairKey(assessment.reviewerUserId, assessment.revieweeUserId), assessment.id])
+      );
+      const existingFeedbackIds = new Set(
+        (
+          await prisma.peerFeedback.findMany({
+            where: { peerAssessmentId: { in: existingAssessments.map((assessment) => assessment.id) } },
+            select: { peerAssessmentId: true },
+          })
+        ).map((feedback) => feedback.peerAssessmentId)
+      );
 
       for (let reviewerIndex = 0; reviewerIndex < teamMemberIds.length; reviewerIndex += 1) {
         const reviewerId = teamMemberIds[reviewerIndex];
@@ -100,48 +155,31 @@ export async function seedPeerAssessments(projects: SeedProject[], teams: SeedTe
               buildAssessmentAnswer(reviewerId, revieweeId, questionIndex),
             ])
           );
+          const reviewPairKey = buildReviewPairKey(reviewerId, revieweeId);
+          const existingAssessmentId = assessmentIdByPair.get(reviewPairKey);
+          const assessment = existingAssessmentId
+            ? await prisma.peerAssessment.update({
+                where: { id: existingAssessmentId },
+                data: {
+                  templateId: template.id,
+                  answersJson,
+                },
+              })
+            : await prisma.peerAssessment.create({
+                data: {
+                  projectId: team.projectId,
+                  teamId: team.id,
+                  reviewerUserId: reviewerId,
+                  revieweeUserId: revieweeId,
+                  templateId: template.id,
+                  answersJson,
+                },
+              });
 
-          const existingAssessment = await prisma.peerAssessment.findUnique({
-            where: {
-              projectId_teamId_reviewerUserId_revieweeUserId: {
-                projectId: team.projectId,
-                teamId: team.id,
-                reviewerUserId: reviewerId,
-                revieweeUserId: revieweeId,
-              },
-            },
-            select: { id: true },
-          });
-
-          const assessment = await prisma.peerAssessment.upsert({
-            where: {
-              projectId_teamId_reviewerUserId_revieweeUserId: {
-                projectId: team.projectId,
-                teamId: team.id,
-                reviewerUserId: reviewerId,
-                revieweeUserId: revieweeId,
-              },
-            },
-            update: {
-              templateId: template.id,
-              answersJson,
-            },
-            create: {
-              projectId: team.projectId,
-              teamId: team.id,
-              reviewerUserId: reviewerId,
-              revieweeUserId: revieweeId,
-              templateId: template.id,
-              answersJson,
-            },
-          });
-
-          if (!existingAssessment) createdAssessments += 1;
-
-          const existingFeedback = await prisma.peerFeedback.findUnique({
-            where: { peerAssessmentId: assessment.id },
-            select: { id: true },
-          });
+          if (!existingAssessmentId) {
+            assessmentIdByPair.set(reviewPairKey, assessment.id);
+            createdAssessments += 1;
+          }
 
           await prisma.peerFeedback.upsert({
             where: { peerAssessmentId: assessment.id },
@@ -159,7 +197,10 @@ export async function seedPeerAssessments(projects: SeedProject[], teams: SeedTe
             },
           });
 
-          if (!existingFeedback) createdFeedbacks += 1;
+          if (!existingFeedbackIds.has(assessment.id)) {
+            existingFeedbackIds.add(assessment.id);
+            createdFeedbacks += 1;
+          }
         }
       }
     }
@@ -170,6 +211,10 @@ export async function seedPeerAssessments(projects: SeedProject[], teams: SeedTe
       details: `peerAssessments=${createdAssessments}, peerFeedbacks=${createdFeedbacks}`,
     };
   });
+}
+
+function buildReviewPairKey(reviewerId: number, revieweeId: number) {
+  return `${reviewerId}:${revieweeId}`;
 }
 
 export async function seedFeatureFlags(enterpriseId: string) {

@@ -7,6 +7,13 @@ vi.mock("@/shared/api/http", () => ({
 }));
 
 import {
+  createTeamHealthMessage,
+  getStaffTeamDeadline,
+  getMyTeamHealthMessages,
+  resolveStaffTeamHealthMessageWithDeadlineOverride,
+  reviewStaffTeamHealthMessage,
+  getStaffTeamHealthMessages,
+  createStaffProject,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -79,6 +86,168 @@ describe("projects api client", () => {
     await getProjectMarking(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/marking?userId=7", {
       cache: "no-store",
+    });
+  });
+
+  it("creates a team health message", async () => {
+    const request = { id: 1, resolved: false };
+    apiFetchMock.mockResolvedValue({ request });
+
+    const result = await createTeamHealthMessage(42, 7, "Need help", "Something happened");
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-health-messages", {
+      method: "POST",
+      body: JSON.stringify({ userId: 7, subject: "Need help", details: "Something happened" }),
+    });
+    expect(result).toEqual(request);
+  });
+
+  it("gets current user's team health messages", async () => {
+    apiFetchMock.mockResolvedValue({ requests: [{ id: 1 }, { id: 2 }] });
+
+    const result = await getMyTeamHealthMessages(42, 7);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-health-messages/me?userId=7", {
+      cache: "no-store",
+    });
+    expect(result).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it("gets team health messages for staff view", async () => {
+    apiFetchMock.mockResolvedValue({ requests: [{ id: 3 }] });
+
+    const result = await getStaffTeamHealthMessages(9, 42, 5);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/team-health-messages?userId=9", {
+      cache: "no-store",
+    });
+    expect(result).toEqual([{ id: 3 }]);
+  });
+
+  it("gets team deadline for staff view", async () => {
+    const deadline = {
+      baseDeadline: {
+        taskOpenDate: "2026-03-10T08:00:00.000Z",
+        taskDueDate: "2026-03-12T17:00:00.000Z",
+        assessmentOpenDate: null,
+        assessmentDueDate: null,
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: false,
+      },
+      effectiveDeadline: {
+        taskOpenDate: "2026-03-12T08:00:00.000Z",
+        taskDueDate: "2026-03-14T17:00:00.000Z",
+        assessmentOpenDate: null,
+        assessmentDueDate: null,
+        feedbackOpenDate: null,
+        feedbackDueDate: null,
+        isOverridden: true,
+      },
+      deadlineInputMode: "SHIFT_DAYS",
+      shiftDays: {
+        taskOpenDate: 2,
+        taskDueDate: 2,
+      },
+    };
+    apiFetchMock.mockResolvedValue({ deadline });
+
+    const result = await getStaffTeamDeadline(9, 42, 5);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/deadline?userId=9", {
+      cache: "no-store",
+    });
+    expect(result).toEqual(deadline);
+  });
+
+  it("reviews a team health message for staff", async () => {
+    const request = { id: 3, resolved: false };
+    apiFetchMock.mockResolvedValue({ request });
+
+    const result = await reviewStaffTeamHealthMessage(42, 5, 3, 9, false);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/team-health-messages/3/review", {
+      method: "PATCH",
+      body: JSON.stringify({ userId: 9, resolved: false }),
+    });
+    expect(result).toEqual(request);
+  });
+
+  it("reviews and resolves with a staff response", async () => {
+    const request = { id: 3, resolved: true, responseText: "Thanks, we will monitor this closely." };
+    apiFetchMock.mockResolvedValue({ request });
+
+    const result = await reviewStaffTeamHealthMessage(
+      42,
+      5,
+      3,
+      9,
+      true,
+      "Thanks, we will monitor this closely."
+    );
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/team-health-messages/3/review", {
+      method: "PATCH",
+      body: JSON.stringify({
+        userId: 9,
+        resolved: true,
+        responseText: "Thanks, we will monitor this closely.",
+      }),
+    });
+    expect(result).toEqual(request);
+  });
+
+  it("resolves a team health message with deadline override", async () => {
+    const response = {
+      request: { id: 3, resolved: true },
+      deadline: { taskDueDate: "2026-03-15T12:00:00.000Z", isOverridden: true },
+    };
+    apiFetchMock.mockResolvedValue(response);
+
+    const result = await resolveStaffTeamHealthMessageWithDeadlineOverride(42, 5, 3, 9, {
+      taskDueDate: "2026-03-15T12:00:00.000Z",
+      feedbackDueDate: null,
+      deadlineInputMode: "SHIFT_DAYS",
+      shiftDays: { taskDueDate: 3 },
+    });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams/5/team-health-messages/3/deadline-override", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: 9,
+        taskDueDate: "2026-03-15T12:00:00.000Z",
+        feedbackDueDate: null,
+        deadlineInputMode: "SHIFT_DAYS",
+        shiftDays: { taskDueDate: 3 },
+      }),
+    });
+    expect(result).toEqual(response);
+  });
+
+  it("creates a staff project", async () => {
+    const deadline = {
+      taskOpenDate: "2026-03-01T09:00:00.000Z",
+      taskDueDate: "2026-03-08T17:00:00.000Z",
+      assessmentOpenDate: "2026-03-09T09:00:00.000Z",
+      assessmentDueDate: "2026-03-12T17:00:00.000Z",
+      feedbackOpenDate: "2026-03-13T09:00:00.000Z",
+      feedbackDueDate: "2026-03-16T17:00:00.000Z",
+    };
+
+    await createStaffProject({
+      name: "Project A",
+      moduleId: 2,
+      questionnaireTemplateId: 9,
+      deadline,
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: "Project A",
+        moduleId: 2,
+        questionnaireTemplateId: 9,
+        deadline,
+      }),
     });
   });
 });

@@ -24,8 +24,8 @@ model TeamInvite {
   inviter User  @relation("TeamInvitesSent", fields: [inviterId], references: [id])
   invitee User? @relation("TeamInvitesReceived", fields: [inviteeId], references: [id])
 
+  @@unique([teamId, inviteeEmail, active])
   @@index([teamId])
   @@index([inviterId])
   @@index([inviteeEmail])
-  @@unique([teamId, inviteeEmail, active])
 }

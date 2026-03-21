@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import type { Team } from "../types";
 import {
   sendTeamInvite,
   cancelTeamInvite,
   getTeamInvites,
+  getReceivedInvites,
+  acceptInvite,
+  declineInvite,
   createTeamForProject,
   type TeamInvite,
 } from "../api/teamAllocation";
@@ -16,12 +19,16 @@ import "@/features/projects/styles/team-formation.css";
 type Props = {
   team: Team | null;
   projectId: number;
-  userId: number;
+  userId?: number;
   initialInvites: TeamInvite[];
 };
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function TeamFormationPanel({ team, projectId, userId, initialInvites }: Props) {
@@ -40,6 +47,39 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
   const [isInviting, startInviting] = useTransition();
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  // Received invite state
+  const [receivedInvites, setReceivedInvites] = useState<TeamInvite[]>([]);
+  const [respondingId, setRespondingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (team) return;
+    getReceivedInvites()
+      .then((data) => setReceivedInvites(data.filter((inv) => inv.team?.projectId === projectId)))
+      .catch(() => {});
+  }, [team, projectId]);
+
+  const handleAccept = async (inviteId: string) => {
+    setRespondingId(inviteId);
+    try {
+      await acceptInvite(inviteId);
+      router.refresh();
+    } catch {
+      setRespondingId(null);
+    }
+  };
+
+  const handleDecline = async (inviteId: string) => {
+    setRespondingId(inviteId);
+    try {
+      await declineInvite(inviteId);
+      setReceivedInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
+    } catch {
+      // Keep current pending invite list if decline fails.
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
   const refreshInvites = useCallback(async (teamId: number) => {
     try {
       const fresh = await getTeamInvites(teamId);
@@ -57,8 +97,8 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
       try {
         await createTeamForProject(projectId, name);
         router.refresh();
-      } catch (err: any) {
-        setCreateError(err?.message || "Failed to create team.");
+      } catch (err: unknown) {
+        setCreateError(getErrorMessage(err, "Failed to create team."));
       }
     });
   };
@@ -70,15 +110,20 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
     setInviteSuccess("");
     startInviting(async () => {
       try {
-        await sendTeamInvite(team.id, userId, email);
+        if (typeof userId === "number") {
+          await sendTeamInvite(team.id, userId, email);
+        } else {
+          await sendTeamInvite(team.id, email);
+        }
         setInviteEmail("");
         setInviteSuccess(`Invitation sent to ${email}.`);
         await refreshInvites(team.id);
-      } catch (err: any) {
-        if (err?.message?.toLowerCase().includes("pending")) {
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "Failed to send invitation.");
+        if (message.toLowerCase().includes("pending")) {
           setInviteError("An invite has already been sent to this email.");
         } else {
-          setInviteError(err?.message || "Failed to send invitation.");
+          setInviteError(message);
         }
       }
     });
@@ -104,7 +149,7 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
         <div className="team-formation__empty">
           <span className="team-formation__empty-icon">👥</span>
           <h3>You're not in a team yet</h3>
-          <p>Create a new team for this project, or accept an invitation from a teammate via the notification bell.</p>
+          <p>Create a new team for this project, or accept an invitation from a teammate.</p>
           <div className="team-formation__create-form">
             <input
               type="text"
@@ -127,6 +172,43 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
             <p className="team-formation__feedback team-formation__feedback--error">{createError}</p>
           )}
         </div>
+
+        {receivedInvites.length > 0 && (
+          <div className="team-formation__section">
+            <p className="team-formation__section-title">Pending invitations</p>
+            <ul className="team-formation__invite-list">
+              {receivedInvites.map((inv) => (
+                <li key={inv.id} className="team-formation__invite-item">
+                  <span className="team-formation__invite-email">
+                    {inv.inviter
+                      ? `${inv.inviter.firstName} ${inv.inviter.lastName}`
+                      : "A teammate"}{" "}
+                    invited you to join <strong>{inv.team?.teamName ?? "a team"}</strong>
+                  </span>
+                  <div className="team-formation__invite-meta">
+                    <span className="team-formation__invite-date">{formatDate(inv.createdAt)}</span>
+                    <button
+                      type="button"
+                      className="btn--accept-ghost"
+                      onClick={() => handleAccept(inv.id)}
+                      disabled={respondingId === inv.id}
+                    >
+                      {respondingId === inv.id ? "Accepting…" : "Accept"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn--danger-ghost"
+                      onClick={() => handleDecline(inv.id)}
+                      disabled={respondingId === inv.id}
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }

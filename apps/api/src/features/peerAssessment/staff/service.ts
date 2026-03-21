@@ -44,6 +44,7 @@ function mapMarkingRecord(
   };
 }
 
+/** Returns the progress for modules i lead. */
 export async function getProgressForModulesILead(staffId: number): Promise<ModuleSummary[]> {
   const modules = await repo.findModulesForStaff(staffId);
   return Promise.all(
@@ -58,6 +59,7 @@ export async function getProgressForModulesILead(staffId: number): Promise<Modul
   );
 }
 
+/** Returns the progress for team. */
 export async function getProgressForTeam(moduleId: number): Promise<ModuleSummary[]> {
   const teams = await repo.findTeamsInModule(moduleId);
   return Promise.all(
@@ -72,6 +74,7 @@ export async function getProgressForTeam(moduleId: number): Promise<ModuleSummar
   );
 }
 
+/** Returns the module details if lead. */
 export async function getModuleDetailsIfLead(
   staffId: number,
   moduleId: number
@@ -85,6 +88,7 @@ export async function getModuleDetailsIfLead(
   };
 }
 
+/** Returns the team details if lead. */
 export async function getTeamDetailsIfLead(
   staffId: number,
   moduleId: number,
@@ -169,38 +173,40 @@ function buildPerformanceSummary(
   if (assessments.length === 0 || questions.length === 0) {
     return { overallAverage: 0, totalReviews: assessments.length, questionAverages: [], maxScore };
   }
-  const questionAverages: QuestionAverage[] = questions
-    .map((q) => {
-      const questionMaxScore = getConfiguredMaxScore(q.configs) ?? 5;
-      const reviewerAnswers: ReviewerAnswer[] = [];
-      let sum = 0;
-      for (const a of assessments) {
-        const score = parseScoreForQuestion(a.answersJson, q.id);
-        if (score != null) {
-          sum += score;
-          reviewerAnswers.push({
-            reviewerId: String(a.reviewerUserId),
-            reviewerName: `${a.reviewer.firstName} ${a.reviewer.lastName}`.trim() || `Reviewer ${a.reviewerUserId}`,
-            score,
-            assessmentId: String(a.id),
-          });
-        }
+  const questionAverages: QuestionAverage[] = [];
+  for (const q of questions) {
+    const questionMaxScore = getConfiguredMaxScore(q.configs) ?? 5;
+    const reviewerAnswers: ReviewerAnswer[] = [];
+    let sum = 0;
+
+    for (const a of assessments) {
+      const score = parseScoreForQuestion(a.answersJson, q.id);
+      if (score != null) {
+        sum += score;
+        reviewerAnswers.push({
+          reviewerId: String(a.reviewerUserId),
+          reviewerName: `${a.reviewer.firstName} ${a.reviewer.lastName}`.trim() || `Reviewer ${a.reviewerUserId}`,
+          score,
+          assessmentId: String(a.id),
+        });
       }
-      const totalReviews = reviewerAnswers.length;
-      if (totalReviews === 0) {
-        return null;
-      }
-      const averageScore = totalReviews > 0 ? sum / totalReviews : 0;
-      return {
-        questionId: q.id,
-        questionText: q.label,
-        averageScore: Math.round(averageScore * 100) / 100,
-        totalReviews,
-        maxScore: questionMaxScore,
-        reviewerAnswers,
-      };
-    })
-    .filter((question): question is QuestionAverage => question != null);
+    }
+
+    const totalReviews = reviewerAnswers.length;
+    if (totalReviews === 0) {
+      continue;
+    }
+
+    const averageScore = totalReviews > 0 ? sum / totalReviews : 0;
+    questionAverages.push({
+      questionId: q.id,
+      questionText: q.label,
+      averageScore: Math.round(averageScore * 100) / 100,
+      totalReviews,
+      maxScore: questionMaxScore,
+      reviewerAnswers,
+    });
+  }
   const dynamicMaxScore = questionAverages.reduce((acc, q) => Math.max(acc, q.maxScore ?? 5), 5);
   const allScores = questionAverages.flatMap((q) =>
     (q.reviewerAnswers ?? []).map((r) => r.score)
@@ -217,6 +223,7 @@ function buildPerformanceSummary(
   };
 }
 
+/** Returns the student details if lead. */
 export async function getStudentDetailsIfLead(
   staffId: number,
   moduleId: number,
@@ -278,6 +285,7 @@ export async function getStudentDetailsIfLead(
   };
 }
 
+/** Saves the team marking if lead. */
 export async function saveTeamMarkingIfLead(
   staffId: number,
   moduleId: number,
@@ -299,6 +307,7 @@ export async function saveTeamMarkingIfLead(
   return mapMarkingRecord(saved);
 }
 
+/** Saves the student marking if lead. */
 export async function saveStudentMarkingIfLead(
   staffId: number,
   moduleId: number,

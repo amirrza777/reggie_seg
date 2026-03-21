@@ -31,14 +31,13 @@ const STAFF_BACK_HREF = (projectId: string) => `/staff/projects/${projectId}`;
 export function StaffProjectTrelloContent({
   projectId,
   teamId,
-  teamName,
   deadline,
   viewComponent: View,
 }: StaffProjectTrelloContentProps) {
   const ctx = useTrelloBoard();
   const fallback = useTeamBoardState(teamId);
   const source = ctx ?? fallback;
-  const { state, setState, loadTeamBoard, mergedSectionConfig } = source;
+  const { state, setState, mergedSectionConfig } = source;
 
   const onRequestChangeBoard = async () => {
     try {

@@ -1,11 +1,14 @@
 import { prisma } from "../../shared/db.js";
 
+/** Executes the upsert peer feedback. */
 export async function upsertPeerFeedback(data: {
   peerAssessmentId: number;
   reviewerUserId: number;
   revieweeUserId: number;
   reviewText?: string | null;
   agreementsJson: any;
+  submittedLate?: boolean;
+  effectiveDueDate?: Date | null;
 }) {
   // Get the team ID from the peer assessment
   const assessment = await prisma.peerAssessment.findUnique({
@@ -17,15 +20,23 @@ export async function upsertPeerFeedback(data: {
     throw new Error("Peer assessment not found");
   }
 
+  const updateData: Record<string, unknown> = {
+    reviewerUserId: data.reviewerUserId,
+    revieweeUserId: data.revieweeUserId,
+    reviewText: data.reviewText ?? null,
+    agreementsJson: data.agreementsJson,
+    updatedAt: new Date(),
+  };
+  if (data.submittedLate === true) {
+    updateData.submittedLate = true;
+  }
+  if ("effectiveDueDate" in data) {
+    updateData.effectiveDueDate = data.effectiveDueDate ?? null;
+  }
+
   return prisma.peerFeedback.upsert({
     where: { peerAssessmentId: data.peerAssessmentId },
-    update: {
-      reviewerUserId: data.reviewerUserId,
-      revieweeUserId: data.revieweeUserId,
-      reviewText: data.reviewText ?? null,
-      agreementsJson: data.agreementsJson,
-      updatedAt: new Date(),
-    },
+    update: updateData,
     create: {
       peerAssessmentId: data.peerAssessmentId,
       teamId: assessment.teamId,
@@ -33,22 +44,28 @@ export async function upsertPeerFeedback(data: {
       revieweeUserId: data.revieweeUserId,
       reviewText: data.reviewText ?? null,
       agreementsJson: data.agreementsJson,
+      submittedLate: data.submittedLate ?? false,
+      effectiveDueDate: data.effectiveDueDate ?? null,
     },
     include: {
       peerAssessment: {
         select: {
           id: true,
+          templateId: true,
           reviewerUserId: true,
           revieweeUserId: true,
           projectId: true,
           answersJson: true,
           questionnaireTemplate: {
             select: {
+              id: true,
               questions: {
                 select: {
                   id: true,
                   label: true,
+                  type: true,
                   order: true,
+                  configs: true,
                 },
               },
             },
@@ -61,6 +78,7 @@ export async function upsertPeerFeedback(data: {
   });
 }
 
+/** Returns the peer feedback by assessment ID. */
 export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   return prisma.peerFeedback.findUnique({
     where: { peerAssessmentId },
@@ -68,17 +86,21 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
       peerAssessment: {
         select: {
           id: true,
+          templateId: true,
           reviewerUserId: true,
           revieweeUserId: true,
           projectId: true,
           answersJson: true,
           questionnaireTemplate: {
             select: {
+              id: true,
               questions: {
                 select: {
                   id: true,
                   label: true,
+                  type: true,
                   order: true,
+                  configs: true,
                 },
               },
             },
@@ -91,6 +113,21 @@ export function getPeerFeedbackByAssessmentId(peerAssessmentId: number) {
   });
 }
 
+/** Returns existing peer feedback assessment ids for bulk status lookups. */
+export function getPeerFeedbackByAssessmentIds(peerAssessmentIds: number[]) {
+  return prisma.peerFeedback.findMany({
+    where: {
+      peerAssessmentId: {
+        in: peerAssessmentIds,
+      },
+    },
+    select: {
+      peerAssessmentId: true,
+    },
+  });
+}
+
+/** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({
     where: { id: assessmentId },

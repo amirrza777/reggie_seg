@@ -20,6 +20,10 @@ export function StaffTeamCard({ team, projectId }: Props) {
   const [flag, setFlag] = useState(team.inactivityFlag);
   const [dismissing, setDismissing] = useState(false);
 
+  const unconnectedMembers = team.allocations
+    .filter((a) => !a.user.githubAccount)
+    .map((a) => `${a.user.firstName} ${a.user.lastName}`.trim() || a.user.email);
+
   async function handleDismiss() {
     setDismissing(true);
     try {
@@ -43,6 +47,11 @@ export function StaffTeamCard({ team, projectId }: Props) {
           )}
           {flag === "RED" && (
             <span className="team-flag team-flag--red">🚩 Inactive 14+ days</span>
+          )}
+          {unconnectedMembers.length > 0 && (
+            <span className="github-alert-badge github-alert-badge--no-account" title={`Not connected: ${unconnectedMembers.join(", ")}`}>
+              GitHub not connected: {unconnectedMembers.length} member{unconnectedMembers.length === 1 ? "" : "s"}
+            </span>
           )}
         </div>
       </div>

@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   listLiveProjectGithubRepositoryBranchCommits,
   listLiveProjectGithubRepositoryBranches,
@@ -9,6 +10,7 @@ import {
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
 
+/** Handles requests for list live project GitHub repo branches. */
 export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -19,9 +21,15 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
   if (Number.isNaN(linkId)) {
     return res.status(400).json({ error: "linkId must be a number" });
   }
+  const parsedSearchQuery = parseSearchQuery(req.query?.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const branchData = await listLiveProjectGithubRepositoryBranches(userId, linkId);
+    const branchData = parsedSearchQuery.value
+      ? await listLiveProjectGithubRepositoryBranches(userId, linkId, { query: parsedSearchQuery.value })
+      : await listLiveProjectGithubRepositoryBranches(userId, linkId);
     return res.json(toJsonSafe(branchData));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -32,6 +40,7 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
   }
 }
 
+/** Handles requests for list live project GitHub repo branch commits. */
 export async function listLiveProjectGithubRepoBranchCommitsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -68,6 +77,7 @@ export async function listLiveProjectGithubRepoBranchCommitsHandler(req: AuthReq
   }
 }
 
+/** Handles requests for list live project GitHub repo my commits. */
 export async function listLiveProjectGithubRepoMyCommitsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {
@@ -98,6 +108,7 @@ export async function listLiveProjectGithubRepoMyCommitsHandler(req: AuthRequest
   }
 }
 
+/** Handles requests for update project GitHub sync settings. */
 export async function updateProjectGithubSyncSettingsHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) {

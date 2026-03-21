@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import { StaffRandomAllocationPreview } from "@/features/staff/projects/components/StaffRandomAllocationPreview";
+import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
+import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -48,12 +49,6 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Team allocation</p>
         <h1 className="staff-projects__title">{data.project.name}</h1>
-        <p className="staff-projects__desc">
-          Module: {data.project.moduleName}. Review current team distribution and prepare random allocation for this project.
-        </p>
-        <p className="staff-projects__desc">
-          Random allocation includes only vacant students. Students already in a team for this project are not reallocated here.
-        </p>
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} allocated student{totalStudents === 1 ? "" : "s"}</span>
@@ -64,29 +59,33 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
         </div>
       </section>
 
-      <section className="staff-projects__team-card" aria-label="Current team distribution">
-        <h2 className="staff-projects__card-title">Current team distribution</h2>
-        <p className="staff-projects__card-sub">
-          Use this snapshot before running allocation.
+      <StaffAllocationModesPanel
+        projectId={data.project.id}
+        initialTeamCount={Math.max(1, data.teams.length)}
+      />
+
+      <StaffAllocationDraftsPanel projectId={data.project.id} />
+
+      <section className="staff-projects__team-card staff-projects__allocation-methods" aria-label="Project teams">
+        <h2 className="staff-projects__card-title">Active Teams</h2>
+        <p className="staff-projects__allocation-note">
+          Draft teams are managed in the Allocation Drafts panel and appear here only after owner approval.
         </p>
-      </section>
-
-      <StaffRandomAllocationPreview projectId={data.project.id} initialTeamCount={Math.max(1, data.teams.length)} />
-
-      <section className="staff-projects__team-list" aria-label="Project teams">
-        {data.teams.map((team) => (
-          <article key={team.id} className="staff-projects__team-card">
-            <div className="staff-projects__team-top">
-              <h3 className="staff-projects__team-title">{team.teamName}</h3>
-              <span className="staff-projects__badge">
-                {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
-              </span>
-            </div>
-            <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
-              Open team workspace
-            </Link>
-          </article>
-        ))}
+        <section className="staff-projects__team-list" aria-label="Project teams list">
+          {data.teams.map((team) => (
+            <article key={team.id} className="staff-projects__team-card">
+              <div className="staff-projects__team-top">
+                <h3 className="staff-projects__team-title">{team.teamName}</h3>
+                <span className="staff-projects__badge">
+                  {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
+                Open team workspace
+              </Link>
+            </article>
+          ))}
+        </section>
       </section>
     </div>
   );

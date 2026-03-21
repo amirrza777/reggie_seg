@@ -1,8 +1,51 @@
+import Link from "next/link";
+import { getStaffProjects } from "@/features/projects/api/client";
 import { Card } from "@/shared/ui/Card";
-import { Placeholder } from "@/shared/ui/Placeholder";
-import { Button } from "@/shared/ui/Button";
 import { redirect } from "next/navigation";
 import { getCurrentUser, isElevatedStaff } from "@/shared/auth/session";
+
+type MetricItem = {
+  label: string;
+  value: number | string;
+};
+
+function MetricsGrid({ items }: { items: MetricItem[] }) {
+  return (
+    <div className="ui-grid-metrics">
+      {items.map((item) => (
+        <div key={item.label} className="ui-metric-card">
+          <span className="eyebrow">{item.label}</span>
+          <strong className="ui-metric-value">{item.value}</strong>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AnalyticsHeader() {
+  return (
+    <header className="ui-page__header">
+      <h1 className="overview-title ui-page__title">Analytics</h1>
+      <p className="ui-page__description">Project-level delivery and engagement indicators across your staff workspace.</p>
+    </header>
+  );
+}
+
+function EmptyAnalyticsState() {
+  return (
+    <Card title="No analytics yet">
+      <p className="muted">No staff projects are available yet. Create or open projects to start tracking analytics indicators.</p>
+      <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Link href="/staff/modules" className="pill-nav__link">
+          Open modules
+        </Link>
+        <Link href="/staff/projects" className="pill-nav__link">
+          Open projects
+        </Link>
+      </div>
+    </Card>
+  );
+}
 
 export default async function StaffAnalyticsPage() {
   const user = await getCurrentUser();
@@ -10,40 +53,72 @@ export default async function StaffAnalyticsPage() {
     redirect("/dashboard");
   }
 
+  let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
+  let errorMessage: string | null = null;
+
+  try {
+    projects = await getStaffProjects(user.id);
+  } catch (error) {
+    errorMessage = error instanceof Error ? error.message : "Failed to load analytics.";
+  }
+
+  const moduleCount = new Set(projects.map((project) => project.moduleId)).size;
+  const teamCount = projects.reduce((sum, project) => sum + project.teamCount, 0);
+  const studentsTotal = projects.reduce((sum, project) => sum + project.membersTotal, 0);
+  const studentsConnected = projects.reduce((sum, project) => sum + project.membersConnected, 0);
+  const githubConnectionRate = studentsTotal > 0 ? Math.round((studentsConnected / studentsTotal) * 100) : 0;
+  const projectsWithoutRepo = projects.filter((project) => !project.hasGithubRepo).length;
+  const projectsWithoutTeams = projects.filter((project) => project.teamCount === 0).length;
+  const lowConnectionProjects = projects.filter(
+    (project) => project.membersTotal > 0 && project.membersConnected / project.membersTotal < 0.5,
+  ).length;
+  const oldestProjectDays = projects.reduce((max, project) => Math.max(max, project.daysOld), 0);
+
+  const summaryItems: MetricItem[] = [
+    { label: "Modules", value: moduleCount },
+    { label: "Projects", value: projects.length },
+    { label: "Teams", value: teamCount },
+    { label: "Students", value: studentsTotal },
+    { label: "GitHub connected", value: `${githubConnectionRate}%` },
+  ];
+  const priorityItems: MetricItem[] = [
+    { label: "Projects without repo", value: projectsWithoutRepo },
+    { label: "Projects without teams", value: projectsWithoutTeams },
+    { label: "Low GitHub coverage projects", value: lowConnectionProjects },
+    { label: "Oldest project age (days)", value: oldestProjectDays },
+  ];
+
   return (
     <div className="stack ui-page">
-      <Placeholder
-        title="Analytics"
-        description="Radar charts, exports, and at-risk notifications."
-      />
+      <AnalyticsHeader />
 
-      <div className="stack stack--loose">
-        <Card title="Student radar charts">
-          <p className="muted">Radar chart grid placeholder (e.g., Technical Work vs Peer Support).</p>
-        </Card>
-        <Card title="Exports">
-          <p className="muted">Buttons to download CSV/PDF snapshots of key charts.</p>
-          <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
-            <Button variant="ghost" disabled>
-              Export CSV
-            </Button>
-            <Button variant="ghost" disabled>
-              Export PDF
-            </Button>
-          </div>
-        </Card>
-      </div>
+      {errorMessage ? <p className="muted">{errorMessage}</p> : null}
+      {!errorMessage && projects.length === 0 ? <EmptyAnalyticsState /> : null}
+      {!errorMessage && projects.length > 0 ? (
+        <>
+          <Card title="Workspace summary">
+            <MetricsGrid items={summaryItems} />
+          </Card>
 
-      <Card title="At-risk notifications">
-        <p className="muted">
-          List of at-risk students with a “Send nudge email” action will appear here.
-        </p>
-        <div style={{ marginTop: 12 }}>
-          <Button variant="ghost" disabled>
-            Send nudge email
-          </Button>
-        </div>
-      </Card>
+          <Card title="Priority checks">
+            <MetricsGrid items={priorityItems} />
+          </Card>
+
+          <Card title="Explore detailed views">
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <Link href="/staff/projects" className="pill-nav__link">
+                Team health by project
+              </Link>
+              <Link href="/staff/repos" className="pill-nav__link">
+                Repository analytics
+              </Link>
+              <Link href="/staff/integrations" className="pill-nav__link">
+                Trello velocity
+              </Link>
+            </div>
+          </Card>
+        </>
+      ) : null}
     </div>
   );
 }

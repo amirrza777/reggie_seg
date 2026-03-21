@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildEnterpriseModuleSearchWhere, parseEnterpriseModuleSearchFilters } from "./moduleSearch.js";
+import {
+  buildEnterpriseModuleSearchWhere,
+  matchesEnterpriseModuleSearchCandidate,
+  parseEnterpriseModuleSearchFilters,
+} from "./moduleSearch.js";
 
 describe("parseEnterpriseModuleSearchFilters", () => {
   it("returns defaults when query params are missing", () => {
@@ -55,5 +59,34 @@ describe("buildEnterpriseModuleSearchWhere", () => {
         },
       ],
     });
+  });
+});
+
+describe("matchesEnterpriseModuleSearchCandidate", () => {
+  const module = { id: 7, name: "Internet Systems" };
+
+  it("matches typo-tolerant names", () => {
+    expect(matchesEnterpriseModuleSearchCandidate(module, "internt systms")).toBe(true);
+  });
+
+  it("matches exact numeric id query", () => {
+    expect(matchesEnterpriseModuleSearchCandidate(module, "7")).toBe(true);
+  });
+
+  it("does not match unrelated query text", () => {
+    expect(matchesEnterpriseModuleSearchCandidate(module, "quantum mechanics")).toBe(false);
+  });
+
+  it("matches dropped-letter inputs for short progressive search terms", () => {
+    const example = { id: 8, name: "Example" };
+    expect(matchesEnterpriseModuleSearchCandidate(example, "ea")).toBe(true);
+    expect(matchesEnterpriseModuleSearchCandidate(example, "eam")).toBe(true);
+    expect(matchesEnterpriseModuleSearchCandidate(example, "eamp")).toBe(true);
+    expect(matchesEnterpriseModuleSearchCandidate(example, "eampl")).toBe(true);
+  });
+
+  it("matches shortened token query for both data and database terms", () => {
+    expect(matchesEnterpriseModuleSearchCandidate({ id: 9, name: "Data Structures" }, "daa")).toBe(true);
+    expect(matchesEnterpriseModuleSearchCandidate({ id: 10, name: "Database Systems" }, "daa")).toBe(true);
   });
 });

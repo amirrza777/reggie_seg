@@ -30,9 +30,8 @@ export function MeetingMinutes({ meetingId, writerId, initialContent }: MeetingM
 
   return (
     <div className="stack">
-      <span>Minutes</span>
       <RichTextEditor initialContent={initialContent} onChange={setContent} placeholder="Capture decisions, risks, and action items..." />
-      <div className="cluster">
+      <div className="ui-row">
         <Button type="button" onClick={saveNow}>
           Save minutes
         </Button>

@@ -133,18 +133,6 @@ describe("EnterpriseModuleCreateForm", () => {
         pageSize: 20,
       }),
     );
-    expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
-      scope: "all",
-      q: undefined,
-      page: 1,
-      pageSize: 20,
-    });
-    expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
-      scope: "students",
-      q: undefined,
-      page: 1,
-      pageSize: 20,
-    });
 
     fireEvent.change(screen.getByLabelText(/search staff/i), { target: { value: "owner" } });
 
@@ -166,30 +154,22 @@ describe("EnterpriseModuleCreateForm", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/module name/i), { target: { value: "Backend Search Module" } });
+    expect(screen.getByRole("button", { name: /create module/i })).toBeDisabled();
 
     const leadersGroup = screen.getByRole("group", { name: /module leaders/i });
-    const taGroup = screen.getByRole("group", { name: /teaching assistants/i });
-    const studentsGroup = screen.getByRole("group", { name: /module students/i });
 
     fireEvent.click(within(leadersGroup).getByRole("checkbox", { name: /staff owner/i }));
-    fireEvent.click(within(taGroup).getByRole("checkbox", { name: /ta student/i }));
-    fireEvent.click(within(studentsGroup).getByRole("checkbox", { name: /enrolled student/i }));
+    expect(screen.getByRole("button", { name: /create module/i })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: /create module/i }));
 
     await waitFor(() =>
       expect(createEnterpriseModuleMock).toHaveBeenCalledWith({
         name: "Backend Search Module",
-        briefText: undefined,
-        timelineText: undefined,
-        expectationsText: undefined,
-        readinessNotesText: undefined,
         leaderIds: [11],
-        taIds: [12],
-        studentIds: [31],
       }),
     );
-    expect(push).toHaveBeenCalledWith("/enterprise/modules");
+    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit");
     expect(refresh).toHaveBeenCalled();
   });
 

@@ -1,6 +1,6 @@
 import argon2 from "argon2";
-import jwt from "jsonwebtoken";
-import type { Role } from "@prisma/client";
+import jwt, { type JwtPayload, type SignOptions } from "jsonwebtoken";
+import type { Prisma, Role } from "@prisma/client";
 import { prisma } from "../shared/db.js";
 import { recordAuditLog } from "../features/audit/service.js";
 import { randomBytes, createHash, randomInt } from "crypto";
@@ -10,6 +10,8 @@ const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 const refreshSecret = process.env.JWT_REFRESH_SECRET || "";
 const accessTtl = process.env.JWT_ACCESS_TTL || "900s";
 const refreshTtl = process.env.JWT_REFRESH_TTL || "30d";
+const accessExpiresIn = accessTtl as NonNullable<SignOptions["expiresIn"]>;
+const refreshExpiresIn = refreshTtl as NonNullable<SignOptions["expiresIn"]>;
 const resetTtl = process.env.PASSWORD_RESET_TTL || "1h";
 const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
 const resetDebug = process.env.PASSWORD_RESET_DEBUG === "true";
@@ -22,20 +24,22 @@ const bootstrapAdminPassword = process.env.ADMIN_BOOTSTRAP_PASSWORD;
 
 type NewUserRole = Extract<Role, "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN">;
 
+/** Registers a sign up. */
 export async function signUp(data: {
   enterpriseCode: string;
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
-  role?: NewUserRole;
+  role?: Role;
 }) {
   const email = data.email.toLowerCase();
   const enterpriseId = await resolveEnterpriseIdFromCode(data.enterpriseCode);
   const existing = await prisma.user.findFirst({ where: { email } });
   if (existing) throw { code: "EMAIL_TAKEN" };
   const passwordHash = await argon2.hash(data.password);
-  const role: NewUserRole = data.role && data.role !== "ADMIN" ? data.role : "STUDENT";
+  const role: NewUserRole =
+    data.role === "STUDENT" || data.role === "STAFF" || data.role === "ENTERPRISE_ADMIN" ? data.role : "STUDENT";
   const user = await prisma.user.create({
     data: {
       email,
@@ -49,6 +53,7 @@ export async function signUp(data: {
   return issueTokens(user);
 }
 
+/** Authenticates a login. */
 export async function login(
   data: { email: string; password: string },
   meta: { ip?: string | null; userAgent?: string | null } = {}
@@ -120,6 +125,7 @@ export async function login(
   return tokens;
 }
 
+/** Refreshes the tokens. */
 export async function refreshTokens(refreshToken: string) {
   let payload: TokenPayload;
   try {
@@ -136,6 +142,7 @@ export async function refreshTokens(refreshToken: string) {
   return tokens;
 }
 
+/** Logs out the current session. */
 export async function logout(
   refreshToken: string,
   meta: { ip?: string | null; userAgent?: string | null } = {}
@@ -148,6 +155,7 @@ export async function logout(
   await recordAuditLog({ userId: payload.sub, action: "LOGOUT", ...meta });
 }
 
+/** Requests the password reset. */
 export async function requestPasswordReset(email: string) {
   const user = await prisma.user.findFirst({
     where: { email: email.toLowerCase() },
@@ -176,6 +184,7 @@ export async function requestPasswordReset(email: string) {
   await sendEmail({ to: user.email, subject: "Reset your password", text });
 }
 
+/** Executes the reset password. */
 export async function resetPassword(params: { token: string; newPassword: string }) {
   const normalizedToken = extractHexToken(params.token);
   const tokenHash = hashToken(normalizedToken);
@@ -202,6 +211,7 @@ export async function resetPassword(params: { token: string; newPassword: string
   ]);
 }
 
+/** Returns the profile. */
 export async function getProfile(userId: number) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -218,6 +228,7 @@ export async function getProfile(userId: number) {
   };
 }
 
+/** Updates the profile. */
 export async function updateProfile(params: {
   userId: number;
   firstName?: string;
@@ -225,12 +236,7 @@ export async function updateProfile(params: {
   avatarBase64?: string | null;
   avatarMime?: string | null;
 }) {
-  const data: {
-    firstName?: string;
-    lastName?: string;
-    avatarData?: Buffer | null;
-    avatarMime?: string | null;
-  } = {};
+  const data: Prisma.UserUpdateInput = {};
   if (typeof params.firstName === "string") data.firstName = params.firstName;
   if (typeof params.lastName === "string") data.lastName = params.lastName;
   if (params.avatarBase64 === null) {
@@ -251,6 +257,7 @@ export async function updateProfile(params: {
   };
 }
 
+/** Requests the email change. */
 export async function requestEmailChange(params: { userId: number; newEmail: string }) {
   const user = await prisma.user.findUnique({
     where: { id: params.userId },
@@ -290,6 +297,7 @@ export async function requestEmailChange(params: { userId: number; newEmail: str
   await sendEmail({ to: nextEmail, subject: "Verify your new email", text, html });
 }
 
+/** Confirms the email change. */
 export async function confirmEmailChange(params: { userId: number; newEmail: string; code: string }) {
   const nextEmail = params.newEmail.toLowerCase();
   const codeHash = hashToken(params.code.trim());
@@ -314,6 +322,7 @@ export async function confirmEmailChange(params: { userId: number; newEmail: str
   ]);
 }
 
+/** Registers a with provider. */
 export async function signUpWithProvider(params: { email: string; firstName?: string; lastName?: string; provider: string }) {
   const email = params.email.toLowerCase();
   let user = await prisma.user.findFirst({ where: { email } });
@@ -335,6 +344,7 @@ export async function signUpWithProvider(params: { email: string; firstName?: st
   return user;
 }
 
+/** Issues a fresh access token and refresh token pair for an existing user. */
 export async function issueTokensForUser(userId: number, email: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw { code: "INVALID_REFRESH_TOKEN" };
@@ -344,8 +354,8 @@ export async function issueTokensForUser(userId: number, email: string) {
 function issueTokens(user: User) {
   const adminSession = user.role === "ADMIN";
   const payload: TokenPayload = { sub: user.id, email: user.email, admin: adminSession };
-  const accessToken = jwt.sign(payload, accessSecret, { expiresIn: accessTtl });
-  const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshTtl });
+  const accessToken = jwt.sign(payload, accessSecret, { expiresIn: accessExpiresIn });
+  const refreshToken = jwt.sign(payload, refreshSecret, { expiresIn: refreshExpiresIn });
   return saveRefresh(user.id, refreshToken, accessToken);
 }
 
@@ -388,9 +398,33 @@ async function validateRefreshToken(userId: number, token: string) {
 }
 
 function verifyRefresh(token: string) {
-  return jwt.verify(token, refreshSecret) as TokenPayload;
+  const decoded = jwt.verify(token, refreshSecret);
+  if (typeof decoded !== "object" || decoded === null) {
+    throw new Error("Invalid refresh token payload");
+  }
+
+  const payload = decoded as JwtPayload & { email?: string; admin?: boolean };
+  const parsedSub =
+    typeof payload.sub === "number"
+      ? payload.sub
+      : typeof payload.sub === "string"
+        ? Number.parseInt(payload.sub, 10)
+        : Number.NaN;
+  if (!Number.isInteger(parsedSub) || parsedSub <= 0) {
+    throw new Error("Invalid refresh token subject");
+  }
+  if (typeof payload.email !== "string" || payload.email.length === 0) {
+    throw new Error("Invalid refresh token email");
+  }
+
+  return {
+    sub: parsedSub,
+    email: payload.email,
+    ...(typeof payload.admin === "boolean" ? { admin: payload.admin } : {}),
+  };
 }
 
+/** Verifies and decodes a refresh token payload. */
 export function verifyRefreshToken(token: string) {
   return verifyRefresh(token);
 }

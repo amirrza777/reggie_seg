@@ -14,7 +14,7 @@ model GithubRepository {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  projectLinks  ProjectGithubRepository[]
+  projectLinks ProjectGithubRepository[]
 
   @@index([ownerLogin])
 }

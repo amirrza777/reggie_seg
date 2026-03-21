@@ -15,6 +15,7 @@ function toUtcDayKey(date: Date) {
   return date.toISOString().slice(0, 10);
 }
 
+/** Executes the aggregate line changes by day. */
 export function aggregateLineChangesByDay(
   commits: GithubCommitForAggregation[],
   commitStatsBySha: GithubCommitLineStats

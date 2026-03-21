@@ -13,7 +13,10 @@ export function useAutosave(value: string, options: UseAutosaveOptions) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedRef = useRef(value);
   const onSaveRef = useRef(onSave);
-  onSaveRef.current = onSave;
+
+  useEffect(() => {
+    onSaveRef.current = onSave;
+  }, [onSave]);
 
   useEffect(() => {
     if (value === lastSavedRef.current) return;

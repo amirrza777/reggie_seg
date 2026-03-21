@@ -12,7 +12,12 @@ type PrismaMock = {
     upsert: ReturnType<typeof vi.fn>;
   };
   module: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
-  questionnaireTemplate: { upsert: ReturnType<typeof vi.fn> };
+  questionnaireTemplate: {
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
+  question: { findMany: ReturnType<typeof vi.fn> };
   project: {
     createMany: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
@@ -28,8 +33,17 @@ type PrismaMock = {
     findMany: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
-  peerAssessment: { upsert: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
-  peerFeedback: { upsert: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
+  peerAssessment: {
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  peerFeedback: {
+    upsert: ReturnType<typeof vi.fn>;
+    findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
   projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   featureFlag: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   $disconnect: ReturnType<typeof vi.fn>;
@@ -64,9 +78,25 @@ function buildPrismaMock(): PrismaMock {
       ]),
     },
     questionnaireTemplate: {
-      upsert: vi
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi
         .fn()
         .mockResolvedValue({ id: 1, questions: [{ label: "Technical contribution" }, { label: "Communication" }] }),
+      update: vi
+        .fn()
+        .mockResolvedValue({ id: 1, questions: [{ label: "Technical contribution" }, { label: "Communication" }] }),
+    },
+    question: {
+      findMany: vi.fn().mockResolvedValue([
+        { id: 1, label: "Technical Skills", type: "rating", configs: { min: 1, max: 5 } },
+        {
+          id: 2,
+          label: "Communication",
+          type: "multiple-choice",
+          configs: { options: ["Excellent", "Good", "Needs Improvement"] },
+        },
+        { id: 3, label: "Teamwork", type: "slider", configs: { min: 0, max: 100, step: 5 } },
+      ]),
     },
     project: {
       createMany: vi.fn().mockResolvedValue({ count: 4 }),
@@ -103,12 +133,15 @@ function buildPrismaMock(): PrismaMock {
       findUnique: vi.fn().mockResolvedValue(null),
     },
     peerAssessment: {
-      upsert: vi.fn().mockResolvedValue({ id: 100 }),
+      create: vi.fn().mockResolvedValue({ id: 100 }),
+      update: vi.fn().mockResolvedValue({ id: 100 }),
       findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     peerFeedback: {
       upsert: vi.fn().mockResolvedValue({}),
       findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     projectDeadline: {
       upsert: vi.fn().mockResolvedValue({}),
@@ -150,6 +183,7 @@ describe("prisma seed script", () => {
         user: prismaMock.user,
         module: prismaMock.module,
         questionnaireTemplate: prismaMock.questionnaireTemplate,
+        question: prismaMock.question,
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
@@ -180,11 +214,20 @@ describe("prisma seed script", () => {
     await flushAsyncWork();
 
     expect(prismaMock.user.createMany).toHaveBeenCalled();
+    expect(prismaMock.user.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ email: "marker.staff@example.com", role: "STAFF" }),
+          expect.objectContaining({ email: "marker.enterprise.admin@example.com", role: "ENTERPRISE_ADMIN" }),
+          expect.objectContaining({ email: "marker.admin@example.com", role: "ADMIN" }),
+        ]),
+      }),
+    );
     expect(prismaMock.module.createMany).toHaveBeenCalled();
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
-    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Seed users ready. Default password"));
+    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 1 enterprise(s). Default password"));
   });
 
   it("skips bootstrap admin creation when admin env is missing", async () => {
@@ -197,6 +240,7 @@ describe("prisma seed script", () => {
         user: prismaMock.user,
         module: prismaMock.module,
         questionnaireTemplate: prismaMock.questionnaireTemplate,
+        question: prismaMock.question,
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
@@ -227,5 +271,62 @@ describe("prisma seed script", () => {
 
     expect(prismaMock.user.create).not.toHaveBeenCalled();
     expect(prismaMock.$disconnect).toHaveBeenCalled();
+  });
+
+  it("repeats the seed flow for each configured enterprise", async () => {
+    const prismaMock = buildPrismaMock();
+    prismaMock.enterprise.findUnique = vi
+      .fn()
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    prismaMock.enterprise.create = vi
+      .fn()
+      .mockResolvedValueOnce({ id: "ent-1" })
+      .mockResolvedValueOnce({ id: "ent-2" });
+    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+
+    vi.doMock("@prisma/client", () => ({
+      PrismaClient: vi.fn(() => ({
+        enterprise: prismaMock.enterprise,
+        user: prismaMock.user,
+        module: prismaMock.module,
+        questionnaireTemplate: prismaMock.questionnaireTemplate,
+        project: prismaMock.project,
+        team: prismaMock.team,
+        moduleLead: prismaMock.moduleLead,
+        userModule: prismaMock.userModule,
+        teamAllocation: prismaMock.teamAllocation,
+        peerAssessment: prismaMock.peerAssessment,
+        peerFeedback: prismaMock.peerFeedback,
+        projectDeadline: prismaMock.projectDeadline,
+        featureFlag: prismaMock.featureFlag,
+        $disconnect: prismaMock.$disconnect,
+      })),
+      Role: { STUDENT: "STUDENT", STAFF: "STAFF", ADMIN: "ADMIN" },
+    }));
+    vi.doMock("argon2", () => ({
+      default: { hash: vi.fn().mockResolvedValue("hashed") },
+    }));
+    vi.doMock("@ngneat/falso", () => ({
+      randFirstName: vi.fn().mockReturnValue("First"),
+      randLastName: vi.fn().mockReturnValue("Last"),
+      randSentence: vi.fn().mockReturnValue("Random generated question."),
+    }));
+    vi.doMock("../../prisma/seed/volumes.ts", async () => {
+      const actual = await vi.importActual<typeof import("../../prisma/seed/volumes.ts")>("../../prisma/seed/volumes.ts");
+      return {
+        ...actual,
+        SEED_ENTERPRISE_COUNT: 2,
+      };
+    });
+
+    await import("../../prisma/seed/seed.ts");
+    await flushAsyncWork();
+
+    expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
+    expect(prismaMock.user.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.module.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
+    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 2 enterprise(s). Default password"));
   });
 });

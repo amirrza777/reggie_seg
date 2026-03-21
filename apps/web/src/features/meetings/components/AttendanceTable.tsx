@@ -6,13 +6,50 @@ import { Button } from "@/shared/ui/Button";
 import { markAttendance } from "../api/client";
 import type { MeetingAttendanceRecord } from "../types";
 
-type AttendanceTableProps = {
-  meetingId: number;
-  initialAttendances: MeetingAttendanceRecord[];
+type Member = {
+  id: number;
+  firstName: string;
+  lastName: string;
 };
 
-export function AttendanceTable({ meetingId, initialAttendances }: AttendanceTableProps) {
-  const [attendances, setAttendances] = useState(initialAttendances);
+type AttendanceTableProps = {
+  meetingId: number;
+  members?: Member[];
+  initialAttendances?: MeetingAttendanceRecord[];
+};
+
+function deriveMembersFromAttendances(initialAttendances: MeetingAttendanceRecord[]): Member[] {
+  return initialAttendances.map((attendance) => ({
+    id: attendance.user.id,
+    firstName: attendance.user.firstName,
+    lastName: attendance.user.lastName,
+  }));
+}
+
+function buildAttendanceList(members: Member[], initialAttendances: MeetingAttendanceRecord[]): MeetingAttendanceRecord[] {
+  const existingByUserId = new Map(initialAttendances.map((a) => [a.userId, a]));
+  const sourceMembers = members.length > 0 ? members : deriveMembersFromAttendances(initialAttendances);
+
+  return sourceMembers.map((member) => {
+    const existing = existingByUserId.get(member.id);
+    if (existing) return existing;
+
+    return {
+      id: 0,
+      meetingId: 0,
+      userId: member.id,
+      status: "absent",
+      user: member,
+    };
+  });
+}
+
+export function AttendanceTable({
+  meetingId,
+  members = [],
+  initialAttendances = [],
+}: AttendanceTableProps) {
+  const [attendances, setAttendances] = useState(() => buildAttendanceList(members, initialAttendances));
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -39,7 +76,7 @@ export function AttendanceTable({ meetingId, initialAttendances }: AttendanceTab
   }
 
   return (
-    <Card title="Attendance">
+    <Card title="Attendance" bodyClassName="stack">
       <div className="table">
         <div className="table__head">
           <div>Name</div>
@@ -62,12 +99,12 @@ export function AttendanceTable({ meetingId, initialAttendances }: AttendanceTab
           </div>
         ))}
       </div>
-      <div>
+      <div className="ui-row">
         <Button type="button" onClick={handleSave} disabled={status === "loading"}>
           {status === "loading" ? "Saving..." : "Save Attendance"}
         </Button>
+        {message && <span className={status === "error" ? "error" : "muted"}>{message}</span>}
       </div>
-      {message && <p className={status === "error" ? "error" : "muted"}>{message}</p>}
     </Card>
   );
 }

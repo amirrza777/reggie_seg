@@ -1,0 +1,17 @@
+enum MentionSource {
+  COMMENT
+  MINUTES // possibly add later
+  DISCUSSION
+}
+
+model Mention {
+  id         Int           @id @default(autoincrement())
+  userId     Int
+  sourceType MentionSource
+  sourceId   Int
+  createdAt  DateTime      @default(now())
+  user       User          @relation("Mention", fields: [userId], references: [id])
+
+  @@unique([sourceType, sourceId, userId])
+  @@index([userId])
+}

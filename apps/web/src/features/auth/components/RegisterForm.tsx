@@ -8,6 +8,7 @@ import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
 import { useUser } from "../context";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 export function RegisterForm() {
   const [formData, setFormData] = useState({
@@ -43,10 +44,10 @@ export function RegisterForm() {
         lastName: formData.lastName,
         role: formData.role,
       });
-      await refresh();
+      const profile = await refresh();
       setStatus("success");
       setMessage("Account created. Redirecting...");
-      router.push("/dashboard");
+      router.push(profile ? getDefaultSpaceOverviewPath(profile) : "/app-home");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Signup failed");

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
 import { listModules } from "@/features/modules/api/client";
 import type { Module } from "@/features/modules/types";
 import { Card } from "@/shared/ui/Card";
@@ -7,36 +8,16 @@ import { Table } from "@/shared/ui/Table";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 
+type StaffModuleRow = [string, ReactElement, string, string];
+
 export default async function StaffDashboardPage() {
   const user = await getCurrentUser();
   if (!user?.isStaff && user?.role !== "ADMIN") {
     redirect("/dashboard");
   }
 
-  let modules: Module[] = [];
-  let moduleError: string | null = null;
-
-  try {
-    modules = await listModules(user.id, { scope: "staff" });
-  } catch {
-    moduleError = "Could not load your modules right now. Please try again.";
-  }
-
-  const moduleRows = modules.map((module) => {
-    const numericId = Number(module.id);
-    const moduleCode = Number.isFinite(numericId) ? `MOD-${numericId}` : module.id;
-    const teams = module.teamCount ?? 0;
-    const projects = module.projectCount ?? 0;
-
-    return [
-      moduleCode,
-      <Link key={module.id} href={`/modules/${encodeURIComponent(module.id)}`} className="ui-link-reset">
-        {module.title}
-      </Link>,
-      `${teams} team${teams === 1 ? "" : "s"}`,
-      `${projects} project${projects === 1 ? "" : "s"}`,
-    ];
-  });
+  const moduleData = await loadStaffModules(user.id);
+  const moduleRows = buildModuleRows(moduleData.modules);
 
   return (
     <div className="stack ui-page">
@@ -45,36 +26,103 @@ export default async function StaffDashboardPage() {
         titleClassName="overview-title"
         description="Start from projects, then drill into teams for peer assessment, peer feedback, repositories, and grading."
       />
-
-      <Card title="My Modules">
-        {moduleError ? <p className="muted">{moduleError}</p> : null}
-        {!moduleError && modules.length === 0 ? (
-          <p className="muted">No modules are currently assigned to your account.</p>
-        ) : null}
-        {!moduleError && modules.length > 0 ? (
-          <Table headers={["Code", "Module", "Teams", "Projects"]} rows={moduleRows} />
-        ) : null}
-      </Card>
-
-      <div className="stack stack--loose">
-        <Card title="Team workspace">
-          <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
-          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link href="/staff/projects" className="pill-nav__link">Open staff projects</Link>
-            <Link href="/staff/analytics" className="pill-nav__link">Open analytics</Link>
-            <Link href="/staff/questionnaires" className="pill-nav__link">Open questionnaires</Link>
-          </div>
-        </Card>
-        <Card title="Grade distribution">
-          <p className="muted">Bar chart placeholder.</p>
-        </Card>
-        <Card title="Submission velocity">
-          <p className="muted">Line chart placeholder (submissions vs time).</p>
-        </Card>
-        <Card title="Engagement score">
-          <p className="muted">Radial gauge placeholder (% active in last 48h).</p>
-        </Card>
-      </div>
+      <StaffModulesCard moduleError={moduleData.moduleError} modules={moduleData.modules} moduleRows={moduleRows} />
+      <StaffNavigationCards />
     </div>
   );
+}
+
+async function loadStaffModules(userId: number): Promise<{ modules: Module[]; moduleError: string | null }> {
+  try {
+    const modules = await listModules(userId, { scope: "staff" });
+    return { modules, moduleError: null };
+  } catch {
+    return { modules: [], moduleError: "Could not load your modules right now. Please try again." };
+  }
+}
+
+function buildModuleRows(modules: Module[]): StaffModuleRow[] {
+  return modules.map((module) => {
+    const moduleCode = formatModuleCode(module.id);
+    const teams = module.teamCount ?? 0;
+    const projects = module.projectCount ?? 0;
+
+    return [
+      moduleCode,
+      <Link key={module.id} href={`/modules/${encodeURIComponent(module.id)}`} className="ui-link-reset">
+        {module.title}
+      </Link>,
+      `${teams} ${pluralize("team", teams)}`,
+      `${projects} ${pluralize("project", projects)}`,
+    ];
+  });
+}
+
+function StaffModulesCard({
+  moduleError,
+  modules,
+  moduleRows,
+}: {
+  moduleError: string | null;
+  modules: Module[];
+  moduleRows: StaffModuleRow[];
+}) {
+  return (
+    <Card title="My Modules">
+      {moduleError ? <p className="muted">{moduleError}</p> : null}
+      {!moduleError && modules.length === 0 ? <p className="muted">No modules are currently assigned to your account.</p> : null}
+      {!moduleError && modules.length > 0 ? <Table headers={["Code", "Module", "Teams", "Projects"]} rows={moduleRows} /> : null}
+    </Card>
+  );
+}
+
+function StaffNavigationCards() {
+  return (
+    <div className="stack stack--loose">
+      <Card title="Team workspace">
+        <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
+        <StaffQuickLinks
+          links={[
+            { href: "/staff/projects", label: "Open staff projects" },
+            { href: "/staff/questionnaires", label: "Open questionnaires" },
+          ]}
+        />
+      </Card>
+      <Card title="Where to review delivery signals">
+        <p className="muted">
+          Delivery and engagement signals are available in dedicated team workspaces, GitHub insights, and Trello
+          summaries.
+        </p>
+        <StaffQuickLinks
+          links={[
+            { href: "/staff/projects", label: "Team health by project" },
+            { href: "/staff/repos", label: "Repository analytics" },
+            { href: "/staff/integrations", label: "Trello velocity" },
+          ]}
+        />
+      </Card>
+    </div>
+  );
+}
+
+function StaffQuickLinks({ links }: { links: Array<{ href: string; label: string }> }) {
+  return (
+    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+      {links.map((link) => (
+        <Link key={link.href} href={link.href} className="pill-nav__link">
+          {link.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function formatModuleCode(moduleId: string): string {
+  const numericId = Number(moduleId);
+  if (Number.isFinite(numericId)) return `MOD-${numericId}`;
+  return moduleId;
+}
+
+function pluralize(label: string, count: number): string {
+  return count === 1 ? label : `${label}s`;
 }

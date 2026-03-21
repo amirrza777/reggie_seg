@@ -1,6 +1,9 @@
 import argon2 from "argon2";
+import { ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_PASSWORD } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
+import type { SeedEnterprise } from "./types";
+import { SEED_ENTERPRISE_COUNT } from "./volumes";
 
 export function assertPrismaClientModels() {
   const client = prisma as unknown as Record<string, unknown>;
@@ -11,37 +14,44 @@ export function assertPrismaClientModels() {
   }
 }
 
-export async function getDefaultEnterpriseId(): Promise<string> {
-  return withSeedLogging("getDefaultEnterpriseId", async () => {
-    const enterprise = await prisma.enterprise.findUnique({
-      where: { code: "DEFAULT" },
-      select: { id: true },
-    });
-    if (enterprise) {
-      return {
-        value: enterprise.id,
-        rows: 0,
-        details: "enterprise already exists",
-      };
+export async function getSeedEnterprises(): Promise<SeedEnterprise[]> {
+  return withSeedLogging("getSeedEnterprises", async () => {
+    const enterprises: SeedEnterprise[] = [];
+    let createdCount = 0;
+
+    for (let index = 0; index < SEED_ENTERPRISE_COUNT; index += 1) {
+      const config = buildSeedEnterprise(index);
+      const enterprise = await prisma.enterprise.findUnique({
+        where: { code: config.code },
+        select: { id: true },
+      });
+
+      if (enterprise) {
+        enterprises.push({ ...config, id: enterprise.id });
+        continue;
+      }
+
+      const created = await prisma.enterprise.create({
+        data: { code: config.code, name: config.name },
+        select: { id: true },
+      });
+
+      enterprises.push({ ...config, id: created.id });
+      createdCount += 1;
     }
 
-    const created = await prisma.enterprise.create({
-      data: { code: "DEFAULT", name: "Default Enterprise" },
-      select: { id: true },
-    });
-
     return {
-      value: created.id,
-      rows: 1,
-      details: `enterpriseId=${created.id}`,
+      value: enterprises,
+      rows: createdCount,
+      details: `seed enterprises=${enterprises.length}`,
     };
   });
 }
 
 export async function seedAdminUser(enterpriseId: string) {
   return withSeedLogging("seedAdminUser", async () => {
-    const email = process.env.ADMIN_BOOTSTRAP_EMAIL?.toLowerCase();
-    const password = process.env.ADMIN_BOOTSTRAP_PASSWORD;
+    const email = ADMIN_BOOTSTRAP_EMAIL;
+    const password = ADMIN_BOOTSTRAP_PASSWORD;
     if (!email || !password) {
       return {
         value: undefined,
@@ -79,4 +89,18 @@ export async function seedAdminUser(enterpriseId: string) {
       details: `created admin=${email}`,
     };
   });
+}
+
+function buildSeedEnterprise(index: number) {
+  if (index === 0) {
+    return {
+      code: "DEFAULT",
+      name: "Default Enterprise",
+    };
+  }
+
+  return {
+    code: `ENT${index + 1}`,
+    name: `Seed Enterprise ${index + 1}`,
+  };
 }

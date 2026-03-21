@@ -1,11 +1,12 @@
 import argon2 from "argon2";
+import { SEED_GITHUB_STAFF_EMAIL, SEED_GITHUB_STAFF_PASSWORD, SEED_GITHUB_STUDENT_EMAIL, SEED_GITHUB_STUDENT_PASSWORD } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
-import type { SeedModule, SeedProject, SeedTeam, SeedUser } from "./types";
+import type { SeedModule, SeedProject, SeedTeam, SeedUser, SeedUsersByRole } from "./types";
 
 export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   return withSeedLogging("seedModuleLeads", async () => {
-    const staff = users.filter((u) => u.role === "STAFF" || u.role === "ADMIN");
+    const staff = buildUsersByRole(users).adminOrStaff;
     if (staff.length === 0 || modules.length === 0) {
       return {
         value: undefined,
@@ -14,13 +15,7 @@ export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) 
       };
     }
 
-    const data: { moduleId: number; userId: number }[] = [];
-    for (let index = 0; index < modules.length; index += 1) {
-      const module = modules[index];
-      const staffMember = staff[index % staff.length];
-      if (!module || !staffMember) continue;
-      data.push({ moduleId: module.id, userId: staffMember.id });
-    }
+    const data = buildModuleLeadSeedData(staff, modules);
 
     const created = await prisma.moduleLead.createMany({ data, skipDuplicates: true });
     return {
@@ -33,7 +28,7 @@ export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) 
 
 export async function seedStudentEnrollments(enterpriseId: string, users: SeedUser[], modules: SeedModule[]) {
   return withSeedLogging("seedStudentEnrollments", async () => {
-    const students = users.filter((u) => u.role === "STUDENT");
+    const students = buildUsersByRole(users).students;
     if (students.length === 0 || modules.length === 0) {
       return {
         value: undefined,
@@ -42,13 +37,7 @@ export async function seedStudentEnrollments(enterpriseId: string, users: SeedUs
       };
     }
 
-    const data = students.flatMap((s) =>
-      modules.map((m) => ({
-        enterpriseId,
-        userId: s.id,
-        moduleId: m.id,
-      }))
-    );
+    const data = buildStudentEnrollmentSeedData(enterpriseId, students, modules);
 
     const created = await prisma.userModule.createMany({ data, skipDuplicates: true });
     return {
@@ -61,7 +50,7 @@ export async function seedStudentEnrollments(enterpriseId: string, users: SeedUs
 
 export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   return withSeedLogging("seedTeamAllocations", async () => {
-    const students = users.filter((u) => u.role === "STUDENT");
+    const students = buildUsersByRole(users).students;
     if (students.length === 0 || teams.length === 0) {
       return {
         value: undefined,
@@ -70,14 +59,7 @@ export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) 
       };
     }
 
-    const data: { userId: number; teamId: number }[] = [];
-    const sortedTeams = [...teams].sort((left, right) => left.id - right.id);
-    for (let index = 0; index < students.length; index += 1) {
-      const student = students[index];
-      const team = sortedTeams[index % sortedTeams.length];
-      if (!student || !team) continue;
-      data.push({ userId: student.id, teamId: team.id });
-    }
+    const data = buildTeamAllocationSeedData(students, teams);
 
     const created = await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
     return {
@@ -86,6 +68,48 @@ export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) 
       details: `allocations attempted=${data.length}`,
     };
   });
+}
+
+export function buildUsersByRole(users: SeedUser[]): SeedUsersByRole {
+  return {
+    adminOrStaff: users.filter(
+      (user) => user.role === "STAFF" || user.role === "ENTERPRISE_ADMIN" || user.role === "ADMIN"
+    ),
+    students: users.filter((user) => user.role === "STUDENT"),
+  };
+}
+
+function buildModuleLeadSeedData(staff: SeedUser[], modules: SeedModule[]) {
+  const data: { moduleId: number; userId: number }[] = [];
+  for (let index = 0; index < modules.length; index += 1) {
+    const module = modules[index];
+    const staffMember = staff[index % staff.length];
+    if (!module || !staffMember) continue;
+    data.push({ moduleId: module.id, userId: staffMember.id });
+  }
+  return data;
+}
+
+function buildStudentEnrollmentSeedData(enterpriseId: string, students: SeedUser[], modules: SeedModule[]) {
+  return students.flatMap((student) =>
+    modules.map((module) => ({
+      enterpriseId,
+      userId: student.id,
+      moduleId: module.id,
+    }))
+  );
+}
+
+function buildTeamAllocationSeedData(students: SeedUser[], teams: SeedTeam[]) {
+  const data: { userId: number; teamId: number }[] = [];
+  const sortedTeams = [...teams].sort((left, right) => left.id - right.id);
+  for (let index = 0; index < students.length; index += 1) {
+    const student = students[index];
+    const team = sortedTeams[index % sortedTeams.length];
+    if (!student || !team) continue;
+    data.push({ userId: student.id, teamId: team.id });
+  }
+  return data;
 }
 
 export async function seedAdminTeamAllocation(enterpriseId: string) {
@@ -98,13 +122,17 @@ export async function seedAdminTeamAllocation(enterpriseId: string) {
       return { value: undefined, rows: 0, details: "skipped (admin user not found)" };
     }
 
-    const firstProject = await prisma.project.findFirst({ select: { id: true }, orderBy: { id: "asc" } });
+    const firstProject = await prisma.project.findFirst({
+      where: { module: { enterpriseId } },
+      select: { id: true },
+      orderBy: { id: "asc" },
+    });
     if (!firstProject) {
       return { value: undefined, rows: 0, details: "skipped (no project found)" };
     }
 
     const team = await prisma.team.findFirst({
-      where: { projectId: firstProject.id },
+      where: { enterpriseId, projectId: firstProject.id },
       select: { id: true },
     });
     if (!team) {
@@ -142,10 +170,10 @@ export async function seedGithubE2EUsers(enterpriseId: string, projects: SeedPro
       return { value: undefined, rows: 0, details: "skipped (no team for first project)" };
     }
 
-    const staffEmail = (process.env.SEED_GITHUB_STAFF_EMAIL || "github.staff@example.com").toLowerCase();
-    const staffPassword = process.env.SEED_GITHUB_STAFF_PASSWORD || "Password123!";
-    const studentEmail = (process.env.SEED_GITHUB_STUDENT_EMAIL || "github.student@example.com").toLowerCase();
-    const studentPassword = process.env.SEED_GITHUB_STUDENT_PASSWORD || "Password123!";
+    const staffEmail = SEED_GITHUB_STAFF_EMAIL;
+    const staffPassword = SEED_GITHUB_STAFF_PASSWORD;
+    const studentEmail = SEED_GITHUB_STUDENT_EMAIL;
+    const studentPassword = SEED_GITHUB_STUDENT_PASSWORD;
 
     const [staffPasswordHash, studentPasswordHash] = await Promise.all([
       argon2.hash(staffPassword),

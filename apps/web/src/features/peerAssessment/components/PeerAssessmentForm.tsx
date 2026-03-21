@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
@@ -9,11 +9,16 @@ import { createPeerAssessment, updatePeerAssessment } from "../api/client";
 
 type AnswerValue = string | number;
 
-const toAnswersArray = (answers: Record<string, AnswerValue>) =>
-  Object.entries(answers).map(([question, answer]) => ({
-    question,
-    answer,
-  }));
+const toAnswersArray = (
+  answers: Record<string, AnswerValue>,
+  orderedQuestions: Question[]
+) =>
+  orderedQuestions
+    .filter((question) => Object.prototype.hasOwnProperty.call(answers, String(question.id)))
+    .map((question) => ({
+      question: String(question.id),
+      answer: answers[String(question.id)],
+    }));
 
 const questionContainerStyle: CSSProperties = { display: "grid", gap: 6 };
 const answerInputStyle: CSSProperties = {
@@ -25,9 +30,42 @@ const answerInputStyle: CSSProperties = {
   fontFamily: "inherit",
   fontSize: "inherit",
 };
+const radioInputStyle: CSSProperties = {
+  width: "auto",
+  minWidth: 0,
+  padding: 0,
+  margin: 0,
+  border: "none",
+  background: "transparent",
+  flex: "0 0 auto",
+};
+const countdownBoxStyle: CSSProperties = {
+  border: "1px solid var(--border)",
+  borderRadius: 8,
+  padding: "8px 10px",
+  background: "var(--surface)",
+  fontWeight: 600,
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+};
 
 function isNumericQuestion(question: Question) {
   return question.type === "rating" || question.type === "slider";
+}
+
+function isQuestionAnswered(question: Question, answer: AnswerValue | undefined) {
+  if (question.type === "rating" || question.type === "slider") {
+    return typeof answer === "number" && Number.isFinite(answer);
+  }
+
+  if (question.type === "multiple-choice") {
+    if (typeof answer !== "string" || answer.trim().length === 0) return false;
+    const options = Array.isArray(question.configs?.options) ? question.configs.options : [];
+    if (options.length === 0) return false;
+    return options.includes(answer);
+  }
+
+  return typeof answer === "string" && answer.trim().length > 0;
 }
 
 function getRatingBounds(question: Question) {
@@ -46,10 +84,67 @@ function getSliderConfig(question: Question) {
     min,
     max,
     step,
-    left: question.configs?.left ?? "",
-    right: question.configs?.right ?? "",
-    helperText: question.configs?.helperText ?? "",
+    left: typeof question.configs?.left === "string" ? question.configs.left : undefined,
+    right: typeof question.configs?.right === "string" ? question.configs.right : undefined,
+    helperText:
+      typeof question.configs?.helperText === "string" ? question.configs.helperText : undefined,
   };
+}
+
+function getTextConfig(question: Question) {
+  const minLength =
+    typeof question.configs?.minLength === "number" && question.configs.minLength >= 0
+      ? question.configs.minLength
+      : undefined;
+  const maxLength =
+    typeof question.configs?.maxLength === "number" && question.configs.maxLength >= 0
+      ? question.configs.maxLength
+      : undefined;
+
+  return {
+    helperText:
+      typeof question.configs?.helperText === "string" ? question.configs.helperText : undefined,
+    placeholder:
+      typeof question.configs?.placeholder === "string" ? question.configs.placeholder : undefined,
+    minLength,
+    maxLength,
+  };
+}
+
+function toDate(value?: string | null): Date | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateLabel(value: Date | null): string {
+  return value ? value.toLocaleString() : "Not set";
+}
+
+function normalizeAnswers(
+  raw: Record<string, string | number | boolean | null> | undefined,
+  questions: Question[]
+): Record<string, AnswerValue> {
+  if (!raw || typeof raw !== "object") return {};
+  const normalized: Record<string, AnswerValue> = {};
+  Object.entries(raw).forEach(([k, v]) => {
+    const question = questions.find((item) => String(item.id) === k);
+    if (question && isNumericQuestion(question)) {
+      if (typeof v === "number" && Number.isFinite(v)) {
+        normalized[k] = v;
+        return;
+      }
+      if (typeof v === "string" && v.trim().length > 0) {
+        const parsed = Number(v);
+        if (Number.isFinite(parsed)) {
+          normalized[k] = parsed;
+          return;
+        }
+      }
+    }
+    normalized[k] = String(v ?? "");
+  });
+  return normalized;
 }
 
 type PeerAssessmentFormProps = {
@@ -60,9 +155,24 @@ type PeerAssessmentFormProps = {
   reviewerId: number;
   revieweeId: number;
   templateId: number;
+  assessmentDeadline?: string | null;
   initialAnswers?: Record<string, string | number | boolean | null>;
   assessmentId?: number;
+  title?: string;
+  assessmentOpenAt?: string | null;
+  assessmentDueAt?: string | null;
 };
+
+function formatRemainingDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const days = Math.floor(safeSeconds / 86400);
+  const hours = Math.floor((safeSeconds % 86400) / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(days)}d : ${two(hours)}h : ${two(minutes)}m : ${two(seconds)}s`;
+}
 
 export function PeerAssessmentForm({
   teammateName,
@@ -72,8 +182,12 @@ export function PeerAssessmentForm({
   reviewerId,
   revieweeId,
   templateId,
+  assessmentDeadline,
   initialAnswers,
   assessmentId,
+  title,
+  assessmentOpenAt = null,
+  assessmentDueAt = null,
 }: PeerAssessmentFormProps) {
   const router = useRouter();
   const peerAssessmentsPath = `/projects/${projectId}/peer-assessments`;
@@ -83,40 +197,68 @@ export function PeerAssessmentForm({
   >("idle");
   const [message, setMessage] = useState<string | null>(null);
   const isEditMode = !!assessmentId;
+  const resolvedTitle = title ?? (isEditMode ? "Edit Peer Assessment" : "Create Peer Assessment");
+  const orderedQuestions = useMemo(
+    () => [...questions].sort((a, b) => a.order - b.order),
+    [questions]
+  );
+  const unansweredQuestions = useMemo(
+    () => orderedQuestions.filter((question) => !isQuestionAnswered(question, answers[String(question.id)])),
+    [orderedQuestions, answers]
+  );
+  const allQuestionsAnswered = unansweredQuestions.length === 0;
+  const openAt = toDate(assessmentOpenAt);
+  const dueAt = toDate(assessmentDueAt ?? assessmentDeadline);
+  const now = new Date();
+  const isBeforeOpen = Boolean(openAt && now < openAt);
+  const isAfterDue = Boolean(dueAt && now > dueAt);
+  const canSubmitWindow = !isBeforeOpen;
+  const canSubmit = canSubmitWindow && allQuestionsAnswered;
+  const deadlineStatusMessage = isBeforeOpen
+    ? `Peer assessment is locked until ${formatDateLabel(openAt)}.`
+    : isAfterDue
+      ? `Peer assessment deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
+      : dueAt
+        ? `Peer assessment is open. Deadline: ${formatDateLabel(dueAt)}.`
+        : null;
 
-  const normalizeAnswers = (
-    raw: Record<string, string | number | boolean | null> | undefined
-  ): Record<string, AnswerValue> => {
-    if (!raw || typeof raw !== "object") return {};
-    const normalized: Record<string, AnswerValue> = {};
-    Object.entries(raw).forEach(([k, v]) => {
-      const question = questions.find((item) => String(item.id) === k);
-      if (question && isNumericQuestion(question)) {
-        if (typeof v === "number" && Number.isFinite(v)) {
-          normalized[k] = v;
-          return;
-        }
-        if (typeof v === "string" && v.trim().length > 0) {
-          const parsed = Number(v);
-          if (Number.isFinite(parsed)) {
-            normalized[k] = parsed;
-            return;
-          }
-        }
-      }
-      normalized[k] = String(v ?? "");
-    });
-    return normalized;
-  };
-
+  const deadlineTimestamp = useMemo(() => dueAt?.getTime() ?? null, [dueAt]);
+  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
+  const remainingSeconds = useMemo(() => {
+    if (deadlineTimestamp == null || currentTimestamp == null) return null;
+    return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
+  }, [deadlineTimestamp, currentTimestamp]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setAnswers(normalizeAnswers(initialAnswers));
-  }, [initialAnswers, questions]);
+    setAnswers(normalizeAnswers(initialAnswers, orderedQuestions));
+  }, [initialAnswers, orderedQuestions]);
+
+  useEffect(() => {
+    if (deadlineTimestamp == null) return;
+    const tick = () => {
+      setCurrentTimestamp(Date.now());
+    };
+    tick();
+    const interval = window.setInterval(() => {
+      tick();
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [deadlineTimestamp]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBeforeOpen) {
+      setStatus("error");
+      setMessage(deadlineStatusMessage ?? "Peer assessment is outside the allowed deadline window.");
+      return;
+    }
+    if (!allQuestionsAnswered) {
+      setStatus("error");
+      setMessage("Please answer every question before submitting.");
+      return;
+    }
+
     setStatus("loading");
     setMessage(null);
 
@@ -130,7 +272,7 @@ export function PeerAssessmentForm({
           reviewerUserId: reviewerId,
           revieweeUserId: revieweeId,
           templateId,
-          answersJson: toAnswersArray(answers),
+          answersJson: toAnswersArray(answers, orderedQuestions),
         });
       }
       setStatus("success");
@@ -148,7 +290,7 @@ export function PeerAssessmentForm({
   };
 
   const handleDiscard = () => {
-    setAnswers(normalizeAnswers(initialAnswers));
+    setAnswers(normalizeAnswers(initialAnswers, orderedQuestions));
     setMessage(null);
   };
 
@@ -159,25 +301,48 @@ export function PeerAssessmentForm({
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <h3>
-         You're reviewing {teammateName}
-      </h3>
-      {questions.map((question) => {
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ display: "grid", gap: 4 }}>
+          <h3 style={{ margin: 0 }}>{resolvedTitle}</h3>
+          <p className="muted" style={{ margin: 0 }}>
+            You&apos;re reviewing {teammateName}
+          </p>
+          {deadlineStatusMessage ? (
+            <p className={canSubmitWindow ? "muted" : "error"} style={{ margin: 0 }}>
+              {deadlineStatusMessage}
+            </p>
+          ) : null}
+        </div>
+        {remainingSeconds != null ? (
+          <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div>
+        ) : null}
+      </div>
+      {orderedQuestions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
+        const required = question.configs?.required === true;
+        const helperText = question.configs?.helperText;
 
         if (question.type === "multiple-choice") {
-          const options = question.configs?.options ?? [];
+          const options = Array.isArray(question.configs?.options) ? question.configs.options : [];
           return (
             <div key={question.id} style={questionContainerStyle}>
               <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+              {helperText ? (
+                <p className="muted" style={{ margin: 0 }}>{helperText}</p>
+              ) : null}
               {options.map((option) => (
-                <label key={option} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <label
+                  key={option}
+                  style={{ display: "inline-flex", gap: 8, alignItems: "center", justifyContent: "flex-start" }}
+                >
                   <input
                     type="radio"
                     name={`question-${question.id}`}
                     value={option}
                     checked={answer === option}
+                    required={required}
+                    style={radioInputStyle}
                     onChange={() =>
                       setAnswers((prev) => ({ ...prev, [key]: option }))
                     }
@@ -197,14 +362,22 @@ export function PeerAssessmentForm({
           return (
             <div key={question.id} style={questionContainerStyle}>
               <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+              {helperText ? (
+                <p className="muted" style={{ margin: 0 }}>{helperText}</p>
+              ) : null}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 {Array.from({ length: max - min + 1 }, (_, index) => min + index).map((value) => (
-                  <label key={value} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <label
+                    key={value}
+                    style={{ display: "inline-flex", gap: 6, alignItems: "center", justifyContent: "flex-start" }}
+                  >
                     <input
                       type="radio"
                       name={`question-${question.id}`}
                       value={value}
                       checked={answer === value}
+                      required={required}
+                      style={radioInputStyle}
                       onChange={() =>
                         setAnswers((prev) => ({ ...prev, [key]: value }))
                       }
@@ -242,6 +415,8 @@ export function PeerAssessmentForm({
                 max={config.max}
                 step={config.step}
                 value={sliderValue}
+                data-slider-value={sliderValue}
+                required={required}
                 onChange={(event) =>
                   setAnswers((prev) => ({
                     ...prev,
@@ -249,17 +424,24 @@ export function PeerAssessmentForm({
                   }))
                 }
               />
-              <p className="muted" style={{ margin: 0 }}>Selected: {sliderValue}</p>
             </div>
           );
         }
 
+        const textConfig = getTextConfig(question);
         return (
           <div key={question.id} style={questionContainerStyle}>
             <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+            {textConfig.helperText ? (
+              <p className="muted" style={{ margin: 0 }}>{textConfig.helperText}</p>
+            ) : null}
             <input
               type="text"
               value={typeof answer === "string" ? answer : String(answer ?? "")}
+              placeholder={textConfig.placeholder}
+              minLength={textConfig.minLength}
+              maxLength={textConfig.maxLength}
+              required={required}
               onChange={(event) =>
                 setAnswers((prev) => ({ ...prev, [key]: event.target.value }))
               }
@@ -272,7 +454,7 @@ export function PeerAssessmentForm({
         <Button type="button" onClick={handleDiscard}>
           {isEditMode ? "Reset changes" : "Discard changes"}
         </Button>
-        <Button type="submit" disabled={status === "loading"}>
+        <Button type="submit" disabled={status === "loading" || !canSubmit}>
           {status === "loading"
             ? "Saving..."
             : isEditMode

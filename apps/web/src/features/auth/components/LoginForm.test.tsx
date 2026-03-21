@@ -60,6 +60,26 @@ describe("LoginForm", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/admin"));
   });
 
+  it("redirects staff-only users to staff overview", async () => {
+    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    refresh.mockResolvedValue({ role: "STAFF", isStaff: true });
+    render(<LoginForm />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/staff/dashboard"));
+  });
+
+  it("redirects enterprise admins to enterprise overview", async () => {
+    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    refresh.mockResolvedValue({ role: "ENTERPRISE_ADMIN", isEnterpriseAdmin: true });
+    render(<LoginForm />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/enterprise"));
+  });
+
   it("shows an error message when login fails", async () => {
     loginMock.mockRejectedValue(new Error("bad creds"));
     render(<LoginForm />);

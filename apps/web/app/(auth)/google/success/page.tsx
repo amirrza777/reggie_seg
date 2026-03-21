@@ -10,7 +10,7 @@ function GoogleSuccessContent() {
 
   useEffect(() => {
     const token = searchParams.get("token");
-    const redirect = searchParams.get("redirect") || "/dashboard";
+    const redirect = searchParams.get("redirect") || "/app-home";
 
     if (token) {
       setAccessToken(token);
@@ -19,7 +19,7 @@ function GoogleSuccessContent() {
     // Full page reload ensures the cookie is included in the server request
     // so getCurrentUser() can authenticate the user server-side
     window.location.href = redirect;
-  }, []);
+  }, [searchParams]);
 
   return (
     <div style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>

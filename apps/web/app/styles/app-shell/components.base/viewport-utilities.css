@@ -1,0 +1,11 @@
+@media (max-height: 760px) {
+  .modal {
+    align-items: flex-start;
+    padding: 14px 12px;
+  }
+
+  .modal__dialog {
+    margin: 0 auto;
+    max-height: none;
+  }
+}

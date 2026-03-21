@@ -1,3 +1,4 @@
+export const SEED_ENTERPRISE_COUNT = 1;
 export const SEED_MODULE_COUNT = 6;
 export const SEED_STUDENT_COUNT = 180;
 export const SEED_STAFF_COUNT = 17;

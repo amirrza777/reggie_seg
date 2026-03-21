@@ -4,17 +4,20 @@ import type { Response } from "express";
 const serviceMocks = vi.hoisted(() => ({
   saveFeedbackReview: vi.fn(),
   getFeedbackReview: vi.fn(),
+  getFeedbackReviewStatuses: vi.fn(),
   getPeerAssessment: vi.fn(),
 }));
 
 vi.mock("./service.js", () => ({
   saveFeedbackReview: serviceMocks.saveFeedbackReview,
   getFeedbackReview: serviceMocks.getFeedbackReview,
+  getFeedbackReviewStatuses: serviceMocks.getFeedbackReviewStatuses,
   getPeerAssessment: serviceMocks.getPeerAssessment,
 }));
 
 import {
   createPeerFeedbackHandler,
+  getPeerFeedbackStatusesHandler,
   getPeerAssessmentHandler,
   getPeerFeedbackHandler,
 } from "./controller.js";
@@ -180,6 +183,31 @@ describe("peerFeedback controller", () => {
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
+
+    it("returns 409 when feedback submission is outside deadline window", async () => {
+      const req = {
+        params: { feedbackId: "4" },
+        body: {
+          agreements: {
+            "1": { selected: "Agree", score: 4 },
+          },
+          reviewerUserId: "6",
+          revieweeUserId: "9",
+        },
+      } as any;
+      const res = createMockResponse();
+      serviceMocks.saveFeedbackReview.mockRejectedValue({
+        code: "FEEDBACK_DEADLINE_PASSED",
+        message: "Peer feedback deadline has passed for your deadline profile",
+      });
+
+      await createPeerFeedbackHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(res.json).toHaveBeenCalledWith({
+        error: "Peer feedback deadline has passed for your deadline profile",
+      });
+    });
   });
 
   describe("getPeerFeedbackHandler", () => {
@@ -229,6 +257,44 @@ describe("peerFeedback controller", () => {
       expect(res.json).toHaveBeenCalledWith({ error: "Internal server error" });
       expect(consoleErrorSpy).toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
+    });
+  });
+
+  describe("getPeerFeedbackStatusesHandler", () => {
+    it("returns 400 when feedbackIds is not an array", async () => {
+      const req = { body: { feedbackIds: "7,8" } } as any;
+      const res = createMockResponse();
+
+      await getPeerFeedbackStatusesHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "feedbackIds must be an array" });
+    });
+
+    it("returns 400 when feedbackIds contains non-numeric values", async () => {
+      const req = { body: { feedbackIds: ["7", "abc"] } } as any;
+      const res = createMockResponse();
+
+      await getPeerFeedbackStatusesHandler(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "feedbackIds must contain only numeric IDs" });
+    });
+
+    it("returns statuses on success", async () => {
+      const req = { body: { feedbackIds: [7, "8"] } } as any;
+      const res = createMockResponse();
+      serviceMocks.getFeedbackReviewStatuses.mockResolvedValue({
+        "7": true,
+        "8": false,
+      });
+
+      await getPeerFeedbackStatusesHandler(req, res);
+
+      expect(serviceMocks.getFeedbackReviewStatuses).toHaveBeenCalledWith([7, 8]);
+      expect(res.json).toHaveBeenCalledWith({
+        statuses: { "7": true, "8": false },
+      });
     });
   });
 

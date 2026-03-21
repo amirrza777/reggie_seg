@@ -1,5 +1,8 @@
 import type { ParsedQs } from "qs";
 import type { Prisma } from "@prisma/client";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
+import { parseSearchQuery } from "../../shared/search.js";
+import { parsePaginationQueryParams, readSingleQueryString, type ParseResult } from "../../shared/searchParams.js";
 
 export type EnterpriseModuleSearchFilters = {
   query: string | null;
@@ -7,36 +10,37 @@ export type EnterpriseModuleSearchFilters = {
   pageSize: number;
 };
 
-type ParseResult = { ok: true; value: EnterpriseModuleSearchFilters } | { ok: false; error: string };
-
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 100;
-const MAX_QUERY_LENGTH = 120;
 
-export function parseEnterpriseModuleSearchFilters(query: ParsedQs): ParseResult {
-  const rawQuery = parseSingleString(query.q)?.trim() ?? "";
-  if (rawQuery.length > MAX_QUERY_LENGTH) {
-    return { ok: false, error: `q must be ${MAX_QUERY_LENGTH} characters or fewer` };
-  }
+export type EnterpriseModuleSearchCandidate = {
+  id: number;
+  name: string;
+};
 
-  const page = parseOptionalPositiveInt(query.page, DEFAULT_PAGE);
-  if (!page) return { ok: false, error: "page must be a positive integer" };
+/** Parses the enterprise module search filters. */
+export function parseEnterpriseModuleSearchFilters(query: ParsedQs): ParseResult<EnterpriseModuleSearchFilters> {
+  const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
+  if (!parsedQuery.ok) return parsedQuery;
 
-  const pageSize = parseOptionalPositiveInt(query.pageSize, DEFAULT_PAGE_SIZE);
-  if (!pageSize) return { ok: false, error: "pageSize must be a positive integer" };
-  if (pageSize > MAX_PAGE_SIZE) return { ok: false, error: `pageSize must be ${MAX_PAGE_SIZE} or less` };
+  const parsedPagination = parsePaginationQueryParams(
+    { page: query.page, pageSize: query.pageSize },
+    { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
+  );
+  if (!parsedPagination.ok) return parsedPagination;
 
   return {
     ok: true,
     value: {
-      query: rawQuery || null,
-      page,
-      pageSize,
+      query: parsedQuery.value,
+      page: parsedPagination.value.page,
+      pageSize: parsedPagination.value.pageSize,
     },
   };
 }
 
+/** Builds the enterprise module search where. */
 export function buildEnterpriseModuleSearchWhere(
   baseWhere: Prisma.ModuleWhereInput,
   filters: Pick<EnterpriseModuleSearchFilters, "query">,
@@ -45,8 +49,8 @@ export function buildEnterpriseModuleSearchWhere(
 
   const q = filters.query;
   const queryConditions: Prisma.ModuleWhereInput[] = [{ name: { contains: q } }];
-  const numericQuery = Number(q);
-  if (Number.isInteger(numericQuery) && numericQuery > 0) {
+  const numericQuery = parsePositiveIntegerSearchQuery(q);
+  if (numericQuery !== null) {
     queryConditions.push({ id: numericQuery });
   }
 
@@ -55,14 +59,11 @@ export function buildEnterpriseModuleSearchWhere(
   };
 }
 
-function parseSingleString(value: ParsedQs[string] | undefined): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
-
-function parseOptionalPositiveInt(value: ParsedQs[string] | undefined, fallback: number): number | null {
-  const raw = parseSingleString(value);
-  if (raw === undefined || raw.trim() === "") return fallback;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-  return parsed;
+/** Checks fuzzy match for a module search candidate. */
+export function matchesEnterpriseModuleSearchCandidate(candidate: EnterpriseModuleSearchCandidate, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: candidate.id,
+    sources: [candidate.name, `module ${candidate.id}`],
+  });
 }

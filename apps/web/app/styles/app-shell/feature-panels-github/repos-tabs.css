@@ -6,14 +6,24 @@
   box-shadow: var(--shadow-sm);
 }
 
+.github-project-repos-status,
+.github-project-repos-tabs,
+.github-repos-tab,
+.github-repos-tab__subpanel {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
 .github-project-repos-status--info {
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
   background: color-mix(in srgb, var(--accent) 10%, var(--surface));
 }
 
 .github-project-repos-status--error {
-  border-color: color-mix(in srgb, #ef4444 35%, var(--border));
-  background: color-mix(in srgb, #ef4444 8%, var(--surface));
+  border-color: color-mix(in srgb, var(--status-danger) 35%, var(--border));
+  background: color-mix(in srgb, var(--status-danger) 8%, var(--surface));
 }
 
 .github-project-repos-status__text {

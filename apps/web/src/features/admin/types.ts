@@ -1,11 +1,5 @@
 import type { UserRole } from "@/shared/auth/session";
 
-export type FeatureFlag = {
-  key: string;
-  label: string;
-  enabled: boolean;
-};
-
 export type AdminUser = {
   id: number;
   email: string;

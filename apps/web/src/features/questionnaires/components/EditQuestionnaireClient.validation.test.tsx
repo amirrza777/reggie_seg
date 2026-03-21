@@ -115,7 +115,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     expect(screen.getByText("Loading…")).toBeInTheDocument();
   });
 
-  it("renders preview fallback title and preview controls for all question types", async () => {
+  it("renders preview fallback title and slider labels for empty/mixed question labels", async () => {
     apiFetchMock.mockResolvedValueOnce({
       templateName: "",
       canEdit: true,
@@ -143,7 +143,28 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     expect(screen.getByText("Use slider")).toBeInTheDocument();
     expect(screen.getByText("Low")).toBeInTheDocument();
     expect(screen.getByText("High")).toBeInTheDocument();
+  });
 
+  it("supports preview interactions for text, multiple-choice, rating and slider questions", async () => {
+    apiFetchMock.mockResolvedValueOnce({
+      templateName: "",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        { id: 10, label: "", type: "text", configs: {} },
+        { id: 11, label: "Pick one", type: "multiple-choice", configs: { options: ["A", "B"] } },
+        { id: 12, label: "Rate", type: "rating", configs: { min: 1, max: 5 } },
+        {
+          id: 13,
+          label: "Slide",
+          type: "slider",
+          configs: { min: 0, max: 10, step: 1, left: "Low", right: "High", helperText: "Use slider" },
+        },
+      ],
+    });
+    render(<EditQuestionnaireClient />);
+    await screen.findByRole("button", { name: "Student preview" });
+    fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
     const textBoxes = screen.getAllByRole("textbox");
     fireEvent.change(textBoxes[0], { target: { value: "Typed answer" } });
 
@@ -233,7 +254,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     expect(apiFetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("supports undefined multiple-choice options in preview/editor and add option fallback", async () => {
+  it("supports undefined multiple-choice options in preview mode", async () => {
     apiFetchMock
       .mockResolvedValueOnce({
         templateName: "MC undefined options",
@@ -256,7 +277,27 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  });
 
+  it("adds fallback multiple-choice options and persists them", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "MC undefined options",
+        canEdit: true,
+        isPublic: true,
+        questions: [
+          {
+            id: 100,
+            label: "MC with undefined options",
+            type: "multiple-choice",
+            configs: {},
+          },
+        ],
+      })
+      .mockResolvedValueOnce({});
+    render(<EditQuestionnaireClient />);
+    await screen.findByDisplayValue("MC undefined options");
+    fireEvent.click(screen.getByRole("button", { name: "Student preview" }));
     fireEvent.click(screen.getByRole("button", { name: "Back to editor" }));
     fireEvent.click(screen.getByRole("button", { name: "Add option" }));
     fireEvent.click(screen.getByRole("button", { name: "Add option" }));
@@ -343,7 +384,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     expect(apiFetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("duplicates in use mode, applies fallback fields, and saves as new template", async () => {
+  it("duplicates in use mode and applies fallback fields", async () => {
     searchParamsState.value = "mode=use";
     apiFetchMock
       .mockResolvedValueOnce({
@@ -357,7 +398,20 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     render(<EditQuestionnaireClient />);
 
     expect(await screen.findByDisplayValue(/\(Copy\)$/)).toBeInTheDocument();
+  });
 
+  it("saves duplicated use-mode template as a new questionnaire", async () => {
+    searchParamsState.value = "mode=use";
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: 123,
+        canEdit: false,
+        isPublic: true,
+        questions: [{ id: 70, label: null, type: "text", configs: undefined }],
+      })
+      .mockResolvedValueOnce({ ok: true, templateID: 701 });
+    render(<EditQuestionnaireClient />);
+    expect(await screen.findByDisplayValue(/\(Copy\)$/)).toBeInTheDocument();
     const questionInput = screen.getByPlaceholderText("Enter your question");
     fireEvent.change(questionInput, { target: { value: "Use-mode copy question" } });
 

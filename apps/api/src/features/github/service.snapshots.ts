@@ -9,6 +9,7 @@ import {
   updateProjectGithubRepositorySyncSettings,
 } from "./repo.js";
 
+/** Returns the project GitHub repository snapshots. */
 export async function listProjectGithubRepositorySnapshots(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -23,6 +24,7 @@ export async function listProjectGithubRepositorySnapshots(userId: number, linkI
   return listGithubSnapshotsByProjectLinkId(link.id);
 }
 
+/** Returns the project GitHub repository snapshot. */
 export async function getProjectGithubRepositorySnapshot(userId: number, snapshotId: number) {
   const snapshot = await findGithubSnapshotById(snapshotId);
   if (!snapshot) {
@@ -37,6 +39,7 @@ export async function getProjectGithubRepositorySnapshot(userId: number, snapsho
   return snapshot;
 }
 
+/** Returns the latest project GitHub repository snapshot. */
 export async function getLatestProjectGithubRepositorySnapshot(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -56,6 +59,7 @@ export async function getLatestProjectGithubRepositorySnapshot(userId: number, l
   return snapshot;
 }
 
+/** Returns the project GitHub mapping coverage. */
 export async function getProjectGithubMappingCoverage(userId: number, linkId: number) {
   const link = await findProjectGithubRepositoryLinkById(linkId);
   if (!link) {
@@ -68,7 +72,25 @@ export async function getProjectGithubMappingCoverage(userId: number, linkId: nu
   }
 
   const latest = await findLatestGithubSnapshotCoverageByProjectLinkId(link.id);
-  if (!latest || !latest.repoStats) {
+  const repoStats = latest?.repoStats as
+    | Array<{
+        totalContributors: number;
+        matchedContributors: number;
+        unmatchedContributors: number;
+        totalCommits: number;
+        unmatchedCommits: number;
+      }>
+    | {
+        totalContributors: number;
+        matchedContributors: number;
+        unmatchedContributors: number;
+        totalCommits: number;
+        unmatchedCommits: number;
+      }
+    | null
+    | undefined;
+  const repoStat = Array.isArray(repoStats) ? (repoStats[0] ?? null) : (repoStats ?? null);
+  if (!latest || !repoStat) {
     return {
       linkId: link.id,
       snapshotId: null,
@@ -82,11 +104,11 @@ export async function getProjectGithubMappingCoverage(userId: number, linkId: nu
     snapshotId: latest.id,
     analysedAt: latest.analysedAt,
     coverage: {
-      totalContributors: latest.repoStats.totalContributors,
-      matchedContributors: latest.repoStats.matchedContributors,
-      unmatchedContributors: latest.repoStats.unmatchedContributors,
-      totalCommits: latest.repoStats.totalCommits,
-      unmatchedCommits: latest.repoStats.unmatchedCommits,
+      totalContributors: repoStat.totalContributors,
+      matchedContributors: repoStat.matchedContributors,
+      unmatchedContributors: repoStat.unmatchedContributors,
+      totalCommits: repoStat.totalCommits,
+      unmatchedCommits: repoStat.unmatchedCommits,
     },
   };
 }
@@ -96,6 +118,7 @@ type UpdateProjectGithubSyncSettingsInput = {
   syncIntervalMinutes: number;
 };
 
+/** Updates the project GitHub sync settings. */
 export async function updateProjectGithubSyncSettings(
   userId: number,
   linkId: number,

@@ -12,19 +12,58 @@ function setCookie(value: string | null) {
   document.cookie = `${ACCESS_COOKIE_KEY}=${value}; path=/; max-age=${ACCESS_MAX_AGE}; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
+function readCookie(name: string): string | null {
+  if (typeof document === "undefined") return null;
+  const prefix = `${name}=`;
+  const cookiePart = document.cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix));
+
+  if (!cookiePart) return null;
+  const rawValue = cookiePart.slice(prefix.length);
+  return rawValue ? decodeURIComponent(rawValue) : null;
+}
+
+function readStoredAccessToken(): string | null {
+  const storage = window.localStorage as { getItem?: (key: string) => string | null };
+  if (typeof storage?.getItem !== "function") return null;
+  return storage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function writeStoredAccessToken(token: string) {
+  const storage = window.localStorage as { setItem?: (key: string, value: string) => void };
+  if (typeof storage?.setItem !== "function") return;
+  storage.setItem(ACCESS_TOKEN_KEY, token);
+}
+
+function clearStoredAccessToken() {
+  const storage = window.localStorage as { removeItem?: (key: string) => void };
+  if (typeof storage?.removeItem !== "function") return;
+  storage.removeItem(ACCESS_TOKEN_KEY);
+}
+
 export function getAccessToken() {
   if (typeof window === "undefined") return null;
-  return window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  const cookieToken = readCookie(ACCESS_COOKIE_KEY)?.trim() || null;
+  if (cookieToken) {
+    if (readStoredAccessToken() !== cookieToken) {
+      writeStoredAccessToken(cookieToken);
+    }
+    return cookieToken;
+  }
+
+  return readStoredAccessToken();
 }
 
 export function setAccessToken(token: string) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  writeStoredAccessToken(token);
   setCookie(token);
 }
 
 export function clearAccessToken() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+  clearStoredAccessToken();
   setCookie(null);
 }

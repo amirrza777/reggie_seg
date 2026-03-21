@@ -4,9 +4,11 @@ import { GithubProjectReposClient } from "@/features/github/components/GithubPro
 import { getStaffProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Placeholder } from "@/shared/ui/Placeholder";
+import { SearchField } from "@/shared/ui/SearchField";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffReposPageProps = {
-  searchParams: Promise<{ projectId?: string | string[] }>;
+  searchParams: Promise<{ projectId?: string | string[]; q?: string | string[] }>;
 };
 
 export default async function StaffReposPage({ searchParams }: StaffReposPageProps) {
@@ -19,17 +21,21 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
   const requestedProjectId = Array.isArray(resolvedSearchParams.projectId)
     ? resolvedSearchParams.projectId[0]
     : resolvedSearchParams.projectId;
+  const rawProjectQuery = Array.isArray(resolvedSearchParams.q) ? resolvedSearchParams.q[0] : resolvedSearchParams.q;
+  const hasProjectQuery = typeof rawProjectQuery === "string" && rawProjectQuery.trim().length > 0;
 
   let projects: Awaited<ReturnType<typeof getStaffProjects>> = [];
   let projectLoadError: string | null = null;
   try {
-    projects = await getStaffProjects(user.id);
+    projects = await getStaffProjects(user.id, { query: rawProjectQuery });
   } catch (error) {
     projectLoadError = error instanceof Error ? error.message : "Failed to load your projects.";
   }
 
+  const visibleProjects = projects;
+
   const selectedProject =
-    projects.find((project) => String(project.id) === String(requestedProjectId)) ?? projects[0] ?? null;
+    visibleProjects.find((project) => String(project.id) === String(requestedProjectId)) ?? visibleProjects[0] ?? null;
   const selectedProjectId = selectedProject ? String(selectedProject.id) : null;
 
   return (
@@ -40,23 +46,55 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
       />
 
       {projectLoadError ? <p className="muted">{projectLoadError}</p> : null}
+      {!projectLoadError ? (
+        <form method="get" action="/staff/repos" className="staff-projects__search" role="search" aria-label="Search projects for repository insights">
+          <label className="staff-projects__search-label" htmlFor="staff-repos-project-search">
+            Search projects
+          </label>
+          <div className="staff-projects__search-controls">
+            <SearchField
+              id="staff-repos-project-search"
+              name="q"
+              className="staff-projects__search-input"
+              defaultValue={rawProjectQuery ?? ""}
+              placeholder="Search by project or module name"
+            />
+            {selectedProjectId ? <input type="hidden" name="projectId" value={selectedProjectId} /> : null}
+            <button type="submit" className="staff-projects__badge staff-projects__search-btn">
+              Search
+            </button>
+            {hasProjectQuery ? (
+              <Link href="/staff/repos" className="staff-projects__badge staff-projects__search-btn">
+                Clear
+              </Link>
+            ) : null}
+          </div>
+        </form>
+      ) : null}
 
       {!selectedProjectId && !projectLoadError ? (
-        <p className="muted">No projects are available for your account yet.</p>
+        <p className="muted">
+          {hasProjectQuery
+            ? `No projects match "${rawProjectQuery}".`
+            : "No projects are available for your account yet."}
+        </p>
       ) : null}
 
       {selectedProjectId ? (
         <div className="stack stack--loose">
-          {projects.length > 1 ? (
+          {visibleProjects.length > 1 ? (
             <nav className="pill-nav" aria-label="Select project for repository insights">
-              {projects.map((project) => {
+              {visibleProjects.map((project) => {
                 const projectId = String(project.id);
                 const isActive = projectId === selectedProjectId;
+                const href = hasProjectQuery
+                  ? `/staff/repos?projectId=${encodeURIComponent(projectId)}&q=${encodeURIComponent(rawProjectQuery ?? "")}`
+                  : `/staff/repos?projectId=${encodeURIComponent(projectId)}`;
 
                 return (
                   <Link
                     key={projectId}
-                    href={`/staff/repos?projectId=${encodeURIComponent(projectId)}`}
+                    href={href}
                     className={`pill-nav__link${isActive ? " pill-nav__link--active" : ""}`}
                     aria-current={isActive ? "page" : undefined}
                   >

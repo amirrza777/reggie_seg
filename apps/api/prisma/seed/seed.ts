@@ -1,5 +1,6 @@
 import argon2 from "argon2";
 import {
+  buildUsersByRole,
   seedAdminTeamAllocation,
   seedGithubE2EUsers,
   seedModuleLeads,
@@ -7,35 +8,59 @@ import {
   seedTeamAllocations,
 } from "./allocation";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
-import { assertPrismaClientModels, getDefaultEnterpriseId, seedAdminUser } from "./core";
+import { SEED_USER_PASSWORD } from "./config";
+import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { prisma } from "./prismaClient";
-
-const seedPassword = process.env.SEED_USER_PASSWORD || "password123";
+import type { SeedContext, SeedEnterprise } from "./types";
 
 async function main() {
   assertPrismaClientModels();
 
-  const seedPasswordHash = await argon2.hash(seedPassword);
-  const enterpriseId = await getDefaultEnterpriseId();
+  const seedPasswordHash = await argon2.hash(SEED_USER_PASSWORD);
+  const enterprises = await getSeedEnterprises();
 
-  await seedAdminUser(enterpriseId);
-  const users = await seedUsers(enterpriseId, seedPasswordHash);
-  const modules = await seedModules(enterpriseId);
-  const templates = await seedQuestionnaireTemplates();
+  for (const enterprise of enterprises) {
+    const context = await buildSeedContext(enterprise, seedPasswordHash);
+    await runSeedSteps(context);
+  }
+
+  console.log(`Seed users ready across ${enterprises.length} enterprise(s). Default password: ${seedPassword}`);
+}
+
+async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
+  await seedAdminUser(enterprise.id);
+  const users = await seedUsers(enterprise.id, passwordHash);
+  const usersByRole = buildUsersByRole(users);
+  const modules = await seedModules(enterprise.id);
+  const templateOwner = usersByRole.adminOrStaff[0];
+  const templates = await seedQuestionnaireTemplates(templateOwner?.id);
   const projects = await seedProjects(modules, templates);
-  const teams = await seedTeams(enterpriseId, projects);
+  const teams = await seedTeams(enterprise.id, projects);
 
-  await seedModuleLeads(users, modules);
-  await seedStudentEnrollments(enterpriseId, users, modules);
-  await seedTeamAllocations(users, teams);
-  await seedAdminTeamAllocation(enterpriseId); // TODO: only for testing Trello integration, remove later
-  await seedGithubE2EUsers(enterpriseId, projects, teams);
-  await seedProjectDeadlines(projects);
-  await seedPeerAssessments(projects, teams, templates);
-  await seedFeatureFlags(enterpriseId);
+  return {
+    enterprise,
+    passwordHash,
+    users,
+    usersByRole,
+    modules,
+    templates,
+    projects,
+    teams,
+  };
+}
 
-  console.log(`Seed users ready. Default password: ${seedPassword}`);
+const seedPassword = SEED_USER_PASSWORD;
+
+async function runSeedSteps(context: SeedContext) {
+  await seedModuleLeads(context.usersByRole.adminOrStaff, context.modules);
+  await seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules);
+  await seedTeamAllocations(context.usersByRole.students, context.teams);
+  await seedAdminTeamAllocation(context.enterprise.id); // TODO: only for testing Trello integration, remove later
+  await seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams);
+  await seedProjectDeadlines(context.projects);
+  await seedPeerAssessments(context.projects, context.teams, context.templates);
+  await seedFeatureFlags(context.enterprise.id);
 }
 
 main()
@@ -45,5 +70,5 @@ main()
   .catch(async (err) => {
     console.error(err);
     await prisma.$disconnect();
-    throw err;
+    process.exitCode = 1;
   });

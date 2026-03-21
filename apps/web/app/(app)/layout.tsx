@@ -8,7 +8,9 @@ import { UserMenu } from "@/features/auth/components/UserMenu";
 import { listModules } from "@/features/modules/api/client";
 import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
+
 export const dynamic = "force-dynamic";
 
 type NavChild = {
@@ -25,90 +27,137 @@ type NavLink = {
   children?: NavChild[];
 };
 
+type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
+
+const moduleScopedStaffLinks = new Set([
+  "/staff/dashboard",
+  "/staff/modules",
+  "/staff/projects",
+  "/staff/analytics",
+  "/staff/questionnaires",
+  "/staff/archive",
+]);
+
+const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
+
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const [user, flagMap] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
   if (!user) redirect("/login");
-  if (user.suspended === true || user.active === false) {
-    return (
-      <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
-        <div className="card" style={{ maxWidth: 520, textAlign: "center", gap: 12 }}>
-          <h2 style={{ margin: 0 }}>Account suspended</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            Your account has been suspended by an administrator. Please contact support or your admin to restore access.
-          </p>
-          <div style={{ display: "flex", justifyContent: "center" }}>
-            <a href="/login" className="btn btn--primary">
-              Return to login
-            </a>
-          </div>
+  if (user.suspended === true || user.active === false) return renderSuspendedAccountView();
+
+  const [modulesResult, projectsResult] = await Promise.allSettled([
+    listModules(user.id, { compact: true }),
+    getUserProjects(user.id),
+  ]);
+
+  const navData = buildLayoutNavigationData({
+    user,
+    flagMap,
+    modulesResult,
+    projectsResult,
+  });
+
+  return (
+    <AppShell
+      sidebar={<Sidebar title="Workspace sections" links={navData.accessibleLinks} mode="desktop" />}
+      topbar={
+        <Topbar
+          leading={<Sidebar title="Navigate" links={navData.accessibleLinks} mode="mobile" mobileSpaces={navData.spaceLinks} />}
+          title="Team Feedback"
+          titleHref={navData.defaultSpaceHref}
+          actions={<UserMenu />}
+        />
+      }
+      ribbon={navData.spaceLinks.length > 0 ? <SpaceSwitcher links={navData.spaceLinks} /> : null}
+    >
+      <div className="workspace-shell">{children}</div>
+    </AppShell>
+  );
+}
+
+function renderSuspendedAccountView() {
+  return (
+    <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
+      <div className="card" style={{ maxWidth: 520, textAlign: "center", gap: 12 }}>
+        <h2 style={{ margin: 0 }}>Account suspended</h2>
+        <p className="muted" style={{ margin: 0 }}>
+          Your account has been suspended by an administrator. Please contact support or your admin to restore access.
+        </p>
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <a href="/login" className="btn btn--primary">
+            Return to login
+          </a>
         </div>
-      </main>
-    );
-  }
+      </div>
+    </main>
+  );
+}
 
-  let moduleChildren: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
-  try {
-    const modules = await listModules(user.id);
-    if (modules.length > 0) {
-      moduleChildren = [
-        { href: "/dashboard", label: "Overview" },
-        ...modules.map((module) => ({
-          href: `/modules/${encodeURIComponent(module.id)}`,
-          label: module.title,
-        })),
-      ];
-    }
-  } catch {
-    // Keep base overview link if modules cannot be loaded.
-  }
+function buildLayoutNavigationData(params: {
+  user: AuthenticatedUser;
+  flagMap: Record<string, boolean>;
+  modulesResult: PromiseSettledResult<Awaited<ReturnType<typeof listModules>>>;
+  projectsResult: PromiseSettledResult<Awaited<ReturnType<typeof getUserProjects>>>;
+}) {
+  const moduleChildren = buildModuleChildren(params.modulesResult);
+  const projectChildren = buildProjectChildren(params.projectsResult);
+  const navLinks = buildBaseNavLinks(moduleChildren, projectChildren);
+  const accessibleLinks = filterAccessibleNavLinks(navLinks, params.user, params.flagMap);
+  const spaceLinks = buildSpaceLinks(params.user);
+  const defaultSpaceHref = getDefaultSpaceOverviewPath(params.user);
 
-  let projectChildren: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
-  try {
-    const projects = await getUserProjects(user.id);
-    projectChildren = [
-      { href: "/projects", label: "All projects" },
-      ...projects.map((project) => ({
-        href: `/projects/${project.id}`,
-        label: project.name,
-      })),
-    ];
-  } catch {
-    projectChildren = [{ href: "/projects", label: "All projects" }];
-  }
+  return { accessibleLinks, spaceLinks, defaultSpaceHref };
+}
 
-  const navLinks: NavLink[] = [
-    // Workspace
+function buildModuleChildren(modulesResult: PromiseSettledResult<Awaited<ReturnType<typeof listModules>>>) {
+  const base: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
+  if (modulesResult.status !== "fulfilled" || modulesResult.value.length === 0) return base;
+
+  return [
+    ...base,
+    ...modulesResult.value.map((module) => ({
+      href: `/modules/${encodeURIComponent(module.id)}`,
+      label: module.title,
+    })),
+  ];
+}
+
+function buildProjectChildren(projectsResult: PromiseSettledResult<Awaited<ReturnType<typeof getUserProjects>>>) {
+  const base: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
+  if (projectsResult.status !== "fulfilled") return base;
+
+  return [
+    ...base,
+    ...projectsResult.value.map((project) => ({
+      href: `/projects/${project.id}`,
+      label: project.name,
+    })),
+  ];
+}
+
+function buildBaseNavLinks(moduleChildren: NonNullable<NavLink["children"]>, projectChildren: NonNullable<NavLink["children"]>): NavLink[] {
+  return [
     { href: "/dashboard", label: "Modules", space: "workspace", children: moduleChildren },
     { href: "/projects", label: "Projects", space: "workspace", children: projectChildren },
     { href: "/calendar", label: "Calendar", space: "workspace" },
-
-    // Staff
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/modules", label: "My Modules", space: "staff" },
     { href: "/staff/projects", label: "Projects", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
     { href: "/staff/archive", label: "Archive", space: "staff" },
-
-    // Admin
     { href: "/admin", label: "Admin Home", space: "admin" },
   ];
+}
 
+function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser, flagMap: Record<string, boolean>) {
   const limitedStaffUser = isModuleScopedStaff(user);
-  const moduleScopedStaffLinks = new Set([
-    "/staff/dashboard",
-    "/staff/modules",
-    "/staff/projects",
-    "/staff/analytics",
-    "/staff/questionnaires",
-    "/staff/archive",
-  ]);
 
-  const accessibleLinks = navLinks
+  return navLinks
     .filter((link) => {
       if (link.flag && flagMap[link.flag] === false) return false;
       if (link.space === "staff") {
-        if (!(user?.isStaff || isAdmin(user))) return false;
+        if (!(user.isStaff || isAdmin(user))) return false;
         if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;
       }
       if (link.space === "admin" && !isAdmin(user)) return false;
@@ -118,21 +167,24 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       ...link,
       children: link.children?.filter((child) => !child.flag || flagMap[child.flag] !== false),
     }));
+}
 
-  const workspaceAliases = ["/dashboard", "/modules", "/projects", "/calendar"];
+function buildSpaceLinks(user: AuthenticatedUser): SpaceLink[] {
+  const links: SpaceLink[] = [];
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
-  const spaceLinks: SpaceLink[] = [{ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases }];
-  if (user?.isStaff || isAdmin(user)) spaceLinks.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
-  if (isEnterpriseAdmin(user) || isAdmin(user)) spaceLinks.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
-  if (isAdmin(user)) spaceLinks.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
+  if (!isStaffOnlyAccount) {
+    links.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+  }
+  if (user.isStaff || isAdmin(user)) {
+    links.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
+  }
+  if (isEnterpriseAdmin(user) || isAdmin(user)) {
+    links.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
+  }
+  if (isAdmin(user)) {
+    links.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
+  }
 
-  return (
-    <AppShell
-      sidebar={<Sidebar title="Workspace" links={accessibleLinks} />}
-      topbar={<Topbar title="Team Feedback" titleHref="/dashboard" actions={<UserMenu />} />}
-      ribbon={spaceLinks.length > 0 ? <SpaceSwitcher links={spaceLinks} /> : null}
-    >
-      <div className="workspace-shell">{children}</div>
-    </AppShell>
-  );
+  return links;
 }

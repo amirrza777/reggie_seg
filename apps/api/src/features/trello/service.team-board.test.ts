@@ -130,6 +130,24 @@ describe("TrelloService team and board operations", () => {
     expect(result).toEqual([{ id: "board1" }]);
   });
 
+  it("applies shared fuzzy matching to board search", async () => {
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      trelloToken: "token123",
+    });
+
+    vi.spyOn(TrelloService, "getUserBoards").mockResolvedValue([
+      { id: "b1", name: "Example" },
+      { id: "b2", name: "Data Structures" },
+      { id: "b3", name: "Database Systems" },
+    ] as any);
+
+    const droppedLetterMatches = await TrelloService.fetchMyBoards(1, { query: "eampl" });
+    expect(droppedLetterMatches.map((board: any) => board.name)).toEqual(["Example"]);
+
+    const shortPrefixMatches = await TrelloService.fetchMyBoards(1, { query: "daa" });
+    expect(shortPrefixMatches.map((board: any) => board.name)).toEqual(["Data Structures", "Database Systems"]);
+  });
+
   it("throws if user not connected", async () => {
     (TrelloRepo.getUserById as any).mockResolvedValue({
       trelloToken: null,

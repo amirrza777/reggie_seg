@@ -114,7 +114,7 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   return (
     <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title" onClick={onClose}>
       <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
-        <div className="modal__header ui-modal-header">
+        <div className="modal__header ui-modal-header audit-modal__header">
           <div className="ui-stack-sm">
             <h3 id="audit-log-title">
               Audit log
@@ -123,14 +123,14 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
               Login and logout events filtered by time range.
             </p>
           </div>
-          <div className="ui-row ui-row--wrap">
+          <div className="audit-modal__header-actions">
             <Button type="button" variant="ghost" onClick={downloadCsv} disabled={!logs.length}>
               Download CSV
             </Button>
-            <Button type="button" variant="ghost" className="modal__close-btn" aria-label="Close" onClick={onClose}>
-              ×
-            </Button>
           </div>
+          <Button type="button" variant="ghost" className="modal__close-btn audit-modal__close-btn" aria-label="Close" onClick={onClose}>
+            ×
+          </Button>
         </div>
 
         <div className="modal__body audit-modal__body">

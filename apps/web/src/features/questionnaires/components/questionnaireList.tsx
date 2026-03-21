@@ -45,18 +45,6 @@ export function QuestionnaireList() {
     };
   }, []);
 
-  useEffect(() => {
-    const workspace = document.querySelector(".app-shell__workspace") as HTMLElement | null;
-    if (!workspace) return;
-
-    const previousOverflow = workspace.style.overflow;
-    workspace.style.overflow = "hidden";
-
-    return () => {
-      workspace.style.overflow = previousOverflow;
-    };
-  }, []);
-
   if (loading) return <p className="ui-note ui-note--muted">Loading questionnaires...</p>;
   if (error) return <p className="ui-note ui-note--muted">{error}</p>;
 

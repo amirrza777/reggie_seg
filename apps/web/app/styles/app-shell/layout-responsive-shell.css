@@ -1,57 +1,112 @@
 @media (max-width: 1024px) {
-  .app-shell__body {
-    padding: 0 10px 10px;
+  .app-shell__topbar {
+    padding-inline: clamp(12px, 4vw, 18px);
   }
 
-  .app-shell__main {
-    grid-template-columns: 1fr;
-    width: 100%;
-    padding: 0;
-    border-radius: 0;
-    box-shadow: none;
-    min-height: auto;
-    gap: 10px;
+  .app-shell__body {
+    padding: 0 10px 10px;
+    min-height: 0;
+    overflow: hidden;
   }
 
   .app-shell__sidebar {
-    position: static;
-    border-right: none;
-    padding: 12px 10px;
+    padding: 10px 12px;
     margin: 0;
+    border-radius: 10px;
+    height: 100%;
   }
 
   .app-shell__sidebar-inner {
-    position: static;
+    height: auto;
+    min-height: 100%;
   }
 
   .sidebar {
-    padding: 4px 0 8px;
-    gap: 12px;
+    padding: 0;
+    gap: 10px;
+    height: auto;
+    min-height: 100%;
   }
 
   .app-shell__workspace {
     padding: 10px;
-  }
-
-  .sidebar__nav,
-  .sidebar__footer {
-    display: block;
-  }
-
-  .sidebar__mobile {
-    display: none;
+    min-height: 0;
   }
 }
 
 @media (max-width: 640px) {
-  .topbar {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+  .app-shell__body {
+    padding: 0 12px 12px;
+  }
+}
+
+@media (max-width: 860px) {
+  .topbar__leading {
+    display: inline-flex;
+  }
+
+  .topbar__main {
+    width: auto;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .topbar__title {
+    font-size: clamp(1.2rem, 4.8vw, 1.45rem);
+  }
+
+  .app-shell__ribbon,
+  .app-shell__sidebar {
+    display: none;
+  }
+
+  .app-shell__main {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .app-shell__workspace {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    padding-top: 8px;
+  }
+
+  .sidebar__mobile {
+    display: block;
+    width: 100%;
+  }
+
+  .sidebar__nav,
+  .sidebar__footer {
+    display: none;
+  }
+}
+
+@media (min-width: 861px) {
+  .sidebar__mobile {
+    display: none;
+  }
+
+  .sidebar__nav {
+    display: grid;
+  }
+
+  .sidebar__footer {
+    display: block;
+  }
+}
+
+@media (max-height: 560px) and (max-width: 1024px) and (orientation: landscape) {
+  .app-shell__topbar {
+    padding-block: 8px;
   }
 
   .app-shell__body {
-    padding: 0 12px 18px;
+    padding-bottom: 10px;
+  }
+
+  .app-shell__sidebar {
+    padding: 8px 10px;
   }
 }

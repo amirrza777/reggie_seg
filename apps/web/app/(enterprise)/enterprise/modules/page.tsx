@@ -1,6 +1,10 @@
 import { EnterpriseModuleManager } from "@/features/enterprise/components/EnterpriseModuleManager";
+import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
 
-export default function EnterpriseModulesPage() {
+export default async function EnterpriseModulesPage() {
+  const user = await getCurrentUser();
+  const canCreateModule = user ? isEnterpriseAdmin(user) || isAdmin(user) : false;
+
   return (
     <div className="ui-page enterprise-modules-page">
       <header className="ui-page__header">
@@ -8,7 +12,7 @@ export default function EnterpriseModulesPage() {
         <p className="ui-page__description">Create and manage modules for this enterprise.</p>
       </header>
 
-      <EnterpriseModuleManager />
+      <EnterpriseModuleManager canCreateModule={canCreateModule} />
     </div>
   );
 }

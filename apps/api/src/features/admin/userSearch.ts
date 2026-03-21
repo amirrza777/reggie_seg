@@ -1,5 +1,12 @@
 import type { ParsedQs } from "qs";
 import type { Prisma } from "@prisma/client";
+import {
+  matchesFuzzySearchCandidate,
+  normalizeSearchText,
+  parsePositiveIntegerSearchQuery,
+} from "../../shared/fuzzySearch.js";
+import { parseSearchQuery } from "../../shared/search.js";
+import { parsePaginationQueryParams, readSingleQueryString, type ParseResult } from "../../shared/searchParams.js";
 
 type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
 
@@ -11,25 +18,30 @@ export type AdminUserSearchFilters = {
   pageSize: number;
 };
 
-type ParseResult = { ok: true; value: AdminUserSearchFilters } | { ok: false; error: string };
+export type AdminUserSearchCandidate = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  active: boolean;
+};
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 100;
-const MAX_QUERY_LENGTH = 120;
 
-export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult {
-  const rawQuery = parseSingleString(query.q)?.trim() ?? "";
-  if (rawQuery.length > MAX_QUERY_LENGTH) {
-    return { ok: false, error: `q must be ${MAX_QUERY_LENGTH} characters or fewer` };
-  }
+/** Parses the admin user search filters. */
+export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult<AdminUserSearchFilters> {
+  const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
+  if (!parsedQuery.ok) return parsedQuery;
 
-  const rawRole = parseSingleString(query.role)?.trim().toUpperCase();
+  const rawRole = readSingleQueryString(query.role)?.trim().toUpperCase();
   if (rawRole && !isUserRole(rawRole)) {
     return { ok: false, error: "Invalid role filter" };
   }
 
-  const rawActive = parseSingleString(query.active)?.trim().toLowerCase();
+  const rawActive = readSingleQueryString(query.active)?.trim().toLowerCase();
   let active: boolean | null = null;
   if (rawActive !== undefined) {
     if (rawActive === "true" || rawActive === "1") active = true;
@@ -37,25 +49,25 @@ export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult {
     else return { ok: false, error: "active must be true or false" };
   }
 
-  const page = parseOptionalPositiveInt(query.page, DEFAULT_PAGE);
-  if (!page) return { ok: false, error: "page must be a positive integer" };
-
-  const pageSize = parseOptionalPositiveInt(query.pageSize, DEFAULT_PAGE_SIZE);
-  if (!pageSize) return { ok: false, error: "pageSize must be a positive integer" };
-  if (pageSize > MAX_PAGE_SIZE) return { ok: false, error: `pageSize must be ${MAX_PAGE_SIZE} or less` };
+  const parsedPagination = parsePaginationQueryParams(
+    { page: query.page, pageSize: query.pageSize },
+    { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
+  );
+  if (!parsedPagination.ok) return parsedPagination;
 
   return {
     ok: true,
     value: {
-      query: rawQuery || null,
-      role: rawRole ?? null,
+      query: parsedQuery.value,
+      role: rawRole && isUserRole(rawRole) ? rawRole : null,
       active,
-      page,
-      pageSize,
+      page: parsedPagination.value.page,
+      pageSize: parsedPagination.value.pageSize,
     },
   };
 }
 
+/** Builds the admin user search where. */
 export function buildAdminUserSearchWhere(
   enterpriseId: string,
   filters: Pick<AdminUserSearchFilters, "query" | "role" | "active">,
@@ -84,26 +96,49 @@ export function buildAdminUserSearchWhere(
     const hintedActive = parseActiveFromQuery(normalizedQuery);
     if (hintedActive !== null) queryConditions.push({ active: hintedActive });
 
-    const numericQuery = Number(q);
-    if (Number.isInteger(numericQuery) && numericQuery > 0) {
+    const numericQuery = parsePositiveIntegerSearchQuery(q);
+    if (numericQuery !== null) {
       queryConditions.push({ id: numericQuery });
     }
     clauses.push({ OR: queryConditions });
   }
 
-  return clauses.length === 1 ? clauses[0] : { AND: clauses };
+  return clauses.length === 1 ? clauses[0]! : { AND: clauses };
 }
 
-function parseSingleString(value: ParsedQs[string] | undefined): string | undefined {
-  return typeof value === "string" ? value : undefined;
-}
+/** Checks fuzzy match for an admin user search candidate. */
+export function matchesAdminUserSearchCandidate(candidate: AdminUserSearchCandidate, query: string): boolean {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return true;
 
-function parseOptionalPositiveInt(value: ParsedQs[string] | undefined, fallback: number): number | null {
-  const raw = parseSingleString(value);
-  if (raw === undefined || raw.trim() === "") return fallback;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-  return parsed;
+  const numericQuery = parsePositiveIntegerSearchQuery(trimmedQuery);
+  if (numericQuery !== null && candidate.id === numericQuery) {
+    return true;
+  }
+
+  const normalizedQuery = normalizeSearchText(trimmedQuery);
+  const hintedRole = parseRoleFromQuery(normalizedQuery);
+  if (hintedRole && candidate.role === hintedRole) {
+    return true;
+  }
+
+  const hintedActive = parseActiveFromQuery(normalizedQuery);
+  if (hintedActive !== null && candidate.active === hintedActive) {
+    return true;
+  }
+
+  return matchesFuzzySearchCandidate({
+    query: trimmedQuery,
+    sources: [
+      candidate.email,
+      candidate.firstName,
+      candidate.lastName,
+      `${candidate.firstName} ${candidate.lastName}`,
+      candidate.role,
+      candidate.active ? "active enabled" : "inactive suspended disabled",
+      `user ${candidate.id}`,
+    ],
+  });
 }
 
 function isUserRole(value: string): value is UserRole {
