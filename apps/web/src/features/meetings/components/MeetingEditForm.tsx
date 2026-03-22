@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { updateMeeting } from "../api/client";
+import { updateMeeting, deleteMeeting } from "../api/client";
+import "../styles/meeting-list.css";
 import type { Meeting } from "../types";
 
 type MeetingEditFormProps = {
@@ -23,6 +24,15 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
   const [agenda, setAgenda] = useState(meeting.agenda ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const members = meeting.team.allocations.map((a) => a.user);
+  const [inviteAll, setInviteAll] = useState(
+    meeting.participants.length === members.length
+  );
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(
+    new Set(meeting.participants.map((p) => p.userId))
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,12 +48,31 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
         location: location || undefined,
         videoCallLink: videoCallLink || undefined,
         agenda: agenda || undefined,
+        participantIds: inviteAll ? members.map((m) => m.id) : Array.from(selectedIds),
       });
       router.push(`/projects/${projectId}/meetings/${meeting.id}`);
     } catch (err) {
       setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to save changes");
     }
+  }
+
+  function toggleParticipant(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
+
+  async function handleDelete() {
+    setStatus("loading");
+    await deleteMeeting(meeting.id);
+    router.push(`/projects/${projectId}/meetings`);
   }
 
   return (
@@ -73,19 +102,63 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
           <span>Agenda</span>
           <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
-        <div className="ui-row">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.push(`/projects/${projectId}/meetings/${meeting.id}`)}
-          >
-            Cancel
-          </Button>
-          <Button type="submit" disabled={status === "loading" || !title || !date}>
-            {status === "loading" ? "Saving..." : "Save changes"}
-          </Button>
-        </div>
+        {members.length > 0 && (
+          <div className="stack">
+            <span>Participants</span>
+            <label className="meeting-form__participant-item">
+              <input
+                type="checkbox"
+                checked={inviteAll}
+                onChange={(e) => setInviteAll(e.target.checked)}
+              />
+              All team members
+            </label>
+            {!inviteAll && (
+              <div className="meeting-form__participant-list">
+                {members.map((member) => (
+                  <label key={member.id} className="meeting-form__participant-item">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(member.id)}
+                      onChange={() => toggleParticipant(member.id)}
+                    />
+                    {member.firstName} {member.lastName}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {error && <p className="error">{error}</p>}
+        <div className="ui-row ui-row--between">
+          {confirmDelete ? (
+            <div className="ui-row">
+              <span className="muted">This cannot be undone.</span>
+              <Button type="button" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                No
+              </Button>
+              <Button type="button" variant="danger" disabled={status === "loading"} onClick={handleDelete}>
+                Yes, delete
+              </Button>
+            </div>
+          ) : (
+            <Button type="button" variant="danger" onClick={() => setConfirmDelete(true)}>
+              Delete meeting
+            </Button>
+          )}
+          <div className="ui-row">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push(`/projects/${projectId}/meetings/${meeting.id}`)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={status === "loading" || !title || !date}>
+              {status === "loading" ? "Saving..." : "Save changes"}
+            </Button>
+          </div>
+        </div>
       </form>
     </Card>
   );

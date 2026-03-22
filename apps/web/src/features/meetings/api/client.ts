@@ -39,6 +39,7 @@ export async function updateMeeting(meetingId: number, userId: number, data: {
   location?: string;
   videoCallLink?: string;
   agenda?: string;
+  participantIds?: number[];
 }) {
   return apiFetch(`/meetings/${meetingId}`, {
     method: "PATCH",
