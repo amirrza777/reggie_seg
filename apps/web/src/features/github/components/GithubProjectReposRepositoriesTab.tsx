@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SearchField } from "@/shared/ui/SearchField";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,
@@ -73,9 +74,8 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
             <label className="muted" htmlFor="github-repo-search">
               Search repositories
             </label>
-            <input
+            <SearchField
               id="github-repo-search"
-              type="search"
               className="github-repos-tab__select"
               value={repoSearchQuery}
               onChange={(event) => onRepoSearchQueryChange(event.target.value)}

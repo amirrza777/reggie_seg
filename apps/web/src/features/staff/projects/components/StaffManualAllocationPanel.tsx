@@ -7,6 +7,8 @@ import {
   getManualAllocationWorkspace,
   type ManualAllocationWorkspace,
 } from "@/features/projects/api/teamAllocation";
+import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -196,7 +198,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
         query: nextValue,
         preserveSelection: true,
       });
-    }, 300);
+    }, SEARCH_DEBOUNCE_MS);
   }
 
   return (
@@ -293,8 +295,7 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
             </div>
             <label className="staff-projects__manual-create-field">
               Search students
-              <input
-                type="search"
+              <SearchField
                 value={studentSearchInput}
                 onChange={(event) => handleStudentSearchChange(event.target.value)}
                 disabled={isBusy}

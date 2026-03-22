@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { searchHelpOverview, type HelpOverviewRecord } from "./api/search";
 import type { HelpSearchItem } from "./helpFaqData";
+import { SEARCH_DEBOUNCE_MS, normalizeSearchQuery } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 
 type HelpOverviewSearchProps = {
   items: HelpSearchItem[];
@@ -14,7 +16,7 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
   const [results, setResults] = useState<HelpOverviewRecord[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const hasQuery = query.trim().length > 0;
+  const hasQuery = normalizeSearchQuery(query).length > 0;
 
   const records = useMemo<HelpOverviewRecord[]>(
     () =>
@@ -31,7 +33,7 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
 
   useEffect(() => {
     const trimmedQuery = query.trim();
-    if (!trimmedQuery) {
+    if (!normalizeSearchQuery(trimmedQuery)) {
       setResults([]);
       setSearchError(null);
       setIsSearching(false);
@@ -52,7 +54,7 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
       } finally {
         setIsSearching(false);
       }
-    }, 180);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       controller.abort();
@@ -73,10 +75,9 @@ export function HelpOverviewSearch({ items }: HelpOverviewSearchProps) {
         <label className="help-faq__search-label" htmlFor="help-overview-search">
           Search help
         </label>
-        <input
+        <SearchField
           id="help-overview-search"
           className="help-faq__search-input"
-          type="search"
           placeholder="Search topics, tasks, and FAQs"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

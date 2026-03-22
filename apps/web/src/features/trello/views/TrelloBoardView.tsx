@@ -15,7 +15,6 @@ type Props = {
 export function TrelloBoardView({
   view,
   sectionConfig,
-  onRequestChangeBoard: _onRequestChangeBoard,
 }: Props) {
   const { cardsByList, listNamesById, actionsByDate } = view;
   const lists = view.board.lists ?? [];
@@ -48,4 +47,3 @@ export function TrelloBoardView({
     </div>
   );
 }
-

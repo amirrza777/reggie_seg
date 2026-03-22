@@ -4,6 +4,7 @@ import { GithubProjectReposClient } from "@/features/github/components/GithubPro
 import { getStaffProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { Placeholder } from "@/shared/ui/Placeholder";
+import { SearchField } from "@/shared/ui/SearchField";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffReposPageProps = {
@@ -51,10 +52,9 @@ export default async function StaffReposPage({ searchParams }: StaffReposPagePro
             Search projects
           </label>
           <div className="staff-projects__search-controls">
-            <input
+            <SearchField
               id="staff-repos-project-search"
               name="q"
-              type="search"
               className="staff-projects__search-input"
               defaultValue={rawProjectQuery ?? ""}
               placeholder="Search by project or module name"

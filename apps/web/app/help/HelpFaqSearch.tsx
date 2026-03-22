@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaqAccordion } from "../components/FaqAccordion";
 import { searchHelpFaqs, type HelpFaqRecord } from "./api/search";
+import { SEARCH_DEBOUNCE_MS, normalizeSearchQuery } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 
 type FaqItem = {
   question: string;
@@ -28,7 +30,7 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
   const [matchedIds, setMatchedIds] = useState<Set<string> | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const hasQuery = query.trim().length > 0;
+  const hasQuery = normalizeSearchQuery(query).length > 0;
   const groupWithOpenQuestion = useMemo(() => {
     if (!initialOpenQuestion) return undefined;
     return groups.find((group) =>
@@ -59,14 +61,14 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
   );
 
   const filteredGroups = useMemo(() => {
-    if (!query.trim() || matchedIds === null) return groups;
+    if (!hasQuery || matchedIds === null) return groups;
     return groups
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => matchedIds.has(toFaqRecordId(group.id, item.question))),
       }))
       .filter((group) => group.items.length > 0);
-  }, [groups, matchedIds, query]);
+  }, [groups, hasQuery, matchedIds]);
 
   useEffect(() => {
     setQuery(initialQuery);
@@ -74,7 +76,7 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
 
   useEffect(() => {
     const trimmedQuery = query.trim();
-    if (!trimmedQuery) {
+    if (!normalizeSearchQuery(trimmedQuery)) {
       setMatchedIds(null);
       setSearchError(null);
       setIsSearching(false);
@@ -95,7 +97,7 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
       } finally {
         setIsSearching(false);
       }
-    }, 180);
+    }, SEARCH_DEBOUNCE_MS);
 
     return () => {
       controller.abort();
@@ -109,10 +111,9 @@ export function HelpFaqSearch({ groups, initialQuery = "", initialOpenQuestion }
         <label className="help-faq__search-label" htmlFor="faq-search">
           Search FAQs
         </label>
-        <input
+        <SearchField
           id="faq-search"
           className="help-faq__search-input"
-          type="search"
           placeholder="Search by keyword"
           value={query}
           onChange={(event) => setQuery(event.target.value)}

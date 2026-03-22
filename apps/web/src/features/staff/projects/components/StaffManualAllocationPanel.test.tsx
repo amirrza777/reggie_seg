@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffManualAllocationPanel } from "./StaffManualAllocationPanel";
 import { applyManualAllocation, getManualAllocationWorkspace } from "@/features/projects/api/teamAllocation";
@@ -15,13 +15,24 @@ vi.mock("@/features/projects/api/teamAllocation", () => ({
 }));
 
 describe("StaffManualAllocationPanel", () => {
+  const getManualAllocationWorkspaceMock = vi.mocked(getManualAllocationWorkspace);
+  const applyManualAllocationMock = vi.mocked(applyManualAllocation);
+  async function waitForWorkspaceReady() {
+    await waitFor(() => {
+      expect(screen.getByLabelText("Manual allocation workspace")).toBeInTheDocument();
+    });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Create team" })).toBeEnabled();
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     refreshMock.mockReset();
   });
 
   it("loads workspace on open and shows summary badges", async () => {
-    (getManualAllocationWorkspace as any).mockResolvedValue({
+    getManualAllocationWorkspaceMock.mockResolvedValue({
       project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
       existingTeams: [],
       students: [
@@ -57,9 +68,7 @@ describe("StaffManualAllocationPanel", () => {
       expect(getManualAllocationWorkspace).toHaveBeenCalledWith(4);
     });
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Close manual allocation" })).toBeInTheDocument();
-    });
+    await waitForWorkspaceReady();
 
     expect(screen.getByText("12 students")).toBeInTheDocument();
     expect(screen.getByText("8 available")).toBeInTheDocument();
@@ -73,7 +82,7 @@ describe("StaffManualAllocationPanel", () => {
   });
 
   it("refreshes workspace data on demand", async () => {
-    (getManualAllocationWorkspace as any)
+    getManualAllocationWorkspaceMock
       .mockResolvedValueOnce({
         project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
         existingTeams: [],
@@ -110,6 +119,9 @@ describe("StaffManualAllocationPanel", () => {
     await waitFor(() => {
       expect(screen.getByText("1 students")).toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Refresh list" })).toBeEnabled();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Refresh list" }));
 
@@ -121,7 +133,7 @@ describe("StaffManualAllocationPanel", () => {
   });
 
   it("supports selecting available students only", async () => {
-    (getManualAllocationWorkspace as any)
+    getManualAllocationWorkspaceMock
       .mockResolvedValueOnce({
         project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
         existingTeams: [],
@@ -192,7 +204,7 @@ describe("StaffManualAllocationPanel", () => {
           alreadyInTeamStudents: 2,
         },
       });
-    (applyManualAllocation as any).mockResolvedValue({
+    applyManualAllocationMock.mockResolvedValue({
       project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
       team: { id: 90, teamName: "Team Gamma", memberCount: 1 },
     });
@@ -200,8 +212,9 @@ describe("StaffManualAllocationPanel", () => {
     render(<StaffManualAllocationPanel projectId={4} />);
     fireEvent.click(screen.getByRole("button", { name: "Open manual allocation" }));
 
+    await waitForWorkspaceReady();
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Close manual allocation" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Select" })).toHaveLength(3);
     });
 
     const selectButtons = screen.getAllByRole("button", { name: "Select" });
@@ -227,6 +240,9 @@ describe("StaffManualAllocationPanel", () => {
     });
     expect(refreshMock).toHaveBeenCalledTimes(1);
     expect(screen.getByText("0 selected")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Select all available" })).toBeEnabled();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Select all available" }));
     expect(screen.getByText("1 selected")).toBeInTheDocument();
@@ -239,7 +255,7 @@ describe("StaffManualAllocationPanel", () => {
   });
 
   it("shows backend error message when manual allocation apply fails", async () => {
-    (getManualAllocationWorkspace as any).mockResolvedValue({
+    getManualAllocationWorkspaceMock.mockResolvedValue({
       project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
       existingTeams: [],
       students: [
@@ -274,13 +290,14 @@ describe("StaffManualAllocationPanel", () => {
         alreadyInTeamStudents: 1,
       },
     });
-    (applyManualAllocation as any).mockRejectedValue(new Error("Team name already exists in this enterprise"));
+    applyManualAllocationMock.mockRejectedValue(new Error("Team name already exists in this enterprise"));
 
     render(<StaffManualAllocationPanel projectId={4} />);
     fireEvent.click(screen.getByRole("button", { name: "Open manual allocation" }));
 
+    await waitForWorkspaceReady();
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Close manual allocation" })).toBeInTheDocument();
+      expect(screen.getAllByRole("button", { name: "Select" })[1]).toBeEnabled();
     });
 
     const selectButtons = screen.getAllByRole("button", { name: "Select" });
@@ -295,7 +312,7 @@ describe("StaffManualAllocationPanel", () => {
   });
 
   it("keeps success state when apply succeeds but workspace refresh fails", async () => {
-    (getManualAllocationWorkspace as any)
+    getManualAllocationWorkspaceMock
       .mockResolvedValueOnce({
         project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
         existingTeams: [],
@@ -316,7 +333,7 @@ describe("StaffManualAllocationPanel", () => {
         },
       })
       .mockRejectedValueOnce(new Error("network timeout"));
-    (applyManualAllocation as any).mockResolvedValue({
+    applyManualAllocationMock.mockResolvedValue({
       project: { id: 4, name: "Project A", moduleId: 11, moduleName: "Module A" },
       team: { id: 90, teamName: "Team Gamma", memberCount: 1 },
     });
@@ -324,11 +341,14 @@ describe("StaffManualAllocationPanel", () => {
     render(<StaffManualAllocationPanel projectId={4} />);
     fireEvent.click(screen.getByRole("button", { name: "Open manual allocation" }));
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Close manual allocation" })).toBeInTheDocument();
-    });
+    await waitForWorkspaceReady();
 
-    fireEvent.click(screen.getByRole("button", { name: "Select" }));
+    const availableStudentRow = screen.getByText("Pricha Lee").closest('[role="listitem"]');
+    expect(availableStudentRow).not.toBeNull();
+    await waitFor(() => {
+      expect(within(availableStudentRow as HTMLElement).getByRole("button", { name: "Select" })).toBeEnabled();
+    });
+    fireEvent.click(within(availableStudentRow as HTMLElement).getByRole("button", { name: "Select" }));
     fireEvent.change(screen.getByLabelText("Manual team name"), { target: { value: "Team Gamma" } });
     fireEvent.click(screen.getByRole("button", { name: "Create team" }));
 

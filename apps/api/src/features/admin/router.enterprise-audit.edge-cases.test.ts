@@ -4,7 +4,7 @@ import jwt from "jsonwebtoken";
 import router from "./router.js";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
-import { buildAdminUserSearchWhere, parseAdminUserSearchFilters } from "./userSearch.js";
+import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
 
 const { generateFromNameMock } = vi.hoisted(() => ({ generateFromNameMock: vi.fn() }));
 
@@ -23,7 +23,11 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn() }));
-vi.mock("./userSearch.js", () => ({ buildAdminUserSearchWhere: vi.fn(), parseAdminUserSearchFilters: vi.fn() }));
+vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchWhere: vi.fn(),
+  parseAdminUserSearchFilters: vi.fn(),
+  matchesAdminUserSearchCandidate: vi.fn(),
+}));
 vi.mock("../services/enterprise/enterpriseCodeGeneratorService.js", () => ({
   EnterpriseCodeGeneratorService: vi.fn().mockImplementation(() => ({ generateFromName: generateFromNameMock })),
 }));
@@ -84,6 +88,7 @@ beforeEach(() => {
     value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
   });
   (buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
+  (matchesAdminUserSearchCandidate as any).mockReturnValue(false);
 
   (prisma.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);
@@ -95,41 +100,55 @@ beforeEach(() => {
 });
 
 describe("admin router enterprise/audit edge cases", () => {
-  it("covers remaining parse and pagination branches", async () => {
-    const patchRole = getRouteHandler("patch", "/users/:id/role");
-    const patchUser = getRouteHandler("patch", "/users/:id");
-    const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
-    const enterpriseSearch = getRouteHandler("get", "/enterprises/:enterpriseId/users/search");
-    const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
-    const ownSearch = getRouteHandler("get", "/users/search");
-    const auditLogs = getRouteHandler("get", "/audit-logs");
+  const patchRole = getRouteHandler("patch", "/users/:id/role");
+  const patchUser = getRouteHandler("patch", "/users/:id");
+  const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
+  const enterpriseSearch = getRouteHandler("get", "/enterprises/:enterpriseId/users/search");
+  const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
+  const ownSearch = getRouteHandler("get", "/users/search");
+  const auditLogs = getRouteHandler("get", "/audit-logs");
 
-    let res = mockRes();
+  it("requires role in patchRole payload", async () => {
+    const res = mockRes();
     await patchRole({ params: { id: "2" }, body: {}, adminUser: { enterpriseId: "ent-1" } } as any, res);
     expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
 
+  it("allows patchUser active updates when user exists", async () => {
     (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 5, email: "u@x.com" });
     (prisma.user.update as any).mockResolvedValueOnce({ id: 5, email: "u@x.com", role: "STUDENT", active: true });
-    res = mockRes();
-    await patchUser({ params: { id: "5" }, body: { active: true }, adminUser: { enterpriseId: "ent-1" } } as any, res);
-    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }));
+    const res = mockRes();
 
-    res = mockRes();
+    await patchUser({ params: { id: "5" }, body: { active: true }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+
+    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 5 }));
+  });
+
+  it("requires enterpriseId for enterprise users route", async () => {
+    const res = mockRes();
     await listEnterpriseUsers({ params: {} } as any, res);
     expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
 
+  it("requires enterpriseId for enterprise scoped user search", async () => {
     (parseAdminUserSearchFilters as any).mockReturnValueOnce({
       ok: true,
       value: { query: null, role: null, active: null, page: 1, pageSize: 5 },
     });
-    res = mockRes();
-    await enterpriseSearch({ params: {}, query: {} } as any, res);
-    expect((res.status as any)).toHaveBeenCalledWith(400);
+    const res = mockRes();
 
-    res = mockRes();
+    await enterpriseSearch({ params: {}, query: {} } as any, res);
+
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
+
+  it("requires enterpriseId in patchEnterpriseUser route params", async () => {
+    const res = mockRes();
     await patchEnterpriseUser({ params: { id: "2" }, body: {} } as any, res);
     expect((res.status as any)).toHaveBeenCalledWith(400);
+  });
 
+  it("updates enterprise user active flag", async () => {
     (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 2, email: "u@x.com" });
     (prisma.user.update as any).mockResolvedValueOnce({
       id: 2,
@@ -139,35 +158,49 @@ describe("admin router enterprise/audit edge cases", () => {
       role: "STUDENT",
       active: true,
     });
-    res = mockRes();
-    await patchEnterpriseUser({ params: { enterpriseId: "ent-2", id: "2" }, body: { active: true } } as any, res);
-    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+    const res = mockRes();
 
+    await patchEnterpriseUser({ params: { enterpriseId: "ent-2", id: "2" }, body: { active: true } } as any, res);
+
+    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }));
+  });
+
+  it("returns empty pagination metadata from own scoped user search", async () => {
     (parseAdminUserSearchFilters as any).mockReturnValueOnce({
       ok: true,
       value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
     });
     (prisma.user.count as any).mockResolvedValueOnce(0);
     (prisma.user.findMany as any).mockResolvedValueOnce([]);
-    res = mockRes();
+    const res = mockRes();
+
     await ownSearch({ adminUser: { enterpriseId: "ent-1" }, query: {} } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({ total: 0, totalPages: 0, hasNextPage: false }),
     );
+  });
 
+  it("passes parsed audit log dates with invalid to date omitted", async () => {
     (listAuditLogs as any).mockResolvedValueOnce([]);
-    res = mockRes();
+    const res = mockRes();
+
     await auditLogs({ adminUser: { enterpriseId: "ent-1" }, query: { from: "2026-03-01", to: "bad-date" } } as any, res);
+
     expect(listAuditLogs).toHaveBeenLastCalledWith({
       enterpriseId: "ent-1",
       from: new Date("2026-03-01"),
       to: undefined,
       limit: undefined,
     });
+  });
 
+  it("passes undefined audit filters when no query is supplied", async () => {
     (listAuditLogs as any).mockResolvedValueOnce([]);
-    res = mockRes();
+    const res = mockRes();
+
     await auditLogs({ adminUser: { enterpriseId: "ent-1" }, query: {} } as any, res);
+
     expect(listAuditLogs).toHaveBeenLastCalledWith({
       enterpriseId: "ent-1",
       from: undefined,

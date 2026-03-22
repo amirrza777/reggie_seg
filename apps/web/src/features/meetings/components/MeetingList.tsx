@@ -2,6 +2,7 @@
 
 import { Card } from "@/shared/ui/Card";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
+import { Button } from "@/shared/ui/Button";
 import { formatDate } from "@/shared/lib/formatDate";
 import type { Meeting } from "../types";
 
@@ -10,11 +11,24 @@ type MeetingListProps = {
   projectId: number;
   title?: string;
   emptyMessage?: string;
+  onCreateNew?: () => void;
 };
 
-export function MeetingList({ meetings, projectId, title = "Meetings", emptyMessage }: MeetingListProps) {
+export function MeetingList({
+  meetings,
+  projectId,
+  title = "Meetings",
+  emptyMessage,
+  onCreateNew,
+}: MeetingListProps) {
+  const action = onCreateNew ? (
+    <Button type="button" variant="ghost" size="sm" onClick={onCreateNew}>
+      New meeting
+    </Button>
+  ) : null;
+
   return (
-    <Card title={title}>
+    <Card title={title} action={action}>
       {meetings.length === 0 ? (
         <p className="muted">{emptyMessage ?? "No meetings to show."}</p>
       ) : (

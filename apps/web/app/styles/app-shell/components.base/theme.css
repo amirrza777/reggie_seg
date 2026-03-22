@@ -2,7 +2,6 @@
   .workspace-shell .help-page__toc {
     background: color-mix(in srgb, var(--surface) 90%, black 10%);
     border-color: color-mix(in srgb, var(--ink-strong) 28%, var(--border) 72%);
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(226, 232, 240, 0.05);
   }
 
   .workspace-shell .help-page__toc-title {
@@ -36,7 +35,7 @@
   padding: 10px 12px;
   min-width: min(340px, calc(100vw - 32px));
   max-width: min(520px, calc(100vw - 32px));
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.24);
+  box-shadow: var(--elevation-toast);
   animation: ui-toast-enter 220ms cubic-bezier(0.2, 0.82, 0.2, 1);
 }
 

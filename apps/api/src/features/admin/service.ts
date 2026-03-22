@@ -1,9 +1,19 @@
 import { listAuditLogs } from "../audit/service.js";
 import { EnterpriseCodeGeneratorService } from "../services/enterprise/enterpriseCodeGeneratorService.js";
-import { buildAdminEnterpriseSearchWhere, type AdminEnterpriseSearchFilters } from "./enterpriseSearch.js";
-import { buildAdminUserSearchWhere, type AdminUserSearchFilters } from "./userSearch.js";
+import {
+  buildAdminEnterpriseSearchWhere,
+  matchesAdminEnterpriseFuzzyCandidate,
+  matchesAdminEnterpriseSearchCandidate,
+  type AdminEnterpriseSearchFilters,
+} from "./enterpriseSearch.js";
+import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, type AdminUserSearchFilters } from "./userSearch.js";
 import * as repo from "./repo.js";
 import type { EnterpriseFlagSeed, UserRole } from "./types.js";
+import {
+  DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES,
+  fuzzyFilterAndPaginate,
+  shouldUseFuzzyFallback,
+} from "../../shared/fuzzyFallback.js";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 const ENTERPRISE_CODE_REGEX = /^[A-Z0-9]{3,16}$/;
@@ -50,7 +60,28 @@ export async function searchUsers(enterpriseId: string, filters: AdminUserSearch
     repo.countUsersByWhere(where),
     repo.listUsersByWhere(where, filters.page, filters.pageSize),
   ]);
-  return toAdminUserSearchResponse(records, filters, total);
+  const strictResponse = toAdminUserSearchResponse(records, filters, total);
+  if (!shouldUseFuzzyFallback(total, filters.query)) {
+    return strictResponse;
+  }
+
+  const fuzzyBaseWhere = buildAdminUserSearchWhere(enterpriseId, {
+    query: null,
+    role: filters.role,
+    active: filters.active,
+  });
+  const candidateTotal = await repo.countUsersByWhere(fuzzyBaseWhere);
+  if (candidateTotal === 0 || candidateTotal > DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES) {
+    return strictResponse;
+  }
+
+  const candidates = await repo.listUsersByWhere(fuzzyBaseWhere, 1, candidateTotal);
+  const fuzzyPage = fuzzyFilterAndPaginate(candidates, {
+    query: filters.query,
+    pagination: filters,
+    matches: matchesAdminUserSearchCandidate,
+  });
+  return toAdminUserSearchResponse(fuzzyPage.items, filters, fuzzyPage.total);
 }
 
 export async function updateOwnEnterpriseUserRole(enterpriseId: string, id: number, role: UserRole) {
@@ -97,7 +128,36 @@ export async function searchEnterprises(filters: AdminEnterpriseSearchFilters) {
     repo.countEnterprisesByWhere(where),
     repo.listEnterprisesByWhere(where, filters.page, filters.pageSize),
   ]);
-  return toAdminEnterpriseSearchResponse(records.map(toAdminEnterprisePayload), filters, total);
+  const strictResponse = toAdminEnterpriseSearchResponse(records.map(toAdminEnterprisePayload), filters, total);
+  if (!shouldUseFuzzyFallback(total, filters.query)) {
+    return strictResponse;
+  }
+
+  const candidateTotal = await repo.countEnterprisesByWhere({});
+  if (candidateTotal === 0 || candidateTotal > DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES) {
+    return strictResponse;
+  }
+
+  const candidates = await repo.listEnterpriseFuzzyCandidatesByWhere({}, 1, candidateTotal);
+  const fuzzyPage = fuzzyFilterAndPaginate(candidates, {
+    query: filters.query,
+    pagination: filters,
+    matches: matchesAdminEnterpriseFuzzyCandidate,
+  });
+
+  const pageIds = fuzzyPage.items.map((enterprise) => enterprise.id);
+  if (pageIds.length === 0) {
+    return toAdminEnterpriseSearchResponse([], filters, fuzzyPage.total);
+  }
+
+  const pageRecords = await repo.listEnterprisesByIds(pageIds);
+  const recordsById = new Map(pageRecords.map((record) => [record.id, record]));
+  const orderedItems = pageIds
+    .map((id) => recordsById.get(id))
+    .filter((record): record is (typeof pageRecords)[number] => Boolean(record))
+    .map(toAdminEnterprisePayload);
+
+  return toAdminEnterpriseSearchResponse(orderedItems, filters, fuzzyPage.total);
 }
 
 export async function createEnterprise(input: { name: string; code?: string | null }) {

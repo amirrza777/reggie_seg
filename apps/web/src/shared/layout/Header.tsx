@@ -81,27 +81,150 @@ const CloseIcon = () => (
 export function Header() {
   const hidden = useHeaderVisibility();
   const handleLogoClick = useHomeNavigation();
+  const mobileMenu = useMobileMenuState();
+
+  return (
+    <header className={`header${hidden ? " header--hidden" : ""}`}>
+      <HeaderTopBar
+        handleLogoClick={handleLogoClick}
+        isMenuOpen={mobileMenu.isMenuOpen}
+        onToggleMenu={mobileMenu.toggleMenu}
+      />
+      <HeaderMobileOverlay
+        isMounted={mobileMenu.isMounted}
+        isMenuOpen={mobileMenu.isMenuOpen}
+        handleLogoClick={handleLogoClick}
+        onCloseMenu={mobileMenu.closeMenu}
+      />
+    </header>
+  );
+}
+
+function HeaderTopBar({
+  handleLogoClick,
+  isMenuOpen,
+  onToggleMenu,
+}: {
+  handleLogoClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+  isMenuOpen: boolean;
+  onToggleMenu: () => void;
+}) {
+  return (
+    <div className="header__inner">
+      <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
+        Team Feedback
+      </Link>
+      <HeaderNav />
+      <HeaderActions />
+      <button
+        className="header__burger"
+        type="button"
+        aria-label="Toggle navigation"
+        aria-expanded={isMenuOpen}
+        onClick={onToggleMenu}
+      >
+        <span />
+        <span />
+        <span />
+      </button>
+    </div>
+  );
+}
+
+function HeaderMobileOverlay({
+  isMounted,
+  isMenuOpen,
+  handleLogoClick,
+  onCloseMenu,
+}: {
+  isMounted: boolean;
+  isMenuOpen: boolean;
+  handleLogoClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+  onCloseMenu: () => void;
+}) {
+  if (!isMounted) return null;
+
+  return createPortal(
+    <div className={`mobile-menu${isMenuOpen ? " is-open" : ""}`} aria-hidden={!isMenuOpen}>
+      <button className="mobile-menu__scrim" aria-label="Close menu" onClick={onCloseMenu} />
+      <div className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <MobileMenuTopBar handleLogoClick={handleLogoClick} onCloseMenu={onCloseMenu} />
+        <MobileMenuLinks onCloseMenu={onCloseMenu} />
+        <MobileMenuActions onCloseMenu={onCloseMenu} />
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+function MobileMenuTopBar({
+  handleLogoClick,
+  onCloseMenu,
+}: {
+  handleLogoClick: (event: MouseEvent<HTMLAnchorElement>) => void;
+  onCloseMenu: () => void;
+}) {
+  return (
+    <div className="mobile-menu__top">
+      <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
+        Team Feedback
+      </Link>
+      <button className="mobile-menu__close" type="button" aria-label="Close menu" onClick={onCloseMenu}>
+        <CloseIcon />
+      </button>
+    </div>
+  );
+}
+
+function MobileMenuLinks({ onCloseMenu }: { onCloseMenu: () => void }) {
+  return (
+    <div className="mobile-menu__sections">
+      {navLinks.map((link) => (
+        <Link key={link.href} href={link.href} className="mobile-menu__item" onClick={onCloseMenu}>
+          {link.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+function MobileMenuActions({ onCloseMenu }: { onCloseMenu: () => void }) {
+  return (
+    <div className="mobile-menu__cta">
+      <Link href="/login" className="btn btn--ghost" onClick={onCloseMenu}>
+        Log in
+      </Link>
+      <Link href="/register" className="btn btn--primary" onClick={onCloseMenu}>
+        Get started
+      </Link>
+    </div>
+  );
+}
+
+function useMobileMenuState() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    const closeMenu = () => setIsMenuOpen(false);
     const onResize = () => {
-      if (window.innerWidth > 900 && isMenuOpen) {
-        setIsMenuOpen(false);
+      if (window.innerWidth > 900) {
+        closeMenu();
       }
     };
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsMenuOpen(false);
+        closeMenu();
       }
     };
+
     window.addEventListener("resize", onResize, { passive: true });
     window.addEventListener("keydown", onKeyDown);
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [isMenuOpen]);
+  }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -109,85 +232,16 @@ export function Header() {
   }, []);
 
   useEffect(() => {
-    if (isMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
 
-  const closeMenu = () => setIsMenuOpen(false);
-  const toggleMenu = () => setIsMenuOpen((open) => !open);
-
-  const mobileOverlay =
-    isMounted &&
-    createPortal(
-      <div className={`mobile-menu${isMenuOpen ? " is-open" : ""}`} aria-hidden={!isMenuOpen}>
-        <button className="mobile-menu__scrim" aria-label="Close menu" onClick={closeMenu} />
-        <div className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
-          <div className="mobile-menu__top">
-            <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
-              Team Feedback
-            </Link>
-            <button className="mobile-menu__close" type="button" aria-label="Close menu" onClick={closeMenu}>
-              <CloseIcon />
-            </button>
-          </div>
-
-          <div className="mobile-menu__sections">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="mobile-menu__item"
-                onClick={closeMenu}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          <div className="mobile-menu__cta">
-            <Link href="/login" className="btn btn--ghost" onClick={closeMenu}>
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="btn btn--primary"
-              onClick={closeMenu}
-            >
-              Get started
-            </Link>
-          </div>
-        </div>
-      </div>,
-      document.body,
-    );
-
-  return (
-    <header className={`header${hidden ? " header--hidden" : ""}`}>
-      <div className="header__inner">
-        <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
-          Team Feedback
-        </Link>
-        <HeaderNav />
-        <HeaderActions />
-        <button
-          className="header__burger"
-          type="button"
-          aria-label="Toggle navigation"
-          aria-expanded={isMenuOpen}
-          onClick={toggleMenu}
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-      </div>
-      {mobileOverlay}
-    </header>
-  );
+  return {
+    isMenuOpen,
+    isMounted,
+    closeMenu: () => setIsMenuOpen(false),
+    toggleMenu: () => setIsMenuOpen((open) => !open),
+  };
 }

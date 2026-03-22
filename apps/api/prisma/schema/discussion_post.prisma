@@ -1,0 +1,21 @@
+model DiscussionPost {
+  id        Int      @id @default(autoincrement())
+  projectId Int
+  authorId  Int
+  parentPostId Int?
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentPost DiscussionPost? @relation("DiscussionPostReplies", fields: [parentPostId], references: [id], onDelete: Cascade)
+  replies    DiscussionPost[] @relation("DiscussionPostReplies")
+  reactions ForumReaction[]
+  studentReports ForumStudentReport[]
+
+  @@index([projectId, createdAt])
+  @@index([authorId])
+  @@index([parentPostId])
+}

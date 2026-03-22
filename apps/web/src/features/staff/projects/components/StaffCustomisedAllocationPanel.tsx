@@ -13,6 +13,7 @@ import {
   type CustomAllocationPreview,
   type CustomAllocationQuestionnaireListing,
 } from "@/features/projects/api/teamAllocation";
+import { SearchField } from "@/shared/ui/SearchField";
 import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -376,6 +377,7 @@ export function StaffCustomisedAllocationPanel({
   }
 
   const isPreviewCurrent = isCurrentInputMatchingPreview();
+  const unassignedStudents = preview?.unassignedStudents ?? [];
 
   function toDefaultTeamNameMap(nextPreview: CustomAllocationPreview) {
     return nextPreview.previewTeams.reduce<Record<number, string>>((names, team) => {
@@ -556,9 +558,8 @@ export function StaffCustomisedAllocationPanel({
         <div className="staff-projects__custom-questionnaire-controls">
           <label className="staff-projects__allocation-field">
             Search questionnaires
-            <input
+            <SearchField
               className="staff-projects__custom-search-input"
-              type="search"
               value={questionnaireSearch}
               onChange={(event) => setQuestionnaireSearch(event.target.value)}
               placeholder="Filter by template name"
@@ -864,15 +865,15 @@ export function StaffCustomisedAllocationPanel({
                 Quality: {getQualityLabel(preview.overallScore)} ({Math.round(preview.overallScore * 100)}%)
               </span>
             </div>
-            {preview.unassignedStudents.length > 0 ? (
+            {unassignedStudents.length > 0 ? (
               <div className="staff-projects__manual-workspace-card">
                 <p className="staff-projects__allocation-warning">
-                  {preview.unassignedStudents.length} student
-                  {preview.unassignedStudents.length === 1 ? "" : "s"} could not be assigned with the current
+                  {unassignedStudents.length} student
+                  {unassignedStudents.length === 1 ? "" : "s"} could not be assigned with the current
                   team size limits.
                 </p>
                 <ul className="staff-projects__allocation-members">
-                  {preview.unassignedStudents.map((student) => (
+                  {unassignedStudents.map((student) => (
                     <li key={student.id} className="staff-projects__custom-member-row">
                       <span>{toFullName(student)}</span>
                       {student.responseStatus === "NO_RESPONSE" ? (

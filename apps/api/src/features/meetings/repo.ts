@@ -81,6 +81,22 @@ export function createMeeting(data: {
   });
 }
 
+/** Returns team meeting-state fields used by service guards. */
+export function getTeamMeetingState(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    select: { archivedAt: true, inactivityFlag: true },
+  });
+}
+
+/** Clears inactivity flag for a team after a new meeting. */
+export function clearTeamInactivityFlag(teamId: number) {
+  return prisma.team.update({
+    where: { id: teamId },
+    data: { inactivityFlag: "NONE" },
+  });
+}
+
 /** Deletes the meeting. */
 export function deleteMeeting(meetingId: number) {
   return prisma.meeting.delete({
@@ -124,7 +140,7 @@ export function upsertMinutes(meetingId: number, writerId: number, content: stri
 }
 
 /** Creates a comment. */
-export function createComment(meetingId: number, userId: number, content: string) {
+export function createComment(meetingId: number, userId: number, content: string, _teamId?: number) {
   return prisma.meetingComment.create({
     data: { meetingId, userId, content },
   });

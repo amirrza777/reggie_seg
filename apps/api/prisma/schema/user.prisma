@@ -58,6 +58,12 @@ model User {
   auditLogs                       AuditLog[]
   mentions                        Mention[]                    @relation("Mention")
   notifications                   Notification[]               @relation("Notification")
+  discussionPosts     DiscussionPost[]
+  forumReportsFiled   ForumReport[]           @relation("ForumReportReporter")
+  forumReportsAgainst ForumReport[]           @relation("ForumReportAuthor")
+  forumReactions      ForumReaction[]
+  forumStudentReports ForumStudentReport[]    @relation("ForumStudentReportReporter")
+  forumStudentReportsReviewed ForumStudentReport[] @relation("ForumStudentReportReviewer")
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

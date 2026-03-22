@@ -194,13 +194,17 @@ describe("auth service", () => {
     logSpy.mockRestore();
   });
 
-  it("resetPassword maps invalid, used, expired and success branches", async () => {
+  it("resetPassword rejects invalid tokens", async () => {
     const svc = await loadService();
 
     prismaMock.passwordResetToken.findUnique.mockResolvedValueOnce(null);
     await expect(svc.resetPassword({ token: "not-a-hex-token", newPassword: "pw" })).rejects.toMatchObject({
       code: "INVALID_RESET_TOKEN",
     });
+  });
+
+  it("resetPassword rejects used tokens", async () => {
+    const svc = await loadService();
 
     prismaMock.passwordResetToken.findUnique.mockResolvedValueOnce({
       id: 1,
@@ -212,6 +216,10 @@ describe("auth service", () => {
     await expect(
       svc.resetPassword({ token: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", newPassword: "pw" }),
     ).rejects.toMatchObject({ code: "USED_RESET_TOKEN" });
+  });
+
+  it("resetPassword rejects expired tokens", async () => {
+    const svc = await loadService();
 
     prismaMock.passwordResetToken.findUnique.mockResolvedValueOnce({
       id: 1,
@@ -223,6 +231,10 @@ describe("auth service", () => {
     await expect(svc.resetPassword({ token: "abc", newPassword: "pw" })).rejects.toMatchObject({
       code: "EXPIRED_RESET_TOKEN",
     });
+  });
+
+  it("resetPassword updates credentials and revokes existing sessions", async () => {
+    const svc = await loadService();
 
     argon2Mock.hash.mockResolvedValueOnce("new-password-hash");
     prismaMock.passwordResetToken.findUnique.mockResolvedValueOnce({
@@ -242,11 +254,15 @@ describe("auth service", () => {
     expect(prismaMock.$transaction).toHaveBeenCalled();
   });
 
-  it("getProfile returns profile with avatar mapping and throws for missing user", async () => {
+  it("getProfile throws when user does not exist", async () => {
     const svc = await loadService();
 
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
     await expect(svc.getProfile(1)).rejects.toMatchObject({ code: "USER_NOT_FOUND" });
+  });
+
+  it("getProfile maps avatar bytes to base64", async () => {
+    const svc = await loadService();
 
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: 1,
@@ -265,6 +281,10 @@ describe("auth service", () => {
       avatarBase64: Buffer.from("avatar-bytes").toString("base64"),
       avatarMime: null,
     });
+  });
+
+  it("getProfile preserves null avatarBase64 when no avatar data is stored", async () => {
+    const svc = await loadService();
 
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: 2,
@@ -284,7 +304,7 @@ describe("auth service", () => {
     });
   });
 
-  it("updateProfile handles avatar removal and avatar replacement", async () => {
+  it("updateProfile removes avatar when avatarBase64 is null", async () => {
     const svc = await loadService();
 
     prismaMock.user.update.mockResolvedValueOnce({
@@ -301,6 +321,10 @@ describe("auth service", () => {
       where: { id: 1 },
       data: { firstName: "A", avatarData: null, avatarMime: null },
     });
+  });
+
+  it("updateProfile stores avatar bytes and mime type", async () => {
+    const svc = await loadService();
 
     prismaMock.user.update.mockResolvedValueOnce({
       id: 1,
@@ -327,6 +351,10 @@ describe("auth service", () => {
       },
     });
     expect(result.avatarBase64).toBe(Buffer.from("img").toString("base64"));
+  });
+
+  it("updateProfile keeps null mime when avatarMime is omitted", async () => {
+    const svc = await loadService();
 
     prismaMock.user.update.mockResolvedValueOnce({
       id: 1,

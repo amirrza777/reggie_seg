@@ -5,57 +5,59 @@ import type { ReactNode } from "react";
 import { UserProvider } from "@/features/auth/context";
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+  useManualScrollRestoration();
+  useDevCacheReset();
 
+  // Add things like QueryClientProvider/ThemeProvider here later.
+  return <UserProvider>{children}</UserProvider>;
+}
+
+function useManualScrollRestoration() {
+  useEffect(() => {
+    if (typeof window === "undefined") return;
     const originalScrollRestoration = window.history.scrollRestoration;
     window.history.scrollRestoration = "manual";
-
     return () => {
       window.history.scrollRestoration = originalScrollRestoration;
     };
   }, []);
+}
 
+function useDevCacheReset() {
   useEffect(() => {
-    if (typeof window === "undefined" || process.env.NODE_ENV !== "development") {
-      return;
-    }
+    if (!isDevelopmentBrowser()) return;
 
     const cacheResetKey = "tf_dev_cache_reset_v1";
-    if (window.sessionStorage.getItem(cacheResetKey) === "done") {
-      return;
-    }
+    if (window.sessionStorage.getItem(cacheResetKey) === "done") return;
     window.sessionStorage.setItem(cacheResetKey, "done");
-
-    const clearDevCaches = async () => {
-      let changed = false;
-
-      if ("serviceWorker" in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        if (registrations.length > 0) {
-          changed = true;
-          await Promise.all(registrations.map((registration) => registration.unregister()));
-        }
-      }
-
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        if (keys.length > 0) {
-          changed = true;
-          await Promise.all(keys.map((key) => caches.delete(key)));
-        }
-      }
-
-      if (changed) {
-        window.location.reload();
-      }
-    };
-
-    void clearDevCaches();
+    void clearDevCachesAndReload();
   }, []);
+}
 
-  // Add things like QueryClientProvider/ThemeProvider here later.
-  return <UserProvider>{children}</UserProvider>;
+function isDevelopmentBrowser() {
+  return typeof window !== "undefined" && process.env.NODE_ENV === "development";
+}
+
+async function clearDevCachesAndReload() {
+  const serviceWorkersChanged = await clearServiceWorkers();
+  const cacheStorageChanged = await clearBrowserCaches();
+  if (serviceWorkersChanged || cacheStorageChanged) {
+    window.location.reload();
+  }
+}
+
+async function clearServiceWorkers() {
+  if (!("serviceWorker" in navigator)) return false;
+  const registrations = await navigator.serviceWorker.getRegistrations();
+  if (registrations.length === 0) return false;
+  await Promise.all(registrations.map((registration) => registration.unregister()));
+  return true;
+}
+
+async function clearBrowserCaches() {
+  if (!("caches" in window)) return false;
+  const keys = await caches.keys();
+  if (keys.length === 0) return false;
+  await Promise.all(keys.map((key) => caches.delete(key)));
+  return true;
 }

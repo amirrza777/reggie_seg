@@ -40,6 +40,7 @@ export function ArchiveManager() {
         setTeams((prev) => prev.map((t) => (t.id === id ? { ...t, archivedAt: isArchived ? null : now } : t)));
       }
     } catch {
+      // Keep current local state when the toggle request fails.
     } finally {
       setLoading(null);
     }

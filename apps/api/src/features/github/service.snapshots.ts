@@ -72,7 +72,25 @@ export async function getProjectGithubMappingCoverage(userId: number, linkId: nu
   }
 
   const latest = await findLatestGithubSnapshotCoverageByProjectLinkId(link.id);
-  if (!latest || !latest.repoStats) {
+  const repoStats = latest?.repoStats as
+    | Array<{
+        totalContributors: number;
+        matchedContributors: number;
+        unmatchedContributors: number;
+        totalCommits: number;
+        unmatchedCommits: number;
+      }>
+    | {
+        totalContributors: number;
+        matchedContributors: number;
+        unmatchedContributors: number;
+        totalCommits: number;
+        unmatchedCommits: number;
+      }
+    | null
+    | undefined;
+  const repoStat = Array.isArray(repoStats) ? (repoStats[0] ?? null) : (repoStats ?? null);
+  if (!latest || !repoStat) {
     return {
       linkId: link.id,
       snapshotId: null,
@@ -86,11 +104,11 @@ export async function getProjectGithubMappingCoverage(userId: number, linkId: nu
     snapshotId: latest.id,
     analysedAt: latest.analysedAt,
     coverage: {
-      totalContributors: latest.repoStats.totalContributors,
-      matchedContributors: latest.repoStats.matchedContributors,
-      unmatchedContributors: latest.repoStats.unmatchedContributors,
-      totalCommits: latest.repoStats.totalCommits,
-      unmatchedCommits: latest.repoStats.unmatchedCommits,
+      totalContributors: repoStat.totalContributors,
+      matchedContributors: repoStat.matchedContributors,
+      unmatchedContributors: repoStat.unmatchedContributors,
+      totalCommits: repoStat.totalCommits,
+      unmatchedCommits: repoStat.unmatchedCommits,
     },
   };
 }

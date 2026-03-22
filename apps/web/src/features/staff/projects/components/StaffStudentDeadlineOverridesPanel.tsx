@@ -8,6 +8,7 @@ import {
 } from "@/features/projects/api/client";
 import type { StaffStudentDeadlineOverride, StaffStudentDeadlineOverridePayload } from "@/features/projects/types";
 import { filterBySearchQuery } from "@/shared/lib/search";
+import { SearchField } from "@/shared/ui/SearchField";
 
 type StaffTeamMemberLite = {
   id: number;
@@ -195,10 +196,9 @@ export function StaffStudentDeadlineOverridesPanel({
 
       <label className="staff-projects__field" htmlFor="student-overrides-search">
         <span className="staff-projects__field-label">Search students</span>
-        <input
+        <SearchField
           id="student-overrides-search"
           className="staff-projects__input"
-          type="search"
           value={memberSearchQuery}
           onChange={(event) => setMemberSearchQuery(event.target.value)}
           placeholder="Search by name or email"

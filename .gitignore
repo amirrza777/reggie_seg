@@ -13,5 +13,6 @@ coverage/
 .next/
 apps/web/.next/
 apps/web/.next-dev/
+*.tsbuildinfo
 .zed/
 .claude/

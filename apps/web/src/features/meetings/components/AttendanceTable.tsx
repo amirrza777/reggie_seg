@@ -14,14 +14,23 @@ type Member = {
 
 type AttendanceTableProps = {
   meetingId: number;
-  members: Member[];
-  initialAttendances: MeetingAttendanceRecord[];
+  members?: Member[];
+  initialAttendances?: MeetingAttendanceRecord[];
 };
+
+function deriveMembersFromAttendances(initialAttendances: MeetingAttendanceRecord[]): Member[] {
+  return initialAttendances.map((attendance) => ({
+    id: attendance.user.id,
+    firstName: attendance.user.firstName,
+    lastName: attendance.user.lastName,
+  }));
+}
 
 function buildAttendanceList(members: Member[], initialAttendances: MeetingAttendanceRecord[]): MeetingAttendanceRecord[] {
   const existingByUserId = new Map(initialAttendances.map((a) => [a.userId, a]));
+  const sourceMembers = members.length > 0 ? members : deriveMembersFromAttendances(initialAttendances);
 
-  return members.map((member) => {
+  return sourceMembers.map((member) => {
     const existing = existingByUserId.get(member.id);
     if (existing) return existing;
 
@@ -35,7 +44,11 @@ function buildAttendanceList(members: Member[], initialAttendances: MeetingAtten
   });
 }
 
-export function AttendanceTable({ meetingId, members, initialAttendances }: AttendanceTableProps) {
+export function AttendanceTable({
+  meetingId,
+  members = [],
+  initialAttendances = [],
+}: AttendanceTableProps) {
   const [attendances, setAttendances] = useState(() => buildAttendanceList(members, initialAttendances));
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);

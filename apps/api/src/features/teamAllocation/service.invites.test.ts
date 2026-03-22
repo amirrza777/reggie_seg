@@ -75,6 +75,14 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 describe("teamAllocation service invites", () => {
+  function mockCreateInviteContext(teamName: string, projectId: number, firstName: string, lastName: string) {
+    (repo.findActiveInvite as any).mockResolvedValue(null);
+    (repo.findInviteContext as any).mockResolvedValue({
+      team: { teamName, projectId },
+      inviter: { firstName, lastName, email: `${firstName.toLowerCase()}@example.com` },
+    });
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue(null);
@@ -92,13 +100,9 @@ describe("teamAllocation service invites", () => {
     ).rejects.toEqual({ code: "INVITE_ALREADY_PENDING" });
   });
 
-  it("createTeamInvite stores invite and sends email", async () => {
-    (repo.findActiveInvite as any).mockResolvedValue(null);
+  it("createTeamInvite stores a normalized pending invite and returns token metadata", async () => {
+    mockCreateInviteContext("Team Alpha", 3, "Ava", "Smith");
     (repo.createTeamInviteRecord as any).mockResolvedValue({ id: "inv-1" });
-    (repo.findInviteContext as any).mockResolvedValue({
-      team: { teamName: "Team Alpha", projectId: 3 },
-      inviter: { firstName: "Ava", lastName: "Smith", email: "ava@example.com" },
-    });
 
     const result = await createTeamInvite({
       teamId: 1,
@@ -121,6 +125,28 @@ describe("teamAllocation service invites", () => {
         expiresAt: expect.any(Date),
       })
     );
+    expect(result).toEqual(
+      expect.objectContaining({
+        invite: { id: "inv-1" },
+        rawToken: expect.any(String),
+      })
+    );
+    expect(result.rawToken).toHaveLength(64);
+  });
+
+  it("createTeamInvite sends invitation email and in-app notification", async () => {
+    mockCreateInviteContext("Team Alpha", 3, "Ava", "Smith");
+    (repo.createTeamInviteRecord as any).mockResolvedValue({ id: "inv-1" });
+
+    await createTeamInvite({
+      teamId: 1,
+      inviterId: 2,
+      inviteeEmail: "User@Example.com ",
+      inviteeId: 7,
+      message: "Join us",
+      baseUrl: "http://localhost:3001",
+    });
+
     expect(sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "user@example.com",
@@ -134,13 +160,6 @@ describe("teamAllocation service invites", () => {
       message: 'Ava Smith invited you to join "Team Alpha"',
       link: "/projects/3/team",
     });
-    expect(result).toEqual(
-      expect.objectContaining({
-        invite: { id: "inv-1" },
-        rawToken: expect.any(String),
-      })
-    );
-    expect(result.rawToken).toHaveLength(64);
   });
 
   it("createTeamInvite resolves userId from email when inviteeId not provided", async () => {

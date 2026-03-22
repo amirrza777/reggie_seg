@@ -59,12 +59,12 @@ export async function fetchModulesForUser(
   return modules.map((module) => ({
     id: String(module.id),
     title: module.name,
-    briefText: module.briefText ?? undefined,
-    timelineText: module.timelineText ?? undefined,
-    expectationsText: module.expectationsText ?? undefined,
-    readinessNotesText: module.readinessNotesText ?? undefined,
-    teamCount: module.teamCount,
-    projectCount: module.projectCount,
+    briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
+    timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
+    expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
+    readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
+    teamCount: "teamCount" in module ? module.teamCount : 0,
+    projectCount: "projectCount" in module ? module.projectCount : 0,
     accountRole: module.accessRole,
   }));
 }

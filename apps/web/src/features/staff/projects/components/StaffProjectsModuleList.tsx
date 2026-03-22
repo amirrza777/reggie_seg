@@ -1,0 +1,219 @@
+import Link from "next/link";
+import { Fragment, type ReactNode } from "react";
+
+type ProjectTeamLink = {
+  id: number;
+  teamName: string;
+  memberCount: number;
+};
+
+type StaffProjectWithTeams = {
+  id: number;
+  name: string;
+  teamCount: number;
+  hasGithubRepo: boolean;
+  membersTotal: number;
+  membersConnected: number;
+  visibleTeams: ProjectTeamLink[];
+  teamFetchFailed: boolean;
+};
+
+export type ModuleGroup = {
+  moduleId: number;
+  moduleName: string;
+  projects: StaffProjectWithTeams[];
+};
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightSearchText(text: string, query?: string): ReactNode {
+  const terms = String(query ?? "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (terms.length === 0) return text;
+
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "ig");
+  const parts = text.split(pattern);
+  if (parts.length <= 1) return text;
+
+  const lowerTerms = new Set(terms.map((term) => term.toLowerCase()));
+  return parts.map((part, index) =>
+    lowerTerms.has(part.toLowerCase()) ? (
+      <mark key={`hit-${index}`} className="staff-projects__search-hit">
+        {part}
+      </mark>
+    ) : (
+      <Fragment key={`txt-${index}`}>{part}</Fragment>
+    ),
+  );
+}
+
+function GithubHealthPills({
+  hasGithubRepo,
+  membersTotal,
+  membersConnected,
+}: {
+  hasGithubRepo: boolean;
+  membersTotal: number;
+  membersConnected: number;
+}) {
+  const hasMembers = membersTotal > 0;
+  const connectionTone = getConnectionTone({
+    hasMembers,
+    membersTotal,
+    membersConnected,
+  });
+
+  return (
+    <div className="staff-projects__gh-health">
+      <span className={`staff-projects__gh-pill ${hasGithubRepo ? "staff-projects__gh-pill--ok" : "staff-projects__gh-pill--warn"}`}>
+        {hasGithubRepo ? "✓ Repo linked" : "⚠ No repo"}
+      </span>
+      {hasMembers ? (
+        <span className={`staff-projects__gh-pill ${connectionTone}`}>
+          {membersConnected}/{membersTotal} GitHub
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function getConnectionTone({
+  hasMembers,
+  membersTotal,
+  membersConnected,
+}: {
+  hasMembers: boolean;
+  membersTotal: number;
+  membersConnected: number;
+}): string {
+  if (!hasMembers) return "";
+  if (membersConnected === membersTotal) return "staff-projects__gh-pill--ok";
+  if (membersConnected > 0) return "staff-projects__gh-pill--partial";
+  return "staff-projects__gh-pill--warn";
+}
+
+function ProjectTeams({
+  projectId,
+  teams,
+  teamFetchFailed,
+  rawQuery,
+}: {
+  projectId: number;
+  teams: ProjectTeamLink[];
+  teamFetchFailed: boolean;
+  rawQuery: string | undefined;
+}) {
+  if (teams.length === 0) {
+    return <p className="muted">{teamFetchFailed ? "Could not load teams right now." : "No teams in this project yet."}</p>;
+  }
+
+  return (
+    <>
+      {teams.map((team) => (
+        <Link key={team.id} href={`/staff/projects/${projectId}/teams/${team.id}`} className="staff-projects__module-team-link">
+          <span>{highlightSearchText(team.teamName, rawQuery)}</span>
+          <span className="staff-projects__module-team-meta">
+            {team.memberCount} member{team.memberCount === 1 ? "" : "s"}
+          </span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+function ProjectCard({
+  project,
+  hasQuery,
+  rawQuery,
+}: {
+  project: StaffProjectWithTeams;
+  hasQuery: boolean;
+  rawQuery: string | undefined;
+}) {
+  return (
+    <details className="staff-projects__module-project-card" open={hasQuery}>
+      <summary className="staff-projects__module-project-summary">
+        <div className="staff-projects__module-project-head">
+          <div className="staff-projects__module-project-copy">
+            <h3 className="staff-projects__module-project-title">{highlightSearchText(project.name, rawQuery)}</h3>
+            <p className="staff-projects__module-project-sub">
+              {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
+            </p>
+          </div>
+          <GithubHealthPills
+            hasGithubRepo={project.hasGithubRepo}
+            membersTotal={project.membersTotal}
+            membersConnected={project.membersConnected}
+          />
+        </div>
+        <span className="staff-projects__project-toggle" aria-hidden="true" />
+      </summary>
+
+      <div className="staff-projects__module-project-content">
+        <div className="staff-projects__module-project-actions">
+          <Link href={`/staff/projects/${project.id}`} className="staff-projects__badge">
+            Open project
+          </Link>
+          <Link href={`/staff/projects/${project.id}/team-allocation`} className="staff-projects__badge">
+            Team allocation
+          </Link>
+        </div>
+
+        <div className="staff-projects__module-team-list" aria-label={`Teams in ${project.name}`}>
+          <ProjectTeams
+            projectId={project.id}
+            teams={project.visibleTeams}
+            teamFetchFailed={project.teamFetchFailed}
+            rawQuery={rawQuery}
+          />
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function ModuleGroupCard({ module, hasQuery, rawQuery }: { module: ModuleGroup; hasQuery: boolean; rawQuery: string | undefined }) {
+  const teamTotal = module.projects.reduce((sum, project) => sum + project.visibleTeams.length, 0);
+
+  return (
+    <details className="staff-projects__module-group" open={hasQuery}>
+      <summary className="staff-projects__module-summary">
+        <div className="staff-projects__module-heading">
+          <h2 className="staff-projects__module-title">{highlightSearchText(module.moduleName, rawQuery)}</h2>
+          <p className="staff-projects__module-subtitle">
+            {module.projects.length} project{module.projects.length === 1 ? "" : "s"} · {teamTotal} team{teamTotal === 1 ? "" : "s"}
+          </p>
+        </div>
+        <span className="staff-projects__module-toggle" aria-hidden="true" />
+      </summary>
+
+      <div className="staff-projects__module-projects">
+        {module.projects.map((project) => (
+          <ProjectCard key={project.id} project={project} hasQuery={hasQuery} rawQuery={rawQuery} />
+        ))}
+      </div>
+    </details>
+  );
+}
+
+export function StaffProjectsModuleList({
+  modules,
+  hasQuery,
+  rawQuery,
+}: {
+  modules: ModuleGroup[];
+  hasQuery: boolean;
+  rawQuery: string | undefined;
+}) {
+  return (
+    <section className="staff-projects__module-list" aria-label="Staff projects grouped by module">
+      {modules.map((module) => (
+        <ModuleGroupCard key={module.moduleId} module={module} hasQuery={hasQuery} rawQuery={rawQuery} />
+      ))}
+    </section>
+  );
+}

@@ -140,13 +140,13 @@ function parseStudentDeadlineOverridePayload(
   return {
     ok: true,
     value: {
-      taskOpenDate: taskOpenDate.value,
-      taskDueDate: taskDueDate.value,
-      assessmentOpenDate: assessmentOpenDate.value,
-      assessmentDueDate: assessmentDueDate.value,
-      feedbackOpenDate: feedbackOpenDate.value,
-      feedbackDueDate: feedbackDueDate.value,
-      reason,
+      ...(taskOpenDate.value !== undefined ? { taskOpenDate: taskOpenDate.value } : {}),
+      ...(taskDueDate.value !== undefined ? { taskDueDate: taskDueDate.value } : {}),
+      ...(assessmentOpenDate.value !== undefined ? { assessmentOpenDate: assessmentOpenDate.value } : {}),
+      ...(assessmentDueDate.value !== undefined ? { assessmentDueDate: assessmentDueDate.value } : {}),
+      ...(feedbackOpenDate.value !== undefined ? { feedbackOpenDate: feedbackOpenDate.value } : {}),
+      ...(feedbackDueDate.value !== undefined ? { feedbackDueDate: feedbackDueDate.value } : {}),
+      ...(reason !== undefined ? { reason } : {}),
     },
   };
 }

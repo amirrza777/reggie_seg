@@ -15,6 +15,10 @@ model Project {
   teamHealthMessages    TeamHealthMessage[]
   deadline              ProjectDeadline?
   githubRepositories    ProjectGithubRepository[]
+  forumIsAnonymous Boolean @default(false)
+  discussionPosts       DiscussionPost[]
+  forumReports         ForumReport[]
+  forumStudentReports  ForumStudentReport[]
 
   @@index([moduleId])
   @@index([questionnaireTemplateId])
