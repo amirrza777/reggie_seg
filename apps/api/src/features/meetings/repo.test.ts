@@ -3,11 +3,19 @@ import {
   getMeetingsByTeamId,
   getMeetingById,
   createMeeting,
+  updateMeeting,
+  createParticipants,
   deleteMeeting,
   bulkUpsertAttendance,
   upsertMinutes,
   createComment,
   deleteComment,
+  createMentions,
+  getTeamMeetingState,
+  clearTeamInactivityFlag,
+  getRecentAttendanceForUser,
+  getModuleLeadsForTeam,
+  getModuleMeetingSettingsForTeam,
 } from "./repo.js";
 
 vi.mock("../../shared/db.js", () => ({
@@ -16,10 +24,15 @@ vi.mock("../../shared/db.js", () => ({
       findMany: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
+    },
+    meetingParticipant: {
+      createMany: vi.fn(),
     },
     meetingAttendance: {
       upsert: vi.fn(),
+      findMany: vi.fn(),
     },
     meetingMinutes: {
       upsert: vi.fn(),
@@ -27,6 +40,19 @@ vi.mock("../../shared/db.js", () => ({
     meetingComment: {
       create: vi.fn(),
       delete: vi.fn(),
+    },
+    mention: {
+      createMany: vi.fn(),
+    },
+    team: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    project: {
+      findFirst: vi.fn(),
+    },
+    moduleLead: {
+      findMany: vi.fn(),
     },
     $transaction: vi.fn(),
   },
@@ -47,22 +73,24 @@ describe("meetings repo", () => {
       orderBy: { date: "desc" },
       include: expect.objectContaining({
         organiser: expect.any(Object),
+        participants: expect.any(Object),
         attendances: expect.any(Object),
-        minutes: true,
+        minutes: expect.any(Object),
         comments: expect.any(Object),
       }),
     });
   });
 
-  it("fetches a single meeting by id", async () => {
+  it("fetches a single meeting by id with includes", async () => {
     await getMeetingById(10);
 
     expect(prisma.meeting.findUnique).toHaveBeenCalledWith({
       where: { id: 10 },
       include: expect.objectContaining({
         organiser: expect.any(Object),
+        participants: expect.any(Object),
         attendances: expect.any(Object),
-        minutes: true,
+        minutes: expect.any(Object),
         comments: expect.any(Object),
       }),
     });
@@ -81,6 +109,28 @@ describe("meetings repo", () => {
     await createMeeting(data);
 
     expect(prisma.meeting.create).toHaveBeenCalledWith({ data });
+  });
+
+  it("updates a meeting with the given fields", async () => {
+    await updateMeeting(1, { title: "New Title" });
+
+    expect(prisma.meeting.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { title: "New Title" },
+    });
+  });
+
+  it("creates participant records for a meeting", async () => {
+    await createParticipants(5, [1, 2, 3]);
+
+    expect(prisma.meetingParticipant.createMany).toHaveBeenCalledWith({
+      data: [
+        { meetingId: 5, userId: 1 },
+        { meetingId: 5, userId: 2 },
+        { meetingId: 5, userId: 3 },
+      ],
+      skipDuplicates: true,
+    });
   });
 
   it("deletes a meeting by id", async () => {
@@ -127,5 +177,84 @@ describe("meetings repo", () => {
     expect(prisma.meetingComment.delete).toHaveBeenCalledWith({
       where: { id: 12 },
     });
+  });
+
+  it("creates mention records for a comment", async () => {
+    await createMentions(7, [2, 3]);
+
+    expect(prisma.mention.createMany).toHaveBeenCalledWith({
+      data: [
+        { userId: 2, sourceType: "COMMENT", sourceId: 7 },
+        { userId: 3, sourceType: "COMMENT", sourceId: 7 },
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it("returns team meeting state fields", async () => {
+    await getTeamMeetingState(1);
+
+    expect(prisma.team.findUnique).toHaveBeenCalledWith({
+      where: { id: 1 },
+      select: { archivedAt: true, inactivityFlag: true },
+    });
+  });
+
+  it("clears team inactivity flag", async () => {
+    await clearTeamInactivityFlag(1);
+
+    expect(prisma.team.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { inactivityFlag: "NONE" },
+    });
+  });
+
+  it("fetches recent attendance for a user scoped to team", async () => {
+    await getRecentAttendanceForUser(1, 2, 3);
+
+    expect(prisma.meetingAttendance.findMany).toHaveBeenCalledWith({
+      where: { userId: 1, meeting: { teamId: 2 } },
+      orderBy: { meeting: { date: "desc" } },
+      take: 3,
+      select: { status: true },
+    });
+  });
+
+  it("returns empty array from getModuleLeadsForTeam when no project found", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue(null);
+
+    const result = await getModuleLeadsForTeam(1);
+
+    expect(result).toEqual([]);
+  });
+
+  it("returns module leads when project found", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue({ moduleId: 2 });
+    (prisma.moduleLead.findMany as any).mockResolvedValue([{ userId: 5 }]);
+
+    await getModuleLeadsForTeam(1);
+
+    expect(prisma.moduleLead.findMany).toHaveBeenCalledWith({
+      where: { moduleId: 2 },
+      select: { userId: true },
+    });
+  });
+
+  it("returns module meeting settings when project found", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue({
+      module: { absenceThreshold: 4, minutesEditWindowDays: 14 },
+    });
+
+    const result = await getModuleMeetingSettingsForTeam(1);
+
+    expect(result).toEqual({ absenceThreshold: 4, minutesEditWindowDays: 14 });
+  });
+
+  it("returns default meeting settings when no project found", async () => {
+    (prisma.project.findFirst as any).mockResolvedValue(null);
+
+    const result = await getModuleMeetingSettingsForTeam(1);
+
+    expect(result).toEqual({ absenceThreshold: 3, minutesEditWindowDays: 7 });
   });
 });
