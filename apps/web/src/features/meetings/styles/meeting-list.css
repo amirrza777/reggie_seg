@@ -62,6 +62,6 @@
 }
 
 .meeting-form__participant-item > input[type="checkbox"]:checked {
-  background: var(--status-success);
-  border-color: var(--status-success);
+  background: #22c55e;
+  border-color: #22c55e;
 }
