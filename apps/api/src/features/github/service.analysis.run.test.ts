@@ -26,6 +26,7 @@ const aggregateMocks = vi.hoisted(() => ({
   aggregateCommitData: vi.fn(),
   filterCommitsAfter: vi.fn(),
   hasUsableRepoCommitsByDay: vi.fn(),
+  isMergeCommit: vi.fn(),
   mergeCountMaps: vi.fn(),
   mergeLineChangeMaps: vi.fn(),
   mergeSampleCommits: vi.fn(),
@@ -48,6 +49,7 @@ describe("github service.analysis.run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     fetchMocks.fetchBranchCommitCount.mockResolvedValue(0);
+    aggregateMocks.isMergeCommit.mockReturnValue(false);
   });
 
   it("throws 404 when link is missing", async () => {
