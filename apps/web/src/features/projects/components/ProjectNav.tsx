@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useMemo } from "react";
 
 type ProjectNavProps = {
   projectId: string;
@@ -11,25 +12,29 @@ type ProjectNavProps = {
 export function ProjectNav({ projectId, enabledFlags }: ProjectNavProps) {
   const pathname = usePathname();
   const base = `/projects/${projectId}`;
-  const links = [
-    { href: base, label: "Overview" },
-    { href: `${base}/team`, label: "Team" },
-    { href: `${base}/meetings`, label: "Meetings" },
-    { href: `${base}/peer-assessments`, label: "Peer assessment", flag: "peer_assessment" },
-    { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
-    { href: `${base}/repos`, label: "Repositories", flag: "repos" },
-    { href: `${base}/trello`, label: "Trello", flag: "trello" },
-    { href: `${base}/discussion`, label: "Discussion Forum" },
-    { href: `${base}/team-health`, label: "Team Health" },
-  ].filter((link) => {
-    if (link.flag && enabledFlags) {
-      if (Object.prototype.hasOwnProperty.call(enabledFlags, link.flag)) {
-        return enabledFlags[link.flag] === true;
-      }
-      return true;
-    }
-    return true;
-  });
+  const links = useMemo(
+    () =>
+      [
+        { href: base, label: "Overview" },
+        { href: `${base}/team`, label: "Team" },
+        { href: `${base}/meetings`, label: "Meetings" },
+        { href: `${base}/peer-assessments`, label: "Peer assessment", flag: "peer_assessment" },
+        { href: `${base}/peer-feedback`, label: "Peer feedback", flag: "peer_feedback" },
+        { href: `${base}/repos`, label: "Repositories", flag: "repos" },
+        { href: `${base}/trello`, label: "Trello", flag: "trello" },
+        { href: `${base}/discussion`, label: "Discussion Forum" },
+        { href: `${base}/team-health`, label: "Team Health" },
+      ].filter((link) => {
+        if (link.flag && enabledFlags) {
+          if (Object.prototype.hasOwnProperty.call(enabledFlags, link.flag)) {
+            return enabledFlags[link.flag] === true;
+          }
+          return true;
+        }
+        return true;
+      }),
+    [base, enabledFlags],
+  );
 
   return (
     <nav className="pill-nav">

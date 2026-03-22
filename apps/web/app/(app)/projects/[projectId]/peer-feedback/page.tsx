@@ -29,17 +29,16 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     );
   }
 
-  let readOnly = false;
-  try {
-    const deadline = await getProjectDeadline(user.id, Number(projectId));
-    const dueAt = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
-    const now = new Date();
-    readOnly = Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
-  } catch {
-    readOnly = false;
-  }
-
-  const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
+  const [readOnly, feedbacksRaw] = await Promise.all([
+    getProjectDeadline(user.id, Number(projectId))
+      .then((deadline) => {
+        const dueAt = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
+        const now = new Date();
+        return Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
+      })
+      .catch(() => false),
+    getPeerAssessmentsForUser(String(user.id), projectId),
+  ]);
   const reviewStatuses = await getFeedbackReviewStatuses(feedbacksRaw.map((feedback) => String(feedback.id)));
   const feedbacks = feedbacksRaw.map((feedback) => ({
     ...feedback,

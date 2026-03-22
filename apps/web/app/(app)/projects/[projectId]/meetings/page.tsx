@@ -2,6 +2,7 @@ import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPage
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
+import { PageSection } from "@/shared/ui/PageSection";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -41,18 +42,24 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
 
   if (team) {
     return (
-      <MeetingsPageContent
-        teamId={team.id}
-        projectId={numericProjectId}
-        projectCompleted={projectCompleted}
-      />
+      <PageSection
+        title="Meetings"
+        description="Schedule and view your team meetings."
+        className="ui-page--project"
+      >
+        <MeetingsPageContent
+          teamId={team.id}
+          projectId={numericProjectId}
+          projectCompleted={projectCompleted}
+        />
+      </PageSection>
     );
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <PageSection title="Meetings" className="ui-page--project">
       <p>You are not in a team for this project.</p>
       <Link href={`/projects/${projectId}`}>← Back to project</Link>
-    </div>
+    </PageSection>
   );
 }

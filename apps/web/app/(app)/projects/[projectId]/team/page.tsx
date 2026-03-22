@@ -4,6 +4,7 @@ import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
+import { PageSection } from "@/shared/ui/PageSection";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -51,13 +52,11 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
 
   const initialInvites = team && !projectCompleted ? await getTeamInvites(team.id) : [];
 
-  const cardTitle = team
-    ? `Project Team${team.teamName ? ` — ${team.teamName}` : ""}`
-    : "Team Formation";
+  const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
 
   return (
-    <div style={{ padding: 20 }}>
-      <Card title={cardTitle}>
+    <PageSection title={pageTitle} className="ui-page--project">
+      <Card>
         {user ? (
           <TeamFormationPanel
             team={team}
@@ -69,6 +68,6 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
           <p>Please sign in to manage your team.</p>
         )}
       </Card>
-    </div>
+    </PageSection>
   );
 }

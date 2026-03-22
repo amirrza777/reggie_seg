@@ -44,9 +44,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     );
   }
 
-  const project = await getProject(projectId);
-
-  let deadline: ProjectDeadline = {
+  const defaultDeadline: ProjectDeadline = {
     taskOpenDate: null,
     taskDueDate: null,
     assessmentOpenDate: null,
@@ -55,17 +53,24 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     feedbackDueDate: null,
     isOverridden: false,
   };
-  try {
-    deadline = await getProjectDeadline(user.id, numericProjectId);
-  } catch {
-    // Keep default empty deadline object if API is unavailable.
-  }
+  const [project, deadline] = await Promise.all([
+    getProject(projectId),
+    getProjectDeadline(user.id, numericProjectId).catch(() => defaultDeadline),
+  ]);
+
+  const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => new Date(value))
+    .filter((value) => !Number.isNaN(value.getTime()));
+  const latestDue = dueCandidates.length > 0
+    ? dueCandidates.reduce((latest, current) => (current.getTime() > latest.getTime() ? current : latest))
+    : null;
+  const now = new Date();
+  const likelyCompleted = Boolean(project.archivedAt) || Boolean(latestDue && latestDue.getTime() < now.getTime());
 
   let marking: ProjectMarkingSummary | null = null;
-  try {
-    marking = await getProjectMarking(user.id, numericProjectId);
-  } catch {
-    marking = null;
+  if (likelyCompleted) {
+    marking = await getProjectMarking(user.id, numericProjectId).catch(() => null as ProjectMarkingSummary | null);
   }
 
   return <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} view="overview" />;

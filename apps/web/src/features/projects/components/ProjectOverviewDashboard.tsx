@@ -227,18 +227,16 @@ export function ProjectOverviewDashboard({
         isCompleted={completed}
       />
 
+      <div className="stack project-overview-layout project-overview-layout--overview">
+        <InformationBoardCard informationText={project.informationText} largeText />
+        {!completed ? <DeadlinesScheduleCard items={deadlineItems} emphasize /> : null}
+      </div>
+
       {completed ? (
         <TutorMarkingCard
           teamMarking={marking?.teamMarking ?? null}
           studentMarking={marking?.studentMarking ?? null}
         />
-      ) : null}
-
-      {!completed ? (
-        <div className="stack project-overview-layout project-overview-layout--overview">
-          <InformationBoardCard informationText={project.informationText} largeText />
-          <DeadlinesScheduleCard items={deadlineItems} emphasize />
-        </div>
       ) : null}
     </div>
   );

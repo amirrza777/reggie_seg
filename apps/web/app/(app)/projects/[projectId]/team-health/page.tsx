@@ -53,15 +53,25 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   let initialWarnings: TeamWarning[] = [];
   let loadError: string | null = null;
   let warningsLoadError: string | null = null;
-  try {
-    initialRequests = await getMyTeamHealthMessages(numericProjectId, user.id);
-  } catch (error) {
-    loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
+  const [messagesResult, warningsResult] = await Promise.allSettled([
+    getMyTeamHealthMessages(numericProjectId, user.id),
+    getMyTeamWarnings(numericProjectId, user.id),
+  ]);
+
+  if (messagesResult.status === "fulfilled") {
+    initialRequests = messagesResult.value;
+  } else {
+    loadError = messagesResult.reason instanceof Error
+      ? messagesResult.reason.message
+      : "Failed to load existing team health messages.";
   }
-  try {
-    initialWarnings = await getMyTeamWarnings(numericProjectId, user.id);
-  } catch (error) {
-    warningsLoadError = error instanceof Error ? error.message : "Failed to load team warnings.";
+
+  if (warningsResult.status === "fulfilled") {
+    initialWarnings = warningsResult.value;
+  } else {
+    warningsLoadError = warningsResult.reason instanceof Error
+      ? warningsResult.reason.message
+      : "Failed to load team warnings.";
   }
 
   const activeWarnings = initialWarnings.filter((warning) => warning.active);
@@ -117,15 +127,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
           initialRequests={initialRequests}
         />
         {loadError ? <p className="error">{loadError}</p> : null}
-        <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 18 }}>
-          <Link
-            href={`/projects/${projectId}`}
-            className="btn btn--quiet"
-            style={{ padding: "12px 24px" }}
-          >
-            Back
-          </Link>
-        </div>
       </Card>
     </PageSection>
   );

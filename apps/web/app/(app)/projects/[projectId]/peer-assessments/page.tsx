@@ -41,17 +41,14 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
     );
   }
 
-  let readOnly = false;
-  try {
-    const deadline = await getProjectDeadline(user.id, numericProjectId);
-    const dueAt = deadline.assessmentDueDate ? new Date(deadline.assessmentDueDate) : null;
-    const now = new Date();
-    readOnly = Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
-  } catch {
-    readOnly = false;
-  }
-
-  const [peers, assessments] = await Promise.all([
+  const [readOnly, peers, assessments] = await Promise.all([
+    getProjectDeadline(user.id, numericProjectId)
+      .then((deadline) => {
+        const dueAt = deadline.assessmentDueDate ? new Date(deadline.assessmentDueDate) : null;
+        const now = new Date();
+        return Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
+      })
+      .catch(() => false),
     getTeammates(user.id, team.id),
     getPeerAssessmentsForUser(user.id, numericProjectId),
   ]);
