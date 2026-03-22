@@ -1,0 +1,35 @@
+/* Shared elevation roles for consistent shadow depth across the app. */
+.elevation--none,
+[data-elevation="none"] {
+  box-shadow: var(--elevation-none);
+}
+
+.elevation--panel,
+[data-elevation="panel"] {
+  box-shadow: var(--elevation-panel);
+}
+
+.elevation--sticky,
+[data-elevation="sticky"] {
+  box-shadow: var(--elevation-sticky);
+}
+
+.elevation--sticky-strong,
+[data-elevation="sticky-strong"] {
+  box-shadow: var(--elevation-sticky-strong);
+}
+
+.elevation--popup,
+[data-elevation="popup"] {
+  box-shadow: var(--elevation-popup);
+}
+
+.elevation--toast,
+[data-elevation="toast"] {
+  box-shadow: var(--elevation-toast);
+}
+
+.elevation--overlay,
+[data-elevation="overlay"] {
+  box-shadow: var(--elevation-overlay);
+}
