@@ -21,6 +21,7 @@ import {
   aggregateCommitData,
   filterCommitsAfter,
   hasUsableRepoCommitsByDay,
+  isMergeCommit,
   mergeCountMaps,
   mergeLineChangeMaps,
   mergeSampleCommits,
@@ -30,6 +31,8 @@ import {
   type SnapshotUserStatRecord,
   type SnapshotUserStatRow,
 } from "./service.analysis.aggregate.js";
+
+const COMMIT_LINE_STATS_MODE = "exclude_merge_commits_v1";
 
 type IdentityCandidate = {
   userId: number;
@@ -142,12 +145,17 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   const latestSnapshot = await findLatestGithubSnapshotByProjectLinkId(link.id);
   const useLatestSnapshotAsBaseline = hasUsableRepoCommitsByDay(latestSnapshot);
   const latestSnapshotData = (latestSnapshot?.data ?? null) as PreviousSnapshotData | null;
+  const snapshotUsesCurrentLineStatsMode =
+    latestSnapshotData?.commitLineStatsMode === COMMIT_LINE_STATS_MODE;
+  const shouldRebuildForLineStatsMode =
+    useLatestSnapshotAsBaseline && !snapshotUsesCurrentLineStatsMode;
   const shouldBackfillFromWindowStart =
-    useLatestSnapshotAsBaseline && hasIncompleteSnapshotCommitStatsCoverage(latestSnapshotData);
+    (useLatestSnapshotAsBaseline && hasIncompleteSnapshotCommitStatsCoverage(latestSnapshotData)) ||
+    shouldRebuildForLineStatsMode;
   const backfillWindowStart = shouldBackfillFromWindowStart
     ? parseIsoDate(latestSnapshotData?.analysedWindow?.since)
     : null;
-  const shouldRebuildFromBackfillWindow = Boolean(backfillWindowStart);
+  const shouldRebuildFromBackfillWindow = shouldBackfillFromWindowStart;
   const baselineSnapshot =
     useLatestSnapshotAsBaseline && !shouldRebuildFromBackfillWindow ? latestSnapshot : null;
   const previousAnalysedAt = baselineSnapshot?.analysedAt ?? null;
@@ -180,19 +188,21 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
     }
   }
   const allBranchCommits = Array.from(allBranchCommitBySha.values());
+  const defaultBranchNonMergeCommits = commits.filter((commit) => !isMergeCommit(commit));
+  const allBranchNonMergeCommits = allBranchCommits.filter((commit) => !isMergeCommit(commit));
   const commitStatsBySha = await fetchCommitStatsForRepository(
     accessToken,
     link.repository.fullName,
-    commits.map((commit) => commit.sha)
+    defaultBranchNonMergeCommits.map((commit) => commit.sha)
   );
   const allBranchCommitStatsBySha = await fetchCommitStatsForRepository(
     accessToken,
     link.repository.fullName,
-    allBranchCommits.map((commit) => commit.sha)
+    allBranchNonMergeCommits.map((commit) => commit.sha)
   );
   const aggregated = aggregateCommitData(commits, defaultBranch);
-  const defaultBranchLineChangesByDay = aggregateLineChangesByDay(commits, commitStatsBySha);
-  const allBranchesLineChangesByDay = aggregateLineChangesByDay(allBranchCommits, allBranchCommitStatsBySha);
+  const defaultBranchLineChangesByDay = aggregateLineChangesByDay(defaultBranchNonMergeCommits, commitStatsBySha);
+  const allBranchesLineChangesByDay = aggregateLineChangesByDay(allBranchNonMergeCommits, allBranchCommitStatsBySha);
 
   const byLogin = new Map<string, number>();
   const byEmail = new Map<string, number>();
@@ -228,7 +238,7 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
   });
 
   const contributorKeyBySha = new Map<string, string>();
-  for (const commit of commits) {
+  for (const commit of defaultBranchNonMergeCommits) {
     contributorKeyBySha.set(commit.sha, contributorKeyFromCommit(commit));
   }
   const userStatsByKey = new Map(userStats.map((stat) => [stat.contributorKey, stat]));
@@ -338,9 +348,11 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
       },
     },
     commitCount: mergedDefaultBranchCommits,
+    commitLineStatsMode: COMMIT_LINE_STATS_MODE,
     commitStatsCoverage: {
       detailedCommitCount: (previousCommitStatsCoverage?.detailedCommitCount ?? 0) + commitStatsBySha.size,
-      requestedCommitCount: (previousCommitStatsCoverage?.requestedCommitCount ?? 0) + commits.length,
+      requestedCommitCount:
+        (previousCommitStatsCoverage?.requestedCommitCount ?? 0) + defaultBranchNonMergeCommits.length,
     },
     branchScopeStats: {
       defaultBranch: {
@@ -357,7 +369,8 @@ export async function analyseProjectGithubRepository(userId: number, linkId: num
         commitsByBranch: mergedAllBranchesCommitsByBranch,
         commitStatsCoverage: {
           detailedCommitCount: (previousAllBranchesCommitStatsCoverage?.detailedCommitCount ?? 0) + allBranchCommitStatsBySha.size,
-          requestedCommitCount: (previousAllBranchesCommitStatsCoverage?.requestedCommitCount ?? 0) + allBranchCommits.length,
+          requestedCommitCount:
+            (previousAllBranchesCommitStatsCoverage?.requestedCommitCount ?? 0) + allBranchNonMergeCommits.length,
         },
       },
     },

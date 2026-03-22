@@ -19,6 +19,7 @@ import {
   aggregateCommitData,
   filterCommitsAfter,
   hasUsableRepoCommitsByDay,
+  isMergeCommit,
   isMergePullRequestCommit,
   mergeCountMaps,
   mergeLineChangeMaps,
@@ -57,6 +58,24 @@ describe("service.analysis.aggregate helpers", () => {
   it("detects merge pull request commits by message prefix", () => {
     expect(isMergePullRequestCommit(makeCommit({ sha: "1", date: "2026-02-26T00:00:00Z", message: "Merge pull request #1 from x" }))).toBe(true);
     expect(isMergePullRequestCommit(makeCommit({ sha: "2", date: "2026-02-26T00:00:00Z", message: "feat: regular" }))).toBe(false);
+  });
+
+  it("detects merge commits by parent count or merge message", () => {
+    const parentMerge = {
+      ...makeCommit({ sha: "m1", date: "2026-02-26T00:00:00Z", message: "feat: merged" }),
+      parents: [{ sha: "a" }, { sha: "b" }],
+    } as any;
+    expect(isMergeCommit(parentMerge)).toBe(true);
+    expect(
+      isMergeCommit(
+        makeCommit({
+          sha: "m2",
+          date: "2026-02-26T00:00:00Z",
+          message: "Merge branch 'feature' into main",
+        }) as any
+      )
+    ).toBe(true);
+    expect(isMergeCommit(makeCommit({ sha: "m3", date: "2026-02-26T00:00:00Z", message: "feat: regular" }) as any)).toBe(false);
   });
 
   it("aggregates commits by contributor/day/branch for the default branch", () => {
@@ -161,4 +180,3 @@ describe("service.analysis.aggregate helpers", () => {
     expect(hasUsableRepoCommitsByDay({ repoStats: [{ totalCommits: 2, commitsByDay: { "2026-02-26": 2 } }] } as any)).toBe(true);
   });
 });
-
