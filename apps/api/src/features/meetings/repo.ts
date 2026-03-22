@@ -37,6 +37,18 @@ export function getMeetingsByTeamId(teamId: number) {
           },
         },
       },
+      team: {
+        select: {
+          enterpriseId: true,
+          allocations: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
+          },
+        },
+      },
     },
   });
 }

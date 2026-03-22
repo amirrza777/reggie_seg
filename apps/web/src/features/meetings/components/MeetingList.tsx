@@ -65,6 +65,12 @@ export function MeetingList({
           }
           return dir * (a.location ?? "").localeCompare(b.location ?? "");
         }
+        case 4: {
+          if (!showMinutesWriter) {
+            return dir * (a.participants.length - b.participants.length);
+          }
+          return 0;
+        }
         default:
           return 0;
       }
@@ -72,7 +78,8 @@ export function MeetingList({
   }, [meetings, sortConfig, showMinutesWriter]);
 
   function handleSort(columnIndex: number) {
-    if (columnIndex === 4) return;
+    if (columnIndex === 5) return;
+    if (showMinutesWriter && columnIndex === 4) return;
     setSortConfig((prev) =>
       prev.column === columnIndex
         ? { column: columnIndex, direction: prev.direction === "asc" ? "desc" : "asc" }
@@ -93,6 +100,7 @@ export function MeetingList({
     "Date",
     "Organiser",
     showMinutesWriter ? "Minutes by" : "Location",
+    showMinutesWriter ? "Attendance" : "Invited",
     "",
   ];
 
@@ -157,6 +165,15 @@ export function MeetingList({
       </div>
     );
 
+    const teamSize = meeting.team.allocations.length;
+    const invitedCount = meeting.participants.length;
+
+    const attendedCount = meeting.attendances.filter((a) => a.status !== "absent").length;
+    const recordedCount = meeting.attendances.length;
+    const attendanceCell = recordedCount > 0
+      ? `${attendedCount} of ${recordedCount}`
+      : <span className="muted">—</span>;
+
     return [
       meeting.title,
       formatDate(meeting.date),
@@ -166,6 +183,9 @@ export function MeetingList({
           ? `${writer.firstName} ${writer.lastName}`
           : <span className="muted">—</span>
         : meeting.location ?? "",
+      showMinutesWriter
+        ? attendanceCell
+        : `${invitedCount} of ${teamSize}`,
       actions,
     ];
   });
@@ -175,7 +195,7 @@ export function MeetingList({
       <Table
         headers={headers}
         rows={rows}
-        sortConfig={sortConfig}
+sortConfig={sortConfig}
         onSort={handleSort}
       />
     </Card>
