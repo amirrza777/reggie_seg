@@ -29,12 +29,6 @@ export async function getModulesSummary(staffId: number): Promise<ModuleSummary[
   });
 }
 
-export async function getTeamSummary(moduleId: number): Promise<ModuleSummary[]> {
-  return apiFetch<ModuleSummary[]>(`/staff/peer-assessments/teams?moduleId=${moduleId}`, {
-    cache: "no-store",
-  });
-}
-
 export async function getModuleDetails(
   staffId: number,
   moduleId: number

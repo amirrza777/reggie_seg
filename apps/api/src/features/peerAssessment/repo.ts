@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the teammates. */
 export function getTeammates(userId: number, teamId: number) {
   return prisma.teamAllocation.findMany({
     where: {
@@ -19,6 +20,7 @@ export function getTeammates(userId: number, teamId: number) {
   });
 }
 
+/** Creates a peer assessment. */
 export function createPeerAssessment(data: {
   projectId: number;
   teamId: number;
@@ -43,6 +45,7 @@ export function createPeerAssessment(data: {
   });
 }
 
+/** Returns the peer assessment. */
 export function getPeerAssessment(
   projectId: number,
   teamId: number,
@@ -77,31 +80,36 @@ export function getPeerAssessment(
   });
 }
 
+/** Updates the peer assessment. */
 export function updatePeerAssessment(
   assessmentId: number,
   answersJson: any,
-  metadata?: {
+  meta?: { submittedLate?: boolean; effectiveDueDate?: Date | null },
+) {
+  const data: {
+    answersJson: any;
+    updatedAt: Date;
     submittedLate?: boolean;
     effectiveDueDate?: Date | null;
-  }
-) {
-  const updateData: Record<string, unknown> = {
-    answersJson: answersJson,
+  } = {
+    answersJson,
     updatedAt: new Date(),
   };
-  if (metadata?.submittedLate === true) {
-    updateData.submittedLate = true;
+
+  if (typeof meta?.submittedLate === "boolean") {
+    data.submittedLate = meta.submittedLate;
   }
-  if (metadata && "effectiveDueDate" in metadata) {
-    updateData.effectiveDueDate = metadata.effectiveDueDate ?? null;
+  if (meta && "effectiveDueDate" in meta) {
+    data.effectiveDueDate = meta.effectiveDueDate ?? null;
   }
 
   return prisma.peerAssessment.update({
     where: { id: assessmentId },
-    data: updateData,
+    data,
   });
 }
 
+/** Returns the teammate assessments. */
 export function getTeammateAssessments(userId: number, projectId: number) {
   return prisma.peerAssessment.findMany({
     where: {
@@ -121,6 +129,7 @@ export function getTeammateAssessments(userId: number, projectId: number) {
   });
 }
 
+/** Returns the questions for project. */
 export function getQuestionsForProject(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -136,6 +145,7 @@ export function getQuestionsForProject(projectId: number) {
   });
 }
 
+/** Returns the project questionnaire template. */
 export function getProjectQuestionnaireTemplate(projectId: number) {
   return prisma.project.findUnique({
     where: { id: projectId },
@@ -151,6 +161,7 @@ export function getProjectQuestionnaireTemplate(projectId: number) {
   });
 }
 
+/** Returns the peer assessment by ID. */
 export function getPeerAssessmentById(assessmentId: number) {
   return prisma.peerAssessment.findUnique({
     where: { id: assessmentId },

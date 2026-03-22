@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
 import type { ComponentProps } from "react";
 import type { Question } from "../types";
@@ -65,8 +65,8 @@ function renderForm(
 
 beforeEach(() => {
   vi.clearAllMocks();
-  createPeerAssessmentMock.mockResolvedValue({ ok: true } as any);
-  updatePeerAssessmentMock.mockResolvedValue({ ok: true } as any);
+  createPeerAssessmentMock.mockResolvedValue({ ok: true } as unknown);
+  updatePeerAssessmentMock.mockResolvedValue({ ok: true } as unknown);
 });
 
 describe("PeerAssessmentForm", () => {
@@ -112,6 +112,30 @@ describe("PeerAssessmentForm", () => {
     );
   });
 
+  it("does not allow submission until all questions are answered", async () => {
+    renderForm();
+
+    const submitButton = screen.getByRole("button", { name: /save assessment/i });
+    expect(submitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: "Clear coding and communication." },
+    });
+    fireEvent.click(screen.getByRole("radio", { name: "Excellent" }));
+    fireEvent.click(screen.getByRole("radio", { name: "4" }));
+
+    expect(submitButton).toBeDisabled();
+
+    fireEvent.change(screen.getByRole("slider"), {
+      target: { value: "80" },
+    });
+
+    expect(submitButton).not.toBeDisabled();
+    fireEvent.click(submitButton);
+
+    await waitFor(() => expect(createPeerAssessmentMock).toHaveBeenCalledTimes(1));
+  });
+
   it("normalizes numeric edit answers and sends numbers on update", async () => {
     renderForm({
       assessmentId: 91,
@@ -141,6 +165,24 @@ describe("PeerAssessmentForm", () => {
     );
   });
 
+  it("shows a live countdown until assessment deadline", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-03-11T12:00:00.000Z"));
+
+    renderForm({
+      assessmentDeadline: "2026-03-11T12:00:01.000Z",
+    });
+
+    expect(screen.getByText("00d : 00h : 00m : 01s")).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(1000);
+    });
+
+    expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
   it("locks submission when assessment window has not opened yet", async () => {
     const openAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const dueAt = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
@@ -166,10 +208,16 @@ describe("PeerAssessmentForm", () => {
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "Late but submitted." },
     });
+    fireEvent.click(screen.getByRole("radio", { name: "Excellent" }));
+    fireEvent.click(screen.getByRole("radio", { name: "4" }));
+    fireEvent.change(screen.getByRole("slider"), {
+      target: { value: "80" },
+    });
+
+    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
 
     const saveButton = screen.getByRole("button", { name: /save assessment/i });
     expect(saveButton).toBeEnabled();
-    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
 
     fireEvent.click(saveButton);
     await waitFor(() => {

@@ -1,9 +1,10 @@
-import { prisma } from "../../shared/db.js";
 import {
   getMeetingsByTeamId,
   getMeetingById,
   createMeeting,
   updateMeeting,
+  getTeamMeetingState,
+  clearTeamInactivityFlag,
   deleteMeeting,
   bulkUpsertAttendance,
   upsertMinutes,
@@ -12,17 +13,18 @@ import {
   createMentions,
   getRecentAttendanceForUser,
   getModuleLeadsForTeam,
+  getModuleMeetingSettingsForTeam,
 } from "./repo.js";
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
 
-const ABSENCES_BEFORE_ALERT = 3;
-
+/** Returns the meetings. */
 export function listMeetings(teamId: number) {
   return getMeetingsByTeamId(teamId);
 }
 
+/** Returns the meeting. */
 export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
@@ -58,6 +60,7 @@ function buildIcs(meeting: {
   ].filter(Boolean).join("\r\n");
 }
 
+/** Adds a meeting. */
 export async function addMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -68,11 +71,11 @@ export async function addMeeting(data: {
   videoCallLink?: string;
   agenda?: string;
 }) {
-  const team = await prisma.team.findUnique({ where: { id: data.teamId }, select: { archivedAt: true, inactivityFlag: true } });
+  const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
   const meeting = await createMeeting(data);
   if (team?.inactivityFlag === "YELLOW") {
-    await prisma.team.update({ where: { id: data.teamId }, data: { inactivityFlag: "NONE" } });
+    await clearTeamInactivityFlag(data.teamId);
   }
   const members = await getTeamMembers(data.teamId);
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
@@ -111,6 +114,7 @@ export async function editMeeting(meetingId: number, userId: number, data: {
   return updateMeeting(meetingId, data);
 }
 
+/** Removes the meeting. */
 export function removeMeeting(meetingId: number) {
   return deleteMeeting(meetingId);
 }
@@ -122,13 +126,14 @@ async function checkAndNotifyConsecutiveAbsences(
   const meeting = await getMeetingById(meetingId);
   if (!meeting) return;
 
+  const { absenceThreshold } = await getModuleMeetingSettingsForTeam(meeting.teamId);
   const moduleLeads = await getModuleLeadsForTeam(meeting.teamId);
 
   for (const record of records) {
     if (record.status.toLowerCase() !== "absent") continue;
 
-    const recent = await getRecentAttendanceForUser(record.userId, meeting.teamId, ABSENCES_BEFORE_ALERT);
-    if (recent.length < ABSENCES_BEFORE_ALERT) continue;
+    const recent = await getRecentAttendanceForUser(record.userId, meeting.teamId, absenceThreshold);
+    if (recent.length < absenceThreshold) continue;
     if (!recent.every((a) => a.status.toLowerCase() === "absent")) continue;
 
     const allocation = meeting.team.allocations.find((a) => a.user.id === record.userId);
@@ -137,7 +142,7 @@ async function checkAndNotifyConsecutiveAbsences(
     await addNotification({
       userId: record.userId,
       type: "LOW_ATTENDANCE",
-      message: `You have missed your last ${ABSENCES_BEFORE_ALERT} team meetings. Your team needs you!`,
+      message: `You have missed your last ${absenceThreshold} team meetings. Your team needs you!`,
       link: `/projects/${meeting.team.projectId}/meetings`,
     });
 
@@ -145,18 +150,20 @@ async function checkAndNotifyConsecutiveAbsences(
       await addNotification({
         userId: lead.userId,
         type: "LOW_ATTENDANCE",
-        message: `${userName} has missed their last ${ABSENCES_BEFORE_ALERT} meetings in ${meeting.team.teamName}`,
+        message: `${userName} has missed their last ${absenceThreshold} meetings in ${meeting.team.teamName}`,
         link: `/staff/projects/${meeting.team.projectId}/teams/${meeting.teamId}/team-meetings`,
       });
     }
   }
 }
 
+/** Marks the attendance. */
 export async function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
   await bulkUpsertAttendance(meetingId, records);
   await checkAndNotifyConsecutiveAbsences(meetingId, records);
 }
 
+/** Saves the minutes. */
 export async function saveMinutes(meetingId: number, writerId: number, content: string) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
@@ -198,6 +205,7 @@ async function processMentions(commentId: number, meetingId: number, userId: num
   }
 }
 
+/** Adds a comment. */
 export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
   const comment = await createComment(meetingId, userId, content);
   if (teamId) {
@@ -206,6 +214,14 @@ export async function addComment(meetingId: number, userId: number, content: str
   return comment;
 }
 
+/** Removes the comment. */
 export function removeComment(commentId: number) {
   return deleteComment(commentId);
+}
+
+/** Returns the module meeting settings for a meeting. */
+export async function fetchMeetingSettings(meetingId: number) {
+  const meeting = await getMeetingById(meetingId);
+  if (!meeting) return null;
+  return getModuleMeetingSettingsForTeam(meeting.teamId);
 }

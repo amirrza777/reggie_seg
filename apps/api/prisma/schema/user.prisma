@@ -36,24 +36,34 @@ model User {
   trelloToken           String?
   trelloMemberId        String?
   ownedTeamTrelloBoards Team[]  @relation("TrelloOwner")
+  draftTeamsCreated     Team[]  @relation("TeamDraftCreatedBy")
+  draftTeamsApproved    Team[]  @relation("TeamDraftApprovedBy")
 
-  questionnaires               QuestionnaireTemplate[]
-  reviewerFeedbacks            PeerFeedback[]               @relation("PeerFeedbackReviewer")
-  revieweeFeedbacks            PeerFeedback[]               @relation("PeerFeedbackReviewee")
-  staffTeamMarkingsGiven       StaffTeamMarking[]           @relation("StaffTeamMarker")
-  staffStudentMarkingsGiven    StaffStudentMarking[]        @relation("StaffStudentMarker")
-  staffStudentMarkingsReceived StaffStudentMarking[]        @relation("StaffStudentMarkingStudent")
-  githubAccount                GithubAccount?
-  linkedGithubRepos            ProjectGithubRepository[]    @relation("ProjectGithubRepositoryLinkedBy")
-  analysedGithubSnapshots      GithubRepoSnapshot[]         @relation("GithubRepoSnapshotAnalysedBy")
-  mappedGithubStats            GithubRepoSnapshotUserStat[] @relation("GithubRepoSnapshotUserStatMappedUser")
-  studentDeadlineOverrides     StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideStudent")
-  createdDeadlineOverrides     StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideCreatedBy")
-  teamInvitesSent              TeamInvite[]                 @relation("TeamInvitesSent")
-  teamInvitesReceived          TeamInvite[]                 @relation("TeamInvitesReceived")
-  auditLogs                    AuditLog[]
-  mentions            Mention[]               @relation("Mention")
-  notifications       Notification[]          @relation("Notification")
+  questionnaires                  QuestionnaireTemplate[]
+  reviewerFeedbacks               PeerFeedback[]               @relation("PeerFeedbackReviewer")
+  revieweeFeedbacks               PeerFeedback[]               @relation("PeerFeedbackReviewee")
+  staffTeamMarkingsGiven          StaffTeamMarking[]           @relation("StaffTeamMarker")
+  staffStudentMarkingsGiven       StaffStudentMarking[]        @relation("StaffStudentMarker")
+  staffStudentMarkingsReceived    StaffStudentMarking[]        @relation("StaffStudentMarkingStudent")
+  githubAccount                   GithubAccount?
+  linkedGithubRepos               ProjectGithubRepository[]    @relation("ProjectGithubRepositoryLinkedBy")
+  analysedGithubSnapshots         GithubRepoSnapshot[]         @relation("GithubRepoSnapshotAnalysedBy")
+  mappedGithubStats               GithubRepoSnapshotUserStat[] @relation("GithubRepoSnapshotUserStatMappedUser")
+  teamInvitesSent                 TeamInvite[]                 @relation("TeamInvitesSent")
+  teamInvitesReceived             TeamInvite[]                 @relation("TeamInvitesReceived")
+  teamHealthMessagesCreated       TeamHealthMessage[]          @relation("TeamHealthMessageRequester")
+  teamHealthMessagesReviewed      TeamHealthMessage[]          @relation("TeamHealthMessageReviewer")
+  studentDeadlineOverrides        StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideStudent")
+  createdStudentDeadlineOverrides StudentDeadlineOverride[]    @relation("StudentDeadlineOverrideCreatedBy")
+  auditLogs                       AuditLog[]
+  mentions                        Mention[]                    @relation("Mention")
+  notifications                   Notification[]               @relation("Notification")
+  discussionPosts     DiscussionPost[]
+  forumReportsFiled   ForumReport[]           @relation("ForumReportReporter")
+  forumReportsAgainst ForumReport[]           @relation("ForumReportAuthor")
+  forumReactions      ForumReaction[]
+  forumStudentReports ForumStudentReport[]    @relation("ForumStudentReportReporter")
+  forumStudentReportsReviewed ForumStudentReport[] @relation("ForumStudentReportReviewer")
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

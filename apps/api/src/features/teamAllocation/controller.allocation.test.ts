@@ -6,11 +6,13 @@ import {
   addUserToTeamHandler,
   applyManualAllocationHandler,
   applyRandomAllocationHandler,
+  approveAllocationDraftHandler,
   cancelTeamInviteHandler,
   createTeamHandler,
   createTeamInviteHandler,
   declineTeamInviteHandler,
   expireTeamInviteHandler,
+  listAllocationDraftsHandler,
   getManualAllocationWorkspaceHandler,
   getTeamByIdHandler,
   getTeamMembersHandler,
@@ -18,6 +20,7 @@ import {
   listReceivedInvitesHandler,
   previewRandomAllocationHandler,
   rejectTeamInviteHandler,
+  updateAllocationDraftHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -35,8 +38,15 @@ vi.mock("./service.js", () => ({
   expireTeamInvite: vi.fn(),
   applyManualAllocationForProject: vi.fn(),
   applyRandomAllocationForProject: vi.fn(),
+  applyCustomAllocationForProject: vi.fn(),
+  getCustomAllocationCoverageForProject: vi.fn(),
+  approveAllocationDraftForProject: vi.fn(),
+  listAllocationDraftsForProject: vi.fn(),
   getManualAllocationWorkspaceForProject: vi.fn(),
+  listCustomAllocationQuestionnairesForProject: vi.fn(),
+  previewCustomAllocationForProject: vi.fn(),
   previewRandomAllocationForProject: vi.fn(),
+  updateAllocationDraftForProject: vi.fn(),
 }));
 
 function mockResponse() {
@@ -66,10 +76,6 @@ describe("teamAllocation controller allocation handlers", () => {
     await previewRandomAllocationHandler(badCountReq, badCountRes);
     expect(badCountRes.status).toHaveBeenCalledWith(400);
 
-    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "abc" } };
-    const badSeedRes = mockResponse();
-    await previewRandomAllocationHandler(badSeedReq, badSeedRes);
-    expect(badSeedRes.status).toHaveBeenCalledWith(400);
   });
 
   it("previewRandomAllocationHandler returns preview payload", async () => {
@@ -81,12 +87,12 @@ describe("teamAllocation controller allocation handlers", () => {
       previewTeams: [],
     });
 
-    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, query: { teamCount: "2", seed: "99" } };
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" }, query: { teamCount: "2" } };
     const res = mockResponse();
 
     await previewRandomAllocationHandler(req, res);
 
-    expect(service.previewRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, { seed: 99 });
+    expect(service.previewRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2);
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         project: expect.objectContaining({ id: 4 }),
@@ -287,11 +293,6 @@ describe("teamAllocation controller allocation handlers", () => {
     await applyRandomAllocationHandler(badCountReq, badCountRes);
     expect(badCountRes.status).toHaveBeenCalledWith(400);
 
-    const badSeedReq: any = { user: { sub: 9 }, params: { projectId: "4" }, body: { teamCount: 2, seed: "abc" } };
-    const badSeedRes = mockResponse();
-    await applyRandomAllocationHandler(badSeedReq, badSeedRes);
-    expect(badSeedRes.status).toHaveBeenCalledWith(400);
-
     const badTeamNamesReq: any = {
       user: { sub: 9 },
       params: { projectId: "4" },
@@ -313,14 +314,13 @@ describe("teamAllocation controller allocation handlers", () => {
     const req: any = {
       user: { sub: 7 },
       params: { projectId: "4" },
-      body: { teamCount: 2, seed: 99, teamNames: ["Team Orion", "Team Vega"] },
+      body: { teamCount: 2, teamNames: ["Team Orion", "Team Vega"] },
     };
     const res = mockResponse();
 
     await applyRandomAllocationHandler(req, res);
 
     expect(service.applyRandomAllocationForProject).toHaveBeenCalledWith(7, 4, 2, {
-      seed: 99,
       teamNames: ["Team Orion", "Team Vega"],
     });
     expect(res.status).toHaveBeenCalledWith(201);
@@ -386,5 +386,283 @@ describe("teamAllocation controller allocation handlers", () => {
     expect(duplicateExistingNameRes.json).toHaveBeenCalledWith({
       error: "One or more team names already exist in this enterprise",
     });
+  });
+
+  it("listAllocationDraftsHandler validates auth and project id", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "4" } };
+    const unauthorizedRes = mockResponse();
+    await listAllocationDraftsHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 9 }, params: { projectId: "x" } };
+    const badProjectRes = mockResponse();
+    await listAllocationDraftsHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("listAllocationDraftsHandler returns drafts payload", async () => {
+    (service.listAllocationDraftsForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      access: {
+        actorRole: "STAFF",
+        isModuleLead: false,
+        isModuleTeachingAssistant: true,
+        canApproveAllocationDrafts: false,
+      },
+      drafts: [],
+    });
+
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" } };
+    const res = mockResponse();
+
+    await listAllocationDraftsHandler(req, res);
+
+    expect(service.listAllocationDraftsForProject).toHaveBeenCalledWith(7, 4);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        project: expect.objectContaining({ id: 4 }),
+        drafts: [],
+      }),
+    );
+  });
+
+  it("listAllocationDraftsHandler maps service errors", async () => {
+    const req: any = { user: { sub: 7 }, params: { projectId: "4" } };
+
+    (service.listAllocationDraftsForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+    const missingRes = mockResponse();
+    await listAllocationDraftsHandler(req, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.listAllocationDraftsForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_ARCHIVED",
+    });
+    const archivedRes = mockResponse();
+    await listAllocationDraftsHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("updateAllocationDraftHandler validates auth, params, and body shape", async () => {
+    const unauthorizedReq: any = {
+      user: undefined,
+      params: { projectId: "4", teamId: "9" },
+      body: { teamName: "Team A" },
+    };
+    const unauthorizedRes = mockResponse();
+    await updateAllocationDraftHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = {
+      user: { sub: 7 },
+      params: { projectId: "x", teamId: "9" },
+      body: { teamName: "Team A" },
+    };
+    const badProjectRes = mockResponse();
+    await updateAllocationDraftHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badTeamReq: any = {
+      user: { sub: 7 },
+      params: { projectId: "4", teamId: "x" },
+      body: { teamName: "Team A" },
+    };
+    const badTeamRes = mockResponse();
+    await updateAllocationDraftHandler(badTeamReq, badTeamRes);
+    expect(badTeamRes.status).toHaveBeenCalledWith(400);
+
+    const missingBodyReq: any = {
+      user: { sub: 7 },
+      params: { projectId: "4", teamId: "9" },
+      body: {},
+    };
+    const missingBodyRes = mockResponse();
+    await updateAllocationDraftHandler(missingBodyReq, missingBodyRes);
+    expect(missingBodyRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("updateAllocationDraftHandler forwards valid update request", async () => {
+    (service.updateAllocationDraftForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      access: {
+        actorRole: "STAFF",
+        isModuleLead: false,
+        isModuleTeachingAssistant: true,
+        canApproveAllocationDrafts: false,
+      },
+      draft: {
+        id: 9,
+        teamName: "Team Updated",
+        memberCount: 2,
+        createdAt: new Date("2026-03-17T10:00:00.000Z").toISOString(),
+        updatedAt: new Date("2026-03-17T10:05:00.000Z").toISOString(),
+        draftCreatedBy: null,
+        members: [],
+      },
+    });
+    const req: any = {
+      user: { sub: 7 },
+      params: { projectId: "4", teamId: "9" },
+      body: { teamName: " Team Updated ", studentIds: [2, 3] },
+    };
+    const res = mockResponse();
+
+    await updateAllocationDraftHandler(req, res);
+
+    expect(service.updateAllocationDraftForProject).toHaveBeenCalledWith(7, 4, 9, {
+      teamName: " Team Updated ",
+      studentIds: [2, 3],
+    });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ draft: expect.any(Object) }));
+  });
+
+  it("updateAllocationDraftHandler maps service errors", async () => {
+    const req: any = {
+      user: { sub: 7 },
+      params: { projectId: "4", teamId: "9" },
+      body: { teamName: "Team A" },
+    };
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({ code: "INVALID_TEAM_NAME" });
+    const invalidNameRes = mockResponse();
+    await updateAllocationDraftHandler(req, invalidNameRes);
+    expect(invalidNameRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({ code: "INVALID_STUDENT_IDS" });
+    const invalidStudentsRes = mockResponse();
+    await updateAllocationDraftHandler(req, invalidStudentsRes);
+    expect(invalidStudentsRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "STUDENT_NOT_IN_MODULE",
+    });
+    const notInModuleRes = mockResponse();
+    await updateAllocationDraftHandler(req, notInModuleRes);
+    expect(notInModuleRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "TEAM_NAME_ALREADY_EXISTS",
+    });
+    const duplicateNameRes = mockResponse();
+    await updateAllocationDraftHandler(req, duplicateNameRes);
+    expect(duplicateNameRes.status).toHaveBeenCalledWith(409);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "STUDENT_ALREADY_ASSIGNED",
+    });
+    const activeConflictRes = mockResponse();
+    await updateAllocationDraftHandler(req, activeConflictRes);
+    expect(activeConflictRes.status).toHaveBeenCalledWith(409);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "STUDENT_IN_OTHER_DRAFT",
+    });
+    const draftConflictRes = mockResponse();
+    await updateAllocationDraftHandler(req, draftConflictRes);
+    expect(draftConflictRes.status).toHaveBeenCalledWith(409);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "DRAFT_TEAM_NOT_FOUND",
+    });
+    const notFoundRes = mockResponse();
+    await updateAllocationDraftHandler(req, notFoundRes);
+    expect(notFoundRes.status).toHaveBeenCalledWith(404);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+    const missingProjectRes = mockResponse();
+    await updateAllocationDraftHandler(req, missingProjectRes);
+    expect(missingProjectRes.status).toHaveBeenCalledWith(404);
+
+    (service.updateAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_ARCHIVED",
+    });
+    const archivedRes = mockResponse();
+    await updateAllocationDraftHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("approveAllocationDraftHandler validates auth and params", async () => {
+    const unauthorizedReq: any = { user: undefined, params: { projectId: "4", teamId: "9" } };
+    const unauthorizedRes = mockResponse();
+    await approveAllocationDraftHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectReq: any = { user: { sub: 7 }, params: { projectId: "x", teamId: "9" } };
+    const badProjectRes = mockResponse();
+    await approveAllocationDraftHandler(badProjectReq, badProjectRes);
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const badTeamReq: any = { user: { sub: 7 }, params: { projectId: "4", teamId: "x" } };
+    const badTeamRes = mockResponse();
+    await approveAllocationDraftHandler(badTeamReq, badTeamRes);
+    expect(badTeamRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("approveAllocationDraftHandler returns approved payload", async () => {
+    (service.approveAllocationDraftForProject as any).mockResolvedValue({
+      project: { id: 4, name: "Project A", moduleId: 1, moduleName: "Module A" },
+      approvedTeam: { id: 9, teamName: "Team Approved", memberCount: 3 },
+    });
+    const req: any = { user: { sub: 7 }, params: { projectId: "4", teamId: "9" } };
+    const res = mockResponse();
+
+    await approveAllocationDraftHandler(req, res);
+
+    expect(service.approveAllocationDraftForProject).toHaveBeenCalledWith(7, 4, 9);
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approvedTeam: expect.objectContaining({ id: 9 }),
+      }),
+    );
+  });
+
+  it("approveAllocationDraftHandler maps service errors", async () => {
+    const req: any = { user: { sub: 7 }, params: { projectId: "4", teamId: "9" } };
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "APPROVAL_FORBIDDEN",
+    });
+    const forbiddenRes = mockResponse();
+    await approveAllocationDraftHandler(req, forbiddenRes);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "DRAFT_TEAM_HAS_NO_MEMBERS",
+    });
+    const emptyDraftRes = mockResponse();
+    await approveAllocationDraftHandler(req, emptyDraftRes);
+    expect(emptyDraftRes.status).toHaveBeenCalledWith(409);
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "STUDENTS_NO_LONGER_AVAILABLE",
+    });
+    const staleRes = mockResponse();
+    await approveAllocationDraftHandler(req, staleRes);
+    expect(staleRes.status).toHaveBeenCalledWith(409);
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "DRAFT_TEAM_NOT_FOUND",
+    });
+    const missingDraftRes = mockResponse();
+    await approveAllocationDraftHandler(req, missingDraftRes);
+    expect(missingDraftRes.status).toHaveBeenCalledWith(404);
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_NOT_FOUND_OR_FORBIDDEN",
+    });
+    const missingProjectRes = mockResponse();
+    await approveAllocationDraftHandler(req, missingProjectRes);
+    expect(missingProjectRes.status).toHaveBeenCalledWith(404);
+
+    (service.approveAllocationDraftForProject as any).mockRejectedValueOnce({
+      code: "PROJECT_ARCHIVED",
+    });
+    const archivedRes = mockResponse();
+    await approveAllocationDraftHandler(req, archivedRes);
+    expect(archivedRes.status).toHaveBeenCalledWith(409);
   });
 });

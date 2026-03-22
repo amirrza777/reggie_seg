@@ -24,6 +24,7 @@ function isUpcoming(meeting: Meeting) {
   return new Date(meeting.date) >= new Date();
 }
 
+
 export function MeetingList({
   meetings,
   projectId,

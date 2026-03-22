@@ -7,6 +7,7 @@ import type {
   EnterpriseAccessUserSearchResponse,
   DeleteEnterpriseModuleResponse,
   EnterpriseModuleAccessUsersResponse,
+  EnterpriseFeatureFlag,
   EnterpriseModuleRecord,
   EnterpriseModuleSearchParams,
   EnterpriseModuleSearchResponse,
@@ -19,6 +20,17 @@ import type {
 
 export async function getEnterpriseOverview(): Promise<EnterpriseOverview> {
   return apiFetch<EnterpriseOverview>("/enterprise-admin/overview");
+}
+
+export async function listEnterpriseFeatureFlags(): Promise<EnterpriseFeatureFlag[]> {
+  return apiFetch<EnterpriseFeatureFlag[]>("/enterprise-admin/feature-flags");
+}
+
+export async function updateEnterpriseFeatureFlag(key: string, enabled: boolean): Promise<EnterpriseFeatureFlag> {
+  return apiFetch<EnterpriseFeatureFlag>(`/enterprise-admin/feature-flags/${encodeURIComponent(key)}`, {
+    method: "PATCH",
+    body: JSON.stringify({ enabled }),
+  });
 }
 
 export async function listEnterpriseModules(): Promise<EnterpriseModuleRecord[]> {
@@ -100,3 +112,23 @@ export async function updateEnterpriseModuleStudents(
     body: JSON.stringify(payload),
   });
 }
+
+export type ModuleMeetingSettings = {
+  absenceThreshold: number;
+  minutesEditWindowDays: number;
+};
+
+export async function getModuleMeetingSettings(moduleId: number): Promise<ModuleMeetingSettings> {
+  return apiFetch<ModuleMeetingSettings>(`/enterprise-admin/modules/${moduleId}/meeting-settings`);
+}
+
+export async function updateModuleMeetingSettings(
+  moduleId: number,
+  settings: ModuleMeetingSettings,
+): Promise<ModuleMeetingSettings> {
+  return apiFetch<ModuleMeetingSettings>(`/enterprise-admin/modules/${moduleId}/meeting-settings`, {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}
+

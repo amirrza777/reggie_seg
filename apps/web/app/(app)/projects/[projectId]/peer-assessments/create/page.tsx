@@ -1,12 +1,10 @@
 import { redirect } from "next/navigation";
 import { PeerAssessmentForm } from "@/features/peerAssessment/components/PeerAssessmentForm";
-import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getPeerAssessmentData, getQuestionsByProject } from "@/features/peerAssessment/api/client";
 import { getProject, getProjectDeadline } from "@/features/projects/api/client";
 import type { PeerAssessment } from "@/features/peerAssessment/types";
-import { ApiError } from "@/shared/api/errors";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { getCurrentUser } from "@/shared/auth/session";
+import { ApiError } from "@/shared/api/errors";
 
 type CreatePageProps = {
   params: Promise<{ projectId: string }>;
@@ -21,7 +19,6 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   const revieweeId = Number(resolvedSearchParams.revieweeId);
   const reviewerId = Number(resolvedSearchParams.reviewerId);
   const teammateName = resolvedSearchParams.teammateName ?? "";
-  const flagMap = await getFeatureFlagMap();
   const user = await getCurrentUser();
 
   let existingAssessment: PeerAssessment | null = null;
@@ -55,24 +52,21 @@ export default async function CreateAssessmentPage({ params, searchParams }: Cre
   }
 
   return (
-    <div className="stack stack--tabbed">
-      <ProjectNav projectId={String(projectId)} enabledFlags={flagMap} />
-      <div style={{ padding: "20px" }}>
-        <h2>Create Peer Assessment</h2>
-        {questions.length > 0 && (
-          <PeerAssessmentForm
-            teammateName={String(teammateName)}
-            questions={questions}
-            projectId={projectId}
-            teamId={teamId}
-            reviewerId={reviewerId}
-            revieweeId={revieweeId}
-            templateId={project.questionnaireTemplateId}
-            assessmentOpenAt={assessmentOpenAt}
-            assessmentDueAt={assessmentDueAt}
-          />
-        )}
-      </div>
+    <div style={{ padding: "20px" }}>
+      {questions.length > 0 && (
+        <PeerAssessmentForm
+          title="Create Peer Assessment"
+          teammateName={String(teammateName)}
+          questions={questions}
+          projectId={projectId}
+          teamId={teamId}
+          reviewerId={reviewerId}
+          revieweeId={revieweeId}
+          templateId={project.questionnaireTemplateId}
+          assessmentOpenAt={assessmentOpenAt}
+          assessmentDueAt={assessmentDueAt}
+        />
+      )}
     </div>
   );
 }

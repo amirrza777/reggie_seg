@@ -5,6 +5,7 @@ import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
+import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
 import { searchUsers, updateUser, updateUserRole } from "../api/client";
@@ -214,8 +215,7 @@ export function UserManagementTable() {
       className="user-management-card"
       action={
         <div className="ui-row user-management__actions">
-          <FormField
-            type="search"
+          <SearchField
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
             className="user-management__search"

@@ -24,7 +24,7 @@ function formatStatus(status: string) {
 
 export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
   const { user } = useUser();
-  const members = meeting.team.allocations.map((a) => a.user);
+  const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
   const isOrganiser = user?.id === meeting.organiserId;
 
@@ -100,6 +100,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
               `${a.user.firstName} ${a.user.lastName}`,
               formatStatus(a.status),
             ])}
+            className="table table--attendance"
           />
         </Card>
       )}
@@ -114,7 +115,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
         meetingId={meeting.id}
         teamId={meeting.teamId}
         members={members}
-        initialComments={meeting.comments}
+        initialComments={meeting.comments ?? []}
       />
     </div>
   );

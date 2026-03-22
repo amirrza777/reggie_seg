@@ -17,7 +17,7 @@ const teamTabs = [
   { key: "grading", label: "Grading", hrefSuffix: "/grading" },
   { key: "peer-feedback", label: "Peer feedback", hrefSuffix: "/peer-feedback" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
-  { key: "trello", label: "Trello", hrefSuffix: "/trello", absoluteHref: true },
+  { key: "trello", label: "Trello", hrefSuffix: "/trello" },
 ];
 
 export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavProps) {
@@ -27,7 +27,7 @@ export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavPr
   return (
     <nav className="pill-nav" aria-label="Team sections">
       {teamTabs.map((tab) => {
-        const href = tab.absoluteHref ? `/staff/projects/${projectId}${tab.hrefSuffix}` : `${base}${tab.hrefSuffix}`;
+        const href = `${base}${tab.hrefSuffix}`;
         const isOverview = tab.hrefSuffix === "";
         const isActive = isOverview
           ? pathname === base

@@ -13,10 +13,20 @@ import type { Question , IncomingQuestion} from "./types.js";
 import jwt from "jsonwebtoken";
 import { verifyRefreshToken } from "../../auth/service.js";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 
-type AccessPayload = { sub: number; email: string };
+type AccessPayload = { sub: number; email?: string };
+
+function parseAccessPayload(payload: string | jwt.JwtPayload): AccessPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  const sub = payload.sub;
+  const email = payload.email;
+  if (typeof sub !== "number" || !Number.isFinite(sub)) return null;
+  if (email !== undefined && (typeof email !== "string" || email.length === 0)) return null;
+  return email !== undefined ? { sub, email } : { sub };
+}
 
 function resolveUserId(req: AuthRequest): number | null {
   if (req.user?.sub) return req.user.sub;
@@ -25,7 +35,8 @@ function resolveUserId(req: AuthRequest): number | null {
   const accessToken = auth.startsWith("Bearer ") ? auth.slice(7) : null;
   if (accessToken) {
     try {
-      const payload = jwt.verify(accessToken, accessSecret) as AccessPayload;
+      const verified = jwt.verify(accessToken, accessSecret);
+      const payload = parseAccessPayload(verified);
       if (payload?.sub) return payload.sub;
     } catch {
       //Access token invalid or expired
@@ -43,6 +54,7 @@ function resolveUserId(req: AuthRequest): number | null {
   }
 }
 
+/** Handles requests for create template. */
 export async function createTemplateHandler(req: AuthRequest, res: Response) {
   const { templateName, questions, isPublic } = req.body
 
@@ -62,6 +74,7 @@ export async function createTemplateHandler(req: AuthRequest, res: Response) {
   }
 }
 
+/** Handles requests for get template. */
 export async function getTemplateHandler(req: AuthRequest, res: Response) {
   const id = Number(req.params.id)
 
@@ -88,6 +101,7 @@ function requireRequesterUserId(req: Request): number {
   return requesterUserId;
 }
 
+/** Handles requests for get all templates. */
 export async function getAllTemplatesHandler(req: Request, res: Response){
   try {
     const requesterUserId = resolveUserId(req as AuthRequest);
@@ -99,10 +113,17 @@ export async function getAllTemplatesHandler(req: Request, res: Response){
   }
 };
 
+/** Handles requests for get my templates. */
 export async function getMyTemplatesHandler(req: Request, res: Response) {
   try {
     const requesterUserId = requireRequesterUserId(req);
-    const templates = await getMyTemplates(requesterUserId);
+    const parsedSearchQuery = parseSearchQuery((req as AuthRequest).query?.q);
+    if (!parsedSearchQuery.ok) {
+      return res.status(400).json({ error: parsedSearchQuery.error });
+    }
+    const templates = parsedSearchQuery.value
+      ? await getMyTemplates(requesterUserId, { query: parsedSearchQuery.value })
+      : await getMyTemplates(requesterUserId);
     res.json(templates);
   } catch (error) {
     if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
@@ -111,6 +132,7 @@ export async function getMyTemplatesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get public templates from other users. */
 export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res: Response) {
   try {
     const requesterUserId = requireRequesterUserId(req);
@@ -123,6 +145,7 @@ export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res:
   }
 }
 
+/** Handles requests for update template. */
 export async function updateTemplateHandler(req: Request, res: Response) {
   const templateId = Number(req.params.id);
   const { templateName, questions, isPublic } = req.body as {
@@ -153,6 +176,7 @@ export async function updateTemplateHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for delete template. */
 export async function deleteTemplateHandler(req: Request, res: Response) {
   const id = Number(req.params.id);
 
@@ -181,6 +205,7 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for use template. */
 export async function useTemplateHandler(req: Request, res: Response) {
   const id = Number(req.params.id);
   if (isNaN(id)) {

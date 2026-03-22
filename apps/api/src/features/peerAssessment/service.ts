@@ -21,8 +21,7 @@ function asDate(value: unknown): Date | null {
   return null;
 }
 
-function assertWindowOpen(
-  kind: "ASSESSMENT",
+function assertAssessmentWindowOpen(
   deadline: { assessmentOpenDate?: unknown; assessmentDueDate?: unknown } | null,
   now = new Date(),
 ) {
@@ -32,21 +31,24 @@ function assertWindowOpen(
 
   if (openAt && now < openAt) {
     throw {
-      code: `${kind}_WINDOW_NOT_OPEN`,
+      code: "ASSESSMENT_WINDOW_NOT_OPEN",
       message: "Peer assessment is not open yet for your deadline profile",
       opensAt: openAt,
     };
   }
+
   return {
     isLate: Boolean(dueAt && now > dueAt),
     dueAt,
   };
 }
 
+/** Returns the teammates. */
 export function fetchTeammates(userId: number, teamId: number) {
   return getTeammates(userId, teamId)
 }
 
+/** Saves the assessment. */
 export async function saveAssessment(data: {
   projectId: number
   teamId: number
@@ -58,7 +60,7 @@ export async function saveAssessment(data: {
   const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { archivedAt: true } });
   if (project?.archivedAt) throw { code: "PROJECT_ARCHIVED" };
   const reviewerDeadline = await fetchProjectDeadline(data.reviewerUserId, data.projectId);
-  const window = assertWindowOpen("ASSESSMENT", reviewerDeadline);
+  const window = assertAssessmentWindowOpen(reviewerDeadline);
   return createPeerAssessment({
     ...data,
     submittedLate: window?.isLate ?? false,
@@ -66,6 +68,7 @@ export async function saveAssessment(data: {
   })
 }
 
+/** Returns the assessment. */
 export function fetchAssessment(
   projectId: number,
   teamId: number,
@@ -75,31 +78,38 @@ export function fetchAssessment(
   return getPeerAssessment(projectId, teamId, reviewerId, revieweeId)
 }
 
+/** Updates the assessment answers. */
 export async function updateAssessmentAnswers(assessmentId: number, answersJson: any) {
   const assessment = await getPeerAssessmentById(assessmentId);
   if (!assessment) {
-    throw { code: "P2025" };
+    throw { code: "P2025", message: "Peer assessment not found" };
   }
+
   const reviewerDeadline = await fetchProjectDeadline(assessment.reviewerUserId, assessment.projectId);
-  const window = assertWindowOpen("ASSESSMENT", reviewerDeadline);
+  const window = assertAssessmentWindowOpen(reviewerDeadline);
+
   return updatePeerAssessment(assessmentId, answersJson, {
     submittedLate: Boolean(assessment.submittedLate || window?.isLate),
     effectiveDueDate: window?.dueAt ?? null,
-  })
+  });
 }
 
+/** Returns the teammate assessments. */
 export function fetchTeammateAssessments(userId: number, projectId: number) {
   return getTeammateAssessments(userId, projectId)
 }
 
+/** Returns the questions for project. */
 export function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
 }
 
+/** Returns the assessment by ID. */
 export function fetchAssessmentById(assessmentId: number) {
   return getPeerAssessmentById(assessmentId);
 }
 
+/** Returns the project questionnaire template. */
 export function fetchProjectQuestionnaireTemplate(projectId: number) {
   return getProjectQuestionnaireTemplate(projectId);
 }

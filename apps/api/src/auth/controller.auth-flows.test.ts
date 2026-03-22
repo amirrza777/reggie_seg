@@ -210,25 +210,22 @@ describe("auth controller auth flows", () => {
     expect(res.status).toHaveBeenLastCalledWith(500);
   });
 
-  it("handles nullish request bodies in validation guards", async () => {
-    let res = mockResponse();
-    await signupHandler({} as any, res as any);
+  it.each([
+    { name: "signupHandler", run: (res: any) => signupHandler({} as any, res as any) },
+    { name: "loginHandler", run: (res: any) => loginHandler({} as any, res as any) },
+    { name: "forgotPasswordHandler", run: (res: any) => forgotPasswordHandler({} as any, res as any) },
+    { name: "resetPasswordHandler", run: (res: any) => resetPasswordHandler({} as any, res as any) },
+  ])("$name validates nullish request bodies", async ({ run }) => {
+    const res = mockResponse();
+    await run(res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
 
-    res = mockResponse();
-    await loginHandler({} as any, res as any);
-    expect(res.status).toHaveBeenCalledWith(400);
+  it("updateProfileHandler maps nullish body to undefined profile fields", async () => {
+    const res = mockResponse();
 
-    res = mockResponse();
-    await forgotPasswordHandler({} as any, res as any);
-    expect(res.status).toHaveBeenCalledWith(400);
-
-    res = mockResponse();
-    await resetPasswordHandler({} as any, res as any);
-    expect(res.status).toHaveBeenCalledWith(400);
-
-    res = mockResponse();
     await updateProfileHandler({ user: { sub: 1 } } as any, res as any);
+
     expect(service.updateProfile).toHaveBeenCalledWith({
       userId: 1,
       firstName: undefined,
@@ -236,50 +233,80 @@ describe("auth controller auth flows", () => {
       avatarBase64: undefined,
       avatarMime: undefined,
     });
+  });
 
-    res = mockResponse();
+  it("requestEmailChangeHandler validates nullish request body", async () => {
+    const res = mockResponse();
     await requestEmailChangeHandler({ user: { sub: 1 } } as any, res as any);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
 
-    res = mockResponse();
+  it("confirmEmailChangeHandler validates nullish request body", async () => {
+    const res = mockResponse();
     await confirmEmailChangeHandler({ user: { sub: 1 } } as any, res as any);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("uses code or string detail fallback for auth-flow errors", async () => {
-    let res = mockResponse();
+  it("signupHandler uses error.code in fallback details", async () => {
+    const res = mockResponse();
     (service.signUp as any).mockRejectedValueOnce({ code: "UNEXPECTED_SIGNUP" });
+
     await signupHandler({ body: { enterpriseCode: "ENT", email: "a@b.com", password: "x" } } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "signup failed", detail: "UNEXPECTED_SIGNUP" });
+  });
 
-    res = mockResponse();
+  it("signupHandler stringifies fallback details when error code is missing", async () => {
+    const res = mockResponse();
     (service.signUp as any).mockRejectedValueOnce({});
+
     await signupHandler({ body: { enterpriseCode: "ENT", email: "a@b.com", password: "x" } } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "signup failed", detail: "[object Object]" });
+  });
 
-    res = mockResponse();
+  it("loginHandler uses error.code in fallback details", async () => {
+    const res = mockResponse();
     (service.login as any).mockRejectedValueOnce({ code: "UNEXPECTED_LOGIN" });
+
     await loginHandler({ body: { email: "a@b.com", password: "x" }, get: vi.fn() } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "login failed", detail: "UNEXPECTED_LOGIN" });
+  });
 
-    res = mockResponse();
+  it("loginHandler stringifies fallback details when error code is missing", async () => {
+    const res = mockResponse();
     (service.login as any).mockRejectedValueOnce({});
+
     await loginHandler({ body: { email: "a@b.com", password: "x" }, get: vi.fn() } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "login failed", detail: "[object Object]" });
+  });
 
-    res = mockResponse();
+  it("refreshHandler stringifies fallback details when refresh fails unexpectedly", async () => {
+    const res = mockResponse();
     (service.refreshTokens as any).mockRejectedValueOnce({});
+
     await refreshHandler({ cookies: { refresh_token: "rt" } } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "invalid refresh token", detail: "[object Object]" });
+  });
 
-    res = mockResponse();
+  it("forgotPasswordHandler stringifies fallback details when reset request fails unexpectedly", async () => {
+    const res = mockResponse();
     (service.requestPasswordReset as any).mockRejectedValueOnce({});
-    await forgotPasswordHandler({ body: { email: "a@b.com" } } as any, res as any);
-    expect(res.json).toHaveBeenLastCalledWith({ error: "forgot password failed", detail: "[object Object]" });
 
-    res = mockResponse();
+    await forgotPasswordHandler({ body: { email: "a@b.com" } } as any, res as any);
+
+    expect(res.json).toHaveBeenLastCalledWith({ error: "forgot password failed", detail: "[object Object]" });
+  });
+
+  it("resetPasswordHandler stringifies fallback details when reset fails unexpectedly", async () => {
+    const res = mockResponse();
     (service.resetPassword as any).mockRejectedValueOnce({});
+
     await resetPasswordHandler({ body: { token: "t", newPassword: "x" } } as any, res as any);
+
     expect(res.json).toHaveBeenLastCalledWith({ error: "reset password failed", detail: "[object Object]" });
   });
 });

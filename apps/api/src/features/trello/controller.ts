@@ -2,8 +2,20 @@ import type { Request, Response } from "express"
 import jwt from "jsonwebtoken"
 import { TrelloRepo } from "./repo.js"
 import { TrelloService } from "./service.js"
+import { parseSearchQuery } from "../../shared/search.js"
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || ""
+
+type TrelloLinkTokenPayload = { sub: number; purpose?: string }
+
+function parseTrelloLinkTokenPayload(payload: string | jwt.JwtPayload): TrelloLinkTokenPayload | null {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null
+  const sub = payload.sub
+  const purpose = payload.purpose
+  if (typeof sub !== "number" || !Number.isFinite(sub)) return null
+  if (purpose !== undefined && typeof purpose !== "string") return null
+  return { sub, purpose }
+}
 
 export const TrelloController = {
 
@@ -102,7 +114,11 @@ export const TrelloController = {
       if (!linkToken || !token) {
         return res.status(400).json({ error: "Missing linkToken or token" })
       }
-      const payload = jwt.verify(linkToken, accessSecret) as { sub: number; purpose?: string }
+      const verified = jwt.verify(linkToken, accessSecret)
+      const payload = parseTrelloLinkTokenPayload(verified)
+      if (!payload) {
+        return res.status(400).json({ error: "Invalid link token" })
+      }
       if (payload.purpose !== "trello-link") {
         return res.status(400).json({ error: "Invalid link token" })
       }
@@ -158,7 +174,11 @@ export const TrelloController = {
   async fetchMyBoards(req: Request, res: Response) {
     try {
       const userId = (req.user as any).sub
-      const boards = await TrelloService.fetchMyBoards(userId)
+      const parsedSearchQuery = parseSearchQuery(req.query?.q)
+      if (!parsedSearchQuery.ok) {
+        return res.status(400).json({ error: parsedSearchQuery.error })
+      }
+      const boards = await TrelloService.fetchMyBoards(userId, { query: parsedSearchQuery.value })
       res.status(200).json(boards)
     } catch (err: any) {
       res.status(400).json({ error: err.message })

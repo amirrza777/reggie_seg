@@ -20,7 +20,6 @@ vi.mock("@/shared/api/http", () => ({
 
 describe("EditQuestionnaireClient behavior", () => {
   const apiFetchMock = vi.mocked(apiFetch);
-  let confirmSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     routeParams.id = "12";
@@ -28,7 +27,6 @@ describe("EditQuestionnaireClient behavior", () => {
     back.mockReset();
     push.mockReset();
     apiFetchMock.mockReset();
-    confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.spyOn(window, "alert").mockImplementation(() => undefined);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
@@ -40,6 +38,12 @@ describe("EditQuestionnaireClient behavior", () => {
     expect(request).toBeDefined();
     const [, init] = request as [string, { body?: BodyInit | null }];
     return JSON.parse(String(init?.body));
+  };
+
+  const loadEditorForSave = async (payload: any, saveResponse: any = {}) => {
+    apiFetchMock.mockResolvedValueOnce(payload).mockResolvedValueOnce(saveResponse);
+    render(<EditQuestionnaireClient />);
+    await screen.findByDisplayValue(payload.templateName);
   };
 
   it("renders invalid ID state and does not request data for non-numeric id", () => {
@@ -64,17 +68,12 @@ describe("EditQuestionnaireClient behavior", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/12");
   });
 
-  it("saves edits and navigates back", async () => {
-    apiFetchMock
-      .mockResolvedValueOnce({
-        templateName: "Weekly Check-in",
-        questions: [{ id: 42, label: "Original question", type: "text", configs: {} }],
-      })
-      .mockResolvedValueOnce({});
+  it("saves edited questionnaire payload", async () => {
+    await loadEditorForSave({
+      templateName: "Weekly Check-in",
+      questions: [{ id: 42, label: "Original question", type: "text", configs: {} }],
+    });
 
-    render(<EditQuestionnaireClient />);
-
-    await screen.findByDisplayValue("Weekly Check-in");
     fireEvent.change(screen.getByDisplayValue("Weekly Check-in"), {
       target: { value: "Updated Weekly Check-in" },
     });
@@ -98,7 +97,17 @@ describe("EditQuestionnaireClient behavior", () => {
       label: "Updated question text",
       type: "text",
     });
+  });
 
+  it("navigates back after successful save", async () => {
+    await loadEditorForSave({
+      templateName: "Weekly Check-in",
+      questions: [{ id: 42, label: "Original question", type: "text", configs: {} }],
+    });
+    fireEvent.change(screen.getByDisplayValue("Original question"), {
+      target: { value: "Updated question text" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(back).toHaveBeenCalledTimes(1));
   });
 
@@ -116,15 +125,12 @@ describe("EditQuestionnaireClient behavior", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(confirmSpy).toHaveBeenCalledWith(
-      "You have unsaved changes. Are you sure you want to exit without saving?"
-    );
+    screen.getByRole("dialog", { name: /discard unsaved changes/i });
+    fireEvent.click(screen.getByRole("button", { name: /exit without saving/i }));
     expect(back).toHaveBeenCalledTimes(1);
   });
 
   it("stays on page when cancel confirmation is rejected", async () => {
-    confirmSpy.mockReturnValueOnce(false);
     apiFetchMock.mockResolvedValueOnce({
       templateName: "Team Pulse",
       questions: [{ id: 3, label: "Q", type: "text", configs: {} }],
@@ -137,6 +143,7 @@ describe("EditQuestionnaireClient behavior", () => {
       target: { value: "Team Pulse v2" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: /stay here/i }));
 
     expect(back).not.toHaveBeenCalled();
   });
@@ -185,8 +192,9 @@ describe("EditQuestionnaireClient behavior", () => {
     expect(back).not.toHaveBeenCalled();
   });
 
-  it("updates visibility, slider helper text, and multiple-choice options in editor", async () => {
-    apiFetchMock.mockResolvedValueOnce({
+  it("updates visibility and slider helper text in editor", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
       templateName: "Editor",
       canEdit: true,
       isPublic: true,
@@ -204,23 +212,15 @@ describe("EditQuestionnaireClient behavior", () => {
           configs: { options: ["Yes", "No"] },
         },
       ],
-    });
-
+    })
+      .mockResolvedValueOnce({});
     render(<EditQuestionnaireClient />);
-
     await screen.findByDisplayValue("Editor");
 
     fireEvent.click(screen.getByRole("button", { name: "Private" }));
-
     fireEvent.change(screen.getByDisplayValue("Old help"), {
       target: { value: "New helper text" },
     });
-
-    fireEvent.change(screen.getByDisplayValue("Yes"), {
-      target: { value: "Absolutely" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
@@ -235,26 +235,49 @@ describe("EditQuestionnaireClient behavior", () => {
     expect(body.questions.find((q: any) => q.type === "slider").configs.helperText).toBe(
       "New helper text"
     );
+  });
 
+  it("updates multiple-choice options in editor", async () => {
+    await loadEditorForSave({
+      templateName: "Editor",
+      canEdit: true,
+      isPublic: true,
+      questions: [
+        {
+          id: 21,
+          label: "MC q",
+          type: "multiple-choice",
+          configs: { options: ["Yes", "No"] },
+        },
+      ],
+    });
+
+    fireEvent.change(screen.getByDisplayValue("Yes"), {
+      target: { value: "Absolutely" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add option" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      )
+    );
+    const body = getRequestBody("/questionnaires/12", "PUT");
     const mcOptions = body.questions.find((q: any) => q.type === "multiple-choice").configs
       .options;
     expect(mcOptions).toContain("Absolutely");
     expect(mcOptions).toContain("New option");
   });
 
-  it("adds new question types with default configs", async () => {
-    apiFetchMock
-      .mockResolvedValueOnce({
-        templateName: "Base Template",
-        canEdit: true,
-        isPublic: true,
-        questions: [{ id: 1, label: "Base question", type: "text", configs: {} }],
-      })
-      .mockResolvedValueOnce({});
-
-    render(<EditQuestionnaireClient />);
-
-    await screen.findByDisplayValue("Base Template");
+  it("adds new question types and persists their labels", async () => {
+    await loadEditorForSave({
+      templateName: "Base Template",
+      canEdit: true,
+      isPublic: true,
+      questions: [{ id: 1, label: "Base question", type: "text", configs: {} }],
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Add multiple choice" }));
     fireEvent.click(screen.getByRole("button", { name: "Add rating" }));
@@ -282,7 +305,43 @@ describe("EditQuestionnaireClient behavior", () => {
     const addedRating = body.questions.find((q: any) => q.label === "Added Rating");
     const addedSlider = body.questions.find((q: any) => q.label === "Added Slider");
     const addedText = body.questions.find((q: any) => q.label === "Added Text");
+    expect(addedMc?.type).toBe("multiple-choice");
+    expect(addedRating?.type).toBe("rating");
+    expect(addedSlider?.type).toBe("slider");
+    expect(addedText?.type).toBe("text");
+  });
 
+  it("applies default configs for newly added question types", async () => {
+    await loadEditorForSave({
+      templateName: "Base Template",
+      canEdit: true,
+      isPublic: true,
+      questions: [{ id: 1, label: "Base question", type: "text", configs: {} }],
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add multiple choice" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add rating" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add slider" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
+    const addedQuestionLabels = ["Q2", "Q3", "Q4", "Q5"];
+    screen
+      .getAllByPlaceholderText("Enter your question")
+      .slice(1)
+      .forEach((input, index) => {
+        fireEvent.change(input, { target: { value: addedQuestionLabels[index] } });
+      });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(apiFetchMock).toHaveBeenCalledWith(
+        "/questionnaires/12",
+        expect.objectContaining({ method: "PUT" })
+      )
+    );
+    const body = getRequestBody("/questionnaires/12", "PUT");
+    const addedMc = body.questions.find((q: any) => q.type === "multiple-choice");
+    const addedRating = body.questions.find((q: any) => q.type === "rating");
+    const addedSlider = body.questions.find((q: any) => q.type === "slider");
+    const addedText = body.questions.find((q: any) => q.type === "text" && q.label !== "Base question");
     expect(addedMc).toMatchObject({
       type: "multiple-choice",
       configs: { options: ["Yes", "No"] },

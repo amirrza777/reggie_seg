@@ -4,15 +4,12 @@ import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { getMeeting } from "../api/client";
+import { getMeeting, getMeetingSettings } from "../api/client";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { Card } from "@/shared/ui/Card";
 import "../styles/meeting-detail.css";
 import type { Meeting } from "../types";
-
-const MINUTES_EDIT_WINDOW_DAYS = 7;
-const MINUTES_EDIT_WINDOW_MS = MINUTES_EDIT_WINDOW_DAYS * 24 * 60 * 60 * 1000;
 
 type MeetingMinutesContentProps = {
   meetingId: number;
@@ -22,12 +19,16 @@ type MeetingMinutesContentProps = {
 export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesContentProps) {
   const { user } = useUser();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
+  const [editWindowMs, setEditWindowMs] = useState<number | null>(null);
 
   useEffect(() => {
-    getMeeting(meetingId).then(setMeeting);
+    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, settings]) => {
+      setMeeting(m);
+      setEditWindowMs(settings.minutesEditWindowDays * 24 * 60 * 60 * 1000);
+    });
   }, [meetingId]);
 
-  if (!meeting || !user) return null;
+  if (!meeting || !user || editWindowMs === null) return null;
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
@@ -48,7 +49,7 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
     );
   }
 
-  if (now.getTime() - meetingDate.getTime() > MINUTES_EDIT_WINDOW_MS) {
+  if (now.getTime() - meetingDate.getTime() > editWindowMs) {
     return (
       <div className="stack">
         {backLink}

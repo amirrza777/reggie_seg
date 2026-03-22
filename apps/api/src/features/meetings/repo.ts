@@ -1,5 +1,6 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the meetings by team ID. */
 export function getMeetingsByTeamId(teamId: number) {
   return prisma.meeting.findMany({
     where: { teamId },
@@ -33,6 +34,7 @@ export function getMeetingsByTeamId(teamId: number) {
   });
 }
 
+/** Returns the meeting by ID. */
 export function getMeetingById(meetingId: number) {
   return prisma.meeting.findUnique({
     where: { id: meetingId },
@@ -76,6 +78,7 @@ export function getMeetingById(meetingId: number) {
   });
 }
 
+/** Creates a meeting. */
 export function createMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -102,12 +105,30 @@ export function updateMeeting(meetingId: number, data: {
   return prisma.meeting.update({ where: { id: meetingId }, data });
 }
 
+/** Returns team meeting-state fields used by service guards. */
+export function getTeamMeetingState(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    select: { archivedAt: true, inactivityFlag: true },
+  });
+}
+
+/** Clears inactivity flag for a team after a new meeting. */
+export function clearTeamInactivityFlag(teamId: number) {
+  return prisma.team.update({
+    where: { id: teamId },
+    data: { inactivityFlag: "NONE" },
+  });
+}
+
+/** Deletes the meeting. */
 export function deleteMeeting(meetingId: number) {
   return prisma.meeting.delete({
     where: { id: meetingId },
   });
 }
 
+/** Executes the bulk upsert attendance. */
 export function bulkUpsertAttendance(
   meetingId: number,
   records: { userId: number; status: string }[]
@@ -133,6 +154,7 @@ export function bulkUpsertAttendance(
   return prisma.$transaction(upserts);
 }
 
+/** Executes the upsert minutes. */
 export function upsertMinutes(meetingId: number, writerId: number, content: string) {
   return prisma.meetingMinutes.upsert({
     where: { meetingId },
@@ -141,12 +163,14 @@ export function upsertMinutes(meetingId: number, writerId: number, content: stri
   });
 }
 
-export function createComment(meetingId: number, userId: number, content: string) {
+/** Creates a comment. */
+export function createComment(meetingId: number, userId: number, content: string, _teamId?: number) {
   return prisma.meetingComment.create({
     data: { meetingId, userId, content },
   });
 }
 
+/** Deletes the comment. */
 export function deleteComment(commentId: number) {
   return prisma.meetingComment.delete({
     where: { id: commentId },
@@ -183,4 +207,12 @@ export async function getModuleLeadsForTeam(teamId: number) {
     where: { moduleId: project.moduleId },
     select: { userId: true },
   });
+}
+
+export async function getModuleMeetingSettingsForTeam(teamId: number) {
+  const project = await prisma.project.findFirst({
+    where: { teams: { some: { id: teamId } } },
+    select: { module: { select: { absenceThreshold: true, minutesEditWindowDays: true } } },
+  });
+  return project?.module ?? { absenceThreshold: 3, minutesEditWindowDays: 7 };
 }

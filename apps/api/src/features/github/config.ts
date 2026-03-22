@@ -9,6 +9,7 @@ export type GitHubAppConfig = {
   webhookSecret: string | null;
 };
 
+/** Returns the git hub app config. */
 export function getGitHubAppConfig(): GitHubAppConfig | null {
   const appId = process.env.GITHUB_APP_ID?.trim();
   const clientId = process.env.GITHUB_APP_CLIENT_ID?.trim();
@@ -36,6 +37,7 @@ export function getGitHubAppConfig(): GitHubAppConfig | null {
   };
 }
 
+/** Returns the git hub API config. */
 export function getGitHubApiConfig() {
   return {
     baseUrl: process.env.GITHUB_API_BASE_URL || GITHUB_API_BASE_URL,

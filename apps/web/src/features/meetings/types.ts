@@ -16,6 +16,7 @@ export type Meeting = {
     lastName: string;
   };
   team: {
+    enterpriseId: string;
     allocations: {
       user: {
         id: number;

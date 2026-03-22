@@ -22,6 +22,7 @@ async function ensureTemplateOwnership(requesterUserId: number, templateId: numb
   }
 }
 
+/** Creates a template. */
 export function createTemplate(
   templateName: string,
   questions: Question[],
@@ -31,22 +32,30 @@ export function createTemplate(
   return createQuestionnaireTemplate(templateName, questions, userId, isPublic)
 }
 
+/** Returns the template. */
 export function getTemplate(id: number, requesterUserId?: number | null) {
   return getQuestionnaireTemplateById(id, requesterUserId)
 }
 
+/** Returns the all templates. */
 export function getAllTemplates(requesterUserId?: number | null) {
     return getAllQuestionnaireTemplates(requesterUserId);
 }
 
-export function getMyTemplates(userId: number) {
+/** Returns the my templates. */
+export function getMyTemplates(userId: number, options?: { query?: string | null }) {
+  if (options?.query) {
+    return getMyQuestionnaireTemplates(userId, options);
+  }
   return getMyQuestionnaireTemplates(userId);
 }
 
+/** Returns the public templates from other users. */
 export function getPublicTemplatesFromOtherUsers(userId: number) {
   return getPublicQuestionnaireTemplatesByOtherUsers(userId);
 }
 
+/** Updates the template. */
 export function updateTemplate(
   requesterUserId: number,
   templateId: number,
@@ -59,6 +68,7 @@ export function updateTemplate(
   );
 }
 
+/** Deletes the template. */
 export function deleteTemplate(requesterUserId: number, templateId: number) {
   return ensureTemplateOwnership(requesterUserId, templateId).then(async () => {
     const inUse = await isQuestionnaireTemplateInUse(templateId);
@@ -73,10 +83,10 @@ export function deleteTemplate(requesterUserId: number, templateId: number) {
   });
 }
 
+/** Executes the use public template. */
 export function usePublicTemplate(requesterUserId: number, templateId: number) {
   if (!requesterUserId) {
     throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
   }
   return copyPublicQuestionnaireTemplateToUser(templateId, requesterUserId);
 }
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type FaqItem = {
   question: string;
@@ -21,14 +21,6 @@ export function FaqAccordion({ items, reveal = true, initialOpenQuestion }: FaqA
   const [openIndex, setOpenIndex] = useState<number | null>(
     initialIndex >= 0 ? initialIndex : null,
   );
-
-  useEffect(() => {
-    if (!initialOpenQuestion) {
-      return;
-    }
-    const nextIndex = items.findIndex((item) => item.question === initialOpenQuestion);
-    setOpenIndex(nextIndex >= 0 ? nextIndex : null);
-  }, [initialOpenQuestion, items]);
 
   const handleToggle = (index: number) => {
     setOpenIndex((current) => (current === index ? null : index));

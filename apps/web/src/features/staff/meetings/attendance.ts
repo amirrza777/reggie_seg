@@ -1,4 +1,4 @@
-import type { StaffMeeting, MeetingStats, FlaggedMember } from "../types";
+import type { StaffMeeting, MeetingStats, FlaggedMember } from "./types";
 
 export const ABSENCES_BEFORE_ALERT = 3;
 

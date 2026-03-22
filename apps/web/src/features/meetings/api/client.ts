@@ -79,3 +79,7 @@ export async function addComment(
 export async function deleteComment(commentId: number) {
   await apiFetch(`/meetings/comments/${commentId}`, { method: "DELETE" });
 }
+
+export async function getMeetingSettings(meetingId: number) {
+  return apiFetch<{ absenceThreshold: number; minutesEditWindowDays: number }>(`/meetings/${meetingId}/settings`);
+}

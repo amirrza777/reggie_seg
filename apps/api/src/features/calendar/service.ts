@@ -19,6 +19,7 @@ function fmt(date: Date): string {
   return date.toISOString();
 }
 
+/** Returns the calendar events for user. */
 export async function getCalendarEventsForUser(userId: number): Promise<CalendarEvent[]> {
   const teams = await prisma.teamAllocation.findMany({
     where: { userId },

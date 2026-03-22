@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 type TopbarProps = {
   leading?: ReactNode;
@@ -27,7 +28,10 @@ export function Topbar({ leading, title, titleHref, nav, actions }: TopbarProps)
         ) : null}
         {nav ? <div className="topbar__nav">{nav}</div> : null}
       </div>
-      {actions ? <div className="topbar__actions">{actions}</div> : null}
+      <div className="topbar__actions">
+        <NotificationBell />
+        {actions}
+      </div>
     </div>
   );
 }

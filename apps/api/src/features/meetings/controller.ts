@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
-import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment } from "./service.js";
+import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment, fetchMeetingSettings } from "./service.js";
 
+/** Handles requests for list meetings. */
 export async function listMeetingsHandler(req: Request, res: Response) {
   const teamId = Number(req.params.teamId);
 
@@ -17,6 +18,7 @@ export async function listMeetingsHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get meeting. */
 export async function getMeetingHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -36,6 +38,7 @@ export async function getMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for create meeting. */
 export async function createMeetingHandler(req: Request, res: Response) {
   const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda } = req.body;
 
@@ -95,6 +98,7 @@ export async function updateMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for delete meeting. */
 export async function deleteMeetingHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -114,6 +118,7 @@ export async function deleteMeetingHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for mark attendance. */
 export async function markAttendanceHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { records } = req.body;
@@ -135,6 +140,7 @@ export async function markAttendanceHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for save minutes. */
 export async function saveMinutesHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { writerId, content } = req.body;
@@ -158,6 +164,7 @@ export async function saveMinutesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get minutes. */
 export async function getMinutesHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
 
@@ -177,6 +184,7 @@ export async function getMinutesHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for add comment. */
 export async function addCommentHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
   const { userId, content, teamId } = req.body;
@@ -198,6 +206,26 @@ export async function addCommentHandler(req: Request, res: Response) {
   }
 }
 
+export async function getMeetingSettingsHandler(req: Request, res: Response) {
+  const meetingId = Number(req.params.meetingId);
+
+  if (isNaN(meetingId)) {
+    return res.status(400).json({ error: "Invalid meeting ID" });
+  }
+
+  try {
+    const settings = await fetchMeetingSettings(meetingId);
+    if (!settings) {
+      return res.status(404).json({ error: "Meeting not found" });
+    }
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching meeting settings:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/** Handles requests for delete comment. */
 export async function deleteCommentHandler(req: Request, res: Response) {
   const commentId = Number(req.params.commentId);
 

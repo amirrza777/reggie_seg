@@ -24,6 +24,23 @@ export type ProjectDeadline = {
   deadlineProfile?: "STANDARD" | "MCF";
 };
 
+export type DeadlineFieldKey =
+  | "taskOpenDate"
+  | "taskDueDate"
+  | "assessmentOpenDate"
+  | "assessmentDueDate"
+  | "feedbackOpenDate"
+  | "feedbackDueDate";
+
+export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
+
+export type StaffTeamDeadlineDetails = {
+  baseDeadline: ProjectDeadline;
+  effectiveDeadline: ProjectDeadline;
+  deadlineInputMode: DeadlineInputMode | null;
+  shiftDays: Partial<Record<DeadlineFieldKey, number>> | null;
+};
+
 export type User = {
   id: number;
   firstName: string;
@@ -36,6 +53,7 @@ export type Team = {
   id: number;
   teamName: string;
   projectId: number;
+  allocationLifecycle?: "DRAFT" | "ACTIVE";
   createdAt: string;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -44,6 +62,30 @@ export type Team = {
     userId: number;
     user: User;
   }>;
+};
+
+export type TeamHealthMessage = {
+  id: number;
+  projectId: number;
+  teamId: number;
+  requesterUserId: number;
+  reviewedByUserId: number | null;
+  subject: string;
+  details: string;
+  responseText: string | null;
+  resolved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  reviewedAt: string | null;
+  requester: User;
+  reviewedBy:
+    | {
+        id: number;
+        firstName: string;
+        lastName: string;
+        email: string;
+      }
+    | null;
 };
 
 export type StaffProject = {
@@ -126,12 +168,6 @@ export type CreatedStaffProject = {
   } | null;
 };
 
-export type TeamMember = {
-  id: string;
-  name: string;
-  role: string;
-};
-
 export type StaffMarkingSummary = {
   mark: number | null;
   formativeFeedback: string | null;
@@ -149,6 +185,7 @@ export type ProjectMarkingSummary = {
   studentMarking: StaffMarkingSummary | null;
 };
 
+
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;
@@ -160,9 +197,4 @@ export type DeadlineItem = {
   label: string;
   value: string | null;
   group: string;
-};
-
-export type DeadlineState = {
-  label: string;
-  color: string;
 };

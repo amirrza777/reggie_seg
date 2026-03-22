@@ -1,8 +1,9 @@
 .app-shell__sidebar {
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
   color: var(--sidebar-text);
+  border: 1px solid var(--glass-ui-border);
   border-right: none;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px 10px;
   margin: 0;
   position: relative;
@@ -29,7 +30,7 @@
 }
 
 .app-shell__workspace {
-  --workspace-radius: 10px;
+  --workspace-radius: var(--radius-md);
   width: 100%;
   min-width: 0;
   display: grid;
@@ -38,7 +39,8 @@
   align-items: start;
   height: 100%;
   min-height: 0;
-  background: var(--surface);
+  background: var(--glass-ui-bg-soft);
+  border: 1px solid var(--glass-ui-border);
   border-radius: var(--workspace-radius);
   background-clip: padding-box;
   overflow-anchor: none;
@@ -63,7 +65,7 @@
   overflow: visible;
   --sidebar-item-min-height: 52px;
   --sidebar-item-pad-x: 16px;
-  --sidebar-item-radius: 14px;
+  --sidebar-item-radius: var(--radius-md);
   --sidebar-item-font-size: 1rem;
   --sidebar-group-gap: 8px;
   --sidebar-subitem-indent: 12px;
@@ -198,7 +200,7 @@
   padding: 8px calc(var(--sidebar-item-pad-x) - 2px);
   display: flex;
   align-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--sidebar-text);
   border: 1px solid transparent;
   font-size: var(--sidebar-item-font-size);

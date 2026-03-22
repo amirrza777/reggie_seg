@@ -1,5 +1,11 @@
 import { prisma } from "../../shared/db.js";
 
+/** Returns the user role by id. */
+export function findUserRoleById(id: number) {
+  return prisma.user.findUnique({ where: { id }, select: { role: true } });
+}
+
+/** Returns the all modules. */
 export function listAllModules() {
   return prisma.module.findMany({
     select: {
@@ -12,6 +18,7 @@ export function listAllModules() {
   });
 }
 
+/** Returns the all projects. */
 export function listAllProjects() {
   return prisma.project.findMany({
     select: {
@@ -25,6 +32,7 @@ export function listAllProjects() {
   });
 }
 
+/** Returns the all teams. */
 export function listAllTeams() {
   return prisma.team.findMany({
     select: {
@@ -38,14 +46,17 @@ export function listAllTeams() {
   });
 }
 
+/** Executes the set module archived. */
 export function setModuleArchived(id: number, archivedAt: Date | null) {
   return prisma.module.update({ where: { id }, data: { archivedAt } });
 }
 
+/** Executes the set project archived. */
 export function setProjectArchived(id: number, archivedAt: Date | null) {
   return prisma.project.update({ where: { id }, data: { archivedAt } });
 }
 
+/** Executes the set team archived. */
 export function setTeamArchived(id: number, archivedAt: Date | null) {
   return prisma.team.update({ where: { id }, data: { archivedAt } });
 }

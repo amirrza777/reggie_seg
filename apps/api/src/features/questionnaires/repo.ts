@@ -1,10 +1,28 @@
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
 import type { Question, IncomingQuestion } from "./types.js";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
+import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
+function matchesTemplateSearchQuery(
+  template: { id: number; templateName: string; questions?: Array<{ label: string }> },
+  query: string,
+): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: template.id,
+    sources: [template.templateName, ...(template.questions ?? []).map((question) => question.label)],
+  });
+}
+
+function toQuestionConfigsValue(configs: unknown): Prisma.InputJsonValue {
+  return (configs ?? null) as Prisma.InputJsonValue;
+}
+
+/** Creates a questionnaire template. */
 export function createQuestionnaireTemplate(
   templateName: string,
-  questions: any[],
+  questions: IncomingQuestion[],
   userId: number,
   isPublic: boolean
 ) {
@@ -17,7 +35,7 @@ export function createQuestionnaireTemplate(
           label: q.label,
           type: q.type,
           order: index,
-          configs: q.configs ?? null,
+          configs: toQuestionConfigsValue(q.configs),
         })),
       },
       ownerId: userId,
@@ -25,6 +43,7 @@ export function createQuestionnaireTemplate(
   })
 }
 
+/** Returns the questionnaire template by ID. */
 export function getQuestionnaireTemplateById(id: number, requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findFirst({
     where: requesterUserId
@@ -34,6 +53,7 @@ export function getQuestionnaireTemplateById(id: number, requesterUserId?: numbe
   })
 }
 
+/** Returns the all questionnaire templates. */
 export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   return prisma.questionnaireTemplate.findMany({
     where: requesterUserId
@@ -43,13 +63,39 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
   });
 };
 
-export function getMyQuestionnaireTemplates(userId: number) {
-  return prisma.questionnaireTemplate.findMany({
-    where: { ownerId: userId },
+/** Returns the my questionnaire templates. */
+export async function getMyQuestionnaireTemplates(userId: number, options?: { query?: string | null }) {
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+
+  const templates = await prisma.questionnaireTemplate.findMany({
+    where: hasQuery
+      ? {
+          ownerId: userId,
+          OR: [
+            { templateName: { contains: normalizedQuery } },
+            { questions: { some: { label: { contains: normalizedQuery } } } },
+            ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+          ],
+        }
+      : { ownerId: userId },
     include: { questions: { orderBy: { order: "asc" } } },
+  });
+
+  return applyFuzzyFallback(templates, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: async (limit) =>
+      prisma.questionnaireTemplate.findMany({
+        where: { ownerId: userId },
+        include: { questions: { orderBy: { order: "asc" } } },
+        take: limit,
+      }),
+    matches: (template, query) => matchesTemplateSearchQuery(template, query),
   });
 }
 
+/** Returns the public questionnaire templates by other users. */
 export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
   return prisma.questionnaireTemplate.findMany({
     where: {
@@ -60,6 +106,7 @@ export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
   });
 }
 
+/** Checks whether questionnaire template owned by user. */
 export async function isQuestionnaireTemplateOwnedByUser(templateId: number, userId: number) {
   const template = await prisma.questionnaireTemplate.findFirst({
     where: { id: templateId, ownerId: userId },
@@ -68,6 +115,7 @@ export async function isQuestionnaireTemplateOwnedByUser(templateId: number, use
   return Boolean(template);
 }
 
+/** Checks whether questionnaire template in use. */
 export async function isQuestionnaireTemplateInUse(templateId: number) {
   const template = await prisma.questionnaireTemplate.findUnique({
     where: { id: templateId },
@@ -85,6 +133,7 @@ export async function isQuestionnaireTemplateInUse(templateId: number) {
   return template._count.projects > 0 || template._count.assessments > 0;
 }
 
+/** Updates the questionnaire template. */
 export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
@@ -161,12 +210,14 @@ export async function updateQuestionnaireTemplate(
   });
 }
 
+/** Deletes the questionnaire template. */
 export function deleteQuestionnaireTemplate(id: number) {
   return prisma.questionnaireTemplate.delete({
     where: { id },
   });
 }
 
+/** Executes the copy public questionnaire template to user. */
 export async function copyPublicQuestionnaireTemplateToUser(templateId: number, userId: number) {
   const source = await prisma.questionnaireTemplate.findFirst({
     where: { id: templateId, isPublic: true },
@@ -183,13 +234,12 @@ export async function copyPublicQuestionnaireTemplateToUser(templateId: number, 
       questions: {
         create: source.questions.map((q, index) => ({
           label: q.label,
-          type: q.type,
+          type: q.type as Prisma.QuestionCreateWithoutTemplateInput["type"],
           order: index,
-          configs: q.configs ?? null,
+          configs: toQuestionConfigsValue(q.configs),
         })),
       },
     },
     select: { id: true },
   });
 }
-

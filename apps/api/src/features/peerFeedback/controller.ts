@@ -1,6 +1,12 @@
 import type { Request, Response } from "express"
-import { saveFeedbackReview, getPeerAssessment } from "./service.js"
+import {
+  getFeedbackReview,
+  getFeedbackReviewStatuses,
+  saveFeedbackReview,
+  getPeerAssessment,
+} from "./service.js"
 
+/** Handles requests for create peer feedback. */
 export async function createPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   const { reviewText, agreements, reviewerUserId, revieweeUserId } = req.body;
@@ -42,13 +48,14 @@ export async function createPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for get peer feedback. */
 export async function getPeerFeedbackHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) {
     return res.status(400).json({ error: "Invalid feedback ID" });
   }
   try {
-    const review = await (await import("./service.js")).getFeedbackReview(feedbackId);
+    const review = await getFeedbackReview(feedbackId);
     if (!review) return res.status(404).json({ error: "Review not found" });
     res.json(review);
   } catch (error) {
@@ -57,6 +64,28 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
   }
 }
 
+/** Handles requests for bulk peer feedback completion statuses. */
+export async function getPeerFeedbackStatusesHandler(req: Request, res: Response) {
+  const feedbackIds = req.body?.feedbackIds;
+  if (!Array.isArray(feedbackIds)) {
+    return res.status(400).json({ error: "feedbackIds must be an array" });
+  }
+
+  const parsedFeedbackIds = feedbackIds.map((feedbackId) => Number(feedbackId));
+  if (parsedFeedbackIds.some((feedbackId) => Number.isNaN(feedbackId))) {
+    return res.status(400).json({ error: "feedbackIds must contain only numeric IDs" });
+  }
+
+  try {
+    const statuses = await getFeedbackReviewStatuses(parsedFeedbackIds);
+    return res.json({ statuses });
+  } catch (error) {
+    console.error("Error retrieving peer feedback statuses:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+/** Handles requests for get peer assessment. */
 export async function getPeerAssessmentHandler(req: Request, res: Response) {
   const feedbackId = Number(req.params.feedbackId);
   if (isNaN(feedbackId)) return res.status(400).json({ error: "Invalid feedback ID" });

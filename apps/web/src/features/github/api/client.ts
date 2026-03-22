@@ -19,8 +19,14 @@ export async function getGithubConnectUrl(returnTo?: string) {
   return apiFetch<{ url: string }>(`/github/connect${query}`);
 }
 
-export async function listGithubRepositories(): Promise<GithubRepositoryOption[]> {
-  const response = await apiFetch<{ repos: GithubRepositoryOption[] }>("/github/repos");
+export async function listGithubRepositories(options?: { query?: string }): Promise<GithubRepositoryOption[]> {
+  const searchParams = new URLSearchParams();
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  const query = searchParams.toString();
+  const path = query ? `/github/repos?${query}` : "/github/repos";
+  const response = await apiFetch<{ repos: GithubRepositoryOption[] }>(path);
   return response.repos;
 }
 
@@ -91,8 +97,17 @@ export async function getProjectGithubMappingCoverage(linkId: number): Promise<G
   return response.mappingCoverage;
 }
 
-export async function listLiveProjectGithubRepoBranches(linkId: number): Promise<GithubLiveProjectRepoBranches> {
-  return apiFetch<GithubLiveProjectRepoBranches>(`/github/project-repos/${linkId}/branches`);
+export async function listLiveProjectGithubRepoBranches(
+  linkId: number,
+  options?: { query?: string },
+): Promise<GithubLiveProjectRepoBranches> {
+  const searchParams = new URLSearchParams();
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  const query = searchParams.toString();
+  const path = query ? `/github/project-repos/${linkId}/branches?${query}` : `/github/project-repos/${linkId}/branches`;
+  return apiFetch<GithubLiveProjectRepoBranches>(path);
 }
 
 export async function listLiveProjectGithubRepoBranchCommits(

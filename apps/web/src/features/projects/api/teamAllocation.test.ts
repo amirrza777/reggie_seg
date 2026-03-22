@@ -8,12 +8,16 @@ vi.mock("@/shared/api/http", () => ({
 
 import {
   acceptInvite,
+  applyCustomAllocation,
   applyManualAllocation,
   applyRandomAllocation,
   cancelTeamInvite,
   createTeamForProject,
   declineInvite,
+  getCustomAllocationCoverage,
+  getCustomAllocationQuestionnaires,
   getManualAllocationWorkspace,
+  previewCustomAllocation,
   getRandomAllocationPreview,
   getReceivedInvites,
   getTeamInvites,
@@ -68,10 +72,10 @@ describe("team allocation api client", () => {
     });
   });
 
-  it("fetches random allocation preview with teamCount and seed", async () => {
+  it("fetches random allocation preview with teamCount (seed is ignored)", async () => {
     await getRandomAllocationPreview(55, 4, 1234);
     expect(apiFetchMock).toHaveBeenCalledWith(
-      "/team-allocation/projects/55/random-preview?teamCount=4&seed=1234",
+      "/team-allocation/projects/55/random-preview?teamCount=4",
       { cache: "no-store" }
     );
   });
@@ -90,6 +94,19 @@ describe("team allocation api client", () => {
     });
   });
 
+  it("fetches custom allocation questionnaires and coverage", async () => {
+    await getCustomAllocationQuestionnaires(91);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/custom-questionnaires", {
+      cache: "no-store",
+    });
+
+    await getCustomAllocationCoverage(91, 33);
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/team-allocation/projects/91/custom-coverage?questionnaireTemplateId=33",
+      { cache: "no-store" },
+    );
+  });
+
   it("applies manual allocation with team name and selected students", async () => {
     await applyManualAllocation(55, "Team Gamma", [4, 8, 11]);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/manual-allocate", {
@@ -98,11 +115,11 @@ describe("team allocation api client", () => {
     });
   });
 
-  it("applies random allocation with team count and optional seed", async () => {
+  it("applies random allocation with team count (seed is ignored)", async () => {
     await applyRandomAllocation(55, 4, 1234);
     expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
       method: "POST",
-      body: JSON.stringify({ teamCount: 4, seed: 1234 }),
+      body: JSON.stringify({ teamCount: 4 }),
     });
 
     await applyRandomAllocation(55, 4);
@@ -116,8 +133,38 @@ describe("team allocation api client", () => {
       method: "POST",
       body: JSON.stringify({
         teamCount: 4,
-        seed: 1234,
         teamNames: ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"],
+      }),
+    });
+  });
+
+  it("previews and applies custom allocation", async () => {
+    await previewCustomAllocation(55, {
+      questionnaireTemplateId: 8,
+      teamCount: 4,
+      seed: 1234,
+      nonRespondentStrategy: "distribute_randomly",
+      criteria: [{ questionId: 101, strategy: "diversify", weight: 4 }],
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/custom-preview", {
+      method: "POST",
+      body: JSON.stringify({
+        questionnaireTemplateId: 8,
+        teamCount: 4,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 101, strategy: "diversify", weight: 4 }],
+      }),
+    });
+
+    await applyCustomAllocation(55, {
+      previewId: "custom-preview-1",
+      teamNames: ["Team Orion", "Team Vega"],
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/custom-allocate", {
+      method: "POST",
+      body: JSON.stringify({
+        previewId: "custom-preview-1",
+        teamNames: ["Team Orion", "Team Vega"],
       }),
     });
   });

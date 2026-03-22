@@ -10,6 +10,7 @@ import {
   getMinutesHandler,
   addCommentHandler,
   deleteCommentHandler,
+  getMeetingSettingsHandler,
 } from "./controller.js";
 
 const router = Router();
@@ -24,5 +25,6 @@ router.put("/:meetingId/minutes", saveMinutesHandler);
 router.get("/:meetingId/minutes", getMinutesHandler);
 router.post("/:meetingId/comments", addCommentHandler);
 router.delete("/comments/:commentId", deleteCommentHandler);
+router.get("/:meetingId/settings", getMeetingSettingsHandler);
 
 export default router;

@@ -1,19 +1,25 @@
-import { prisma } from "../../shared/db.js";
+import { findActiveUserEnterpriseById, findFeatureFlagByKey, listFeatureFlagsByEnterprise } from "./repo.js";
 
-export async function isFeatureEnabled(key: string, enterpriseId?: string): Promise<boolean> {
-  const enterprise = enterpriseId
-    ? { id: enterpriseId }
-    : await prisma.enterprise.upsert({
-        where: { code: "DEFAULT" },
-        update: {},
-        create: { code: "DEFAULT", name: "Default Enterprise" },
-        select: { id: true },
-      });
+export async function resolveFeatureFlagEnterpriseIdForUser(userId: number) {
+  const user = await findActiveUserEnterpriseById(userId);
+  if (!user || user.active === false) return null;
+  return user.enterpriseId;
+}
 
-  const flag = await prisma.featureFlag.findUnique({
-    where: { enterpriseId_key: { enterpriseId: enterprise.id, key } },
-    select: { enabled: true },
-  });
+export async function listFeatureFlagsForUser(userId: number) {
+  const enterpriseId = await resolveFeatureFlagEnterpriseIdForUser(userId);
+  if (!enterpriseId) return null;
+  return listFeatureFlagsByEnterprise(enterpriseId);
+}
 
-  return flag?.enabled === true;
+export async function isFeatureEnabled(key: string, enterpriseId: string) {
+  const flag = await findFeatureFlagByKey(enterpriseId, key);
+  return flag?.enabled ?? false;
+}
+
+export async function isFeatureEnabledForUser(key: string, userId: number) {
+  const enterpriseId = await resolveFeatureFlagEnterpriseIdForUser(userId);
+  if (!enterpriseId) return false;
+  const flag = await findFeatureFlagByKey(enterpriseId, key);
+  return flag?.enabled ?? false;
 }

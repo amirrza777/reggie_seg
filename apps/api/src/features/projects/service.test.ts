@@ -9,6 +9,9 @@ import {
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
+  submitTeamHealthMessage,
+  fetchMyTeamHealthMessages,
+  fetchTeamHealthMessagesForStaff,
 } from "./service.js";
 import * as repo from "./repo.js";
 
@@ -22,6 +25,10 @@ vi.mock("./repo.js", () => ({
   getTeamById: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
   getQuestionsForProject: vi.fn(),
+  createTeamHealthMessage: vi.fn(),
+  getTeamHealthMessagesForUserInProject: vi.fn(),
+  getTeamHealthMessagesForTeamInProject: vi.fn(),
+  canStaffAccessTeamInProject: vi.fn(),
 }));
 
 describe("projects service", () => {
@@ -64,7 +71,7 @@ describe("projects service", () => {
     ]);
   });
 
-  it("maps modules and forwards module scope options", async () => {
+  it("fetchModulesForUser maps module fields to API shape", async () => {
     (repo.getModulesForUser as any).mockResolvedValue([
       {
         id: 9,
@@ -92,7 +99,11 @@ describe("projects service", () => {
         accountRole: "OWNER",
       },
     ]);
+  });
 
+  it("fetchModulesForUser forwards module scope options to repo", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([]);
+    await fetchModulesForUser(7, { staffOnly: true, compact: true });
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
@@ -108,5 +119,41 @@ describe("projects service", () => {
     await expect(fetchTeamById(3)).resolves.toEqual({ id: 3 });
     await expect(fetchTeamByUserAndProject(1, 2)).resolves.toEqual({ id: 3 });
     await expect(fetchQuestionsForProject(2)).resolves.toEqual({ questionnaireTemplate: { id: 8 } });
+  });
+
+  it("submitTeamHealthMessage validates membership and creates request", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
+    await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toBeNull();
+    expect(repo.createTeamHealthMessage).not.toHaveBeenCalled();
+
+    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
+    (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101, resolved: false });
+    await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toEqual({
+      id: 101,
+      resolved: false,
+    });
+    expect(repo.createTeamHealthMessage).toHaveBeenCalledWith(3, 22, 7, "Need support", "Please review");
+  });
+
+  it("fetchMyTeamHealthMessages requires membership and returns user requests", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
+    await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toBeNull();
+    expect(repo.getTeamHealthMessagesForUserInProject).not.toHaveBeenCalled();
+
+    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
+    (repo.getTeamHealthMessagesForUserInProject as any).mockResolvedValue([{ id: 1 }]);
+    await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toEqual([{ id: 1 }]);
+    expect(repo.getTeamHealthMessagesForUserInProject).toHaveBeenCalledWith(3, 7);
+  });
+
+  it("fetchTeamHealthMessagesForStaff enforces staff scope before listing requests", async () => {
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
+    await expect(fetchTeamHealthMessagesForStaff(9, 3, 22)).resolves.toBeNull();
+    expect(repo.getTeamHealthMessagesForTeamInProject).not.toHaveBeenCalled();
+
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 4 }]);
+    await expect(fetchTeamHealthMessagesForStaff(9, 3, 22)).resolves.toEqual([{ id: 4 }]);
+    expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 });

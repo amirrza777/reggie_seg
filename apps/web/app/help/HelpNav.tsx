@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const navItems = [
   { href: "/help", label: "Overview" },
@@ -10,10 +13,17 @@ const navItems = [
 ];
 
 export function HelpNav() {
+  const pathname = usePathname();
+
   return (
-    <nav className="help-nav" aria-label="Help sections">
+    <nav className="help-nav" data-elevation="sticky" aria-label="Help sections">
       {navItems.map((item) => (
-        <Link key={item.href} href={item.href} className="help-nav__link">
+        <Link
+          key={item.href}
+          href={item.href}
+          className={`help-nav__link${pathname === item.href ? " help-nav__link--active" : ""}`}
+          aria-current={pathname === item.href ? "page" : undefined}
+        >
           {item.label}
         </Link>
       ))}

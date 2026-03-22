@@ -17,6 +17,7 @@ vi.mock("./mapper", () => ({
 
 import {
   getFeedbackReview,
+  getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
   getPeerFeedbackById,
   submitFeedback,
@@ -81,6 +82,20 @@ describe("peer feedback api client wrappers", () => {
     await getFeedbackReview("99");
 
     expect(apiFetchMock).toHaveBeenCalledWith("/peer-feedback/feedback/99/review");
+  });
+
+  it("getFeedbackReviewStatuses posts bulk ids and returns status map", async () => {
+    apiFetchMock.mockResolvedValue({
+      statuses: { "12": true, "13": false },
+    });
+
+    const result = await getFeedbackReviewStatuses(["12", "13"]);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/peer-feedback/feedback/reviews/statuses", {
+      method: "POST",
+      body: JSON.stringify({ feedbackIds: ["12", "13"] }),
+    });
+    expect(result).toEqual({ "12": true, "13": false });
   });
 
   it("submitPeerFeedback posts payload with reviewer and reviewee ids", async () => {

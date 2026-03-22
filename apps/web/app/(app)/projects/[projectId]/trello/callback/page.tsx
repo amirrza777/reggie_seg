@@ -13,13 +13,19 @@ function readTokenFromHash(hash: string): string | null {
 export default function TrelloCallbackPage() {
   const params = useParams();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
-  const [status, setStatus] = useState("Finishing Trello connection...");
+  const [status, setStatus] = useState(() => {
+    if (typeof window === "undefined") {
+      return "Finishing Trello connection...";
+    }
+    return readTokenFromHash(window.location.hash)
+      ? "Finishing Trello connection..."
+      : "Trello did not return a token. Try connecting again.";
+  });
 
   useEffect(() => {
     const token = readTokenFromHash(window.location.hash);
 
     if (!token) {
-      setStatus("Trello did not return a token. Try connecting again.");
       return;
     }
 
@@ -50,7 +56,7 @@ export default function TrelloCallbackPage() {
     };
 
     void run();
-  }, []);
+  }, [projectId]);
 
   return (
     <div style={{ padding: 24 }}>
@@ -59,4 +65,3 @@ export default function TrelloCallbackPage() {
     </div>
   );
 }
-
