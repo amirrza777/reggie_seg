@@ -230,6 +230,14 @@
   font-size: 15px;
 }
 
+.profile-row__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .profile-modal {
   padding: 28px;
   text-align: center;

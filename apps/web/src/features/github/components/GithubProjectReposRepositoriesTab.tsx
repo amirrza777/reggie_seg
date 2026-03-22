@@ -1,11 +1,14 @@
 "use client";
 
+import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SearchField } from "@/shared/ui/SearchField";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,
   GithubLatestSnapshot,
+  GithubLiveProjectRepoBranchCommits,
+  GithubLiveProjectRepoBranches,
   GithubMappingCoverage,
   GithubRepositoryOption,
   ProjectGithubRepoLink,
@@ -26,8 +29,19 @@ type Props = {
   coverageByLinkId: Record<number, GithubMappingCoverage | null>;
   latestSnapshotByLinkId: Record<number, GithubLatestSnapshot["snapshot"] | null>;
   currentGithubLogin: string | null;
+  liveBranchesByLinkId?: Record<number, GithubLiveProjectRepoBranches | null>;
+  liveBranchesLoadingByLinkId?: Record<number, boolean>;
+  liveBranchesErrorByLinkId?: Record<number, string | null>;
+  liveBranchesRefreshing?: boolean;
+  selectedBranchByLinkId?: Record<number, string>;
+  setSelectedBranchByLinkId?: Dispatch<SetStateAction<Record<number, string>>>;
+  branchCommitsByLinkId?: Record<number, GithubLiveProjectRepoBranchCommits | null>;
+  branchCommitsLoadingByLinkId?: Record<number, boolean>;
+  branchCommitsErrorByLinkId?: Record<number, string | null>;
   removingLinkId: number | null;
   onRefresh: () => Promise<void>;
+  onRefreshBranches?: () => Promise<void>;
+  onFetchBranchCommits?: (linkId: number, branchName: string) => Promise<void>;
   onLinkSelected: () => Promise<void>;
   onRemoveLink: (linkId: number) => void;
 };
@@ -48,8 +62,19 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
     coverageByLinkId,
     latestSnapshotByLinkId,
     currentGithubLogin,
+    liveBranchesByLinkId = {},
+    liveBranchesLoadingByLinkId = {},
+    liveBranchesErrorByLinkId = {},
+    liveBranchesRefreshing = false,
+    selectedBranchByLinkId = {},
+    setSelectedBranchByLinkId = () => undefined,
+    branchCommitsByLinkId = {},
+    branchCommitsLoadingByLinkId = {},
+    branchCommitsErrorByLinkId = {},
     removingLinkId,
     onRefresh,
+    onRefreshBranches = async () => undefined,
+    onFetchBranchCommits = async () => undefined,
     onLinkSelected,
     onRemoveLink,
   } = props;
@@ -149,6 +174,19 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
               coverage={coverageByLinkId[link.id] ?? null}
               snapshot={latestSnapshotByLinkId[link.id] ?? null}
               currentGithubLogin={currentGithubLogin}
+              liveBranches={liveBranchesByLinkId[link.id] ?? null}
+              liveBranchesLoading={Boolean(liveBranchesLoadingByLinkId[link.id])}
+              liveBranchesError={liveBranchesErrorByLinkId[link.id] ?? null}
+              liveBranchesRefreshing={liveBranchesRefreshing}
+              selectedBranch={selectedBranchByLinkId[link.id] ?? ""}
+              onSelectBranch={(branchName) => {
+                setSelectedBranchByLinkId((prev) => ({ ...prev, [link.id]: branchName }));
+                void onFetchBranchCommits(link.id, branchName);
+              }}
+              branchCommits={branchCommitsByLinkId[link.id] ?? null}
+              branchCommitsLoading={Boolean(branchCommitsLoadingByLinkId[link.id])}
+              branchCommitsError={branchCommitsErrorByLinkId[link.id] ?? null}
+              onRefreshBranches={() => void onRefreshBranches()}
               busy={busy}
               loading={loading}
               removingLinkId={removingLinkId}

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { StaffProjectReposReadOnlyClient } from "./StaffProjectReposReadOnlyClient";
 import type { ProjectGithubRepoLink } from "../types";
 
@@ -7,6 +7,7 @@ const listProjectGithubRepoLinksMock = vi.fn();
 const getProjectGithubMappingCoverageMock = vi.fn();
 const getLatestProjectGithubSnapshotMock = vi.fn();
 const analyseProjectGithubRepoMock = vi.fn();
+const listLiveProjectGithubRepoBranchesMock = vi.fn();
 const listLiveProjectGithubRepoBranchCommitsMock = vi.fn();
 
 vi.mock("../api/client", () => ({
@@ -14,6 +15,7 @@ vi.mock("../api/client", () => ({
   getProjectGithubMappingCoverage: (...args: unknown[]) => getProjectGithubMappingCoverageMock(...args),
   getLatestProjectGithubSnapshot: (...args: unknown[]) => getLatestProjectGithubSnapshotMock(...args),
   analyseProjectGithubRepo: (...args: unknown[]) => analyseProjectGithubRepoMock(...args),
+  listLiveProjectGithubRepoBranches: (...args: unknown[]) => listLiveProjectGithubRepoBranchesMock(...args),
   listLiveProjectGithubRepoBranchCommits: (...args: unknown[]) =>
     listLiveProjectGithubRepoBranchCommitsMock(...args),
 }));
@@ -23,13 +25,25 @@ vi.mock("./GithubRepoLinkCard", () => ({
     link,
     readOnly,
     viewerMode,
+    chartMode,
+    onSelectBranch,
+    branchCommits,
   }: {
     link: { repository: { fullName: string } };
     readOnly?: boolean;
     viewerMode?: string;
+    chartMode?: string;
+    onSelectBranch?: (branchName: string) => void;
+    branchCommits?: { commits?: Array<unknown> } | null;
   }) => (
-    <div data-testid="staff-repo-card">
-      {link.repository.fullName}:{String(readOnly)}:{viewerMode}
+    <div>
+      <div data-testid="staff-repo-card">
+        {link.repository.fullName}:{String(readOnly)}:{viewerMode}:{chartMode}
+      </div>
+      <button type="button" onClick={() => onSelectBranch?.("feature/cleanup")}>
+        Select feature branch
+      </button>
+      <div data-testid="staff-branch-commit-count">{branchCommits?.commits?.length ?? 0}</div>
     </div>
   ),
 }));
@@ -83,7 +97,7 @@ describe("StaffProjectReposReadOnlyClient", () => {
     expect(getLatestProjectGithubSnapshotMock).not.toHaveBeenCalled();
   });
 
-  it("renders linked repository cards in read-only staff mode", async () => {
+  it("renders selected repository analytics card in read-only staff mode", async () => {
     listProjectGithubRepoLinksMock.mockResolvedValue([makeLink(7, "org/repo-one")]);
     getProjectGithubMappingCoverageMock.mockResolvedValue({
       linkId: 7,
@@ -92,6 +106,17 @@ describe("StaffProjectReposReadOnlyClient", () => {
       coverage: null,
     });
     getLatestProjectGithubSnapshotMock.mockRejectedValue(new Error("missing snapshot"));
+    listLiveProjectGithubRepoBranchesMock.mockResolvedValue({
+      linkId: 7,
+      repository: { id: 70, fullName: "org/repo-one", defaultBranch: "main", htmlUrl: "https://github.com/org/repo-one" },
+      branches: [{ name: "main", isDefault: true }],
+    });
+    listLiveProjectGithubRepoBranchCommitsMock.mockResolvedValue({
+      linkId: 7,
+      repository: { id: 70, fullName: "org/repo-one", defaultBranch: "main", htmlUrl: "https://github.com/org/repo-one" },
+      branch: "main",
+      commits: [],
+    });
 
     render(
       <StaffProjectReposReadOnlyClient
@@ -101,7 +126,10 @@ describe("StaffProjectReposReadOnlyClient", () => {
       />
     );
 
-    expect(await screen.findByTestId("staff-repo-card")).toHaveTextContent("org/repo-one:true:staff");
+    expect(await screen.findByTestId("staff-repo-card")).toHaveTextContent("org/repo-one:true:staff:team");
+    await waitFor(() => {
+      expect(listLiveProjectGithubRepoBranchesMock).toHaveBeenCalledWith(7);
+    });
   });
 
   it("refreshes snapshots for all linked repositories", async () => {
@@ -113,6 +141,17 @@ describe("StaffProjectReposReadOnlyClient", () => {
       coverage: null,
     });
     getLatestProjectGithubSnapshotMock.mockRejectedValue(new Error("missing snapshot"));
+    listLiveProjectGithubRepoBranchesMock.mockResolvedValue({
+      linkId: 3,
+      repository: { id: 30, fullName: "org/r1", defaultBranch: "main", htmlUrl: "https://github.com/org/r1" },
+      branches: [{ name: "main", isDefault: true }],
+    });
+    listLiveProjectGithubRepoBranchCommitsMock.mockResolvedValue({
+      linkId: 3,
+      repository: { id: 30, fullName: "org/r1", defaultBranch: "main", htmlUrl: "https://github.com/org/r1" },
+      branch: "main",
+      commits: [],
+    });
     analyseProjectGithubRepoMock.mockResolvedValue({ snapshot: { id: 1 } });
 
     render(
@@ -123,7 +162,7 @@ describe("StaffProjectReposReadOnlyClient", () => {
       />
     );
 
-    await screen.findAllByTestId("staff-repo-card");
+    await screen.findByTestId("staff-repo-card");
     fireEvent.click(screen.getByRole("button", { name: "Refresh snapshots" }));
 
     await waitFor(() => {
@@ -132,7 +171,7 @@ describe("StaffProjectReposReadOnlyClient", () => {
     });
   });
 
-  it("loads recent commits when commits tab is opened", async () => {
+  it("loads branch commits and updates when branch changes", async () => {
     listProjectGithubRepoLinksMock.mockResolvedValue([makeLink(8, "org/repo-two")]);
     getProjectGithubMappingCoverageMock.mockResolvedValue({
       linkId: 8,
@@ -149,6 +188,21 @@ describe("StaffProjectReposReadOnlyClient", () => {
         repoStats: [],
       },
     });
+
+    listLiveProjectGithubRepoBranchesMock.mockResolvedValue({
+      linkId: 8,
+      repository: {
+        id: 80,
+        fullName: "org/repo-two",
+        defaultBranch: "main",
+        htmlUrl: "https://github.com/org/repo-two",
+      },
+      branches: [
+        { name: "main", isDefault: true },
+        { name: "feature/cleanup", isDefault: false },
+      ],
+    });
+
     listLiveProjectGithubRepoBranchCommitsMock.mockResolvedValue({
       linkId: 8,
       repository: {
@@ -181,11 +235,15 @@ describe("StaffProjectReposReadOnlyClient", () => {
     );
 
     await screen.findByTestId("staff-repo-card");
-    fireEvent.click(screen.getByRole("button", { name: "Recent commits" }));
-
     await waitFor(() => {
       expect(listLiveProjectGithubRepoBranchCommitsMock).toHaveBeenCalledWith(8, "main", 20);
     });
-    expect(await screen.findByText("Initial commit")).toBeInTheDocument();
+    expect(screen.getByTestId("staff-branch-commit-count")).toHaveTextContent("1");
+
+    fireEvent.click(screen.getByRole("button", { name: "Select feature branch" }));
+
+    await waitFor(() => {
+      expect(listLiveProjectGithubRepoBranchCommitsMock).toHaveBeenCalledWith(8, "feature/cleanup", 20);
+    });
   });
 });

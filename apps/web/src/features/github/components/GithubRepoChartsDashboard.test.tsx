@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { GithubRepoChartsDashboard } from "./GithubRepoChartsDashboard";
 import type { GithubLatestSnapshot, GithubMappingCoverage } from "../types";
@@ -133,11 +133,12 @@ function makeCoverage(): GithubMappingCoverage {
 
 describe("GithubRepoChartsDashboard", () => {
   it("renders nothing when there is no usable chart data", () => {
-    const { container } = render(
+    render(
       <GithubRepoChartsDashboard snapshot={null} coverage={null} currentGithubLogin={null} />
     );
 
-    expect(container.firstChild).toBeNull();
+    expect(screen.getByRole("region", { name: "Repository charts" })).toBeInTheDocument();
+    expect(screen.getByText("No chart data available for this snapshot yet.")).toBeInTheDocument();
   });
 
   it("renders signals and chart sections from snapshot data", () => {
@@ -150,34 +151,46 @@ describe("GithubRepoChartsDashboard", () => {
     );
 
     expect(screen.getByRole("region", { name: "Repository charts" })).toBeInTheDocument();
-    expect(screen.getByText("Overall contribution signal")).toBeInTheDocument();
-    expect(screen.getByText("Consistency signal")).toBeInTheDocument();
-    expect(screen.getByText("Mapping visibility")).toBeInTheDocument();
-    expect(screen.getByText("Personal activity share")).toBeInTheDocument();
-    expect(screen.getByText("Heuristic only, not a grade")).toBeInTheDocument();
+    expect(screen.getByText("Repository Analytics")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();
 
-    expect(screen.getByText("9.3/10")).toBeInTheDocument();
-    expect(screen.getAllByText("10/10")).toHaveLength(2);
-    expect(screen.getByText("8/10")).toBeInTheDocument();
-    expect(screen.getByText("2/2 active weeks")).toBeInTheDocument();
-    expect(screen.getByText("2 unmatched commits")).toBeInTheDocument();
-    expect(screen.getByText("4/10 commits")).toBeInTheDocument();
-
-    expect(screen.getByText("Commits over time (total vs your commits)")).toBeInTheDocument();
-    expect(screen.getByText("Additions and deletions over time (default branch)")).toBeInTheDocument();
+    expect(screen.getByText("Commits over time")).toBeInTheDocument();
+    expect(screen.getByText("Additions and deletions over time")).toBeInTheDocument();
     expect(screen.getByText("Weekly commit totals")).toBeInTheDocument();
-    expect(screen.getByText("Top contributors by commits")).toBeInTheDocument();
-    expect(screen.getByText("Default vs other branches (commit share)")).toBeInTheDocument();
-    expect(screen.getByText("Mapping coverage (matched vs unmatched)")).toBeInTheDocument();
+    expect(screen.queryByText("Top contributors by commits")).not.toBeInTheDocument();
 
-    expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
-    expect(screen.getByText("Default branch:8")).toBeInTheDocument();
-    expect(screen.getByText("Other branches:2")).toBeInTheDocument();
-    expect(screen.getByText("Matched commits:8")).toBeInTheDocument();
-    expect(screen.getByText("Unmatched commits:2")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
+    expect(screen.getByText("madbpopye")).toBeInTheDocument();
+    expect(screen.getByText("Active coding weeks")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
+    expect(screen.queryByText("Default vs other branches")).not.toBeInTheDocument();
+    expect(screen.getByText("All branch commits")).toBeInTheDocument();
   });
 
-  it("renders staff-focused labels and hides personal signal in staff mode", () => {
+  it("normalizes all-branch commit totals in branch activity when default-branch is higher", () => {
+    const snapshot = makeSnapshot();
+    snapshot.data.branchScopeStats.defaultBranch.totalCommits = 10;
+    snapshot.data.branchScopeStats.allBranches.totalCommits = 8;
+    snapshot.repoStats[0].totalCommits = 10;
+
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={snapshot}
+        coverage={makeCoverage()}
+        currentGithubLogin="madbpopye"
+      />
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Branch activity" }));
+    const allBranchCommitsMetric = screen.getByText("All branch commits").parentElement;
+    expect(allBranchCommitsMetric).toHaveTextContent("10");
+    expect(allBranchCommitsMetric).not.toHaveTextContent("8");
+  });
+
+  it("renders staff mode with team activity labels", () => {
     render(
       <GithubRepoChartsDashboard
         snapshot={makeSnapshot()}
@@ -187,8 +200,77 @@ describe("GithubRepoChartsDashboard", () => {
       />
     );
 
-    expect(screen.getByText("Commits over time (team total)")).toBeInTheDocument();
-    expect(screen.getByText("Active coding days")).toBeInTheDocument();
-    expect(screen.queryByText("Personal activity share")).not.toBeInTheDocument();
+    expect(screen.getByText("Repository Analytics")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Team charts" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Contributors" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Branch activity" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
+    expect(screen.getByText("Active coding weeks")).toBeInTheDocument();
+  });
+
+  it("uses max active weeks as a shared denominator across contributor cards", () => {
+    const snapshot = makeSnapshot();
+    snapshot.userStats = [
+      {
+        id: 10,
+        mappedUserId: 7,
+        githubLogin: "madbpopye",
+        isMatched: true,
+        commits: 2,
+        additions: 20,
+        deletions: 5,
+        commitsByDay: {
+          "2026-02-02": 1,
+          "2026-02-23": 1,
+        },
+      },
+      {
+        id: 11,
+        mappedUserId: 9,
+        githubLogin: "teammate",
+        isMatched: true,
+        commits: 2,
+        additions: 18,
+        deletions: 6,
+        commitsByDay: {
+          "2026-02-02": 1,
+        },
+      },
+    ];
+
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={snapshot}
+        coverage={makeCoverage()}
+        currentGithubLogin={null}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Contributors" }));
+    expect(screen.getAllByText("2/2").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1/2").length).toBeGreaterThan(0);
+    expect(screen.queryByText("1/4")).not.toBeInTheDocument();
+  });
+
+  it("renders personal-mode charts and share donuts", () => {
+    render(
+      <GithubRepoChartsDashboard
+        snapshot={makeSnapshot()}
+        coverage={makeCoverage()}
+        currentGithubLogin="madbpopye"
+        viewMode="personal"
+      />
+    );
+
+    expect(screen.getByText("Personal contribution analytics")).toBeInTheDocument();
+    expect(screen.getByText("You vs team (commits)")).toBeInTheDocument();
+    expect(screen.getByText("You vs team (line changes)")).toBeInTheDocument();
+    expect(screen.getByText("My commits over time")).toBeInTheDocument();
+    expect(screen.getByText("Additions and deletions over time")).toBeInTheDocument();
+    expect(screen.getByText("My weekly commit totals")).toBeInTheDocument();
+    expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
+    expect(screen.getByText("You:4")).toBeInTheDocument();
+    expect(screen.getByText("Team:6")).toBeInTheDocument();
   });
 });

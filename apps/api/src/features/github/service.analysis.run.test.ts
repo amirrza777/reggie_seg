@@ -16,6 +16,7 @@ const oauthMocks = vi.hoisted(() => ({
 
 const fetchMocks = vi.hoisted(() => ({
   contributorKeyFromCommit: vi.fn(),
+  fetchBranchCommitCount: vi.fn(),
   fetchCommitStatsForRepository: vi.fn(),
   fetchCommitsForLinkedRepository: vi.fn(),
   listRepositoryBranches: vi.fn(),
@@ -46,6 +47,7 @@ import { analyseProjectGithubRepository } from "./service.analysis.run.js";
 describe("github service.analysis.run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchMocks.fetchBranchCommitCount.mockResolvedValue(0);
   });
 
   it("throws 404 when link is missing", async () => {
@@ -168,6 +170,142 @@ describe("github service.analysis.run", () => {
         repoStat: expect.objectContaining({ totalCommits: 0, totalContributors: 0 }),
       })
     );
+    expect(fetchMocks.fetchBranchCommitCount).toHaveBeenCalledWith("token", "org/repo", "main");
     expect(result).toEqual({ id: 101 });
+  });
+
+  it("rebuilds from analysed window start when previous commit-stat coverage is incomplete", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue({
+      id: 5,
+      projectId: 2,
+      syncIntervalMinutes: 60,
+      repository: {
+        id: 7,
+        fullName: "org/repo",
+        htmlUrl: "https://github.com/org/repo",
+        ownerLogin: "org",
+        defaultBranch: "main",
+      },
+    });
+    repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.findGithubAccountByUserId.mockResolvedValue({ userId: 1 });
+    oauthMocks.getValidGithubAccessToken.mockResolvedValue("token");
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([]);
+    repoMocks.findLatestGithubSnapshotByProjectLinkId.mockResolvedValue({
+      analysedAt: new Date("2026-03-20T12:00:00.000Z"),
+      data: {
+        analysedWindow: { since: "2026-01-20T00:00:00.000Z", until: "2026-03-20T12:00:00.000Z" },
+        commitStatsCoverage: { detailedCommitCount: 250, requestedCommitCount: 900 },
+      },
+      userStats: [],
+      repoStats: [{ commitsByDay: { "2026-03-20": 2 }, commitsByBranch: { main: 2 }, totalCommits: 2 }],
+    });
+    aggregateMocks.hasUsableRepoCommitsByDay.mockReturnValue(true);
+    fetchMocks.fetchCommitsForLinkedRepository.mockResolvedValue([]);
+    aggregateMocks.filterCommitsAfter.mockImplementation((x: any) => x);
+    fetchMocks.listRepositoryBranches.mockResolvedValue([]);
+    fetchMocks.fetchCommitStatsForRepository.mockResolvedValue(new Map());
+    aggregateMocks.aggregateCommitData.mockReturnValue({
+      contributors: [],
+      repoCommitsByDay: {},
+      repoCommitsByBranch: {},
+    });
+    aggregateMocks.mergeUserStats.mockImplementation((_prev: any, incoming: any) => incoming);
+    aggregateMocks.mergeCountMaps.mockReturnValue({});
+    aggregateMocks.mergeLineChangeMaps.mockReturnValue({});
+    aggregateMocks.mergeSampleCommits.mockReturnValue([]);
+    repoMocks.createGithubSnapshot.mockResolvedValue({ id: 303 });
+
+    await analyseProjectGithubRepository(1, 5);
+
+    expect(fetchMocks.fetchCommitsForLinkedRepository).toHaveBeenCalledWith(
+      "token",
+      "org/repo",
+      "main",
+      "2026-01-20T00:00:00.000Z"
+    );
+    expect(aggregateMocks.filterCommitsAfter).toHaveBeenCalledWith([], null);
+    expect(aggregateMocks.mergeUserStats).not.toHaveBeenCalled();
+    expect(repoMocks.createGithubSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          analysedWindow: expect.objectContaining({
+            since: "2026-01-20T00:00:00.000Z",
+          }),
+        }),
+      })
+    );
+  });
+
+  it("normalizes all-branches totals so they cannot fall below default-branch totals", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue({
+      id: 5,
+      projectId: 2,
+      syncIntervalMinutes: 60,
+      repository: {
+        id: 7,
+        fullName: "org/repo",
+        htmlUrl: "https://github.com/org/repo",
+        ownerLogin: "org",
+        defaultBranch: "main",
+      },
+    });
+    repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.findGithubAccountByUserId.mockResolvedValue({ userId: 1 });
+    oauthMocks.getValidGithubAccessToken.mockResolvedValue("token");
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([]);
+    repoMocks.findLatestGithubSnapshotByProjectLinkId.mockResolvedValue({
+      analysedAt: new Date("2026-03-20T12:00:00.000Z"),
+      data: {
+        branchScopeStats: {
+          allBranches: {
+            totalCommits: 5,
+            totalAdditions: 5,
+            totalDeletions: 5,
+            commitsByBranch: { main: 5 },
+            commitStatsCoverage: {
+              detailedCommitCount: 5,
+              requestedCommitCount: 5,
+            },
+          },
+        },
+        timeSeries: {
+          defaultBranch: { lineChangesByDay: {} },
+          allBranches: { lineChangesByDay: {} },
+        },
+      },
+      userStats: [],
+      repoStats: [{ commitsByDay: { "2026-03-20": 1 }, commitsByBranch: { main: 1 }, totalCommits: 5 }],
+    });
+    aggregateMocks.hasUsableRepoCommitsByDay.mockReturnValue(true);
+    fetchMocks.fetchCommitsForLinkedRepository.mockResolvedValue([]);
+    aggregateMocks.filterCommitsAfter.mockImplementation((x: any) => x);
+    fetchMocks.listRepositoryBranches.mockResolvedValue([]);
+    fetchMocks.fetchCommitStatsForRepository.mockResolvedValue(new Map());
+    aggregateMocks.aggregateCommitData.mockReturnValue({
+      contributors: [],
+      repoCommitsByDay: {},
+      repoCommitsByBranch: {},
+    });
+    aggregateMocks.mergeUserStats.mockImplementation((_prev: any, incoming: any) => incoming);
+    aggregateMocks.mergeCountMaps.mockReturnValue({});
+    aggregateMocks.mergeLineChangeMaps.mockReturnValue({});
+    aggregateMocks.mergeSampleCommits.mockReturnValue([]);
+    fetchMocks.fetchBranchCommitCount.mockResolvedValue(10);
+    repoMocks.createGithubSnapshot.mockResolvedValue({ id: 707 });
+
+    await analyseProjectGithubRepository(1, 5);
+
+    expect(repoMocks.createGithubSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          branchScopeStats: expect.objectContaining({
+            allBranches: expect.objectContaining({
+              totalCommits: 10,
+            }),
+          }),
+        }),
+      })
+    );
   });
 });
