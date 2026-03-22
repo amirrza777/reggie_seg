@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams, getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
+import { StaffTeamWarningReviewPanel } from "@/features/staff/projects/components/StaffTeamWarningReviewPanel";
 import { listMeetings } from "@/features/meetings/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
@@ -337,24 +338,6 @@ function buildHealthSignals(input: {
 
   return signals;
 }
-
-type AttentionItem = {
-  id: string;
-  kind: "warning" | "message";
-  severity: "HIGH" | "MEDIUM" | "LOW";
-  title: string;
-  detail: string;
-  status: string;
-  meta: string;
-  createdAt: string;
-};
-
-const severityWeight: Record<AttentionItem["severity"], number> = {
-  HIGH: 3,
-  MEDIUM: 2,
-  LOW: 1,
-};
-
 function toTime(value: string | null | undefined) {
   if (!value) return Number.NaN;
   const timestamp = new Date(value).getTime();
@@ -370,59 +353,6 @@ function latestTimestamp(values: Array<string | null | undefined>): string | nul
   }
   if (Number.isNaN(latest)) return null;
   return new Date(latest).toISOString();
-}
-
-function formatAgeLabel(value: string) {
-  const timestamp = toTime(value);
-  if (Number.isNaN(timestamp)) return "Unknown age";
-  const elapsed = Date.now() - timestamp;
-  if (elapsed < 60 * 1000) return "Just now";
-  if (elapsed < 60 * 60 * 1000) return `${Math.floor(elapsed / (60 * 1000))}m ago`;
-  if (elapsed < 24 * 60 * 60 * 1000) return `${Math.floor(elapsed / (60 * 60 * 1000))}h ago`;
-  return `${Math.floor(elapsed / (24 * 60 * 60 * 1000))}d ago`;
-}
-
-function buildAttentionItems(warnings: TeamWarning[], requests: TeamHealthMessage[]): AttentionItem[] {
-  const warningItems: AttentionItem[] = warnings
-    .filter((warning) => warning.active)
-    .map((warning) => ({
-      id: `warning-${warning.id}`,
-      kind: "warning",
-      severity: warning.severity,
-      title: warning.title,
-      detail: warning.details,
-      status: `${warning.severity} warning`,
-      meta: `Triggered ${formatAgeLabel(warning.createdAt)}`,
-      createdAt: warning.createdAt,
-    }));
-
-  const messageItems: AttentionItem[] = requests
-    .filter((request) => !request.resolved)
-    .map((request) => {
-      const requestHasResponse = Boolean(request.responseText?.trim());
-      const requesterName = `${request.requester.firstName} ${request.requester.lastName}`.trim();
-      return {
-        id: `message-${request.id}`,
-        kind: "message",
-        severity: requestHasResponse ? "LOW" : "MEDIUM",
-        title: request.subject,
-        detail: request.details,
-        status: requestHasResponse ? "Response drafted" : "Awaiting staff response",
-        meta: `${requesterName || request.requester.email} · Submitted ${formatAgeLabel(request.createdAt)}`,
-        createdAt: request.createdAt,
-      };
-    });
-
-  return [...warningItems, ...messageItems].sort((a, b) => {
-    const severityDifference = severityWeight[b.severity] - severityWeight[a.severity];
-    if (severityDifference !== 0) return severityDifference;
-    const aTime = toTime(a.createdAt);
-    const bTime = toTime(b.createdAt);
-    if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
-    if (Number.isNaN(aTime)) return 1;
-    if (Number.isNaN(bTime)) return -1;
-    return aTime - bTime;
-  });
 }
 
 export default async function StaffTeamHealthPage({ params }: PageProps) {
@@ -520,7 +450,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
   });
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
   const unresolvedNoResponseCount = requests.filter((request) => !request.resolved && !request.responseText?.trim()).length;
-  const attentionItems = buildAttentionItems(warnings, requests);
   const latestSignalsAt = latestTimestamp([
     ...warnings.map((warning) => warning.updatedAt),
     ...requests.map((request) => request.updatedAt),
@@ -577,45 +506,13 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         </article>
       </section>
 
-      <section className="staff-projects__team-list" aria-label="Needs attention queue">
-        <article className="staff-projects__team-card staff-projects__team-card--signal" style={compactPanelStyle}>
-          <div className="staff-projects__team-top">
-            <div>
-              <h3 className="staff-projects__team-title" style={compactTitleStyle}>Needs attention</h3>
-              <p className="staff-projects__team-count">
-                Prioritised queue of active warnings and unresolved team messages.
-              </p>
-            </div>
-          </div>
-          {attentionItems.length === 0 ? (
-            <p className="staff-projects__team-count" style={{ margin: 0 }}>
-              No active warnings or unresolved messages.
-            </p>
-          ) : (
-            <div className="staff-projects__attention-list" style={compactGridStyle}>
-              {attentionItems.map((item) => (
-                <article key={item.id} className="staff-projects__attention-item" style={compactBlockStyle}>
-                  <div className="staff-projects__attention-top">
-                    <p className="staff-projects__attention-title" style={compactTitleStyle}>{item.title}</p>
-                    <span className={`staff-projects__signal-status staff-projects__signal-status--${item.severity.toLowerCase()}`}>
-                      {item.severity}
-                    </span>
-                  </div>
-                  {item.kind === "message" ? (
-                    <p className="staff-projects__team-count">
-                      <strong>Message:</strong> {item.status}
-                    </p>
-                  ) : null}
-                  <p className="staff-projects__team-count">{item.detail}</p>
-                  <p className="staff-projects__team-count">{item.meta}</p>
-                </article>
-              ))}
-            </div>
-          )}
-          {warningsError ? <p className="muted" style={{ margin: 0 }}>Warning data error: {warningsError}</p> : null}
-          {requestsError ? <p className="muted" style={{ margin: 0 }}>Message data error: {requestsError}</p> : null}
-        </article>
-      </section>
+      <StaffTeamWarningReviewPanel
+        userId={user.id}
+        projectId={numericProjectId}
+        teamId={numericTeamId}
+        initialWarnings={warnings}
+        initialError={warningsError}
+      />
 
       <section className="staff-projects__team-list" aria-label="Signal diagnostics">
         <details

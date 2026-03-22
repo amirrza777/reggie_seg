@@ -14,6 +14,7 @@ import {
   fetchTeamHealthMessagesForStaff,
   createTeamWarningForStaff,
   fetchTeamWarningsForStaff,
+  resolveTeamWarningForStaff,
   fetchMyTeamWarnings,
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
@@ -212,6 +213,25 @@ describe("projects service", () => {
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 2 }]);
     await expect(fetchTeamWarningsForStaff(9, 3, 22)).resolves.toEqual([{ id: 2 }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22);
+  });
+
+  it("resolveTeamWarningForStaff enforces scope and resolves only active warnings in team", async () => {
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
+    await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toBeNull();
+    expect(repo.getTeamWarningsForTeamInProject).not.toHaveBeenCalled();
+    expect(repo.resolveTeamWarningById).not.toHaveBeenCalled();
+
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 81 }, { id: 82 }]);
+    await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toBeNull();
+    expect(repo.resolveTeamWarningById).not.toHaveBeenCalled();
+
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 80 }, { id: 81 }]);
+    (repo.resolveTeamWarningById as any).mockResolvedValueOnce({ id: 80, active: false });
+    await expect(resolveTeamWarningForStaff(9, 3, 22, 80)).resolves.toEqual({ id: 80, active: false });
+    expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22, { activeOnly: true });
+    expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(80);
   });
 
   it("fetchMyTeamWarnings returns active warnings for current team", async () => {

@@ -202,6 +202,22 @@ export async function getStaffTeamWarnings(
   return Array.isArray(response.warnings) ? response.warnings : [];
 }
 
+export async function resolveStaffTeamWarning(
+  userId: number,
+  projectId: number,
+  teamId: number,
+  warningId: number,
+): Promise<TeamWarning> {
+  const response = await apiFetch<{ warning: TeamWarning }>(
+    `/projects/staff/${projectId}/teams/${teamId}/warnings/${warningId}/resolve`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ userId }),
+    }
+  );
+  return response.warning;
+}
+
 export async function getStaffTeamDeadline(
   userId: number,
   projectId: number,

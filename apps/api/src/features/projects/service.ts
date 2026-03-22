@@ -363,6 +363,22 @@ export async function fetchTeamWarningsForStaff(userId: number, projectId: numbe
   return getTeamWarningsForTeamInProject(projectId, teamId);
 }
 
+export async function resolveTeamWarningForStaff(
+  userId: number,
+  projectId: number,
+  teamId: number,
+  warningId: number,
+) {
+  const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
+  if (!canAccess) return null;
+
+  const activeWarnings = await getTeamWarningsForTeamInProject(projectId, teamId, { activeOnly: true });
+  const warning = activeWarnings.find((item) => item.id === warningId);
+  if (!warning) return null;
+
+  return resolveTeamWarningByIdInDb(warningId);
+}
+
 export async function fetchMyTeamWarnings(userId: number, projectId: number) {
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;

@@ -19,6 +19,7 @@ import {
   getStaffTeamHealthMessagesHandler,
   createStaffTeamWarningHandler,
   getStaffTeamWarningsHandler,
+  resolveStaffTeamWarningHandler,
   getMyTeamWarningsHandler,
   getProjectWarningsConfigHandler,
   updateProjectWarningsConfigHandler,
@@ -43,6 +44,7 @@ vi.mock("./service.js", () => ({
   fetchTeamHealthMessagesForStaff: vi.fn(),
   createTeamWarningForStaff: vi.fn(),
   fetchTeamWarningsForStaff: vi.fn(),
+  resolveTeamWarningForStaff: vi.fn(),
   fetchMyTeamWarnings: vi.fn(),
   fetchProjectWarningsConfigForStaff: vi.fn(),
   updateProjectWarningsConfigForStaff: vi.fn(),
@@ -644,6 +646,44 @@ describe("projects controller core handlers", () => {
     const missingRes = mockResponse();
     await getStaffTeamWarningsHandler(
       { user: { sub: 7 }, query: { userId: "7" }, params: { projectId: "3", teamId: "2" } } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("resolveStaffTeamWarningHandler validates ids and resolves warning", async () => {
+    const badRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "x", teamId: "2", warningId: "3" },
+      } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.resolveTeamWarningForStaff as any).mockResolvedValueOnce({ id: 3, active: false });
+    const okRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2", warningId: "3" },
+      } as any,
+      okRes,
+    );
+    expect(service.resolveTeamWarningForStaff).toHaveBeenCalledWith(7, 3, 2, 3);
+    expect(okRes.json).toHaveBeenCalledWith({ warning: { id: 3, active: false } });
+
+    (service.resolveTeamWarningForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2", warningId: "3" },
+      } as any,
       missingRes,
     );
     expect(missingRes.status).toHaveBeenCalledWith(404);

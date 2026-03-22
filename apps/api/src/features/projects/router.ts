@@ -18,6 +18,7 @@ import {
   getStaffTeamHealthMessagesHandler,
   createStaffTeamWarningHandler,
   getStaffTeamWarningsHandler,
+  resolveStaffTeamWarningHandler,
   getMyTeamWarningsHandler,
   updateTeamDeadlineProfileHandler,
   getProjectWarningsConfigHandler,
@@ -41,6 +42,7 @@ router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
 router.post("/staff/:projectId/teams/:teamId/warnings", requireAuth, createStaffTeamWarningHandler);
 router.get("/staff/:projectId/teams/:teamId/warnings", requireAuth, getStaffTeamWarningsHandler);
+router.patch("/staff/:projectId/teams/:teamId/warnings/:warningId/resolve", requireAuth, resolveStaffTeamWarningHandler);
 router.get("/staff/:projectId/teams/:teamId/deadline", requireAuth, getStaffTeamDeadlineHandler);
 router.patch(
   "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/review",

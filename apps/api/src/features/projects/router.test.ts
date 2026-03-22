@@ -24,6 +24,7 @@ describe("projects router", () => {
         { path: "/staff/:projectId/teams/:teamId/team-health-messages", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/warnings", methods: { post: true } },
         { path: "/staff/:projectId/teams/:teamId/warnings", methods: { get: true } },
+        { path: "/staff/:projectId/teams/:teamId/warnings/:warningId/resolve", methods: { patch: true } },
         { path: "/staff/:projectId/teams/:teamId/deadline", methods: { get: true } },
         { path: "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/review", methods: { patch: true } },
         { path: "/staff/:projectId/warnings-config", methods: { get: true } },

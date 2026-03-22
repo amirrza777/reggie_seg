@@ -19,6 +19,7 @@ import {
   fetchTeamHealthMessagesForStaff,
   createTeamWarningForStaff,
   fetchTeamWarningsForStaff,
+  resolveTeamWarningForStaff,
   fetchMyTeamWarnings,
   updateTeamDeadlineProfileForStaff,
   fetchProjectWarningsConfigForStaff,
@@ -694,6 +695,31 @@ export async function getStaffTeamWarningsHandler(req: AuthRequest, res: Respons
   } catch (error) {
     console.error("Error fetching staff team warnings:", error);
     return res.status(500).json({ error: "Failed to fetch team warnings" });
+  }
+}
+
+export async function resolveStaffTeamWarningHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = parsePositiveInt(req.params.projectId);
+  const teamId = parsePositiveInt(req.params.teamId);
+  const warningId = parsePositiveInt(req.params.warningId);
+
+  if (userId === null) {
+    return;
+  }
+  if (projectId === null || teamId === null || warningId === null) {
+    return res.status(400).json({ error: "Invalid project ID, team ID, or warning ID" });
+  }
+
+  try {
+    const warning = await resolveTeamWarningForStaff(userId, projectId, teamId, warningId);
+    if (!warning) {
+      return res.status(404).json({ error: "Warning not found for this staff scope" });
+    }
+    return res.json({ warning });
+  } catch (error) {
+    console.error("Error resolving staff team warning:", error);
+    return res.status(500).json({ error: "Failed to resolve team warning" });
   }
 }
 
