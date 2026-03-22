@@ -1,4 +1,3 @@
-import Link from "next/link";
 import React, { type ReactNode } from "react";
 import { getProjectDeadline, getTeamByUserAndProject } from "../../projects/api/client";
 import { getCurrentUser } from "../../../shared/auth/session";
@@ -17,10 +16,6 @@ export type TrelloProjectGateProps = {
   children: (props: TrelloProjectGateChildProps) => ReactNode;
 };
 
-const backLink = (projectId: string) => (
-  <Link href={`/projects/${projectId}`}>← Back to project</Link>
-);
-
 export async function TrelloProjectGate({
   projectId,
   needDeadline = false,
@@ -32,7 +27,6 @@ export async function TrelloProjectGate({
   if (!user) {
     return (
       <div className="stack">
-        {backLink(projectId)}
         <p>{signInMessage}</p>
       </div>
     );
@@ -58,7 +52,6 @@ export async function TrelloProjectGate({
   if (!team) {
     return (
       <div className="stack">
-        {backLink(projectId)}
         <p>You are not in a team for this project.</p>
       </div>
     );

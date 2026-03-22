@@ -1,0 +1,30 @@
+.trello-setup {
+  width: 100%;
+  min-width: 0;
+  gap: var(--space-panel-gap);
+}
+
+.trello-setup--simple {
+  gap: var(--space-panel-heading-gap);
+}
+
+.trello-setup__header {
+  gap: var(--space-panel-heading-gap);
+}
+
+.trello-setup__card {
+  display: grid;
+  gap: 12px;
+  padding: 14px var(--space-panel-content-inset) 16px;
+}
+
+.trello-setup__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.trello-setup--simple .trello-setup__actions {
+  margin-top: 2px;
+}

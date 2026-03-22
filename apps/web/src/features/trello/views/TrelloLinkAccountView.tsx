@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { getConnectUrl, getLinkToken } from "@/features/trello/api/client";
+import "@/features/trello/styles/link-account.css";
+
 type Props = {
   projectId: string;
   onError: (message: string) => void;
@@ -35,16 +36,16 @@ export function TrelloLinkAccountView({ projectId, onError }: Props) {
   };
 
   return (
-    <div className="stack" style={{ padding: 24 }}>
-      <h2>Link your Trello account</h2>
-      <p>Connect your Trello account to link a board to this team.</p>
-      <Link
-        href="#"
-        onClick={handleConnect}
-      >
-        Connect Trello
-      </Link>
-      <Link href={`/projects/${projectId}`}>← Back to project</Link>
-    </div>
+    <section className="stack projects-panel trello-setup trello-setup--simple">
+      <header className="projects-panel__header trello-setup__header">
+        <h1 className="projects-panel__title">Connect your Trello account</h1>
+        <p className="projects-panel__subtitle">Connect your Trello account to link a board to this team.</p>
+      </header>
+      <div className="trello-setup__actions">
+        <button type="button" className="btn btn--primary btn--sm" onClick={handleConnect}>
+          Connect Trello
+        </button>
+      </div>
+    </section>
   );
 }
