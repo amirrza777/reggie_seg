@@ -1,11 +1,10 @@
-import { redirect } from "next/navigation";
 import {
   getFeedbackReviewStatuses,
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { getProjectDeadline } from "@/features/projects/api/client";
 import { PageSection } from "@/shared/ui/PageSection";
 
 export const dynamic = "force-dynamic";
@@ -16,8 +15,6 @@ type ProjectPageProps = {
 
 export default async function ProjectPeerFeedbackPage({ params }: ProjectPageProps) {
   const { projectId } = await params;
-  const flagMap = await getFeatureFlagMap();
-  if (!flagMap["peer_feedback"]) redirect(`/projects/${projectId}`);
 
   const user = await getCurrentUser();
   if (!user) {
@@ -29,6 +26,16 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
         <p className="muted">Please sign in to view peer feedback.</p>
       </PageSection>
     );
+  }
+
+  let readOnly = false;
+  try {
+    const deadline = await getProjectDeadline(user.id, Number(projectId));
+    const dueAt = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
+    const now = new Date();
+    readOnly = Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
+  } catch {
+    readOnly = false;
   }
 
   const feedbacksRaw = await getPeerAssessmentsForUser(String(user.id), projectId);
@@ -43,7 +50,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
       title="Peer Feedback"
       description="Collect and review peer feedback for this project."
     >
-      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} />
+      <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} readOnly={readOnly} />
     </PageSection>
   );
 }

@@ -1,4 +1,4 @@
-import { getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -31,7 +31,25 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
     }
   }
 
-  const initialInvites = team ? await getTeamInvites(team.id) : [];
+  let projectCompleted = false;
+  if (user && !Number.isNaN(numericProjectId)) {
+    try {
+      const [project, deadline] = await Promise.all([
+        getProject(projectId),
+        getProjectDeadline(user.id, numericProjectId),
+      ]);
+      const feedbackDueDate = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
+      const now = new Date();
+      const feedbackDueDatePassed = feedbackDueDate
+        ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
+        : false;
+      projectCompleted = Boolean(project.archivedAt) || feedbackDueDatePassed;
+    } catch {
+      projectCompleted = false;
+    }
+  }
+
+  const initialInvites = team && !projectCompleted ? await getTeamInvites(team.id) : [];
 
   const cardTitle = team
     ? `Project Team${team.teamName ? ` — ${team.teamName}` : ""}`
@@ -45,6 +63,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             team={team}
             projectId={numericProjectId}
             initialInvites={initialInvites}
+            projectCompleted={projectCompleted}
           />
         ) : (
           <p>Please sign in to manage your team.</p>

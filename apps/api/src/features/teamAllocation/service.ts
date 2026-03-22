@@ -1453,16 +1453,79 @@ function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[
   return normalizedNames;
 }
 
+function resolveTeamInviteFeedbackDueDate(teamRecord: {
+  deadlineProfile: "STANDARD" | "MCF" | null;
+  deadlineOverride: { feedbackDueDate: Date | null } | null;
+  project: {
+    archivedAt: Date | null;
+    deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
+  } | null;
+}): Date | null {
+  const teamOverrideDueDate = teamRecord.deadlineOverride?.feedbackDueDate ?? null;
+  if (teamOverrideDueDate) return teamOverrideDueDate;
+
+  const projectDeadline = teamRecord.project?.deadline;
+  if (!projectDeadline) return null;
+
+  if (teamRecord.deadlineProfile === "MCF") {
+    return projectDeadline.feedbackDueDateMcf ?? projectDeadline.feedbackDueDate;
+  }
+
+  return projectDeadline.feedbackDueDate;
+}
+
+function isTeamProjectCompletedForInvites(
+  teamRecord: {
+    archivedAt: Date | null;
+    deadlineProfile: "STANDARD" | "MCF" | null;
+    deadlineOverride: { feedbackDueDate: Date | null } | null;
+    project: {
+      archivedAt: Date | null;
+      deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
+    } | null;
+  },
+  now: Date = new Date(),
+) {
+  if (teamRecord.archivedAt || teamRecord.project?.archivedAt) {
+    return true;
+  }
+
+  const effectiveDueDate = resolveTeamInviteFeedbackDueDate(teamRecord);
+  if (!effectiveDueDate) return false;
+  return now.getTime() > effectiveDueDate.getTime();
+}
+
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
   const teamRecord = await prisma.team.findUnique({
     where: { id: params.teamId },
-    select: { archivedAt: true, allocationLifecycle: true },
+    select: {
+      archivedAt: true,
+      allocationLifecycle: true,
+      deadlineProfile: true,
+      deadlineOverride: {
+        select: {
+          feedbackDueDate: true,
+        },
+      },
+      project: {
+        select: {
+          archivedAt: true,
+          deadline: {
+            select: {
+              feedbackDueDate: true,
+              feedbackDueDateMcf: true,
+            },
+          },
+        },
+      },
+    },
   });
   if (!teamRecord) throw { code: "TEAM_NOT_FOUND" };
   if (teamRecord.archivedAt) throw { code: "TEAM_ARCHIVED" };
   if (teamRecord.allocationLifecycle !== "ACTIVE") throw { code: "TEAM_NOT_ACTIVE" };
+  if (isTeamProjectCompletedForInvites(teamRecord)) throw { code: "PROJECT_COMPLETED" };
 
   const inviterAllocation = await prisma.teamAllocation.findUnique({
     where: {

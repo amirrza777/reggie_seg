@@ -5,7 +5,6 @@ import {
   applyManualAllocationForProject,
   applyRandomAllocationForProject,
   cancelTeamInvite,
-  createTeam,
   createTeamInvite,
   declineTeamInvite,
   expireTeamInvite,
@@ -67,6 +66,9 @@ vi.mock("../../shared/db.js", () => ({
     team: {
       findUnique: vi.fn(),
     },
+    teamAllocation: {
+      findUnique: vi.fn(),
+    },
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -85,7 +87,27 @@ describe("teamAllocation service invites", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (prisma.team.findUnique as any).mockResolvedValue(null);
+    (prisma.team.findUnique as any).mockResolvedValue({
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+      deadlineProfile: "STANDARD",
+      deadlineOverride: null,
+      project: {
+        archivedAt: null,
+        deadline: {
+          feedbackDueDate: new Date("2099-01-01T00:00:00.000Z"),
+          feedbackDueDateMcf: null,
+        },
+      },
+    });
+    (prisma.teamAllocation.findUnique as any).mockResolvedValue({ teamId: 1 });
+    (prisma.user.findUnique as any).mockResolvedValue({
+      id: 1,
+      role: "STUDENT",
+      moduleId: 1,
+      enterpriseId: "ent-test",
+      active: true,
+    });
   });
   it("createTeamInvite throws when invite already pending", async () => {
     (repo.findActiveInvite as any).mockResolvedValue({ id: "existing" });
@@ -98,6 +120,31 @@ describe("teamAllocation service invites", () => {
         baseUrl: "http://localhost:3001",
       })
     ).rejects.toEqual({ code: "INVITE_ALREADY_PENDING" });
+  });
+
+  it("createTeamInvite throws when project is completed", async () => {
+    (prisma.team.findUnique as any).mockResolvedValue({
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+      deadlineProfile: "STANDARD",
+      deadlineOverride: null,
+      project: {
+        archivedAt: null,
+        deadline: {
+          feedbackDueDate: new Date("2020-01-01T00:00:00.000Z"),
+          feedbackDueDateMcf: null,
+        },
+      },
+    });
+
+    await expect(
+      createTeamInvite({
+        teamId: 1,
+        inviterId: 2,
+        inviteeEmail: "user@example.com",
+        baseUrl: "http://localhost:3001",
+      })
+    ).rejects.toEqual({ code: "PROJECT_COMPLETED" });
   });
 
   it("createTeamInvite stores a normalized pending invite and returns token metadata", async () => {
@@ -190,15 +237,20 @@ describe("teamAllocation service invites", () => {
     });
   });
 
-  it("delegates list/get/create/add/members to repo TeamService", async () => {
+  it("delegates list/get/add/members to repo TeamService", async () => {
     (repo.getInvitesForTeam as any).mockResolvedValue([{ id: "i1" }]);
-    (repo.TeamService.createTeam as any).mockResolvedValue({ id: 10 });
     (repo.TeamService.getTeamById as any).mockResolvedValue({ id: 10 });
     (repo.TeamService.addUserToTeam as any).mockResolvedValue({ teamId: 10, userId: 4 });
     (repo.TeamService.getTeamMembers as any).mockResolvedValue([{ id: 4 }]);
 
-    await expect(listTeamInvites(10)).resolves.toEqual([{ id: "i1" }]);
-    await expect(createTeam(1, { teamName: "T1", projectId: 2 })).resolves.toEqual({ id: 10 });
+    (prisma.team.findUnique as any).mockResolvedValue({
+      id: 10,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    });
+    (prisma.teamAllocation.findUnique as any).mockResolvedValue({ teamId: 10 });
+
+    await expect(listTeamInvites(10, 5)).resolves.toEqual([{ id: "i1" }]);
     await expect(getTeamById(10)).resolves.toEqual({ id: 10 });
     await expect(addUserToTeam(10, 4, "OWNER")).resolves.toEqual({ teamId: 10, userId: 4 });
     await expect(getTeamMembers(10)).resolves.toEqual([{ id: 4 }]);

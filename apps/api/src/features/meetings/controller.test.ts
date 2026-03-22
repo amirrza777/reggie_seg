@@ -124,6 +124,19 @@ describe("createMeetingHandler", () => {
     await createMeetingHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
+  it("returns 409 when project is completed", async () => {
+    (service.addMeeting as any).mockRejectedValue({ code: "PROJECT_COMPLETED" });
+    const req: any = {
+      body: { teamId: 1, organiserId: 1, title: "Team Meeting", date: "2026-03-01" },
+    };
+    const res = mockResponse();
+    await createMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "This project is completed. Meeting creation is closed.",
+    });
+  });
 });
 
 describe("deleteMeetingHandler", () => {

@@ -185,6 +185,9 @@ export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
     if (error?.code === "TEAM_NOT_ACTIVE") {
       return res.status(409).json({ error: "Draft teams cannot send invites until approved" });
     }
+    if (error?.code === "PROJECT_COMPLETED") {
+      return res.status(409).json({ error: "This project is completed. Team invites are closed." });
+    }
     if (error?.code === "TEAM_ACCESS_FORBIDDEN") {
       return res.status(403).json({ error: "You are not a member of this team" });
     }

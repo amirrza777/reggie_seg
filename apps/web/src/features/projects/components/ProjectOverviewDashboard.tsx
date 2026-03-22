@@ -122,7 +122,9 @@ function ProjectOverviewHero({
             </div>
           </div>
           <h1 className="project-overview-hero__title">{project?.name || "Project"}</h1>
-          <p className="muted project-overview-hero__summary">Overview and key project information.</p>
+          {!isCompleted ? (
+            <p className="muted project-overview-hero__summary">Overview and key project information.</p>
+          ) : null}
         </div>
 
         <div className="project-overview-hero__facts">

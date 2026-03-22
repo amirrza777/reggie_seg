@@ -3,7 +3,7 @@ import {
   getTeammates,
 } from "@/features/peerAssessment/api/client";
 import { PeerListView } from "@/features/peerAssessment/components/PeerListView";
-import { getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
 
@@ -34,6 +34,16 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
         <Link href={`/projects/${projectId}`}>← Back to project</Link>
       </div>
     );
+  }
+
+  let readOnly = false;
+  try {
+    const deadline = await getProjectDeadline(user.id, numericProjectId);
+    const dueAt = deadline.assessmentDueDate ? new Date(deadline.assessmentDueDate) : null;
+    const now = new Date();
+    readOnly = Boolean(dueAt && !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < now.getTime());
+  } catch {
+    readOnly = false;
   }
 
   const [peers, assessments] = await Promise.all([
@@ -84,6 +94,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
           currentUserId={user.id}
           completedRevieweeIds={completedRevieweeIds}
           completedAssessmentByRevieweeId={completedAssessmentByRevieweeId}
+          readOnly={readOnly}
         />
     </div>
   );   

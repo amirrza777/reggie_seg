@@ -11,6 +11,7 @@ type PeerListViewProps = {
   currentUserId: number;
   completedRevieweeIds?: number[];
   completedAssessmentByRevieweeId?: Record<number, number>;
+  readOnly?: boolean;
 };
 
 export function PeerListView({
@@ -20,6 +21,7 @@ export function PeerListView({
   currentUserId,
   completedRevieweeIds = [],
   completedAssessmentByRevieweeId = {},
+  readOnly = false,
 }: PeerListViewProps) {
   const router = useRouter();
   const completedRevieweeIdSet = new Set(completedRevieweeIds);
@@ -34,6 +36,10 @@ export function PeerListView({
       router.push(
         `/projects/${projectId}/peer-assessments/${existingAssessmentId}?teammateName=${teammateName}`
       );
+      return;
+    }
+
+    if (readOnly) {
       return;
     }
 
@@ -59,6 +65,7 @@ export function PeerListView({
                 type="button"
                 onClick={() => handlePeerClick(allocation.user.id, allocation)}
                 className={cardClassName}
+                disabled={readOnly && !isCompleted}
               >
                 <div className="peer-assessment-card__header">
                   <div className="peer-assessment-card__name">
@@ -85,8 +92,12 @@ export function PeerListView({
                   }`}
                 >
                   {isCompleted
-                    ? "Review submitted - click to edit →"
-                    : "Not submitted yet - click to assess →"}
+                    ? (readOnly
+                      ? "Review submitted - click to view →"
+                      : "Review submitted - click to edit →")
+                    : (readOnly
+                      ? "Submission window closed"
+                      : "Not submitted yet - click to assess →")}
                 </div>
               </button>
             </li>

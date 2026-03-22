@@ -11,9 +11,14 @@ type Tab = "upcoming" | "previous" | "new";
 type MeetingsPageContentProps = {
   teamId: number;
   projectId: number;
+  projectCompleted?: boolean;
 };
 
-export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentProps) {
+export function MeetingsPageContent({
+  teamId,
+  projectId,
+  projectCompleted = false,
+}: MeetingsPageContentProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [tab, setTab] = useState<Tab>("upcoming");
 
@@ -47,14 +52,24 @@ export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentPr
         >
           Previous meetings
         </button>
-        <button
-          type="button"
-          className={`pill-nav__link pill-nav__link--action${tab === "new" ? " pill-nav__link--active" : ""}`}
-          onClick={() => setTab("new")}
-        >
-          New meeting
-        </button>
+        {!projectCompleted ? (
+          <button
+            type="button"
+            className={`pill-nav__link pill-nav__link--action${tab === "new" ? " pill-nav__link--active" : ""}`}
+            onClick={() => {
+              setTab("new");
+            }}
+          >
+            New meeting
+          </button>
+        ) : null}
       </nav>
+
+      {projectCompleted ? (
+        <p className="ui-note ui-note--muted">
+          Project is completed. Meeting creation is closed.
+        </p>
+      ) : null}
 
       {tab === "new" ? (
         <CreateMeetingForm

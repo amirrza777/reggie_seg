@@ -5,9 +5,10 @@ import "../styles/list.css";
 type FeedbackListViewProps = {
   feedbacks?: PeerFeedback[];
   projectId?: string;
+  readOnly?: boolean;
 };
 
-export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListViewProps) {
+export function FeedbackAssessmentView({ feedbacks, projectId, readOnly = false }: FeedbackListViewProps) {
   if (!feedbacks || feedbacks.length === 0) {
     return <p className="ui-note ui-note--muted">No feedbacks submitted yet.</p>;
   }
@@ -49,8 +50,12 @@ export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListVie
                     </div>
                     <div className="feedback-card__cta">
                       {isSubmitted
-                        ? "Review submitted - click to edit →"
-                        : "Not submitted yet - click to review →"}
+                        ? (readOnly
+                          ? "Review submitted - click to view →"
+                          : "Review submitted - click to edit →")
+                        : (readOnly
+                          ? "Submission window closed - click to view →"
+                          : "Not submitted yet - click to review →")}
                     </div>
                   </div>
                 </div>
