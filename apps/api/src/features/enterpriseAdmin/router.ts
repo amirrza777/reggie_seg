@@ -1,5 +1,7 @@
 import { Router } from "express";
+import type { Prisma } from "@prisma/client";
 import { requireAuth } from "../../auth/middleware.js";
+import { prisma } from "../../shared/db.js";
 import { resolveEnterpriseUser } from "./middleware.js";
 import {
   createModule,
@@ -321,7 +323,7 @@ router.delete("/forum-reports/:id", async (req, res) => {
   if (!id) return res.status(400).json({ error: "Invalid report id" });
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const report = await tx.forumReport.findFirst({
         where: {
           id,
@@ -389,7 +391,7 @@ router.delete("/forum-reports/:id/remove", async (req, res) => {
   if (!id) return res.status(400).json({ error: "Invalid report id" });
 
   try {
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const report = await tx.forumReport.findFirst({
         where: {
           id,

@@ -48,6 +48,9 @@ export async function fetchCommitStatsForRepository(
         }
 
         const sha = missingShas[currentIndex];
+        if (sha === undefined) {
+          continue;
+        }
         const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
           headers: {
             Accept: "application/vnd.github+json",

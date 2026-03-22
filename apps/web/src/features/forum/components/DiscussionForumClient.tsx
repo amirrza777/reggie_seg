@@ -75,7 +75,7 @@ export function DiscussionForumClient({ projectId, showProjectNav = true }: Disc
       .finally(() => setLoadingPosts(false));
   }, [user, projectId]);
 
-  const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost) =>
+  const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost): DiscussionPost[] =>
     items.map((post) => {
       if (post.id === parentPostId) {
         return { ...post, replies: [...post.replies, reply] };

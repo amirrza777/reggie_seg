@@ -76,17 +76,18 @@ export function parseStudentDeadlineOverridePayload(
     }
   }
 
+  const parsedValue: ParsedStudentDeadlineOverride = {};
+  if (taskOpenDate.value !== undefined) parsedValue.taskOpenDate = taskOpenDate.value;
+  if (taskDueDate.value !== undefined) parsedValue.taskDueDate = taskDueDate.value;
+  if (assessmentOpenDate.value !== undefined) parsedValue.assessmentOpenDate = assessmentOpenDate.value;
+  if (assessmentDueDate.value !== undefined) parsedValue.assessmentDueDate = assessmentDueDate.value;
+  if (feedbackOpenDate.value !== undefined) parsedValue.feedbackOpenDate = feedbackOpenDate.value;
+  if (feedbackDueDate.value !== undefined) parsedValue.feedbackDueDate = feedbackDueDate.value;
+  if (reason !== undefined) parsedValue.reason = reason;
+
   return {
     ok: true,
-    value: {
-      taskOpenDate: taskOpenDate.value,
-      taskDueDate: taskDueDate.value,
-      assessmentOpenDate: assessmentOpenDate.value,
-      assessmentDueDate: assessmentDueDate.value,
-      feedbackOpenDate: feedbackOpenDate.value,
-      feedbackDueDate: feedbackDueDate.value,
-      reason,
-    },
+    value: parsedValue,
   };
 }
 
