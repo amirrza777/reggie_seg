@@ -74,8 +74,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [reactingPostId, setReactingPostId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
   const [savingReplyPostId, setSavingReplyPostId] = useState<number | null>(null);
-  const [collapsedReplyIds, setCollapsedReplyIds] = useState<Record<number, boolean>>({});
-  const [expandedDepthByPostId, setExpandedDepthByPostId] = useState<Record<number, number>>({});
+  const [expandedRepliesByPostId, setExpandedRepliesByPostId] = useState<Record<number, boolean>>({});
   const [showAllImmediateRepliesByPostId, setShowAllImmediateRepliesByPostId] = useState<Record<number, boolean>>({});
   const [replyOpenByPostId, setReplyOpenByPostId] = useState<Record<number, boolean>>({});
   const [menuOpenPostId, setMenuOpenPostId] = useState<number | null>(null);
@@ -314,16 +313,40 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     }
   };
 
-  const toggleReplies = (postId: number, shouldExpand: boolean) => {
-    setCollapsedReplyIds((prev) => ({ ...prev, [postId]: !shouldExpand }));
-    setExpandedDepthByPostId((prev) => ({
-      ...prev,
-      [postId]: shouldExpand ? Math.max(prev[postId] ?? 0, 3) : 0,
-    }));
-    setShowAllImmediateRepliesByPostId((prev) => ({
-      ...prev,
-      [postId]: false,
-    }));
+  const collectDescendantIds = (post: DiscussionPost): number[] => {
+    const descendants: number[] = [];
+    const stack = [...post.replies];
+
+    while (stack.length > 0) {
+      const current = stack.pop();
+      if (!current) continue;
+      descendants.push(current.id);
+      if (current.replies.length > 0) {
+        stack.push(...current.replies);
+      }
+    }
+
+    return descendants;
+  };
+
+  const toggleReplies = (post: DiscussionPost, shouldExpand: boolean) => {
+    const descendantIds = shouldExpand ? [] : collectDescendantIds(post);
+
+    setExpandedRepliesByPostId((prev) => {
+      const next = { ...prev, [post.id]: shouldExpand };
+      for (const descendantId of descendantIds) {
+        next[descendantId] = false;
+      }
+      return next;
+    });
+
+    setShowAllImmediateRepliesByPostId((prev) => {
+      const next = { ...prev, [post.id]: false };
+      for (const descendantId of descendantIds) {
+        next[descendantId] = false;
+      }
+      return next;
+    });
   };
 
   const showMoreReplies = (postId: number) => {
@@ -342,15 +365,14 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setMenuOpenPostId(null);
   };
 
-  const renderPost = (post: DiscussionPost, depth = 0, inheritedDepth = 0) => {
+  const renderPost = (post: DiscussionPost, depth = 0) => {
     const isAuthor = user?.id === post.author.id;
     const isEditing = editingPostId === post.id;
     const isRoot = post.parentPostId === null;
-    const isCollapsed = collapsedReplyIds[post.id] ?? false;
-    const localDepth = isCollapsed ? 0 : Math.max(inheritedDepth, expandedDepthByPostId[post.id] ?? 0);
+    const areRepliesExpanded = expandedRepliesByPostId[post.id] ?? false;
     const canToggleReplies = post.replies.length > 0;
     const showAllImmediate = showAllImmediateRepliesByPostId[post.id] ?? false;
-    const showMore = canToggleReplies && localDepth > 0 && !showAllImmediate && post.replies.length > 3;
+    const showMore = canToggleReplies && areRepliesExpanded && !showAllImmediate && post.replies.length > 3;
     const immediateReplies = showAllImmediate ? post.replies : post.replies.slice(0, 3);
     const canShowMoreButton = showMore && depth === 0;
     const canReply = Boolean(user) && !userLoading;
@@ -517,9 +539,9 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                       <button
                         type="button"
                         className="btn btn--ghost discussion-post__toggle-replies"
-                        onClick={() => toggleReplies(post.id, localDepth === 0)}
+                        onClick={() => toggleReplies(post, !areRepliesExpanded)}
                       >
-                        {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
+                        {areRepliesExpanded ? "Hide replies" : `Show replies (${post.replies.length})`}
                       </button>
                     ) : null}
                     {canShowMoreButton ? (
@@ -544,9 +566,9 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                       <button
                         type="button"
                         className="btn btn--ghost discussion-post__toggle-replies"
-                        onClick={() => toggleReplies(post.id, localDepth === 0)}
+                        onClick={() => toggleReplies(post, !areRepliesExpanded)}
                       >
-                        {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
+                        {areRepliesExpanded ? "Hide replies" : `Show replies (${post.replies.length})`}
                       </button>
                     ) : null}
                     {postMenu}
@@ -639,9 +661,9 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
           </div>
         ) : null}
 
-        {post.replies.length > 0 && localDepth > 0 ? (
+        {post.replies.length > 0 && areRepliesExpanded ? (
           <div className="stack discussion-post__replies">
-            {immediateReplies.map((child) => renderPost(child, depth + 1, localDepth - 1))}
+            {immediateReplies.map((child) => renderPost(child, depth + 1))}
           </div>
         ) : null}
       </article>
