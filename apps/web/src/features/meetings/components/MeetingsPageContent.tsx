@@ -11,11 +11,12 @@ type Tab = "upcoming" | "previous" | "new";
 type MeetingsPageContentProps = {
   teamId: number;
   projectId: number;
+  initialTab?: Tab;
 };
 
-export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentProps) {
+export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming" }: MeetingsPageContentProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [tab, setTab] = useState<Tab>("upcoming");
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   useEffect(() => {
     listMeetings(teamId).then(setMeetings);

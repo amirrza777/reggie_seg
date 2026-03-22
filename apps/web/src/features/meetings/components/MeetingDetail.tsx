@@ -66,9 +66,9 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
 
   return (
     <div className="stack">
-      <AnchorLink href={`/projects/${projectId}/meetings`} className="back-link">
+      <AnchorLink href={`/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`} className="back-link">
         <ChevronLeft size={14} />
-        Back to meetings
+        {upcoming ? "Back to upcoming meetings" : "Back to previous meetings"}
       </AnchorLink>
 
       <Card title={meeting.title} action={cardAction}>
