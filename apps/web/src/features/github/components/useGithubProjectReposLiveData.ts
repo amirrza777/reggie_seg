@@ -38,6 +38,7 @@ export function useGithubProjectReposLiveData({
   const [branchCommitsByLinkId, setBranchCommitsByLinkId] = useState<Record<number, GithubLiveProjectRepoBranchCommits | null>>({});
   const [branchCommitsLoadingByLinkId, setBranchCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
   const [branchCommitsErrorByLinkId, setBranchCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
+  const [branchSearchByLinkId, setBranchSearchByLinkId] = useState<Record<number, string>>({});
   const [myCommitsByLinkId, setMyCommitsByLinkId] = useState<Record<number, GithubLiveProjectRepoMyCommits | null>>({});
   const [myCommitsLoadingByLinkId, setMyCommitsLoadingByLinkId] = useState<Record<number, boolean>>({});
   const [myCommitsErrorByLinkId, setMyCommitsErrorByLinkId] = useState<Record<number, string | null>>({});
@@ -61,7 +62,10 @@ export function useGithubProjectReposLiveData({
     ]);
   }
 
-  async function fetchLiveBranchesForLinks(linkIds: number[], options?: { force?: boolean }) {
+  async function fetchLiveBranchesForLinks(
+    linkIds: number[],
+    options?: { force?: boolean; queryByLinkId?: Record<number, string> },
+  ) {
     if (linkIds.length === 0) {
       return;
     }
@@ -89,7 +93,10 @@ export function useGithubProjectReposLiveData({
     await Promise.all(
       idsToFetch.map(async (linkId) => {
         try {
-          const data = await listLiveProjectGithubRepoBranches(linkId);
+          const query = options?.queryByLinkId?.[linkId]?.trim() || "";
+          const data = query
+            ? await listLiveProjectGithubRepoBranches(linkId, { query })
+            : await listLiveProjectGithubRepoBranches(linkId);
           setLiveBranchesByLinkId((prev) => ({ ...prev, [linkId]: data }));
           setSelectedBranchByLinkId((prev) => {
             if (prev[linkId]) return prev;
@@ -116,7 +123,21 @@ export function useGithubProjectReposLiveData({
   }
 
   async function handleRefreshLiveBranches() {
-    await fetchLiveBranchesForLinks(links.map((link) => link.id), { force: true });
+    await fetchLiveBranchesForLinks(links.map((link) => link.id), {
+      force: true,
+      queryByLinkId: branchSearchByLinkId,
+    });
+  }
+
+  function setBranchSearchQuery(linkId: number, query: string) {
+    setBranchSearchByLinkId((prev) => ({
+      ...prev,
+      [linkId]: query,
+    }));
+  }
+
+  function getBranchSearchQuery(linkId: number) {
+    return branchSearchByLinkId[linkId] ?? "";
   }
 
   async function fetchBranchCommits(linkId: number, branchName: string) {
@@ -161,8 +182,17 @@ export function useGithubProjectReposLiveData({
 
   useEffect(() => {
     if (activeTab !== "branches" || loading || links.length === 0) return;
-    void fetchLiveBranchesForLinks(links.map((link) => link.id));
-  }, [activeTab, loading, links]);
+    const timer = window.setTimeout(() => {
+      void fetchLiveBranchesForLinks(
+        links.map((link) => link.id),
+        { force: true, queryByLinkId: branchSearchByLinkId }
+      );
+    }, 250);
+    return () => window.clearTimeout(timer);
+    // `fetchLiveBranchesForLinks` depends on live branch cache/loading maps by design.
+    // Re-running this effect on each cache mutation causes redundant requests.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, loading, links, branchSearchByLinkId]);
 
   useEffect(() => {
     if (activeTab !== "branches" || loading || links.length === 0) return;
@@ -174,6 +204,8 @@ export function useGithubProjectReposLiveData({
       if (branchCommitsLoadingByLinkId[link.id]) continue;
       void fetchBranchCommits(link.id, selectedBranch);
     }
+    // This effect intentionally reacts to selected-branch changes only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, links, selectedBranchByLinkId]);
 
   useEffect(() => {
@@ -189,6 +221,8 @@ export function useGithubProjectReposLiveData({
         void fetchMyCommits(link.id, 1, { includeTotals: true });
       }
     }
+    // This effect intentionally reacts to tab/link readiness only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, loading, links, connection?.connected]);
 
   useEffect(() => {
@@ -200,6 +234,8 @@ export function useGithubProjectReposLiveData({
       }
     }, 500);
     return () => window.clearTimeout(timer);
+    // This effect intentionally backfills missing data and skips cache/loading deps.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, activeTab, links, connection?.connected]);
 
   return {
@@ -212,6 +248,8 @@ export function useGithubProjectReposLiveData({
     branchCommitsByLinkId,
     branchCommitsLoadingByLinkId,
     branchCommitsErrorByLinkId,
+    setBranchSearchQuery,
+    getBranchSearchQuery,
     myCommitsByLinkId,
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,

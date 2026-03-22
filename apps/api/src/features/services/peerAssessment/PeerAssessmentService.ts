@@ -35,13 +35,10 @@ export class PeerAssessmentService {
         id: true,
         answersJson: true,
         submittedAt: true,
-
-        moduleId: true,
         projectId: true,
         teamId: true,
         reviewerUserId: true, 
         revieweeUserId: true,
-        questionnaireTemplateId: true,
         templateId: true,
         updatedAt: true,
         reviewee : {

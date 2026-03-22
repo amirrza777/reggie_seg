@@ -13,6 +13,12 @@ export type EnterpriseModuleRecord = {
   readinessNotesText?: string;
 };
 
+export type EnterpriseFeatureFlag = {
+  key: string;
+  label: string;
+  enabled: boolean;
+};
+
 export type EnterpriseModuleSearchParams = {
   q?: string;
   page?: number;

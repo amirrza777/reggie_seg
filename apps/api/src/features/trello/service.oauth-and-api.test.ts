@@ -129,7 +129,7 @@ describe("TrelloService OAuth and API fetches", () => {
     ).rejects.toThrow("Failed to fetch boards");
   });
 
-  it("getBoardWithData fetches board data", async () => {
+  it("getBoardWithData calls Trello board endpoint with expected query params", async () => {
     const mockBoard = { id: "board1" };
     const mockActions = [{ id: "act1", type: "createCard" }];
 
@@ -146,10 +146,7 @@ describe("TrelloService OAuth and API fetches", () => {
 
     global.fetch = fetchMock as any;
 
-    const result = await TrelloService.getBoardWithData(
-      "board1",
-      "token123"
-    );
+    await TrelloService.getBoardWithData("board1", "token123");
 
     expect(global.fetch).toHaveBeenCalledTimes(2);
     const boardUrl = (global.fetch as any).mock.calls[0][0];
@@ -159,6 +156,23 @@ describe("TrelloService OAuth and API fetches", () => {
     expect(boardUrl).toContain("members=all");
     expect(boardUrl).toContain("key=test-key");
     expect(boardUrl).toContain("token=token123");
+  });
+
+  it("getBoardWithData returns board payload with actions", async () => {
+    const mockBoard = { id: "board1" };
+    const mockActions = [{ id: "act1", type: "createCard" }];
+    global.fetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockBoard,
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockActions,
+      } as any) as any;
+
+    const result = await TrelloService.getBoardWithData("board1", "token123");
 
     expect(result).toEqual({ ...mockBoard, actions: mockActions });
   });

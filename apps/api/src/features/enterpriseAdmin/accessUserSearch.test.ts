@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildEnterpriseAccessUserSearchWhere, parseEnterpriseAccessUserSearchFilters } from "./accessUserSearch.js";
+import {
+  buildEnterpriseAccessUserSearchWhere,
+  matchesEnterpriseAccessUserSearchCandidate,
+  parseEnterpriseAccessUserSearchFilters,
+} from "./accessUserSearch.js";
 
 describe("parseEnterpriseAccessUserSearchFilters", () => {
   it("returns defaults when query params are missing", () => {
@@ -75,5 +79,27 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "all", query: null })).toEqual({
       enterpriseId: "ent_1",
     });
+  });
+});
+
+describe("matchesEnterpriseAccessUserSearchCandidate", () => {
+  const user = {
+    id: 27,
+    email: "nora@example.com",
+    firstName: "Nora",
+    lastName: "Patel",
+    active: true,
+  };
+
+  it("matches typo-tolerant names", () => {
+    expect(matchesEnterpriseAccessUserSearchCandidate(user, "nra patl")).toBe(true);
+  });
+
+  it("matches exact numeric id query", () => {
+    expect(matchesEnterpriseAccessUserSearchCandidate(user, "27")).toBe(true);
+  });
+
+  it("does not match unrelated query text", () => {
+    expect(matchesEnterpriseAccessUserSearchCandidate(user, "database systems")).toBe(false);
   });
 });

@@ -45,7 +45,18 @@ describe("search helpers", () => {
     expect(looseMatch.map((item) => item.id)).toEqual([1]);
 
     expect(matchesSearchQuery(modules[0], "daa structures", { fields: ["moduleName"] })).toBe(true);
-    expect(matchesSearchQuery(modules[0], "dt structures", { fields: ["moduleName"] })).toBe(false);
+    expect(matchesSearchQuery(modules[0], "dt structures", { fields: ["moduleName"] })).toBe(true);
     expect(matchesSearchQuery(modules[0], "quantum mechanics", { fields: ["moduleName"] })).toBe(false);
+  });
+
+  it("supports dropped-letter and short-prefix fuzzy patterns", () => {
+    const modules = [
+      { id: 1, moduleName: "Example" },
+      { id: 2, moduleName: "Data Structures" },
+      { id: 3, moduleName: "Database Systems" },
+    ];
+
+    expect(matchesSearchQuery(modules[0], "eampl", { fields: ["moduleName"] })).toBe(true);
+    expect(filterBySearchQuery(modules, "daa", { fields: ["moduleName"] }).map((item) => item.id)).toEqual([2, 3]);
   });
 });

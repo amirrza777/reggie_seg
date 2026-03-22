@@ -25,6 +25,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn() },
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
@@ -42,7 +43,7 @@ function mockRes() {
   return res as Response;
 }
 
-function getRouteHandler(method: "get" | "post" | "put" | "delete", path: string) {
+function getRouteHandler(method: "get" | "post" | "put" | "patch" | "delete", path: string) {
   const layer = (router as any).stack.find((item: any) => item.route?.path === path && item.route.methods?.[method]);
   if (!layer) throw new Error(`Missing route ${method.toUpperCase()} ${path}`);
   return layer.route.stack[0].handle;
@@ -89,6 +90,8 @@ beforeEach(() => {
   (prisma.moduleTeachingAssistant.createMany as any).mockResolvedValue({ count: 0 });
   (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValue([]);
   (prisma.userModule.findMany as any).mockResolvedValue([]);
+  (prisma.featureFlag.findMany as any).mockResolvedValue([]);
+  (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
 
   (prisma.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);
@@ -97,11 +100,13 @@ beforeEach(() => {
 });
 
 describe("enterpriseAdmin router access control", () => {
-  it("returns module access payload and allows leader to update module", async () => {
-    const getAccess = getRouteHandler("get", "/modules/:moduleId/access");
-    const getAccessSelection = getRouteHandler("get", "/modules/:moduleId/access-selection");
-    const updateModule = getRouteHandler("put", "/modules/:moduleId");
+  const getAccess = getRouteHandler("get", "/modules/:moduleId/access");
+  const getAccessSelection = getRouteHandler("get", "/modules/:moduleId/access-selection");
+  const updateModule = getRouteHandler("put", "/modules/:moduleId");
+  const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
+  const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
 
+  it("returns module access payload", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
       name: "Databases",
@@ -138,14 +143,17 @@ describe("enterpriseAdmin router access control", () => {
         },
       ]);
 
-    let res = mockRes();
+    const res = mockRes();
     await getAccess({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         module: expect.objectContaining({ id: 2, leaderCount: 1, teachingAssistantCount: 1, studentCount: 1 }),
       }),
     );
+  });
 
+  it("returns module access selection ids", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
       name: "Databases",
@@ -161,8 +169,10 @@ describe("enterpriseAdmin router access control", () => {
     (prisma.moduleLead.findMany as any).mockResolvedValueOnce([{ userId: 11 }]);
     (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValueOnce([{ userId: 12 }]);
     (prisma.userModule.findMany as any).mockResolvedValueOnce([{ userId: 31 }]);
-    res = mockRes();
+
+    const res = mockRes();
     await getAccessSelection({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
     expect((res.json as any)).toHaveBeenCalledWith(
       expect.objectContaining({
         module: expect.objectContaining({ id: 2 }),
@@ -171,7 +181,9 @@ describe("enterpriseAdmin router access control", () => {
         studentIds: [31],
       }),
     );
+  });
 
+  it("allows module update for module lead", async () => {
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
     (prisma.module.findFirst as any)
       .mockResolvedValueOnce(null)
@@ -189,7 +201,7 @@ describe("enterpriseAdmin router access control", () => {
       });
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
 
-    res = mockRes();
+    const res = mockRes();
     await updateModule(
       {
         enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" },
@@ -214,8 +226,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("deletes module for users who can manage module access", async () => {
-    const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
-
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 2 });
 
@@ -230,7 +240,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("forbids module deletion for non-leaders", async () => {
-    const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce(null);
 
     const res = mockRes();
@@ -241,8 +250,6 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("allows enterprise admin module updates as an override without module-lead membership", async () => {
-    const updateModule = getRouteHandler("put", "/modules/:moduleId");
-
     (prisma.module.findFirst as any).mockResolvedValue(null);
     (prisma.user.findMany as any).mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
 
@@ -259,5 +266,20 @@ describe("enterpriseAdmin router access control", () => {
     expect((res.status as any)).not.toHaveBeenCalledWith(403);
     expect(prisma.moduleLead.findFirst).not.toHaveBeenCalled();
     expect(prisma.module.findFirst).toHaveBeenCalled();
+  });
+
+  it("forbids feature flag updates for staff users", async () => {
+    const res = mockRes();
+    await patchFeatureFlag(
+      {
+        enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" },
+        params: { key: "peer_feedback" },
+        body: { enabled: true },
+      } as any,
+      res,
+    );
+
+    expect((res.status as any)).toHaveBeenCalledWith(403);
+    expect(prisma.featureFlag.update).not.toHaveBeenCalled();
   });
 });

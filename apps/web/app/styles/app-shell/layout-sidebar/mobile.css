@@ -11,8 +11,8 @@
   min-height: 44px;
   padding: 10px 14px;
   border-radius: 14px;
-  border: 1px solid var(--border);
-  background: var(--surface);
+  border: 1px solid var(--glass-ui-border);
+  background: var(--glass-ui-bg);
   color: var(--sidebar-text);
   font-weight: var(--fw-semibold);
   font-size: 1rem;
@@ -33,9 +33,9 @@
 .sidebar__mobile-trigger:active,
 .sidebar__mobile-trigger:focus,
 .sidebar__mobile-trigger:focus-visible {
-  background: var(--surface);
+  background: var(--glass-ui-hover);
   color: var(--sidebar-text);
-  border-color: var(--border);
+  border-color: color-mix(in srgb, var(--glass-ui-border) 72%, var(--accent-border) 28%);
   transform: none;
   box-shadow: none;
   outline: none;
@@ -103,26 +103,23 @@
 
 .sidebar__chevron {
   display: inline-block;
-  transition: transform 0.2s ease;
-  transform: rotate(180deg);
   font-size: 1.2em;
   line-height: 1;
-}
-
-.sidebar__chevron.is-open {
-  transform: rotate(0deg);
 }
 
 .sidebar__mobile-overlay {
   position: fixed;
   inset: 0;
-  background: var(--backdrop-strong);
+  background: var(--modal-backdrop, var(--backdrop-strong));
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   display: grid;
   place-items: stretch;
-  padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0)
-    env(safe-area-inset-left, 0);
+  padding:
+    calc(env(safe-area-inset-top, 0px) + var(--app-shell-main-gap))
+    env(safe-area-inset-right, 0px)
+    calc(env(safe-area-inset-bottom, 0px) + var(--app-shell-main-gap))
+    calc(env(safe-area-inset-left, 0px) + var(--app-shell-main-gap));
   z-index: 50;
 }
 
@@ -144,7 +141,8 @@
 .sidebar__mobile-sheet--drawer {
   width: min(88vw, 380px);
   max-width: 100%;
-  border-right: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
 }
 
 .sidebar__mobile-header {
@@ -202,8 +200,8 @@
   text-decoration: none;
   min-height: 40px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: transparent;
+  border: 1px solid var(--glass-ui-border);
+  background: var(--glass-ui-bg-soft);
   color: var(--ink);
   font-weight: var(--fw-semibold);
   font-size: 1rem;
@@ -215,7 +213,7 @@
 }
 
 .sidebar__mobile-space.is-active {
-  background: var(--sidebar-active-bg);
+  background: color-mix(in srgb, var(--glass-ui-bg) 76%, var(--sidebar-active-bg) 24%);
   border-color: transparent;
 }
 
@@ -224,9 +222,9 @@
   padding: 10px 16px;
   display: flex;
   align-items: center;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 14px;
-  background: transparent;
+  background: var(--glass-ui-bg-soft);
   color: var(--ink);
   text-decoration: none;
   font-weight: var(--fw-semibold);
@@ -235,7 +233,7 @@
 }
 
 .sidebar__mobile-link.is-active {
-  background: var(--glass-hover);
+  background: color-mix(in srgb, var(--glass-ui-bg) 76%, var(--sidebar-active-bg) 24%);
   color: var(--accent-strong);
 }
 
@@ -286,9 +284,9 @@
   justify-content: space-between;
   min-height: 52px;
   padding: 10px 16px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 14px;
-  background: transparent;
+  background: var(--glass-ui-bg-soft);
   color: var(--ink);
   font-weight: var(--fw-semibold);
   font-size: 1rem;
@@ -300,7 +298,7 @@
 }
 
 .sidebar__mobile-group-trigger.is-active {
-  background: var(--glass-hover);
+  background: color-mix(in srgb, var(--glass-ui-bg) 76%, var(--sidebar-active-bg) 24%);
   color: var(--accent-strong);
 }
 
@@ -337,8 +335,18 @@
 }
 
 .sidebar__mobile-sublink.is-active {
-  background: var(--glass-hover);
+  background: color-mix(in srgb, var(--glass-ui-bg) 76%, var(--sidebar-active-bg) 24%);
   color: var(--accent-strong);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .sidebar__mobile-trigger,
+  .sidebar__mobile-space,
+  .sidebar__mobile-link,
+  .sidebar__mobile-group-trigger {
+    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  }
 }
 
 @media (max-height: 560px) and (max-width: 1024px) and (orientation: landscape) {

@@ -8,6 +8,17 @@ import type { FeatureFlag } from "../types";
 type Status = "idle" | "loading" | "error" | "success";
 
 export function FeatureFlagsCard() {
+  const state = useFeatureFlagsState();
+
+  return (
+    <div className="stack">
+      <FeatureFlagsMessage status={state.status} message={state.message} />
+      <FeatureFlagsPanel flags={state.flags} onToggle={state.handleToggle} updating={state.updating} />
+    </div>
+  );
+}
+
+function useFeatureFlagsState() {
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -15,6 +26,7 @@ export function FeatureFlagsCard() {
 
   useEffect(() => {
     let subscribed = true;
+
     const loadFlags = async () => {
       setStatus("loading");
       try {
@@ -23,13 +35,13 @@ export function FeatureFlagsCard() {
         setFlags(response);
         setStatus("success");
       } catch (err) {
-        if (subscribed) {
-          setStatus("error");
-          setMessage(err instanceof Error ? err.message : "Could not load flags.");
-        }
+        if (!subscribed) return;
+        setStatus("error");
+        setMessage(err instanceof Error ? err.message : "Could not load flags.");
       }
     };
-    loadFlags();
+
+    void loadFlags();
     return () => {
       subscribed = false;
     };
@@ -39,10 +51,11 @@ export function FeatureFlagsCard() {
     setUpdating((prev) => ({ ...prev, [key]: true }));
     setMessage(null);
     const previous = flags;
-    setFlags((prev) => prev.map((f) => (f.key === key ? { ...f, enabled } : f)));
+
+    setFlags((prev) => prev.map((flag) => (flag.key === key ? { ...flag, enabled } : flag)));
     try {
       const updated = await updateFeatureFlag(key, enabled);
-      setFlags((prev) => prev.map((f) => (f.key === key ? updated : f)));
+      setFlags((prev) => prev.map((flag) => (flag.key === key ? updated : flag)));
     } catch (err) {
       setFlags(previous);
       setMessage(err instanceof Error ? err.message : "Could not update flag.");
@@ -51,17 +64,18 @@ export function FeatureFlagsCard() {
     }
   };
 
+  return { flags, status, message, updating, handleToggle };
+}
+
+function FeatureFlagsMessage({ status, message }: { status: Status; message: string | null }) {
+  if (!message) return null;
+
   return (
-    <div className="stack">
-      {message ? (
-        <div
-          className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
-          style={{ padding: "10px 12px" }}
-        >
-          <span>{message}</span>
-        </div>
-      ) : null}
-      <FeatureFlagsPanel flags={flags} onToggle={handleToggle} updating={updating} />
+    <div
+      className={status === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}
+      style={{ padding: "10px 12px" }}
+    >
+      <span>{message}</span>
     </div>
   );
 }

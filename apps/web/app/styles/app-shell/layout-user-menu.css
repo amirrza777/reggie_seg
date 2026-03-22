@@ -6,21 +6,23 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg-soft);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 14px;
   padding: 4px 12px 4px 4px;
   color: var(--ink);
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
+  box-shadow: var(--elevation-none);
 }
 
 .user-menu__trigger:hover,
 .user-menu__trigger:focus-visible {
-  background: color-mix(in srgb, var(--surface) 92%, var(--ink) 4%);
-  border-color: color-mix(in srgb, var(--border) 60%, var(--accent-border));
+  background: var(--glass-ui-hover);
+  border-color: color-mix(in srgb, var(--glass-ui-border) 68%, var(--accent-border) 32%);
+  transform: translateY(-1px);
 }
 
 .user-menu__avatar {
@@ -61,15 +63,14 @@
   right: 0;
   top: calc(100% + 12px);
   min-width: min(320px, 92vw);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg);
+  border: 1px solid var(--glass-ui-border);
   border-radius: 18px;
   padding: 0;
   display: grid;
   gap: 0;
   z-index: 20;
   font-size: var(--fs-body);
-  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -79,7 +80,7 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--glass-ui-bg) 92%, transparent);
   border-bottom: 1px solid var(--border);
 }
 
@@ -106,7 +107,7 @@
 .user-menu__links {
   display: grid;
   gap: 0;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--glass-ui-bg) 94%, transparent);
 }
 
 .user-menu__links + .user-menu__links {
@@ -134,10 +135,18 @@
 
 .user-menu__link:hover,
 .user-menu__link:focus-visible {
-  background: var(--glass-hover);
+  background: var(--glass-ui-hover);
 }
 
 .user-menu__link--danger {
   color: var(--status-danger);
   font-weight: var(--fw-semibold);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .user-menu__trigger,
+  .user-menu__dropdown {
+    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  }
 }

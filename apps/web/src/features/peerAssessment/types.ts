@@ -1,9 +1,3 @@
-export type Teammate = {
-  id: number;
-  firstName: string;
-  lastName: string;
-};
-
 export type TeamAllocation = {
   id: number;
   userId: number;

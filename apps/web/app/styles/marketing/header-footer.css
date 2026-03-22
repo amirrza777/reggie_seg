@@ -116,7 +116,7 @@
 .mobile-menu__scrim {
   position: absolute;
   inset: 0;
-  background: var(--backdrop-strong);
+  background: var(--modal-backdrop, var(--backdrop-strong));
   backdrop-filter: blur(2px);
   -webkit-backdrop-filter: blur(2px);
   border: none;

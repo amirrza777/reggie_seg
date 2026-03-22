@@ -1,6 +1,6 @@
 .staff-projects__create {
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 18px;
   display: grid;
   gap: 14px;
@@ -28,7 +28,7 @@
 
 .staff-projects__create-guide {
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   padding: 16px;
   background: var(--surface);
   display: grid;
@@ -63,7 +63,7 @@
 
 .staff-projects__create-basics {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px;
   display: grid;
   gap: 10px;
@@ -84,7 +84,7 @@
 .staff-projects__deadline {
   grid-column: 1 / -1;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 12px;
   margin: 0;
   display: grid;
@@ -106,7 +106,7 @@
 
 .staff-projects__deadline-preset-group {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px;
   display: grid;
   gap: 8px;
@@ -124,7 +124,7 @@
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   color: inherit;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   min-height: 34px;
   padding: 0 12px;
   font: inherit;
@@ -148,7 +148,7 @@
 
 .staff-projects__deadline-block {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 10px;
   display: grid;
   gap: 10px;
@@ -157,7 +157,7 @@
 
 .staff-projects__deadline-preview {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 12px;
   background: color-mix(in srgb, var(--surface) 96%, transparent);
   display: grid;
@@ -165,7 +165,7 @@
 }
 
 .staff-projects__deadline-preview--wide {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
 }
 
 .staff-projects__deadline-preview-title {
@@ -187,7 +187,7 @@
 .staff-projects__input,
 .staff-projects__select {
   height: 40px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   color: inherit;

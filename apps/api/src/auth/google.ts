@@ -1,5 +1,5 @@
 import passport from "passport";
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import { Strategy as GoogleStrategy, type Profile, type VerifyCallback } from "passport-google-oauth20";
 import { prisma } from "../shared/db.js";
 import { randomBytes } from "crypto";
 import { signUpWithProvider } from "./service.js";
@@ -22,7 +22,7 @@ export function configureGoogle(): boolean {
         clientSecret,
         callbackURL,
       },
-      async (_accessToken, _refreshToken, profile, done) => {
+      async (_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback) => {
         try {
           const email = profile.emails?.[0]?.value;
           if (!email) return done(new Error("email missing"));

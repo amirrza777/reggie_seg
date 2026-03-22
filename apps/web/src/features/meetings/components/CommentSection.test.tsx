@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi, type MockedFunction } from "vitest";
 
@@ -8,6 +9,38 @@ vi.mock("@/features/auth/context", () => ({
 vi.mock("../api/client", () => ({
   addComment: vi.fn(),
   deleteComment: vi.fn(),
+}));
+
+vi.mock("./CommentInput", () => ({
+  CommentInput: ({ onPost }: { onPost: (text: string) => Promise<void> }) => {
+    const [value, setValue] = useState("");
+    const [posting, setPosting] = useState(false);
+    return (
+      <div>
+        <input
+          placeholder="Add a comment"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+        />
+        <button
+          type="button"
+          disabled={posting || !value.trim()}
+          onClick={async () => {
+            if (!value.trim()) return;
+            setPosting(true);
+            try {
+              await onPost(value.trim());
+              setValue("");
+            } finally {
+              setPosting(false);
+            }
+          }}
+        >
+          {posting ? "Posting..." : "Post Comment"}
+        </button>
+      </div>
+    );
+  },
 }));
 
 import { useUser } from "@/features/auth/context";
@@ -43,9 +76,9 @@ const comments = [
 
 beforeEach(() => {
   vi.clearAllMocks();
-  useUserMock.mockReturnValue({ user: currentUser } as any);
-  addCommentMock.mockResolvedValue(undefined as any);
-  deleteCommentMock.mockResolvedValue(undefined as any);
+  useUserMock.mockReturnValue({ user: currentUser } as ReturnType<typeof useUser>);
+  addCommentMock.mockResolvedValue(undefined);
+  deleteCommentMock.mockResolvedValue(undefined);
 });
 
 describe("CommentSection", () => {
@@ -69,7 +102,7 @@ describe("CommentSection", () => {
   });
 
   it("hides comment form when no user is logged in", () => {
-    useUserMock.mockReturnValue({ user: null } as any);
+    useUserMock.mockReturnValue({ user: null } as ReturnType<typeof useUser>);
     render(<CommentSection meetingId={10} initialComments={comments} />);
     expect(screen.queryByPlaceholderText(/add a comment/i)).not.toBeInTheDocument();
   });

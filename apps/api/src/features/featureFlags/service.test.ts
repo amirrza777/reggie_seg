@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { isFeatureEnabled } from "./service.js";
+import { isFeatureEnabled, isFeatureEnabledForUser, listFeatureFlagsForUser } from "./service.js";
 import { prisma } from "../../shared/db.js";
 
 vi.mock("../../shared/db.js", () => ({
   prisma: {
-    enterprise: {
-      upsert: vi.fn(),
+    user: {
+      findUnique: vi.fn(),
     },
     featureFlag: {
+      findMany: vi.fn(),
       findUnique: vi.fn(),
     },
   },
@@ -18,12 +19,11 @@ describe("featureFlags service", () => {
     vi.clearAllMocks();
   });
 
-  it("uses provided enterpriseId without upserting default enterprise", async () => {
+  it("checks a flag by enterprise id", async () => {
     (prisma.featureFlag.findUnique as any).mockResolvedValue({ enabled: true });
 
     const enabled = await isFeatureEnabled("newDashboard", "ent-1");
 
-    expect(prisma.enterprise.upsert).not.toHaveBeenCalled();
     expect(prisma.featureFlag.findUnique).toHaveBeenCalledWith({
       where: { enterpriseId_key: { enterpriseId: "ent-1", key: "newDashboard" } },
       select: { enabled: true },
@@ -31,29 +31,47 @@ describe("featureFlags service", () => {
     expect(enabled).toBe(true);
   });
 
-  it("upserts default enterprise when enterpriseId is omitted", async () => {
-    (prisma.enterprise.upsert as any).mockResolvedValue({ id: "default-ent" });
+  it("checks a flag by user enterprise", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-2", active: true });
     (prisma.featureFlag.findUnique as any).mockResolvedValue({ enabled: false });
 
-    const enabled = await isFeatureEnabled("betaFeature");
+    const enabled = await isFeatureEnabledForUser("betaFeature", 12);
 
-    expect(prisma.enterprise.upsert).toHaveBeenCalledWith({
-      where: { code: "DEFAULT" },
-      update: {},
-      create: { code: "DEFAULT", name: "Default Enterprise" },
-      select: { id: true },
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { id: 12 },
+      select: { enterpriseId: true, active: true },
     });
     expect(prisma.featureFlag.findUnique).toHaveBeenCalledWith({
-      where: { enterpriseId_key: { enterpriseId: "default-ent", key: "betaFeature" } },
+      where: { enterpriseId_key: { enterpriseId: "ent-2", key: "betaFeature" } },
       select: { enabled: true },
     });
     expect(enabled).toBe(false);
   });
 
+  it("returns false when user is missing or inactive", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue(null);
+    await expect(isFeatureEnabledForUser("missingFlag", 99)).resolves.toBe(false);
+
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-3", active: false });
+    await expect(isFeatureEnabledForUser("missingFlag", 99)).resolves.toBe(false);
+    expect(prisma.featureFlag.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("lists flags for user enterprise", async () => {
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-2", active: true });
+    (prisma.featureFlag.findMany as any).mockResolvedValue([{ key: "repos", enabled: true }]);
+
+    const flags = await listFeatureFlagsForUser(12);
+    expect(prisma.featureFlag.findMany).toHaveBeenCalledWith({
+      where: { enterpriseId: "ent-2" },
+      orderBy: { key: "asc" },
+    });
+    expect(flags).toEqual([{ key: "repos", enabled: true }]);
+  });
+
   it("returns false when flag record does not exist", async () => {
-    (prisma.enterprise.upsert as any).mockResolvedValue({ id: "default-ent" });
     (prisma.featureFlag.findUnique as any).mockResolvedValue(null);
 
-    await expect(isFeatureEnabled("missingFlag")).resolves.toBe(false);
+    await expect(isFeatureEnabled("missingFlag", "ent-1")).resolves.toBe(false);
   });
 });

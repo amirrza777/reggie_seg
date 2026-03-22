@@ -1,4 +1,6 @@
 @import "./components.base/core.css";
 @import "./components.base/layout-and-mobile.css";
 @import "./components.base/viewport-utilities.css";
+@import "./components.base/help-hub-foundation.css";
+@import "./components.base/help-hub-content.css";
 @import "./components.base/theme.css";

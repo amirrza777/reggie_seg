@@ -51,17 +51,20 @@ export async function fetchProjectsForUser(userId: number) {
 }
 
 /** Returns the modules for user. */
-export async function fetchModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
+export async function fetchModulesForUser(
+  userId: number,
+  options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
+) {
   const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
     title: module.name,
-    briefText: module.briefText ?? undefined,
-    timelineText: module.timelineText ?? undefined,
-    expectationsText: module.expectationsText ?? undefined,
-    readinessNotesText: module.readinessNotesText ?? undefined,
-    teamCount: module.teamCount,
-    projectCount: module.projectCount,
+    briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
+    timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
+    expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
+    readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
+    teamCount: "teamCount" in module ? module.teamCount : 0,
+    projectCount: "projectCount" in module ? module.projectCount : 0,
     accountRole: module.accessRole,
   }));
 }
@@ -92,8 +95,8 @@ export async function fetchQuestionsForProject(projectId: number) {
 }
 
 /** Returns the projects for staff. */
-export async function fetchProjectsForStaff(userId: number) {
-  const projects = await getStaffProjects(userId);
+export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null }) {
+  const projects = await getStaffProjects(userId, options);
   const now = Date.now();
   return projects.map((project) => {
     const allAllocations = project.teams.flatMap((t) => t.allocations);
@@ -104,7 +107,7 @@ export async function fetchProjectsForStaff(userId: number) {
       name: project.name,
       moduleId: project.moduleId,
       moduleName: project.module?.name ?? "",
-      teamCount: project._count.teams,
+      teamCount: project.teams.length,
       hasGithubRepo: project._count.githubRepositories > 0,
       daysOld: Math.floor((now - new Date(project.createdAt).getTime()) / 86_400_000),
       membersTotal,
@@ -129,6 +132,7 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       id: team.id,
       teamName: team.teamName,
       projectId: team.projectId,
+      allocationLifecycle: team.allocationLifecycle,
       createdAt: team.createdAt,
       inactivityFlag: team.inactivityFlag,
       deadlineProfile: team.deadlineProfile,

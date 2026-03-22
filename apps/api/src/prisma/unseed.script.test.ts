@@ -69,4 +69,27 @@ describe("prisma unseed script", () => {
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
     expect(prismaMock.$disconnect).toHaveBeenCalled();
   });
+
+  it("restores foreign key checks even when truncation fails", async () => {
+    const prismaMock = createUnseedMock();
+    prismaMock.$executeRawUnsafe.mockImplementation(async (sql: string) => {
+      if (sql.includes("TRUNCATE TABLE `Project`;")) {
+        throw new Error("truncate failed");
+      }
+      return undefined;
+    });
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    vi.doMock("@prisma/client", () => ({
+      PrismaClient: vi.fn(() => prismaMock),
+    }));
+
+    await import("../../prisma/seed/unseed.ts").catch(() => undefined);
+    await flushAsyncWork();
+
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
+    expect(prismaMock.$disconnect).toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
 });

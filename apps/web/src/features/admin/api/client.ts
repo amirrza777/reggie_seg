@@ -10,14 +10,9 @@ import type {
   AuditLogEntry,
   CreateEnterprisePayload,
   EnterpriseRecord,
-  FeatureFlag,
   AdminSummary,
   UserRole,
 } from "../types";
-
-export async function listFeatureFlags(): Promise<FeatureFlag[]> {
-  return apiFetch<FeatureFlag[]>("/admin/feature-flags");
-}
 
 export async function listUsers(): Promise<AdminUserRecord[]> {
   return apiFetch<AdminUserRecord[]>("/admin/users");
@@ -61,13 +56,6 @@ export async function listAuditLogs(params: { from?: string; to?: string; limit?
 
 export async function getAdminSummary() {
   return apiFetch<AdminSummary>("/admin/summary");
-}
-
-export async function updateFeatureFlag(key: string, enabled: boolean) {
-  return apiFetch<FeatureFlag>(`/admin/feature-flags/${encodeURIComponent(key)}`, {
-    method: "PATCH",
-    body: JSON.stringify({ enabled }),
-  });
 }
 
 export async function listEnterprises() {

@@ -1,5 +1,8 @@
 import type { ParsedQs } from "qs";
 import type { Prisma } from "@prisma/client";
+import { matchesFuzzySearchCandidate, normalizeSearchText } from "../../shared/fuzzySearch.js";
+import { parseSearchQuery } from "../../shared/search.js";
+import { parsePaginationQueryParams, readSingleQueryString, type ParseResult } from "../../shared/searchParams.js";
 
 export type AdminEnterpriseSearchFilters = {
   query: string | null;
@@ -7,33 +10,40 @@ export type AdminEnterpriseSearchFilters = {
   pageSize: number;
 };
 
-type ParseResult = { ok: true; value: AdminEnterpriseSearchFilters } | { ok: false; error: string };
+export type AdminEnterpriseSearchCandidate = {
+  id: string;
+  code: string;
+  name: string;
+  users: Array<{ role: "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN" }>;
+};
+
+export type AdminEnterpriseFuzzyCandidate = {
+  id: string;
+  code: string;
+  name: string;
+};
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 8;
 const MAX_PAGE_SIZE = 100;
-const MAX_QUERY_LENGTH = 120;
 
 /** Parses the admin enterprise search filters. */
-export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult {
-  const rawQuery = parseSingleString(query.q)?.trim() ?? "";
-  if (rawQuery.length > MAX_QUERY_LENGTH) {
-    return { ok: false, error: `q must be ${MAX_QUERY_LENGTH} characters or fewer` };
-  }
+export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult<AdminEnterpriseSearchFilters> {
+  const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
+  if (!parsedQuery.ok) return parsedQuery;
 
-  const page = parseOptionalPositiveInt(query.page, DEFAULT_PAGE);
-  if (!page) return { ok: false, error: "page must be a positive integer" };
-
-  const pageSize = parseOptionalPositiveInt(query.pageSize, DEFAULT_PAGE_SIZE);
-  if (!pageSize) return { ok: false, error: "pageSize must be a positive integer" };
-  if (pageSize > MAX_PAGE_SIZE) return { ok: false, error: `pageSize must be ${MAX_PAGE_SIZE} or less` };
+  const parsedPagination = parsePaginationQueryParams(
+    { page: query.page, pageSize: query.pageSize },
+    { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
+  );
+  if (!parsedPagination.ok) return parsedPagination;
 
   return {
     ok: true,
     value: {
-      query: rawQuery || null,
-      page,
-      pageSize,
+      query: parsedQuery.value,
+      page: parsedPagination.value.page,
+      pageSize: parsedPagination.value.pageSize,
     },
   };
 }
@@ -59,16 +69,29 @@ export function buildAdminEnterpriseSearchWhere(
   return { OR: queryConditions };
 }
 
-function parseSingleString(value: ParsedQs[string] | undefined): string | undefined {
-  return typeof value === "string" ? value : undefined;
+/** Checks fuzzy match for an admin enterprise search candidate. */
+export function matchesAdminEnterpriseSearchCandidate(candidate: AdminEnterpriseSearchCandidate, query: string): boolean {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return true;
+
+  if (matchesFuzzySearchCandidate({ query: trimmedQuery, sources: [candidate.name, candidate.code] })) {
+    return true;
+  }
+
+  const hintedRoles = parseRolesFromQuery(normalizeSearchText(trimmedQuery));
+  if (hintedRoles.length === 0) return false;
+  return candidate.users.some((user) => hintedRoles.includes(user.role));
 }
 
-function parseOptionalPositiveInt(value: ParsedQs[string] | undefined, fallback: number): number | null {
-  const raw = parseSingleString(value);
-  if (raw === undefined || raw.trim() === "") return fallback;
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-  return parsed;
+/** Checks fuzzy match for lightweight enterprise search candidates. */
+export function matchesAdminEnterpriseFuzzyCandidate(candidate: AdminEnterpriseFuzzyCandidate, query: string): boolean {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return true;
+
+  return matchesFuzzySearchCandidate({
+    query: trimmedQuery,
+    sources: [candidate.name, candidate.code, candidate.id],
+  });
 }
 
 function parseRolesFromQuery(value: string): Array<"STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN"> {

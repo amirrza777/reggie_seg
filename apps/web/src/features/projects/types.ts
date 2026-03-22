@@ -53,6 +53,7 @@ export type Team = {
   id: number;
   teamName: string;
   projectId: number;
+  allocationLifecycle?: "DRAFT" | "ACTIVE";
   createdAt: string;
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -167,12 +168,6 @@ export type CreatedStaffProject = {
   } | null;
 };
 
-export type TeamMember = {
-  id: string;
-  name: string;
-  role: string;
-};
-
 export type StaffMarkingSummary = {
   mark: number | null;
   formativeFeedback: string | null;
@@ -190,6 +185,7 @@ export type ProjectMarkingSummary = {
   studentMarking: StaffMarkingSummary | null;
 };
 
+
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;
@@ -201,9 +197,4 @@ export type DeadlineItem = {
   label: string;
   value: string | null;
   group: string;
-};
-
-export type DeadlineState = {
-  label: string;
-  color: string;
 };

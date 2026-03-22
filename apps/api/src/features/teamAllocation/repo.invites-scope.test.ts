@@ -6,11 +6,11 @@ import {
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
+  findStaffScopedProjectAccess,
   findStaffScopedProject,
   findActiveInvite,
   findInviteContext,
   getInvitesForTeam,
-  TeamService,
   updateInviteStatusFromPending,
 } from "./repo.js";
 import { prisma } from "../../shared/db.js";
@@ -60,6 +60,10 @@ describe("teamAllocation repo invites and scope", () => {
         inviteeEmail: "user@example.com",
         active: true,
         status: "PENDING",
+        team: {
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
+        },
       },
     });
   });
@@ -138,7 +142,7 @@ describe("teamAllocation repo invites and scope", () => {
     await expect(findStaffScopedProject(9, 3)).resolves.toBeNull();
   });
 
-  it("findStaffScopedProject enforces scoped access for staff roles", async () => {
+  it("findStaffScopedProject returns mapped project fields for staff users", async () => {
     (prisma.user.findUnique as any).mockResolvedValueOnce({
       enterpriseId: "ent-1",
       role: "STAFF",
@@ -160,6 +164,17 @@ describe("teamAllocation repo invites and scope", () => {
       archivedAt: null,
       enterpriseId: "ent-1",
     });
+  });
+
+  it("findStaffScopedProject queries staff scope using lead/ta membership filters", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce(null);
+
+    await findStaffScopedProject(12, 4);
 
     expect(prisma.project.findFirst).toHaveBeenCalledWith({
       where: {
@@ -210,6 +225,104 @@ describe("teamAllocation repo invites and scope", () => {
           select: { name: true },
         },
       },
+    });
+  });
+
+  it("findStaffScopedProjectAccess returns module lead approval capability", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      archivedAt: null,
+      module: {
+        name: "Module A",
+        moduleLeads: [{ userId: 12 }],
+        moduleTeachingAssistants: [],
+      },
+    });
+
+    await expect(findStaffScopedProjectAccess(12, 4)).resolves.toEqual({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+      actorRole: "STAFF",
+      isModuleLead: true,
+      isModuleTeachingAssistant: false,
+      canApproveAllocationDrafts: true,
+    });
+
+    expect(prisma.project.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 4,
+        module: {
+          enterpriseId: "ent-1",
+          OR: [
+            { moduleLeads: { some: { userId: 12 } } },
+            { moduleTeachingAssistants: { some: { userId: 12 } } },
+          ],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        moduleId: true,
+        archivedAt: true,
+        module: {
+          select: {
+            name: true,
+            moduleLeads: {
+              where: { userId: 12 },
+              select: { userId: true },
+              take: 1,
+            },
+            moduleTeachingAssistants: {
+              where: { userId: 12 },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+        },
+      },
+    });
+  });
+
+  it("findStaffScopedProjectAccess denies approval for teaching assistants", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.project.findFirst as any).mockResolvedValueOnce({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      archivedAt: null,
+      module: {
+        name: "Module A",
+        moduleLeads: [],
+        moduleTeachingAssistants: [{ userId: 22 }],
+      },
+    });
+
+    await expect(findStaffScopedProjectAccess(22, 4)).resolves.toEqual({
+      id: 4,
+      name: "Project A",
+      moduleId: 7,
+      moduleName: "Module A",
+      archivedAt: null,
+      enterpriseId: "ent-1",
+      actorRole: "STAFF",
+      isModuleLead: false,
+      isModuleTeachingAssistant: true,
+      canApproveAllocationDrafts: false,
     });
   });
 
@@ -266,24 +379,30 @@ describe("teamAllocation repo invites and scope", () => {
       },
     ]);
 
-    await expect(findModuleStudentsForManualAllocation("ent-3", 22, 5)).resolves.toEqual([
-      {
-        id: 1,
-        firstName: "A",
-        lastName: "A",
-        email: "a@example.com",
-        currentTeamId: 10,
-        currentTeamName: "Team Alpha",
-      },
+    const students = await findModuleStudentsForManualAllocation("ent-3", 22, 5);
+
+    expect(students[0]).toMatchObject({ id: 1, currentTeamId: 10, currentTeamName: "Team Alpha" });
+  });
+
+  it("findModuleStudentsForManualAllocation maps null team status when student has no project allocation", async () => {
+    (prisma.user.findMany as any).mockResolvedValueOnce([
       {
         id: 2,
         firstName: "B",
         lastName: "B",
         email: "b@example.com",
-        currentTeamId: null,
-        currentTeamName: null,
+        teamAllocations: [],
       },
     ]);
+
+    const students = await findModuleStudentsForManualAllocation("ent-3", 22, 5);
+    expect(students[0]).toMatchObject({ id: 2, currentTeamId: null, currentTeamName: null });
+  });
+
+  it("findModuleStudentsForManualAllocation includes project-scoped team relation in query", async () => {
+    (prisma.user.findMany as any).mockResolvedValueOnce([]);
+
+    await findModuleStudentsForManualAllocation("ent-3", 22, 5);
 
     expect(prisma.user.findMany).toHaveBeenCalledWith({
       where: {

@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { parseSearchQuery } from "../../shared/search.js";
 import {
   listLiveProjectGithubRepositoryBranchCommits,
   listLiveProjectGithubRepositoryBranches,
@@ -20,9 +21,15 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
   if (Number.isNaN(linkId)) {
     return res.status(400).json({ error: "linkId must be a number" });
   }
+  const parsedSearchQuery = parseSearchQuery(req.query?.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
 
   try {
-    const branchData = await listLiveProjectGithubRepositoryBranches(userId, linkId);
+    const branchData = parsedSearchQuery.value
+      ? await listLiveProjectGithubRepositoryBranches(userId, linkId, { query: parsedSearchQuery.value })
+      : await listLiveProjectGithubRepositoryBranches(userId, linkId);
     return res.json(toJsonSafe(branchData));
   } catch (error) {
     if (error instanceof GithubServiceError) {

@@ -1,4 +1,7 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
+import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
+import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
 export type ProjectDeadlineInput = {
   taskOpenDate: Date;
@@ -24,6 +27,58 @@ export type StudentDeadlineOverrideInput = {
 
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 
+const STAFF_PROJECT_LIST_SELECT = {
+  id: true,
+  name: true,
+  moduleId: true,
+  archivedAt: true,
+  module: {
+    select: {
+      name: true,
+    },
+  },
+  createdAt: true,
+  _count: {
+    select: {
+      teams: true,
+      githubRepositories: true,
+    },
+  },
+  teams: {
+    where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
+    select: {
+      allocations: {
+        select: {
+          user: {
+            select: {
+              githubAccount: { select: { id: true } },
+            },
+          },
+        },
+      },
+    },
+  },
+} satisfies Prisma.ProjectSelect;
+
+function matchesModuleSearchQuery(module: { id: number; name: string }, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: module.id,
+    sources: [module.name, `module ${module.id}`],
+  });
+}
+
+function matchesStaffProjectSearchQuery(
+  project: { id: number; name: string; module: { name: string } | null },
+  query: string,
+): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: project.id,
+    sources: [project.name, project.module?.name ?? "", `project ${project.id}`],
+  });
+}
+
 function resolveModuleAccessRole(
   userRole: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN",
   flags: { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean },
@@ -45,6 +100,8 @@ export async function getUserProjects(userId: number) {
     where: {
       teams: {
         some: {
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
           allocations: {
             some: {
               userId,
@@ -67,7 +124,10 @@ export async function getUserProjects(userId: number) {
 }
 
 /** Returns the modules for user. */
-export async function getModulesForUser(userId: number, options?: { staffOnly?: boolean; compact?: boolean }) {
+export async function getModulesForUser(
+  userId: number,
+  options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
+) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { id: true, role: true, enterpriseId: true },
@@ -77,7 +137,7 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
     return [];
   }
 
-  const membershipFilter =
+  const membershipFilter: Prisma.ModuleWhereInput =
     user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
       ? { enterpriseId: user.enterpriseId }
       : user.role === "STAFF"
@@ -100,9 +160,27 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
                 }),
           };
 
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+  const searchFilter: Prisma.ModuleWhereInput | null = hasQuery
+    ? {
+        OR: [
+          { name: { contains: normalizedQuery } },
+          ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+        ],
+      }
+    : null;
+
+  const scopedMembershipFilter: Prisma.ModuleWhereInput = searchFilter
+    ? {
+        AND: [membershipFilter, searchFilter],
+      }
+    : membershipFilter;
+
   if (options?.compact) {
-    const compactModules = await prisma.module.findMany({
-      where: membershipFilter,
+    let compactModules = await prisma.module.findMany({
+      where: scopedMembershipFilter,
       select: {
         id: true,
         name: true,
@@ -124,6 +202,35 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
       },
       orderBy: [{ name: "asc" }, { id: "asc" }],
     });
+    compactModules = await applyFuzzyFallback(compactModules, {
+      query: normalizedQuery,
+      fetchFallbackCandidates: async (limit) =>
+        prisma.module.findMany({
+          where: membershipFilter,
+          select: {
+            id: true,
+            name: true,
+            moduleLeads: {
+              where: { userId: user.id },
+              select: { userId: true },
+              take: 1,
+            },
+            moduleTeachingAssistants: {
+              where: { userId: user.id },
+              select: { userId: true },
+              take: 1,
+            },
+            userModules: {
+              where: { userId: user.id, enterpriseId: user.enterpriseId },
+              select: { userId: true },
+              take: 1,
+            },
+          },
+          orderBy: [{ name: "asc" }, { id: "asc" }],
+          take: limit,
+        }),
+      matches: (module, query) => matchesModuleSearchQuery(module, query),
+    });
 
     return compactModules.map((module) => {
       const accessRole = resolveModuleAccessRole(user.role, {
@@ -140,8 +247,8 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
     });
   }
 
-  const modules = await prisma.module.findMany({
-    where: membershipFilter,
+  let modules = await prisma.module.findMany({
+    where: scopedMembershipFilter,
     select: {
       id: true,
       name: true,
@@ -176,6 +283,48 @@ export async function getModulesForUser(userId: number, options?: { staffOnly?: 
     },
     orderBy: [{ name: "asc" }, { id: "asc" }],
   });
+  modules = await applyFuzzyFallback(modules, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: async (limit) =>
+      prisma.module.findMany({
+        where: membershipFilter,
+        select: {
+          id: true,
+          name: true,
+          briefText: true,
+          timelineText: true,
+          expectationsText: true,
+          readinessNotesText: true,
+          moduleLeads: {
+            where: { userId: user.id },
+            select: { userId: true },
+            take: 1,
+          },
+          moduleTeachingAssistants: {
+            where: { userId: user.id },
+            select: { userId: true },
+            take: 1,
+          },
+          userModules: {
+            where: { userId: user.id, enterpriseId: user.enterpriseId },
+            select: { userId: true },
+            take: 1,
+          },
+          projects: {
+            select: {
+              _count: {
+                select: {
+                  teams: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ name: "asc" }, { id: "asc" }],
+        take: limit,
+      }),
+    matches: (module, query) => matchesModuleSearchQuery(module, query),
+  });
 
   return modules.map((module) => {
     const accessRole = resolveModuleAccessRole(user.role, {
@@ -206,66 +355,66 @@ async function getScopedStaffUser(userId: number) {
 }
 
 /** Returns the staff projects. */
-export async function getStaffProjects(userId: number) {
+export async function getStaffProjects(userId: number, options?: { query?: string | null }) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
 
-  const baseWhere = {
+  const baseWhere: Prisma.ProjectWhereInput = {
     module: {
       enterpriseId: user.enterpriseId,
     },
   };
 
-  const where =
+  const where: Prisma.ProjectWhereInput =
     user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
       ? baseWhere
       : {
-          ...baseWhere,
-          module: {
-            ...baseWhere.module,
-            OR: [
-              { moduleLeads: { some: { userId } } },
-              { moduleTeachingAssistants: { some: { userId } } },
-            ],
-          },
+          AND: [
+            baseWhere,
+            {
+              OR: [
+                { module: { moduleLeads: { some: { userId } } } },
+                { module: { moduleTeachingAssistants: { some: { userId } } } },
+              ],
+            },
+          ],
         };
 
-  return prisma.project.findMany({
-    where,
-    orderBy: { id: "asc" },
-    select: {
-      id: true,
-      name: true,
-      moduleId: true,
-      archivedAt: true,
-      module: {
-        select: {
-          name: true,
-        },
-      },
-      createdAt: true,
-      _count: {
-        select: {
-          teams: true,
-          githubRepositories: true,
-        },
-      },
-      teams: {
-        where: { archivedAt: null },
-        select: {
-          allocations: {
-            select: {
-              user: {
-                select: {
-                  githubAccount: { select: { id: true } },
-                },
-              },
-            },
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+  const scopedWhere: Prisma.ProjectWhereInput = hasQuery
+    ? {
+        AND: [
+          where,
+          {
+            OR: [
+              { name: { contains: normalizedQuery } },
+              { module: { name: { contains: normalizedQuery } } },
+              ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+            ],
           },
-        },
-      },
-    },
+        ],
+      }
+    : where;
+
+  let projects = await prisma.project.findMany({
+    where: scopedWhere,
+    orderBy: { id: "asc" },
+    select: STAFF_PROJECT_LIST_SELECT,
   });
+  projects = await applyFuzzyFallback(projects, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: async (limit) =>
+      prisma.project.findMany({
+        where,
+        orderBy: { id: "asc" },
+        select: STAFF_PROJECT_LIST_SELECT,
+        take: limit,
+      }),
+    matches: (project, query) => matchesStaffProjectSearchQuery(project, query),
+  });
+  return projects;
 }
 
 /** Returns the staff project teams. */
@@ -300,11 +449,13 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
         },
       },
       teams: {
+        where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
         orderBy: { id: "asc" },
         select: {
           id: true,
           teamName: true,
           projectId: true,
+          allocationLifecycle: true,
           createdAt: true,
           inactivityFlag: true,
           deadlineProfile: true,
@@ -458,6 +609,8 @@ export async function updateStaffTeamDeadlineProfile(
   const team = await prisma.team.findFirst({
     where: {
       id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
       project: {
         module: {
           enterpriseId: actor.enterpriseId,
@@ -497,6 +650,8 @@ export async function getTeammatesInProject(userId: number, projectId: number) {
     where: {
       team: {
         projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
         allocations: {
           some: {
             userId,
@@ -525,6 +680,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
       userId,
       team: {
         projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
       },
     },
     select: {
@@ -629,8 +786,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
 
 /** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
-  return prisma.team.findUnique({
-    where: { id: teamId },
+  return prisma.team.findFirst({
+    where: { id: teamId, archivedAt: null, allocationLifecycle: "ACTIVE" },
     select: {
       id: true,
       teamName: true,
@@ -658,6 +815,8 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
   return prisma.team.findFirst({
     where: {
       projectId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
       allocations: {
         some: {
           userId,
@@ -736,7 +895,7 @@ export async function getUserProjectMarking(userId: number, projectId: number) {
   const enrollment = await prisma.teamAllocation.findFirst({
     where: {
       userId,
-      team: { projectId },
+      team: { projectId, archivedAt: null, allocationLifecycle: "ACTIVE" },
     },
     select: {
       teamId: true,
@@ -884,7 +1043,7 @@ export async function canStaffAccessTeamInProject(userId: number, projectId: num
     where: {
       id: projectId,
       teams: {
-        some: { id: teamId },
+        some: { id: teamId, archivedAt: null, allocationLifecycle: "ACTIVE" },
       },
       module: {
         enterpriseId: user.enterpriseId,
@@ -962,7 +1121,7 @@ function parseDeadlineOverrideMetadata(reason: string | null | undefined): Deadl
 
     return {
       inputMode: parsed.inputMode,
-      shiftDays: Object.keys(shiftDays).length > 0 ? shiftDays : undefined,
+      ...(Object.keys(shiftDays).length > 0 ? { shiftDays } : {}),
     };
   } catch {
     return null;
@@ -1365,7 +1524,7 @@ async function ensureStudentInProject(projectId: number, studentId: number) {
         projectId,
       },
     },
-    select: { id: true },
+    select: { userId: true },
   });
 
   if (!allocation) {
@@ -1394,12 +1553,12 @@ export async function upsertStaffStudentDeadlineOverride(
       },
     },
     update: {
-      taskOpenDate: payload.taskOpenDate,
-      taskDueDate: payload.taskDueDate,
-      assessmentOpenDate: payload.assessmentOpenDate,
-      assessmentDueDate: payload.assessmentDueDate,
-      feedbackOpenDate: payload.feedbackOpenDate,
-      feedbackDueDate: payload.feedbackDueDate,
+      ...(payload.taskOpenDate !== undefined ? { taskOpenDate: payload.taskOpenDate } : {}),
+      ...(payload.taskDueDate !== undefined ? { taskDueDate: payload.taskDueDate } : {}),
+      ...(payload.assessmentOpenDate !== undefined ? { assessmentOpenDate: payload.assessmentOpenDate } : {}),
+      ...(payload.assessmentDueDate !== undefined ? { assessmentDueDate: payload.assessmentDueDate } : {}),
+      ...(payload.feedbackOpenDate !== undefined ? { feedbackOpenDate: payload.feedbackOpenDate } : {}),
+      ...(payload.feedbackDueDate !== undefined ? { feedbackDueDate: payload.feedbackDueDate } : {}),
       reason: payload.reason ?? null,
       createdByUserId: actorUserId,
     },

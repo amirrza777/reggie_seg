@@ -41,7 +41,7 @@ describe("EditQuestionnaireClient multiple-choice behavior", () => {
     return JSON.parse(String(init?.body));
   };
 
-  it("removes a multiple-choice option and saves updated options", async () => {
+  const loadSingleMultipleChoiceEditor = async () => {
     apiFetchMock
       .mockResolvedValueOnce({
         templateName: "MC edit",
@@ -59,16 +59,46 @@ describe("EditQuestionnaireClient multiple-choice behavior", () => {
       .mockResolvedValueOnce({});
 
     render(<EditQuestionnaireClient />);
-
     await screen.findByDisplayValue("MC edit");
+  };
 
-    const betaInput = screen.getByDisplayValue("Beta");
-    const optionRow = betaInput.parentElement;
-    const removeButton = optionRow?.querySelector("button");
+  const loadDualMultipleChoiceEditor = async () => {
+    apiFetchMock
+      .mockResolvedValueOnce({
+        templateName: "MC map branch",
+        canEdit: true,
+        isPublic: true,
+        questions: [
+          { id: 60, label: "Primary MC", type: "multiple-choice", configs: { options: ["One", "Two", "Three"] } },
+          { id: 61, label: "Secondary MC", type: "multiple-choice", configs: { options: ["Red", "Blue", "Green"] } },
+        ],
+      })
+      .mockResolvedValueOnce({});
+    render(<EditQuestionnaireClient />);
+    await screen.findByDisplayValue("MC map branch");
+  };
+
+  const removeOptionByLabel = (optionLabel: string) => {
+    const optionInput = screen.getByDisplayValue(optionLabel);
+    const removeButton = optionInput.parentElement?.querySelector("button");
     expect(removeButton).not.toBeNull();
     fireEvent.click(removeButton as HTMLButtonElement);
+  };
 
+  const saveChanges = () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+  };
+
+  it("removes a multiple-choice option from the editor", async () => {
+    await loadSingleMultipleChoiceEditor();
+    removeOptionByLabel("Beta");
+    expect(screen.queryByDisplayValue("Beta")).not.toBeInTheDocument();
+  });
+
+  it("saves updated options after removing a multiple-choice option", async () => {
+    await loadSingleMultipleChoiceEditor();
+    removeOptionByLabel("Beta");
+    saveChanges();
 
     await waitFor(() => {
       expect(apiFetchMock).toHaveBeenCalledWith(
@@ -82,52 +112,22 @@ describe("EditQuestionnaireClient multiple-choice behavior", () => {
   });
 
   it("keeps non-target multiple-choice question unchanged when removing option", async () => {
-    apiFetchMock
-      .mockResolvedValueOnce({
-        templateName: "MC map branch",
-        canEdit: true,
-        isPublic: true,
-        questions: [
-          {
-            id: 60,
-            label: "Primary MC",
-            type: "multiple-choice",
-            configs: { options: ["One", "Two", "Three"] },
-          },
-          {
-            id: 61,
-            label: "Secondary MC",
-            type: "multiple-choice",
-            configs: { options: ["Red", "Blue", "Green"] },
-          },
-        ],
-      })
-      .mockResolvedValueOnce({});
-
-    render(<EditQuestionnaireClient />);
-
-    await screen.findByDisplayValue("MC map branch");
-
-    const twoInput = screen.getByDisplayValue("Two");
-    const optionRow = twoInput.parentElement;
-    const removeButton = optionRow?.querySelector("button");
-    expect(removeButton).not.toBeNull();
-    fireEvent.click(removeButton as HTMLButtonElement);
-
-    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-
-    await waitFor(() => {
-      expect(apiFetchMock).toHaveBeenCalledWith(
-        "/questionnaires/12",
-        expect.objectContaining({ method: "PUT" })
-      );
-    });
-
+    await loadDualMultipleChoiceEditor();
+    removeOptionByLabel("Two");
+    saveChanges();
+    await waitFor(() => expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/12", expect.objectContaining({ method: "PUT" })));
     const body = getRequestBody("/questionnaires/12", "PUT");
     const primary = body.questions.find((q: any) => q.label === "Primary MC");
-    const secondary = body.questions.find((q: any) => q.label === "Secondary MC");
-
     expect(primary.configs.options).toEqual(["One", "Three"]);
+  });
+
+  it("preserves secondary multiple-choice options when editing a different question", async () => {
+    await loadDualMultipleChoiceEditor();
+    removeOptionByLabel("Two");
+    saveChanges();
+    await waitFor(() => expect(apiFetchMock).toHaveBeenCalledWith("/questionnaires/12", expect.objectContaining({ method: "PUT" })));
+    const body = getRequestBody("/questionnaires/12", "PUT");
+    const secondary = body.questions.find((q: any) => q.label === "Secondary MC");
     expect(secondary.configs.options).toEqual(["Red", "Blue", "Green"]);
   });
 });

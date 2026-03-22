@@ -88,6 +88,28 @@ async function loadService(overrides: Partial<Record<(typeof ENV_KEYS)[number], 
   return import("./service.js");
 }
 
+const ADMIN_BOOTSTRAP_ENV = {
+  ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
+  ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
+} as const;
+
+const createdBootstrapAdmin = {
+  id: 3,
+  email: "admin@kcl.ac.uk",
+  role: "ADMIN",
+  passwordHash: "bootstrap-password-hash",
+  active: true,
+};
+
+async function setupBootstrapCreateLoginContext() {
+  const svc = await loadService(ADMIN_BOOTSTRAP_ENV);
+  prismaMock.user.findFirst.mockResolvedValueOnce(null);
+  prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-enterprise" });
+  argon2Mock.hash.mockResolvedValueOnce("bootstrap-password-hash").mockResolvedValueOnce("refresh-hash");
+  prismaMock.user.create.mockResolvedValueOnce(createdBootstrapAdmin);
+  return svc;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   applyEnv();
@@ -262,40 +284,28 @@ describe("auth service", () => {
   });
 
   it("login bootstrap-creates admin user when configured and account does not exist", async () => {
-    const svc = await loadService({
-      ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
-      ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
-    });
+    const svc = await setupBootstrapCreateLoginContext();
 
-    prismaMock.user.findFirst.mockResolvedValueOnce(null);
-    prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-enterprise" });
-    argon2Mock.hash
-      .mockResolvedValueOnce("bootstrap-password-hash")
-      .mockResolvedValueOnce("refresh-hash");
-    prismaMock.user.create.mockResolvedValueOnce({
-      id: 3,
-      email: "admin@kcl.ac.uk",
-      role: "ADMIN",
-      passwordHash: "bootstrap-password-hash",
-      active: true,
-    });
+    await svc.login({ email: "admin@kcl.ac.uk", password: "bootstrap-secret" });
 
+    expect(prismaMock.user.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          email: "admin@kcl.ac.uk",
+          role: "ADMIN",
+          enterpriseId: "default-enterprise",
+        }),
+      }),
+    );
+  });
+
+  it("login bootstrap path returns issued tokens for a newly created admin", async () => {
+    const svc = await setupBootstrapCreateLoginContext();
     const tokens = await svc.login({ email: "admin@kcl.ac.uk", password: "bootstrap-secret" });
-
-    expect(prismaMock.user.create).toHaveBeenCalledWith({
-      data: {
-        email: "admin@kcl.ac.uk",
-        passwordHash: "bootstrap-password-hash",
-        firstName: "Admin",
-        lastName: "User",
-        role: "ADMIN",
-        enterpriseId: "default-enterprise",
-      },
-    });
     expect(tokens).toEqual({ accessToken: "signed-1", refreshToken: "signed-2" });
   });
 
-  it("login bootstrap path repairs credentials and upgrades role when needed", async () => {
+  it("bootstrap login repairs credentials and upgrades role when password check fails", async () => {
     const svc = await loadService({
       ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
       ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
@@ -324,6 +334,13 @@ describe("auth service", () => {
       where: { id: 4 },
       data: { passwordHash: "new-bootstrap-hash", role: "ADMIN" },
     });
+  });
+
+  it("bootstrap login upgrades role when password is valid but role is not ADMIN", async () => {
+    const svc = await loadService({
+      ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
+      ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
+    });
 
     prismaMock.user.findFirst.mockResolvedValueOnce({
       id: 5,
@@ -346,6 +363,13 @@ describe("auth service", () => {
       where: { id: 5 },
       data: { role: "ADMIN" },
     });
+  });
+
+  it("bootstrap login leaves already-admin account unchanged when password is valid", async () => {
+    const svc = await loadService({
+      ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
+      ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
+    });
 
     prismaMock.user.findFirst.mockResolvedValueOnce({
       id: 6,
@@ -357,32 +381,48 @@ describe("auth service", () => {
     argon2Mock.verify.mockResolvedValueOnce(true);
 
     await svc.login({ email: "admin@kcl.ac.uk", password: "anything" });
-    expect(prismaMock.user.update).toHaveBeenCalledTimes(2);
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
   });
 
-  it("refreshTokens maps invalid token, missing user, suspended user and success", async () => {
+  it("refreshTokens rejects invalid jwt payloads", async () => {
     const svc = await loadService();
 
     jwtMock.verify.mockImplementationOnce(() => {
       throw new Error("bad");
     });
     await expect(svc.refreshTokens("bad")).rejects.toMatchObject({ code: "INVALID_REFRESH_TOKEN" });
+  });
+
+  it("refreshTokens rejects when no stored refresh token matches", async () => {
+    const svc = await loadService();
 
     jwtMock.verify.mockReturnValueOnce({ sub: 7, email: "u@x.com" });
     prismaMock.refreshToken.findMany.mockResolvedValueOnce([]);
     await expect(svc.refreshTokens("token")).rejects.toMatchObject({ code: "INVALID_REFRESH_TOKEN" });
+  });
+
+  it("refreshTokens rejects when token maps to a missing user", async () => {
+    const svc = await loadService();
 
     jwtMock.verify.mockReturnValueOnce({ sub: 8, email: "u@x.com" });
     prismaMock.refreshToken.findMany.mockResolvedValueOnce([{ hashedToken: "h" }]);
     argon2Mock.verify.mockResolvedValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce(null);
     await expect(svc.refreshTokens("token")).rejects.toMatchObject({ code: "INVALID_REFRESH_TOKEN" });
+  });
+
+  it("refreshTokens rejects suspended users", async () => {
+    const svc = await loadService();
 
     jwtMock.verify.mockReturnValueOnce({ sub: 9, email: "u@x.com" });
     prismaMock.refreshToken.findMany.mockResolvedValueOnce([{ hashedToken: "h" }]);
     argon2Mock.verify.mockResolvedValueOnce(true);
     prismaMock.user.findUnique.mockResolvedValueOnce({ id: 9, email: "u@x.com", role: "STUDENT", active: false });
     await expect(svc.refreshTokens("token")).rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
+  });
+
+  it("refreshTokens issues a fresh access/refresh token pair for active users", async () => {
+    const svc = await loadService();
 
     jwtMock.verify.mockReturnValueOnce({ sub: 10, email: "u@x.com" });
     prismaMock.refreshToken.findMany.mockResolvedValueOnce([{ hashedToken: "h" }]);

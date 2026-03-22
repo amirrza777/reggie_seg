@@ -59,8 +59,12 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
           <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
             Team allocation
           </Link>
+          <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
+            Forum
+          </Link>
         </div>
       </section>
+
 
       {data.teams.length === 0 ? <p className="muted">No teams exist in this project yet.</p> : null}
       <section className="staff-projects__team-list" aria-label="Project teams">

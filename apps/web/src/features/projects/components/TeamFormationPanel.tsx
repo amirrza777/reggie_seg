@@ -19,12 +19,16 @@ import "@/features/projects/styles/team-formation.css";
 type Props = {
   team: Team | null;
   projectId: number;
-  userId: number;
+  userId?: number;
   initialInvites: TeamInvite[];
 };
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message ? error.message : fallback;
 }
 
 export function TeamFormationPanel({ team, projectId, userId, initialInvites }: Props) {
@@ -70,6 +74,7 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
       await declineInvite(inviteId);
       setReceivedInvites((prev) => prev.filter((inv) => inv.id !== inviteId));
     } catch {
+      // Keep current pending invite list if decline fails.
     } finally {
       setRespondingId(null);
     }
@@ -92,8 +97,8 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
       try {
         await createTeamForProject(projectId, name);
         router.refresh();
-      } catch (err: any) {
-        setCreateError(err?.message || "Failed to create team.");
+      } catch (err: unknown) {
+        setCreateError(getErrorMessage(err, "Failed to create team."));
       }
     });
   };
@@ -105,15 +110,20 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
     setInviteSuccess("");
     startInviting(async () => {
       try {
-        await sendTeamInvite(team.id, userId, email);
+        if (typeof userId === "number") {
+          await sendTeamInvite(team.id, userId, email);
+        } else {
+          await sendTeamInvite(team.id, email);
+        }
         setInviteEmail("");
         setInviteSuccess(`Invitation sent to ${email}.`);
         await refreshInvites(team.id);
-      } catch (err: any) {
-        if (err?.message?.toLowerCase().includes("pending")) {
+      } catch (err: unknown) {
+        const message = getErrorMessage(err, "Failed to send invitation.");
+        if (message.toLowerCase().includes("pending")) {
           setInviteError("An invite has already been sent to this email.");
         } else {
-          setInviteError(err?.message || "Failed to send invitation.");
+          setInviteError(message);
         }
       }
     });

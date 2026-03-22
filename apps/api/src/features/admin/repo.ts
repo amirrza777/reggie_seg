@@ -59,20 +59,6 @@ export function revokeActiveRefreshTokens(userId: number) {
   return prisma.refreshToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
 }
 
-export function listFeatureFlagsByEnterprise(enterpriseId: string) {
-  return prisma.featureFlag.findMany({
-    where: { enterpriseId },
-    orderBy: { key: "asc" },
-  });
-}
-
-export function updateFeatureFlag(enterpriseId: string, key: string, enabled: boolean) {
-  return prisma.featureFlag.update({
-    where: { enterpriseId_key: { enterpriseId, key } },
-    data: { enabled },
-  });
-}
-
 export function listEnterprises() {
   return prisma.enterprise.findMany({
     select: {
@@ -106,6 +92,35 @@ export function listEnterprisesByWhere(where: Prisma.EnterpriseWhereInput, page:
     orderBy: [{ createdAt: "desc" }, { name: "asc" }],
     skip: offset,
     take: pageSize,
+  });
+}
+
+export function listEnterpriseFuzzyCandidatesByWhere(where: Prisma.EnterpriseWhereInput, page: number, pageSize: number) {
+  const offset = (page - 1) * pageSize;
+  return prisma.enterprise.findMany({
+    where,
+    select: {
+      id: true,
+      code: true,
+      name: true,
+    },
+    orderBy: [{ createdAt: "desc" }, { name: "asc" }],
+    skip: offset,
+    take: pageSize,
+  });
+}
+
+export function listEnterprisesByIds(ids: string[]) {
+  return prisma.enterprise.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      code: true,
+      name: true,
+      createdAt: true,
+      users: { select: { role: true } },
+      _count: { select: { users: true, modules: true, teams: true } },
+    },
   });
 }
 

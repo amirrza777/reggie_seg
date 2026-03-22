@@ -63,7 +63,7 @@
   align-items: center;
   gap: 14px;
   padding: 8px 0 10px;
-  border-radius: 18px;
+  border-radius: var(--radius-pill);
   background: transparent;
   align-self: center;
   position: relative;
@@ -74,7 +74,7 @@
   align-items: center;
   gap: 8px;
   padding: 3px 12px 3px 10px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   position: relative;
   border: 1px solid transparent;
   color: color-mix(in srgb, var(--ink-strong) 86%, var(--ink) 14%);
@@ -117,7 +117,7 @@
   width: var(--space-switcher-indicator-width);
   height: 3px;
   background: var(--space-switcher-underline);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   pointer-events: none;
   opacity: 0;
   transform: translate3d(var(--space-switcher-indicator-left), 7px, 0);

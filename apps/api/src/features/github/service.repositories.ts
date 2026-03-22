@@ -13,6 +13,7 @@ import {
 import { getValidGithubAccessToken } from "./oauth.service.js";
 import { GithubServiceError } from "./errors.js";
 import { analyseProjectGithubRepository } from "./service.analysis.run.js";
+import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js";
 
 type GithubRepoResponse = {
   id: number;
@@ -36,6 +37,14 @@ type GithubRepositoryListItem = {
   defaultBranch: string | null;
   isAppInstalled: boolean;
 };
+
+function matchesGithubRepositoryQuery(repo: GithubRepoResponse, query: string): boolean {
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: repo.id,
+    sources: [repo.name, repo.full_name, repo.owner?.login ?? "", `repo ${repo.id}`],
+  });
+}
 
 async function fetchUserRepositories(accessToken: string) {
   return fetchUserCollaborativeRepositories(accessToken);
@@ -174,7 +183,7 @@ async function fetchUserCollaborativeRepositories(accessToken: string) {
 }
 
 /** Returns the GitHub repositories for user. */
-export async function listGithubRepositoriesForUser(userId: number) {
+export async function listGithubRepositoriesForUser(userId: number, options?: { query?: string | null }) {
   const account = await findGithubAccountByUserId(userId);
   if (!account) {
     throw new GithubServiceError(404, "GitHub account is not connected");
@@ -204,7 +213,13 @@ export async function listGithubRepositoriesForUser(userId: number) {
     allRepositoriesById.set(repository.id, repository);
   }
 
-  return Array.from(allRepositoriesById.values())
+  const searchQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = searchQuery.length > 0;
+  const filteredRepositories = hasQuery
+    ? Array.from(allRepositoriesById.values()).filter((repo) => matchesGithubRepositoryQuery(repo, searchQuery))
+    : Array.from(allRepositoriesById.values());
+
+  return filteredRepositories
     .sort((a, b) => a.full_name.localeCompare(b.full_name))
     .map((repo): GithubRepositoryListItem => ({
       githubRepoId: repo.id,

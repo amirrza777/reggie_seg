@@ -43,7 +43,10 @@ export function getAllTemplates(requesterUserId?: number | null) {
 }
 
 /** Returns the my templates. */
-export function getMyTemplates(userId: number) {
+export function getMyTemplates(userId: number, options?: { query?: string | null }) {
+  if (options?.query) {
+    return getMyQuestionnaireTemplates(userId, options);
+  }
   return getMyQuestionnaireTemplates(userId);
 }
 
@@ -87,4 +90,3 @@ export function usePublicTemplate(requesterUserId: number, templateId: number) {
   }
   return copyPublicQuestionnaireTemplateToUser(templateId, requesterUserId);
 }
-

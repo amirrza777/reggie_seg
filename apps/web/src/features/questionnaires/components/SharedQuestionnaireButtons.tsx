@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { deleteQuestionnaire } from "../api/client";
 
 type QuestionnaireVisibilityButtonsProps = {
@@ -52,18 +54,38 @@ export function CancelQuestionnaireButton({
   confirmWhen = false,
   confirmMessage = "You have unsaved changes. Are you sure you want to exit without saving?",
 }: CancelQuestionnaireButtonProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   return (
-    <Button
-      type="button"
-      variant="quiet"
-      className={className}
-      onClick={() => {
-        if (confirmWhen && !window.confirm(confirmMessage)) return;
-        onCancel();
-      }}
-    >
-      {label}
-    </Button>
+    <>
+      <Button
+        type="button"
+        variant="quiet"
+        className={className}
+        onClick={() => {
+          if (confirmWhen) {
+            setConfirmOpen(true);
+            return;
+          }
+          onCancel();
+        }}
+      >
+        {label}
+      </Button>
+      <ConfirmationModal
+        open={confirmOpen}
+        title="Discard unsaved changes?"
+        message={confirmMessage}
+        cancelLabel="Stay here"
+        confirmLabel="Exit without saving"
+        confirmVariant="danger"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => {
+          setConfirmOpen(false);
+          onCancel();
+        }}
+      />
+    </>
   );
 }
 
@@ -101,14 +123,12 @@ export function DeleteQuestionnaireButton({
   onDeleted,
 }: DeleteQuestionnaireButtonProps) {
   const router = useRouter();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this questionnaire? This action cannot be undone."
-    );
-
-    if (!confirmed) return;
-
+    setDeleting(true);
+    setConfirmOpen(false);
     try {
       await deleteQuestionnaire(questionnaireId);
 
@@ -126,12 +146,27 @@ export function DeleteQuestionnaireButton({
       }
       console.error(err);
       alert("Delete failed - check console");
+    } finally {
+      setDeleting(false);
     }
   };
 
   return (
-    <Button type="button" variant="danger" onClick={handleDelete}>
-      {label}
-    </Button>
+    <>
+      <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+        {label}
+      </Button>
+      <ConfirmationModal
+        open={confirmOpen}
+        title="Delete questionnaire?"
+        message="Are you sure you want to delete this questionnaire? This action cannot be undone."
+        cancelLabel="Cancel"
+        confirmLabel={deleting ? "Deleting..." : "Delete questionnaire"}
+        confirmVariant="danger"
+        busy={deleting}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={() => void handleDelete()}
+      />
+    </>
   );
 }

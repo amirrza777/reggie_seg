@@ -110,7 +110,7 @@
 .github-chart-info__overlay {
   position: fixed;
   inset: 0;
-  background: var(--backdrop-strong);
+  background: var(--modal-backdrop, var(--backdrop-strong));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -126,7 +126,7 @@
   border: 1px solid var(--border);
   background: var(--surface-strong);
   color: var(--ink);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--elevation-overlay);
 }
 
 .github-chart-info__header {
@@ -189,4 +189,3 @@
   line-height: 1.55;
   color: var(--ink);
 }
-

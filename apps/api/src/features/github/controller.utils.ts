@@ -7,7 +7,7 @@ export function toJsonSafe<T>(value: T): T {
 }
 
 /** Executes the with query. */
-export function withQuery(path: string, params: Record<string, string>) {
+export function withQuery(path: string, params: Record<string, string>): string {
   try {
     const absolute = new URL(path);
     for (const [key, value] of Object.entries(params)) {
@@ -15,7 +15,7 @@ export function withQuery(path: string, params: Record<string, string>) {
     }
     return absolute.toString();
   } catch {
-    const [basePath, existingQuery = ""] = path.split("?", 2);
+    const [basePath = "", existingQuery = ""] = path.split("?", 2);
     const query = new URLSearchParams(existingQuery);
     for (const [key, value] of Object.entries(params)) {
       query.set(key, value);

@@ -36,6 +36,7 @@ import {
   disconnectGithubAccount,
   getGithubConnectionStatus,
   linkGithubRepositoryToProject,
+  listGithubRepositoriesForUser,
   listProjectGithubRepositories,
 } from "./service.repositories.js";
 
@@ -105,6 +106,54 @@ describe("service.repositories", () => {
       status: 403,
       message: "You are not a member of this project",
     });
+  });
+
+  it("applies shared fuzzy matching when listing repositories", async () => {
+    const repositories = [
+      {
+        id: 1,
+        name: "Example",
+        full_name: "org/Example",
+        html_url: "https://github.com/org/Example",
+        private: false,
+        default_branch: "main",
+        owner: { login: "org" },
+      },
+      {
+        id: 2,
+        name: "Data Structures",
+        full_name: "org/Data Structures",
+        html_url: "https://github.com/org/data-structures",
+        private: false,
+        default_branch: "main",
+        owner: { login: "org" },
+      },
+      {
+        id: 3,
+        name: "Database Systems",
+        full_name: "org/Database Systems",
+        html_url: "https://github.com/org/database-systems",
+        private: false,
+        default_branch: "main",
+        owner: { login: "org" },
+      },
+    ];
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("/user/repos")) {
+        return mockFetchResponse(repositories);
+      }
+      if (url.includes("/user/installations?")) {
+        return mockFetchResponse({ installations: [] });
+      }
+      return mockFetchResponse({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const droppedLetterMatches = await listGithubRepositoriesForUser(10, { query: "eampl" });
+    expect(droppedLetterMatches.map((repo) => repo.name)).toEqual(["Example"]);
+
+    const shortPrefixMatches = await listGithubRepositoriesForUser(10, { query: "daa" });
+    expect(shortPrefixMatches.map((repo) => repo.name)).toEqual(["Data Structures", "Database Systems"]);
   });
 
   it("links a repository and auto-analyses a snapshot on success", async () => {

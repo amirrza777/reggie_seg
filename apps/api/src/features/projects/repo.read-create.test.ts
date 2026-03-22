@@ -42,6 +42,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     questionnaireTemplate: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
     },
   },
 }));
@@ -70,6 +71,8 @@ describe("projects repo read and create flows", () => {
       where: {
         teams: {
           some: {
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
             allocations: {
               some: { userId: 11 },
             },
@@ -125,18 +128,12 @@ describe("projects repo read and create flows", () => {
     );
   });
 
-  it("getModulesForUser resolves module access roles for staff and admins", async () => {
-    (prisma.user.findUnique as any)
-      .mockResolvedValueOnce({
-        id: 21,
-        role: "STAFF",
-        enterpriseId: "ent-1",
-      })
-      .mockResolvedValueOnce({
-        id: 99,
-        role: "ADMIN",
-        enterpriseId: "ent-1",
-      });
+  it("getModulesForUser resolves OWNER access role for staff users", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 21,
+      role: "STAFF",
+      enterpriseId: "ent-1",
+    });
 
     (prisma.module.findMany as any)
       .mockResolvedValueOnce([
@@ -152,20 +149,6 @@ describe("projects repo read and create flows", () => {
           userModules: [{ userId: 21 }],
           projects: [{ _count: { teams: 2 } }, { _count: { teams: 1 } }],
         },
-      ])
-      .mockResolvedValueOnce([
-        {
-          id: 8,
-          name: "IOT",
-          briefText: null,
-          timelineText: null,
-          expectationsText: null,
-          readinessNotesText: null,
-          moduleLeads: [],
-          moduleTeachingAssistants: [],
-          userModules: [],
-          projects: [],
-        },
       ]);
 
     await expect(getModulesForUser(21)).resolves.toEqual([
@@ -175,6 +158,28 @@ describe("projects repo read and create flows", () => {
         teamCount: 3,
         projectCount: 2,
       }),
+    ]);
+  });
+
+  it("getModulesForUser resolves ADMIN_ACCESS role for admins", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 99,
+      role: "ADMIN",
+      enterpriseId: "ent-1",
+    });
+    (prisma.module.findMany as any).mockResolvedValueOnce([
+      {
+        id: 8,
+        name: "IOT",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        moduleLeads: [],
+        moduleTeachingAssistants: [],
+        userModules: [],
+        projects: [],
+      },
     ]);
 
     await expect(getModulesForUser(99)).resolves.toEqual([
@@ -206,7 +211,7 @@ describe("projects repo read and create flows", () => {
     });
     (prisma.module.findFirst as any).mockResolvedValue({ id: 2 });
     (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
-    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3 });
     (prisma.project.create as any).mockResolvedValue({
       id: 1,
       name: "P1",
@@ -274,7 +279,7 @@ describe("projects repo read and create flows", () => {
       role: "STAFF",
       enterpriseId: "ent-1",
     });
-    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
+    (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce(null);
     (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
 
     await expect(createProject(44, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
@@ -290,7 +295,7 @@ describe("projects repo read and create flows", () => {
       enterpriseId: "ent-1",
     });
     (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
-    (prisma.questionnaireTemplate.findFirst as any).mockResolvedValue({ id: 3 });
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3 });
     (prisma.project.create as any).mockResolvedValue({
       id: 17,
       name: "Admin Project",
