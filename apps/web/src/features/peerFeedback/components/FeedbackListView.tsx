@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { PeerFeedback } from "../types";
 import "../styles/list.css";
 
@@ -49,8 +50,16 @@ export function FeedbackAssessmentView({ feedbacks, projectId }: FeedbackListVie
                     </div>
                     <div className="feedback-card__cta">
                       {isSubmitted
-                        ? "Review submitted - click to edit →"
-                        : "Not submitted yet - click to review →"}
+                        ? (
+                          <>
+                            Review submitted - click to edit <ArrowRightIcon />
+                          </>
+                        )
+                        : (
+                          <>
+                            Not submitted yet - click to review <ArrowRightIcon />
+                          </>
+                        )}
                     </div>
                   </div>
                 </div>
