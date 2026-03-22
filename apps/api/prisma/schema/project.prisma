@@ -8,7 +8,6 @@ model Project {
   updatedAt               DateTime  @updatedAt
   archivedAt              DateTime?
   noRepoAlertSentAt       DateTime?
-  warningsEnabled         Boolean   @default(false)
   warningsConfig          Json?
 
   module                Module                    @relation(fields: [moduleId], references: [id], onDelete: Cascade)

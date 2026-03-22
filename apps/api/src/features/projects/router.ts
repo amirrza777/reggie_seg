@@ -20,7 +20,6 @@ import {
   getStaffTeamWarningsHandler,
   getMyTeamWarningsHandler,
   updateTeamDeadlineProfileHandler,
-  updateProjectWarningsEnabledHandler,
   getProjectWarningsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
@@ -54,7 +53,6 @@ router.post(
   resolveStaffTeamHealthMessageHandler,
 );
 router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
-router.patch("/staff/:projectId/warnings-enabled", requireAuth, updateProjectWarningsEnabledHandler);
 router.get("/staff/:projectId/warnings-config", requireAuth, getProjectWarningsConfigHandler);
 router.patch("/staff/:projectId/warnings-config", requireAuth, updateProjectWarningsConfigHandler);
 router.post("/staff/:projectId/warnings/evaluate", requireAuth, evaluateProjectWarningsHandler);

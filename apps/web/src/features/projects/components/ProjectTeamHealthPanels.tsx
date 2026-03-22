@@ -34,7 +34,7 @@ export function ProjectTeamHealthPanels({
   messagesLoadError,
   warningsLoadError,
 }: ProjectTeamHealthPanelsProps) {
-  const [tab, setTab] = useState<TeamHealthTab>("warnings");
+  const [tab, setTab] = useState<TeamHealthTab>("messages");
 
   const warningCountLabel = useMemo(
     () => `Warnings${activeWarnings.length > 0 ? ` (${activeWarnings.length})` : ""}`,

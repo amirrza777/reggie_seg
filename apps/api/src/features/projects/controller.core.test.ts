@@ -20,7 +20,6 @@ import {
   createStaffTeamWarningHandler,
   getStaffTeamWarningsHandler,
   getMyTeamWarningsHandler,
-  updateProjectWarningsEnabledHandler,
   getProjectWarningsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
@@ -45,7 +44,6 @@ vi.mock("./service.js", () => ({
   createTeamWarningForStaff: vi.fn(),
   fetchTeamWarningsForStaff: vi.fn(),
   fetchMyTeamWarnings: vi.fn(),
-  updateProjectWarningsEnabledForStaff: vi.fn(),
   fetchProjectWarningsConfigForStaff: vi.fn(),
   updateProjectWarningsConfigForStaff: vi.fn(),
   evaluateProjectWarningsForStaff: vi.fn(),
@@ -438,57 +436,6 @@ describe("projects controller core handlers", () => {
     expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 
-  it("updateProjectWarningsEnabledHandler validates input and updates setting", async () => {
-    const unauthorizedRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { params: { projectId: "3" }, body: { warningsEnabled: true } } as any,
-      unauthorizedRes,
-    );
-    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
-
-    const badProjectRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { user: { sub: 7 }, params: { projectId: "x" }, body: { warningsEnabled: true } } as any,
-      badProjectRes,
-    );
-    expect(badProjectRes.status).toHaveBeenCalledWith(400);
-
-    const badBodyRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: "true" } } as any,
-      badBodyRes,
-    );
-    expect(badBodyRes.status).toHaveBeenCalledWith(400);
-
-    (service.updateProjectWarningsEnabledForStaff as any).mockResolvedValueOnce({ id: 3, warningsEnabled: true });
-    const okRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: true } } as any,
-      okRes,
-    );
-    expect(service.updateProjectWarningsEnabledForStaff).toHaveBeenCalledWith(7, 3, true);
-    expect(okRes.json).toHaveBeenCalledWith({ id: 3, warningsEnabled: true });
-
-    (service.updateProjectWarningsEnabledForStaff as any).mockRejectedValueOnce({
-      code: "FORBIDDEN",
-      message: "Only module leads can update warning settings",
-    });
-    const forbiddenRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: false } } as any,
-      forbiddenRes,
-    );
-    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
-
-    (service.updateProjectWarningsEnabledForStaff as any).mockRejectedValueOnce({ code: "PROJECT_NOT_FOUND" });
-    const notFoundRes = mockResponse();
-    await updateProjectWarningsEnabledHandler(
-      { user: { sub: 7 }, params: { projectId: "3" }, body: { warningsEnabled: false } } as any,
-      notFoundRes,
-    );
-    expect(notFoundRes.status).toHaveBeenCalledWith(404);
-  });
-
   it("getProjectWarningsConfigHandler validates id and returns config", async () => {
     const unauthorizedRes = mockResponse();
     await getProjectWarningsConfigHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
@@ -500,7 +447,6 @@ describe("projects controller core handlers", () => {
 
     (service.fetchProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [] },
     });
     const okRes = mockResponse();
@@ -508,7 +454,6 @@ describe("projects controller core handlers", () => {
     expect(service.fetchProjectWarningsConfigForStaff).toHaveBeenCalledWith(7, 3);
     expect(okRes.json).toHaveBeenCalledWith({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [] },
     });
 
@@ -542,7 +487,6 @@ describe("projects controller core handlers", () => {
 
     (service.updateProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
     const okRes = mockResponse();
@@ -561,7 +505,6 @@ describe("projects controller core handlers", () => {
     );
     expect(okRes.json).toHaveBeenCalledWith({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
 
@@ -589,7 +532,6 @@ describe("projects controller core handlers", () => {
 
     (service.evaluateProjectWarningsForStaff as any).mockResolvedValueOnce({
       projectId: 3,
-      warningsEnabled: true,
       evaluatedTeams: 2,
       createdWarnings: 1,
       resolvedWarnings: 0,
@@ -602,7 +544,6 @@ describe("projects controller core handlers", () => {
     expect(okRes.json).toHaveBeenCalledWith(
       expect.objectContaining({
         projectId: 3,
-        warningsEnabled: true,
       }),
     );
 

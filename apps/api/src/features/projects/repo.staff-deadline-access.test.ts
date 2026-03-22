@@ -15,8 +15,6 @@ import {
   reviewTeamHealthMessage,
   createTeamWarning,
   getTeamWarningsForTeamInProject,
-  getProjectWarningsEnabledForTeam,
-  updateStaffProjectWarningsEnabled,
   getStaffProjectWarningsConfig,
   updateStaffProjectWarningsConfig,
 } from "./repo.js";
@@ -277,49 +275,6 @@ describe("projects repo staff and deadline access queries", () => {
     );
   });
 
-  it("updateStaffProjectWarningsEnabled allows admins and module leads, but forbids non-lead staff", async () => {
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 12,
-      role: "ADMIN",
-      enterpriseId: "ent-1",
-    });
-    (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 9 });
-    (prisma.project.update as any).mockResolvedValueOnce({ id: 9, warningsEnabled: true });
-
-    await expect(updateStaffProjectWarningsEnabled(12, 9, true)).resolves.toEqual({
-      id: 9,
-      warningsEnabled: true,
-    });
-
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 21,
-      role: "STAFF",
-      enterpriseId: "ent-1",
-    });
-    (prisma.project.findFirst as any)
-      .mockResolvedValueOnce({ id: 9 })
-      .mockResolvedValueOnce({ id: 9 });
-    (prisma.project.update as any).mockResolvedValueOnce({ id: 9, warningsEnabled: false });
-
-    await expect(updateStaffProjectWarningsEnabled(21, 9, false)).resolves.toEqual({
-      id: 9,
-      warningsEnabled: false,
-    });
-
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 31,
-      role: "STAFF",
-      enterpriseId: "ent-1",
-    });
-    (prisma.project.findFirst as any)
-      .mockResolvedValueOnce({ id: 9 })
-      .mockResolvedValueOnce(null);
-
-    await expect(updateStaffProjectWarningsEnabled(31, 9, true)).rejects.toMatchObject({
-      code: "FORBIDDEN",
-    });
-  });
-
   it("getStaffProjectWarningsConfig and updateStaffProjectWarningsConfig enforce scope and persist config", async () => {
     (prisma.user.findUnique as any).mockResolvedValueOnce({
       id: 12,
@@ -329,13 +284,11 @@ describe("projects repo staff and deadline access queries", () => {
     (prisma.project.findFirst as any).mockResolvedValueOnce({ id: 9 });
     (prisma.project.findUnique as any).mockResolvedValueOnce({
       id: 9,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [] },
     });
 
     await expect(getStaffProjectWarningsConfig(12, 9)).resolves.toEqual({
       id: 9,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [] },
     });
 
@@ -349,7 +302,6 @@ describe("projects repo staff and deadline access queries", () => {
       .mockResolvedValueOnce({ id: 9 });
     (prisma.project.update as any).mockResolvedValueOnce({
       id: 9,
-      warningsEnabled: false,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
 
@@ -360,7 +312,6 @@ describe("projects repo staff and deadline access queries", () => {
       }),
     ).resolves.toEqual({
       id: 9,
-      warningsEnabled: false,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
 
@@ -486,16 +437,6 @@ describe("projects repo staff and deadline access queries", () => {
         where: { projectId: 3, teamId: 4, active: true },
       }),
     );
-  });
-
-  it("getProjectWarningsEnabledForTeam reads warningsEnabled from project scope", async () => {
-    (prisma.team.findFirst as any).mockResolvedValueOnce({
-      project: { warningsEnabled: true },
-    });
-    await expect(getProjectWarningsEnabledForTeam(3, 4)).resolves.toBe(true);
-
-    (prisma.team.findFirst as any).mockResolvedValueOnce(null);
-    await expect(getProjectWarningsEnabledForTeam(3, 4)).resolves.toBeNull();
   });
 
   it("reviewTeamHealthMessage marks request as unresolved without deleting override", async () => {

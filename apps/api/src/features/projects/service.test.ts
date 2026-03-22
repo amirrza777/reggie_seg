@@ -15,7 +15,6 @@ import {
   createTeamWarningForStaff,
   fetchTeamWarningsForStaff,
   fetchMyTeamWarnings,
-  updateProjectWarningsEnabledForStaff,
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
   evaluateProjectWarningsForStaff,
@@ -37,11 +36,9 @@ vi.mock("./repo.js", () => ({
   createTeamHealthMessage: vi.fn(),
   getTeamHealthMessagesForUserInProject: vi.fn(),
   getTeamHealthMessagesForTeamInProject: vi.fn(),
-  getProjectWarningsEnabledForTeam: vi.fn(),
   createTeamWarning: vi.fn(),
   getTeamWarningsForTeamInProject: vi.fn(),
   canStaffAccessTeamInProject: vi.fn(),
-  updateStaffProjectWarningsEnabled: vi.fn(),
   getStaffProjectWarningsConfig: vi.fn(),
   updateStaffProjectWarningsConfig: vi.fn(),
   getProjectWarningsSettings: vi.fn(),
@@ -176,16 +173,7 @@ describe("projects service", () => {
     expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 
-  it("updateProjectWarningsEnabledForStaff delegates to repo", async () => {
-    (repo.updateStaffProjectWarningsEnabled as any).mockResolvedValue({ id: 3, warningsEnabled: true });
-    await expect(updateProjectWarningsEnabledForStaff(9, 3, true)).resolves.toEqual({
-      id: 3,
-      warningsEnabled: true,
-    });
-    expect(repo.updateStaffProjectWarningsEnabled).toHaveBeenCalledWith(9, 3, true);
-  });
-
-  it("createTeamWarningForStaff requires staff access and warnings enabled", async () => {
+  it("createTeamWarningForStaff requires staff access", async () => {
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
     await expect(
       createTeamWarningForStaff(9, 3, 22, {
@@ -198,18 +186,6 @@ describe("projects service", () => {
     expect(repo.createTeamWarning).not.toHaveBeenCalled();
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
-    (repo.getProjectWarningsEnabledForTeam as any).mockResolvedValueOnce(false);
-    await expect(
-      createTeamWarningForStaff(9, 3, 22, {
-        type: "LOW_ATTENDANCE",
-        severity: "HIGH",
-        title: "Attendance is low",
-        details: "Less than 70% attendance in last 30 days.",
-      }),
-    ).rejects.toMatchObject({ code: "WARNINGS_DISABLED" });
-
-    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
-    (repo.getProjectWarningsEnabledForTeam as any).mockResolvedValueOnce(true);
     (repo.createTeamWarning as any).mockResolvedValueOnce({ id: 44, source: "MANUAL", createdByUserId: 9 });
     await expect(
       createTeamWarningForStaff(9, 3, 22, {
@@ -237,17 +213,12 @@ describe("projects service", () => {
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 
-  it("fetchMyTeamWarnings returns active warnings only when feature is enabled", async () => {
+  it("fetchMyTeamWarnings returns active warnings for current team", async () => {
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toBeNull();
     expect(repo.getTeamWarningsForTeamInProject).not.toHaveBeenCalled();
 
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.getProjectWarningsEnabledForTeam as any).mockResolvedValueOnce(false);
-    await expect(fetchMyTeamWarnings(7, 3)).resolves.toEqual([]);
-
-    (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.getProjectWarningsEnabledForTeam as any).mockResolvedValueOnce(true);
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 5, active: true }]);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toEqual([{ id: 5, active: true }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22, { activeOnly: true });
@@ -274,7 +245,6 @@ describe("projects service", () => {
   it("fetchProjectWarningsConfigForStaff returns default config when missing/invalid", async () => {
     (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: null,
     });
 
@@ -282,7 +252,6 @@ describe("projects service", () => {
     expect(result).toEqual(
       expect.objectContaining({
         id: 3,
-        warningsEnabled: true,
         hasPersistedWarningsConfig: false,
         warningsConfig: expect.objectContaining({ version: 1 }),
       }),
@@ -296,7 +265,6 @@ describe("projects service", () => {
 
     (repo.updateStaffProjectWarningsConfig as any).mockResolvedValueOnce({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
 
@@ -307,7 +275,6 @@ describe("projects service", () => {
       }),
     ).resolves.toEqual({
       id: 3,
-      warningsEnabled: true,
       hasPersistedWarningsConfig: true,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
     });
@@ -325,7 +292,6 @@ describe("projects service", () => {
   it("evaluateProjectWarningsForStaff creates and resolves auto warnings based on config", async () => {
     (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
       id: 3,
-      warningsEnabled: true,
       warningsConfig: {
         version: 1,
         rules: [
@@ -356,7 +322,6 @@ describe("projects service", () => {
     expect(summary).toEqual(
       expect.objectContaining({
         projectId: 3,
-        warningsEnabled: true,
         evaluatedTeams: 1,
         createdWarnings: 1,
         resolvedWarnings: 0,

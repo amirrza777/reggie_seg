@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams, getStaffTeamHealthMessages } from "@/features/projects/api/client";
-import { listTeamMeetings } from "@/features/staff/meetings/api/client";
+import { getStaffProjectTeams } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
@@ -50,34 +49,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     );
   }
 
-  let openSupportRequestCount: number | null = null;
-  let recordedMeetingCount: number | null = null;
-  let lastMeetingLabel: string | null = null;
-
-  const [supportRequestsResult, meetingsResult] = await Promise.allSettled([
-    getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
-    listTeamMeetings(numericTeamId),
-  ]);
-
-  if (supportRequestsResult.status === "fulfilled") {
-    openSupportRequestCount = supportRequestsResult.value.filter((request) => !request.resolved).length;
-  }
-
-  if (meetingsResult.status === "fulfilled") {
-    recordedMeetingCount = meetingsResult.value.length;
-
-    const latestMeetingTimestamp = meetingsResult.value.reduce<number | null>((latest, meeting) => {
-      const timestamp = new Date(meeting.date).getTime();
-      if (!Number.isFinite(timestamp)) return latest;
-      if (latest == null || timestamp > latest) return timestamp;
-      return latest;
-    }, null);
-
-    if (latestMeetingTimestamp != null) {
-      lastMeetingLabel = new Date(latestMeetingTimestamp).toLocaleDateString();
-    }
-  }
-
   return (
     <div className="staff-projects">
       <section className="staff-projects__hero">
@@ -99,30 +70,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
       </section>
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
-      <section className="staff-projects__grid" aria-label="Team health summary">
-        <article className="staff-projects__card">
-          <h3 className="staff-projects__card-title">Team health</h3>
-          <p className="staff-projects__card-sub">
-            {openSupportRequestCount == null
-              ? "Open team health to review risk indicators and support requests."
-              : `${openSupportRequestCount} open support request${openSupportRequestCount === 1 ? "" : "s"}.`}
-          </p>
-          <p className="staff-projects__card-sub">
-            {recordedMeetingCount == null
-              ? "Meeting activity signals are available in the team health view."
-              : `${recordedMeetingCount} meeting${recordedMeetingCount === 1 ? "" : "s"} recorded${
-                  lastMeetingLabel ? ` · Last meeting ${lastMeetingLabel}` : ""
-                }.`}
-          </p>
-          <Link
-            href={`/staff/projects/${projectId}/teams/${teamId}/team`}
-            className="staff-projects__card-action"
-          >
-            Open team health
-          </Link>
-        </article>
-      </section>
 
       <section className="staff-projects__team-card" aria-label="Team members">
         <h3 style={{ margin: 0 }}>Team members</h3>

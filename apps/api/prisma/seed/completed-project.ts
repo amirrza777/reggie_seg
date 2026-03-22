@@ -223,7 +223,6 @@ export async function seedCompletedProjectScenario(context: SeedContext) {
             name: SCENARIO_PROJECT_NAME,
             moduleId: module.id,
             questionnaireTemplateId: template.id,
-            warningsEnabled: true,
           },
           select: { id: true, questionnaireTemplateId: true },
         });

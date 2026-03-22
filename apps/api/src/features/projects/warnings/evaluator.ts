@@ -19,6 +19,8 @@ export type TeamWarningSignalSnapshot = {
     date: Date;
     attendances: Array<{ status: string }>;
   }>;
+  commitsByDay: Record<string, number>;
+  totalCommits: number;
 };
 
 export type EvaluatedTeamWarning = {
@@ -142,6 +144,46 @@ function evaluateMeetingFrequencyRule(
   };
 }
 
+function evaluateLowContributionActivityRule(
+  rule: ProjectWarningRuleConfig,
+  team: TeamWarningSignalSnapshot,
+  now: Date,
+): EvaluatedTeamWarning | null {
+  const lookbackDays = getLookbackDays(rule, 14);
+  const minCommits = Math.max(0, normalizeNumber(rule.params?.minCommits, 4));
+  const severity = getSeverity(rule, "MEDIUM");
+  const entireProject = isEntireProjectLookback(rule);
+  const commitsByDay = team.commitsByDay ?? {};
+
+  let commitCount = 0;
+  if (entireProject) {
+    if (Object.keys(commitsByDay).length > 0) {
+      commitCount = Object.values(commitsByDay).reduce((sum, value) => sum + value, 0);
+    } else {
+      commitCount = team.totalCommits ?? 0;
+    }
+  } else {
+    const cutoff = now.getTime() - lookbackDays * 24 * 60 * 60 * 1000;
+    for (const [dayKey, value] of Object.entries(commitsByDay)) {
+      const parsedDate = new Date(`${dayKey}T00:00:00.000Z`);
+      if (Number.isNaN(parsedDate.getTime())) continue;
+      if (parsedDate.getTime() >= cutoff) {
+        commitCount += value;
+      }
+    }
+  }
+
+  if (commitCount >= minCommits) return null;
+
+  return {
+    teamId: team.id,
+    type: "LOW_CONTRIBUTION_ACTIVITY",
+    severity,
+    title: "Contribution activity below recommendation",
+    details: `${commitCount} commit(s) logged ${formatLookbackLabel(rule, lookbackDays)}. Recommended minimum: ${minCommits}.`,
+  };
+}
+
 export function getMaxLookbackDays(config: ProjectWarningsConfig): number {
   let maxLookback = 1;
   for (const rule of config.rules) {
@@ -150,6 +192,8 @@ export function getMaxLookbackDays(config: ProjectWarningsConfig): number {
       maxLookback = Math.max(maxLookback, getLookbackDays(rule, 30));
     } else if (rule.key === "MEETING_FREQUENCY") {
       maxLookback = Math.max(maxLookback, getLookbackDays(rule, 28));
+    } else if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "LOW_COMMIT_ACTIVITY") {
+      maxLookback = Math.max(maxLookback, getLookbackDays(rule, 14));
     }
   }
   return maxLookback;
@@ -177,6 +221,14 @@ export function evaluateWarningsForTeams(
     if (rule.key === "MEETING_FREQUENCY") {
       for (const team of teams) {
         const warning = evaluateMeetingFrequencyRule(rule, team, now);
+        if (warning) warnings.push(warning);
+      }
+      continue;
+    }
+
+    if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "LOW_COMMIT_ACTIVITY") {
+      for (const team of teams) {
+        const warning = evaluateLowContributionActivityRule(rule, team, now);
         if (warning) warnings.push(warning);
       }
       continue;

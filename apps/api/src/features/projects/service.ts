@@ -15,7 +15,6 @@ import {
   createTeamHealthMessage,
   getTeamHealthMessagesForUserInProject,
   getTeamHealthMessagesForTeamInProject,
-  getProjectWarningsEnabledForTeam,
   getStaffProjectWarningsConfig as getStaffProjectWarningsConfigInDb,
   getProjectWarningsSettings as getProjectWarningsSettingsInDb,
   getProjectTeamWarningSignals as getProjectTeamWarningSignalsInDb,
@@ -25,7 +24,6 @@ import {
   getTeamWarningsForTeamInProject,
   canStaffAccessTeamInProject,
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
-  updateStaffProjectWarningsEnabled as updateStaffProjectWarningsEnabledInDb,
   updateStaffProjectWarningsConfig as updateStaffProjectWarningsConfigInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
@@ -52,7 +50,6 @@ export type ProjectWarningsConfig = {
 
 export type ProjectWarningsEvaluationSummary = {
   projectId: number;
-  warningsEnabled: boolean;
   evaluatedTeams: number;
   createdWarnings: number;
   resolvedWarnings: number;
@@ -334,12 +331,6 @@ export async function createTeamWarningForStaff(
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
 
-  const warningsEnabled = await getProjectWarningsEnabledForTeam(projectId, teamId);
-  if (warningsEnabled === null) return null;
-  if (!warningsEnabled) {
-    throw { code: "WARNINGS_DISABLED", message: "Warnings are disabled for this project" };
-  }
-
   return createTeamWarning(projectId, teamId, {
     ...payload,
     source: "MANUAL",
@@ -360,9 +351,6 @@ export async function fetchMyTeamWarnings(userId: number, projectId: number) {
   if (!team) return null;
 
   await evaluateProjectWarningsForProject(projectId);
-  const warningsEnabled = await getProjectWarningsEnabledForTeam(projectId, team.id);
-  if (!warningsEnabled) return [];
-
   return getTeamWarningsForTeamInProject(projectId, team.id, { activeOnly: true });
 }
 
@@ -374,20 +362,11 @@ export async function updateTeamDeadlineProfileForStaff(
   return updateStaffTeamDeadlineProfileInDb(actorUserId, teamId, deadlineProfile);
 }
 
-export async function updateProjectWarningsEnabledForStaff(
-  actorUserId: number,
-  projectId: number,
-  warningsEnabled: boolean,
-) {
-  return updateStaffProjectWarningsEnabledInDb(actorUserId, projectId, warningsEnabled);
-}
-
 export async function fetchProjectWarningsConfigForStaff(actorUserId: number, projectId: number) {
   const result = await getStaffProjectWarningsConfigInDb(actorUserId, projectId);
   if (!result) return null;
   return {
     id: result.id,
-    warningsEnabled: result.warningsEnabled,
     hasPersistedWarningsConfig: result.warningsConfig !== null,
     warningsConfig: normalizeProjectWarningsConfig(result.warningsConfig),
   };
@@ -409,7 +388,6 @@ export async function updateProjectWarningsConfigForStaff(
   const updated = await updateStaffProjectWarningsConfigInDb(actorUserId, projectId, parsedWarningsConfig);
   return {
     id: updated.id,
-    warningsEnabled: updated.warningsEnabled,
     hasPersistedWarningsConfig: updated.warningsConfig !== null,
     warningsConfig: normalizeProjectWarningsConfig(updated.warningsConfig),
   };
@@ -417,16 +395,16 @@ export async function updateProjectWarningsConfigForStaff(
 
 async function evaluateProjectWarningsWithConfig(
   projectId: number,
-  warningsEnabled: boolean,
   rawWarningsConfig: unknown,
 ): Promise<ProjectWarningsEvaluationSummary> {
   const activeAutoWarnings = await getActiveAutoTeamWarningsForProjectInDb(projectId);
+  const normalizedConfig = normalizeProjectWarningsConfig(rawWarningsConfig);
+  const hasEnabledRules = normalizedConfig.rules.some((rule) => rule.enabled);
 
-  if (!warningsEnabled) {
+  if (!hasEnabledRules) {
     await Promise.all(activeAutoWarnings.map((warning) => resolveTeamWarningByIdInDb(warning.id)));
     return {
       projectId,
-      warningsEnabled: false,
       evaluatedTeams: 0,
       createdWarnings: 0,
       resolvedWarnings: activeAutoWarnings.length,
@@ -435,7 +413,6 @@ async function evaluateProjectWarningsWithConfig(
     };
   }
 
-  const normalizedConfig = normalizeProjectWarningsConfig(rawWarningsConfig);
   const lookbackDays = getMaxLookbackDays(normalizedConfig);
   const sinceDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
   const teamSignals = await getProjectTeamWarningSignalsInDb(projectId, sinceDate);
@@ -468,7 +445,6 @@ async function evaluateProjectWarningsWithConfig(
 
   return {
     projectId,
-    warningsEnabled: true,
     evaluatedTeams: teamSignals.length,
     createdWarnings,
     resolvedWarnings,
@@ -480,13 +456,13 @@ async function evaluateProjectWarningsWithConfig(
 export async function evaluateProjectWarningsForStaff(actorUserId: number, projectId: number) {
   const scopedProject = await getStaffProjectWarningsConfigInDb(actorUserId, projectId);
   if (!scopedProject) return null;
-  return evaluateProjectWarningsWithConfig(projectId, scopedProject.warningsEnabled, scopedProject.warningsConfig);
+  return evaluateProjectWarningsWithConfig(projectId, scopedProject.warningsConfig);
 }
 
 export async function evaluateProjectWarningsForProject(projectId: number) {
   const project = await getProjectWarningsSettingsInDb(projectId);
   if (!project) return null;
-  return evaluateProjectWarningsWithConfig(projectId, project.warningsEnabled, project.warningsConfig);
+  return evaluateProjectWarningsWithConfig(projectId, project.warningsConfig);
 }
 
 export async function fetchStaffStudentDeadlineOverrides(actorUserId: number, projectId: number) {

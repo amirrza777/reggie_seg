@@ -22,7 +22,7 @@ describe("ProjectNav", () => {
   it("marks nested section links as active", () => {
     pathnameMock.mockReturnValue("/projects/77/meetings/1");
     render(<ProjectNav projectId="77" />);
-    expect(screen.getByRole("link", { name: "Team meetings" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Meetings" })).toHaveAttribute("aria-current", "page");
   });
 
   it("filters links by feature flags when provided", () => {

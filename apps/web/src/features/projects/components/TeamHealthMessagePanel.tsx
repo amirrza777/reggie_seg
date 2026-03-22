@@ -31,6 +31,14 @@ function formatDate(value: string) {
   return date.toLocaleString();
 }
 
+function formatAuthorName(request: TeamHealthMessage) {
+  const firstName = request.requester?.firstName?.trim();
+  const lastName = request.requester?.lastName?.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+  return request.requester?.email ?? `User #${request.requesterUserId}`;
+}
+
 export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: TeamHealthMessagePanelProps) {
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
@@ -138,9 +146,21 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                   </span>
                 </div>
                 <p style={{ margin: 0 }}>{request.details}</p>
-                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                  Submitted: {formatDate(request.createdAt)}
-                </p>
+                <div
+                  className="muted"
+                  style={{
+                    margin: 0,
+                    fontSize: 12,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>Submitted: {formatDate(request.createdAt)}</span>
+                  <span>Author: {formatAuthorName(request)}</span>
+                </div>
 
                 {hasResponse ? (
                   <div

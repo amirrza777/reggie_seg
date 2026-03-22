@@ -120,7 +120,6 @@ export type ProjectWarningsConfig = {
 
 export type StaffProjectWarningsConfigResponse = {
   id: number;
-  warningsEnabled: boolean;
   hasPersistedWarningsConfig: boolean;
   warningsConfig: ProjectWarningsConfig;
 };

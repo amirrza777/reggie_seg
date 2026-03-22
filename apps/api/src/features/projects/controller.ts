@@ -21,7 +21,6 @@ import {
   fetchTeamWarningsForStaff,
   fetchMyTeamWarnings,
   updateTeamDeadlineProfileForStaff,
-  updateProjectWarningsEnabledForStaff,
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
   evaluateProjectWarningsForStaff,
@@ -748,36 +747,6 @@ export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Re
     }
     console.error("Error updating team deadline profile:", error);
     return res.status(500).json({ error: "Failed to update team deadline profile" });
-  }
-}
-
-export async function updateProjectWarningsEnabledHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const warningsEnabled = req.body?.warningsEnabled;
-
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
-  if (typeof warningsEnabled !== "boolean") {
-    return res.status(400).json({ error: "warningsEnabled must be a boolean" });
-  }
-
-  try {
-    const updated = await updateProjectWarningsEnabledForStaff(actorUserId, projectId, warningsEnabled);
-    return res.json(updated);
-  } catch (error: any) {
-    if (error?.code === "FORBIDDEN") {
-      return res.status(403).json({ error: error.message || "Forbidden" });
-    }
-    if (error?.code === "PROJECT_NOT_FOUND") {
-      return res.status(404).json({ error: "Project not found" });
-    }
-    console.error("Error updating project warning settings:", error);
-    return res.status(500).json({ error: "Failed to update project warning settings" });
   }
 }
 

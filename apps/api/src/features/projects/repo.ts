@@ -648,23 +648,6 @@ export async function updateStaffTeamDeadlineProfile(
   });
 }
 
-export async function updateStaffProjectWarningsEnabled(
-  actorUserId: number,
-  projectId: number,
-  warningsEnabled: boolean,
-) {
-  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
-
-  return prisma.project.update({
-    where: { id: scope.id },
-    data: { warningsEnabled },
-    select: {
-      id: true,
-      warningsEnabled: true,
-    },
-  });
-}
-
 async function getStaffProjectWarningsSettingsScope(actorUserId: number, projectId: number) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
@@ -717,7 +700,6 @@ export async function getStaffProjectWarningsConfig(actorUserId: number, project
     where: { id: scope.id },
     select: {
       id: true,
-      warningsEnabled: true,
       warningsConfig: true,
     },
   });
@@ -734,7 +716,6 @@ export async function updateStaffProjectWarningsConfig(
     data: { warningsConfig: warningsConfig as any },
     select: {
       id: true,
-      warningsEnabled: true,
       warningsConfig: true,
     },
   });
@@ -745,7 +726,6 @@ export async function getProjectWarningsSettings(projectId: number) {
     where: { id: projectId },
     select: {
       id: true,
-      warningsEnabled: true,
       warningsConfig: true,
     },
   });
@@ -758,10 +738,27 @@ export type TeamWarningSignalSnapshot = {
     date: Date;
     attendances: Array<{ status: string }>;
   }>;
+  commitsByDay: Record<string, number>;
+  totalCommits: number;
 };
 
+function parseCountMap(value: unknown): Record<string, number> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return {};
+  }
+
+  const result: Record<string, number> = {};
+  for (const [key, rawValue] of Object.entries(value as Record<string, unknown>)) {
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed)) continue;
+    result[key] = parsed;
+  }
+
+  return result;
+}
+
 export async function getProjectTeamWarningSignals(projectId: number, sinceDate: Date): Promise<TeamWarningSignalSnapshot[]> {
-  return prisma.team.findMany({
+  const teams = await prisma.team.findMany({
     where: {
       projectId,
       archivedAt: null,
@@ -770,6 +767,11 @@ export async function getProjectTeamWarningSignals(projectId: number, sinceDate:
     select: {
       id: true,
       teamName: true,
+      allocations: {
+        select: {
+          userId: true,
+        },
+      },
       meetings: {
         where: {
           date: {
@@ -785,7 +787,64 @@ export async function getProjectTeamWarningSignals(projectId: number, sinceDate:
           },
         },
       },
+      project: {
+        select: {
+          githubRepositories: {
+            where: {
+              isActive: true,
+            },
+            select: {
+              snapshots: {
+                orderBy: {
+                  analysedAt: "desc",
+                },
+                take: 1,
+                select: {
+                  userStats: {
+                    select: {
+                      mappedUserId: true,
+                      commits: true,
+                      commitsByDay: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
     },
+  });
+
+  return teams.map((team) => {
+    const memberIds = new Set(team.allocations.map((allocation) => allocation.userId));
+    const commitsByDay: Record<string, number> = {};
+    let totalCommits = 0;
+
+    for (const repoLink of team.project.githubRepositories) {
+      const latestSnapshot = repoLink.snapshots[0];
+      if (!latestSnapshot) continue;
+
+      for (const userStat of latestSnapshot.userStats) {
+        if (userStat.mappedUserId === null || !memberIds.has(userStat.mappedUserId)) {
+          continue;
+        }
+
+        totalCommits += userStat.commits;
+        const dayMap = parseCountMap(userStat.commitsByDay);
+        for (const [day, commitCount] of Object.entries(dayMap)) {
+          commitsByDay[day] = (commitsByDay[day] ?? 0) + commitCount;
+        }
+      }
+    }
+
+    return {
+      id: team.id,
+      teamName: team.teamName,
+      meetings: team.meetings,
+      commitsByDay,
+      totalCommits,
+    };
   });
 }
 
@@ -1224,21 +1283,6 @@ export async function getTeamHealthMessagesForTeamInProject(projectId: number, t
     orderBy: { createdAt: "desc" },
     select: teamHealthMessageSelect,
   });
-}
-
-export async function getProjectWarningsEnabledForTeam(projectId: number, teamId: number) {
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, projectId },
-    select: {
-      project: {
-        select: {
-          warningsEnabled: true,
-        },
-      },
-    },
-  });
-  if (!team) return null;
-  return team.project.warningsEnabled;
 }
 
 export async function createTeamWarning(projectId: number, teamId: number, input: TeamWarningCreateInput) {
