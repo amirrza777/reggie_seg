@@ -267,7 +267,7 @@ describe("GithubRepoChartsDashboard", () => {
     expect(screen.getByText("You vs team (commits)")).toBeInTheDocument();
     expect(screen.getByText("You vs team (line changes)")).toBeInTheDocument();
     expect(screen.getByText("My commits over time")).toBeInTheDocument();
-    expect(screen.getByText("Additions and deletions over time")).toBeInTheDocument();
+    expect(screen.queryByText("Additions and deletions over time")).not.toBeInTheDocument();
     expect(screen.getByText("My weekly commit totals")).toBeInTheDocument();
     expect(screen.getAllByTestId("donut-card")).toHaveLength(2);
     expect(screen.getByText("You:4")).toBeInTheDocument();

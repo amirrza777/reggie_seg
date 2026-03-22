@@ -524,14 +524,10 @@ function BranchActivity({
 
 function PersonalActivity({
   commitTimelineSeries,
-  lineChangesByDaySeries,
-  lineChangeDomain,
   personalWeeklySeries,
   personalShares,
 }: {
   commitTimelineSeries: ReturnType<typeof buildCommitTimelineSeries>;
-  lineChangesByDaySeries: ReturnType<typeof buildLineChangesByDaySeries>;
-  lineChangeDomain: ReturnType<typeof getLineChangeDomain>;
   personalWeeklySeries: ReturnType<typeof buildWeeklyCommitSeries>;
   personalShares: ReturnType<typeof buildPersonalShareSeries>;
 }) {
@@ -541,14 +537,8 @@ function PersonalActivity({
   }));
 
   const timelineMinWidth = getChartMinWidth(personalTimeline.length, { base: 620, pointWidth: 28, max: 1500 });
-  const lineChangesMinWidth = getChartMinWidth(lineChangesByDaySeries.length, {
-    base: 640,
-    pointWidth: 24,
-    max: 1500,
-  });
   const weeklyMinWidth = getChartMinWidth(personalWeeklySeries.length, { base: 520, pointWidth: 60, max: 980 });
   const personalTimelineTickInterval = getDateTickInterval(personalTimeline.length, { maxTicks: 9 });
-  const lineChangesTickInterval = getDateTickInterval(lineChangesByDaySeries.length, { maxTicks: 9 });
   const personalWeeklyTickInterval = getDateTickInterval(personalWeeklySeries.length, { maxTicks: 12 });
 
   return (
@@ -655,17 +645,6 @@ function PersonalActivity({
           </GithubChartCard>
         ) : null}
 
-        {lineChangesByDaySeries.length > 0 ? (
-          <LineChangesTimelineChart
-            title="Additions and deletions over time"
-            data={lineChangesByDaySeries}
-            lineChangeDomain={lineChangeDomain}
-            minChartWidth={lineChangesMinWidth}
-            tickInterval={lineChangesTickInterval}
-            size="full"
-          />
-        ) : null}
-
         {personalWeeklySeries.length > 0 ? (
           <WeeklyCommitTotalsChart
             title="My weekly commit totals"
@@ -751,8 +730,6 @@ export function GithubRepoChartsDashboard({
       <section className="github-chart-section" aria-label="My code activity charts">
         <PersonalActivity
           commitTimelineSeries={commitTimelineSeries}
-          lineChangesByDaySeries={lineChangesByDaySeries}
-          lineChangeDomain={lineChangeDomain}
           personalWeeklySeries={personalWeeklySeries}
           personalShares={personalShares}
         />
