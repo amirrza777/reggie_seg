@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } from "@/features/projects/api/client";
-import { Card } from "@/shared/ui/Card";
-import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
+import { ProjectTeamHealthPanels } from "@/features/projects/components/ProjectTeamHealthPanels";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import { PageSection } from "@/shared/ui/PageSection";
 
@@ -81,53 +80,14 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
       description="View active warnings and submit team health messages."
       className="ui-page--project"
     >
-      <Card title="Warnings">
-        <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
-          {activeWarnings.length === 0 ? (
-            <p className="muted" style={{ margin: 0 }}>
-              No warnings for your team right now.
-            </p>
-          ) : (
-            <div className="stack" style={{ gap: 8 }}>
-              {activeWarnings.map((warning) => (
-                <article
-                  key={warning.id}
-                  style={{
-                    border: "1px solid var(--border)",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                    background:
-                      warning.severity === "HIGH"
-                        ? "color-mix(in srgb, var(--status-danger-text) 12%, var(--surface))"
-                        : warning.severity === "MEDIUM"
-                          ? "color-mix(in srgb, var(--status-warning-text) 12%, var(--surface))"
-                          : "color-mix(in srgb, var(--status-success-text) 12%, var(--surface))",
-                  }}
-                >
-                  <p style={{ margin: 0, fontWeight: 700 }}>{warning.title}</p>
-                  <p className="muted" style={{ margin: "4px 0 0" }}>{warning.details}</p>
-                </article>
-              ))}
-            </div>
-          )}
-          {warningsLoadError ? <p className="error" style={{ margin: 0 }}>{warningsLoadError}</p> : null}
-        </div>
-      </Card>
-
-      <Card title="Messages">
-        <div className="stack" style={{ gap: 6, marginBottom: 12 }}>
-          <p className="muted" style={{ margin: 0 }}>
-            Submit and track team health messages for your team.
-          </p>
-        </div>
-
-        <TeamHealthMessagePanel
-          projectId={numericProjectId}
-          userId={user.id}
-          initialRequests={initialRequests}
-        />
-        {loadError ? <p className="error">{loadError}</p> : null}
-      </Card>
+      <ProjectTeamHealthPanels
+        projectId={numericProjectId}
+        userId={user.id}
+        initialRequests={initialRequests}
+        activeWarnings={activeWarnings}
+        messagesLoadError={loadError}
+        warningsLoadError={warningsLoadError}
+      />
     </PageSection>
   );
 }

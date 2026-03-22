@@ -78,7 +78,7 @@ const DEFAULT_PROJECT_WARNINGS_CONFIG: ProjectWarningsConfig = {
       severity: "MEDIUM",
       params: {
         minPerWeek: 1,
-        lookbackDays: 28,
+        lookbackDays: 30,
       },
     },
   ],

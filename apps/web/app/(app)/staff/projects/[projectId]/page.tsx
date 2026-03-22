@@ -65,7 +65,10 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
               Forum
             </Link>
           </div>
-          <StaffProjectWarningsConfigPanel projectId={data.project.id} />
+          <StaffProjectWarningsConfigPanel
+            projectId={data.project.id}
+            projectName={data.project.name}
+          />
         </div>
       </section>
 

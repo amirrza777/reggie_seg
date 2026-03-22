@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FocusEvent } from "react";
 import {
   getStaffProjectWarningsConfig,
   updateStaffProjectWarningsConfig,
@@ -14,6 +14,7 @@ import { Button } from "@/shared/ui/Button";
 
 type StaffProjectWarningsConfigPanelProps = {
   projectId: number;
+  projectName?: string;
 };
 
 type WarningConfigState = {
@@ -48,7 +49,7 @@ const DEFAULT_WARNING_CONFIG: WarningConfigState = {
     enabled: true,
     severity: "MEDIUM",
     minPerWeek: 1,
-    lookbackDays: 28,
+    lookbackDays: 30,
   },
   contributionActivity: {
     enabled: false,
@@ -57,6 +58,21 @@ const DEFAULT_WARNING_CONFIG: WarningConfigState = {
     lookbackDays: 14,
   },
 };
+
+const LOOKBACK_WINDOW_OPTIONS = [
+  { value: 7, label: "Last 7 days" },
+  { value: 14, label: "Last 14 days" },
+  { value: 30, label: "Last 30 days" },
+  { value: -1, label: "Since project start" },
+] as const;
+
+function normalizeLookbackWindow(value: number): number {
+  if (value === -1) return -1;
+  if (value <= 7) return 7;
+  if (value <= 14) return 14;
+  if (value <= 30) return 30;
+  return -1;
+}
 
 function cloneDefaultWarningConfig(): WarningConfigState {
   return {
@@ -83,6 +99,27 @@ function toNumber(value: unknown, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function clampPercent(value: number, fallback: number) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(1, Math.min(100, value));
+}
+
+function clampNonNegative(value: number, fallback: number) {
+  if (!Number.isFinite(value)) return fallback;
+  return Math.max(0, value);
+}
+
+function normalizeAttendancePercentInput(rawValue: string, fallback: number) {
+  const parsed = Number(rawValue);
+  return clampPercent(parsed, fallback);
+}
+
+function replaceZeroOnFocus(event: FocusEvent<HTMLInputElement>) {
+  if (event.currentTarget.value === "0") {
+    event.currentTarget.select();
+  }
+}
+
 function toSeverity(value: unknown, fallback: WarningRuleSeverity): WarningRuleSeverity {
   if (value === "LOW" || value === "MEDIUM" || value === "HIGH") return value;
   return fallback;
@@ -101,24 +138,39 @@ function mapApiConfigToState(apiConfig: ProjectWarningsConfig): {
     if (rule.key === "LOW_ATTENDANCE") {
       state.attendance.enabled = rule.enabled;
       state.attendance.severity = toSeverity(rule.severity, state.attendance.severity);
-      state.attendance.minPercent = toNumber(params.minPercent, state.attendance.minPercent);
-      state.attendance.lookbackDays = toNumber(params.lookbackDays, state.attendance.lookbackDays);
+      state.attendance.minPercent = clampPercent(
+        toNumber(params.minPercent, state.attendance.minPercent),
+        state.attendance.minPercent,
+      );
+      state.attendance.lookbackDays = normalizeLookbackWindow(
+        toNumber(params.lookbackDays, state.attendance.lookbackDays),
+      );
       continue;
     }
 
     if (rule.key === "MEETING_FREQUENCY") {
       state.meetingFrequency.enabled = rule.enabled;
       state.meetingFrequency.severity = toSeverity(rule.severity, state.meetingFrequency.severity);
-      state.meetingFrequency.minPerWeek = toNumber(params.minPerWeek, state.meetingFrequency.minPerWeek);
-      state.meetingFrequency.lookbackDays = toNumber(params.lookbackDays, state.meetingFrequency.lookbackDays);
+      state.meetingFrequency.minPerWeek = clampNonNegative(
+        toNumber(params.minPerWeek, state.meetingFrequency.minPerWeek),
+        state.meetingFrequency.minPerWeek,
+      );
+      state.meetingFrequency.lookbackDays = normalizeLookbackWindow(
+        toNumber(params.lookbackDays, state.meetingFrequency.lookbackDays),
+      );
       continue;
     }
 
     if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "LOW_COMMIT_ACTIVITY") {
       state.contributionActivity.enabled = rule.enabled;
       state.contributionActivity.severity = toSeverity(rule.severity, state.contributionActivity.severity);
-      state.contributionActivity.minCommits = toNumber(params.minCommits, state.contributionActivity.minCommits);
-      state.contributionActivity.lookbackDays = toNumber(params.lookbackDays, state.contributionActivity.lookbackDays);
+      state.contributionActivity.minCommits = clampNonNegative(
+        toNumber(params.minCommits, state.contributionActivity.minCommits),
+        state.contributionActivity.minCommits,
+      );
+      state.contributionActivity.lookbackDays = normalizeLookbackWindow(
+        toNumber(params.lookbackDays, state.contributionActivity.lookbackDays),
+      );
       continue;
     }
 
@@ -130,6 +182,7 @@ function mapApiConfigToState(apiConfig: ProjectWarningsConfig): {
 
 export function StaffProjectWarningsConfigPanel({
   projectId,
+  projectName,
 }: StaffProjectWarningsConfigPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [config, setConfig] = useState<WarningConfigState>(() => cloneDefaultWarningConfig());
@@ -142,6 +195,13 @@ export function StaffProjectWarningsConfigPanel({
   const [isSaving, setIsSaving] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [attendancePercentInput, setAttendancePercentInput] = useState(
+    String(DEFAULT_WARNING_CONFIG.attendance.minPercent),
+  );
+
+  useEffect(() => {
+    setAttendancePercentInput(String(config.attendance.minPercent));
+  }, [config.attendance.minPercent]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -198,7 +258,7 @@ export function StaffProjectWarningsConfigPanel({
         enabled: config.attendance.enabled,
         severity: config.attendance.severity,
         params: {
-          minPercent: config.attendance.minPercent,
+          minPercent: normalizeAttendancePercentInput(attendancePercentInput, config.attendance.minPercent),
           lookbackDays: config.attendance.lookbackDays,
         },
       },
@@ -207,7 +267,7 @@ export function StaffProjectWarningsConfigPanel({
         enabled: config.meetingFrequency.enabled,
         severity: config.meetingFrequency.severity,
         params: {
-          minPerWeek: config.meetingFrequency.minPerWeek,
+          minPerWeek: clampNonNegative(config.meetingFrequency.minPerWeek, DEFAULT_WARNING_CONFIG.meetingFrequency.minPerWeek),
           lookbackDays: config.meetingFrequency.lookbackDays,
         },
       },
@@ -216,7 +276,7 @@ export function StaffProjectWarningsConfigPanel({
         enabled: config.contributionActivity.enabled,
         severity: config.contributionActivity.severity,
         params: {
-          minCommits: config.contributionActivity.minCommits,
+          minCommits: clampNonNegative(config.contributionActivity.minCommits, DEFAULT_WARNING_CONFIG.contributionActivity.minCommits),
           lookbackDays: config.contributionActivity.lookbackDays,
         },
       },
@@ -226,7 +286,7 @@ export function StaffProjectWarningsConfigPanel({
       version: 1,
       rules: [...knownRules, ...extraRules],
     };
-  }, [config, extraRules]);
+  }, [config, extraRules, attendancePercentInput]);
 
   const isBusy = isLoading || isSaving;
   const formDisabled = isBusy || !isEditing;
@@ -243,6 +303,19 @@ export function StaffProjectWarningsConfigPanel({
     setPanelError(null);
     setPanelMessage(null);
     try {
+      const normalizedAttendancePercent = normalizeAttendancePercentInput(
+        attendancePercentInput,
+        config.attendance.minPercent,
+      );
+      setConfig((prev) => ({
+        ...prev,
+        attendance: {
+          ...prev.attendance,
+          minPercent: normalizedAttendancePercent,
+        },
+      }));
+      setAttendancePercentInput(String(normalizedAttendancePercent));
+
       const response = await updateStaffProjectWarningsConfig(projectId, configPreview);
       const mapped = mapApiConfigToState(response.warningsConfig);
       setConfig(cloneWarningConfig(mapped.state));
@@ -308,7 +381,7 @@ export function StaffProjectWarningsConfigPanel({
           >
             <header className="staff-projects__config-modal-head">
               <h3 id="staff-project-warning-config-title" style={{ margin: 0 }}>
-                Configure warnings for project {projectId}
+                Configure warnings for {projectName?.trim() || `project ${projectId}`}
               </h3>
               <Button type="button" variant="ghost" size="sm" onClick={closeModal} disabled={isSaving}>
                 Close
@@ -318,6 +391,9 @@ export function StaffProjectWarningsConfigPanel({
             <div className="staff-projects__config-modal-body">
               <p className="muted" style={{ margin: 0 }}>
                 Set project-level warning rules that apply to all teams.
+              </p>
+              <p className="muted" style={{ margin: 0 }}>
+                Warnings are sent automatically to teams to help them stay on track and avoid project behaviours that can reduce delivery quality.
               </p>
               {isLoading ? <p className="muted" style={{ margin: 0 }}>Loading config...</p> : null}
               {!isLoading && !isEditing ? (
@@ -368,22 +444,30 @@ export function StaffProjectWarningsConfigPanel({
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Minimum attendance (%)</span>
-                      <select
-                        value={config.attendance.minPercent}
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={attendancePercentInput}
                         disabled={formDisabled}
-                        onChange={(event) =>
+                        onFocus={replaceZeroOnFocus}
+                        onChange={(event) => setAttendancePercentInput(event.currentTarget.value)}
+                        onBlur={() => {
+                          const normalized = normalizeAttendancePercentInput(
+                            attendancePercentInput,
+                            config.attendance.minPercent,
+                          );
                           setConfig((prev) => ({
                             ...prev,
-                            attendance: { ...prev.attendance, minPercent: Number(event.target.value) },
-                          }))
-                        }
-                      >
-                        {[20, 25, 30, 35, 40, 50, 60, 70].map((value) => (
-                          <option key={value} value={value}>
-                            {value}%
-                          </option>
-                        ))}
-                      </select>
+                            attendance: {
+                              ...prev.attendance,
+                              minPercent: normalized,
+                            },
+                          }));
+                          setAttendancePercentInput(String(normalized));
+                        }}
+                      />
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Lookback window</span>
@@ -397,9 +481,9 @@ export function StaffProjectWarningsConfigPanel({
                           }))
                         }
                       >
-                        {[7, 14, 21, 30].map((value) => (
-                          <option key={value} value={value}>
-                            Last {value} days
+                        {LOOKBACK_WINDOW_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </select>
@@ -448,22 +532,24 @@ export function StaffProjectWarningsConfigPanel({
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Minimum meetings per week</span>
-                      <select
+                      <input
+                        type="number"
+                        min={0}
+                        step="any"
                         value={config.meetingFrequency.minPerWeek}
                         disabled={formDisabled}
-                        onChange={(event) =>
+                        onFocus={replaceZeroOnFocus}
+                        onChange={(event) => {
+                          const nextValue = event.currentTarget.valueAsNumber;
                           setConfig((prev) => ({
                             ...prev,
-                            meetingFrequency: { ...prev.meetingFrequency, minPerWeek: Number(event.target.value) },
-                          }))
-                        }
-                      >
-                        {[0, 1, 2, 3, 4].map((value) => (
-                          <option key={value} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
+                            meetingFrequency: {
+                              ...prev.meetingFrequency,
+                              minPerWeek: clampNonNegative(nextValue, 0),
+                            },
+                          }));
+                        }}
+                      />
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Lookback window</span>
@@ -477,9 +563,9 @@ export function StaffProjectWarningsConfigPanel({
                           }))
                         }
                       >
-                        {[14, 21, 28, 35].map((value) => (
-                          <option key={value} value={value}>
-                            Last {value} days
+                        {LOOKBACK_WINDOW_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </select>
@@ -528,22 +614,24 @@ export function StaffProjectWarningsConfigPanel({
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Minimum commits</span>
-                      <select
+                      <input
+                        type="number"
+                        min={0}
+                        step="any"
                         value={config.contributionActivity.minCommits}
                         disabled={formDisabled}
-                        onChange={(event) =>
+                        onFocus={replaceZeroOnFocus}
+                        onChange={(event) => {
+                          const nextValue = event.currentTarget.valueAsNumber;
                           setConfig((prev) => ({
                             ...prev,
-                            contributionActivity: { ...prev.contributionActivity, minCommits: Number(event.target.value) },
-                          }))
-                        }
-                      >
-                        {[0, 2, 4, 6, 8, 10, 12].map((value) => (
-                          <option key={value} value={value}>
-                            {value}
-                          </option>
-                        ))}
-                      </select>
+                            contributionActivity: {
+                              ...prev.contributionActivity,
+                              minCommits: clampNonNegative(nextValue, 0),
+                            },
+                          }));
+                        }}
+                      />
                     </label>
                     <label className="staff-projects__warning-field">
                       <span>Lookback window</span>
@@ -557,9 +645,9 @@ export function StaffProjectWarningsConfigPanel({
                           }))
                         }
                       >
-                        {[7, 14, 21, 28].map((value) => (
-                          <option key={value} value={value}>
-                            Last {value} days
+                        {LOOKBACK_WINDOW_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
                           </option>
                         ))}
                       </select>

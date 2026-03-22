@@ -35,6 +35,8 @@ export type WarningEvaluationResult = {
 };
 
 const PRESENT_STATUSES = new Set(["present", "on_time", "late", "attended"]);
+const ENTIRE_PROJECT_LOOKBACK_SENTINEL = -1;
+const ENTIRE_PROJECT_LOOKBACK_DAYS = 3650;
 
 function normalizeNumber(value: unknown, fallback: number): number {
   const parsed = Number(value);
@@ -44,8 +46,20 @@ function normalizeNumber(value: unknown, fallback: number): number {
 
 function getLookbackDays(rule: ProjectWarningRuleConfig, fallback: number): number {
   const raw = rule.params?.lookbackDays;
+  if (normalizeNumber(raw, fallback) === ENTIRE_PROJECT_LOOKBACK_SENTINEL) {
+    return ENTIRE_PROJECT_LOOKBACK_DAYS;
+  }
   const value = Math.floor(normalizeNumber(raw, fallback));
-  return Math.min(365, Math.max(1, value));
+  return Math.min(ENTIRE_PROJECT_LOOKBACK_DAYS, Math.max(1, value));
+}
+
+function isEntireProjectLookback(rule: ProjectWarningRuleConfig): boolean {
+  return normalizeNumber(rule.params?.lookbackDays, 0) === ENTIRE_PROJECT_LOOKBACK_SENTINEL;
+}
+
+function formatLookbackLabel(rule: ProjectWarningRuleConfig, lookbackDays: number): string {
+  if (isEntireProjectLookback(rule)) return "since project start";
+  return `over the last ${lookbackDays} days`;
 }
 
 function getSeverity(rule: ProjectWarningRuleConfig, fallback: WarningRuleSeverity): WarningRuleSeverity {
@@ -68,8 +82,11 @@ function evaluateLowAttendanceRule(
   const lookbackDays = getLookbackDays(rule, 30);
   const minPercent = Math.min(100, Math.max(0, normalizeNumber(rule.params?.minPercent, 30)));
   const severity = getSeverity(rule, "HIGH");
+  const entireProject = isEntireProjectLookback(rule);
 
-  const meetings = team.meetings.filter((meeting) => isWithinLookback(meeting.date, now, lookbackDays));
+  const meetings = entireProject
+    ? team.meetings
+    : team.meetings.filter((meeting) => isWithinLookback(meeting.date, now, lookbackDays));
   const statuses = meetings.flatMap((meeting) => meeting.attendances.map((attendance) => attendance.status.trim().toLowerCase()));
   const markedCount = statuses.length;
   if (markedCount === 0) return null;
@@ -83,7 +100,7 @@ function evaluateLowAttendanceRule(
     type: "LOW_ATTENDANCE",
     severity,
     title: "Low attendance detected",
-    details: `Attendance is ${attendancePercent.toFixed(1)}% over the last ${lookbackDays} days (threshold: ${minPercent}%).`,
+    details: `Attendance is ${attendancePercent.toFixed(1)}% ${formatLookbackLabel(rule, lookbackDays)} (threshold: ${minPercent}%).`,
   };
 }
 
@@ -95,18 +112,33 @@ function evaluateMeetingFrequencyRule(
   const lookbackDays = getLookbackDays(rule, 28);
   const minPerWeek = Math.max(0, normalizeNumber(rule.params?.minPerWeek, 1));
   const severity = getSeverity(rule, "MEDIUM");
+  const entireProject = isEntireProjectLookback(rule);
 
-  const meetings = team.meetings.filter((meeting) => isWithinLookback(meeting.date, now, lookbackDays));
+  const meetings = entireProject
+    ? team.meetings
+    : team.meetings.filter((meeting) => isWithinLookback(meeting.date, now, lookbackDays));
   const meetingCount = meetings.length;
-  const meetingRate = meetingCount / (lookbackDays / 7);
-  if (meetingRate >= minPerWeek) return null;
+  const windowDays = entireProject
+    ? Math.max(
+      7,
+      meetings.length === 0
+        ? 30
+        : Math.ceil(
+          (now.getTime() - meetings.reduce((earliest, meeting) =>
+            meeting.date.getTime() < earliest.getTime() ? meeting.date : earliest,
+          ).getTime()) / (24 * 60 * 60 * 1000),
+        ),
+    )
+    : lookbackDays;
+  const recommendedMeetingCount = Math.max(0, Math.ceil((minPerWeek * windowDays) / 7));
+  if (meetingCount >= recommendedMeetingCount) return null;
 
   return {
     teamId: team.id,
     type: "MEETING_FREQUENCY",
     severity,
-    title: "Meeting frequency below threshold",
-    details: `${meetingCount} meeting(s) logged in the last ${lookbackDays} days (${meetingRate.toFixed(2)} per week, required: ${minPerWeek}).`,
+    title: "Meeting activity below recommendation",
+    details: `${meetingCount} meeting(s) logged ${formatLookbackLabel(rule, windowDays)}. Recommended minimum: ${recommendedMeetingCount}.`,
   };
 }
 
