@@ -20,6 +20,7 @@ import {
   getProjectTeamWarningSignals as getProjectTeamWarningSignalsInDb,
   getActiveAutoTeamWarningsForProject as getActiveAutoTeamWarningsForProjectInDb,
   resolveTeamWarningById as resolveTeamWarningByIdInDb,
+  updateAutoTeamWarningById as updateAutoTeamWarningByIdInDb,
   createTeamWarning,
   getTeamWarningsForTeamInProject,
   canStaffAccessTeamInProject,
@@ -52,6 +53,8 @@ export type ProjectWarningsEvaluationSummary = {
   projectId: number;
   evaluatedTeams: number;
   createdWarnings: number;
+  refreshedWarnings: number;
+  expiredWarnings: number;
   resolvedWarnings: number;
   activeAutoWarnings: number;
   skippedRuleKeys: string[];
@@ -162,6 +165,20 @@ function normalizeProjectWarningsConfig(raw: unknown): ProjectWarningsConfig {
   const parsed = parseProjectWarningsConfig(raw);
   if (!parsed) return getDefaultProjectWarningsConfig();
   return parsed;
+}
+
+function toWarningType(ruleKey: string): string {
+  if (ruleKey === "LOW_COMMIT_ACTIVITY") return "LOW_CONTRIBUTION_ACTIVITY";
+  return ruleKey;
+}
+
+function getTtlDaysByWarningType(config: ProjectWarningsConfig): Map<string, number> {
+  const ttlByWarningType = new Map<string, number>();
+  for (const rule of config.rules) {
+    if (!rule.enabled || typeof rule.ttlDays !== "number") continue;
+    ttlByWarningType.set(toWarningType(rule.key), rule.ttlDays);
+  }
+  return ttlByWarningType;
 }
 
 /** Creates a project. */
@@ -407,6 +424,8 @@ async function evaluateProjectWarningsWithConfig(
       projectId,
       evaluatedTeams: 0,
       createdWarnings: 0,
+      refreshedWarnings: 0,
+      expiredWarnings: 0,
       resolvedWarnings: activeAutoWarnings.length,
       activeAutoWarnings: 0,
       skippedRuleKeys: [],
@@ -417,16 +436,50 @@ async function evaluateProjectWarningsWithConfig(
   const sinceDate = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
   const teamSignals = await getProjectTeamWarningSignalsInDb(projectId, sinceDate);
   const evaluation = evaluateWarningsForTeams(normalizedConfig, teamSignals);
+  const ttlByWarningType = getTtlDaysByWarningType(normalizedConfig);
+  const now = new Date();
 
   const activeByKey = new Map(activeAutoWarnings.map((warning) => [`${warning.teamId}:${warning.type}`, warning]));
   const desiredByKey = new Map(evaluation.warnings.map((warning) => [`${warning.teamId}:${warning.type}`, warning]));
 
   let resolvedWarnings = 0;
+  let expiredWarnings = 0;
   for (const warning of activeAutoWarnings) {
     const key = `${warning.teamId}:${warning.type}`;
+    const ttlDays = ttlByWarningType.get(warning.type);
+    if (typeof ttlDays === "number") {
+      const expiresAt = warning.createdAt.getTime() + ttlDays * 24 * 60 * 60 * 1000;
+      if (now.getTime() >= expiresAt) {
+        await resolveTeamWarningByIdInDb(warning.id);
+        activeByKey.delete(key);
+        resolvedWarnings += 1;
+        expiredWarnings += 1;
+        continue;
+      }
+    }
     if (desiredByKey.has(key)) continue;
     await resolveTeamWarningByIdInDb(warning.id);
+    activeByKey.delete(key);
     resolvedWarnings += 1;
+  }
+
+  let refreshedWarnings = 0;
+  for (const [key, warning] of desiredByKey.entries()) {
+    const activeWarning = activeByKey.get(key);
+    if (!activeWarning) continue;
+
+    const detailsChanged =
+      activeWarning.severity !== warning.severity ||
+      activeWarning.title !== warning.title ||
+      activeWarning.details !== warning.details;
+    if (!detailsChanged) continue;
+
+    await updateAutoTeamWarningByIdInDb(activeWarning.id, {
+      severity: warning.severity,
+      title: warning.title,
+      details: warning.details,
+    });
+    refreshedWarnings += 1;
   }
 
   let createdWarnings = 0;
@@ -447,6 +500,8 @@ async function evaluateProjectWarningsWithConfig(
     projectId,
     evaluatedTeams: teamSignals.length,
     createdWarnings,
+    refreshedWarnings,
+    expiredWarnings,
     resolvedWarnings,
     activeAutoWarnings: desiredByKey.size,
     skippedRuleKeys: evaluation.skippedRuleKeys,

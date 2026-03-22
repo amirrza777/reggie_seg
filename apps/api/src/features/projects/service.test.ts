@@ -45,6 +45,7 @@ vi.mock("./repo.js", () => ({
   getProjectTeamWarningSignals: vi.fn(),
   getActiveAutoTeamWarningsForProject: vi.fn(),
   resolveTeamWarningById: vi.fn(),
+  updateAutoTeamWarningById: vi.fn(),
 }));
 
 describe("projects service", () => {
@@ -313,9 +314,18 @@ describe("projects service", () => {
       },
     ]);
     (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValueOnce([
-      { id: 81, teamId: 11, type: "MEETING_FREQUENCY" },
+      {
+        id: 81,
+        teamId: 11,
+        type: "MEETING_FREQUENCY",
+        severity: "MEDIUM",
+        title: "Meeting activity below recommendation",
+        details: "0 meeting(s) logged over the last 28 days. Recommended minimum: 4.",
+        createdAt: new Date("2026-03-20T00:00:00.000Z"),
+      },
     ]);
     (repo.resolveTeamWarningById as any).mockResolvedValue({ id: 81 });
+    (repo.updateAutoTeamWarningById as any).mockResolvedValue({ id: 81 });
     (repo.createTeamWarning as any).mockResolvedValue({ id: 99 });
 
     const summary = await evaluateProjectWarningsForStaff(9, 3);
@@ -324,6 +334,8 @@ describe("projects service", () => {
         projectId: 3,
         evaluatedTeams: 1,
         createdWarnings: 1,
+        refreshedWarnings: expect.any(Number),
+        expiredWarnings: 0,
         resolvedWarnings: 0,
         activeAutoWarnings: 2,
       }),

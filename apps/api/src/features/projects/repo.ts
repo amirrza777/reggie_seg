@@ -859,6 +859,10 @@ export async function getActiveAutoTeamWarningsForProject(projectId: number) {
       id: true,
       teamId: true,
       type: true,
+      severity: true,
+      title: true,
+      details: true,
+      createdAt: true,
     },
   });
 }
@@ -869,6 +873,23 @@ export async function resolveTeamWarningById(warningId: number) {
     data: {
       active: false,
       resolvedAt: new Date(),
+    },
+    select: {
+      id: true,
+    },
+  });
+}
+
+export async function updateAutoTeamWarningById(
+  warningId: number,
+  input: Pick<TeamWarningCreateInput, "severity" | "title" | "details">,
+) {
+  return prisma.teamWarning.update({
+    where: { id: warningId },
+    data: {
+      severity: input.severity,
+      title: input.title,
+      details: input.details,
     },
     select: {
       id: true,
