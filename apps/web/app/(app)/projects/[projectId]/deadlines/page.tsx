@@ -10,11 +10,11 @@ import Link from "next/link";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { ProjectMarkingSummary } from "@/features/projects/types";
 
-type ProjectPageProps = {
+type DeadlinesPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
-export default async function ProjectPage({ params }: ProjectPageProps) {
+export default async function DeadlinesPage({ params }: DeadlinesPageProps) {
   const { projectId } = await params;
   const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
@@ -68,5 +68,5 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     marking = null;
   }
 
-  return <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} view="overview" />;
+  return <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} view="deadlines" />;
 }

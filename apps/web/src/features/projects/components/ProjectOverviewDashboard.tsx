@@ -7,7 +7,6 @@ import type {
 } from "../types";
 import { Card } from "@/shared/ui/Card";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
-import Link from "next/link";
 
 type DisplayDeadlineState = {
   label: string;
@@ -47,14 +46,6 @@ function buildDeadlineItems(deadline: ProjectDeadline): DeadlineItem[] {
   ];
 }
 
-function getNextDeadline(deadlineItems: DeadlineItem[]) {
-  return deadlineItems
-    .filter((item) => item.value)
-    .map((item) => ({ ...item, date: new Date(item.value as string) }))
-    .filter((item) => !Number.isNaN(item.date.getTime()) && item.date.getTime() >= Date.now())
-    .sort((a, b) => a.date.getTime() - b.date.getTime())[0];
-}
-
 function isProjectCompleted(
   project: Project,
   deadline: ProjectDeadline,
@@ -83,77 +74,28 @@ function isProjectCompleted(
 }
 
 function ProjectOverviewHero({
-  project,
-  deadline,
-  teamName,
-  nextDeadline,
   isCompleted,
 }: {
-  project: Project;
-  deadline: ProjectDeadline;
-  teamName: string;
-  nextDeadline?: { label: string; value: string | null };
   isCompleted: boolean;
 }) {
   return (
     <section className="project-overview-hero">
       <div className="stack project-overview-hero__stack">
         <div className="stack project-overview-hero__meta">
-          <div className="project-overview-hero__top">
-            <div className="project-overview-hero__chips">
-              <span className="project-overview-hero__chip project-overview-hero__chip--muted">
-                Project #{project.id}
-              </span>
-              <span
-                className={`project-overview-hero__chip ${
-                  deadline.isOverridden ? "project-overview-hero__chip--override" : "project-overview-hero__chip--default"
-                }`}
-              >
-                {deadline.isOverridden ? "Deadlines overridden" : "Default deadlines"}
-              </span>
-              {isCompleted ? (
-                <span className="project-overview-hero__chip project-overview-hero__chip--default">Completed</span>
-              ) : null}
-            </div>
-            <div className="project-overview-hero__actions">
-              <Link href={`/projects/${project.id}/team-health`} className="project-overview-hero__action-link">
-                Team Health
-              </Link>
-            </div>
-          </div>
-          <h1 className="project-overview-hero__title">{project?.name || "Project"}</h1>
+          <h1 className="project-overview-hero__title">Project Overview</h1>
           {!isCompleted ? (
             <p className="muted project-overview-hero__summary">Overview and key project information.</p>
           ) : null}
         </div>
-
-        <div className="project-overview-hero__facts">
-          <div className="project-overview-hero__fact">
-            <p className="muted project-overview-hero__fact-label">Team</p>
-            <p className="project-overview-hero__fact-value project-overview-hero__fact-value--lg">{teamName || "Unassigned team"}</p>
-          </div>
-          {!isCompleted ? (
-            <div className="project-overview-hero__fact">
-              <p className="muted project-overview-hero__fact-label">Next deadline</p>
-              <p className="project-overview-hero__fact-value">
-                {nextDeadline ? nextDeadline.label : "No upcoming deadline"}
-              </p>
-              {nextDeadline ? (
-                <p className="muted project-overview-hero__fact-meta">{formatDateLabel(nextDeadline.value)}</p>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-
       </div>
     </section>
   );
 }
 
-function DeadlinesScheduleCard({ items }: { items: DeadlineItem[] }) {
+function DeadlinesScheduleCard({ items, emphasize = false }: { items: DeadlineItem[]; emphasize?: boolean }) {
   return (
     <Card title="Deadlines and Schedule">
-      <div className="stack project-overview-schedule">
+      <div className={`stack project-overview-schedule${emphasize ? " project-overview-schedule--expanded" : ""}`}>
         {items.map((item) => {
           const state = getDeadlineStateLabel(item.value);
           return (
@@ -174,29 +116,38 @@ function DeadlinesScheduleCard({ items }: { items: DeadlineItem[] }) {
   );
 }
 
-function InformationBoardCard({ informationText }: { informationText?: string | null }) {
-  const paragraphs = (informationText ?? "")
+function InformationBoardCard({
+  informationText,
+  largeText = false,
+}: {
+  informationText?: string | null;
+  largeText?: boolean;
+}) {
+  const displayText = (informationText ?? "").trim();
+  const paragraphs = displayText
     .split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter((paragraph) => paragraph.length > 0);
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 
   return (
-    <Card title="Information Board">
-      <div className="project-overview-info">
-        <div className="stack project-overview-info__body">
-          <h4 className="project-overview-info__title">Expectations</h4>
-          {paragraphs.length > 0 ? (
-            paragraphs.map((paragraph, index) => (
-              <p key={index} className="project-overview-info__paragraph">
+    <Card title="Information Board" className="project-overview-info-card">
+      <div className={`project-overview-info__body${largeText ? " project-overview-info__body--large" : ""}`}>
+        {paragraphs.length > 0 ? (
+          <div className="project-overview-info__content-box">
+            {paragraphs.map((paragraph, index) => (
+              <p
+                key={`${index}-${paragraph.slice(0, 16)}`}
+                className={`project-overview-info__paragraph${largeText ? " project-overview-info__paragraph--large" : ""}`}
+              >
                 {paragraph}
               </p>
-            ))
-          ) : (
-            <p className="project-overview-info__paragraph">
-              No information board content has been published for this project yet.
-            </p>
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <p className="project-overview-info__empty">
+            No information board content has been published for this project yet.
+          </p>
+        )}
       </div>
     </Card>
   );
@@ -262,18 +213,17 @@ function TutorMarkingCard({
   );
 }
 
-export function ProjectOverviewDashboard({ project, deadline, team, marking }: ProjectOverviewDashboardProps) {
+export function ProjectOverviewDashboard({
+  project,
+  deadline,
+  marking,
+}: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
-  const nextDeadline = getNextDeadline(deadlineItems);
   const completed = isProjectCompleted(project, deadline, marking);
 
   return (
     <div className="stack project-overview-dashboard">
       <ProjectOverviewHero
-        project={project}
-        deadline={deadline}
-        teamName={team.teamName}
-        nextDeadline={nextDeadline}
         isCompleted={completed}
       />
 
@@ -285,17 +235,10 @@ export function ProjectOverviewDashboard({ project, deadline, team, marking }: P
       ) : null}
 
       {!completed ? (
-        <div className="project-overview-layout">
-          <InformationBoardCard informationText={project.informationText} />
-          <DeadlinesScheduleCard items={deadlineItems} />
+        <div className="stack project-overview-layout project-overview-layout--overview">
+          <InformationBoardCard informationText={project.informationText} largeText />
+          <DeadlinesScheduleCard items={deadlineItems} emphasize />
         </div>
-      ) : null}
-
-      {!completed ? (
-        <TutorMarkingCard
-          teamMarking={marking?.teamMarking ?? null}
-          studentMarking={marking?.studentMarking ?? null}
-        />
       ) : null}
     </div>
   );

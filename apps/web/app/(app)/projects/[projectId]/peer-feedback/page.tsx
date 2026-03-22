@@ -22,6 +22,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
       <PageSection
         title="Peer Feedback"
         description="Collect and review peer feedback for this project."
+        className="ui-page--project"
       >
         <p className="muted">Please sign in to view peer feedback.</p>
       </PageSection>
@@ -49,6 +50,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     <PageSection
       title="Peer Feedback"
       description="Collect and review peer feedback for this project."
+      className="ui-page--project"
     >
       <FeedbackAssessmentView feedbacks={feedbacks} projectId={projectId} readOnly={readOnly} />
     </PageSection>

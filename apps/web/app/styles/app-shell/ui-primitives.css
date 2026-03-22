@@ -4,6 +4,20 @@
   gap: 16px;
 }
 
+.ui-page--project {
+  padding: 0;
+  gap: 14px;
+}
+
+.ui-page--project .ui-page__header {
+  gap: 10px;
+}
+
+.ui-page--project .ui-page__title {
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  line-height: 1.1;
+}
+
 .ui-page--narrow {
   max-width: 900px;
 }

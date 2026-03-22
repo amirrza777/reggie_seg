@@ -50,7 +50,7 @@ export function PeerListView({
 
   return (
     <div>
-      <ul className="peer-assessment-list" style={{ marginTop: "20px" }}>
+      <ul className="peer-assessment-list">
         {peers.map((allocation) => {
           const isCompleted = completedRevieweeIdSet.has(allocation.user.id);
           const cardClassName = `peer-assessment-card ${

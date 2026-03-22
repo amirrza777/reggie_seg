@@ -4,6 +4,7 @@ import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } f
 import { Card } from "@/shared/ui/Card";
 import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
+import { PageSection } from "@/shared/ui/PageSection";
 
 type ProjectTeamHealthPageProps = {
   params: Promise<{ projectId: string }>;
@@ -65,10 +66,13 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
 
   const activeWarnings = initialWarnings.filter((warning) => warning.active);
   return (
-    <div style={{ padding: 20 }}>
-      <Card title="Team Health">
+    <PageSection
+      title="Team Health"
+      description="View active warnings and submit team health messages."
+      className="ui-page--project"
+    >
+      <Card title="Warnings">
         <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Warnings</h3>
           {activeWarnings.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>
               No warnings for your team right now.
@@ -98,6 +102,14 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
           )}
           {warningsLoadError ? <p className="error" style={{ margin: 0 }}>{warningsLoadError}</p> : null}
         </div>
+      </Card>
+
+      <Card title="Messages">
+        <div className="stack" style={{ gap: 6, marginBottom: 12 }}>
+          <p className="muted" style={{ margin: 0 }}>
+            Submit and track team health messages for your team.
+          </p>
+        </div>
 
         <TeamHealthMessagePanel
           projectId={numericProjectId}
@@ -115,6 +127,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
           </Link>
         </div>
       </Card>
-    </div>
+    </PageSection>
   );
 }

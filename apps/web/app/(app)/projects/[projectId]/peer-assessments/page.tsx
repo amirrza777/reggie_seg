@@ -6,6 +6,7 @@ import { PeerListView } from "@/features/peerAssessment/components/PeerListView"
 import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
+import { PageSection } from "@/shared/ui/PageSection";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,14 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
 
   if (!user || !team) {
     return (
-      <div style={{ padding: 24 }}>
+      <PageSection
+        title="Peer Assessments"
+        description="Assess your teammates for this project."
+        className="ui-page--project"
+      >
         <p>You are not in a team for this project.</p>
         <Link href={`/projects/${projectId}`}>← Back to project</Link>
-      </div>
+      </PageSection>
     );
   }
 
@@ -84,18 +89,20 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   );
 
   return (
-    <div style={{ padding: "30px" }}>
-      <h2> Peer Assessments</h2>
-      <p>Assess your teammates for this project.</p>
-        <PeerListView
-          peers={peers}
-          projectId={projectId}
-          teamId={team.id}
-          currentUserId={user.id}
-          completedRevieweeIds={completedRevieweeIds}
-          completedAssessmentByRevieweeId={completedAssessmentByRevieweeId}
-          readOnly={readOnly}
-        />
-    </div>
-  );   
+    <PageSection
+      title="Peer Assessments"
+      description="Assess your teammates for this project."
+      className="ui-page--project"
+    >
+      <PeerListView
+        peers={peers}
+        projectId={projectId}
+        teamId={team.id}
+        currentUserId={user.id}
+        completedRevieweeIds={completedRevieweeIds}
+        completedAssessmentByRevieweeId={completedAssessmentByRevieweeId}
+        readOnly={readOnly}
+      />
+    </PageSection>
+  );
 }

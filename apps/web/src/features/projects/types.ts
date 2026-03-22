@@ -230,6 +230,7 @@ export type ProjectOverviewDashboardProps = {
   deadline: ProjectDeadline;
   team: Team;
   marking: ProjectMarkingSummary | null;
+  view?: "overview" | "deadlines";
 };
 
 export type DeadlineItem = {
