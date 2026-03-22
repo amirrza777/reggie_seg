@@ -292,6 +292,7 @@ describe("projects api client", () => {
       name: "Project A",
       moduleId: 2,
       questionnaireTemplateId: 9,
+      informationText: "Project guidance for students.",
       deadline,
     });
     expect(apiFetchMock).toHaveBeenCalledWith("/projects", {
@@ -300,6 +301,7 @@ describe("projects api client", () => {
         name: "Project A",
         moduleId: 2,
         questionnaireTemplateId: 9,
+        informationText: "Project guidance for students.",
         deadline,
       }),
     });

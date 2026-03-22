@@ -230,11 +230,12 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
+  const { name, moduleId, questionnaireTemplateId, deadline, informationText } = req.body as {
     name?: unknown;
     moduleId?: unknown;
     questionnaireTemplateId?: unknown;
     deadline?: unknown;
+    informationText?: unknown;
   };
 
   const normalizedName = typeof name === "string" ? name.trim() : "";
@@ -244,6 +245,14 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
 
   if (normalizedName.length > 160) {
     return res.status(400).json({ error: "Project name must be 160 characters or fewer" });
+  }
+
+  const normalizedInformationTextRaw =
+    typeof informationText === "string" ? informationText.trim() : "";
+  const normalizedInformationText =
+    normalizedInformationTextRaw.length > 0 ? normalizedInformationTextRaw : null;
+  if (normalizedInformationText && normalizedInformationText.length > 8_000) {
+    return res.status(400).json({ error: "informationText must be 8000 characters or fewer" });
   }
 
   const parsedModuleId = parsePositiveInt(moduleId);
@@ -263,6 +272,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       normalizedName,
       parsedModuleId,
       parsedTemplateId,
+      normalizedInformationText,
       parsedDeadline.value,
     );
     res.status(201).json(project);

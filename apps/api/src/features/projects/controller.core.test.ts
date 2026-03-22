@@ -106,6 +106,7 @@ describe("projects controller core handlers", () => {
       "P1",
       2,
       3,
+      null,
       expect.objectContaining({
         taskOpenDate: expect.any(Date),
         taskDueDate: expect.any(Date),

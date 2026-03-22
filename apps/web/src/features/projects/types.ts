@@ -1,6 +1,7 @@
 export type Project = {
   id: string;
   name: string;
+  informationText?: string | null;
   moduleName?: string;
   moduleId?: number;
   teamCount?: number;
@@ -173,6 +174,7 @@ export type CreateStaffProjectPayload = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  informationText?: string | null;
   deadline: {
     taskOpenDate: string;
     taskDueDate: string;
@@ -191,6 +193,7 @@ export type CreatedStaffProject = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  informationText?: string | null;
   deadline?: {
     taskOpenDate: string;
     taskDueDate: string;

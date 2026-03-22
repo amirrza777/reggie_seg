@@ -173,9 +173,17 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
-  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId, deadline);
+  return createProjectInDb(
+    actorUserId,
+    name,
+    moduleId,
+    questionnaireTemplateId,
+    informationText,
+    deadline,
+  );
 }
 
 /** Returns the project by ID. */

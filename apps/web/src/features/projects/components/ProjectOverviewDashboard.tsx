@@ -174,42 +174,28 @@ function DeadlinesScheduleCard({ items }: { items: DeadlineItem[] }) {
   );
 }
 
-function InformationBoardCard() {
+function InformationBoardCard({ informationText }: { informationText?: string | null }) {
+  const paragraphs = (informationText ?? "")
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter((paragraph) => paragraph.length > 0);
+
   return (
     <Card title="Information Board">
       <div className="project-overview-info">
         <div className="stack project-overview-info__body">
           <h4 className="project-overview-info__title">Expectations</h4>
-
-          <p className="project-overview-info__paragraph">
-            This project begins on Monday, 3 November 2025 and ends on Monday, 15 December 2025.
-            This project contributes 15.0% to the overall module mark. The module organiser will
-            have provided information on how the project is assessed.
-          </p>
-
-          <p className="project-overview-info__paragraph">
-            Students are allocated to groups. The module organiser will normally inform students of
-            the process used to allocate students to groups. The allocated groups will be assigned a
-            name by the module organiser and it will not be possible to change this name.
-          </p>
-
-          <p className="project-overview-info__paragraph">
-            Staff and students can organise group meetings. When the whole group meets, with or
-            without a member of staff present, to discuss, plan and manage the project and to make
-            key decisions, attendance should be taken and the meeting should be minuted.
-          </p>
-
-          <p className="project-overview-info__paragraph">
-            Students are expected to register their shared remote Git repository. Platform links and
-            contribution activity can be used to monitor and verify student engagement across the
-            project timeline.
-          </p>
-
-          <p className="project-overview-info__paragraph">
-            This project includes a peer assessment exercise in which students are expected to
-            provide feedback about each of their team mates. Students will also have an opportunity
-            to provide a confidential account of team experiences.
-          </p>
+          {paragraphs.length > 0 ? (
+            paragraphs.map((paragraph, index) => (
+              <p key={index} className="project-overview-info__paragraph">
+                {paragraph}
+              </p>
+            ))
+          ) : (
+            <p className="project-overview-info__paragraph">
+              No information board content has been published for this project yet.
+            </p>
+          )}
         </div>
       </div>
     </Card>
@@ -300,7 +286,7 @@ export function ProjectOverviewDashboard({ project, deadline, team, marking }: P
 
       {!completed ? (
         <div className="project-overview-layout">
-          <InformationBoardCard />
+          <InformationBoardCard informationText={project.informationText} />
           <DeadlinesScheduleCard items={deadlineItems} />
         </div>
       ) : null}

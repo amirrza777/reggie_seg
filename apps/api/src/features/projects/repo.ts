@@ -493,6 +493,7 @@ export async function getProjectById(projectId: number) {
     select: {
       id: true,
       name: true,
+      informationText: true,
       moduleId: true,
       questionnaireTemplateId: true,
     },
@@ -505,6 +506,7 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
   const actor = await getScopedStaffUser(actorUserId);
@@ -549,6 +551,7 @@ export async function createProject(
   const project = await prisma.project.create({
     data: {
       name,
+      informationText,
       moduleId,
       questionnaireTemplateId,
       deadline: {
@@ -568,6 +571,7 @@ export async function createProject(
     select: {
       id: true,
       name: true,
+      informationText: true,
       moduleId: true,
       questionnaireTemplateId: true,
       deadline: {

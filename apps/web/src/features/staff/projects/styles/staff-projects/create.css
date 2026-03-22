@@ -195,6 +195,13 @@
   padding: 0 11px;
 }
 
+.staff-projects__textarea {
+  min-height: 140px;
+  height: auto;
+  resize: vertical;
+  padding: 10px 11px;
+}
+
 .staff-projects__input:focus-visible,
 .staff-projects__select:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--accent) 30%, transparent);
