@@ -59,6 +59,16 @@
   text-overflow: ellipsis;
 }
 
+.user-menu__loader {
+  gap: 8px;
+  font-size: var(--fs-caption);
+}
+
+.user-menu__loader .ui-minimal-loader__dot {
+  width: 5px;
+  height: 5px;
+}
+
 .user-menu__dropdown {
   position: absolute;
   right: 0;
