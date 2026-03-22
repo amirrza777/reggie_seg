@@ -28,7 +28,7 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="stack">
       <p>You are not in a team for this project.</p>
       <Link href={`/projects/${projectId}`}>← Back to project</Link>
     </div>

@@ -195,7 +195,7 @@ export function MeetingList({
       <Table
         headers={headers}
         rows={rows}
-sortConfig={sortConfig}
+        sortConfig={sortConfig}
         onSort={handleSort}
       />
     </Card>
