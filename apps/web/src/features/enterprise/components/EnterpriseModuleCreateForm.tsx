@@ -33,17 +33,21 @@ export function EnterpriseModuleCreateForm({
     return <ModuleEditBlockedNotice state={state} />;
   }
 
-  return <EnterpriseModuleCreateFormBody state={state} />;
+  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} />;
 }
 
-function EnterpriseModuleCreateFormBody({ state }: { state: ModuleCreateFormState }) {
+function EnterpriseModuleCreateFormBody({ state, moduleId }: { state: ModuleCreateFormState; moduleId?: number }) {
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
-      {state.isEditMode && moduleId ? <MeetingSettingsSection moduleId={moduleId} /> : null}
+      {state.isEditMode && moduleId ? (
+        <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
+          <MeetingSettingsSection moduleId={moduleId} />
+        </div>
+      ) : null}
       {state.isEditMode ? <ModuleDeleteSection state={state} /> : null}
       <ModuleErrorMessage errorMessage={state.errorMessage} />
       <ModuleFormActions state={state} />

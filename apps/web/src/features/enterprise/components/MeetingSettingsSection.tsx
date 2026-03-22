@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/shared/ui/Card";
+import { FormField } from "@/shared/ui/FormField";
+import { Button } from "@/shared/ui/Button";
 import { getModuleMeetingSettings, updateModuleMeetingSettings } from "../api/client";
 
 type MeetingSettingsSectionProps = {
@@ -20,16 +22,17 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getModuleMeetingSettings(moduleId).then((data) => {
-      setSettings({
-        absenceThreshold: String(data.absenceThreshold),
-        minutesEditWindowDays: String(data.minutesEditWindowDays),
-      });
-    });
+    getModuleMeetingSettings(moduleId)
+      .then((data) => {
+        setSettings({
+          absenceThreshold: String(data.absenceThreshold),
+          minutesEditWindowDays: String(data.minutesEditWindowDays),
+        });
+      })
+      .catch(() => setError("Failed to load settings."));
   }, [moduleId]);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit() {
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -49,12 +52,12 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
 
   return (
     <Card title="Meeting settings">
-      <form className="stack" onSubmit={handleSubmit}>
+      <div className="stack">
         <div className="form-field">
           <label className="form-field__label" htmlFor="absence-threshold">
             Consecutive absences before alert
           </label>
-          <input
+          <FormField
             id="absence-threshold"
             type="number"
             min={1}
@@ -66,7 +69,7 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
           <label className="form-field__label" htmlFor="minutes-edit-window">
             Minutes edit window (days)
           </label>
-          <input
+          <FormField
             id="minutes-edit-window"
             type="number"
             min={1}
@@ -77,11 +80,11 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
         {error && <p className="error">{error}</p>}
         {saved && <p className="muted">Settings saved.</p>}
         <div>
-          <button type="submit" className="button button--primary" disabled={saving}>
+          <Button type="button" onClick={handleSubmit} disabled={saving}>
             {saving ? "Saving…" : "Save settings"}
-          </button>
+          </Button>
         </div>
-      </form>
+      </div>
     </Card>
   );
 }
