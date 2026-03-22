@@ -338,6 +338,93 @@ function buildHealthSignals(input: {
   return signals;
 }
 
+type AttentionItem = {
+  id: string;
+  kind: "warning" | "message";
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  title: string;
+  detail: string;
+  status: string;
+  meta: string;
+  createdAt: string;
+};
+
+const severityWeight: Record<AttentionItem["severity"], number> = {
+  HIGH: 3,
+  MEDIUM: 2,
+  LOW: 1,
+};
+
+function toTime(value: string | null | undefined) {
+  if (!value) return Number.NaN;
+  const timestamp = new Date(value).getTime();
+  return Number.isNaN(timestamp) ? Number.NaN : timestamp;
+}
+
+function latestTimestamp(values: Array<string | null | undefined>): string | null {
+  let latest = Number.NaN;
+  for (const value of values) {
+    const timestamp = toTime(value);
+    if (Number.isNaN(timestamp)) continue;
+    if (Number.isNaN(latest) || timestamp > latest) latest = timestamp;
+  }
+  if (Number.isNaN(latest)) return null;
+  return new Date(latest).toISOString();
+}
+
+function formatAgeLabel(value: string) {
+  const timestamp = toTime(value);
+  if (Number.isNaN(timestamp)) return "Unknown age";
+  const elapsed = Date.now() - timestamp;
+  if (elapsed < 60 * 1000) return "Just now";
+  if (elapsed < 60 * 60 * 1000) return `${Math.floor(elapsed / (60 * 1000))}m ago`;
+  if (elapsed < 24 * 60 * 60 * 1000) return `${Math.floor(elapsed / (60 * 60 * 1000))}h ago`;
+  return `${Math.floor(elapsed / (24 * 60 * 60 * 1000))}d ago`;
+}
+
+function buildAttentionItems(warnings: TeamWarning[], requests: TeamHealthMessage[]): AttentionItem[] {
+  const warningItems: AttentionItem[] = warnings
+    .filter((warning) => warning.active)
+    .map((warning) => ({
+      id: `warning-${warning.id}`,
+      kind: "warning",
+      severity: warning.severity,
+      title: warning.title,
+      detail: warning.details,
+      status: `${warning.severity} warning`,
+      meta: `Triggered ${formatAgeLabel(warning.createdAt)}`,
+      createdAt: warning.createdAt,
+    }));
+
+  const messageItems: AttentionItem[] = requests
+    .filter((request) => !request.resolved)
+    .map((request) => {
+      const requestHasResponse = Boolean(request.responseText?.trim());
+      const requesterName = `${request.requester.firstName} ${request.requester.lastName}`.trim();
+      return {
+        id: `message-${request.id}`,
+        kind: "message",
+        severity: requestHasResponse ? "LOW" : "MEDIUM",
+        title: request.subject,
+        detail: request.details,
+        status: requestHasResponse ? "Response drafted" : "Awaiting staff response",
+        meta: `${requesterName || request.requester.email} · Submitted ${formatAgeLabel(request.createdAt)}`,
+        createdAt: request.createdAt,
+      };
+    });
+
+  return [...warningItems, ...messageItems].sort((a, b) => {
+    const severityDifference = severityWeight[b.severity] - severityWeight[a.severity];
+    if (severityDifference !== 0) return severityDifference;
+    const aTime = toTime(a.createdAt);
+    const bTime = toTime(b.createdAt);
+    if (Number.isNaN(aTime) && Number.isNaN(bTime)) return 0;
+    if (Number.isNaN(aTime)) return 1;
+    if (Number.isNaN(bTime)) return -1;
+    return aTime - bTime;
+  });
+}
+
 export default async function StaffTeamHealthPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
   const user = await getCurrentUser();
@@ -432,6 +519,22 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     requests,
   });
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
+  const unresolvedNoResponseCount = requests.filter((request) => !request.resolved && !request.responseText?.trim()).length;
+  const attentionItems = buildAttentionItems(warnings, requests);
+  const latestSignalsAt = latestTimestamp([
+    ...warnings.map((warning) => warning.updatedAt),
+    ...requests.map((request) => request.updatedAt),
+    meetingSummary?.lastMeetingAt,
+    repoSummary?.latestAnalysedAt,
+  ]);
+  const compactMetricCardStyle = { padding: "10px 12px", gap: 4 } as const;
+  const compactSectionCardStyle = { padding: "12px", gap: 10 } as const;
+  const compactInnerCardStyle = { padding: "8px 10px", gap: 4 } as const;
+  const compactGridStyle = { gap: 8 } as const;
+  const compactPanelStyle = { ...compactSectionCardStyle, fontSize: "0.92rem", lineHeight: 1.35 } as const;
+  const compactBlockStyle = { ...compactInnerCardStyle, fontSize: "0.9rem", lineHeight: 1.3 } as const;
+  const compactTitleStyle = { margin: 0, fontSize: "1.02rem", lineHeight: 1.2 } as const;
+  const compactMutedValueStyle = { fontSize: "1rem", lineHeight: 1.2 } as const;
 
   return (
     <div className="staff-projects">
@@ -453,19 +556,82 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
-      <section className="staff-projects__team-list" aria-label="Team health signals">
-        <article className="staff-projects__team-card staff-projects__team-card--signal">
+      <section className="staff-projects__grid staff-projects__health-metrics" aria-label="Team health overview metrics">
+        <article className="staff-projects__card staff-projects__health-metric-card" style={compactMetricCardStyle}>
+          <p className="staff-projects__health-metric-label">Active warnings</p>
+          <p className="staff-projects__health-metric-value">{openWarnings.length}</p>
+        </article>
+        <article className="staff-projects__card staff-projects__health-metric-card" style={compactMetricCardStyle}>
+          <p className="staff-projects__health-metric-label">Unresolved messages</p>
+          <p className="staff-projects__health-metric-value">{openSupportRequests}</p>
+          <p className="staff-projects__team-count">{unresolvedNoResponseCount} awaiting response</p>
+        </article>
+        <article className="staff-projects__card staff-projects__health-metric-card" style={compactMetricCardStyle}>
+          <p className="staff-projects__health-metric-label">Latest data refresh</p>
+          <p
+            className="staff-projects__health-metric-value staff-projects__health-metric-value--muted"
+            style={compactMutedValueStyle}
+          >
+            {formatDateTime(latestSignalsAt)}
+          </p>
+        </article>
+      </section>
+
+      <section className="staff-projects__team-list" aria-label="Needs attention queue">
+        <article className="staff-projects__team-card staff-projects__team-card--signal" style={compactPanelStyle}>
           <div className="staff-projects__team-top">
             <div>
-              <h3 className="staff-projects__team-title">Team signal summary</h3>
+              <h3 className="staff-projects__team-title" style={compactTitleStyle}>Needs attention</h3>
               <p className="staff-projects__team-count">
-                Focus on the core indicators that affect intervention decisions.
+                Prioritised queue of active warnings and unresolved team messages.
               </p>
             </div>
           </div>
-          <div className="staff-projects__signal-sections">
-            <article className="staff-projects__signal-section">
-              <h4 className="staff-projects__signal-section-title">Meetings</h4>
+          {attentionItems.length === 0 ? (
+            <p className="staff-projects__team-count" style={{ margin: 0 }}>
+              No active warnings or unresolved messages.
+            </p>
+          ) : (
+            <div className="staff-projects__attention-list" style={compactGridStyle}>
+              {attentionItems.map((item) => (
+                <article key={item.id} className="staff-projects__attention-item" style={compactBlockStyle}>
+                  <div className="staff-projects__attention-top">
+                    <p className="staff-projects__attention-title" style={compactTitleStyle}>{item.title}</p>
+                    <span className={`staff-projects__signal-status staff-projects__signal-status--${item.severity.toLowerCase()}`}>
+                      {item.severity}
+                    </span>
+                  </div>
+                  {item.kind === "message" ? (
+                    <p className="staff-projects__team-count">
+                      <strong>Message:</strong> {item.status}
+                    </p>
+                  ) : null}
+                  <p className="staff-projects__team-count">{item.detail}</p>
+                  <p className="staff-projects__team-count">{item.meta}</p>
+                </article>
+              ))}
+            </div>
+          )}
+          {warningsError ? <p className="muted" style={{ margin: 0 }}>Warning data error: {warningsError}</p> : null}
+          {requestsError ? <p className="muted" style={{ margin: 0 }}>Message data error: {requestsError}</p> : null}
+        </article>
+      </section>
+
+      <section className="staff-projects__team-list" aria-label="Signal diagnostics">
+        <details
+          className="staff-projects__team-card staff-projects__team-card--signal staff-projects__collapsible"
+          style={compactPanelStyle}
+          open={false}
+        >
+          <summary className="staff-projects__collapsible-summary">
+            <div>
+              <h3 className="staff-projects__team-title" style={compactTitleStyle}>Signals and diagnostics</h3>
+              <p className="staff-projects__team-count">Supporting signal data from meetings, repositories, and assessments.</p>
+            </div>
+          </summary>
+          <div className="staff-projects__signal-sections" style={compactGridStyle}>
+            <article className="staff-projects__signal-section" style={compactBlockStyle}>
+              <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Meetings</h4>
               <p className="staff-projects__team-count">
                 Last meeting: {formatDateTime(meetingSummary?.lastMeetingAt ?? null)}
               </p>
@@ -477,8 +643,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
                 Meetings with minutes: {meetingSummary?.withMinutes ?? "Not available"}
               </p>
             </article>
-            <article className="staff-projects__signal-section">
-              <h4 className="staff-projects__signal-section-title">Contributions</h4>
+            <article className="staff-projects__signal-section" style={compactBlockStyle}>
+              <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Contributions</h4>
               <p className="staff-projects__team-count">
                 Commits (14d): {repoSummary?.commitsLast14Days ?? "Not available"}
               </p>
@@ -489,8 +655,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
                 Repositories analysed: {repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "Not available"}
               </p>
             </article>
-            <article className="staff-projects__signal-section">
-              <h4 className="staff-projects__signal-section-title">Assessments and support</h4>
+            <article className="staff-projects__signal-section" style={compactBlockStyle}>
+              <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Assessments and support</h4>
               <p className="staff-projects__team-count">
                 Peer assessments submitted: {peerSummary ? `${peerSummary.submitted}/${peerSummary.expected}` : "Not available"}
               </p>
@@ -502,24 +668,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               </p>
             </article>
           </div>
-          <div className="staff-projects__signal-issues">
-            <h4 className="staff-projects__signal-section-title">Issues requiring action</h4>
-            {openWarnings.length === 0 ? (
-              <p className="staff-projects__team-count" style={{ margin: 0 }}>
-                No active warnings.
-              </p>
-            ) : (
-              <ul className="staff-projects__signal-flags">
-                {openWarnings.map((warning) => (
-                  <li key={`warning-${warning.id}`} className="staff-projects__team-count">
-                    [{warning.severity}] {warning.title}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          <div className="staff-projects__signal-issues">
-            <h4 className="staff-projects__signal-section-title">Signals to monitor</h4>
+          <div className="staff-projects__signal-issues" style={compactBlockStyle}>
+            <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Signals to monitor</h4>
             <dl className="staff-projects__signal-stats">
               {healthSignals.map((signal) => (
                 <div key={signal.key} className="staff-projects__signal-stat">
@@ -539,8 +689,7 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}
-          {warningsError ? <p className="muted" style={{ margin: 0 }}>Warning signal error: {warningsError}</p> : null}
-        </article>
+        </details>
       </section>
 
       <StaffTeamHealthMessageReviewPanel
