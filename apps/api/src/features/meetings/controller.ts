@@ -40,7 +40,7 @@ export async function getMeetingHandler(req: Request, res: Response) {
 
 /** Handles requests for create meeting. */
 export async function createMeetingHandler(req: Request, res: Response) {
-  const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda } = req.body;
+  const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
 
   if (!teamId || !organiserId || !title || !date) {
     return res.status(400).json({ error: "Missing required fields: teamId, organiserId, title, date" });
@@ -56,6 +56,7 @@ export async function createMeetingHandler(req: Request, res: Response) {
       location,
       videoCallLink,
       agenda,
+      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
     });
     res.status(201).json(meeting);
   } catch (error: any) {
