@@ -84,6 +84,9 @@
   --glass-ui-blur: 10px;
   --glass-ui-saturate: 130%;
   --glass-ui-hover: color-mix(in srgb, var(--glass-ui-bg) 88%, var(--accent-soft) 12%);
+  --avatar-fallback-bg: color-mix(in srgb, var(--accent) 16%, var(--surface));
+  --avatar-fallback-border: var(--glass-ui-border);
+  --avatar-fallback-text: var(--ink-strong);
   --popup-glass-surface-strength: 86%;
   --popup-glass-bg: color-mix(in srgb, var(--surface) var(--popup-glass-surface-strength), transparent);
   --popup-glass-border: color-mix(in srgb, var(--glass-ui-border) 86%, rgba(255, 255, 255, 0.34) 14%);

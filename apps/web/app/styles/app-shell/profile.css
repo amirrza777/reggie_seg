@@ -131,8 +131,9 @@
   height: 64px;
   border-radius: 999px;
   object-fit: cover;
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  color: var(--ink-strong);
+  border: 1px solid var(--avatar-fallback-border);
+  background: var(--avatar-fallback-bg);
+  color: var(--avatar-fallback-text);
   display: grid;
   place-items: center;
   font-weight: var(--fw-semibold);

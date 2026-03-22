@@ -5,7 +5,8 @@
 .sidebar__mobile-sheet,
 .mobile-menu__panel,
 .github-chart-info__modal,
-.mention-dropdown {
+.mention-dropdown,
+.discussion-post__menu-panel {
   background: var(--popup-glass-bg);
   border-color: var(--popup-glass-border);
   box-shadow: var(--popup-glass-shadow);
@@ -38,7 +39,8 @@
   .sidebar__mobile-sheet,
   .mobile-menu__panel,
   .github-chart-info__modal,
-  .mention-dropdown {
+  .mention-dropdown,
+  .discussion-post__menu-panel {
     backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
     -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
   }

@@ -32,8 +32,9 @@
   object-fit: cover;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  color: var(--ink-strong);
+  border: 1px solid var(--avatar-fallback-border);
+  background: var(--avatar-fallback-bg);
+  color: var(--avatar-fallback-text);
   font-weight: var(--fw-semibold);
 }
 

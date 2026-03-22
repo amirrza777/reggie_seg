@@ -22,6 +22,14 @@
     width: fit-content;
   }
 
+  .project-overview-marking {
+    gap: 16px;
+  }
+
+  .project-overview-marking__section + .project-overview-marking__section {
+    padding-top: 14px;
+  }
+
   .github-hero__badge {
     max-width: 100%;
     white-space: normal;

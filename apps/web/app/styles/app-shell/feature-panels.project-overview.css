@@ -203,3 +203,41 @@
   margin: 0;
   line-height: 1.6;
 }
+
+.project-overview-marking {
+  display: grid;
+  gap: 20px;
+}
+
+.project-overview-marking__section {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.project-overview-marking__section + .project-overview-marking__section {
+  border-top: 1px solid var(--border);
+  padding-top: 18px;
+}
+
+.project-overview-marking__heading {
+  margin: 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+}
+
+.project-overview-marking__mark-line {
+  margin: 0;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.project-overview-marking__feedback {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.project-overview-marking__meta {
+  line-height: 1.45;
+}

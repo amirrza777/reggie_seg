@@ -5,7 +5,6 @@ import {
 import { PeerListView } from "@/features/peerAssessment/components/PeerListView";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +30,6 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
     return (
       <div style={{ padding: 24 }}>
         <p>You are not in a team for this project.</p>
-        <Link href={`/projects/${projectId}`}>← Back to project</Link>
       </div>
     );
   }
