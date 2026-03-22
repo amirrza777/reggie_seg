@@ -8,7 +8,6 @@
   border-radius: var(--radius-md);
   padding: var(--space-panel-content-inset);
   background: linear-gradient(180deg, var(--surface-hero-start), var(--surface));
-  box-shadow: var(--shadow-sm);
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
