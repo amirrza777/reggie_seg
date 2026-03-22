@@ -5,6 +5,7 @@ import {
   createMeeting,
   updateMeeting,
   createParticipants,
+  replaceParticipants,
   deleteMeeting,
   bulkUpsertAttendance,
   upsertMinutes,
@@ -29,6 +30,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     meetingParticipant: {
       createMany: vi.fn(),
+      deleteMany: vi.fn(),
     },
     meetingAttendance: {
       upsert: vi.fn(),
@@ -130,6 +132,19 @@ describe("meetings repo", () => {
         { meetingId: 5, userId: 3 },
       ],
       skipDuplicates: true,
+    });
+  });
+
+  it("replaces participants by deleting existing and creating new ones in a transaction", async () => {
+    await replaceParticipants(3, [1, 2]);
+
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      expect.anything(),
+      expect.anything(),
+    ]);
+    expect(prisma.meetingParticipant.deleteMany).toHaveBeenCalledWith({ where: { meetingId: 3 } });
+    expect(prisma.meetingParticipant.createMany).toHaveBeenCalledWith({
+      data: [{ meetingId: 3, userId: 1 }, { meetingId: 3, userId: 2 }],
     });
   });
 

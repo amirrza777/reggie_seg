@@ -23,6 +23,7 @@ vi.mock("./repo.js", () => ({
   getMeetingById: vi.fn(),
   createMeeting: vi.fn(),
   updateMeeting: vi.fn(),
+  replaceParticipants: vi.fn(),
   createParticipants: vi.fn(),
   getTeamMeetingState: vi.fn(),
   clearTeamInactivityFlag: vi.fn(),
@@ -204,6 +205,32 @@ describe("meetings service", () => {
 
     expect(repo.updateMeeting).toHaveBeenCalledWith(1, { title: "Updated" });
     expect(result).toEqual({ id: 1, title: "Updated" });
+  });
+
+  it("replaces participants when participantIds provided in editMeeting", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 1,
+      organiserId: 1,
+      date: new Date(Date.now() + 86400000),
+    });
+    (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
+
+    await editMeeting(1, 1, { title: "Updated", participantIds: [2, 3] });
+
+    expect(repo.replaceParticipants).toHaveBeenCalledWith(1, [2, 3]);
+  });
+
+  it("does not replace participants when participantIds not provided in editMeeting", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 1,
+      organiserId: 1,
+      date: new Date(Date.now() + 86400000),
+    });
+    (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
+
+    await editMeeting(1, 1, { title: "Updated" });
+
+    expect(repo.replaceParticipants).not.toHaveBeenCalled();
   });
 
   it("forwards removeMeeting to repo", async () => {

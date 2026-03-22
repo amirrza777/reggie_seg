@@ -70,7 +70,7 @@ export async function createMeetingHandler(req: Request, res: Response) {
 
 export async function updateMeetingHandler(req: Request, res: Response) {
   const meetingId = Number(req.params.meetingId);
-  const { userId, title, date, subject, location, videoCallLink, agenda } = req.body;
+  const { userId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
 
   if (isNaN(meetingId)) {
     return res.status(400).json({ error: "Invalid meeting ID" });
@@ -88,6 +88,7 @@ export async function updateMeetingHandler(req: Request, res: Response) {
       location,
       videoCallLink,
       agenda,
+      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
     });
     res.json(meeting);
   } catch (error: any) {

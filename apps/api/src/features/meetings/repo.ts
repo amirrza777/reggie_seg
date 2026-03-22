@@ -155,6 +155,16 @@ export function clearTeamInactivityFlag(teamId: number) {
   });
 }
 
+/** Replaces all participants for a meeting. */
+export function replaceParticipants(meetingId: number, participantIds: number[]) {
+  return prisma.$transaction([
+    prisma.meetingParticipant.deleteMany({ where: { meetingId } }),
+    prisma.meetingParticipant.createMany({
+      data: participantIds.map((userId) => ({ meetingId, userId })),
+    }),
+  ]);
+}
+
 /** Deletes the meeting. */
 export function deleteMeeting(meetingId: number) {
   return prisma.meeting.delete({

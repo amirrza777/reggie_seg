@@ -170,6 +170,22 @@ describe("updateMeetingHandler", () => {
     expect(res.json).toHaveBeenCalledWith({ id: 1, title: "Updated" });
   });
 
+  it("passes array participantIds to editMeeting", async () => {
+    (service.editMeeting as any).mockResolvedValue({ id: 1 });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1, participantIds: [2, 3] } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ participantIds: [2, 3] }));
+  });
+
+  it("treats non-array participantIds as undefined in updateMeetingHandler", async () => {
+    (service.editMeeting as any).mockResolvedValue({ id: 1 });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1, participantIds: "not-an-array" } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ participantIds: undefined }));
+  });
+
   it("returns 404 for NOT_FOUND error", async () => {
     (service.editMeeting as any).mockRejectedValue({ code: "NOT_FOUND" });
     const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };

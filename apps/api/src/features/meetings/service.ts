@@ -3,6 +3,7 @@ import {
   getMeetingById,
   createMeeting,
   updateMeeting,
+  replaceParticipants,
   getTeamMeetingState,
   clearTeamInactivityFlag,
   deleteMeeting,
@@ -111,12 +112,18 @@ export async function editMeeting(meetingId: number, userId: number, data: {
   location?: string;
   videoCallLink?: string;
   agenda?: string;
+  participantIds?: number[];
 }) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
   if (meeting.organiserId !== userId) throw { code: "FORBIDDEN" };
   if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
-  return updateMeeting(meetingId, data);
+  const { participantIds, ...meetingData } = data;
+  const updated = await updateMeeting(meetingId, meetingData);
+  if (participantIds !== undefined) {
+    await replaceParticipants(meetingId, participantIds);
+  }
+  return updated;
 }
 
 /** Removes the meeting. */
