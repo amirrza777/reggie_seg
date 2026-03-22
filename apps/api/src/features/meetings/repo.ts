@@ -9,6 +9,13 @@ export function getMeetingsByTeamId(teamId: number) {
       organiser: {
         select: { id: true, firstName: true, lastName: true },
       },
+      participants: {
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {
@@ -53,6 +60,13 @@ export function getMeetingById(meetingId: number) {
           },
         },
       },
+      participants: {
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {
@@ -75,6 +89,14 @@ export function getMeetingById(meetingId: number) {
         },
       },
     },
+  });
+}
+
+/** Creates participant records for a meeting. */
+export function createParticipants(meetingId: number, userIds: number[]) {
+  return prisma.meetingParticipant.createMany({
+    data: userIds.map((userId) => ({ meetingId, userId })),
+    skipDuplicates: true,
   });
 }
 

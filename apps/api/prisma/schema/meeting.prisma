@@ -12,7 +12,8 @@ model Meeting {
   updatedAt   DateTime            @updatedAt
   team        Team                @relation(fields: [teamId], references: [id])
   organiser   User                @relation("MeetingOrganiser", fields: [organiserId], references: [id])
-  attendances MeetingAttendance[]
-  minutes     MeetingMinutes?
-  comments    MeetingComment[]
+  attendances  MeetingAttendance[]
+  participants MeetingParticipant[]
+  minutes      MeetingMinutes?
+  comments     MeetingComment[]
 }

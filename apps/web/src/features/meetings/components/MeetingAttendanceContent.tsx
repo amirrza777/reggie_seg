@@ -49,7 +49,9 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
     );
   }
 
-  const members = meeting.team.allocations.map((a) => a.user);
+  const members = meeting.participants.length > 0
+    ? meeting.participants.map((p) => p.user)
+    : meeting.team.allocations.map((a) => a.user);
 
   return (
     <div className="stack">

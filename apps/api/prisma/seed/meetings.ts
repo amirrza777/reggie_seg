@@ -137,6 +137,14 @@ export async function seedMeetings(context: SeedContext) {
 
     await prisma.meetingAttendance.createMany({ data: attendanceRows, skipDuplicates: true });
 
+    const allStudentIds = students.slice(0, 4).map((s) => s.id);
+    const meetingIds = [teamIntro.id, weeklyCheckIn.id, uiReview.id];
+    const participantRows = meetingIds.flatMap((meetingId) =>
+      allStudentIds.map((userId) => ({ meetingId, userId }))
+    );
+
+    await prisma.meetingParticipant.createMany({ data: participantRows, skipDuplicates: true });
+
     await prisma.meetingMinutes.create({
       data: {
         meetingId: uiReview.id,

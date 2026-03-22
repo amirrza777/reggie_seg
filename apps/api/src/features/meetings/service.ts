@@ -11,6 +11,7 @@ import {
   createComment,
   deleteComment,
   createMentions,
+  createParticipants,
   getRecentAttendanceForUser,
   getModuleLeadsForTeam,
   getModuleMeetingSettingsForTeam,
@@ -70,14 +71,18 @@ export async function addMeeting(data: {
   location?: string;
   videoCallLink?: string;
   agenda?: string;
+  participantIds?: number[];
 }) {
+  const { participantIds, ...meetingData } = data;
   const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
-  const meeting = await createMeeting(data);
+  const meeting = await createMeeting(meetingData);
   if (team?.inactivityFlag === "YELLOW") {
     await clearTeamInactivityFlag(data.teamId);
   }
   const members = await getTeamMembers(data.teamId);
+  const recipients = participantIds ? members.filter((m) => participantIds.includes(m.id)) : members;
+  await createParticipants(meeting.id, recipients.map((m) => m.id));
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
   const body = [
     `A new meeting has been scheduled: ${data.title}`,
@@ -87,7 +92,7 @@ export async function addMeeting(data: {
     data.agenda ? `\nAgenda:\n${data.agenda}` : null,
   ].filter(Boolean).join("\n");
   await Promise.all(
-    members.map((member) =>
+    recipients.map((member) =>
       sendEmail({
         to: member.email,
         subject: `New meeting: ${data.title}`,

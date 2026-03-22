@@ -92,6 +92,17 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
         )}
       </Card>
 
+      {meeting.participants.length > 0 && meeting.attendances.length === 0 && (
+        <Card title="Participants">
+          <Table
+            headers={["Name"]}
+            rows={meeting.participants.map((p) => [
+              `${p.user.firstName} ${p.user.lastName}`,
+            ])}
+          />
+        </Card>
+      )}
+
       {meeting.attendances.length > 0 && (
         <Card title="Attendance">
           <Table

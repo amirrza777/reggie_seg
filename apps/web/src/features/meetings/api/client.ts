@@ -9,6 +9,12 @@ export async function getMeeting(meetingId: number) {
   return apiFetch<Meeting>(`/meetings/${meetingId}`);
 }
 
+export async function listTeamMembers(teamId: number) {
+  return apiFetch<{ id: number; firstName: string; lastName: string }[]>(
+    `/team-allocation/teams/${teamId}/members`
+  );
+}
+
 export async function createMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -18,6 +24,7 @@ export async function createMeeting(data: {
   location?: string;
   videoCallLink?: string;
   agenda?: string;
+  participantIds?: number[];
 }) {
   return apiFetch("/meetings", {
     method: "POST",

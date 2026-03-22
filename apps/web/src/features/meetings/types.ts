@@ -25,9 +25,21 @@ export type Meeting = {
       };
     }[];
   };
+  participants: MeetingParticipantRecord[];
   attendances: MeetingAttendanceRecord[];
   minutes: MeetingMinutesRecord | null;
   comments: MeetingCommentRecord[];
+};
+
+export type MeetingParticipantRecord = {
+  id: number;
+  meetingId: number;
+  userId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 };
 
 export type MeetingAttendanceRecord = {
