@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ComponentType } from "react";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
@@ -25,8 +24,6 @@ type StaffProjectTrelloContentProps = {
   deadline?: ProjectDeadline | null;
   viewComponent: ComponentType<StaffTrelloContentViewProps>;
 };
-
-const STAFF_BACK_HREF = (projectId: string) => `/staff/projects/${projectId}`;
 
 export function StaffProjectTrelloContent({
   projectId,
@@ -66,7 +63,6 @@ export function StaffProjectTrelloContent({
   if (state.status === "error") {
     return (
       <div className="stack">
-        <Link href={STAFF_BACK_HREF(projectId)}>← Back to project</Link>
         <p>{state.message}</p>
       </div>
     );
@@ -79,7 +75,6 @@ export function StaffProjectTrelloContent({
   ) {
     return (
       <div className="stack">
-        <Link href={STAFF_BACK_HREF(projectId)}>← Back to project</Link>
         <p className="muted">The team has not connected Trello yet.</p>
       </div>
     );

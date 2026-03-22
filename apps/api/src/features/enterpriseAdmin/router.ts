@@ -1,5 +1,7 @@
 import { Router } from "express";
+import type { Prisma } from "@prisma/client";
 import { requireAuth } from "../../auth/middleware.js";
+import { prisma } from "../../shared/db.js";
 import { resolveEnterpriseUser } from "./middleware.js";
 import {
   createModule,

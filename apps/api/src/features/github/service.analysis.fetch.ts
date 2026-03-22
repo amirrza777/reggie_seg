@@ -1,6 +1,7 @@
 import { getGitHubApiConfig } from "./config.js";
 import { GithubServiceError } from "./errors.js";
-import { getCachedCommitStats, setCachedCommitStats } from "./service.analysis.commit-stats-cache.js";
+import { parseLastPageFromLinkHeader } from "./service.analysis.link-header.js";
+export { fetchCommitStatsForRepository } from "./service.analysis.commit-stats.js";
 
 export type GithubCommitListItem = {
   sha: string;
@@ -19,14 +20,6 @@ export type GithubCommitListItem = {
   parents?: Array<{
     sha?: string;
   }>;
-};
-
-type GithubCommitDetailResponse = {
-  sha: string;
-  stats?: {
-    additions?: number;
-    deletions?: number;
-  };
 };
 
 type GithubBranchResponseItem = {
@@ -68,8 +61,17 @@ export async function fetchCommitsForLinkedRepository(accessToken: string, fullN
   let page = 1;
 
   while (true) {
+    const params = new URLSearchParams({
+      sha: branch,
+      per_page: "100",
+      page: String(page),
+    });
+    if (sinceIso) {
+      params.set("since", sinceIso);
+    }
+
     const response = await fetch(
-      `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&since=${encodeURIComponent(sinceIso)}&per_page=100&page=${page}`,
+      `${baseUrl}/repos/${fullName}/commits?${params.toString()}`,
       {
         headers: {
           Accept: "application/vnd.github+json",
@@ -100,9 +102,6 @@ export async function fetchCommitsForLinkedRepository(accessToken: string, fullN
       break;
     }
     page += 1;
-    if (page > 10) {
-      break;
-    }
   }
 
   return commits;
@@ -197,9 +196,6 @@ export async function fetchAllUserCommitsForRepository(accessToken: string, full
       break;
     }
     page += 1;
-    if (page > 30) {
-      break;
-    }
   }
 
   return commits;
@@ -233,9 +229,6 @@ export async function listRepositoryBranches(accessToken: string, fullName: stri
       break;
     }
     page += 1;
-    if (page > 5) {
-      break;
-    }
   }
 
   return Array.from(new Set(branches));
@@ -288,9 +281,6 @@ export async function listRepositoryBranchesLive(
       break;
     }
     page += 1;
-    if (page > 5) {
-      break;
-    }
   }
 
   return branches;

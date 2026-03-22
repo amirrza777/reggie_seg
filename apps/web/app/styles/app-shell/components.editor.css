@@ -1,6 +1,6 @@
 .rich-editor {
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: var(--radius-md);
     overflow: hidden;
     background: var(--surface);
 }
@@ -28,7 +28,7 @@
 .rich-editor__tool {
     background: transparent;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--radius-md);
     padding: 4px 8px;
     cursor: pointer;
     color: var(--ink);
@@ -108,7 +108,7 @@
     font-family: monospace;
     background: var(--surface-raised);
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     font-size: 0.9em;
 }
 
@@ -184,7 +184,7 @@
     padding: 4px 0;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     box-shadow: var(--shadow-lg);
     z-index: 20;
 }
@@ -207,7 +207,7 @@
     background: var(--accent-soft);
     color: var(--accent);
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     font-weight: var(--fw-medium);
     font-size: 0.9em;
 }

@@ -1,8 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { prisma, setupTeamAllocationRepoTestDefaults } from "./repo.invites-scope.test-helpers.js";
 import {
-  applyManualAllocationTeam,
-  applyRandomAllocationPlan,
-  createTeamInviteRecord,
   findModuleStudentsForManualAllocation,
   findVacantModuleStudentsForProject,
   findProjectTeamSummaries,
@@ -13,39 +11,6 @@ import {
   getInvitesForTeam,
   updateInviteStatusFromPending,
 } from "./repo.js";
-import { prisma } from "../../shared/db.js";
-
-vi.mock("../../shared/db.js", () => ({
-  prisma: {
-    teamInvite: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
-      findMany: vi.fn(),
-      updateMany: vi.fn(),
-      findUnique: vi.fn(),
-    },
-    team: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      findMany: vi.fn(),
-    },
-    project: {
-      findFirst: vi.fn(),
-    },
-    user: {
-      findUnique: vi.fn(),
-      findMany: vi.fn(),
-    },
-    teamAllocation: {
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      createMany: vi.fn(),
-      deleteMany: vi.fn(),
-      findMany: vi.fn(),
-    },
-    $transaction: vi.fn(),
-  },
-}));
 
 describe("teamAllocation repo invites and scope", () => {
   beforeEach(() => {

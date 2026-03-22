@@ -6,10 +6,10 @@
     "node": ">=20 <25"
   },
   "scripts": {
-    "dev": "cross-env NEXT_DIST_DIR=.next-dev next dev -p 3001",
-    "dev:clean": "rimraf .next .next-dev && cross-env NEXT_DIST_DIR=.next-dev next dev -p 3001",
-    "build": "cross-env NEXT_DIST_DIR=.next next build",
-    "start": "cross-env NEXT_DIST_DIR=.next next start -p 3001",
+    "dev": "next dev -p 3001",
+    "dev:clean": "rimraf .next && next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -34,7 +34,6 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.3.4",
     "@vitest/coverage-v8": "^2.1.2",
-    "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
     "eslint-config-next": "^15.5.9",
     "eslint-plugin-react-hooks": "^7.0.1",

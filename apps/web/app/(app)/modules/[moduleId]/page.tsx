@@ -30,6 +30,13 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
     modules = [];
   }
 
+  let userProjects: Awaited<ReturnType<typeof getUserProjects>> = [];
+  try {
+    userProjects = await getUserProjects(user.id);
+  } catch {
+    userProjects = [];
+  }
+
   const module = modules.find((item) => String(item.id) === moduleId);
   if (!module) notFound();
 

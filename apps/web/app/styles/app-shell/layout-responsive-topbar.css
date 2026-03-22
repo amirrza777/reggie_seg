@@ -8,11 +8,16 @@
     gap: 12px;
   }
 
-  .user-menu__name {
-    max-width: 140px;
+  .topbar__actions .user-menu__name {
+    display: none;
   }
 
-  .user-menu__trigger {
+  .topbar__actions .user-menu__trigger {
     flex-shrink: 0;
+    min-width: 0;
+    padding: 4px;
+    border-radius: var(--radius-md);
+    justify-content: center;
+    gap: 0;
   }
 }

@@ -67,20 +67,6 @@ export function GithubProjectReposMyCommitsTab({
                         {typeof totals?.commits === "number" ? totals.commits.toLocaleString() : "-"}
                       </p>
                     </div>
-                    <div className="github-repos-tab__summary-card github-repos-tab__summary-card--accent">
-                      <p className="muted github-repos-tab__summary-label">Lines (no merge PRs)</p>
-                      <p className="github-repos-tab__summary-value">
-                        +{typeof totals?.additionsExcludingMergePullRequests === "number" ? totals.additionsExcludingMergePullRequests.toLocaleString() : "-"}{" "}
-                        / -{typeof totals?.deletionsExcludingMergePullRequests === "number" ? totals.deletionsExcludingMergePullRequests.toLocaleString() : "-"}
-                      </p>
-                    </div>
-                    <div className="github-repos-tab__summary-card">
-                      <p className="muted github-repos-tab__summary-label">With merges</p>
-                      <p className="github-repos-tab__summary-value">
-                        +{typeof totals?.additionsIncludingMergePullRequests === "number" ? totals.additionsIncludingMergePullRequests.toLocaleString() : "-"}{" "}
-                        / -{typeof totals?.deletionsIncludingMergePullRequests === "number" ? totals.deletionsIncludingMergePullRequests.toLocaleString() : "-"}
-                      </p>
-                    </div>
                     <div className="github-repos-tab__summary-card">
                       <p className="muted github-repos-tab__summary-label">Merge PR commits</p>
                       <p className="github-repos-tab__summary-value">
@@ -89,15 +75,6 @@ export function GithubProjectReposMyCommitsTab({
                     </div>
                   </div>
                 </div>
-
-                {totals &&
-                typeof totals.detailedCommitCount === "number" &&
-                typeof totals.requestedCommitCount === "number" &&
-                totals.detailedCommitCount < totals.requestedCommitCount ? (
-                  <p className="muted github-repos-tab__summary-coverage">
-                    Line totals coverage: {totals.detailedCommitCount}/{totals.requestedCommitCount} commits
-                  </p>
-                ) : null}
 
                 {myCommitsLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading your commits...</p> : null}
                 {myCommitsErrorByLinkId[link.id] ? (
@@ -110,8 +87,8 @@ export function GithubProjectReposMyCommitsTab({
                   <>
                     <div className="github-repos-tab__table-wrap">
                       <Table
-                        headers={["Commit", "Date", "Additions", "Deletions"]}
-                        columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
+                        headers={["Commit", "Date"]}
+                        columnTemplate="minmax(0, 1.9fr) minmax(170px, 240px)"
                         rows={myCommitData.commits.map((commit) => [
                           <div key={commit.sha} className="stack github-repos-tab__commit-cell">
                             <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
@@ -129,8 +106,6 @@ export function GithubProjectReposMyCommitsTab({
                             </div>
                           </div>,
                           commit.date ? new Date(commit.date).toLocaleString() : "-",
-                          commit.additions ?? "-",
-                          commit.deletions ?? "-",
                         ])}
                       />
                     </div>

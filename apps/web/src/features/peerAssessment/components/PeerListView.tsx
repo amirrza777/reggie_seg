@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { TeamAllocation } from "../types";
 import "../styles/list.css";
 
@@ -85,8 +86,16 @@ export function PeerListView({
                   }`}
                 >
                   {isCompleted
-                    ? "Review submitted - click to edit →"
-                    : "Not submitted yet - click to assess →"}
+                    ? (
+                      <>
+                        Review submitted - click to edit <ArrowRightIcon />
+                      </>
+                    )
+                    : (
+                      <>
+                        Not submitted yet - click to assess <ArrowRightIcon />
+                      </>
+                    )}
                 </div>
               </button>
             </li>

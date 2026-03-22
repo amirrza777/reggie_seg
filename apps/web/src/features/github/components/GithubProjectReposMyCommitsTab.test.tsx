@@ -70,7 +70,9 @@ describe("GithubProjectReposMyCommitsTab", () => {
     expect(screen.getByText("My commits")).toBeInTheDocument();
     expect(screen.getByText("team/repo")).toBeInTheDocument();
     expect(screen.getByText(/Showing commits for @alice/)).toBeInTheDocument();
-    expect(screen.getByText(/Line totals coverage:\s*10\/12 commits/)).toBeInTheDocument();
+    expect(screen.getByText("Merge PR commits")).toBeInTheDocument();
+    expect(screen.queryByText("Lines (no merge PRs)")).not.toBeInTheDocument();
+    expect(screen.queryByText("With merges")).not.toBeInTheDocument();
     expect(screen.getByTestId("table")).toHaveTextContent("1");
 
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { logout } from "../api/client";
 import type { UserProfile } from "../types";
 import { useUser } from "../context";
+import { MinimalLoader } from "@/shared/ui/MinimalLoader";
 
 function initials(user: UserProfile) {
   const first = user.firstName?.[0] ?? "";
@@ -40,7 +41,7 @@ export function UserMenu() {
     return (
       <div className="user-menu__trigger" aria-busy="true" aria-label="Loading user menu">
         <span className="user-menu__avatar user-menu__avatar--fallback">…</span>
-        <span className="user-menu__name">Loading...</span>
+        <MinimalLoader label="Loading" className="user-menu__loader" />
       </div>
     );
   }

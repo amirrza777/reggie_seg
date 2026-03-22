@@ -4,15 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
-import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
-import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
-import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
-import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
 import {
-  GITHUB_PROJECT_REPOS_TABS as tabs,
-  type GithubProjectReposTabKey as TabKey,
-} from "./GithubProjectReposClient.tabs";
+  GithubProjectReposClientStatusMessages,
+  GithubProjectReposClientTabNav,
+  GithubProjectReposMyCodeActivitySection,
+  GithubProjectReposTeamCodeActivitySection,
+} from "./GithubProjectReposClient.sections";
+import { useGithubProjectReposAutoRefresh } from "./useGithubProjectReposAutoRefresh";
+import { useGithubProjectReposLiveData } from "./useGithubProjectReposLiveData";
+import type { GithubProjectReposTabKey as TabKey } from "./GithubProjectReposClient.tabs";
 import {
   analyseProjectGithubRepo,
   disconnectGithubAccount,
@@ -75,17 +76,22 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     branchCommitsByLinkId,
     branchCommitsLoadingByLinkId,
     branchCommitsErrorByLinkId,
+    fetchBranchCommits,
+    handleRefreshLiveBranches,
     myCommitsByLinkId,
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
-    buildBranchRows,
-    fetchBranchCommits,
     fetchMyCommits,
     handleRefreshLiveBranches,
     setBranchSearchQuery,
     getBranchSearchQuery,
   } = useGithubProjectReposLiveData({
-    activeTab,
+    activeTab:
+      activeTab === "my-commits"
+        ? "my-commits"
+        : activeTab === "team-code-activity"
+          ? "branches"
+          : null,
     loading,
     links,
     connection,
@@ -213,10 +219,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     if (loading || didAutoSelectInitialTabRef.current) {
       return;
     }
-    const shouldOpenConfigurations = !connection?.connected || needsGithubAppInstall;
-    setActiveTab(shouldOpenConfigurations ? "configurations" : "repositories");
+    setActiveTab("team-code-activity");
     didAutoSelectInitialTabRef.current = true;
-  }, [loading, connection?.connected, needsGithubAppInstall]);
+  }, [loading]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -333,17 +338,35 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     setError(null);
     setInfo(null);
     try {
+      let refreshed = false;
       if (links.length > 0) {
         await Promise.all(links.map((link) => analyseProjectGithubRepo(link.id)));
-        setInfo("Repository snapshot refreshed.");
+        refreshed = true;
       }
       await load();
+      if (refreshed) {
+        setInfo("Repository snapshot refreshed.");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to refresh repository snapshot.");
     } finally {
       setBusy(false);
     }
   }
+
+  useGithubProjectReposAutoRefresh({
+    enabled: !loading && Boolean(connection?.connected) && links.length > 0,
+    links,
+    latestSnapshotByLinkId,
+    busy,
+    linking,
+    removingLinkId,
+    load,
+    setBusy,
+    setError,
+    setInfo,
+  });
+
   return (
     <div className="stack github-project-repos-client">
       <GithubProjectReposHero
@@ -352,36 +375,12 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         linkedRepoCount={activeLinkCount}
         loading={loading}
       />
-      {info ? (
-        <div className="github-project-repos-status github-project-repos-status--info">
-          <p className="muted github-project-repos-status__text">{info}</p>
-        </div>
-      ) : null}
-      {error ? (
-        <div className="github-project-repos-status github-project-repos-status--error">
-          <p className="muted github-project-repos-status__text">{error}</p>
-        </div>
-      ) : null}
-      <section className="github-project-repos-tabs">
-        <div className="github-project-repos-tabs__row">
-          {tabs.map((tab) => (
-            <Button
-              key={tab.key}
-              variant={activeTab === tab.key ? "primary" : "ghost"}
-              onClick={() => setActiveTab(tab.key)}
-              className={`github-project-repos-tabs__btn${activeTab === tab.key ? " is-active" : ""}`}
-            >
-              {tab.label}
-            </Button>
-          ))}
-        </div>
-      </section>
+      <GithubProjectReposClientStatusMessages info={info} error={error} />
+      <GithubProjectReposClientTabNav activeTab={activeTab} onChange={setActiveTab} />
 
-      {activeTab === "repositories" ? (
-        <GithubProjectReposRepositoriesTab
+      {activeTab === "my-code-activity" ? (
+        <GithubProjectReposMyCodeActivitySection
           loading={loading}
-          busy={busy}
-          linking={linking}
           connection={connection}
           links={links}
           availableRepos={availableRepos}
@@ -392,11 +391,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           searchingRepos={searchingRepos}
           coverageByLinkId={coverageByLinkId}
           latestSnapshotByLinkId={latestSnapshotByLinkId}
-          currentGithubLogin={connection?.account?.login ?? null}
-          removingLinkId={removingLinkId}
-          onRefresh={handleRefreshSnapshots}
-          onLinkSelected={handleLinkSelectedRepo}
-          onRemoveLink={(linkId) => void handleRemoveLink(linkId)}
         />
       ) : null}
 
@@ -441,11 +435,43 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         <GithubProjectReposConfigurationsTab
           loading={loading}
           busy={busy}
+          linking={linking}
           connection={connection}
           needsGithubAppInstall={needsGithubAppInstall}
           onInstallGithubApp={handleOpenGithubAppInstall}
           onDisconnect={handleDisconnect}
           onConnect={handleConnect}
+          repositoriesTabProps={{
+            loading,
+            busy,
+            linking,
+            connection,
+            links,
+            availableRepos,
+            selectedRepoId,
+            setSelectedRepoId,
+            repoSearchQuery,
+            onRepoSearchQueryChange: setRepoSearchQuery,
+            searchingRepos,
+            coverageByLinkId,
+            latestSnapshotByLinkId,
+            currentGithubLogin: connection?.account?.login ?? null,
+            liveBranchesByLinkId,
+            liveBranchesLoadingByLinkId,
+            liveBranchesErrorByLinkId,
+            liveBranchesRefreshing,
+            selectedBranchByLinkId,
+            setSelectedBranchByLinkId,
+            branchCommitsByLinkId,
+            branchCommitsLoadingByLinkId,
+            branchCommitsErrorByLinkId,
+            removingLinkId,
+            onRefresh: handleRefreshSnapshots,
+            onRefreshBranches: handleRefreshLiveBranches,
+            onFetchBranchCommits: fetchBranchCommits,
+            onLinkSelected: handleLinkSelectedRepo,
+            onRemoveLink: (linkId) => void handleRemoveLink(linkId),
+          }}
         />
       ) : null}
     </div>

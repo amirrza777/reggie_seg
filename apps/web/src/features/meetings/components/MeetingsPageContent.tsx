@@ -31,7 +31,11 @@ export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming"
   const previous = meetings.filter((m) => new Date(m.date) < now);
 
   return (
-    <div className="stack">
+    <div className="stack projects-panel">
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">Team meetings</h1>
+        <p className="projects-panel__subtitle">Schedule, review, and manage meetings for your project team.</p>
+      </header>
       <nav className="pill-nav">
         <button
           type="button"

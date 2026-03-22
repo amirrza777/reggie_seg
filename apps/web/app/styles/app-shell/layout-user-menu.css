@@ -32,8 +32,9 @@
   object-fit: cover;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  color: var(--ink-strong);
+  border: 1px solid var(--avatar-fallback-border);
+  background: var(--avatar-fallback-bg);
+  color: var(--avatar-fallback-text);
   font-weight: var(--fw-semibold);
 }
 
@@ -56,6 +57,16 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.user-menu__loader {
+  gap: 8px;
+  font-size: var(--fs-caption);
+}
+
+.user-menu__loader .ui-minimal-loader__dot {
+  width: 5px;
+  height: 5px;
 }
 
 .user-menu__dropdown {

@@ -30,7 +30,7 @@
 
 .ui-toast {
   pointer-events: auto;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   padding: 10px 12px;
   min-width: min(340px, calc(100vw - 32px));

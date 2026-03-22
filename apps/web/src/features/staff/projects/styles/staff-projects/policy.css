@@ -139,7 +139,8 @@
   place-items: center;
   font-size: 0.85rem;
   font-weight: var(--fw-semibold);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--avatar-fallback-text);
+  background: var(--avatar-fallback-bg);
 }
 
 .staff-projects__avatar--sm {

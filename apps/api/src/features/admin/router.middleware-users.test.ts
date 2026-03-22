@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NextFunction, Response } from "express";
+import type { NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import router from "./router.js";
 import { prisma } from "../../shared/db.js";

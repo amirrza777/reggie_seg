@@ -1,5 +1,5 @@
 .github-project-repos-status {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   padding: 10px 12px;
   background: var(--surface);
@@ -32,7 +32,7 @@
 
 .github-project-repos-tabs {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
   padding: 10px;
@@ -46,7 +46,7 @@
 }
 
 .github-project-repos-tabs__btn {
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   min-height: 38px;
   padding-inline: 12px;
 }
@@ -57,7 +57,7 @@
 
 .github-repos-tab {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 16px;
   box-shadow: var(--shadow-sm);
@@ -108,7 +108,7 @@
 
 .github-repos-tab__subpanel {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 12px;
   box-shadow: var(--shadow-sm);
@@ -133,7 +133,7 @@
 
 .github-repos-tab__summary-card {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   background: var(--surface);
 }
@@ -168,7 +168,7 @@
 .github-repos-tab__commit-cell {
   gap: 4px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px;
   background: color-mix(in srgb, var(--surface) 94%, white 6%);
 }
@@ -218,8 +218,63 @@
   width: 100%;
   min-height: 40px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 8px 10px;
   background: var(--surface);
   color: var(--ink);
+}
+
+.github-project-repos-section {
+  gap: 12px;
+}
+
+.github-project-repos-section__header-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface));
+  box-shadow: var(--shadow-sm);
+}
+
+.github-project-repos-section__kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.35px;
+  text-transform: uppercase;
+}
+
+.github-project-repos-section__title {
+  margin: 4px 0 0;
+  font-size: var(--fs-panel-section-title);
+  line-height: 1.2;
+}
+
+.github-project-repos-section__description {
+  margin: 8px 0 0;
+}
+
+.github-repos-tab--activity .github-repos-tab__helper {
+  margin-top: 4px;
+}
+
+.github-repos-tab__subpanel--activity {
+  display: grid;
+  gap: 10px;
+}
+
+.github-repos-tab__activity-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.github-repos-tab__activity-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }

@@ -47,6 +47,150 @@ vi.mock("../../shared/db.js", () => ({
   },
 }));
 
+const PROJECT_ID = 5;
+const ENTERPRISE_ID = "ent-1";
+const RANDOM_PLAN = [
+  { members: [{ id: 1 }, { id: 2 }] },
+  { members: [{ id: 3 }] },
+];
+const DEFAULT_DRAFT_UPDATED_AT = new Date("2026-01-01T00:00:00.000Z");
+
+type TeamRow = { id: number; teamName: string };
+
+function setupTransaction<T>(tx: T): T {
+  (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+  return tx;
+}
+
+function buildDraftTeamCreateArgs(teamName: string, draftCreatedById: number | null = null) {
+  return {
+    data: {
+      enterpriseId: ENTERPRISE_ID,
+      projectId: PROJECT_ID,
+      teamName,
+      allocationLifecycle: "DRAFT",
+      draftCreatedById,
+      draftApprovedById: null,
+      draftApprovedAt: null,
+    },
+    select: { id: true, teamName: true },
+  };
+}
+
+function buildRandomAllocationTx(options: {
+  existingTeamNames?: string[];
+  createdTeams?: TeamRow[];
+  occupiedUserIds?: number[];
+  createManyCount?: number;
+} = {}) {
+  const {
+    existingTeamNames = ["Team A"],
+    createdTeams = [
+      { id: 11, teamName: "Random Team 1" },
+      { id: 22, teamName: "Random Team 2" },
+    ],
+    occupiedUserIds = [],
+    createManyCount = 2,
+  } = options;
+
+  const create = vi.fn();
+  for (const team of createdTeams) {
+    create.mockResolvedValueOnce(team);
+  }
+
+  return {
+    team: {
+      findMany: vi.fn().mockResolvedValue(existingTeamNames.map((teamName) => ({ teamName }))),
+      create,
+    },
+    teamAllocation: {
+      findMany: vi.fn().mockResolvedValue(occupiedUserIds.map((userId) => ({ userId }))),
+      createMany: vi.fn().mockResolvedValue({ count: createManyCount }),
+    },
+  };
+}
+
+function buildManualAllocationTx(options: {
+  existingTeamId?: number | null;
+  createdTeam?: TeamRow;
+  conflictingUserIds?: number[];
+  createManyCount?: number;
+} = {}) {
+  const {
+    existingTeamId = null,
+    createdTeam = { id: 44, teamName: "Team Gamma" },
+    conflictingUserIds = [],
+    createManyCount = 2,
+  } = options;
+
+  return {
+    team: {
+      findFirst: vi.fn().mockResolvedValue(existingTeamId === null ? null : { id: existingTeamId }),
+      create: vi.fn().mockResolvedValue(createdTeam),
+    },
+    teamAllocation: {
+      findMany: vi.fn().mockResolvedValue(conflictingUserIds.map((userId) => ({ userId }))),
+      createMany: vi.fn().mockResolvedValue({ count: createManyCount }),
+    },
+  };
+}
+
+function buildApproveDraftTx(options: {
+  draftTeam?: { id: number; projectId: number; updatedAt: Date } | null;
+  draftMemberIds?: number[];
+  activeConflictUserIds?: number[];
+  updateCount?: number;
+  approvedTeam?: any;
+} = {}) {
+  const {
+    draftTeam = { id: 44, projectId: PROJECT_ID, updatedAt: DEFAULT_DRAFT_UPDATED_AT },
+    draftMemberIds = [7, 8],
+    activeConflictUserIds = [],
+    updateCount = 1,
+    approvedTeam = {
+      id: 44,
+      teamName: "Draft Team",
+      allocations: [
+        {
+          user: {
+            id: 7,
+            firstName: "Ada",
+            lastName: "Lovelace",
+            email: "ada@example.com",
+          },
+        },
+        {
+          user: {
+            id: 8,
+            firstName: "Linus",
+            lastName: "Torvalds",
+            email: "linus@example.com",
+          },
+        },
+      ],
+      _count: {
+        allocations: 2,
+      },
+    },
+  } = options;
+
+  const findMany = vi.fn().mockResolvedValueOnce(draftMemberIds.map((userId) => ({ userId })));
+  if (draftMemberIds.length > 0) {
+    findMany.mockResolvedValueOnce(activeConflictUserIds.map((userId) => ({ userId })));
+  }
+
+  return {
+    team: {
+      findFirst: vi.fn().mockResolvedValue(draftTeam),
+      updateMany: vi.fn().mockResolvedValue({ count: updateCount }),
+      findUnique: vi.fn().mockResolvedValue(approvedTeam),
+    },
+    teamAllocation: {
+      findMany,
+    },
+  };
+}
+
 describe("teamAllocation repo allocation transactions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,9 +210,14 @@ describe("teamAllocation repo allocation transactions", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    const result = await applyRandomAllocationPlan(5, "ent-1", [
-      { members: [{ id: 1 }, { id: 2 }] },
-      { members: [{ id: 3 }] },
+  it("applyRandomAllocationPlan validates, creates teams, and stores allocations for each planned group", async () => {
+    const tx = setupTransaction(buildRandomAllocationTx());
+
+    const result = await applyRandomAllocationPlan(PROJECT_ID, ENTERPRISE_ID, RANDOM_PLAN);
+
+    expect(result).toEqual([
+      { id: 11, teamName: "Random Team 1", memberCount: 2 },
+      { id: 22, teamName: "Random Team 2", memberCount: 1 },
     ]);
 
     expect(result).toEqual([
@@ -79,14 +228,14 @@ describe("teamAllocation repo allocation transactions", () => {
       where: {
         userId: { in: [1, 2, 3] },
         team: {
-          projectId: 5,
+          projectId: PROJECT_ID,
           archivedAt: null,
         },
       },
       select: { userId: true },
     });
     expect(tx.team.findMany).toHaveBeenCalledWith({
-      where: { enterpriseId: "ent-1" },
+      where: { enterpriseId: ENTERPRISE_ID },
       select: { teamName: true },
     });
   });
@@ -149,47 +298,31 @@ describe("teamAllocation repo allocation transactions", () => {
   });
 
   it("applyRandomAllocationPlan throws when one of the target team names already exists", async () => {
-    const tx = {
-      team: {
-        findMany: vi.fn().mockResolvedValue([
-          { teamName: "Random Team 1" },
-        ]),
-        create: vi.fn(),
-      },
-      teamAllocation: {
-        findMany: vi.fn().mockResolvedValue([]),
-        createMany: vi.fn(),
-      },
-    };
-    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+    const tx = setupTransaction(buildRandomAllocationTx({ existingTeamNames: ["Random Team 1"], createdTeams: [] }));
 
     await expect(
-      applyRandomAllocationPlan(5, "ent-1", [
+      applyRandomAllocationPlan(PROJECT_ID, ENTERPRISE_ID, [
         { members: [{ id: 1 }] },
         { members: [{ id: 2 }] },
       ]),
     ).rejects.toEqual({ code: "TEAM_NAME_ALREADY_EXISTS" });
+
     expect(tx.team.create).not.toHaveBeenCalled();
   });
 
-  it("applyRandomAllocationPlan uses supplied team names", async () => {
-    const tx = {
-      team: {
-        findMany: vi.fn().mockResolvedValue([{ teamName: "Existing Team" }]),
-        create: vi.fn()
-          .mockResolvedValueOnce({ id: 11, teamName: "Team Orion" })
-          .mockResolvedValueOnce({ id: 22, teamName: "Team Vega" }),
-      },
-      teamAllocation: {
-        findMany: vi.fn().mockResolvedValue([]),
-        createMany: vi.fn().mockResolvedValue({ count: 1 }),
-      },
-    };
-    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+  it("applyRandomAllocationPlan uses supplied team names and passes each name into create", async () => {
+    const tx = setupTransaction(buildRandomAllocationTx({
+      existingTeamNames: ["Existing Team"],
+      createdTeams: [
+        { id: 11, teamName: "Team Orion" },
+        { id: 22, teamName: "Team Vega" },
+      ],
+      createManyCount: 1,
+    }));
 
     const result = await applyRandomAllocationPlan(
-      5,
-      "ent-1",
+      PROJECT_ID,
+      ENTERPRISE_ID,
       [
         { members: [{ id: 1 }] },
         { members: [{ id: 2 }] },
@@ -289,24 +422,15 @@ describe("teamAllocation repo allocation transactions", () => {
   });
 
   it("applyRandomAllocationPlan throws when planned students are no longer vacant", async () => {
-    const tx = {
-      team: {
-        findMany: vi.fn(),
-        create: vi.fn(),
-      },
-      teamAllocation: {
-        findMany: vi.fn().mockResolvedValue([{ userId: 2 }]),
-        createMany: vi.fn(),
-      },
-    };
-    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+    const tx = setupTransaction(buildRandomAllocationTx({
+      existingTeamNames: [],
+      createdTeams: [],
+      occupiedUserIds: [2],
+    }));
 
-    await expect(
-      applyRandomAllocationPlan(5, "ent-1", [
-        { members: [{ id: 1 }, { id: 2 }] },
-        { members: [{ id: 3 }] },
-      ]),
-    ).rejects.toEqual({ code: "STUDENTS_NO_LONGER_VACANT" });
+    await expect(applyRandomAllocationPlan(PROJECT_ID, ENTERPRISE_ID, RANDOM_PLAN)).rejects.toEqual({
+      code: "STUDENTS_NO_LONGER_VACANT",
+    });
 
     expect(tx.teamAllocation.createMany).not.toHaveBeenCalled();
     expect(tx.team.findMany).not.toHaveBeenCalled();
@@ -325,9 +449,9 @@ describe("teamAllocation repo allocation transactions", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    await expect(
-      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
-    ).resolves.toEqual({
+    const result = await applyManualAllocationTeam(PROJECT_ID, ENTERPRISE_ID, "Team Gamma", [7, 8]);
+
+    expect(result).toEqual({
       id: 44,
       teamName: "Team Gamma",
       memberCount: 2,
@@ -351,7 +475,7 @@ describe("teamAllocation repo allocation transactions", () => {
 
     expect(tx.team.findFirst).toHaveBeenCalledWith({
       where: {
-        enterpriseId: "ent-1",
+        enterpriseId: ENTERPRISE_ID,
         teamName: "Team Gamma",
       },
       select: {
@@ -362,7 +486,7 @@ describe("teamAllocation repo allocation transactions", () => {
       where: {
         userId: { in: [7, 8] },
         team: {
-          projectId: 5,
+          projectId: PROJECT_ID,
           archivedAt: null,
         },
       },
@@ -439,9 +563,17 @@ describe("teamAllocation repo allocation transactions", () => {
     };
     (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
-    await expect(
-      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
-    ).rejects.toEqual({ code: "TEAM_NAME_ALREADY_EXISTS" });
+    await applyManualAllocationTeam(PROJECT_ID, ENTERPRISE_ID, "Team Draft", [7], { draftCreatedById: 44 });
+
+    expect(tx.team.create).toHaveBeenCalledWith(buildDraftTeamCreateArgs("Team Draft", 44));
+  });
+
+  it("applyManualAllocationTeam throws when team name already exists", async () => {
+    const tx = setupTransaction(buildManualAllocationTx({ existingTeamId: 90 }));
+
+    await expect(applyManualAllocationTeam(PROJECT_ID, ENTERPRISE_ID, "Team Gamma", [7, 8])).rejects.toEqual({
+      code: "TEAM_NAME_ALREADY_EXISTS",
+    });
 
     expect(tx.teamAllocation.findMany).not.toHaveBeenCalled();
     expect(tx.team.create).not.toHaveBeenCalled();
@@ -449,21 +581,11 @@ describe("teamAllocation repo allocation transactions", () => {
   });
 
   it("applyManualAllocationTeam throws when students are no longer available", async () => {
-    const tx = {
-      team: {
-        findFirst: vi.fn().mockResolvedValue(null),
-        create: vi.fn(),
-      },
-      teamAllocation: {
-        findMany: vi.fn().mockResolvedValue([{ userId: 8 }]),
-        createMany: vi.fn(),
-      },
-    };
-    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
+    const tx = setupTransaction(buildManualAllocationTx({ conflictingUserIds: [8] }));
 
-    await expect(
-      applyManualAllocationTeam(5, "ent-1", "Team Gamma", [7, 8]),
-    ).rejects.toEqual({ code: "STUDENTS_NO_LONGER_AVAILABLE" });
+    await expect(applyManualAllocationTeam(PROJECT_ID, ENTERPRISE_ID, "Team Gamma", [7, 8])).rejects.toEqual({
+      code: "STUDENTS_NO_LONGER_AVAILABLE",
+    });
 
     expect(tx.team.create).not.toHaveBeenCalled();
     expect(tx.teamAllocation.createMany).not.toHaveBeenCalled();

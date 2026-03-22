@@ -1,3 +1,13 @@
+@media (max-width: 1180px) {
+  .github-chart-section__panel--half {
+    grid-column: 1 / -1;
+  }
+
+  .github-chart-section__contributor-grid {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+}
+
 @media (max-width: 860px) {
   .project-overview-layout {
     grid-template-columns: 1fr;
@@ -12,13 +22,17 @@
     width: fit-content;
   }
 
+  .project-overview-marking {
+    gap: 16px;
+  }
+
+  .project-overview-marking__section + .project-overview-marking__section {
+    padding-top: 14px;
+  }
+
   .github-hero__badge {
     max-width: 100%;
     white-space: normal;
-  }
-
-  .github-chart-section__panel--half {
-    grid-column: 1 / -1;
   }
 
   .github-chart-section__canvas--xl {
@@ -27,6 +41,23 @@
 
   .github-chart-section__canvas--md {
     height: 190px;
+  }
+
+  .github-chart-section__canvas--weekly {
+    height: 204px;
+  }
+
+  .github-chart-section__contributor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .github-chart-section__contributor-mini {
+    height: 110px;
+  }
+
+  .github-chart-section__subnav-btn {
+    flex: 1 1 140px;
+    justify-content: center;
   }
 
   .github-repos-tab__summary-grid {

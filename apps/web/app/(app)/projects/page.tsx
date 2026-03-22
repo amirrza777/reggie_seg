@@ -28,8 +28,8 @@ export default async function ProjectsListPage() {
         <ProjectList projects={projects} />
       ) : (
         <div className="card">
-          <div className="card__body">
-            <p className="muted" style={{ marginBottom: 8 }}>
+          <div className="card__body projects-panel__empty-copy">
+            <p className="muted">
               Projects appear here once a staff member or admin assigns you to a team.
             </p>
             <p className="muted">

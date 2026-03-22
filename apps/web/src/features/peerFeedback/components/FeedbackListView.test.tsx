@@ -41,8 +41,8 @@ describe("FeedbackAssessmentView", () => {
     expect(screen.getByText("From: Alex User")).toBeInTheDocument();
     expect(screen.getByText("Submitted")).toBeInTheDocument();
     expect(screen.getByText("Pending")).toBeInTheDocument();
-    expect(screen.getByText("Review submitted - click to edit →")).toBeInTheDocument();
-    expect(screen.getByText("Not submitted yet - click to review →")).toBeInTheDocument();
+    expect(screen.getByText("Review submitted - click to edit")).toBeInTheDocument();
+    expect(screen.getByText("Not submitted yet - click to review")).toBeInTheDocument();
 
     const submittedLink = container.querySelector('a[href="/projects/1/peer-feedback/10"]');
     const pendingLink = container.querySelector('a[href="/projects/1/peer-feedback/11"]');

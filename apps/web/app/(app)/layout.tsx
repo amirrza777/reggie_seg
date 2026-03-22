@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/shared/layout/AppShell";
+import { NavigationPrefetch } from "@/shared/layout/NavigationPrefetch";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";

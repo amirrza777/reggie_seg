@@ -29,7 +29,7 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I view my team's meeting schedule?",
-    answer: "Open Projects, select your project, then go to Meetings or the Meeting scheduler to see upcoming sessions.",
+    answer: "Open Projects, select your project, then go to Team meetings to see upcoming sessions and schedule new ones.",
     links: [
       { label: "Open Projects", href: "/projects" },
       { label: "View Calendar", href: "/calendar" },

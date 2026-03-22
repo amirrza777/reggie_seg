@@ -183,38 +183,12 @@ export async function saveMinutes(meetingId: number, writerId: number, content: 
   return upsertMinutes(meetingId, writerId, content);
 }
 
-export function parseMentions(content: string): string[] {
-  const matches = content.match(/@([A-Za-z]+\s[A-Za-z]+)/g);
-  if (!matches) return [];
-  return matches.map((m) => m.slice(1));
-}
-
-async function processMentions(commentId: number, meetingId: number, userId: number, content: string, teamId: number) {
-  const mentionedNames = parseMentions(content);
-  if (mentionedNames.length === 0) return;
-
-  const members = await getTeamMembers(teamId);
-  const mentionedIds = members
-    .filter((m) => mentionedNames.includes(`${m.firstName} ${m.lastName}`))
-    .map((m) => m.id)
-    .filter((id) => id !== userId);
-
-  if (mentionedIds.length === 0) return;
-
-  await createMentions(commentId, mentionedIds);
-
-  const team = await getTeamById(teamId);
-  const author = members.find((m) => m.id === userId);
-  const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
-
-  for (const mentionedId of mentionedIds) {
-    await addNotification({
-      userId: mentionedId,
-      type: "MENTION",
-      message: `${authorName} mentioned you in a comment`,
-      link: `/projects/${team.projectId}/meetings/${meetingId}`,
-    });
+/** Adds a comment. */
+export function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
+  if (typeof teamId === "number") {
+    return createComment(meetingId, userId, content, teamId);
   }
+  return createComment(meetingId, userId, content);
 }
 
 /** Adds a comment. */

@@ -103,6 +103,7 @@ export type SnapshotUserStatRow = Omit<SnapshotUserStatRecord, "commitsByDay" | 
 };
 
 export type PreviousSnapshotData = {
+  commitLineStatsMode?: string;
   analysedWindow?: {
     since?: string;
     until?: string;
