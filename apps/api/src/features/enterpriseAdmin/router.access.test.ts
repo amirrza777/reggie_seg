@@ -68,6 +68,7 @@ beforeEach(() => {
   (prisma.module.findFirst as any).mockResolvedValue(null);
   (prisma.module.findUnique as any).mockResolvedValue({
     id: 7,
+    joinCode: "M0000007",
     name: "Module 7",
     briefText: null,
     timelineText: null,
@@ -102,6 +103,7 @@ beforeEach(() => {
 describe("enterpriseAdmin router access control", () => {
   const getAccess = getRouteHandler("get", "/modules/:moduleId/access");
   const getAccessSelection = getRouteHandler("get", "/modules/:moduleId/access-selection");
+  const getJoinCode = getRouteHandler("get", "/modules/:moduleId/join-code");
   const updateModule = getRouteHandler("put", "/modules/:moduleId");
   const deleteModule = getRouteHandler("delete", "/modules/:moduleId");
   const patchFeatureFlag = getRouteHandler("patch", "/feature-flags/:key");
@@ -181,6 +183,26 @@ describe("enterpriseAdmin router access control", () => {
         studentIds: [31],
       }),
     );
+  });
+
+  it("allows module leads to read join codes", async () => {
+    (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 2, joinCode: "ABCDEFGH" });
+    (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
+
+    const res = mockRes();
+    await getJoinCode({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
+    expect((res.json as any)).toHaveBeenCalledWith({ moduleId: 2, joinCode: "ABCDEFGH" });
+  });
+
+  it("rejects teaching assistants reading join codes", async () => {
+    (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 2, joinCode: "ABCDEFGH" });
+    (prisma.moduleLead.findFirst as any).mockResolvedValueOnce(null);
+
+    const res = mockRes();
+    await getJoinCode({ enterpriseUser: { id: 12, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
+
+    expect((res.status as any)).toHaveBeenCalledWith(403);
   });
 
   it("allows module update for module lead", async () => {

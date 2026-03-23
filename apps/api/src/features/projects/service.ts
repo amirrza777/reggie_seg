@@ -2,6 +2,8 @@ import {
   getProjectById,
   getUserProjects,
   getModulesForUser,
+  getModuleJoinActor,
+  joinModuleByCode as joinModuleByCodeInDb,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -22,6 +24,7 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { normalizeModuleJoinCode } from "../services/moduleJoinCodeService.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -67,6 +70,40 @@ export async function fetchModulesForUser(
     projectCount: "projectCount" in module ? module.projectCount : 0,
     accountRole: module.accessRole,
   }));
+}
+
+export async function joinModuleByCode(actorUserId: number, rawCode: string) {
+  const actor = await getModuleJoinActor(actorUserId);
+  if (!actor) {
+    return { ok: false as const, status: 401, error: "Unauthorized" };
+  }
+  if (actor.role !== "STUDENT") {
+    return { ok: false as const, status: 403, error: "Forbidden" };
+  }
+
+  const normalizedCode = normalizeModuleJoinCode(rawCode);
+  if (!normalizedCode) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  const enrolled = await joinModuleByCodeInDb({
+    enterpriseId: actor.enterpriseId,
+    userId: actor.id,
+    joinCode: normalizedCode,
+  });
+  if (!enrolled) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  return {
+    ok: true as const,
+    value: {
+      moduleId: enrolled.moduleId,
+      moduleName: enrolled.moduleName,
+      enrolled: true,
+      alreadyEnrolled: enrolled.alreadyEnrolled,
+    },
+  };
 }
 
 /** Returns the teammates for project. */

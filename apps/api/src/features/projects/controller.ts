@@ -6,6 +6,7 @@ import {
   fetchProjectById,
   fetchProjectsForUser,
   fetchModulesForUser,
+  joinModuleByCode,
   fetchProjectDeadline,
   fetchTeammatesForProject,
   fetchTeamById,
@@ -336,6 +337,29 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("Error fetching user modules:", error);
     res.status(500).json({ error: "Failed to fetch modules" });
+  }
+}
+
+export async function joinModuleHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const code = req.body?.code;
+  if (typeof code !== "string" || code.trim().length === 0) {
+    return res.status(400).json({ error: "code is required" });
+  }
+
+  try {
+    const result = await joinModuleByCode(actorUserId, code);
+    if (!result.ok) {
+      return res.status(result.status).json({ error: result.error });
+    }
+    return res.json(result.value);
+  } catch (error) {
+    console.error("Error joining module by code:", error);
+    return res.status(500).json({ error: "Failed to join module" });
   }
 }
 

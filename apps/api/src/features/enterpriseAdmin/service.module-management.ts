@@ -1,4 +1,6 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
+import { generateModuleJoinCode } from "../services/moduleJoinCodeService.js";
 import {
   ensureCreatorLeader,
   replaceModuleAssignments,
@@ -10,6 +12,13 @@ import {
   MODULE_SELECT,
 } from "./service.core.js";
 import type { EnterpriseUser, ParsedModulePayload } from "./types.js";
+
+const MODULE_WITH_JOIN_CODE_SELECT = {
+  ...MODULE_SELECT,
+  joinCode: true,
+} satisfies Prisma.ModuleSelect;
+
+const MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS = 5;
 
 /** Creates a module. */
 export async function createModule(enterpriseUser: EnterpriseUser, payload: ParsedModulePayload) {
@@ -30,34 +39,56 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
-  const created = await prisma.$transaction(async (tx) => {
-    const module = await tx.module.create({
-      data: {
-        enterpriseId: enterpriseUser.enterpriseId,
-        name: payload.name,
-        briefText: payload.briefText,
-        timelineText: payload.timelineText,
-        expectationsText: payload.expectationsText,
-        readinessNotesText: payload.readinessNotesText,
-      },
-      select: { id: true },
-    });
+  for (let attempt = 0; attempt < MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        const joinCode = await generateModuleJoinCode(tx, enterpriseUser.enterpriseId);
+        const module = await tx.module.create({
+          data: {
+            enterpriseId: enterpriseUser.enterpriseId,
+            joinCode,
+            name: payload.name,
+            briefText: payload.briefText,
+            timelineText: payload.timelineText,
+            expectationsText: payload.expectationsText,
+            readinessNotesText: payload.readinessNotesText,
+          },
+          select: { id: true },
+        });
 
-    await replaceModuleAssignments(tx, {
-      enterpriseId: enterpriseUser.enterpriseId,
-      moduleId: module.id,
-      leaderIds,
-      taIds,
-      studentIds: payload.studentIds,
-    });
+        await replaceModuleAssignments(tx, {
+          enterpriseId: enterpriseUser.enterpriseId,
+          moduleId: module.id,
+          leaderIds,
+          taIds,
+          studentIds: payload.studentIds,
+        });
 
-    const withCounts = await tx.module.findUnique({ where: { id: module.id }, select: MODULE_SELECT });
-    if (!withCounts) throw new Error("Failed to load created module");
+        const withCounts = await tx.module.findUnique({
+          where: { id: module.id },
+          select: MODULE_WITH_JOIN_CODE_SELECT,
+        });
+        if (!withCounts) throw new Error("Failed to load created module");
 
-    return withCounts;
-  });
+        return withCounts;
+      });
 
-  return { ok: true as const, value: mapModuleRecord(created) };
+      return {
+        ok: true as const,
+        value: {
+          ...mapModuleRecord(created),
+          joinCode: created.joinCode,
+        },
+      };
+    } catch (error) {
+      if (isModuleJoinCodeUniqueConstraintError(error) && attempt < MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS - 1) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw new Error("Failed to create module join code");
 }
 
 /** Returns the module access. */
@@ -113,6 +144,25 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
       leaderIds: leaders.map((item) => item.userId),
       taIds: teachingAssistants.map((item) => item.userId),
       studentIds: students.map((item) => item.userId),
+    },
+  };
+}
+
+export async function getModuleJoinCode(enterpriseUser: EnterpriseUser, moduleId: number) {
+  const module = await prisma.module.findFirst({
+    where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
+    select: { id: true, joinCode: true },
+  });
+  if (!module) return { ok: false as const, status: 404, error: "Module not found" };
+
+  const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
+  if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
+
+  return {
+    ok: true as const,
+    value: {
+      moduleId: module.id,
+      joinCode: module.joinCode,
     },
   };
 }
@@ -284,6 +334,20 @@ async function updateModuleRecord(params: {
 
     return tx.module.findUnique({ where: { id: params.moduleId }, select: MODULE_SELECT });
   });
+}
+
+function isModuleJoinCodeUniqueConstraintError(error: unknown) {
+  const prismaError = error as { code?: unknown; meta?: { target?: unknown } } | null;
+  if (prismaError?.code !== "P2002") {
+    return false;
+  }
+
+  const target = prismaError.meta?.target;
+  if (!Array.isArray(target)) {
+    return false;
+  }
+
+  return target.includes("enterpriseId") && target.includes("joinCode");
 }
 
 /** Deletes the module. */

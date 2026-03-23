@@ -13,6 +13,7 @@ describe("projects router", () => {
     expect(routes).toEqual(
       expect.arrayContaining([
         { path: "/", methods: { post: true } },
+        { path: "/modules/join", methods: { post: true } },
         { path: "/:projectId", methods: { get: true } },
         { path: "/", methods: { get: true } },
         { path: "/:projectId/teammates", methods: { get: true } },

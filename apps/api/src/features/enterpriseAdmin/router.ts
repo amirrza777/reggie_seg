@@ -9,6 +9,7 @@ import {
   ensureCreatorLeader,
   getModuleAccess,
   getModuleAccessSelection,
+  getModuleJoinCode,
   getModuleStudents,
   getOverview,
   listFeatureFlags,
@@ -137,6 +138,18 @@ router.get("/modules/:moduleId/access-selection", async (req, res) => {
   if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
 
   const result = await getModuleAccessSelection(enterpriseUser, moduleId);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json(result.value);
+});
+
+router.get("/modules/:moduleId/join-code", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+
+  const moduleId = parsePositiveInt(req.params.moduleId);
+  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+
+  const result = await getModuleJoinCode(enterpriseUser, moduleId);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 });

@@ -24,6 +24,7 @@ export {
   createModule,
   getModuleAccess,
   getModuleAccessSelection,
+  getModuleJoinCode,
   updateModule,
   deleteModule,
   getModuleStudents,

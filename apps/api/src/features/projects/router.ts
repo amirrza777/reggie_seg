@@ -5,6 +5,7 @@ import {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
+  joinModuleHandler,
   getProjectDeadlineHandler,
   getProjectMarkingHandler,
   getTeammatesForProjectHandler,
@@ -30,6 +31,7 @@ import {
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", requireAuth, getUserModulesHandler);
+router.post("/modules/join", requireAuth, joinModuleHandler);
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
