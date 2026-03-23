@@ -61,6 +61,7 @@ export async function fetchModulesForUser(
   const modules = await getModulesForUser(userId, options);
   return modules.map((module) => ({
     id: String(module.id),
+    code: "code" in module ? module.code ?? undefined : undefined,
     title: module.name,
     briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
     timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,

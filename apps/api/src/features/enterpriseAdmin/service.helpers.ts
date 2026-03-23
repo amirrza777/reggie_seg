@@ -3,6 +3,7 @@ import { prisma } from "../../shared/db.js";
 import type { EnterpriseUser, EnterpriseUserRole, ParsedModulePayload } from "./types.js";
 
 const MODULE_NAME_MAX_LENGTH = 120;
+const MODULE_CODE_MAX_LENGTH = 32;
 const MODULE_SECTION_MAX_LENGTH = 8_000;
 
 export function parseModulePayload(body: unknown): { ok: true; value: ParsedModulePayload } | { ok: false; error: string } {
@@ -11,6 +12,9 @@ export function parseModulePayload(body: unknown): { ok: true; value: ParsedModu
   if (name.length > MODULE_NAME_MAX_LENGTH) {
     return { ok: false, error: `Module name must be ${MODULE_NAME_MAX_LENGTH} characters or fewer` };
   }
+
+  const code = parseOptionalModuleCodeField((body as any)?.code);
+  if (!code.ok) return { ok: false, error: code.error };
 
   const briefText = parseOptionalTextField((body as any)?.briefText, "Module brief");
   if (!briefText.ok) return { ok: false, error: briefText.error };
@@ -37,6 +41,7 @@ export function parseModulePayload(body: unknown): { ok: true; value: ParsedModu
     ok: true,
     value: {
       name,
+      code: code.value,
       briefText: briefText.value,
       timelineText: timelineText.value,
       expectationsText: expectationsText.value,
@@ -184,6 +189,21 @@ export async function replaceModuleAssignments(
       skipDuplicates: true,
     });
   }
+}
+
+function parseOptionalModuleCodeField(
+  value: unknown,
+): { ok: true; value: string | null } | { ok: false; error: string } {
+  if (value === undefined || value === null) return { ok: true, value: null };
+  if (typeof value !== "string") return { ok: false, error: "Module code must be a string" };
+
+  const normalized = value.trim().toUpperCase();
+  if (!normalized) return { ok: true, value: null };
+  if (normalized.length > MODULE_CODE_MAX_LENGTH) {
+    return { ok: false, error: `Module code must be ${MODULE_CODE_MAX_LENGTH} characters or fewer` };
+  }
+
+  return { ok: true, value: normalized };
 }
 
 function parseOptionalTextField(

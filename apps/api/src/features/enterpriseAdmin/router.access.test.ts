@@ -68,6 +68,7 @@ beforeEach(() => {
   (prisma.module.findFirst as any).mockResolvedValue(null);
   (prisma.module.findUnique as any).mockResolvedValue({
     id: 7,
+    code: "MOD-7",
     joinCode: "M0000007",
     name: "Module 7",
     briefText: null,
@@ -111,6 +112,7 @@ describe("enterpriseAdmin router access control", () => {
   it("returns module access payload", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
+      code: "4CCS2DBS",
       name: "Databases",
       briefText: "Brief",
       timelineText: null,
@@ -158,6 +160,7 @@ describe("enterpriseAdmin router access control", () => {
   it("returns module access selection ids", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({
       id: 2,
+      code: "4CCS2DBS",
       name: "Databases",
       briefText: null,
       timelineText: null,
@@ -212,6 +215,7 @@ describe("enterpriseAdmin router access control", () => {
       .mockResolvedValueOnce({ id: 2 })
       .mockResolvedValueOnce({
         id: 2,
+        code: "4CCS2DBS",
         name: "Databases",
         briefText: null,
         timelineText: null,
@@ -237,6 +241,7 @@ describe("enterpriseAdmin router access control", () => {
       where: { id: 2 },
       data: {
         name: "Databases",
+        code: null,
         briefText: null,
         timelineText: null,
         expectationsText: null,

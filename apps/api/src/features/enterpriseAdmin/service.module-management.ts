@@ -31,6 +31,9 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
   });
   if (existing) return { ok: false as const, status: 409, error: "Module name already exists" };
 
+  const codeExists = await moduleCodeExists(enterpriseUser.enterpriseId, payload.code);
+  if (codeExists) return { ok: false as const, status: 409, error: "Module code already exists" };
+
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds,
@@ -46,6 +49,7 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
         const module = await tx.module.create({
           data: {
             enterpriseId: enterpriseUser.enterpriseId,
+            code: payload.code,
             joinCode,
             name: payload.name,
             briefText: payload.briefText,
@@ -181,6 +185,9 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   const nameExists = await moduleNameExists(enterpriseUser.enterpriseId, payload.name, moduleId);
   if (nameExists) return { ok: false as const, status: 409, error: "Module name already exists" };
 
+  const codeExists = await moduleCodeExists(enterpriseUser.enterpriseId, payload.code, moduleId);
+  if (codeExists) return { ok: false as const, status: 409, error: "Module code already exists" };
+
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds: payload.leaderIds,
@@ -299,6 +306,20 @@ async function moduleNameExists(enterpriseId: string, moduleName: string, exclud
   return Boolean(existing);
 }
 
+async function moduleCodeExists(enterpriseId: string, moduleCode: string | null, excludeModuleId?: number) {
+  if (!moduleCode) return false;
+
+  const existing = await prisma.module.findFirst({
+    where: {
+      enterpriseId,
+      code: moduleCode,
+      ...(excludeModuleId ? { id: { not: excludeModuleId } } : {}),
+    },
+    select: { id: true },
+  });
+  return Boolean(existing);
+}
+
 async function updateModuleRecord(params: {
   enterpriseId: string;
   moduleId: number;
@@ -315,6 +336,7 @@ async function updateModuleRecord(params: {
     await tx.module.update({
       where: { id: params.moduleId },
       data: {
+        code: params.payload.code,
         name: params.payload.name,
         briefText: params.payload.briefText,
         timelineText: params.payload.timelineText,

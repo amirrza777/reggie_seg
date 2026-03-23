@@ -1,6 +1,7 @@
 model Module {
   id                 Int        @id @default(autoincrement())
   enterpriseId       String
+  code               String?
   joinCode           String
   name               String
   briefText          String?    @db.Text
@@ -20,6 +21,7 @@ model Module {
   userModules              UserModule[]
 
   @@unique([id, enterpriseId])
+  @@unique([enterpriseId, code])
   @@unique([enterpriseId, joinCode])
   @@index([enterpriseId])
 }

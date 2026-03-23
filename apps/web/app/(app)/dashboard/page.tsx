@@ -26,6 +26,7 @@ function formatDate(iso: string): string {
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   let modules: Module[] = [];
+  let moduleError: string | null = null;
   let upcomingRows: (string | ReactNode)[][] = [];
 
   if (user) {
@@ -34,7 +35,11 @@ export default async function DashboardPage() {
       getCalendarEvents(user.id),
     ]);
 
-    if (fetchedModules.status === "fulfilled") modules = fetchedModules.value;
+    if (fetchedModules.status === "fulfilled") {
+      modules = fetchedModules.value;
+    } else {
+      moduleError = "Could not load modules right now. This can happen if the latest database migrations have not been applied.";
+    }
 
     if (events.status === "fulfilled") {
       const now = new Date();
@@ -66,7 +71,14 @@ export default async function DashboardPage() {
         </p>
       </Card>
 
-      {user ? <StudentModulesOverviewClient initialModules={modules} userId={user.id} canJoin={user.role === "STUDENT"} /> : null}
+      {user ? (
+        <StudentModulesOverviewClient
+          initialModules={modules}
+          initialLoadError={moduleError}
+          userId={user.id}
+          canJoin={user.role === "STUDENT"}
+        />
+      ) : null}
 
       <Card
         title="Upcoming deadlines"

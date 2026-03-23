@@ -88,6 +88,7 @@ describe("EnterpriseModuleCreateForm", () => {
     refresh.mockReset();
     createEnterpriseModuleMock.mockResolvedValue({
       id: 99,
+      code: "4CCS2DBS",
       joinCode: "ABCD2345",
       name: "Created module",
       createdAt: "2026-03-01T00:00:00.000Z",
@@ -103,6 +104,7 @@ describe("EnterpriseModuleCreateForm", () => {
     getEnterpriseModuleAccessSelectionMock.mockResolvedValue({
       module: {
         id: 77,
+        code: "4CCS2DBS",
         name: "Existing module",
         createdAt: "2026-03-01T00:00:00.000Z",
         updatedAt: "2026-03-01T00:00:00.000Z",
@@ -120,6 +122,7 @@ describe("EnterpriseModuleCreateForm", () => {
     });
     updateEnterpriseModuleMock.mockResolvedValue({
       id: 77,
+      code: "4CCS2DBS",
       name: "Updated module",
       createdAt: "2026-03-01T00:00:00.000Z",
       updatedAt: "2026-03-02T00:00:00.000Z",
@@ -162,6 +165,7 @@ describe("EnterpriseModuleCreateForm", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/module name/i), { target: { value: "Backend Search Module" } });
+    fireEvent.change(screen.getByLabelText(/module code/i), { target: { value: "4ccs2dbs" } });
     expect(screen.getByRole("button", { name: /create module/i })).toBeDisabled();
 
     const leadersGroup = screen.getByRole("group", { name: /module leaders/i });
@@ -174,6 +178,7 @@ describe("EnterpriseModuleCreateForm", () => {
     await waitFor(() =>
       expect(createEnterpriseModuleMock).toHaveBeenCalledWith({
         name: "Backend Search Module",
+        code: "4CCS2DBS",
         leaderIds: [11],
       }),
     );

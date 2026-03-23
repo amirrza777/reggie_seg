@@ -9,6 +9,7 @@ import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateF
 import { MeetingSettingsSection } from "./MeetingSettingsSection";
 
 const MODULE_NAME_MAX_LENGTH = 120;
+const MODULE_CODE_MAX_LENGTH = 32;
 const MODULE_SECTION_MAX_LENGTH = 8000;
 
 type EnterpriseModuleCreateFormProps = {
@@ -51,6 +52,7 @@ function EnterpriseModuleCreateFormBody({
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
+      <ModuleCodeField state={state} />
       {state.isEditMode && moduleId ? <ModuleJoinCodeCard moduleId={moduleId} initialJoinCode={createdJoinCode} /> : null}
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
@@ -102,12 +104,31 @@ function ModuleNameField({ state }: { state: ModuleCreateFormState }) {
   );
 }
 
+function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--name">
+      <label htmlFor="module-code-input" className="enterprise-modules__create-field-label">
+        Module code
+      </label>
+      <FormField
+        id="module-code-input"
+        value={state.moduleCode}
+        onChange={(event) => state.setModuleCode(event.target.value.toUpperCase())}
+        placeholder="4CCS2DBS"
+        aria-label="Module code"
+      />
+      <p className="ui-note ui-note--muted">Optional. Use the official university module identifier when needed.</p>
+      <CharacterCount value={state.moduleCode} limit={MODULE_CODE_MAX_LENGTH} />
+    </div>
+  );
+}
+
 function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
   if (!state.isEditMode) {
     return (
       <p className="ui-note ui-note--muted">
         You can define module brief, timeline, expectations, teaching assistants, manual student assignments, and share
-        the join code after creating the module.
+        the join code after creating the module. You can also set the university-facing module code here.
       </p>
     );
   }

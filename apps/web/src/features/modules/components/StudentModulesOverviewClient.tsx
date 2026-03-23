@@ -11,6 +11,7 @@ import { ModuleList } from "./ModuleList";
 
 type StudentModulesOverviewClientProps = {
   initialModules: Module[];
+  initialLoadError?: string | null;
   userId: number;
   canJoin: boolean;
 };
@@ -19,11 +20,13 @@ type JoinStatus = "idle" | "submitting" | "success" | "error";
 
 export function StudentModulesOverviewClient({
   initialModules,
+  initialLoadError = null,
   userId,
   canJoin,
 }: StudentModulesOverviewClientProps) {
   const router = useRouter();
   const [modules, setModules] = useState(initialModules);
+  const [loadError, setLoadError] = useState(initialLoadError);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joinStatus, setJoinStatus] = useState<JoinStatus>("idle");
@@ -34,6 +37,10 @@ export function StudentModulesOverviewClient({
   useEffect(() => {
     setModules(initialModules);
   }, [initialModules]);
+
+  useEffect(() => {
+    setLoadError(initialLoadError);
+  }, [initialLoadError]);
 
   useEffect(() => {
     if (!isJoinDialogOpen) return;
@@ -75,6 +82,7 @@ export function StudentModulesOverviewClient({
       const response = await joinModuleByCode({ code: normalizedCode });
       const refreshedModules = await listModules(userId);
       setModules(refreshedModules);
+      setLoadError(null);
       setJoinResult(response);
       setJoinStatus("success");
       setBannerMessage(
@@ -90,19 +98,19 @@ export function StudentModulesOverviewClient({
   };
 
   return (
-    <Card title="Active modules">
+    <Card
+      title="Active modules"
+      action={
+        canJoin ? (
+          <Button type="button" variant="primary" onClick={openJoinDialog}>
+            Join module
+          </Button>
+        ) : undefined
+      }
+    >
       {bannerMessage ? <div className="status-alert status-alert--success module-list__banner">{bannerMessage}</div> : null}
-      <ModuleList
-        modules={modules}
-        emptyMessage="No modules assigned yet."
-        toolbarAction={
-          canJoin ? (
-            <Button type="button" variant="primary" onClick={openJoinDialog}>
-              Join module
-            </Button>
-          ) : null
-        }
-      />
+      {loadError ? <div className="status-alert status-alert--error module-list__banner">{loadError}</div> : null}
+      <ModuleList modules={modules} emptyMessage="No modules assigned yet." />
       <JoinModuleDialog
         open={isJoinDialogOpen}
         code={joinCode}

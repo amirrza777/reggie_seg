@@ -34,6 +34,20 @@ describe("StudentModulesOverviewClient", () => {
     expect(screen.queryByRole("button", { name: /join module/i })).not.toBeInTheDocument();
   });
 
+  it("shows an explicit load error instead of only the empty state", () => {
+    render(
+      <StudentModulesOverviewClient
+        initialModules={[]}
+        initialLoadError="Could not load modules right now."
+        userId={7}
+        canJoin
+      />,
+    );
+
+    expect(screen.getByText(/could not load modules right now/i)).toBeInTheDocument();
+    expect(screen.getByText(/no modules assigned yet/i)).toBeInTheDocument();
+  });
+
   it("opens, closes, submits, and refreshes the module list after joining", async () => {
     joinModuleByCodeMock.mockResolvedValue({
       moduleId: 12,

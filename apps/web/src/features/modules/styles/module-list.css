@@ -15,6 +15,10 @@
   gap: 10px;
 }
 
+.module-list__toolbar--sort-only {
+  justify-content: flex-start;
+}
+
 .module-list__toolbar-action {
   display: inline-flex;
   align-items: center;
@@ -26,6 +30,10 @@
   align-items: center;
   gap: 10px;
   margin-left: auto;
+}
+
+.module-list__toolbar--sort-only .module-list__sort-group {
+  margin-left: 0;
 }
 
 .module-list__toolbar--inline {

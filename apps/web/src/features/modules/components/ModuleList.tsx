@@ -71,8 +71,8 @@ export function ModuleList({
   return (
     <div className="module-list">
       {showSortControl || toolbarAction ? (
-        <div className="module-list__toolbar">
-          {toolbarAction ? <div className="module-list__toolbar-action">{toolbarAction}</div> : <span />}
+        <div className={`module-list__toolbar${toolbarAction ? "" : " module-list__toolbar--sort-only"}`}>
+          {toolbarAction ? <div className="module-list__toolbar-action">{toolbarAction}</div> : null}
           {showSortControl ? <ModuleSortControl activeSortBy={activeSortBy} onSortChange={handleSortChange} /> : null}
         </div>
       ) : null}
@@ -132,7 +132,7 @@ function ModuleCard({ module }: { module: Module }) {
           <h2 className="module-card__title">{module.title}</h2>
           <span className={`module-card__role module-card__role--${role.tone}`}>{role.label}</span>
         </div>
-        <p className="module-card__meta">Code: {formatModuleCode(module.id)}</p>
+        <p className="module-card__meta">Code: {formatModuleCode(module)}</p>
       </div>
       {module.description ? <p className="module-card__summary">{module.description}</p> : null}
       <div className="module-card__footer">
@@ -153,9 +153,10 @@ function canCreateProject(role?: Module["accountRole"]): boolean {
   return role === "OWNER" || role === "ADMIN_ACCESS";
 }
 
-function formatModuleCode(moduleId: string): string {
-  const numericId = Number(moduleId);
-  return Number.isFinite(numericId) ? `MOD-${numericId}` : moduleId;
+function formatModuleCode(module: Module): string {
+  if (module.code?.trim()) return module.code.trim();
+  const numericId = Number(module.id);
+  return Number.isFinite(numericId) ? `MOD-${numericId}` : module.id;
 }
 
 function pluralize(label: string, count: number): string {

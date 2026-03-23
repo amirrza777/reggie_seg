@@ -99,7 +99,7 @@ function buildModuleRows(modules: EnterpriseModuleRecord[]) {
   return modules.map((module) => [
     <div key={`${module.id}-name`} className="ui-stack-xs">
       <strong>{module.name}</strong>
-      <span className="muted">Module ID {module.id}</span>
+      <span className="muted">{module.code?.trim() ? `Module code ${module.code.trim()}` : `Module ID ${module.id}`}</span>
     </div>,
     <span key={`${module.id}-leaders`}>{module.leaderCount}</span>,
     <span key={`${module.id}-tas`}>{module.teachingAssistantCount}</span>,

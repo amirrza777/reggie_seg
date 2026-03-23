@@ -11,6 +11,7 @@ import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedU
 import { SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedMarkerUserData } from "./data";
+import { seedForumPosts } from "./forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { seedMeetings } from "./meetings";
 import { prisma } from "./prismaClient";
@@ -32,6 +33,7 @@ async function main() {
   for (const account of seedMarkerUserData) {
     console.log(`- ${account.email} (${account.role})`);
   }
+  console.log("Seeded projects also include generated discussion-forum threads from both staff and student accounts.");
   console.log(`These accounts are intended for project assessment/testing flows. Shared password: ${seedPassword}`);
 }
 
@@ -68,6 +70,7 @@ async function runSeedSteps(context: SeedContext) {
   await seedProjectDeadlines(context.projects);
   await seedPeerAssessments(context.projects, context.teams, context.templates);
   await seedFeatureFlags(context.enterprise.id);
+  await seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students);
   await seedMeetings(context);
 }
 

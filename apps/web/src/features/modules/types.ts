@@ -1,5 +1,6 @@
 export type Module = {
   id: string;
+  code?: string;
   title: string;
   description?: string;
   briefText?: string;

@@ -72,6 +72,7 @@ beforeEach(() => {
   (prisma.module.findFirst as any).mockResolvedValue(null);
   (prisma.module.findUnique as any).mockResolvedValue({
     id: 7,
+    code: "MOD-7",
     joinCode: "M0000007",
     name: "Module 7",
     briefText: null,
@@ -366,6 +367,7 @@ describe("enterpriseAdmin router discovery", () => {
     expect(prisma.module.create).toHaveBeenCalledWith({
       data: {
         enterpriseId: "ent-1",
+        code: null,
         joinCode: expect.any(String),
         name: "Data",
         briefText: null,

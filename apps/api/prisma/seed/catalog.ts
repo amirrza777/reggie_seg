@@ -236,8 +236,13 @@ function buildModuleSeedData(enterpriseId: string) {
   return moduleData.map((module, index) => ({
     ...module,
     enterpriseId,
+    code: buildSeedModuleCode(index),
     joinCode: buildSeedModuleJoinCode(index),
   }));
+}
+
+function buildSeedModuleCode(index: number) {
+  return `MOD-${index + 1}`;
 }
 
 function buildSeedModuleJoinCode(index: number) {

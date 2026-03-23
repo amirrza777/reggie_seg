@@ -78,6 +78,7 @@ describe("projects service", () => {
     (repo.getModulesForUser as any).mockResolvedValue([
       {
         id: 9,
+        code: "4CCS2DBS",
         name: "SEGP",
         briefText: null,
         timelineText: "Timeline",
@@ -92,6 +93,7 @@ describe("projects service", () => {
     await expect(fetchModulesForUser(7, { staffOnly: true, compact: true })).resolves.toEqual([
       {
         id: "9",
+        code: "4CCS2DBS",
         title: "SEGP",
         briefText: undefined,
         timelineText: "Timeline",

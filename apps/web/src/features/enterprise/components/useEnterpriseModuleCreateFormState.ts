@@ -20,6 +20,7 @@ type ModuleSelectionResponse = Awaited<ReturnType<typeof getEnterpriseModuleAcce
 
 type ModuleUpdatePayload = {
   name: string;
+  code?: string;
   briefText?: string;
   timelineText?: string;
   expectationsText?: string;
@@ -40,6 +41,7 @@ export function useEnterpriseModuleCreateFormState({
 
   const [moduleName, setModuleName] = useState("");
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
+  const [moduleCode, setModuleCode] = useState("");
   const [briefText, setBriefText] = useState("");
   const [timelineText, setTimelineText] = useState("");
   const [expectationsText, setExpectationsText] = useState("");
@@ -94,6 +96,7 @@ export function useEnterpriseModuleCreateFormState({
         setCanEditModule(true);
         applyModuleSelection(response, {
           setModuleName,
+          setModuleCode,
           setBriefText,
           setTimelineText,
           setExpectationsText,
@@ -153,6 +156,7 @@ export function useEnterpriseModuleCreateFormState({
         if (!moduleId) throw new Error("Module id is required for edit mode.");
         const payload = buildModuleUpdatePayload({
           name,
+          code: moduleCode,
           briefText,
           timelineText,
           expectationsText,
@@ -164,7 +168,11 @@ export function useEnterpriseModuleCreateFormState({
         await updateEnterpriseModule(moduleId, payload);
         router.push(modulesHomeHref);
       } else {
-        const createdModule = await createEnterpriseModule({ name, leaderIds });
+        const createdModule = await createEnterpriseModule({
+          name,
+          code: normalizeOptionalModuleCode(moduleCode),
+          leaderIds,
+        });
         const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
         router.push(nextHref);
       }
@@ -220,6 +228,7 @@ export function useEnterpriseModuleCreateFormState({
     isEditMode,
     moduleName,
     moduleNameError,
+    moduleCode,
     briefText,
     timelineText,
     expectationsText,
@@ -237,6 +246,7 @@ export function useEnterpriseModuleCreateFormState({
     taSet,
     studentSet,
     setBriefText,
+    setModuleCode,
     setTimelineText,
     setExpectationsText,
     setReadinessNotesText,
@@ -261,6 +271,7 @@ function applyModuleSelection(
   selection: ModuleSelectionResponse,
   setters: {
     setModuleName: (value: string) => void;
+    setModuleCode: (value: string) => void;
     setBriefText: (value: string) => void;
     setTimelineText: (value: string) => void;
     setExpectationsText: (value: string) => void;
@@ -271,6 +282,7 @@ function applyModuleSelection(
   }
 ) {
   setters.setModuleName(selection.module.name ?? "");
+  setters.setModuleCode(selection.module.code ?? "");
   setters.setBriefText(selection.module.briefText ?? "");
   setters.setTimelineText(selection.module.timelineText ?? "");
   setters.setExpectationsText(selection.module.expectationsText ?? "");
@@ -301,6 +313,7 @@ function validateModuleSubmit(params: {
 
 function buildModuleUpdatePayload(input: {
   name: string;
+  code: string;
   briefText: string;
   timelineText: string;
   expectationsText: string;
@@ -311,6 +324,7 @@ function buildModuleUpdatePayload(input: {
 }): ModuleUpdatePayload {
   return {
     name: input.name,
+    code: normalizeOptionalModuleCode(input.code),
     briefText: normalizeOptionalMultilineText(input.briefText),
     timelineText: normalizeOptionalMultilineText(input.timelineText),
     expectationsText: normalizeOptionalMultilineText(input.expectationsText),
@@ -319,6 +333,11 @@ function buildModuleUpdatePayload(input: {
     taIds: input.taIds,
     studentIds: input.studentIds,
   };
+}
+
+function normalizeOptionalModuleCode(value: string): string | undefined {
+  const normalized = value.trim().toUpperCase();
+  return normalized ? normalized : undefined;
 }
 
 function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number, joinCode: string): string {

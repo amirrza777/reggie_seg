@@ -66,11 +66,11 @@ const STAFF_PROJECT_LIST_SELECT = {
   },
 } satisfies Prisma.ProjectSelect;
 
-function matchesModuleSearchQuery(module: { id: number; name: string }, query: string): boolean {
+function matchesModuleSearchQuery(module: { id: number; code?: string | null; name: string }, query: string): boolean {
   return matchesFuzzySearchCandidate({
     query,
     candidateId: module.id,
-    sources: [module.name, `module ${module.id}`],
+    sources: [module.name, module.code ?? "", `module ${module.id}`],
   });
 }
 
@@ -189,6 +189,7 @@ export async function getModulesForUser(
       where: scopedMembershipFilter,
       select: {
         id: true,
+        code: true,
         name: true,
         moduleLeads: {
           where: { userId: user.id },
@@ -215,6 +216,7 @@ export async function getModulesForUser(
           where: membershipFilter,
           select: {
             id: true,
+            code: true,
             name: true,
             moduleLeads: {
               where: { userId: user.id },
@@ -247,6 +249,7 @@ export async function getModulesForUser(
 
       return {
         id: module.id,
+        code: module.code,
         name: module.name,
         accessRole,
       };
@@ -257,6 +260,7 @@ export async function getModulesForUser(
     where: scopedMembershipFilter,
     select: {
       id: true,
+      code: true,
       name: true,
       briefText: true,
       timelineText: true,
@@ -296,6 +300,7 @@ export async function getModulesForUser(
         where: membershipFilter,
         select: {
           id: true,
+          code: true,
           name: true,
           briefText: true,
           timelineText: true,
@@ -341,6 +346,7 @@ export async function getModulesForUser(
 
     return {
       id: module.id,
+      code: module.code,
       name: module.name,
       briefText: module.briefText,
       timelineText: module.timelineText,

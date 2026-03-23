@@ -16,6 +16,7 @@ const MAX_PAGE_SIZE = 100;
 
 export type EnterpriseModuleSearchCandidate = {
   id: number;
+  code?: string | null;
   name: string;
 };
 
@@ -48,7 +49,7 @@ export function buildEnterpriseModuleSearchWhere(
   if (!filters.query) return baseWhere;
 
   const q = filters.query;
-  const queryConditions: Prisma.ModuleWhereInput[] = [{ name: { contains: q } }];
+  const queryConditions: Prisma.ModuleWhereInput[] = [{ name: { contains: q } }, { code: { contains: q.toUpperCase() } }];
   const numericQuery = parsePositiveIntegerSearchQuery(q);
   if (numericQuery !== null) {
     queryConditions.push({ id: numericQuery });
@@ -64,6 +65,6 @@ export function matchesEnterpriseModuleSearchCandidate(candidate: EnterpriseModu
   return matchesFuzzySearchCandidate({
     query,
     candidateId: candidate.id,
-    sources: [candidate.name, `module ${candidate.id}`],
+    sources: [candidate.name, candidate.code ?? "", `module ${candidate.id}`],
   });
 }

@@ -12,6 +12,7 @@ const searchEnterpriseModulesMock = searchEnterpriseModules as MockedFunction<ty
 
 const moduleRecord = {
   id: 1,
+  code: "4CCS2DBS",
   name: "Software Engineering",
   createdAt: "2026-03-01T10:30:00.000Z",
   updatedAt: "2026-03-02T10:30:00.000Z",
@@ -59,6 +60,7 @@ describe("EnterpriseModuleManager", () => {
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
     expect(screen.getByText("Software Engineering")).toBeInTheDocument();
+    expect(screen.getByText("Module code 4CCS2DBS")).toBeInTheDocument();
   });
 
   it("supports backend pagination", async () => {
