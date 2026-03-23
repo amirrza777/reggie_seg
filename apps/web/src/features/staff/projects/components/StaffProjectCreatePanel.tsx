@@ -10,6 +10,7 @@ import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { SearchField } from "@/shared/ui/SearchField";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 
 type StaffProjectCreatePanelProps = {
   currentUserId: number;

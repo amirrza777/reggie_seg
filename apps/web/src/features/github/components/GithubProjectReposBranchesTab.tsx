@@ -75,9 +75,9 @@ export function GithubProjectReposBranchesTab({
         {!loading &&
           links.map((link) => {
             const snapshot = latestSnapshotByLinkId[link.id];
-            const rows = buildBranchRows(link);
+            const liveBranches = liveBranchesByLinkId[link.id];
             const branchSearchQuery = getBranchQuery(link.id);
-            const allBranches = liveBranchesByLinkId[link.id]?.branches || [];
+            const allBranches = liveBranches?.branches ?? [];
             const selectedBranch = selectedBranchByLinkId[link.id];
             const selectedBranchItem = selectedBranch
               ? allBranches.find((branch) => branch.name === selectedBranch) ?? null
@@ -89,6 +89,17 @@ export function GithubProjectReposBranchesTab({
                 : selectedBranchItem
                   ? [selectedBranchItem, ...allBranches]
                   : allBranches;
+            const rows = allBranches.length > 0
+              ? allBranches.map((branch) => [
+                  branch.name,
+                  branch.isDefault ? "Yes" : "No",
+                  "-",
+                  branch.aheadBy ?? "-",
+                  branch.behindBy ?? "-",
+                  branch.compareStatus ?? "-",
+                ])
+              : null;
+            const commitCount = branchCommitsByLinkId[link.id]?.commits?.length ?? null;
             return (
               <article key={link.id} className="github-repos-tab__subpanel github-repos-tab__subpanel--activity">
                 <div className="github-repos-tab__activity-head">
@@ -101,10 +112,10 @@ export function GithubProjectReposBranchesTab({
                   </div>
                   <div className="github-repos-tab__activity-meta">
                     <span className="github-repo-link-card__chip">
-                      {branchData?.branches?.length ?? 0} branch{(branchData?.branches?.length ?? 0) === 1 ? "" : "es"}
+                      {liveBranches?.branches?.length ?? 0} branch{(liveBranches?.branches?.length ?? 0) === 1 ? "" : "es"}
                     </span>
-                    {selectedBranchCommitCount != null ? (
-                      <span className="github-repo-link-card__chip">{selectedBranchCommitCount} snapshot commits</span>
+                    {commitCount != null ? (
+                      <span className="github-repo-link-card__chip">{commitCount} commits</span>
                     ) : null}
                   </div>
                 </div>
@@ -171,89 +182,28 @@ export function GithubProjectReposBranchesTab({
                       </p>
                     ) : null}
                     {branchCommitsByLinkId[link.id]?.commits?.length ? (
-                      <div className="github-repos-tab__table-wrap">
-                        <Table
-                          headers={["Commit", "Date", "Additions", "Deletions"]}
-                          columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
-                          rows={branchCommitsByLinkId[link.id]!.commits.map((commit) => [
-                            <div key={commit.sha} className="stack github-repos-tab__commit-cell">
-                              <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
-                                {commit.message || "(no message)"}
-                              </a>
+                      <div className="github-repos-tab__table-wrap stack" style={{ gap: 10 }}>
+                        {branchCommitsByLinkId[link.id]!.commits.map((commit) => (
+                          <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                            <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
+                              {commit.message || "(no message)"}
+                            </a>
+                            <div className="github-repos-tab__commit-meta-row">
                               <span className="muted github-repos-tab__commit-meta">
                                 {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
                               </span>
-                            </div>,
-                            commit.date ? new Date(commit.date).toLocaleString() : "-",
-                            commit.additions ?? "-",
-                            commit.deletions ?? "-",
-                          ])}
-                        />
+                              <span className="muted github-repos-tab__commit-meta">{formatCommitDate(commit.date)}</span>
+                              {typeof commit.additions === "number" || typeof commit.deletions === "number" ? (
+                                <span className="muted github-repos-tab__commit-meta">
+                                  +{commit.additions ?? 0} / -{commit.deletions ?? 0}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     ) : null}
                   </>
-                ) : null}
-
-                {(branchData?.branches?.length ?? 0) > 0 ? (
-                  <div className="stack github-repos-tab__select-wrap">
-                    <label className="muted" htmlFor={`branch-commit-select-${link.id}`}>
-                      Branch
-                    </label>
-                    <select
-                      id={`branch-commit-select-${link.id}`}
-                      className="github-repos-tab__select"
-                      value={selectedBranch}
-                      onChange={(event) => onSelectBranch(link.id, event.target.value)}
-                      disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
-                    >
-                      {branchData?.branches.map((branch) => (
-                        <option key={branch.name} value={branch.name}>
-                          {branch.name}
-                          {branch.isDefault ? " (default)" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-
-                {branchCommitsLoadingByLinkId[link.id] ? (
-                  <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
-                ) : null}
-
-                {branchCommitsErrorByLinkId[link.id] ? (
-                  <p className="muted github-repos-tab__table-wrap">
-                    Failed to load commits: {branchCommitsErrorByLinkId[link.id]}
-                  </p>
-                ) : null}
-
-                {!branchCommitsLoadingByLinkId[link.id] &&
-                !branchCommitsErrorByLinkId[link.id] &&
-                selectedBranch &&
-                currentBranchCommits.length === 0 ? (
-                  <p className="muted github-repos-tab__table-wrap">No commits returned for this branch.</p>
-                ) : null}
-
-                {currentBranchCommits.length > 0 ? (
-                  <div className="github-repos-tab__table-wrap stack" style={{ gap: 10 }}>
-                    {currentBranchCommits.map((commit) => (
-                      <div key={commit.sha} className="stack github-repos-tab__commit-cell">
-                        <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
-                          {commit.message || "(no message)"}
-                        </a>
-                        <div className="github-repos-tab__commit-meta-row">
-                          <span className="muted github-repos-tab__commit-meta">
-                            {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
-                          </span>
-                          <span className="muted github-repos-tab__commit-meta">{formatCommitDate(commit.date)}</span>
-                          {typeof commit.additions === "number" || typeof commit.deletions === "number" ? (
-                            <span className="muted github-repos-tab__commit-meta">
-                              +{commit.additions ?? 0} / -{commit.deletions ?? 0}
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 ) : null}
               </article>
             );
