@@ -114,10 +114,9 @@ function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
         id="module-code-input"
         value={state.moduleCode}
         onChange={(event) => state.setModuleCode(event.target.value.toUpperCase())}
-        placeholder="4CCS2DBS"
+        placeholder="Enter code"
         aria-label="Module code"
       />
-      <p className="ui-note ui-note--muted">Optional. Use the official university module identifier when needed.</p>
       <CharacterCount value={state.moduleCode} limit={MODULE_CODE_MAX_LENGTH} />
     </div>
   );
