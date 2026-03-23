@@ -10,6 +10,7 @@ import {
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
 import { SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
+import { seedMarkerUserData } from "./data";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { seedMeetings } from "./meetings";
 import { prisma } from "./prismaClient";
@@ -27,6 +28,11 @@ async function main() {
   }
 
   console.log(`Seed users ready across ${enterprises.length} enterprise(s). Default password: ${seedPassword}`);
+  console.log("Assessment accounts seeded for project assessment workflows:");
+  for (const account of seedMarkerUserData) {
+    console.log(`- ${account.email} (${account.role})`);
+  }
+  console.log(`These accounts are intended for project assessment/testing flows. Shared password: ${seedPassword}`);
 }
 
 async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
