@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
+import { getUserProjects } from "@/features/projects/api/client";
 import {
   ModuleExpectationsSection,
   ModuleMarksSection,
