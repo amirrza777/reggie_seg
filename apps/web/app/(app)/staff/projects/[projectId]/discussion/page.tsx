@@ -82,7 +82,7 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
         <p className="staff-projects__card-sub">
           View and participate in the forum as staff.
         </p>
-        <DiscussionForumClient projectId={projectId} />
+        <DiscussionForumClient projectId={projectId} showProjectNav={false} />
       </section>
     </div>
   );

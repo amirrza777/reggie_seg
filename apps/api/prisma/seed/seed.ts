@@ -11,6 +11,7 @@ import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedU
 import { SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
+import { seedMeetings } from "./meetings";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
 
@@ -61,6 +62,7 @@ async function runSeedSteps(context: SeedContext) {
   await seedProjectDeadlines(context.projects);
   await seedPeerAssessments(context.projects, context.teams, context.templates);
   await seedFeatureFlags(context.enterprise.id);
+  await seedMeetings(context);
 }
 
 main()

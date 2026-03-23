@@ -1,6 +1,5 @@
 import { notFound, redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
-import { getUserProjects } from "@/features/projects/api/client";
 import {
   ModuleExpectationsSection,
   ModuleMarksSection,
@@ -41,20 +40,6 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
   const module = modules.find((item) => String(item.id) === moduleId);
   if (!module) notFound();
 
-  const normalizedModuleTitle = module.title.trim().toLowerCase();
-  const linkedProjects = userProjects
-    .filter((project) => {
-      const matchesById = project.moduleId != null && String(project.moduleId) === String(module.id);
-      const matchesByName =
-        typeof project.moduleName === "string" && project.moduleName.trim().toLowerCase() === normalizedModuleTitle;
-      return matchesById || matchesByName;
-    })
-    .map((project) => ({
-      id: String(project.id),
-      name: project.name,
-      moduleName: project.moduleName,
-    }));
-
   const {
     moduleCode,
     teamCount,
@@ -83,10 +68,8 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
 
       {activeTab === "expectations" ? (
         <ModuleExpectationsSection
-          moduleTitle={module.title}
           briefParagraphs={briefParagraphs}
           projectPlans={projectPlans}
-          linkedProjects={linkedProjects}
           timelineRows={timelineRows}
           expectationRows={expectationRows}
           readinessParagraphs={readinessParagraphs}

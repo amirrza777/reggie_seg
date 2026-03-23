@@ -1,26 +1,27 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { type MockedFunction } from "vitest";
 import { MeetingDetail } from "./MeetingDetail";
-
-vi.mock("@/features/auth/context", () => ({
-  useUser: vi.fn(),
-}));
-
-vi.mock("./AttendanceTable", () => ({
-  AttendanceTable: ({ meetingId }: any) => <div data-testid="attendance">{meetingId}</div>,
-}));
-
-vi.mock("./MeetingMinutes", () => ({
-  MeetingMinutes: ({ meetingId }: any) => <div data-testid="minutes">{meetingId}</div>,
-}));
 
 vi.mock("./CommentSection", () => ({
   CommentSection: ({ meetingId }: any) => <div data-testid="comments">{meetingId}</div>,
 }));
 
+vi.mock("./AddToCalendarDropdown", () => ({
+  AddToCalendarDropdown: () => <div data-testid="add-to-calendar" />,
+}));
+
+vi.mock("@/shared/ui/RichTextViewer", () => ({
+  RichTextViewer: () => <div data-testid="rich-text-viewer" />,
+}));
+
+vi.mock("@/features/auth/context", () => ({
+  useUser: vi.fn(),
+}));
+
 import { useUser } from "@/features/auth/context";
 
-const useUserMock = vi.mocked(useUser);
+const useUserMock = useUser as MockedFunction<typeof useUser>;
 
 const baseMeeting = {
   id: 1,
@@ -29,70 +30,164 @@ const baseMeeting = {
   title: "Team Meeting",
   subject: null,
   location: null,
+  videoCallLink: null,
   agenda: null,
   date: "2026-03-01T10:00:00Z",
   createdAt: "2026-03-01T10:00:00Z",
   updatedAt: "2026-03-01T10:00:00Z",
   organiser: { id: 1, firstName: "Reggie", lastName: "King" },
+  team: { allocations: [{ user: { id: 1, firstName: "Reggie", lastName: "King" } }] },
   attendances: [],
   minutes: null,
   comments: [],
 };
 
-describe("MeetingDetail", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    useUserMock.mockReturnValue({ user: { id: 1, firstName: "Reggie", lastName: "King" } } as any);
-  });
+const futureDate = "2099-01-01T10:00:00Z";
+const pastDate = "2020-01-01T10:00:00Z";
 
+const organiserUser = { id: 1, firstName: "Reggie", lastName: "King" };
+const otherUser = { id: 99, firstName: "Other", lastName: "User" };
+
+beforeEach(() => {
+  useUserMock.mockReturnValue({ user: otherUser } as any);
+});
+
+describe("MeetingDetail", () => {
   it("renders meeting title and organiser", () => {
-    render(<MeetingDetail meeting={baseMeeting} />);
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
     expect(screen.getByText("Team Meeting")).toBeInTheDocument();
     expect(screen.getByText(/Reggie King/)).toBeInTheDocument();
   });
 
+  it("renders back link to meetings page", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
+    expect(screen.getByRole("link", { name: /back to meetings/i })).toHaveAttribute("href", "/projects/5/meetings");
+  });
+
   it("shows location when provided", () => {
-    render(<MeetingDetail meeting={{ ...baseMeeting, location: "Bush House 3.01" }} />);
+    render(<MeetingDetail meeting={{ ...baseMeeting, location: "Bush House 3.01" } as any} projectId={5} />);
     expect(screen.getByText(/Bush House 3.01/)).toBeInTheDocument();
   });
 
   it("hides location when null", () => {
-    render(<MeetingDetail meeting={baseMeeting} />);
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
     expect(screen.queryByText(/Location:/)).not.toBeInTheDocument();
   });
 
+  it("shows subject when provided", () => {
+    render(<MeetingDetail meeting={{ ...baseMeeting, subject: "Sprint review" } as any} projectId={5} />);
+    expect(screen.getByText(/Sprint review/)).toBeInTheDocument();
+  });
+
+  it("hides subject when null", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
+    expect(screen.queryByText(/Subject:/)).not.toBeInTheDocument();
+  });
+
+  it("shows video call link when provided", () => {
+    render(<MeetingDetail meeting={{ ...baseMeeting, videoCallLink: "https://meet.google.com/abc" } as any} projectId={5} />);
+    expect(screen.getByRole("link", { name: /https:\/\/meet.google.com\/abc/ })).toBeInTheDocument();
+  });
+
+  it("hides video call link when null", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
+    expect(screen.queryByText(/Video call:/)).not.toBeInTheDocument();
+  });
+
   it("shows agenda when provided", () => {
-    render(<MeetingDetail meeting={{ ...baseMeeting, agenda: "Review tasks" }} />);
+    render(<MeetingDetail meeting={{ ...baseMeeting, agenda: "Review tasks" } as any} projectId={5} />);
     expect(screen.getByText("Agenda")).toBeInTheDocument();
     expect(screen.getByText("Review tasks")).toBeInTheDocument();
   });
 
   it("hides agenda when null", () => {
-    render(<MeetingDetail meeting={baseMeeting} />);
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
     expect(screen.queryByText("Agenda")).not.toBeInTheDocument();
   });
 
-  it("renders child components", () => {
-    render(<MeetingDetail meeting={baseMeeting} />);
-    expect(screen.getByTestId("attendance")).toBeInTheDocument();
-    expect(screen.getByTestId("minutes")).toBeInTheDocument();
+  it("renders comments section", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
     expect(screen.getByTestId("comments")).toBeInTheDocument();
   });
 
-  it("passes existing minutes content to MeetingMinutes", () => {
-    const meeting = {
+  it("hides attendance section when no attendances", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
+    expect(screen.queryByText("Attendance")).not.toBeInTheDocument();
+  });
+
+  it("shows attendance section when attendances exist", () => {
+    const withAttendances = {
       ...baseMeeting,
-      minutes: { id: 1, meetingId: 1, writerId: 1, content: "some notes", createdAt: "", updatedAt: "" },
+      date: pastDate,
+      attendances: [
+        { id: 1, meetingId: 1, userId: 1, status: "on_time", user: { id: 1, firstName: "Reggie", lastName: "King" } },
+        { id: 2, meetingId: 1, userId: 2, status: "absent", user: { id: 2, firstName: "John", lastName: "Smith" } },
+      ],
     };
-    render(<MeetingDetail meeting={meeting} />);
-    expect(screen.getByTestId("minutes")).toBeInTheDocument();
+    render(<MeetingDetail meeting={withAttendances as any} projectId={5} />);
+    expect(screen.getByText("Attendance")).toBeInTheDocument();
+    expect(screen.getByText("On time")).toBeInTheDocument();
+    expect(screen.getByText("Absent")).toBeInTheDocument();
   });
 
-  it("hides minutes when user is not logged in", () => {
-    useUserMock.mockReturnValue({ user: null } as any);
-    render(<MeetingDetail meeting={baseMeeting} />);
-    expect(screen.queryByTestId("minutes")).not.toBeInTheDocument();
-    expect(screen.getByTestId("attendance")).toBeInTheDocument();
-    expect(screen.getByTestId("comments")).toBeInTheDocument();
+  it("shows minutes when present", () => {
+    const withMinutes = {
+      ...baseMeeting,
+      date: pastDate,
+      minutes: { id: 1, meetingId: 1, writerId: 1, writer: { id: 1, firstName: "Reggie", lastName: "King" }, content: "{}", createdAt: "", updatedAt: "" },
+    };
+    render(<MeetingDetail meeting={withMinutes as any} projectId={5} />);
+    expect(screen.getByText("Minutes")).toBeInTheDocument();
+    expect(screen.getByTestId("rich-text-viewer")).toBeInTheDocument();
+  });
+
+  it("hides minutes section when null", () => {
+    render(<MeetingDetail meeting={baseMeeting as any} projectId={5} />);
+    expect(screen.queryByText("Minutes")).not.toBeInTheDocument();
+  });
+
+  it("shows add to calendar for upcoming meetings", () => {
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} />);
+    expect(screen.getByTestId("add-to-calendar")).toBeInTheDocument();
+  });
+
+  it("hides add to calendar for past meetings", () => {
+    const past = { ...baseMeeting, date: pastDate };
+    render(<MeetingDetail meeting={past as any} projectId={5} />);
+    expect(screen.queryByTestId("add-to-calendar")).not.toBeInTheDocument();
+  });
+
+  it("shows edit link for organiser on upcoming meetings", () => {
+    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} />);
+    expect(screen.getByRole("link", { name: /edit meeting/i })).toHaveAttribute("href", "/projects/5/meetings/1/edit");
+  });
+
+  it("does not show edit link for non-organiser", () => {
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} />);
+    expect(screen.queryByRole("link", { name: /edit meeting/i })).not.toBeInTheDocument();
+  });
+
+  it("shows attendance link for organiser on past meetings", () => {
+    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    const past = { ...baseMeeting, date: pastDate };
+    render(<MeetingDetail meeting={past as any} projectId={5} />);
+    expect(screen.getByRole("link", { name: /record attendance/i })).toHaveAttribute("href", "/projects/5/meetings/1/attendance");
+  });
+
+  it("shows minutes link for all users on past meetings", () => {
+    const past = { ...baseMeeting, date: pastDate };
+    render(<MeetingDetail meeting={past as any} projectId={5} />);
+    expect(screen.getByRole("link", { name: /meeting minutes/i })).toHaveAttribute("href", "/projects/5/meetings/1/minutes");
+  });
+
+  it("does not show attendance or minutes links for upcoming meetings", () => {
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} />);
+    expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
   });
 });

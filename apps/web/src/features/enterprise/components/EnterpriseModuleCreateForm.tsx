@@ -5,6 +5,7 @@ import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
 import { CharacterCount, EnterpriseModuleEditFields } from "./EnterpriseModuleFormFields";
 import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
+import { MeetingSettingsSection } from "./MeetingSettingsSection";
 
 const MODULE_NAME_MAX_LENGTH = 120;
 const MODULE_SECTION_MAX_LENGTH = 8000;
@@ -32,16 +33,21 @@ export function EnterpriseModuleCreateForm({
     return <ModuleEditBlockedNotice state={state} />;
   }
 
-  return <EnterpriseModuleCreateFormBody state={state} />;
+  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} />;
 }
 
-function EnterpriseModuleCreateFormBody({ state }: { state: ModuleCreateFormState }) {
+function EnterpriseModuleCreateFormBody({ state, moduleId }: { state: ModuleCreateFormState; moduleId?: number }) {
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
+      {state.isEditMode && moduleId ? (
+        <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
+          <MeetingSettingsSection moduleId={moduleId} />
+        </div>
+      ) : null}
       {state.isEditMode ? <ModuleDeleteSection state={state} /> : null}
       <ModuleErrorMessage errorMessage={state.errorMessage} />
       <ModuleFormActions state={state} />
@@ -137,7 +143,7 @@ function ModuleLeaderAccessSection({ state }: { state: ModuleCreateFormState }) 
         pageJumpAriaLabel="Go to staff page"
         onPageInputChange={state.setStaffPageInput}
         onPageInputBlur={() => state.applyPageInput("staff", state.staffPageInput)}
-        onPageJump={(event) => state.handlePageJump(event, "staff", state.staffPageInput)}
+        onPageJump={() => state.handlePageJump("staff", state.staffPageInput)}
         onPreviousPage={() => state.setStaffPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setStaffPage((prev) => Math.min(Math.max(1, state.staffTotalPages), prev + 1))}
         loadingLabel="Loading staff..."
@@ -181,7 +187,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         pageJumpAriaLabel="Go to teaching assistant page"
         onPageInputChange={state.setTaPageInput}
         onPageInputBlur={() => state.applyPageInput("ta", state.taPageInput)}
-        onPageJump={(event) => state.handlePageJump(event, "ta", state.taPageInput)}
+        onPageJump={() => state.handlePageJump("ta", state.taPageInput)}
         onPreviousPage={() => state.setTaPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setTaPage((prev) => Math.min(Math.max(1, state.taTotalPages), prev + 1))}
         loadingLabel="Loading accounts..."
@@ -216,7 +222,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         pageJumpAriaLabel="Go to student page"
         onPageInputChange={state.setStudentPageInput}
         onPageInputBlur={() => state.applyPageInput("students", state.studentPageInput)}
-        onPageJump={(event) => state.handlePageJump(event, "students", state.studentPageInput)}
+        onPageJump={() => state.handlePageJump("students", state.studentPageInput)}
         onPreviousPage={() => state.setStudentPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setStudentPage((prev) => Math.min(Math.max(1, state.studentTotalPages), prev + 1))}
         loadingLabel="Loading students..."

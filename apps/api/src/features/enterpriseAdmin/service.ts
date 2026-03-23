@@ -29,3 +29,5 @@ export {
   getModuleStudents,
   updateModuleStudents,
 } from "./service.module-management.js";
+
+export { getModuleMeetingSettings, updateModuleMeetingSettings } from "./service.meeting-settings.js";

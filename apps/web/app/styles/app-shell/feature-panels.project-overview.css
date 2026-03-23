@@ -102,7 +102,7 @@
   align-items: center;
   justify-content: center;
   border: 1px solid var(--accent-border, var(--border));
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   padding: 8px 14px;
   font-weight: var(--fw-semibold);
   text-decoration: none;

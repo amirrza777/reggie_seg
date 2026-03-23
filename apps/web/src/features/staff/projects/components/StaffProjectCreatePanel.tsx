@@ -9,7 +9,6 @@ import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { SearchField } from "@/shared/ui/SearchField";
 
 type StaffProjectCreatePanelProps = {

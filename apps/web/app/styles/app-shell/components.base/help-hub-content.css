@@ -24,7 +24,7 @@
 .workspace-shell .help-hub__task-link,
 .workspace-shell .help-hub__result-link {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 11px 12px;
   display: grid;
   gap: 4px;
@@ -65,14 +65,14 @@
 
 .workspace-shell .help-faq__group {
   padding: 0;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--surface);
 }
 
 .workspace-shell .help-faq__group-shell {
   border: 0;
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   overflow: hidden;
   background: transparent;
 }
@@ -159,7 +159,7 @@
 
 .workspace-shell .help-faq__group .faq__item {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 0;
   background: var(--surface);
 }
@@ -206,7 +206,7 @@
 
 .workspace-shell .help-playbook__item {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   padding: 0;
   overflow: hidden;
   background: var(--surface);
@@ -248,7 +248,7 @@
 
 .workspace-shell .help-section__card {
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   padding: 14px;
   background: var(--surface);
 }
@@ -290,7 +290,7 @@
   }
 
   .workspace-shell .help-hub__hero {
-    border-radius: var(--radius-md);
+    border-radius: 16px;
   }
 
   .workspace-shell .help-nav {
@@ -336,7 +336,7 @@
   .workspace-shell .help-hub__hero,
   .workspace-shell .help-hub__search,
   .workspace-shell .help-section {
-    border-radius: var(--radius-md);
+    border-radius: 14px;
     padding: 14px;
   }
 

@@ -55,12 +55,7 @@ export function contributorKeyFromCommit(commit: GithubCommitListItem) {
 }
 
 /** Returns the commits for linked repository. */
-export async function fetchCommitsForLinkedRepository(
-  accessToken: string,
-  fullName: string,
-  branch: string,
-  sinceIso?: string | null
-) {
+export async function fetchCommitsForLinkedRepository(accessToken: string, fullName: string, branch: string, sinceIso: string) {
   const { baseUrl } = getGitHubApiConfig();
   const commits: GithubCommitListItem[] = [];
   let page = 1;
@@ -110,51 +105,6 @@ export async function fetchCommitsForLinkedRepository(
   }
 
   return commits;
-}
-
-/** Returns the exact commit count for a repository branch. */
-export async function fetchBranchCommitCount(
-  accessToken: string,
-  fullName: string,
-  branch: string
-) {
-  const { baseUrl } = getGitHubApiConfig();
-  const response = await fetch(
-    `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=1&page=1`,
-    {
-      headers: {
-        Accept: "application/vnd.github+json",
-        Authorization: `Bearer ${accessToken}`,
-        "X-GitHub-Api-Version": "2022-11-28",
-      },
-    }
-  );
-
-  if (!response.ok) {
-    if (response.status === 404) {
-      throw new GithubServiceError(404, "Linked GitHub repository was not found");
-    }
-    if (response.status === 409) {
-      return 0;
-    }
-    if (response.status === 401) {
-      throw new GithubServiceError(401, "GitHub access token is invalid or expired");
-    }
-    throw new GithubServiceError(502, "Failed to fetch repository commits");
-  }
-
-  const pageData = (await response.json()) as GithubCommitListItem[];
-  if (pageData.length <= 0) {
-    return 0;
-  }
-
-  const linkHeader = response.headers?.get("link");
-  const lastPage = parseLastPageFromLinkHeader(linkHeader);
-  if (typeof lastPage === "number") {
-    return lastPage;
-  }
-
-  return pageData.length;
 }
 
 /** Returns the recent commits for branch. */
@@ -378,4 +328,73 @@ export async function getBranchAheadBehind(
     behindBy: typeof compare.behind_by === "number" ? compare.behind_by : null,
     status: typeof compare.status === "string" ? compare.status : null,
   };
+}
+
+/** Returns the commit stats for repository. */
+export async function fetchCommitStatsForRepository(
+  accessToken: string,
+  fullName: string,
+  commitShas: string[],
+  maxDetailedCommits = 250
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const statsBySha = new Map<string, { additions: number; deletions: number }>();
+  const shasToFetch = commitShas.slice(0, maxDetailedCommits);
+  const missingShas: string[] = [];
+
+  for (const sha of shasToFetch) {
+    const cached = getCachedCommitStats(fullName, sha);
+    if (cached) {
+      statsBySha.set(sha, { additions: cached.additions, deletions: cached.deletions });
+      continue;
+    }
+    missingShas.push(sha);
+  }
+
+  if (missingShas.length > 0) {
+    let shouldStop = false;
+    const concurrency = 6;
+    let nextIndex = 0;
+
+    const workers = Array.from({ length: Math.min(concurrency, missingShas.length) }, async () => {
+      while (!shouldStop) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+        if (currentIndex >= missingShas.length) {
+          return;
+        }
+
+        const sha = missingShas[currentIndex];
+        if (!sha) {
+          continue;
+        }
+        const response = await fetch(`${baseUrl}/repos/${fullName}/commits/${encodeURIComponent(sha)}`, {
+          headers: {
+            Accept: "application/vnd.github+json",
+            Authorization: `Bearer ${accessToken}`,
+            "X-GitHub-Api-Version": "2022-11-28",
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 403 || response.status === 429) {
+            shouldStop = true;
+          }
+          continue;
+        }
+
+        const detail = (await response.json()) as GithubCommitDetailResponse;
+        const stats = {
+          additions: detail.stats?.additions || 0,
+          deletions: detail.stats?.deletions || 0,
+        };
+        statsBySha.set(sha, stats);
+        setCachedCommitStats(fullName, sha, stats);
+      }
+    });
+
+    await Promise.all(workers);
+  }
+
+  return statsBySha;
 }

@@ -18,6 +18,11 @@
   align-items: stretch;
 }
 
+.calendar-wrapper--full {
+  grid-template-columns: 1fr;
+  max-width: 26rem;
+}
+
 @media (max-width: 920px) {
   .calendar-wrapper {
     gap: 16px;

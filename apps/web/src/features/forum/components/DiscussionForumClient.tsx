@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { useUser } from "@/features/auth/context";
 import {
   createDiscussionPost,
@@ -12,53 +13,13 @@ import {
   updateDiscussionPost,
 } from "@/features/forum/api/client";
 import type { DiscussionPost } from "@/features/forum/types";
-import "../styles/discussion-forum.css";
 
 type DiscussionForumClientProps = {
   projectId: string;
+  showProjectNav?: boolean;
 };
 
-const ROOT_POSTS_PER_PAGE = 8;
-const VOTE_ICON_PATH =
-  "M6.25 6.5h6.5a1 1 0 0 1 .98 1.2l-.9 4.5a1 1 0 0 1-.98.8H6.25V6.5Zm-1 0H3.5A1.5 1.5 0 0 0 2 8v3.5A1.5 1.5 0 0 0 3.5 13h1.75V6.5Zm1-1V4a2.5 2.5 0 0 1 2.5-2.5c.55 0 1 .45 1 1v1.2c0 .38-.08.75-.23 1.1l-.3.7H6.25Z";
-
-function ensureTextareaMinHeight(textarea: HTMLTextAreaElement) {
-  if (textarea.dataset.minHeightPx) {
-    return Number(textarea.dataset.minHeightPx);
-  }
-
-  const minHeight = Math.ceil(textarea.getBoundingClientRect().height);
-  textarea.dataset.minHeightPx = String(minHeight);
-  textarea.style.minHeight = `${minHeight}px`;
-  return minHeight;
-}
-
-function autoGrowTextarea(textarea: HTMLTextAreaElement) {
-  const minHeight = ensureTextareaMinHeight(textarea);
-  textarea.style.height = "auto";
-  const nextHeight = Math.max(textarea.scrollHeight, minHeight);
-  textarea.style.height = `${nextHeight}px`;
-}
-
-function registerAutoGrowingTextarea(textarea: HTMLTextAreaElement | null) {
-  if (!textarea) return;
-  ensureTextareaMinHeight(textarea);
-  autoGrowTextarea(textarea);
-}
-
-function DiscussionVoteIcon({ direction = "up" }: { direction?: "up" | "down" }) {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
-      <path
-        d={VOTE_ICON_PATH}
-        fill="currentColor"
-        transform={direction === "down" ? "rotate(180 8 8)" : undefined}
-      />
-    </svg>
-  );
-}
-
-export function DiscussionForumClient({ projectId }: DiscussionForumClientProps) {
+export function DiscussionForumClient({ projectId, showProjectNav = true }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -74,31 +35,11 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [reactingPostId, setReactingPostId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
   const [savingReplyPostId, setSavingReplyPostId] = useState<number | null>(null);
-  const [expandedRepliesByPostId, setExpandedRepliesByPostId] = useState<Record<number, boolean>>({});
+  const [collapsedReplyIds, setCollapsedReplyIds] = useState<Record<number, boolean>>({});
+  const [expandedDepthByPostId, setExpandedDepthByPostId] = useState<Record<number, number>>({});
   const [showAllImmediateRepliesByPostId, setShowAllImmediateRepliesByPostId] = useState<Record<number, boolean>>({});
   const [replyOpenByPostId, setReplyOpenByPostId] = useState<Record<number, boolean>>({});
-  const [menuOpenPostId, setMenuOpenPostId] = useState<number | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  useEffect(() => {
-    if (menuOpenPostId === null) return;
-
-    const handleDocumentPointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        setMenuOpenPostId(null);
-        return;
-      }
-      if (!target.closest(".discussion-post__menu")) {
-        setMenuOpenPostId(null);
-      }
-    };
-
-    document.addEventListener("pointerdown", handleDocumentPointerDown);
-    return () => {
-      document.removeEventListener("pointerdown", handleDocumentPointerDown);
-    };
-  }, [menuOpenPostId]);
+  const [hoveredPostId, setHoveredPostId] = useState<number | null>(null);
 
   const isStaff =
     Boolean(user?.isStaff) ||
@@ -110,19 +51,21 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const isStudent = user?.role === "STUDENT";
 
   const canSubmit = title.trim().length > 0 && body.trim().length > 0;
-  const totalPages = Math.max(1, Math.ceil(posts.length / ROOT_POSTS_PER_PAGE));
-  const pageStart = (currentPage - 1) * ROOT_POSTS_PER_PAGE;
-  const visiblePosts = posts.slice(pageStart, pageStart + ROOT_POSTS_PER_PAGE);
-
-  useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
-  }, [totalPages]);
+  const emptyState = useMemo(
+    () => (
+      <div className="card" style={{ padding: 20 }}>
+        <p className="muted" style={{ margin: 0 }}>
+          No posts yet. Start the discussion above.
+        </p>
+      </div>
+    ),
+    []
+  );
 
   useEffect(() => {
     if (!user) return;
     setLoadingPosts(true);
     setError(null);
-    setCurrentPage(1);
     getDiscussionPosts(user.id, Number(projectId))
       .then(setPosts)
       .catch((err: unknown) => {
@@ -132,7 +75,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       .finally(() => setLoadingPosts(false));
   }, [user, projectId]);
 
-  const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost): DiscussionPost[] =>
+  const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost) =>
     items.map((post) => {
       if (post.id === parentPostId) {
         return { ...post, replies: [...post.replies, reply] };
@@ -181,7 +124,6 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
         body: body.trim(),
       });
       setPosts((prev) => [next, ...prev]);
-      setCurrentPage(1);
       setTitle("");
       setBody("");
     } catch (err) {
@@ -191,14 +133,12 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   };
 
   const startEditing = (post: DiscussionPost) => {
-    setMenuOpenPostId(null);
     setEditingPostId(post.id);
     setEditingTitle(post.title);
     setEditingBody(post.body);
   };
 
   const cancelEditing = () => {
-    setMenuOpenPostId(null);
     setEditingPostId(null);
     setEditingTitle("");
     setEditingBody("");
@@ -313,40 +253,16 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     }
   };
 
-  const collectDescendantIds = (post: DiscussionPost): number[] => {
-    const descendants: number[] = [];
-    const stack = [...post.replies];
-
-    while (stack.length > 0) {
-      const current = stack.pop();
-      if (!current) continue;
-      descendants.push(current.id);
-      if (current.replies.length > 0) {
-        stack.push(...current.replies);
-      }
-    }
-
-    return descendants;
-  };
-
-  const toggleReplies = (post: DiscussionPost, shouldExpand: boolean) => {
-    const descendantIds = shouldExpand ? [] : collectDescendantIds(post);
-
-    setExpandedRepliesByPostId((prev) => {
-      const next = { ...prev, [post.id]: shouldExpand };
-      for (const descendantId of descendantIds) {
-        next[descendantId] = false;
-      }
-      return next;
-    });
-
-    setShowAllImmediateRepliesByPostId((prev) => {
-      const next = { ...prev, [post.id]: false };
-      for (const descendantId of descendantIds) {
-        next[descendantId] = false;
-      }
-      return next;
-    });
+  const toggleReplies = (postId: number, shouldExpand: boolean) => {
+    setCollapsedReplyIds((prev) => ({ ...prev, [postId]: !shouldExpand }));
+    setExpandedDepthByPostId((prev) => ({
+      ...prev,
+      [postId]: shouldExpand ? Math.max(prev[postId] ?? 0, 3) : 0,
+    }));
+    setShowAllImmediateRepliesByPostId((prev) => ({
+      ...prev,
+      [postId]: shouldExpand ? false : false,
+    }));
   };
 
   const showMoreReplies = (postId: number) => {
@@ -357,128 +273,31 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReplyOpenByPostId((prev) => ({ ...prev, [postId]: !prev[postId] }));
   };
 
-  const togglePostMenu = (postId: number) => {
-    setMenuOpenPostId((prev) => (prev === postId ? null : postId));
-  };
-
-  const closePostMenu = () => {
-    setMenuOpenPostId(null);
-  };
-
-  const renderPost = (post: DiscussionPost, depth = 0) => {
+  const renderPost = (post: DiscussionPost, depth = 0, inheritedDepth = 0) => {
     const isAuthor = user?.id === post.author.id;
     const isEditing = editingPostId === post.id;
     const isRoot = post.parentPostId === null;
-    const areRepliesExpanded = expandedRepliesByPostId[post.id] ?? false;
+    const isCollapsed = collapsedReplyIds[post.id] ?? false;
+    const localDepth = isCollapsed ? 0 : Math.max(inheritedDepth, expandedDepthByPostId[post.id] ?? 0);
     const canToggleReplies = post.replies.length > 0;
     const showAllImmediate = showAllImmediateRepliesByPostId[post.id] ?? false;
-    const showMore = canToggleReplies && areRepliesExpanded && !showAllImmediate && post.replies.length > 3;
+    const showMore = canToggleReplies && localDepth > 0 && !showAllImmediate && post.replies.length > 3;
     const immediateReplies = showAllImmediate ? post.replies : post.replies.slice(0, 3);
     const canShowMoreButton = showMore && depth === 0;
-    const canReply = Boolean(user) && !userLoading;
-    const canManageOwnPost = isAuthor && !isEditing;
-    const canReportAsStaff = !isStudent && isStaff && post.author.role === "STUDENT";
-    const canReportAsStudent = isStudent && !isAuthor && post.myStudentReportStatus !== "PENDING";
-    const canReportPost = canReportAsStaff || canReportAsStudent;
-    const shouldShowMenu = !isEditing && (canReply || canManageOwnPost || canReportPost);
-    const isMenuOpen = menuOpenPostId === post.id;
-    const isDeletingPost = deletingPostId === post.id;
-    const isReportingPost = reportingPostId === post.id;
-    const authorLine = `${post.author.firstName} ${post.author.lastName}${isAuthor ? " (You)" : ""}${
-      post.author.role === "STAFF" ? `${isAuthor ? "," : ""} Staff` : ""
-    } - ${new Date(post.createdAt).toLocaleString()}`;
-    const handleReportAction = () => {
-      closePostMenu();
-      if (canReportAsStaff) {
-        void handleReport(post.id);
-        return;
-      }
-      if (canReportAsStudent) {
-        void handleStudentReport(post.id);
-      }
-    };
-
-    const postMenu = shouldShowMenu ? (
-      <div className="discussion-post__menu">
-        <button
-          type="button"
-          className="btn btn--ghost btn--sm discussion-post__menu-trigger"
-          aria-label="Post actions"
-          aria-expanded={isMenuOpen}
-          onClick={() => togglePostMenu(post.id)}
-        >
-          •••
-        </button>
-        {isMenuOpen ? (
-          <div className="discussion-post__menu-panel" data-elevation="popup">
-            {canReply ? (
-              <button
-                type="button"
-                className="discussion-post__menu-item"
-                onClick={() => {
-                  toggleReplyBox(post.id);
-                  closePostMenu();
-                }}
-              >
-                {replyOpenByPostId[post.id] ? "Cancel reply" : "Reply"}
-              </button>
-            ) : null}
-            {canManageOwnPost ? (
-              <button
-                type="button"
-                className="discussion-post__menu-item"
-                onClick={() => {
-                  startEditing(post);
-                  closePostMenu();
-                }}
-              >
-                Edit
-              </button>
-            ) : null}
-            {canManageOwnPost ? (
-              <button
-                type="button"
-                className="discussion-post__menu-item discussion-post__menu-item--danger"
-                disabled={isDeletingPost}
-                onClick={() => {
-                  if (isDeletingPost) return;
-                  closePostMenu();
-                  void handleDelete(post.id);
-                }}
-              >
-                {isDeletingPost ? "Deleting..." : "Delete"}
-              </button>
-            ) : null}
-            {canReportPost ? (
-              <button
-                type="button"
-                className="discussion-post__menu-item"
-                disabled={isReportingPost}
-                onClick={() => {
-                  if (isReportingPost) return;
-                  handleReportAction();
-                }}
-              >
-                {isReportingPost ? "Reporting..." : "Report"}
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    ) : null;
 
     return (
       <article
         key={post.id}
-        className={`card discussion-post ${isRoot ? "discussion-post--root" : "discussion-post--reply"}${
-          isMenuOpen ? " discussion-post--menu-open" : ""
-        }`}
+        className="card stack"
+        style={{ padding: 20, marginLeft: depth * 16 }}
+        onMouseEnter={() => setHoveredPostId(post.id)}
+        onMouseLeave={() => setHoveredPostId((prev) => (prev === post.id ? null : prev))}
       >
-        <div className="discussion-post__header">
+        <div className="stack" style={{ gap: 6 }}>
           {isEditing ? (
             <>
               {isRoot ? (
-                <div className="discussion-field">
+                <>
                   <label htmlFor={`edit-title-${post.id}`}>Title</label>
                   <input
                     id={`edit-title-${post.id}`}
@@ -486,184 +305,223 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                     onChange={(event) => setEditingTitle(event.target.value)}
                     disabled={savingPostId === post.id}
                   />
-                </div>
+                </>
               ) : null}
-              <div className="discussion-field">
-                <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
-                <textarea
-                  ref={registerAutoGrowingTextarea}
-                  id={`edit-body-${post.id}`}
-                  rows={4}
-                  value={editingBody}
-                  onChange={(event) => setEditingBody(event.target.value)}
-                  onInput={(event) => autoGrowTextarea(event.currentTarget)}
-                  disabled={savingPostId === post.id}
-                />
-              </div>
-              <div className="discussion-post__action-row">
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={cancelEditing}
-                  disabled={savingPostId === post.id}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={() => handleUpdate(post)}
-                  disabled={
-                    savingPostId === post.id ||
-                    (isRoot && editingTitle.trim().length === 0) ||
-                    editingBody.trim().length === 0
-                  }
-                >
-                  Save
-                </button>
-              </div>
+              <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
+              <textarea
+                id={`edit-body-${post.id}`}
+                rows={4}
+                value={editingBody}
+                onChange={(event) => setEditingBody(event.target.value)}
+                disabled={savingPostId === post.id}
+              />
             </>
           ) : (
             <>
               {isRoot ? (
-                <div className="discussion-post__title-row">
-                  <div className="discussion-post__headline">
-                    <strong className="discussion-post__title">{post.title}</strong>
-                    <p className="discussion-post__meta">{authorLine}</p>
-                    {post.updatedAt !== post.createdAt ? (
-                      <p className="discussion-post__edited">Edited: {new Date(post.updatedAt).toLocaleString()}</p>
-                    ) : null}
-                  </div>
-                  <div className="discussion-post__title-actions">
-                    {canToggleReplies ? (
-                      <button
-                        type="button"
-                        className="btn btn--ghost discussion-post__toggle-replies"
-                        onClick={() => toggleReplies(post, !areRepliesExpanded)}
-                      >
-                        {areRepliesExpanded ? "Hide replies" : `Show replies (${post.replies.length})`}
-                      </button>
-                    ) : null}
-                    {canShowMoreButton ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <strong>{post.title}</strong>
+                  {canToggleReplies ? (
+                    <div style={{ display: "flex", gap: 8 }}>
                       <button
                         type="button"
                         className="btn btn--ghost"
-                        onClick={() => showMoreReplies(post.id)}
+                        onClick={() => toggleReplies(post.id, localDepth === 0)}
                       >
-                        Show more
+                        {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
                       </button>
-                    ) : null}
-                    {postMenu}
-                  </div>
+                      {canShowMoreButton ? (
+                        <button
+                          type="button"
+                          className="btn btn--ghost"
+                          onClick={() => showMoreReplies(post.id)}
+                        >
+                          Show more
+                        </button>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
-
-              {!isRoot ? (
-                <div className="discussion-post__meta-row">
-                  <p className="discussion-post__meta">{authorLine}</p>
-                  <div className="discussion-post__meta-actions">
-                    {canToggleReplies ? (
-                      <button
-                        type="button"
-                        className="btn btn--ghost discussion-post__toggle-replies"
-                        onClick={() => toggleReplies(post, !areRepliesExpanded)}
-                      >
-                        {areRepliesExpanded ? "Hide replies" : `Show replies (${post.replies.length})`}
-                      </button>
-                    ) : null}
-                    {postMenu}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                }}
+              >
+                <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+                  {post.author.firstName} {post.author.lastName}
+                  {isAuthor ? " (You)" : ""}
+                  {post.author.role === "STAFF" ? `${isAuthor ? "," : ""} Staff` : ""}
+                  {" - "}
+                  {new Date(post.createdAt).toLocaleString()}
+                </p>
+                {!isRoot && canToggleReplies ? (
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn--ghost"
+                      onClick={() => toggleReplies(post.id, localDepth === 0)}
+                    >
+                      {localDepth === 0 ? `Show replies (${post.replies.length})` : "Hide replies"}
+                    </button>
                   </div>
-                </div>
+                ) : null}
+              </div>
+              {post.updatedAt !== post.createdAt ? (
+                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+                  Edited: {new Date(post.updatedAt).toLocaleString()}
+                </p>
               ) : null}
             </>
           )}
         </div>
 
-        {isEditing ? null : <p className="discussion-post__body">{post.body}</p>}
+        {isEditing ? null : <p style={{ margin: 0 }}>{post.body}</p>}
 
-        <div className="discussion-post__toolbar">
-          <div className="discussion-post__toolbar-left">
-            <span className="muted discussion-post__score" aria-label={`Votes ${post.reactionScore}`}>
-              <svg
-                className="discussion-post__score-icon"
-                viewBox="0 0 16 16"
-                width="14"
-                height="14"
-                aria-hidden="true"
-                focusable="false"
-              >
-                <path d="M8 2.5 13 8h-3v5.5H6V8H3L8 2.5Z" fill="currentColor" />
-              </svg>
-              <span>{post.reactionScore}</span>
-            </span>
-            <div className="discussion-post__action-row">
+        <div style={{ display: "flex", gap: 12, justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <span className="muted">Score {post.reactionScore}</span>
+            {!isAuthor ? (
+              <div style={{ display: hoveredPostId === post.id ? "flex" : "none", gap: 12 }}>
+                <button
+                  type="button"
+                  className={`btn ${post.myReaction === "LIKE" ? "btn--primary" : "btn--ghost"}`}
+                  onClick={() => handleReaction(post.id, "LIKE")}
+                  disabled={reactingPostId === post.id}
+                >
+                  {post.myReaction === "LIKE" ? "Liked" : "Like"}
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${post.myReaction === "DISLIKE" ? "btn--primary" : "btn--ghost"}`}
+                  onClick={() => handleReaction(post.id, "DISLIKE")}
+                  disabled={reactingPostId === post.id}
+                >
+                  {post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
+                </button>
+              </div>
+            ) : null}
+          </div>
+
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            {isAuthor ? (
+              isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={cancelEditing}
+                    disabled={savingPostId === post.id}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    onClick={() => handleUpdate(post)}
+                    disabled={
+                      savingPostId === post.id ||
+                      (isRoot && editingTitle.trim().length === 0) ||
+                      editingBody.trim().length === 0
+                    }
+                  >
+                    Save
+                  </button>
+                </>
+              ) : (
+                <div style={{ display: hoveredPostId === post.id ? "flex" : "none", gap: 12 }}>
+                  <button type="button" className="btn btn--ghost" onClick={() => startEditing(post)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn--ghost"
+                    onClick={() => handleDelete(post.id)}
+                    disabled={deletingPostId === post.id}
+                  >
+                    {deletingPostId === post.id ? "Deleting..." : "Delete"}
+                  </button>
+                </div>
+              )
+            ) : null}
+
+            {!isStudent && isStaff && post.author.role === "STUDENT" ? (
               <button
                 type="button"
-                className={`discussion-post__vote-btn discussion-post__vote-btn--like${
-                  post.myReaction === "LIKE" ? " is-active" : ""
-                }`}
-                onClick={() => handleReaction(post.id, "LIKE")}
-                disabled={reactingPostId === post.id}
-                aria-label={post.myReaction === "LIKE" ? "Remove like" : "Like post"}
-                title={post.myReaction === "LIKE" ? "Liked" : "Like"}
+                className="btn btn--ghost"
+                onClick={() => handleReport(post.id)}
+                disabled={reportingPostId === post.id}
+                style={{ display: hoveredPostId === post.id ? "inline-flex" : "none" }}
               >
-                <DiscussionVoteIcon />
+                {reportingPostId === post.id ? "Reporting..." : "Report"}
               </button>
+            ) : null}
+            {isStudent && !isAuthor && post.myStudentReportStatus !== "PENDING" ? (
               <button
                 type="button"
-                className={`discussion-post__vote-btn discussion-post__vote-btn--dislike${
-                  post.myReaction === "DISLIKE" ? " is-active" : ""
-                }`}
-                onClick={() => handleReaction(post.id, "DISLIKE")}
-                disabled={reactingPostId === post.id}
-                aria-label={post.myReaction === "DISLIKE" ? "Remove dislike" : "Dislike post"}
-                title={post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
+                className="btn btn--ghost"
+                onClick={() => handleStudentReport(post.id)}
+                disabled={reportingPostId === post.id}
+                style={{ display: hoveredPostId === post.id ? "inline-flex" : "none" }}
               >
-                <DiscussionVoteIcon direction="down" />
+                {reportingPostId === post.id ? "Reporting..." : "Report"}
               </button>
-            </div>
+            ) : null}
             {isStudent && !isAuthor && post.myStudentReportStatus === "PENDING" ? (
-              <span className="muted discussion-post__reported-tag">Reported</span>
+              <span className="muted" style={{ fontSize: 13 }}>
+                Reported
+              </span>
             ) : null}
           </div>
         </div>
 
-        {replyOpenByPostId[post.id] ? (
-          <div className="discussion-post__reply-editor">
-            <div className="discussion-field">
+        <div className="stack" style={{ gap: 8, marginTop: 12 }}>
+          <button
+            type="button"
+            className="btn btn--ghost"
+            onClick={() => toggleReplyBox(post.id)}
+            style={{
+              display: hoveredPostId === post.id ? "inline-flex" : "none",
+            }}
+          >
+            {replyOpenByPostId[post.id] ? "Cancel reply" : "Reply"}
+          </button>
+          {replyOpenByPostId[post.id] ? (
+            <>
               <label htmlFor={`reply-${post.id}`}>Reply</label>
               <textarea
-                ref={registerAutoGrowingTextarea}
                 id={`reply-${post.id}`}
                 rows={3}
                 value={replyDrafts[post.id] ?? ""}
                 onChange={(event) => handleReplyChange(post.id, event.target.value)}
-                onInput={(event) => autoGrowTextarea(event.currentTarget)}
                 placeholder="Write a reply"
                 disabled={!user || userLoading || savingReplyPostId === post.id}
               />
-            </div>
-            <div className="discussion-post__reply-editor-actions">
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => handleReplySubmit(post.id)}
-                disabled={
-                  !user ||
-                  userLoading ||
-                  savingReplyPostId === post.id ||
-                  (replyDrafts[post.id] ?? "").trim().length === 0
-                }
-              >
-                {savingReplyPostId === post.id ? "Replying..." : "Post reply"}
-              </button>
-            </div>
-          </div>
-        ) : null}
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => handleReplySubmit(post.id)}
+                  disabled={
+                    !user ||
+                    userLoading ||
+                    savingReplyPostId === post.id ||
+                    (replyDrafts[post.id] ?? "").trim().length === 0
+                  }
+                >
+                  {savingReplyPostId === post.id ? "Replyingâ€¦" : "Post reply"}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
 
-        {post.replies.length > 0 && areRepliesExpanded ? (
-          <div className="stack discussion-post__replies">
-            {immediateReplies.map((child) => renderPost(child, depth + 1))}
+        {post.replies.length && localDepth > 0 ? (
+          <div className="stack">
+            {immediateReplies.map((child) => renderPost(child, depth + 1, localDepth - 1))}
           </div>
         ) : null}
       </article>
@@ -671,15 +529,16 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   };
 
   return (
-    <div className="discussion-forum stack projects-panel">
-      <header className="projects-panel__header discussion-forum__header">
-        <h1 className="projects-panel__title">Discussion Forum</h1>
-        <p className="projects-panel__subtitle">Share updates, ask questions, and keep the team aligned.</p>
-      </header>
+    <div className="stack stack--tabbed">
+      {showProjectNav ? <ProjectNav projectId={projectId} /> : null}
+      <section className="stack" style={{ padding: 24, gap: 24 }}>
+        <div>
+          <h1>Discussion Forum</h1>
+          <p className="muted">Share updates, ask questions, and keep the team aligned.</p>
+        </div>
 
-      <form className="card discussion-composer" onSubmit={handleSubmit}>
-        <div className="discussion-composer__body">
-          <div className="discussion-field">
+        <form className="card stack" style={{ padding: 20 }} onSubmit={handleSubmit}>
+          <div className="stack">
             <label htmlFor="discussion-title">Title</label>
             <input
               id="discussion-title"
@@ -690,69 +549,52 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
               disabled={!user || userLoading}
             />
           </div>
-
-          <div className="discussion-field">
+          <div className="stack">
             <label htmlFor="discussion-body">Post</label>
             <textarea
-              ref={registerAutoGrowingTextarea}
               id="discussion-body"
               name="body"
               rows={4}
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              onInput={(event) => autoGrowTextarea(event.currentTarget)}
               placeholder="Write your update or question"
               disabled={!user || userLoading}
             />
           </div>
-
-          <div className="discussion-composer__actions">
-            <button type="submit" className="btn btn--primary btn--sm" disabled={!canSubmit || !user || userLoading}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              className="btn btn--ghost"
+              onClick={() => {
+                setTitle("");
+                setBody("");
+              }}
+              disabled={title.length === 0 && body.length === 0}
+            >
+              Clear
+            </button>
+            <button type="submit" className="btn btn--primary" disabled={!canSubmit || !user || userLoading}>
               Post
             </button>
           </div>
+          {!user && !userLoading ? (
+            <p className="muted" style={{ margin: 0 }}>
+              Please sign in to create a post.
+            </p>
+          ) : null}
+        </form>
 
-          {!user && !userLoading ? <p className="ui-note ui-note--muted">Please sign in to create a post.</p> : null}
-        </div>
-      </form>
-
-      <section className="stack discussion-posts" aria-label="Posts">
-        <h2 className="discussion-posts__title">Latest posts</h2>
-        {error ? <p className="ui-note ui-note--error">{error}</p> : null}
-        {loadingPosts ? (
-          <p className="ui-note ui-note--muted">Loading posts...</p>
-        ) : posts.length === 0 ? (
-          <div className="ui-empty-state">
-            <p>No posts yet. Start the discussion above.</p>
-          </div>
-        ) : (
-          <>
-            {visiblePosts.map((post) => renderPost(post))}
-            {totalPages > 1 ? (
-              <nav className="discussion-posts__pagination" aria-label="Discussion posts pagination">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <p className="discussion-posts__page-indicator" aria-live="polite">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </nav>
-            ) : null}
-          </>
-        )}
+        <section className="stack" aria-label="Posts">
+          <h2 style={{ marginBottom: 4 }}>Latest posts</h2>
+          {error ? <p className="muted">{error}</p> : null}
+          {loadingPosts ? (
+            <p className="muted">Loading posts…</p>
+          ) : posts.length === 0 ? (
+            emptyState
+          ) : (
+            posts.map((post) => renderPost(post))
+          )}
+        </section>
       </section>
     </div>
   );

@@ -25,6 +25,8 @@ import {
   updateModule,
   updateModuleStudents,
   isEnterpriseAdminRole,
+  getModuleMeetingSettings,
+  updateModuleMeetingSettings,
 } from "./service.js";
 import type { EnterpriseRequest } from "./types.js";
 
@@ -323,7 +325,7 @@ router.delete("/forum-reports/:id", async (req, res) => {
   if (!id) return res.status(400).json({ error: "Invalid report id" });
 
   try {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx) => {
       const report = await tx.forumReport.findFirst({
         where: {
           id,
@@ -391,7 +393,7 @@ router.delete("/forum-reports/:id/remove", async (req, res) => {
   if (!id) return res.status(400).json({ error: "Invalid report id" });
 
   try {
-    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await prisma.$transaction(async (tx) => {
       const report = await tx.forumReport.findFirst({
         where: {
           id,
@@ -429,6 +431,39 @@ router.put("/modules/:moduleId/students", async (req, res) => {
   const parsedStudentIds = parsePositiveIntArray(req.body?.studentIds, "studentIds");
   if (!parsedStudentIds.ok) return res.status(400).json({ error: parsedStudentIds.error });
   const result = await updateModuleStudents(enterpriseUser, moduleId, parsedStudentIds.value);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json(result.value);
+});
+
+router.get("/modules/:moduleId/meeting-settings", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+
+  const moduleId = parsePositiveInt(req.params.moduleId);
+  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+
+  const result = await getModuleMeetingSettings(enterpriseUser, moduleId);
+  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  return res.json(result.value);
+});
+
+router.put("/modules/:moduleId/meeting-settings", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+
+  const moduleId = parsePositiveInt(req.params.moduleId);
+  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+
+  const absenceThreshold = Number(req.body?.absenceThreshold);
+  const minutesEditWindowDays = Number(req.body?.minutesEditWindowDays);
+  if (!Number.isInteger(absenceThreshold) || absenceThreshold < 1) {
+    return res.status(400).json({ error: "absenceThreshold must be a positive integer" });
+  }
+  if (!Number.isInteger(minutesEditWindowDays) || minutesEditWindowDays < 1) {
+    return res.status(400).json({ error: "minutesEditWindowDays must be a positive integer" });
+  }
+
+  const result = await updateModuleMeetingSettings(enterpriseUser, moduleId, { absenceThreshold, minutesEditWindowDays });
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 });

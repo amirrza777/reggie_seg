@@ -6,6 +6,10 @@ vi.mock("../api/client", () => ({
   listMeetings: vi.fn(),
 }));
 
+vi.mock("@/features/auth/context", () => ({
+  useUser: vi.fn(() => ({ user: { id: 99, firstName: "Test", lastName: "User" } })),
+}));
+
 vi.mock("./CreateMeetingForm", () => ({
   CreateMeetingForm: ({ onCreated, onCancel }: any) => (
     <div data-testid="create-form">
@@ -13,6 +17,10 @@ vi.mock("./CreateMeetingForm", () => ({
       <button type="button" onClick={onCancel}>cancel</button>
     </div>
   ),
+}));
+
+vi.mock("./AddToCalendarDropdown", () => ({
+  AddToCalendarDropdown: () => <div data-testid="atc" />,
 }));
 
 import { listMeetings } from "../api/client";
@@ -25,6 +33,8 @@ const futureMeeting = {
   date: "2099-01-01T10:00:00Z",
   organiser: { id: 1, firstName: "Reggie", lastName: "King" },
   location: "Bush House 3.01",
+  minutes: null,
+  videoCallLink: null,
 };
 
 const pastMeeting = {
@@ -33,6 +43,8 @@ const pastMeeting = {
   date: "2020-01-01T10:00:00Z",
   organiser: { id: 2, firstName: "John", lastName: "Smith" },
   location: null,
+  minutes: null,
+  videoCallLink: null,
 };
 
 describe("MeetingsPageContent", () => {
@@ -83,18 +95,26 @@ describe("MeetingsPageContent", () => {
     expect(screen.getByText("No previous meetings.")).toBeInTheDocument();
   });
 
-  it("shows create form when button is clicked", async () => {
+  it("shows create form when new meeting button is clicked", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
     await waitFor(() => screen.getByText("Team Meeting"));
     fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
     expect(screen.getByTestId("create-form")).toBeInTheDocument();
   });
 
-  it("hides create form on cancel", async () => {
+  it("hides create form on form cancel", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
     await waitFor(() => screen.getByText("Team Meeting"));
     fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
     fireEvent.click(screen.getByRole("button", { name: "cancel" }));
+    expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
+  });
+
+  it("hides create form when toolbar cancel is clicked", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByRole("button", { name: /new meeting/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /cancel/i })[0]);
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
   });
 
@@ -109,7 +129,14 @@ describe("MeetingsPageContent", () => {
     expect(screen.queryByTestId("create-form")).not.toBeInTheDocument();
   });
 
-  it("renders location or empty for null location", async () => {
+  it("new meeting button is visible on previous tab", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    fireEvent.click(screen.getByText("Previous meetings"));
+    expect(screen.getByRole("button", { name: /new meeting/i })).toBeInTheDocument();
+  });
+
+  it("renders location for upcoming meetings", async () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
     await waitFor(() => screen.getByText("Team Meeting"));
     expect(screen.getByText("Bush House 3.01")).toBeInTheDocument();

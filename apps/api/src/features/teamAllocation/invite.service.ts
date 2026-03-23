@@ -1,13 +1,15 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
-import { prisma } from "../../shared/db.js";
 import { addNotification } from "../notifications/service.js";
 import {
   createTeamInviteRecord,
   findActiveInvite,
   findInviteContext,
   findPendingInvitesForEmail,
+  findTeamArchiveStatus,
+  findUserEmailById,
+  findUserIdByEmail,
   getInvitesForTeam,
   updateInviteStatusFromPending,
 } from "./repo.js";
@@ -22,27 +24,6 @@ type CreateTeamInviteParams = {
   baseUrl: string;
   expiresInMs?: number;
 };
-
-async function findTeamArchiveStatus(teamId: number) {
-  return prisma.team.findUnique({
-    where: { id: teamId },
-    select: { archivedAt: true },
-  });
-}
-
-async function findUserEmailById(userId: number) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
-}
-
-async function findUserIdByEmail(email: string) {
-  return prisma.user.findFirst({
-    where: { email },
-    select: { id: true },
-  });
-}
 
 /** Creates a team invite. */
 export async function createTeamInvite(params: CreateTeamInviteParams) {

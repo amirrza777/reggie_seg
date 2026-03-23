@@ -21,16 +21,6 @@ export function isMergePullRequestCommit(commit: GithubCommitListItem) {
   return message.startsWith("merge pull request");
 }
 
-/** Checks whether commit is any merge commit. */
-export function isMergeCommit(commit: GithubCommitListItem) {
-  const parentCount = Array.isArray(commit.parents) ? commit.parents.length : 0;
-  if (parentCount > 1) {
-    return true;
-  }
-  const message = (commit.commit.message || "").trim().toLowerCase();
-  return message.startsWith("merge pull request") || message.startsWith("merge branch");
-}
-
 /** Executes the aggregate commit data. */
 export function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
   const contributors = new Map<string, AggregatedContributor>();

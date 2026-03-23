@@ -12,6 +12,28 @@ import {
   setupBootstrapCreateLoginContext,
 } from "./service.test-helpers.js";
 
+const ADMIN_BOOTSTRAP_ENV = {
+  ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
+  ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
+} as const;
+
+const createdBootstrapAdmin = {
+  id: 3,
+  email: "admin@kcl.ac.uk",
+  role: "ADMIN",
+  passwordHash: "bootstrap-password-hash",
+  active: true,
+};
+
+async function setupBootstrapCreateLoginContext() {
+  const svc = await loadService(ADMIN_BOOTSTRAP_ENV);
+  prismaMock.user.findFirst.mockResolvedValueOnce(null);
+  prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-enterprise" });
+  argon2Mock.hash.mockResolvedValueOnce("bootstrap-password-hash").mockResolvedValueOnce("refresh-hash");
+  prismaMock.user.create.mockResolvedValueOnce(createdBootstrapAdmin);
+  return svc;
+}
+
 beforeEach(() => {
   setupAuthServiceTestDefaults();
 });

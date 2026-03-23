@@ -82,7 +82,7 @@ describe("StaffCustomisedAllocationPanel", () => {
     expect(screen.getByText("Coverage is below 80% (75%). You can still proceed.")).toBeInTheDocument();
   });
 
-  it("filters questionnaire options via fuzzy searchable input", async () => {
+  it("filters questionnaire options via searchable input", async () => {
     getCustomAllocationQuestionnairesMock.mockResolvedValue({
       project: { id: 9, name: "Project A", moduleId: 3, moduleName: "Module A" },
       questionnaires: [
@@ -126,7 +126,7 @@ describe("StaffCustomisedAllocationPanel", () => {
     expect(screen.getByRole("option", { name: /Project Preferences/i })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Search questionnaires"), {
-      target: { value: "setp" },
+      target: { value: "setup" },
     });
 
     expect(screen.getByRole("option", { name: /Team Setup/i })).toBeInTheDocument();

@@ -1,6 +1,8 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SearchField } from "@/shared/ui/SearchField";
+import { Table } from "@/shared/ui/Table";
 import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,
@@ -21,6 +23,8 @@ type Props = {
   branchCommitsLoadingByLinkId: Record<number, boolean>;
   branchCommitsErrorByLinkId: Record<number, string | null>;
   handleRefreshLiveBranches: () => Promise<void>;
+  getBranchQuery: (linkId: number) => string;
+  onBranchQueryChange: (linkId: number, query: string) => void;
   onSelectBranch: (linkId: number, branch: string) => void;
 };
 
@@ -44,6 +48,8 @@ export function GithubProjectReposBranchesTab({
   branchCommitsLoadingByLinkId,
   branchCommitsErrorByLinkId,
   handleRefreshLiveBranches,
+  getBranchQuery,
+  onBranchQueryChange,
   onSelectBranch,
 }: Props) {
   return (
@@ -69,14 +75,20 @@ export function GithubProjectReposBranchesTab({
         {!loading &&
           links.map((link) => {
             const snapshot = latestSnapshotByLinkId[link.id];
-            const branchData = liveBranchesByLinkId[link.id];
-            const selectedBranch = selectedBranchByLinkId[link.id] || "";
-            const selectedBranchCommitCount =
-              typeof snapshot?.data?.branchScopeStats?.allBranches?.commitsByBranch?.[selectedBranch] === "number"
-                ? Number(snapshot.data?.branchScopeStats?.allBranches?.commitsByBranch?.[selectedBranch] ?? 0)
-                : null;
-            const currentBranchCommits = branchCommitsByLinkId[link.id]?.commits ?? [];
-
+            const rows = buildBranchRows(link);
+            const branchSearchQuery = getBranchQuery(link.id);
+            const allBranches = liveBranchesByLinkId[link.id]?.branches || [];
+            const selectedBranch = selectedBranchByLinkId[link.id];
+            const selectedBranchItem = selectedBranch
+              ? allBranches.find((branch) => branch.name === selectedBranch) ?? null
+              : null;
+            const visibleBranches = !selectedBranch
+              ? allBranches
+              : allBranches.some((branch) => branch.name === selectedBranch)
+                ? allBranches
+                : selectedBranchItem
+                  ? [selectedBranchItem, ...allBranches]
+                  : allBranches;
             return (
               <article key={link.id} className="github-repos-tab__subpanel github-repos-tab__subpanel--activity">
                 <div className="github-repos-tab__activity-head">
@@ -106,11 +118,80 @@ export function GithubProjectReposBranchesTab({
                     Failed to load branches: {liveBranchesErrorByLinkId[link.id]}
                   </p>
                 ) : null}
-
-                {!liveBranchesLoadingByLinkId[link.id] &&
-                !liveBranchesErrorByLinkId[link.id] &&
-                (branchData?.branches?.length ?? 0) === 0 ? (
-                  <p className="muted github-repos-tab__table-wrap">No branches returned for this repository.</p>
+                {!rows && !liveBranchesLoadingByLinkId[link.id] && !liveBranchesErrorByLinkId[link.id] ? (
+                  <p className="muted github-repos-tab__table-wrap">No live branches returned for this repository.</p>
+                ) : rows ? (
+                  <>
+                    <p className="muted github-repos-tab__table-wrap">
+                      Branches are fetched live from GitHub. Commit counts are shown from the latest snapshot when available.
+                    </p>
+                    <div className="github-repos-tab__table-wrap">
+                      <Table
+                        headers={["Branch", "Default", "Commits (snapshot)", "Ahead of main", "Behind main", "Status"]}
+                        rows={rows}
+                      />
+                    </div>
+                    <div className="stack github-repos-tab__select-wrap">
+                      <label className="muted" htmlFor={`branch-search-${link.id}`}>
+                        Search branches
+                      </label>
+                      <SearchField
+                        id={`branch-search-${link.id}`}
+                        className="github-repos-tab__select"
+                        value={branchSearchQuery}
+                        onChange={(event) => onBranchQueryChange(link.id, event.target.value)}
+                        placeholder="Search branch names"
+                        aria-label={`Search branches for ${link.repository.fullName}`}
+                        disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
+                      />
+                      <label className="muted" htmlFor={`branch-commit-select-${link.id}`}>
+                        Select branch to view 10 most recent commits
+                      </label>
+                      <select
+                        id={`branch-commit-select-${link.id}`}
+                        className="github-repos-tab__select"
+                        value={selectedBranchByLinkId[link.id] || ""}
+                        onChange={(e) => onSelectBranch(link.id, e.target.value)}
+                        disabled={Boolean(liveBranchesLoadingByLinkId[link.id])}
+                      >
+                        {visibleBranches.length === 0 ? (
+                          <option value="">No branches match "{branchSearchQuery.trim()}"</option>
+                        ) : null}
+                        {visibleBranches.map((branch) => (
+                          <option key={branch.name} value={branch.name}>
+                            {branch.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {branchCommitsLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p> : null}
+                    {branchCommitsErrorByLinkId[link.id] ? (
+                      <p className="muted github-repos-tab__table-wrap">
+                        Failed to load branch commits: {branchCommitsErrorByLinkId[link.id]}
+                      </p>
+                    ) : null}
+                    {branchCommitsByLinkId[link.id]?.commits?.length ? (
+                      <div className="github-repos-tab__table-wrap">
+                        <Table
+                          headers={["Commit", "Date", "Additions", "Deletions"]}
+                          columnTemplate="minmax(0, 1.8fr) minmax(170px, 220px) minmax(90px, 110px) minmax(90px, 110px)"
+                          rows={branchCommitsByLinkId[link.id]!.commits.map((commit) => [
+                            <div key={commit.sha} className="stack github-repos-tab__commit-cell">
+                              <a href={commit.htmlUrl} target="_blank" rel="noreferrer" className="github-repos-tab__commit-link">
+                                {commit.message || "(no message)"}
+                              </a>
+                              <span className="muted github-repos-tab__commit-meta">
+                                {commit.sha.slice(0, 8)} • {commit.authorLogin || commit.authorEmail || "unknown"}
+                              </span>
+                            </div>,
+                            commit.date ? new Date(commit.date).toLocaleString() : "-",
+                            commit.additions ?? "-",
+                            commit.deletions ?? "-",
+                          ])}
+                        />
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
 
                 {(branchData?.branches?.length ?? 0) > 0 ? (

@@ -5,7 +5,7 @@ export type StaffMeeting = Omit<Meeting, "team">;
 export type MeetingStats = {
   totalMeetings: number;
   avgAttendanceRate: number;
-  meetingsWithMinutes: number;
+  onTimeRate: number;
 };
 
 export type FlaggedMember = {
