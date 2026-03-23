@@ -51,6 +51,13 @@ export function StaffTeamWarningReviewPanel({
         .sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt)),
     [warnings],
   );
+  const resolvedWarnings = useMemo(
+    () =>
+      warnings
+        .filter((warning) => !warning.active)
+        .sort((a, b) => toTimestamp(b.resolvedAt ?? b.updatedAt) - toTimestamp(a.resolvedAt ?? a.updatedAt)),
+    [warnings],
+  );
 
   const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
@@ -62,8 +69,20 @@ export function StaffTeamWarningReviewPanel({
     setPanelError(null);
     setPanelMessage(null);
     try {
-      const updated = await resolveStaffTeamWarning(userId, projectId, teamId, warningId);
-      setWarnings((prev) => prev.map((warning) => (warning.id === warningId ? updated : warning)));
+      await resolveStaffTeamWarning(userId, projectId, teamId, warningId);
+      const resolvedAt = new Date().toISOString();
+      setWarnings((prev) =>
+        prev.map((warning) =>
+          warning.id === warningId
+            ? {
+                ...warning,
+                active: false,
+                resolvedAt,
+                updatedAt: resolvedAt,
+              }
+            : warning,
+        ),
+      );
       setPanelMessage("Warning resolved.");
       router.refresh();
     } catch (error) {
@@ -102,9 +121,6 @@ export function StaffTeamWarningReviewPanel({
                 </span>
               </div>
               <p className="staff-projects__team-count" style={{ margin: 0 }}>{warning.details}</p>
-              <p className="staff-projects__team-count" style={{ margin: 0 }}>
-                Type: {warning.type} · Source: {warning.source}
-              </p>
               <p className="muted" style={{ margin: 0 }}>
                 Triggered on {formatDateTime(warning.createdAt)}
               </p>
@@ -124,10 +140,33 @@ export function StaffTeamWarningReviewPanel({
           ))
         )}
 
+        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+          <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Resolved history</h4>
+          {resolvedWarnings.length === 0 ? (
+            <p className="staff-projects__team-count" style={{ margin: 0 }}>
+              No resolved warnings yet.
+            </p>
+          ) : (
+            resolvedWarnings.map((warning) => (
+              <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__team-card--resolved" style={compactCardStyle}>
+                <div className="staff-projects__team-top">
+                  <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
+                  <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
+                    {warning.severity}
+                  </span>
+                </div>
+                <p className="staff-projects__team-count" style={{ margin: 0 }}>{warning.details}</p>
+                <p className="muted" style={{ margin: 0 }}>
+                  Resolved on {formatDateTime(warning.resolvedAt ?? warning.updatedAt)}
+                </p>
+              </article>
+            ))
+          )}
+        </div>
+
         {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}
         {panelError ? <p className="error" style={{ margin: 0 }}>{panelError}</p> : null}
       </details>
     </section>
   );
 }
-

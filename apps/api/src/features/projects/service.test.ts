@@ -369,4 +369,55 @@ describe("projects service", () => {
       }),
     );
   });
+
+  it("evaluateProjectWarningsForStaff resolves active auto warnings when team improves", async () => {
+    (repo.getStaffProjectWarningsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      warningsConfig: {
+        version: 1,
+        rules: [
+          { key: "MEETING_FREQUENCY", enabled: true, severity: "MEDIUM", params: { minPerWeek: 1, lookbackDays: 28 } },
+        ],
+      },
+    });
+    (repo.getProjectTeamWarningSignals as any).mockResolvedValueOnce([
+      {
+        id: 11,
+        teamName: "Alpha",
+        meetings: [
+          { date: new Date("2026-03-18T10:00:00.000Z"), attendances: [] },
+          { date: new Date("2026-03-19T10:00:00.000Z"), attendances: [] },
+          { date: new Date("2026-03-20T10:00:00.000Z"), attendances: [] },
+          { date: new Date("2026-03-21T10:00:00.000Z"), attendances: [] },
+          { date: new Date("2026-03-22T10:00:00.000Z"), attendances: [] },
+        ],
+      },
+    ]);
+    (repo.getActiveAutoTeamWarningsForProject as any).mockResolvedValueOnce([
+      {
+        id: 81,
+        teamId: 11,
+        type: "MEETING_FREQUENCY",
+        severity: "MEDIUM",
+        title: "Meeting activity below recommendation",
+        details: "0 meeting(s) logged over the last 28 days. Recommended minimum: 4.",
+        createdAt: new Date("2026-03-20T00:00:00.000Z"),
+      },
+    ]);
+    (repo.resolveTeamWarningById as any).mockResolvedValueOnce({ id: 81 });
+
+    const summary = await evaluateProjectWarningsForStaff(9, 3);
+
+    expect(summary).toEqual(
+      expect.objectContaining({
+        projectId: 3,
+        evaluatedTeams: 1,
+        createdWarnings: 0,
+        resolvedWarnings: 1,
+        activeAutoWarnings: 0,
+      }),
+    );
+    expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(81);
+    expect(repo.createTeamWarning).not.toHaveBeenCalled();
+  });
 });
