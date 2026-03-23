@@ -8,6 +8,8 @@ import type {
   DeleteEnterpriseModuleResponse,
   EnterpriseModuleAccessUsersResponse,
   EnterpriseFeatureFlag,
+  EnterpriseModuleCreateResponse,
+  EnterpriseModuleJoinCodeResponse,
   EnterpriseModuleRecord,
   EnterpriseModuleSearchParams,
   EnterpriseModuleSearchResponse,
@@ -49,8 +51,8 @@ export async function searchEnterpriseModules(
   return apiFetch<EnterpriseModuleSearchResponse>(path);
 }
 
-export async function createEnterpriseModule(payload: CreateEnterpriseModulePayload): Promise<EnterpriseModuleRecord> {
-  return apiFetch<EnterpriseModuleRecord>("/enterprise-admin/modules", {
+export async function createEnterpriseModule(payload: CreateEnterpriseModulePayload): Promise<EnterpriseModuleCreateResponse> {
+  return apiFetch<EnterpriseModuleCreateResponse>("/enterprise-admin/modules", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -99,6 +101,10 @@ export async function getEnterpriseModuleAccessSelection(
   return apiFetch<EnterpriseModuleAccessSelectionResponse>(`/enterprise-admin/modules/${moduleId}/access-selection`);
 }
 
+export async function getEnterpriseModuleJoinCode(moduleId: number): Promise<EnterpriseModuleJoinCodeResponse> {
+  return apiFetch<EnterpriseModuleJoinCodeResponse>(`/enterprise-admin/modules/${moduleId}/join-code`);
+}
+
 export async function listEnterpriseModuleStudents(moduleId: number): Promise<EnterpriseModuleStudentsResponse> {
   return apiFetch<EnterpriseModuleStudentsResponse>(`/enterprise-admin/modules/${moduleId}/students`);
 }
@@ -131,4 +137,3 @@ export async function updateModuleMeetingSettings(
     body: JSON.stringify(settings),
   });
 }
-

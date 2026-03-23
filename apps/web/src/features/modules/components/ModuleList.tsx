@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Module } from "../types";
@@ -12,6 +13,7 @@ type ModuleListProps = {
   sortBy?: ModuleSortKey;
   onSortByChange?: (sortBy: ModuleSortKey) => void;
   showSortControl?: boolean;
+  toolbarAction?: ReactNode;
 };
 
 const titleCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -53,6 +55,7 @@ export function ModuleList({
   sortBy,
   onSortByChange,
   showSortControl = true,
+  toolbarAction,
 }: ModuleListProps) {
   const [internalSortBy, setInternalSortBy] = useState<ModuleSortKey>("alphabetical");
   const activeSortBy = sortBy ?? internalSortBy;
@@ -65,22 +68,25 @@ export function ModuleList({
     onSortByChange?.(nextSortBy);
   };
 
-  if (modules.length === 0) {
-    return (
-      <div className="module-list-empty">
-        <p>{emptyMessage}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="module-list">
-      {showSortControl ? <ModuleSortControl activeSortBy={activeSortBy} onSortChange={handleSortChange} /> : null}
-      <div className="module-list__grid">
-        {sortedModules.map((module) => (
-          <ModuleCard key={module.id} module={module} />
-        ))}
-      </div>
+      {showSortControl || toolbarAction ? (
+        <div className="module-list__toolbar">
+          {toolbarAction ? <div className="module-list__toolbar-action">{toolbarAction}</div> : <span />}
+          {showSortControl ? <ModuleSortControl activeSortBy={activeSortBy} onSortChange={handleSortChange} /> : null}
+        </div>
+      ) : null}
+      {modules.length === 0 ? (
+        <div className="module-list-empty">
+          <p>{emptyMessage}</p>
+        </div>
+      ) : (
+        <div className="module-list__grid">
+          {sortedModules.map((module) => (
+            <ModuleCard key={module.id} module={module} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -93,7 +99,7 @@ function ModuleSortControl({
   onSortChange: (sortBy: ModuleSortKey) => void;
 }) {
   return (
-    <div className="module-list__toolbar">
+    <div className="module-list__sort-group">
       <label htmlFor="module-list-sort" className="module-list__sort-label">
         Sort by
       </label>

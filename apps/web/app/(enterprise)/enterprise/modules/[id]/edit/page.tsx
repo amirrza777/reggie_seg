@@ -5,10 +5,12 @@ import { Card } from "@/shared/ui/Card";
 
 type EnterpriseModuleEditPageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ created?: string; joinCode?: string }>;
 };
 
-export default async function EnterpriseModuleEditPage({ params }: EnterpriseModuleEditPageProps) {
+export default async function EnterpriseModuleEditPage({ params, searchParams }: EnterpriseModuleEditPageProps) {
   const { id } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const moduleId = Number.parseInt(id, 10);
 
   if (!Number.isInteger(moduleId) || moduleId <= 0) {
@@ -20,7 +22,7 @@ export default async function EnterpriseModuleEditPage({ params }: EnterpriseMod
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Edit module</h1>
         <p className="ui-page__description">
-          Update module guidance and manage access levels for owners/leaders, teaching assistants, and students.
+          Update module guidance, manage access levels, and share the module join code for student self-enrollment.
         </p>
       </header>
 
@@ -33,7 +35,11 @@ export default async function EnterpriseModuleEditPage({ params }: EnterpriseMod
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} />
+        <EnterpriseModuleCreateForm
+          mode="edit"
+          moduleId={moduleId}
+          createdJoinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
+        />
       </Card>
     </div>
   );

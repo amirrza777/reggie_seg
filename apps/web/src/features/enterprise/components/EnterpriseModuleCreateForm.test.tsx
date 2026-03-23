@@ -12,6 +12,7 @@ vi.mock("../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
+  getEnterpriseModuleJoinCode: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),
   updateEnterpriseModule: vi.fn(),
 }));
@@ -20,6 +21,7 @@ import {
   createEnterpriseModule,
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
+  getEnterpriseModuleJoinCode,
   searchEnterpriseModuleAccessUsers,
   updateEnterpriseModule,
 } from "../api/client";
@@ -30,6 +32,7 @@ const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<type
 const getEnterpriseModuleAccessSelectionMock = getEnterpriseModuleAccessSelection as MockedFunction<
   typeof getEnterpriseModuleAccessSelection
 >;
+const getEnterpriseModuleJoinCodeMock = getEnterpriseModuleJoinCode as MockedFunction<typeof getEnterpriseModuleJoinCode>;
 const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers as MockedFunction<
   typeof searchEnterpriseModuleAccessUsers
 >;
@@ -85,6 +88,7 @@ describe("EnterpriseModuleCreateForm", () => {
     refresh.mockReset();
     createEnterpriseModuleMock.mockResolvedValue({
       id: 99,
+      joinCode: "ABCD2345",
       name: "Created module",
       createdAt: "2026-03-01T00:00:00.000Z",
       updatedAt: "2026-03-01T00:00:00.000Z",
@@ -109,6 +113,10 @@ describe("EnterpriseModuleCreateForm", () => {
       leaderIds: [11],
       taIds: [12],
       studentIds: [31],
+    });
+    getEnterpriseModuleJoinCodeMock.mockResolvedValue({
+      moduleId: 77,
+      joinCode: "ABCD2345",
     });
     updateEnterpriseModuleMock.mockResolvedValue({
       id: 77,
@@ -169,8 +177,16 @@ describe("EnterpriseModuleCreateForm", () => {
         leaderIds: [11],
       }),
     );
-    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit");
+    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit?created=1&joinCode=ABCD2345");
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it("shows the join code card in edit mode", async () => {
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} createdJoinCode="ZXCV6789" />);
+
+    expect(await screen.findByText(/students can now join with this code/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
+    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(77);
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

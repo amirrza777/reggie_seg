@@ -6,7 +6,7 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }));
 
-import { listModules } from "./client";
+import { joinModuleByCode, listModules } from "./client";
 
 describe("modules api client", () => {
   beforeEach(() => {
@@ -31,5 +31,13 @@ describe("modules api client", () => {
   it("fetches compact module list", async () => {
     await listModules(42, { compact: true });
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&compact=1");
+  });
+
+  it("joins a module by code", async () => {
+    await joinModuleByCode({ code: "ABCD2345" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/join", {
+      method: "POST",
+      body: JSON.stringify({ code: "ABCD2345" }),
+    });
   });
 });

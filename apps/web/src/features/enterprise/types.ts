@@ -13,6 +13,15 @@ export type EnterpriseModuleRecord = {
   readinessNotesText?: string;
 };
 
+export type EnterpriseModuleCreateResponse = EnterpriseModuleRecord & {
+  joinCode: string;
+};
+
+export type EnterpriseModuleJoinCodeResponse = {
+  moduleId: number;
+  joinCode: string;
+};
+
 export type EnterpriseFeatureFlag = {
   key: string;
   label: string;

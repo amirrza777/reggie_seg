@@ -10,3 +10,14 @@ export type Module = {
   projectCount?: number;
   accountRole?: "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 };
+
+export type JoinModulePayload = {
+  code: string;
+};
+
+export type JoinModuleResponse = {
+  moduleId: number;
+  moduleName: string;
+  enrolled: true;
+  alreadyEnrolled: boolean;
+};

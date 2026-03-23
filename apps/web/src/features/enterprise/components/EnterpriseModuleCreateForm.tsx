@@ -4,6 +4,7 @@ import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
 import { CharacterCount, EnterpriseModuleEditFields } from "./EnterpriseModuleFormFields";
+import { ModuleJoinCodeCard } from "./ModuleJoinCodeCard";
 import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
 import { MeetingSettingsSection } from "./MeetingSettingsSection";
 
@@ -14,6 +15,7 @@ type EnterpriseModuleCreateFormProps = {
   mode?: "create" | "edit";
   moduleId?: number;
   workspace?: "enterprise" | "staff";
+  createdJoinCode?: string | null;
 };
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
@@ -22,6 +24,7 @@ export function EnterpriseModuleCreateForm({
   mode = "create",
   moduleId,
   workspace = "enterprise",
+  createdJoinCode = null,
 }: EnterpriseModuleCreateFormProps) {
   const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
 
@@ -33,13 +36,22 @@ export function EnterpriseModuleCreateForm({
     return <ModuleEditBlockedNotice state={state} />;
   }
 
-  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} />;
+  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} createdJoinCode={createdJoinCode} />;
 }
 
-function EnterpriseModuleCreateFormBody({ state, moduleId }: { state: ModuleCreateFormState; moduleId?: number }) {
+function EnterpriseModuleCreateFormBody({
+  state,
+  moduleId,
+  createdJoinCode,
+}: {
+  state: ModuleCreateFormState;
+  moduleId?: number;
+  createdJoinCode?: string | null;
+}) {
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
+      {state.isEditMode && moduleId ? <ModuleJoinCodeCard moduleId={moduleId} initialJoinCode={createdJoinCode} /> : null}
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
@@ -94,8 +106,8 @@ function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
   if (!state.isEditMode) {
     return (
       <p className="ui-note ui-note--muted">
-        You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating
-        the module.
+        You can define module brief, timeline, expectations, teaching assistants, manual student assignments, and share
+        the join code after creating the module.
       </p>
     );
   }
@@ -199,7 +211,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
 
       <EnterpriseModuleAccessSection
         label="Students"
-        helperText="Enrolled students can participate in module projects and assessments."
+        helperText="Students can be assigned manually here and can also self-join with the module code."
         groupLabel="Module students"
         searchId="module-student-search"
         searchAriaLabel="Search students"

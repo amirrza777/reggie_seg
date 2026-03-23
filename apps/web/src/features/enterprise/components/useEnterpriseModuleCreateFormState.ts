@@ -165,7 +165,7 @@ export function useEnterpriseModuleCreateFormState({
         router.push(modulesHomeHref);
       } else {
         const createdModule = await createEnterpriseModule({ name, leaderIds });
-        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id);
+        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
         router.push(nextHref);
       }
 
@@ -321,9 +321,10 @@ function buildModuleUpdatePayload(input: {
   };
 }
 
-function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number): string {
-  if (workspace === "staff") return `/staff/modules/${moduleId}/manage`;
-  return `/enterprise/modules/${moduleId}/edit`;
+function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number, joinCode: string): string {
+  const basePath = workspace === "staff" ? `/staff/modules/${moduleId}/manage` : `/enterprise/modules/${moduleId}/edit`;
+  const searchParams = new URLSearchParams({ created: "1", joinCode });
+  return `${basePath}?${searchParams.toString()}`;
 }
 
 function normalizeOptionalMultilineText(value: string): string | undefined {
