@@ -20,6 +20,7 @@ import {
   getProject,
   getProjectDeadline,
   getProjectMarking,
+  getStaffProjectNavFlagsConfig,
   getStaffProjectTeams,
   getStaffProjectWarningsConfig,
   getTeamById,
@@ -27,6 +28,7 @@ import {
   getTeammatesInProject,
   getUserProjects,
   updateStaffProjectWarningsConfig,
+  updateStaffProjectNavFlagsConfig,
 } from "./client";
 
 describe("projects api client", () => {
@@ -112,6 +114,46 @@ describe("projects api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/warnings-config", {
       method: "PATCH",
       body: JSON.stringify({ warningsConfig }),
+    });
+  });
+
+  it("gets staff project nav flags config without cache", async () => {
+    await getStaffProjectNavFlagsConfig(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/project-feature-flags", {
+      cache: "no-store",
+    });
+  });
+
+  it("updates staff project nav flags config", async () => {
+    const projectNavFlags = {
+      version: 1 as const,
+      active: {
+        team: true,
+        meetings: true,
+        peer_assessment: true,
+        peer_feedback: false,
+        repos: true,
+        trello: true,
+        discussion: true,
+        team_health: true,
+      },
+      completed: {
+        team: true,
+        meetings: true,
+        peer_assessment: true,
+        peer_feedback: true,
+        repos: true,
+        trello: false,
+        discussion: true,
+        team_health: true,
+      },
+    };
+
+    await updateStaffProjectNavFlagsConfig(42, projectNavFlags);
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/project-feature-flags", {
+      method: "PATCH",
+      body: JSON.stringify({ projectNavFlags }),
     });
   });
 

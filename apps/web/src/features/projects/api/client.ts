@@ -16,6 +16,8 @@ import type {
   StaffStudentDeadlineOverridePayload,
   ProjectWarningsConfig,
   StaffProjectWarningsConfigResponse,
+  ProjectNavFlagsConfig,
+  StaffProjectNavFlagsConfigResponse,
   TeamWarning,
 } from "../types";
 
@@ -85,6 +87,24 @@ export async function updateStaffProjectWarningsConfig(
   return apiFetch<StaffProjectWarningsConfigResponse>(`/projects/staff/${projectId}/warnings-config`, {
     method: "PATCH",
     body: JSON.stringify({ warningsConfig }),
+  });
+}
+
+export async function getStaffProjectNavFlagsConfig(
+  projectId: number,
+): Promise<StaffProjectNavFlagsConfigResponse> {
+  return apiFetch<StaffProjectNavFlagsConfigResponse>(`/projects/staff/${projectId}/project-feature-flags`, {
+    cache: "no-store",
+  });
+}
+
+export async function updateStaffProjectNavFlagsConfig(
+  projectId: number,
+  projectNavFlags: ProjectNavFlagsConfig,
+): Promise<StaffProjectNavFlagsConfigResponse> {
+  return apiFetch<StaffProjectNavFlagsConfigResponse>(`/projects/staff/${projectId}/project-feature-flags`, {
+    method: "PATCH",
+    body: JSON.stringify({ projectNavFlags }),
   });
 }
 

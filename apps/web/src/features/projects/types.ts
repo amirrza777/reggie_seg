@@ -7,6 +7,44 @@ export type Project = {
   teamCount?: number;
   questionnaireTemplateId: number;
   archivedAt?: string | null;
+  projectNavFlags?: ProjectNavFlagsConfig | null;
+};
+
+export type ProjectNavFlagKey =
+  | "team"
+  | "meetings"
+  | "peer_assessment"
+  | "peer_feedback"
+  | "repos"
+  | "trello"
+  | "discussion"
+  | "team_health";
+
+export type ProjectNavFlagsState = Record<ProjectNavFlagKey, boolean>;
+
+export type ProjectNavPeerMode = "NATURAL" | "MANUAL";
+
+export type ProjectNavPeerModes = {
+  peer_assessment: ProjectNavPeerMode;
+  peer_feedback: ProjectNavPeerMode;
+};
+
+export type ProjectNavFlagsConfig = {
+  version: 1;
+  active: ProjectNavFlagsState;
+  completed: ProjectNavFlagsState;
+  peerModes: ProjectNavPeerModes;
+};
+
+export type StaffProjectNavFlagsConfigResponse = {
+  id: number;
+  name: string;
+  hasPersistedProjectNavFlags: boolean;
+  projectNavFlags: ProjectNavFlagsConfig;
+  deadlineWindow: {
+    assessmentOpenDate: string | null;
+    feedbackOpenDate: string | null;
+  };
 };
 
 export type ProjectDeadline = {

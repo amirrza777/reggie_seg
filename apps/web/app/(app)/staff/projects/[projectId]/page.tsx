@@ -64,6 +64,9 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
             <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
               Forum
             </Link>
+            <Link href={`/staff/projects/${data.project.id}/feature-flags`} className="staff-projects__quick-link">
+              Feature flags
+            </Link>
           </div>
           <StaffProjectWarningsConfigPanel
             projectId={data.project.id}
