@@ -22,6 +22,8 @@ import {
   resolveStaffTeamWarningHandler,
   getMyTeamWarningsHandler,
   getProjectWarningsConfigHandler,
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
 } from "./controller.js";
@@ -47,6 +49,8 @@ vi.mock("./service.js", () => ({
   resolveTeamWarningForStaff: vi.fn(),
   fetchMyTeamWarnings: vi.fn(),
   fetchProjectWarningsConfigForStaff: vi.fn(),
+  fetchProjectNavFlagsConfigForStaff: vi.fn(),
+  updateProjectNavFlagsConfigForStaff: vi.fn(),
   updateProjectWarningsConfigForStaff: vi.fn(),
   evaluateProjectWarningsForStaff: vi.fn(),
   updateTeamDeadlineProfileForStaff: vi.fn(),
@@ -463,6 +467,95 @@ describe("projects controller core handlers", () => {
     const missingRes = mockResponse();
     await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
     expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getProjectNavFlagsConfigHandler validates id and returns config", async () => {
+    const unauthorizedRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+    const okRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, okRes);
+    expect(service.fetchProjectNavFlagsConfigForStaff).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+
+    (service.fetchProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updateProjectNavFlagsConfigHandler validates payload and updates config", async () => {
+    const unauthorizedRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { params: { projectId: "3" }, body: { projectNavFlags: { version: 1, active: {}, completed: {} } } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badIdRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, body: { projectNavFlags: { version: 1, active: {}, completed: {} } } } as any,
+      badIdRes,
+    );
+    expect(badIdRes.status).toHaveBeenCalledWith(400);
+
+    const missingBodyRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: {} } as any,
+      missingBodyRes,
+    );
+    expect(missingBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+    const okRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { projectNavFlags: { version: 1, active: {}, completed: {} } },
+      } as any,
+      okRes,
+    );
+    expect(service.updateProjectNavFlagsConfigForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      { version: 1, active: {}, completed: {} },
+    );
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+
+    (service.updateProjectNavFlagsConfigForStaff as any).mockRejectedValueOnce({ code: "INVALID_PROJECT_NAV_FLAGS_CONFIG" });
+    const invalidRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { projectNavFlags: { bad: true } } } as any,
+      invalidRes,
+    );
+    expect(invalidRes.status).toHaveBeenCalledWith(400);
   });
 
   it("updateProjectWarningsConfigHandler validates payload and updates config", async () => {

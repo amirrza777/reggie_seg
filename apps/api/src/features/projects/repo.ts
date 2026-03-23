@@ -494,8 +494,10 @@ export async function getProjectById(projectId: number) {
       id: true,
       name: true,
       informationText: true,
+      archivedAt: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      projectNavFlags: true,
     },
   });
 }
@@ -701,6 +703,47 @@ export async function getStaffProjectWarningsConfig(actorUserId: number, project
     select: {
       id: true,
       warningsConfig: true,
+    },
+  });
+}
+
+export async function getStaffProjectNavFlagsConfig(actorUserId: number, projectId: number) {
+  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
+  return prisma.project.findUnique({
+    where: { id: scope.id },
+    select: {
+      id: true,
+      name: true,
+      projectNavFlags: true,
+      deadline: {
+        select: {
+          assessmentOpenDate: true,
+          feedbackOpenDate: true,
+        },
+      },
+    },
+  });
+}
+
+export async function updateStaffProjectNavFlagsConfig(
+  actorUserId: number,
+  projectId: number,
+  projectNavFlags: unknown,
+) {
+  const scope = await getStaffProjectWarningsSettingsScope(actorUserId, projectId);
+  return prisma.project.update({
+    where: { id: scope.id },
+    data: { projectNavFlags: projectNavFlags as any },
+    select: {
+      id: true,
+      name: true,
+      projectNavFlags: true,
+      deadline: {
+        select: {
+          assessmentOpenDate: true,
+          feedbackOpenDate: true,
+        },
+      },
     },
   });
 }

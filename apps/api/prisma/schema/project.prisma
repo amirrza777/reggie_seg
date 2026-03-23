@@ -9,6 +9,7 @@ model Project {
   archivedAt              DateTime?
   noRepoAlertSentAt       DateTime?
   warningsConfig          Json?
+  projectNavFlags         Json?
 
   module                Module                    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   questionnaireTemplate QuestionnaireTemplate     @relation("ProjectTemplate", fields: [questionnaireTemplateId], references: [id])

@@ -19,6 +19,10 @@ import {
   fetchProjectWarningsConfigForStaff,
   updateProjectWarningsConfigForStaff,
   evaluateProjectWarningsForStaff,
+  fetchProjectNavFlagsConfigForStaff,
+  updateProjectNavFlagsConfigForStaff,
+  getDefaultProjectNavFlagsConfig,
+  parseProjectNavFlagsConfig,
   getDefaultProjectWarningsConfig,
   parseProjectWarningsConfig,
 } from "./service.js";
@@ -41,6 +45,8 @@ vi.mock("./repo.js", () => ({
   getTeamWarningsForTeamInProject: vi.fn(),
   canStaffAccessTeamInProject: vi.fn(),
   getStaffProjectWarningsConfig: vi.fn(),
+  getStaffProjectNavFlagsConfig: vi.fn(),
+  updateStaffProjectNavFlagsConfig: vi.fn(),
   updateStaffProjectWarningsConfig: vi.fn(),
   getProjectWarningsSettings: vi.fn(),
   getProjectTeamWarningSignals: vi.fn(),
@@ -68,12 +74,15 @@ describe("projects service", () => {
 
   it("delegates createProject and fetchProjectById", async () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
-    (repo.getProjectById as any).mockResolvedValue({ id: 9 });
+    (repo.getProjectById as any).mockResolvedValue({ id: 9, projectNavFlags: null });
 
     await expect(createProject(7, "P1", 2, 3, null, deadlineInput)).resolves.toEqual({ id: 9 });
     expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, null, deadlineInput);
 
-    await expect(fetchProjectById(9)).resolves.toEqual({ id: 9 });
+    await expect(fetchProjectById(9)).resolves.toEqual({
+      id: 9,
+      projectNavFlags: expect.objectContaining({ version: 1 }),
+    });
     expect(repo.getProjectById).toHaveBeenCalledWith(9);
   });
 
@@ -243,6 +252,157 @@ describe("projects service", () => {
     (repo.getTeamWarningsForTeamInProject as any).mockResolvedValueOnce([{ id: 5, active: true }]);
     await expect(fetchMyTeamWarnings(7, 3)).resolves.toEqual([{ id: 5, active: true }]);
     expect(repo.getTeamWarningsForTeamInProject).toHaveBeenCalledWith(3, 22, { activeOnly: true });
+  });
+
+  it("parseProjectNavFlagsConfig validates shape and getDefaultProjectNavFlagsConfig returns defaults", async () => {
+    const defaults = getDefaultProjectNavFlagsConfig();
+    expect(defaults.version).toBe(1);
+    expect(defaults.active.peer_assessment).toBe(true);
+    expect(defaults.completed.team_health).toBe(true);
+    expect(defaults.peerModes.peer_assessment).toBe("NATURAL");
+    expect(defaults.peerModes.peer_feedback).toBe("NATURAL");
+
+    expect(parseProjectNavFlagsConfig(null)).toBeNull();
+    expect(parseProjectNavFlagsConfig({ version: 2, active: {}, completed: {} })).toBeNull();
+    expect(
+      parseProjectNavFlagsConfig({
+        version: 1,
+        active: { team: true },
+        completed: {},
+      }),
+    ).toBeNull();
+
+    expect(
+      parseProjectNavFlagsConfig({
+        version: 1,
+        active: {
+          team: true,
+          meetings: true,
+          peer_assessment: true,
+          peer_feedback: true,
+          repos: true,
+          trello: true,
+          discussion: true,
+          team_health: true,
+        },
+        completed: {
+          team: true,
+          meetings: true,
+          peer_assessment: false,
+          peer_feedback: false,
+          repos: true,
+          trello: true,
+          discussion: true,
+          team_health: true,
+        },
+      }),
+    ).toEqual({
+      version: 1,
+      active: {
+        team: true,
+        meetings: true,
+        peer_assessment: true,
+        peer_feedback: true,
+        repos: true,
+        trello: true,
+        discussion: true,
+        team_health: true,
+      },
+      completed: {
+        team: true,
+        meetings: true,
+        peer_assessment: false,
+        peer_feedback: false,
+        repos: true,
+        trello: true,
+        discussion: true,
+        team_health: true,
+      },
+      peerModes: {
+        peer_assessment: "NATURAL",
+        peer_feedback: "NATURAL",
+      },
+    });
+  });
+
+  it("fetchProjectNavFlagsConfigForStaff returns default config when missing/invalid", async () => {
+    (repo.getStaffProjectNavFlagsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      projectNavFlags: null,
+      deadline: null,
+    });
+
+    const result = await fetchProjectNavFlagsConfigForStaff(9, 3);
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 3,
+        name: "Project A",
+        hasPersistedProjectNavFlags: false,
+        projectNavFlags: expect.objectContaining({ version: 1 }),
+        deadlineWindow: {
+          assessmentOpenDate: null,
+          feedbackOpenDate: null,
+        },
+      }),
+    );
+  });
+
+  it("updateProjectNavFlagsConfigForStaff validates config and delegates update", async () => {
+    await expect(updateProjectNavFlagsConfigForStaff(9, 3, null)).rejects.toMatchObject({
+      code: "INVALID_PROJECT_NAV_FLAGS_CONFIG",
+    });
+
+    const config = {
+      version: 1,
+      active: {
+        team: true,
+        meetings: true,
+        peer_assessment: true,
+        peer_feedback: true,
+        repos: true,
+        trello: true,
+        discussion: true,
+        team_health: true,
+      },
+      completed: {
+        team: true,
+        meetings: true,
+        peer_assessment: false,
+        peer_feedback: false,
+        repos: true,
+        trello: true,
+        discussion: true,
+        team_health: true,
+      },
+      peerModes: {
+        peer_assessment: "MANUAL" as const,
+        peer_feedback: "NATURAL" as const,
+      },
+    };
+
+    (repo.updateStaffProjectNavFlagsConfig as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      projectNavFlags: config,
+      deadline: {
+        assessmentOpenDate: new Date("2026-03-30T12:00:00.000Z"),
+        feedbackOpenDate: new Date("2026-04-03T12:00:00.000Z"),
+      },
+    });
+
+    await expect(updateProjectNavFlagsConfigForStaff(9, 3, config)).resolves.toEqual({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: config,
+      deadlineWindow: {
+        assessmentOpenDate: new Date("2026-03-30T12:00:00.000Z"),
+        feedbackOpenDate: new Date("2026-04-03T12:00:00.000Z"),
+      },
+    });
+
+    expect(repo.updateStaffProjectNavFlagsConfig).toHaveBeenCalledWith(9, 3, config);
   });
 
   it("parseProjectWarningsConfig validates shape and getDefaultProjectWarningsConfig returns defaults", async () => {

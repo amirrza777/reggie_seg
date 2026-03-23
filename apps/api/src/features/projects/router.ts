@@ -22,6 +22,8 @@ import {
   getMyTeamWarningsHandler,
   updateTeamDeadlineProfileHandler,
   getProjectWarningsConfigHandler,
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
   getStaffStudentDeadlineOverridesHandler,
@@ -57,6 +59,8 @@ router.post(
 router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
 router.get("/staff/:projectId/warnings-config", requireAuth, getProjectWarningsConfigHandler);
 router.patch("/staff/:projectId/warnings-config", requireAuth, updateProjectWarningsConfigHandler);
+router.get("/staff/:projectId/project-feature-flags", requireAuth, getProjectNavFlagsConfigHandler);
+router.patch("/staff/:projectId/project-feature-flags", requireAuth, updateProjectNavFlagsConfigHandler);
 router.post("/staff/:projectId/warnings/evaluate", requireAuth, evaluateProjectWarningsHandler);
 router.get("/staff/:projectId/students/deadline-overrides", requireAuth, getStaffStudentDeadlineOverridesHandler);
 router.put(

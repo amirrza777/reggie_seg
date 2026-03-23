@@ -23,6 +23,8 @@ import {
   fetchMyTeamWarnings,
   updateTeamDeadlineProfileForStaff,
   fetchProjectWarningsConfigForStaff,
+  fetchProjectNavFlagsConfigForStaff,
+  updateProjectNavFlagsConfigForStaff,
   updateProjectWarningsConfigForStaff,
   evaluateProjectWarningsForStaff,
   fetchStaffStudentDeadlineOverrides,
@@ -802,6 +804,68 @@ export async function getProjectWarningsConfigHandler(req: AuthRequest, res: Res
     }
     console.error("Error fetching project warning config:", error);
     return res.status(500).json({ error: "Failed to fetch project warning config" });
+  }
+}
+
+export async function getProjectNavFlagsConfigHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const config = await fetchProjectNavFlagsConfigForStaff(actorUserId, projectId);
+    if (!config) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    return res.json(config);
+  } catch (error: any) {
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error fetching project nav flags config:", error);
+    return res.status(500).json({ error: "Failed to fetch project nav flags config" });
+  }
+}
+
+export async function updateProjectNavFlagsConfigHandler(req: AuthRequest, res: Response) {
+  const actorUserId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const projectNavFlags = req.body?.projectNavFlags;
+
+  if (!actorUserId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (projectNavFlags === undefined) {
+    return res.status(400).json({ error: "projectNavFlags is required" });
+  }
+
+  try {
+    const updated = await updateProjectNavFlagsConfigForStaff(actorUserId, projectId, projectNavFlags);
+    return res.json(updated);
+  } catch (error: any) {
+    if (error?.code === "INVALID_PROJECT_NAV_FLAGS_CONFIG") {
+      return res.status(400).json({ error: error.message || "Invalid project nav flags config" });
+    }
+    if (error?.code === "FORBIDDEN") {
+      return res.status(403).json({ error: error.message || "Forbidden" });
+    }
+    if (error?.code === "PROJECT_NOT_FOUND") {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    console.error("Error updating project nav flags config:", error);
+    return res.status(500).json({ error: "Failed to update project nav flags config" });
   }
 }
 
