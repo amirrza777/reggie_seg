@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StaffProjectNavFlagsPanel } from "@/features/staff/projects/components/StaffProjectNavFlagsPanel";
 import { getCurrentUser } from "@/shared/auth/session";
+import { getFeatureFlagMap } from "@/shared/featureFlags";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectFeatureFlagsPageProps = {
@@ -9,7 +10,7 @@ type StaffProjectFeatureFlagsPageProps = {
 };
 
 export default async function StaffProjectFeatureFlagsPage({ params }: StaffProjectFeatureFlagsPageProps) {
-  const user = await getCurrentUser();
+  const [user, globalFeatureFlags] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
   if (!user?.isStaff && user?.role !== "ADMIN") {
     redirect("/dashboard");
   }
@@ -32,8 +33,7 @@ export default async function StaffProjectFeatureFlagsPage({ params }: StaffProj
         </Link>
       </header>
 
-      <StaffProjectNavFlagsPanel projectId={numericProjectId} />
+      <StaffProjectNavFlagsPanel projectId={numericProjectId} globalFeatureFlags={globalFeatureFlags} />
     </div>
   );
 }
-

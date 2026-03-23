@@ -17,6 +17,7 @@ import { Table } from "@/shared/ui/Table";
 
 type StaffProjectNavFlagsPanelProps = {
   projectId: number;
+  globalFeatureFlags?: Record<string, boolean>;
 };
 
 type ProjectNavPhase = "active" | "completed";
@@ -95,7 +96,7 @@ function createStatusChip(enabled: boolean) {
   );
 }
 
-export function StaffProjectNavFlagsPanel({ projectId }: StaffProjectNavFlagsPanelProps) {
+export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: StaffProjectNavFlagsPanelProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -267,6 +268,13 @@ export function StaffProjectNavFlagsPanel({ projectId }: StaffProjectNavFlagsPan
     });
   }, [busy, payload]);
 
+  const globallyDisabledTabs = useMemo(() => {
+    if (!globalFeatureFlags) return [];
+    return TAB_LABELS.filter(({ key }) =>
+      Object.prototype.hasOwnProperty.call(globalFeatureFlags, key) && globalFeatureFlags[key] === false,
+    ).map((tab) => tab.label);
+  }, [globalFeatureFlags]);
+
   return (
     <div className="stack">
       {loading ? <p className="muted">Loading project feature flags...</p> : null}
@@ -295,6 +303,12 @@ export function StaffProjectNavFlagsPanel({ projectId }: StaffProjectNavFlagsPan
           columnTemplate="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
         />
       </Card>
+      {globallyDisabledTabs.length > 0 ? (
+        <p className="muted" style={{ margin: 0 }}>
+          Note: Admin global flags currently disable {globallyDisabledTabs.join(", ")}. These remain hidden even if
+          enabled here.
+        </p>
+      ) : null}
     </div>
   );
 }
