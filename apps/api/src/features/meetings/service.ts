@@ -183,12 +183,21 @@ export async function saveMinutes(meetingId: number, writerId: number, content: 
   return upsertMinutes(meetingId, writerId, content);
 }
 
-/** Adds a comment. */
-export function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
-  if (typeof teamId === "number") {
-    return createComment(meetingId, userId, content, teamId);
+export function parseMentions(content: string): string[] {
+  const matches = [...content.matchAll(/@(\w+ \w+)/g)];
+  return matches.map((m) => m[1]);
+}
+
+async function processMentions(commentId: number, meetingId: number, userId: number, content: string, teamId: number) {
+  const names = parseMentions(content);
+  if (names.length === 0) return;
+  const members = await getTeamMembers(teamId);
+  const mentioned = members.filter((m) => names.includes(`${m.firstName} ${m.lastName}`) && m.id !== userId);
+  if (mentioned.length === 0) return;
+  await createMentions(commentId, mentioned.map((m) => m.id));
+  for (const member of mentioned) {
+    await addNotification({ userId: member.id, type: "MENTION", message: "You were mentioned in a meeting comment.", link: `/meetings/${meetingId}/minutes` });
   }
-  return createComment(meetingId, userId, content);
 }
 
 /** Adds a comment. */
