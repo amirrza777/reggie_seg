@@ -15,6 +15,7 @@ vi.mock("./repo.js", () => ({
   countStudentsInTeam: vi.fn(),
   findTeamByIdAndModule: vi.fn(),
   getTeamWithAssessments: vi.fn(),
+  findAssessmentDueDateForTeam: vi.fn(),
   findAssessmentsForRevieweeInTeam: vi.fn(),
   findTemplateWithQuestions: vi.fn(),
   findTeamMarking: vi.fn(),
