@@ -98,17 +98,19 @@ export async function getTeamDetailsIfLead(
   if (!module) return null;
   const team = await repo.findTeamByIdAndModule(teamId, moduleId);
   if (!team) return null;
-  const [{ members, assessments }, teamMarking] = await Promise.all([
+  const [{ members, assessments }, teamMarking, assessmentDueDate] = await Promise.all([
     repo.getTeamWithAssessments(teamId),
     repo.findTeamMarking(teamId),
+    repo.findAssessmentDueDateForTeam(teamId),
   ]);
   members.sort((a, b) => a.lastName.localeCompare(b.lastName));
   const expected = Math.max(0, members.length - 1); // each student reviews (n-1) peers
+  const deadlinePassed = assessmentDueDate != null && assessmentDueDate < new Date();
   const students: ModuleSummary[] = members.map((user) => {
     const submitted = assessments.filter((a) => a.reviewerUserId === user.id).length;
-    const title =
-      `${user.firstName} ${user.lastName}`.trim() || `Student ${user.id}`;
-    return buildProgressSummary(user.id, title, submitted, expected);
+    const title = `${user.firstName} ${user.lastName}`.trim() || `Student ${user.id}`;
+    const flagged = deadlinePassed && submitted < expected;
+    return { ...buildProgressSummary(user.id, title, submitted, expected), flagged };
   });
   return {
     module: { id: module.id, title: module.name },

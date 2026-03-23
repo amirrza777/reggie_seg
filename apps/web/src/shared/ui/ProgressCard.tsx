@@ -8,6 +8,7 @@ export type ProgressCardData = {
   submitted: number;
   expected: number;
   deadline?: string;
+  flagged?: boolean;
 };
 
 type ProgressCardProps = ProgressCardData & {
@@ -17,15 +18,30 @@ type ProgressCardProps = ProgressCardData & {
 
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
 
-export function ProgressCard({ title, submitted, expected, deadline, href, action }: ProgressCardProps) {
+export function ProgressCard({ title, submitted, expected, deadline, flagged, href, action }: ProgressCardProps) {
   const progress = expected > 0 ? (submitted / expected) * 100 : 0;
   const pct = clamp(progress);
   const content = (
-    <div className="card" style={{ height: "100%" }}>
+    <div className="card" style={{ height: "100%", borderColor: flagged ? "var(--color-danger, #e53e3e)" : undefined }}>
       <div className="card__header">
         <div>
-          <div className="eyebrow" style={{ marginBottom: 6 }}>
-            Progress
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+            <div className="eyebrow">Progress</div>
+            {flagged && (
+              <span
+                style={{
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  color: "#fff",
+                  background: "var(--color-danger, #e53e3e)",
+                  borderRadius: 4,
+                  padding: "2px 6px",
+                  lineHeight: 1.4,
+                }}
+              >
+                Not submitted
+              </span>
+            )}
           </div>
           <h3 style={{ margin: 0 }}>{title}</h3>
           <p className="muted" style={{ margin: "6px 0 0" }}>
