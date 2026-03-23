@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/shared/auth/session";
 import { getCalendarEvents } from "@/features/calendar/api/client";
 import { CalendarGrid } from "@/features/calendar/components/CalendarGrid";
-import "../../styles/calendar.css";
+import "@/features/calendar/styles/calendar.css";
 
 export const dynamic = "force-dynamic";
 

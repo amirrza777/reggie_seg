@@ -6,6 +6,7 @@ import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
 import "@/features/staff/projects/styles/staff-projects.css";
+import "@/features/calendar/styles/calendar.css";
 import Link from "next/link";
 
 type PageProps = {

@@ -211,6 +211,7 @@
   text-overflow: ellipsis;
 }
 
+
 .module-dashboard__brief {
   display: grid;
   gap: 12px;

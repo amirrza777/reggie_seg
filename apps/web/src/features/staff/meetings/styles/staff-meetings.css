@@ -57,3 +57,16 @@
   font-weight: var(--fw-medium);
   color: var(--status-danger-text);
 }
+
+.meetings-calendar-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .meetings-calendar-layout {
+    grid-template-columns: 1fr;
+  }
+}
