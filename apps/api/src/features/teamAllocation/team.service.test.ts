@@ -1,35 +1,59 @@
-import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./team.service.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  addUserToTeam,
+  createTeam,
+  createTeamForProject,
+  getTeamById,
+  getTeamMembers,
+} from "./team.service.js";
+import { TeamService } from "./repo.js";
+import { prisma } from "../../shared/db.js";
 
-const expectedFunctionExports = [
-  "createTeam",
-  "createTeamForProject",
-  "getTeamById",
-  "addUserToTeam",
-  "getTeamMembers",
-] as const;
+vi.mock("../../shared/db.js", () => ({
+  prisma: { user: { findUnique: vi.fn() } },
+}));
 
-const expectedValueExports: string[] = [];
+vi.mock("./repo.js", () => ({
+  TeamService: {
+    createTeam: vi.fn(),
+    addUserToTeam: vi.fn(),
+    getTeamById: vi.fn(),
+    getTeamMembers: vi.fn(),
+  },
+}));
 
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+const teamServiceMock = vi.mocked(TeamService);
+const prismaMock = vi.mocked(prisma);
 
 describe("team.service", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
+  it("delegates createTeam directly to TeamService", async () => {
+    teamServiceMock.createTeam.mockResolvedValue({ id: 90 } as any);
+    await createTeam(7, { projectId: 4, teamName: "Alpha" } as any);
+    expect(teamServiceMock.createTeam).toHaveBeenCalledWith(7, { projectId: 4, teamName: "Alpha" });
   });
 
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects createTeamForProject when user is missing", async () => {
+    prismaMock.user.findUnique.mockResolvedValue(null as any);
+    await expect(createTeamForProject(7, 4, "Alpha")).rejects.toMatchObject({ code: "USER_NOT_FOUND" });
+  });
+
+  it("builds enterprise scoped payload in createTeamForProject", async () => {
+    prismaMock.user.findUnique.mockResolvedValue({ enterpriseId: "ent-1" } as any);
+    teamServiceMock.createTeam.mockResolvedValue({ id: 91 } as any);
+    await createTeamForProject(7, 4, "Alpha");
+    expect(teamServiceMock.createTeam).toHaveBeenCalledWith(7, { enterpriseId: "ent-1", projectId: 4, teamName: "Alpha" });
+  });
+
+  it("forwards read/write helpers to TeamService", async () => {
+    await addUserToTeam(1, 2, "OWNER");
+    await getTeamById(8);
+    await getTeamMembers(8);
+    expect(teamServiceMock.addUserToTeam).toHaveBeenCalledWith(1, 2, "OWNER");
+    expect(teamServiceMock.getTeamById).toHaveBeenCalledWith(8);
+    expect(teamServiceMock.getTeamMembers).toHaveBeenCalledWith(8);
   });
 });

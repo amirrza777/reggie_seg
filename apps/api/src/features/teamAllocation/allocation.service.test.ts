@@ -1,34 +1,28 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./allocation.service.js";
-
-const expectedFunctionExports = [
-  "getManualAllocationWorkspaceForProject",
-  "applyManualAllocationForProject",
-  "previewRandomAllocationForProject",
-  "applyRandomAllocationForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import {
+  applyManualAllocationForProject,
+  applyRandomAllocationForProject,
+  previewRandomAllocationForProject,
+} from "./allocation.service.js";
 
 describe("allocation.service", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects preview when teamCount is not a positive integer", async () => {
+    await expect(previewRandomAllocationForProject(1, 2, 0)).rejects.toMatchObject({ code: "INVALID_TEAM_COUNT" });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
+  it("rejects random apply when teamCount is invalid", async () => {
+    await expect(applyRandomAllocationForProject(1, 2, -1)).rejects.toMatchObject({ code: "INVALID_TEAM_COUNT" });
   });
 
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects manual apply when teamName is blank", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "   ", studentIds: [1] })).rejects.toMatchObject({
+      code: "INVALID_TEAM_NAME",
+    });
+  });
+
+  it("rejects manual apply when student IDs contain duplicates", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "Team A", studentIds: [4, 4] })).rejects.toMatchObject({
+      code: "INVALID_STUDENT_IDS",
+    });
   });
 });

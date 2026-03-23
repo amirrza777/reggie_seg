@@ -1,35 +1,17 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.team.js";
-
-const expectedFunctionExports = [
-  "createTeam",
-  "createTeamForProject",
-  "getTeamById",
-  "addUserToTeam",
-  "getTeamMembers",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import { createTeam, createTeamForProject } from "./service.team.js";
 
 describe("service.team", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects invalid project id in createTeam", async () => {
+    await expect(createTeam(4, { projectId: "x", teamName: "Team A" } as any)).rejects.toMatchObject({
+      code: "INVALID_PROJECT_ID",
+    });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
-  });
-
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects empty team names", async () => {
+    await expect(createTeam(4, { projectId: 2, teamName: "   " } as any)).rejects.toMatchObject({
+      code: "INVALID_TEAM_NAME",
+    });
+    await expect(createTeamForProject(4, 2, " ")).rejects.toMatchObject({ code: "INVALID_TEAM_NAME" });
   });
 });

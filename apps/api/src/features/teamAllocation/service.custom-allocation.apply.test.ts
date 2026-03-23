@@ -1,31 +1,16 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.custom-allocation.apply.js";
-
-const expectedFunctionExports = [
-  "applyCustomAllocationForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import { applyCustomAllocationForProject } from "./service.custom-allocation.apply.js";
 
 describe("service.custom-allocation.apply", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects empty preview id", async () => {
+    await expect(applyCustomAllocationForProject(1, 2, { previewId: "   " })).rejects.toMatchObject({
+      code: "INVALID_PREVIEW_ID",
+    });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
-  });
-
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects malformed team names payload", async () => {
+    await expect(
+      applyCustomAllocationForProject(1, 2, { previewId: "preview-1", teamNames: ["A", 12 as any] }),
+    ).rejects.toMatchObject({ code: "INVALID_TEAM_NAMES" });
   });
 });

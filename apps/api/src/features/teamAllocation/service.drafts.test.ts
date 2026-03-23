@@ -1,34 +1,29 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.drafts.js";
-
-const expectedFunctionExports = [
-  "listAllocationDraftsForProject",
-  "updateAllocationDraftForProject",
-  "approveAllocationDraftForProject",
-  "deleteAllocationDraftForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import {
+  approveAllocationDraftForProject,
+  deleteAllocationDraftForProject,
+  updateAllocationDraftForProject,
+} from "./service.drafts.js";
 
 describe("service.drafts", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects invalid draft team id for update", async () => {
+    await expect(updateAllocationDraftForProject(1, 2, 0, { teamName: "A" })).rejects.toMatchObject({
+      code: "INVALID_DRAFT_TEAM_ID",
+    });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
+  it("rejects empty update payload", async () => {
+    await expect(updateAllocationDraftForProject(1, 2, 3, {})).rejects.toMatchObject({
+      code: "INVALID_DRAFT_UPDATE",
+    });
   });
 
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects invalid expectedUpdatedAt in approve and delete", async () => {
+    await expect(approveAllocationDraftForProject(1, 2, 3, { expectedUpdatedAt: "bad" })).rejects.toMatchObject({
+      code: "INVALID_EXPECTED_UPDATED_AT",
+    });
+    await expect(deleteAllocationDraftForProject(1, 2, 3, { expectedUpdatedAt: "bad" })).rejects.toMatchObject({
+      code: "INVALID_EXPECTED_UPDATED_AT",
+    });
   });
 });

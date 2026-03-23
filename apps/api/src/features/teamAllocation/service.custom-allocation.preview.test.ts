@@ -1,31 +1,37 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.custom-allocation.preview.js";
-
-const expectedFunctionExports = [
-  "previewCustomAllocationForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import { previewCustomAllocationForProject } from "./service.custom-allocation.preview.js";
 
 describe("service.custom-allocation.preview", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects invalid teamCount", async () => {
+    await expect(
+      previewCustomAllocationForProject(1, 2, {
+        questionnaireTemplateId: 5,
+        teamCount: 0,
+        nonRespondentStrategy: "exclude",
+        criteria: [],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_TEAM_COUNT" });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
+  it("rejects invalid nonRespondentStrategy", async () => {
+    await expect(
+      previewCustomAllocationForProject(1, 2, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "invalid" as any,
+        criteria: [],
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_NON_RESPONDENT_STRATEGY" });
   });
 
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects malformed criteria records", async () => {
+    await expect(
+      previewCustomAllocationForProject(1, 2, {
+        questionnaireTemplateId: 5,
+        teamCount: 2,
+        nonRespondentStrategy: "exclude",
+        criteria: [{ questionId: 7, strategy: "group", weight: 7 }] as any,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_CRITERIA" });
   });
 });

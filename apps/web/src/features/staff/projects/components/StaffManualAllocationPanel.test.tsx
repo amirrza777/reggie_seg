@@ -49,16 +49,23 @@ async function openWorkspacePanel() {
   await waitFor(() => {
     expect(screen.getByLabelText("Manual allocation workspace")).toBeInTheDocument();
   });
+  await waitFor(() => {
+    expect(screen.getByRole("button", { name: "Close manual allocation" })).toBeEnabled();
+  });
+}
+
+function clickEnabledSelectButton() {
+  const selectButtons = screen.getAllByRole("button", { name: "Select" });
+  const enabledButton = selectButtons.find((button) => !button.hasAttribute("disabled"));
+  expect(enabledButton).toBeDefined();
+  fireEvent.click(enabledButton as HTMLButtonElement);
 }
 
 async function createDraft(teamName: string) {
-  let enabledButton: HTMLButtonElement | undefined;
   await waitFor(() => {
-    const selectButtons = screen.getAllByRole("button", { name: "Select" }) as HTMLButtonElement[];
-    enabledButton = selectButtons.find((button) => !button.hasAttribute("disabled"));
-    expect(enabledButton).toBeDefined();
+    expect(screen.getAllByRole("button", { name: "Select" }).length).toBeGreaterThan(0);
   });
-  fireEvent.click(enabledButton as HTMLButtonElement);
+  clickEnabledSelectButton();
   await waitFor(() => {
     expect(screen.getByText("1 selected")).toBeInTheDocument();
   });
@@ -101,9 +108,11 @@ describe("StaffManualAllocationPanel", () => {
   it("validates that team name is provided", async () => {
     render(<StaffManualAllocationPanel projectId={4} />);
     await openWorkspacePanel();
-    fireEvent.click(screen.getAllByRole("button", { name: "Select" })[1]);
+    clickEnabledSelectButton();
     fireEvent.click(screen.getByRole("button", { name: "Create draft team" }));
-    expect(screen.getByText("Enter a team name.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Enter a team name.")).toBeInTheDocument();
+    });
     expect(applyManualMock).not.toHaveBeenCalled();
   });
 

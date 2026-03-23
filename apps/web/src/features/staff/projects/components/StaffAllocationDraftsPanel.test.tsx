@@ -43,6 +43,7 @@ describe("StaffAllocationDraftsPanel", () => {
     await waitFor(() => {
       expect(getDraftsMock).toHaveBeenCalledWith(9);
     });
+    await screen.findByText("1 draft");
     expect(screen.getByText("Allocation Drafts")).toBeInTheDocument();
     expect(screen.getByText("1 draft")).toBeInTheDocument();
     expect(screen.getByText("Role: Admin")).toBeInTheDocument();

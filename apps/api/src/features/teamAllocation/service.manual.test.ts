@@ -1,32 +1,19 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.manual.js";
-
-const expectedFunctionExports = [
-  "getManualAllocationWorkspaceForProject",
-  "applyManualAllocationForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import { applyManualAllocationForProject } from "./service.manual.js";
 
 describe("service.manual", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it("rejects empty team names", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "", studentIds: [1] })).rejects.toMatchObject({
+      code: "INVALID_TEAM_NAME",
+    });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
-  });
-
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects non-positive and duplicate student ids", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "Team A", studentIds: [0] })).rejects.toMatchObject({
+      code: "INVALID_STUDENT_IDS",
+    });
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "Team A", studentIds: [2, 2] })).rejects.toMatchObject({
+      code: "INVALID_STUDENT_IDS",
+    });
   });
 });

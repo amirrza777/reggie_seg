@@ -1,32 +1,25 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.random.js";
-
-const expectedFunctionExports = [
-  "previewRandomAllocationForProject",
-  "applyRandomAllocationForProject",
-] as const;
-
-const expectedValueExports: string[] = [];
-
-function getNamedExport(name: string) {
-  return (moduleUnderTest as Record<string, unknown>)[name];
-}
+import {
+  applyRandomAllocationForProject,
+  previewRandomAllocationForProject,
+} from "./service.random.js";
 
 describe("service.random", () => {
-  it("exposes callable runtime functions", () => {
-    for (const name of expectedFunctionExports) {
-      expect(getNamedExport(name)).toBeTypeOf("function");
-    }
+  it.each([0, -1, 1.5])("rejects invalid preview teamCount %p", async (teamCount) => {
+    await expect(previewRandomAllocationForProject(1, 2, teamCount as number)).rejects.toMatchObject({
+      code: "INVALID_TEAM_COUNT",
+    });
   });
 
-  it("exposes expected runtime values", () => {
-    for (const name of expectedValueExports) {
-      expect(getNamedExport(name)).toBeDefined();
-    }
+  it("rejects mismatched teamNames length", async () => {
+    await expect(applyRandomAllocationForProject(1, 2, 3, { teamNames: ["A", "B"] })).rejects.toMatchObject({
+      code: "INVALID_TEAM_NAMES",
+    });
   });
 
-  it("includes the expected export names", () => {
-    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
-    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
+  it("rejects duplicate team names", async () => {
+    await expect(applyRandomAllocationForProject(1, 2, 2, { teamNames: ["Team A", "team a"] })).rejects.toMatchObject({
+      code: "DUPLICATE_TEAM_NAMES",
+    });
   });
 });
