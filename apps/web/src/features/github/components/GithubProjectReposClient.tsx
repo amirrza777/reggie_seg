@@ -82,7 +82,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
     fetchMyCommits,
-    handleRefreshLiveBranches,
     setBranchSearchQuery,
     getBranchSearchQuery,
   } = useGithubProjectReposLiveData({
