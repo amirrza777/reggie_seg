@@ -21,6 +21,12 @@ export function isMergePullRequestCommit(commit: GithubCommitListItem) {
   return message.startsWith("merge pull request");
 }
 
+export function isMergeCommit(commit: GithubCommitListItem) {
+  if (commit.parents && commit.parents.length >= 2) return true;
+  const message = (commit.commit.message || "").trim().toLowerCase();
+  return message.startsWith("merge ");
+}
+
 /** Executes the aggregate commit data. */
 export function aggregateCommitData(commits: GithubCommitListItem[], defaultBranch: string) {
   const contributors = new Map<string, AggregatedContributor>();
