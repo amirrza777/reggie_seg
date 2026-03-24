@@ -5,6 +5,7 @@ export type ModuleSummary = {
   title: string;
   submitted: number;
   expected: number;
+  flagged?: boolean;
 };
 
 export type ModuleDetails = {

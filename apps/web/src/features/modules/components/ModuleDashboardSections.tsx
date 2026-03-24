@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ModuleTimelineItem } from "../moduleDashboardData";
 import { formatLongDate } from "../moduleDashboardData";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 
@@ -9,6 +10,12 @@ type ModuleProjectPlan = {
   startAt: Date;
   endAt: Date;
   weight: number;
+};
+
+type ModuleLinkedProject = {
+  id: string;
+  name: string;
+  moduleName?: string;
 };
 
 type ModuleTabNavProps = {
@@ -26,8 +33,10 @@ type ModuleSummaryCardProps = {
 };
 
 type ModuleExpectationsSectionProps = {
+  moduleTitle: string;
   briefParagraphs: string[];
   projectPlans: ModuleProjectPlan[];
+  linkedProjects: ModuleLinkedProject[];
   timelineRows: ModuleTimelineItem[];
   expectationRows: Array<[string, string, string]>;
   readinessParagraphs: string[];
@@ -82,6 +91,7 @@ export function ModuleExpectationsSection(props: ModuleExpectationsSectionProps)
   return (
     <>
       <ModuleBriefCard briefParagraphs={props.briefParagraphs} projectPlans={props.projectPlans} />
+      <ModuleLinkedProjectsCard moduleTitle={props.moduleTitle} linkedProjects={props.linkedProjects} />
       <ModuleTimelineCard timelineRows={props.timelineRows} />
       <ModuleExpectationsCard expectationRows={props.expectationRows} />
       <ModuleReadinessCard readinessParagraphs={props.readinessParagraphs} />
@@ -141,6 +151,36 @@ function ModuleTimelineCard({ timelineRows }: { timelineRows: ModuleTimelineItem
         rowClassName="module-dashboard__table-row module-dashboard__timeline-row"
         columnTemplate="minmax(140px, 0.9fr) minmax(0, 1.2fr) minmax(0, 1.4fr)"
       />
+    </Card>
+  );
+}
+
+function ModuleLinkedProjectsCard({
+  moduleTitle,
+  linkedProjects,
+}: {
+  moduleTitle: string;
+  linkedProjects: ModuleLinkedProject[];
+}) {
+  return (
+    <Card title="Projects in this module" className="module-dashboard__panel module-dashboard__panel--projects">
+      {linkedProjects.length > 0 ? (
+        <div className="module-dashboard__linked-projects">
+          {linkedProjects.map((project) => (
+            <article key={`linked-project-${project.id}`} className="module-dashboard__linked-project-card">
+              <h4 className="module-dashboard__linked-project-title">{project.name}</h4>
+              <p className="module-dashboard__linked-project-module">Module: {project.moduleName ?? moduleTitle}</p>
+              <div className="module-dashboard__linked-project-footer">
+                <Link href={`/projects/${encodeURIComponent(project.id)}`} className="module-dashboard__linked-project-link">
+                  View project <ArrowRightIcon />
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">No projects assigned to you in this module yet.</p>
+      )}
     </Card>
   );
 }

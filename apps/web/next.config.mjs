@@ -1,17 +1,11 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** @type {import('next').NextConfig} */
-const createConfig = (phase) => {
-  const inferredDistDir =
-    phase === PHASE_DEVELOPMENT_SERVER ? ".next-dev" : ".next";
-  const distDir = process.env.NEXT_DIST_DIR?.trim() || inferredDistDir;
-
+const createConfig = () => {
   return {
-    distDir,
     reactStrictMode: true,
     eslint: {
       ignoreDuringBuilds: true,

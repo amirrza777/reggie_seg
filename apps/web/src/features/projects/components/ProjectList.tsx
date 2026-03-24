@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { Project } from "../types";
 import "@/features/projects/styles/project-list.css";
 
@@ -28,6 +29,7 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
           const meta = projectMetaById[String(project.id)];
           const isCompleted = meta?.completed === true;
           const mark = typeof meta?.mark === "number" && Number.isFinite(meta.mark) ? meta.mark : null;
+          const summary = (project as Project & { summary?: string | null }).summary;
 
           return (
             <Link
@@ -62,8 +64,13 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
                   </p>
                 ) : null}
               </div>
+              {summary ? (
+                <p className="project-card__summary">{summary}</p>
+              ) : null}
               <div className="project-card__footer">
-                <span className="project-card__cta">View Project →</span>
+                <span className="project-card__cta">
+                  View Project <ArrowRightIcon />
+                </span>
               </div>
             </Link>
           );

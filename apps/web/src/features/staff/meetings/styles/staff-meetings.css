@@ -7,11 +7,14 @@
 .meeting-stats__card {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 4px;
   padding: 16px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--surface);
+  text-align: center;
 }
 
 .meeting-stats__value {
@@ -55,5 +58,43 @@
 
 .low-attendance-alert__count {
   font-weight: var(--fw-medium);
+  color: var(--status-danger-text);
+}
+
+.attendance-table.table .table__head,
+.attendance-table.table .table__row {
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+}
+
+.attendance-table__name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.attendance-table__badge {
+  font-size: var(--fs-body-xs);
+  font-weight: var(--fw-medium);
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--status-danger-soft);
+  color: var(--status-danger-text);
+  border: 1px solid var(--status-danger-border);
+}
+
+.attendance-table__status {
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-medium);
+}
+
+.attendance-table__status--on_time {
+  color: var(--status-success-text);
+}
+
+.attendance-table__status--late {
+  color: var(--status-warning-text);
+}
+
+.attendance-table__status--absent {
   color: var(--status-danger-text);
 }

@@ -9,6 +9,12 @@ export async function getMeeting(meetingId: number) {
   return apiFetch<Meeting>(`/meetings/${meetingId}`);
 }
 
+export async function listTeamMembers(teamId: number) {
+  return apiFetch<{ id: number; firstName: string; lastName: string }[]>(
+    `/team-allocation/teams/${teamId}/members`
+  );
+}
+
 export async function createMeeting(data: {
   teamId: number;
   organiserId: number;
@@ -16,11 +22,28 @@ export async function createMeeting(data: {
   date: string;
   subject?: string;
   location?: string;
+  videoCallLink?: string;
   agenda?: string;
+  participantIds?: number[];
 }) {
   return apiFetch("/meetings", {
     method: "POST",
     body: JSON.stringify(data),
+  });
+}
+
+export async function updateMeeting(meetingId: number, userId: number, data: {
+  title?: string;
+  date?: string;
+  subject?: string;
+  location?: string;
+  videoCallLink?: string;
+  agenda?: string;
+  participantIds?: number[];
+}) {
+  return apiFetch(`/meetings/${meetingId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ userId, ...data }),
   });
 }
 
@@ -63,4 +86,8 @@ export async function addComment(
 
 export async function deleteComment(commentId: number) {
   await apiFetch(`/meetings/comments/${commentId}`, { method: "DELETE" });
+}
+
+export async function getMeetingSettings(meetingId: number) {
+  return apiFetch<{ absenceThreshold: number; minutesEditWindowDays: number }>(`/meetings/${meetingId}/settings`);
 }

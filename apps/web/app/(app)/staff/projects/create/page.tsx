@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
@@ -42,11 +41,6 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
         <p className="staff-projects__desc">
           Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.
         </p>
-        <div className="staff-projects__meta">
-          <Link href="/staff/projects" className="staff-projects__badge">
-            Back to projects
-          </Link>
-        </div>
       </section>
 
       <section className="staff-projects__create-layout">

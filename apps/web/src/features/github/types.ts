@@ -109,6 +109,7 @@ export type GithubLatestSnapshot = {
     }>;
     repoStats: Array<{
       totalCommits: number;
+      defaultBranchCommits?: number;
       totalAdditions: number;
       totalDeletions: number;
       totalContributors: number;

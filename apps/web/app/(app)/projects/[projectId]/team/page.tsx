@@ -55,7 +55,11 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
 
   return (
-    <PageSection title={pageTitle} className="ui-page--project">
+    <PageSection
+      title={pageTitle}
+      description="Manage teammates and invitations for this project."
+      className="ui-page--project"
+    >
       <Card>
         {user ? (
           <TeamFormationPanel
@@ -65,7 +69,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             projectCompleted={projectCompleted}
           />
         ) : (
-          <p>Please sign in to manage your team.</p>
+          <p className="ui-note ui-note--muted">Please sign in to manage your team.</p>
         )}
       </Card>
     </PageSection>

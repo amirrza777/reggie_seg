@@ -58,7 +58,7 @@
 }
 
 .enterprise-management__modal-table {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow-x: auto;
   max-height: min(46vh, 520px);
   overflow-y: auto;

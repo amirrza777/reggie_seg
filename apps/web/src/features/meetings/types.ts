@@ -5,6 +5,7 @@ export type Meeting = {
   title: string;
   subject: string | null;
   location: string | null;
+  videoCallLink: string | null;
   agenda: string | null;
   date: string;
   createdAt: string;
@@ -15,6 +16,7 @@ export type Meeting = {
     lastName: string;
   };
   team: {
+    enterpriseId: string;
     allocations: {
       user: {
         id: number;
@@ -23,9 +25,21 @@ export type Meeting = {
       };
     }[];
   };
+  participants: MeetingParticipantRecord[];
   attendances: MeetingAttendanceRecord[];
   minutes: MeetingMinutesRecord | null;
   comments: MeetingCommentRecord[];
+};
+
+export type MeetingParticipantRecord = {
+  id: number;
+  meetingId: number;
+  userId: number;
+  user: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
 };
 
 export type MeetingAttendanceRecord = {
@@ -44,6 +58,11 @@ export type MeetingMinutesRecord = {
   id: number;
   meetingId: number;
   writerId: number;
+  writer: {
+    id: number;
+    firstName: string;
+    lastName: string;
+  };
   content: string;
   createdAt: string;
   updatedAt: string;

@@ -6,10 +6,12 @@ import { PageSection } from "@/shared/ui/PageSection";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
-export default async function ProjectMeetingsPage({ params }: ProjectPageProps) {
+export default async function ProjectMeetingsPage({ params, searchParams }: ProjectPageProps) {
   const { projectId } = await params;
+  const { tab } = await searchParams;
   const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
 
@@ -51,6 +53,7 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
           teamId={team.id}
           projectId={numericProjectId}
           projectCompleted={projectCompleted}
+          initialTab={tab === "previous" ? "previous" : "upcoming"}
         />
       </PageSection>
     );

@@ -29,7 +29,7 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I view my team's meeting schedule?",
-    answer: "Open Projects, select your project, then go to Meetings or the Meeting scheduler to see upcoming sessions.",
+    answer: "Open Projects, select your project, then go to Team meetings to see upcoming sessions and schedule new ones.",
     links: [
       { label: "Open Projects", href: "/projects" },
       { label: "View Calendar", href: "/calendar" },
@@ -62,12 +62,12 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I create and schedule a questionnaire?",
-    answer: "Go to Staff → Questionnaires to create or reuse a template, then apply it to a module or project when setting up assessments.",
+    answer: "Go to Staff > Questionnaires to create or reuse a template, then apply it to a module or project when setting up assessments.",
     links: [{ label: "Open Staff Questionnaires", href: "/staff/questionnaires" }],
   },
   {
     question: "How do I manage team allocations?",
-    answer: "Open Staff → Projects, choose a project, then use the Team allocation page to review and adjust teams.",
+    answer: "Open Staff > Projects, choose a project, then use the Team allocation page to review and adjust teams.",
     links: [{ label: "Open Staff Projects", href: "/staff/projects" }],
   },
   {
@@ -92,7 +92,7 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I manage staff vs student permissions?",
-    answer: "Admins can update user roles and access from the Admin → Users area.",
+    answer: "Admins can update user roles and access from the Admin > Users area.",
   },
   {
     question: "How do I audit changes or activity?",
@@ -100,11 +100,11 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I configure feature flags?",
-    answer: "Enterprise admins and admins can enable or disable feature flags from Enterprise → Feature flags.",
+    answer: "Enterprise admins and admins can enable or disable feature flags from Enterprise > Feature flags.",
   },
   {
     question: "How do I add or remove an enterprise workspace?",
-    answer: "Admins can manage enterprises in the Admin → Enterprises area.",
+    answer: "Admins can manage enterprises in the Admin > Enterprises area.",
   },
   {
     question: "How do I access the enterprise admin area?",
@@ -113,7 +113,7 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I manage enterprise modules?",
-    answer: "Open Enterprise → Module management to create or edit enterprise modules.",
+    answer: "Open Enterprise > Module management to create or edit enterprise modules.",
     links: [{ label: "Open Module Management", href: "/enterprise/modules" }],
   },
   {

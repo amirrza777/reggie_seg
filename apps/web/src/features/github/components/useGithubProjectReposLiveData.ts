@@ -100,7 +100,14 @@ export function useGithubProjectReposLiveData({
           setLiveBranchesByLinkId((prev) => ({ ...prev, [linkId]: data }));
           setSelectedBranchByLinkId((prev) => {
             if (prev[linkId]) return prev;
-            const defaultBranch = data.branches.find((branch) => branch.isDefault)?.name || data.branches[0]?.name || "";
+            const preferredMainBranch = data.branches.find(
+              (branch) => branch.name.trim().toLowerCase() === "main"
+            )?.name;
+            const defaultBranch =
+              preferredMainBranch ||
+              data.branches.find((branch) => branch.isDefault)?.name ||
+              data.branches[0]?.name ||
+              "";
             return defaultBranch ? { ...prev, [linkId]: defaultBranch } : prev;
           });
         } catch (err) {

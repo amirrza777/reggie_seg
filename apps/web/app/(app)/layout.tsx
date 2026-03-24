@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/shared/layout/AppShell";
+import { NavigationPrefetch } from "@/shared/layout/NavigationPrefetch";
 import { Sidebar } from "@/shared/layout/Sidebar";
 import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
@@ -56,6 +57,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     modulesResult,
     projectsResult,
   });
+  const prefetchHrefs = buildPrefetchHrefs(navData);
 
   return (
     <AppShell
@@ -70,7 +72,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       }
       ribbon={navData.spaceLinks.length > 0 ? <SpaceSwitcher links={navData.spaceLinks} /> : null}
     >
-      <div className="workspace-shell">{children}</div>
+      <>
+        <NavigationPrefetch hrefs={prefetchHrefs} />
+        <div className="workspace-shell">{children}</div>
+      </>
     </AppShell>
   );
 }
@@ -107,6 +112,21 @@ function buildLayoutNavigationData(params: {
   const defaultSpaceHref = getDefaultSpaceOverviewPath(params.user);
 
   return { accessibleLinks, spaceLinks, defaultSpaceHref };
+}
+
+function buildPrefetchHrefs(navData: {
+  accessibleLinks: ReturnType<typeof buildLayoutNavigationData>["accessibleLinks"];
+  spaceLinks: SpaceLink[];
+  defaultSpaceHref: string;
+}) {
+  const queue = [
+    navData.defaultSpaceHref,
+    ...navData.spaceLinks.map((link) => link.href),
+    ...navData.accessibleLinks.map((link) => link.href),
+    ...navData.accessibleLinks.flatMap((link) => (link.children?.length ? [link.children[0].href] : [])),
+  ];
+
+  return Array.from(new Set(queue));
 }
 
 function buildModuleChildren(modulesResult: PromiseSettledResult<Awaited<ReturnType<typeof listModules>>>) {

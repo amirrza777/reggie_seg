@@ -9,6 +9,7 @@ import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { SearchField } from "@/shared/ui/SearchField";
 
 type StaffProjectCreatePanelProps = {
@@ -672,19 +673,19 @@ export function StaffProjectCreatePanel({
                 <div>
                   <p className="staff-projects__field-label">Task phase</p>
                   <p className="staff-projects__card-sub">
-                    {formatDateTime(deadlinePreview.taskOpenDate)} → {formatDateTime(deadlinePreview.taskDueDate)}
+                    {formatDateTime(deadlinePreview.taskOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.taskDueDate)}
                   </p>
                 </div>
                 <div>
                   <p className="staff-projects__field-label">Assessment phase</p>
                   <p className="staff-projects__card-sub">
-                    {formatDateTime(deadlinePreview.assessmentOpenDate)} → {formatDateTime(deadlinePreview.assessmentDueDate)}
+                    {formatDateTime(deadlinePreview.assessmentOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.assessmentDueDate)}
                   </p>
                 </div>
                 <div>
                   <p className="staff-projects__field-label">Feedback phase</p>
                   <p className="staff-projects__card-sub">
-                    {formatDateTime(deadlinePreview.feedbackOpenDate)} → {formatDateTime(deadlinePreview.feedbackDueDate)}
+                    {formatDateTime(deadlinePreview.feedbackOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.feedbackDueDate)}
                   </p>
                 </div>
                 <div>

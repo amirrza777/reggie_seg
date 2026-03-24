@@ -28,7 +28,8 @@ model Team {
   archivedAt                 DateTime?
   inactivityFlag             InactivityFlag  @default(NONE)
   deadlineProfile            DeadlineProfile @default(STANDARD)
-  noGithubAccountAlertSentAt DateTime?
+  noGithubAccountAlertSentAt  DateTime?
+  peerAssessmentAlertSentAt   DateTime?
 
   allocations          TeamAllocation[]
   project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)

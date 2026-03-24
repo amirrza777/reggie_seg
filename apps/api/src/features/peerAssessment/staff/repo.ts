@@ -144,6 +144,19 @@ export function findAssessmentsForRevieweeInTeam(teamId: number, revieweeUserId:
   });
 }
 
+/** Returns the effective assessment due date for a team (respects team override). */
+export async function findAssessmentDueDateForTeam(teamId: number): Promise<Date | null> {
+  const team = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      deadlineOverride: { select: { assessmentDueDate: true } },
+      project: { select: { deadline: { select: { assessmentDueDate: true } } } },
+    },
+  });
+  if (!team) return null;
+  return team.deadlineOverride?.assessmentDueDate ?? team.project.deadline?.assessmentDueDate ?? null;
+}
+
 /** Returns the template with questions. */
 export function findTemplateWithQuestions(templateId: number) {
   return prisma.questionnaireTemplate.findUnique({

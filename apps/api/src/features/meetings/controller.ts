@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { listMeetings, fetchMeeting, addMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment } from "./service.js";
+import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment, fetchMeetingSettings } from "./service.js";
 
 /** Handles requests for list meetings. */
 export async function listMeetingsHandler(req: Request, res: Response) {
@@ -40,7 +40,7 @@ export async function getMeetingHandler(req: Request, res: Response) {
 
 /** Handles requests for create meeting. */
 export async function createMeetingHandler(req: Request, res: Response) {
-  const { teamId, organiserId, title, date, subject, location, agenda } = req.body;
+  const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
 
   if (!teamId || !organiserId || !title || !date) {
     return res.status(400).json({ error: "Missing required fields: teamId, organiserId, title, date" });
@@ -54,7 +54,9 @@ export async function createMeetingHandler(req: Request, res: Response) {
       date: new Date(date),
       subject,
       location,
+      videoCallLink,
       agenda,
+      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
     });
     res.status(201).json(meeting);
   } catch (error: any) {
@@ -65,6 +67,38 @@ export async function createMeetingHandler(req: Request, res: Response) {
       return res.status(409).json({ error: "This project is completed. Meeting creation is closed." });
     }
     console.error("Error creating meeting:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function updateMeetingHandler(req: Request, res: Response) {
+  const meetingId = Number(req.params.meetingId);
+  const { userId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
+
+  if (isNaN(meetingId)) {
+    return res.status(400).json({ error: "Invalid meeting ID" });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ error: "Missing required field: userId" });
+  }
+
+  try {
+    const meeting = await editMeeting(meetingId, userId, {
+      title,
+      date: date ? new Date(date) : undefined,
+      subject,
+      location,
+      videoCallLink,
+      agenda,
+      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
+    });
+    res.json(meeting);
+  } catch (error: any) {
+    if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the organiser can edit this meeting" });
+    if (error?.code === "MEETING_PASSED") return res.status(409).json({ error: "Meeting details cannot be edited after the meeting date" });
+    console.error("Error updating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
@@ -127,7 +161,9 @@ export async function saveMinutesHandler(req: Request, res: Response) {
   try {
     const minutes = await saveMinutes(meetingId, writerId, content);
     res.json(minutes);
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the original writer can edit these minutes" });
     console.error("Error saving minutes:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -171,6 +207,25 @@ export async function addCommentHandler(req: Request, res: Response) {
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error adding comment:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getMeetingSettingsHandler(req: Request, res: Response) {
+  const meetingId = Number(req.params.meetingId);
+
+  if (isNaN(meetingId)) {
+    return res.status(400).json({ error: "Invalid meeting ID" });
+  }
+
+  try {
+    const settings = await fetchMeetingSettings(meetingId);
+    if (!settings) {
+      return res.status(404).json({ error: "Meeting not found" });
+    }
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching meeting settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }

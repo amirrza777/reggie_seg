@@ -10,6 +10,7 @@ import {
 } from "@/features/trello/api/client";
 import { SECTION_STATUS_LABELS } from "@/features/trello/lib/listStatus";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
+import "@/features/trello/styles/configure.css";
 
 type Props = {
   projectId: string;
@@ -75,48 +76,66 @@ export function ConfigureTrelloContent({ projectId, teamId }: Props) {
 
   if (loading) {
     return (
-      <section className="section container">
-        <div className="stack">
-          <p className="muted">Loading board sections…</p>
-        </div>
+      <section className="stack projects-panel trello-configure">
+        <header className="projects-panel__header trello-configure__header">
+          <h1 className="projects-panel__title">Configure Trello</h1>
+          <p className="projects-panel__subtitle">
+            Set a status for each list on your board. This is used for graphs and is shared within your team.
+          </p>
+        </header>
+        <p className="ui-note ui-note--muted">Loading board sections...</p>
       </section>
     );
   }
 
   return (
-    <section className="section container">
-      <div className="stack">
-        <h1>Configure Trello</h1>
-        <p className="lede">
+    <section className="stack projects-panel trello-configure">
+      <header className="projects-panel__header trello-configure__header">
+        <h1 className="projects-panel__title">Configure Trello</h1>
+        <p className="projects-panel__subtitle">
           Set a status for each list on your board. This is used for graphs and is shared within your team.
         </p>
-        <ul className="lede">
-          <li><strong>Backlog </strong> a list of cards containing work that has not been started yet.</li>
-          <li><strong>Work in progress </strong> a list of cards containing work that someone is working on while the card is in this list. You may use multiple "Work in progress" lists if processing your cards takes a number of different steps.</li>
-          <li><strong>Completed </strong> a list of cards containing work that is finished.</li>
-          <li><strong>For information only </strong> a list of cards that do not correspond to activities and are provided for information only. Cards in this list are not supposed to move to other lists to reflect progress in the project and will not be included in Trello board statistics.</li>
+      </header>
+
+      <div className="card trello-configure__card">
+        <ul className="ui-bullet-list trello-configure__guidance">
+          <li>
+            <strong>Backlog </strong>
+            a list of cards containing work that has not been started yet.
+          </li>
+          <li>
+            <strong>Work in progress </strong>
+            a list of cards containing work that someone is working on while the card is in this list. You may use
+            multiple "Work in progress" lists if processing your cards takes a number of different steps.
+          </li>
+          <li>
+            <strong>Completed </strong>
+            a list of cards containing work that is finished.
+          </li>
+          <li>
+            <strong>For information only </strong>
+            a list of cards that do not correspond to activities and are provided for information only. Cards in this
+            list are not supposed to move to other lists to reflect progress in the project and will not be included
+            in Trello board statistics.
+          </li>
         </ul>
-        <p className="lede">
-        Your board should contain a minimum of three lists - one for Backlog, Work in progress, and Completed.
+        <p className="ui-note ui-note--muted">
+          Your board should contain a minimum of three lists - one for Backlog, Work in progress, and Completed.
         </p>
-        {error ? (
-          <p role="alert" className="muted" style={{ color: "var(--accent-strong)" }}>
-            {error}
-          </p>
-        ) : null}
-        <br />
+
+        {error ? <p role="alert" className="ui-note ui-note--error">{error}</p> : null}
+
         {listNames.length === 0 && !error ? (
-          <p className="muted">No lists found on the board.</p>
+          <p className="ui-note ui-note--muted">No lists found on the board.</p>
         ) : (
-          <div className="stack">
+          <div className="trello-configure__rows">
             {listNames.map((list) => (
-              <div key={list.id} className="placeholder" style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <strong style={{ minWidth: 140 }}>{list.name}</strong>
+              <div key={list.id} className="trello-configure__row">
+                <span className="trello-configure__row-name">{list.name}</span>
                 <select
                   value={config[list.name]}
                   onChange={(e) => setStatus(list.name, e.target.value)}
-                  className="pill-nav__link"
-                  style={{ minWidth: 200 }}
+                  className="trello-configure__row-select"
                 >
                   {TRELLO_SECTION_STATUSES.map((status) => (
                     <option key={status} value={status}>
@@ -126,14 +145,14 @@ export function ConfigureTrelloContent({ projectId, teamId }: Props) {
                 </select>
               </div>
             ))}
-            <div className="pill-nav">
+            <div className="trello-configure__actions">
               <button
                 type="button"
-                className="btn btn--primary"
+                className="btn btn--primary btn--sm"
                 onClick={handleSave}
                 disabled={saving}
               >
-                {saving ? "Saving…" : "Save and view board"}
+                {saving ? "Saving..." : "Save and view board"}
               </button>
             </div>
           </div>

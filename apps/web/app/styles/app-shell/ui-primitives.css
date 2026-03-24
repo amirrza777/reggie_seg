@@ -69,7 +69,7 @@
 
 .ui-surface {
   border: 1px solid var(--glass-ui-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--glass-ui-bg-soft);
 }
 
@@ -90,7 +90,7 @@
 .ui-input {
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   font-size: var(--fs-body);
   font-family: inherit;
@@ -135,7 +135,7 @@
 .ui-empty-state {
   padding: 16px;
   border: 1px solid var(--glass-ui-border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--glass-ui-bg-soft);
 }
 
@@ -203,7 +203,7 @@
 
 .ui-metric-card {
   border: 1px solid var(--glass-ui-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--glass-ui-bg-soft);
   padding: 12px 14px;
   display: grid;

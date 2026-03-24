@@ -4,7 +4,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid transparent;
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
@@ -28,7 +28,7 @@
 }
 
 .status-alert {
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 10px 12px;
   font-size: 14px;
   display: flex;

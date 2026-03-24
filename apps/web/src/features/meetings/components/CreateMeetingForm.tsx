@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { useUser } from "@/features/auth/context";
-import { createMeeting } from "../api/client";
+import { createMeeting, listTeamMembers } from "../api/client";
+import "../styles/meeting-list.css";
+
+type TeamMember = {
+  id: number;
+  firstName: string;
+  lastName: string;
+};
 
 type CreateMeetingFormProps = {
   teamId: number;
@@ -18,9 +25,32 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   const [date, setDate] = useState("");
   const [subject, setSubject] = useState("");
   const [location, setLocation] = useState("");
+  const [videoCallLink, setVideoCallLink] = useState("");
   const [agenda, setAgenda] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [inviteAll, setInviteAll] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    listTeamMembers(teamId).then((data) => {
+      setMembers(data);
+      setSelectedIds(new Set(data.map((m) => m.id)));
+    });
+  }, [teamId]);
+
+  function toggleParticipant(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,7 +66,9 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
         date,
         subject: subject || undefined,
         location: location || undefined,
+        videoCallLink: videoCallLink || undefined,
         agenda: agenda || undefined,
+        participantIds: inviteAll ? undefined : Array.from(selectedIds),
       });
       setStatus("success");
       setMessage("Meeting created!");
@@ -44,6 +76,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
       setDate("");
       setSubject("");
       setLocation("");
+      setVideoCallLink("");
       setAgenda("");
       onCreated();
     } catch (error) {
@@ -72,9 +105,40 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
           <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
         </label>
         <label className="stack">
+          <span>Video call link</span>
+          <input type="url" value={videoCallLink} onChange={(e) => setVideoCallLink(e.target.value)} placeholder="https://meet.google.com/..." />
+        </label>
+        <label className="stack">
           <span>Agenda</span>
           <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
+        {members.length > 0 && (
+          <div className="stack">
+            <span>Participants</span>
+            <label className="meeting-form__participant-item">
+              <input
+                type="checkbox"
+                checked={inviteAll}
+                onChange={(e) => setInviteAll(e.target.checked)}
+              />
+              Invite all team members
+            </label>
+            {!inviteAll && (
+              <div className="meeting-form__participant-list">
+                {members.map((member) => (
+                  <label key={member.id} className="meeting-form__participant-item">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(member.id)}
+                      onChange={() => toggleParticipant(member.id)}
+                    />
+                    {member.firstName} {member.lastName}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         <div className="ui-row">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Cancel
