@@ -9,6 +9,13 @@ export function getMeetingsByTeamId(teamId: number) {
       organiser: {
         select: { id: true, firstName: true, lastName: true },
       },
+      participants: {
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {
@@ -16,11 +23,29 @@ export function getMeetingsByTeamId(teamId: number) {
           },
         },
       },
-      minutes: true,
+      minutes: {
+        include: {
+          writer: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       comments: {
         include: {
           user: {
             select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
+      team: {
+        select: {
+          enterpriseId: true,
+          allocations: {
+            include: {
+              user: {
+                select: { id: true, firstName: true, lastName: true },
+              },
+            },
           },
         },
       },
@@ -47,6 +72,13 @@ export function getMeetingById(meetingId: number) {
           },
         },
       },
+      participants: {
+        include: {
+          user: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       attendances: {
         include: {
           user: {
@@ -54,7 +86,13 @@ export function getMeetingById(meetingId: number) {
           },
         },
       },
-      minutes: true,
+      minutes: {
+        include: {
+          writer: {
+            select: { id: true, firstName: true, lastName: true },
+          },
+        },
+      },
       comments: {
         include: {
           user: {
@@ -66,6 +104,14 @@ export function getMeetingById(meetingId: number) {
   });
 }
 
+/** Creates participant records for a meeting. */
+export function createParticipants(meetingId: number, userIds: number[]) {
+  return prisma.meetingParticipant.createMany({
+    data: userIds.map((userId) => ({ meetingId, userId })),
+    skipDuplicates: true,
+  });
+}
+
 /** Creates a meeting. */
 export function createMeeting(data: {
   teamId: number;
@@ -74,11 +120,23 @@ export function createMeeting(data: {
   date: Date;
   subject?: string;
   location?: string;
+  videoCallLink?: string;
   agenda?: string;
 }) {
   return prisma.meeting.create({
     data,
   });
+}
+
+export function updateMeeting(meetingId: number, data: {
+  title?: string;
+  date?: Date;
+  subject?: string;
+  location?: string;
+  videoCallLink?: string;
+  agenda?: string;
+}) {
+  return prisma.meeting.update({ where: { id: meetingId }, data });
 }
 
 /** Returns team meeting-state fields used by service guards. */
@@ -95,6 +153,16 @@ export function clearTeamInactivityFlag(teamId: number) {
     where: { id: teamId },
     data: { inactivityFlag: "NONE" },
   });
+}
+
+/** Replaces all participants for a meeting. */
+export function replaceParticipants(meetingId: number, participantIds: number[]) {
+  return prisma.$transaction([
+    prisma.meetingParticipant.deleteMany({ where: { meetingId } }),
+    prisma.meetingParticipant.createMany({
+      data: participantIds.map((userId) => ({ meetingId, userId })),
+    }),
+  ]);
 }
 
 /** Deletes the meeting. */
@@ -183,4 +251,12 @@ export async function getModuleLeadsForTeam(teamId: number) {
     where: { moduleId: project.moduleId },
     select: { userId: true },
   });
+}
+
+export async function getModuleMeetingSettingsForTeam(teamId: number) {
+  const project = await prisma.project.findFirst({
+    where: { teams: { some: { id: teamId } } },
+    select: { module: { select: { absenceThreshold: true, minutesEditWindowDays: true } } },
+  });
+  return project?.module ?? { absenceThreshold: 3, minutesEditWindowDays: 7 };
 }

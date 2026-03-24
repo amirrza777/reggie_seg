@@ -7,6 +7,9 @@ import { UpcomingList } from "./UpcomingList";
 
 type Props = {
   events: CalendarEvent[];
+  initialDate?: string;
+  showLegend?: boolean;
+  showUpcomingList?: boolean;
 };
 
 const DAYS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
@@ -30,10 +33,11 @@ function isoDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function CalendarGrid({ events }: Props) {
+export function CalendarGrid({ events, initialDate, showLegend = true, showUpcomingList = true }: Props) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const base = initialDate ? new Date(initialDate) : today;
+  const [year, setYear] = useState(base.getFullYear());
+  const [month, setMonth] = useState(base.getMonth());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   function prevMonth() {
@@ -74,7 +78,7 @@ export function CalendarGrid({ events }: Props) {
       });
 
   return (
-    <div className="calendar-wrapper">
+    <div className={`calendar-wrapper${!showUpcomingList ? " calendar-wrapper--full" : ""}`}>
       <div className="calendar-grid-section">
         <div className="calendar-grid-header-bar">
           <div className="calendar-header">
@@ -127,22 +131,26 @@ export function CalendarGrid({ events }: Props) {
           </div>
         </div>
 
-        <div className="calendar-legend">
-          {(Object.entries(TYPE_COLOR) as [CalendarEvent["type"], string][]).map(([type, color]) => (
-            <span key={type} className="calendar-legend-item">
-              <span className="calendar-dot" style={{ background: color }} />
-              <span className="calendar-legend-label">{type.replace(/_/g, " ")}</span>
-            </span>
-          ))}
-        </div>
+        {showLegend && (
+          <div className="calendar-legend">
+            {(Object.entries(TYPE_COLOR) as [CalendarEvent["type"], string][]).map(([type, color]) => (
+              <span key={type} className="calendar-legend-item">
+                <span className="calendar-dot" style={{ background: color }} />
+                <span className="calendar-legend-label">{type.replace(/_/g, " ")}</span>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="calendar-list-section">
-        <UpcomingList
-          events={visibleEvents}
-          title={selectedDate ? `Events on ${selectedDate}` : `Events in ${MONTH_NAMES[month]}`}
-        />
-      </div>
+      {showUpcomingList && (
+        <div className="calendar-list-section">
+          <UpcomingList
+            events={visibleEvents}
+            title={selectedDate ? `Events on ${selectedDate}` : `Events in ${MONTH_NAMES[month]}`}
+          />
+        </div>
+      )}
     </div>
   );
 }

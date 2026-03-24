@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { searchEnterpriseModuleAccessUsers } from "../api/client";
 import type { EnterpriseAccessUserSearchScope, EnterpriseAssignableUser } from "../types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
@@ -195,8 +195,7 @@ export function useEnterpriseModuleAccessBuckets({
     setPage(parsedPage);
   };
 
-  const handlePageJump = (event: FormEvent<HTMLFormElement>, bucket: AccessBucket, inputValue: string) => {
-    event.preventDefault();
+  const handlePageJump = (bucket: AccessBucket, inputValue: string) => {
     applyPageInput(bucket, inputValue);
   };
 
