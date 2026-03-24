@@ -1,19 +1,11 @@
 'use client';
-/* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { getCurrentUser, refreshAccessToken } from "./api/client";
+import { AUTH_STATE_EVENT } from "./api/session";
+import { UserContext } from "./userContext";
 import type { UserProfile } from "./types";
-import { getCurrentUser } from "./api/client";
-
-type UserContextValue = {
-  user: UserProfile | null;
-  setUser: (user: UserProfile | null) => void;
-  refresh: () => Promise<UserProfile | null>;
-  loading: boolean;
-};
-
-const UserContext = createContext<UserContextValue | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -37,13 +29,49 @@ export function UserProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleAuthState = (event: Event) => {
+      const authEvent = event as CustomEvent<{ authenticated?: boolean }>;
+      if (authEvent.detail?.authenticated === false) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+      if (authEvent.detail?.authenticated === true && !user) {
+        void refresh();
+      }
+    };
+
+    window.addEventListener(AUTH_STATE_EVENT, handleAuthState as EventListener);
+    return () => window.removeEventListener(AUTH_STATE_EVENT, handleAuthState as EventListener);
+  }, [refresh, user]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !user) return;
+
+    const refreshSilently = () => {
+      void refreshAccessToken();
+    };
+
+    // Keep access token warm during long-lived open tabs to avoid 15m idle expiry UX.
+    const intervalId = window.setInterval(refreshSilently, 10 * 60 * 1000);
+    const handleFocus = () => refreshSilently();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refreshSilently();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [user]);
+
   const value = useMemo(() => ({ user, setUser, refresh, loading }), [user, refresh, loading]);
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
-}
-
-export function useUser() {
-  const ctx = useContext(UserContext);
-  if (!ctx) throw new Error("useUser must be used within UserProvider");
-  return ctx;
 }

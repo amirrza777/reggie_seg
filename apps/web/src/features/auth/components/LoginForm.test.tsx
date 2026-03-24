@@ -7,12 +7,13 @@ const originalLocation = window.location;
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 vi.mock("../api/client", () => ({ login: vi.fn() }));
-vi.mock("../context", () => ({ useUser: () => ({ refresh }) }));
+vi.mock("../useUser", () => ({ useUser: () => ({ refresh }) }));
 
 import { login } from "../api/client";
 import { LoginForm } from "./LoginForm";
 
 const loginMock = login as MockedFunction<typeof login>;
+type LoginResult = Awaited<ReturnType<typeof login>>;
 
 const mockLocation: Pick<Location, "href"> = { href: "http://localhost:3000/" };
 
@@ -39,7 +40,7 @@ beforeEach(() => {
 
 describe("LoginForm", () => {
   it("submits credentials and redirects non-admin users to dashboard", async () => {
-    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    loginMock.mockResolvedValue({ accessToken: "abc" } as LoginResult);
     refresh.mockResolvedValue({ role: "STUDENT" });
     render(<LoginForm />);
     fillForm();
@@ -51,7 +52,7 @@ describe("LoginForm", () => {
   });
 
   it("redirects admin users to admin space", async () => {
-    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    loginMock.mockResolvedValue({ accessToken: "abc" } as LoginResult);
     refresh.mockResolvedValue({ role: "ADMIN" });
     render(<LoginForm />);
     fillForm();
@@ -61,7 +62,7 @@ describe("LoginForm", () => {
   });
 
   it("redirects staff-only users to staff overview", async () => {
-    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    loginMock.mockResolvedValue({ accessToken: "abc" } as LoginResult);
     refresh.mockResolvedValue({ role: "STAFF", isStaff: true });
     render(<LoginForm />);
     fillForm();
@@ -71,7 +72,7 @@ describe("LoginForm", () => {
   });
 
   it("redirects enterprise admins to enterprise overview", async () => {
-    loginMock.mockResolvedValue({ accessToken: "abc" } as any);
+    loginMock.mockResolvedValue({ accessToken: "abc" } as LoginResult);
     refresh.mockResolvedValue({ role: "ENTERPRISE_ADMIN", isEnterpriseAdmin: true });
     render(<LoginForm />);
     fillForm();

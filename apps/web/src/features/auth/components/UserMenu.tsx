@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { logout } from "../api/client";
 import type { UserProfile } from "../types";
-import { useUser } from "../context";
+import { useUser } from "../useUser";
 import { MinimalLoader } from "@/shared/ui/MinimalLoader";
 
 function initials(user: UserProfile) {
