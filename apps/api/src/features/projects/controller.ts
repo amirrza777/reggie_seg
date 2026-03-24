@@ -23,11 +23,21 @@ import {
   upsertStaffStudentDeadlineOverride,
   clearStaffStudentDeadlineOverride,
 } from "./service.js";
-
-function parsePositiveInt(value: unknown): number | null {
-  const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
-}
+import {
+  parseAuthenticatedQueryUserId,
+  parseAuthenticatedUserId,
+  parseCreateProjectBody,
+  parseDeadlineProfileBody,
+  parseJoinModuleBody,
+  parseModulesListQuery,
+  parseProjectAndUserQuery,
+  parseProjectIdParam,
+  parseProjectTeamAndUserQuery,
+  parseStaffStudentOverrideRoute,
+  parseStudentDeadlineOverrideBody,
+  parseTeamHealthMessageBody,
+  parseTeamIdParam,
+} from "./controller.parsers.js";
 
 function isTeamLifecycleMigrationError(error: unknown) {
   const errorCode = (error as { code?: unknown } | null)?.code;
@@ -37,227 +47,32 @@ function isTeamLifecycleMigrationError(error: unknown) {
 const TEAM_LIFECYCLE_MIGRATION_ERROR =
   "Team allocation lifecycle data is unavailable until the latest database migration is applied";
 function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | null {
-  const authUserId = req.user?.sub;
-  if (!authUserId) {
-    res.status(401).json({ error: "Unauthorized" });
+  const parsed = parseAuthenticatedQueryUserId(req);
+  if (!parsed.ok) {
+    const status = parsed.error === "Unauthorized" ? 401 : parsed.error === "Forbidden" ? 403 : 400;
+    res.status(status).json({ error: parsed.error });
     return null;
   }
-
-  const queryUserId = req.query.userId;
-  if (queryUserId !== undefined) {
-    const parsedQueryUserId = Number(queryUserId);
-    if (Number.isNaN(parsedQueryUserId)) {
-      res.status(400).json({ error: "Invalid user ID" });
-      return null;
-    }
-    if (parsedQueryUserId !== authUserId) {
-      res.status(403).json({ error: "Forbidden" });
-      return null;
-    }
-  }
-
-  return authUserId;
-}
-
-/** Handles requests for create project. */
-type ParsedProjectDeadline = {
-  taskOpenDate: Date;
-  taskDueDate: Date;
-  taskDueDateMcf: Date;
-  assessmentOpenDate: Date;
-  assessmentDueDate: Date;
-  assessmentDueDateMcf: Date;
-  feedbackOpenDate: Date;
-  feedbackDueDate: Date;
-  feedbackDueDateMcf: Date;
-};
-
-type ParsedStudentDeadlineOverride = {
-  taskOpenDate?: Date | null;
-  taskDueDate?: Date | null;
-  assessmentOpenDate?: Date | null;
-  assessmentDueDate?: Date | null;
-  feedbackOpenDate?: Date | null;
-  feedbackDueDate?: Date | null;
-  reason?: string | null;
-};
-
-function parseIsoDate(value: unknown, field: keyof ParsedProjectDeadline): Date | null {
-  if (typeof value !== "string" || !value.trim()) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function parseOptionalIsoDateField(
-  value: unknown,
-  fieldName: keyof Omit<ParsedStudentDeadlineOverride, "reason">,
-): { ok: true; value: Date | null | undefined } | { ok: false; error: string } {
-  if (value === undefined) return { ok: true, value: undefined };
-  if (value === null || value === "") return { ok: true, value: null };
-  if (typeof value !== "string") {
-    return { ok: false, error: `${fieldName} must be a valid date string, null, or omitted` };
-  }
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return { ok: false, error: `${fieldName} must be a valid date string` };
-  }
-  return { ok: true, value: parsed };
-}
-
-function parseStudentDeadlineOverridePayload(
-  value: unknown,
-): { ok: true; value: ParsedStudentDeadlineOverride } | { ok: false; error: string } {
-  if (typeof value !== "object" || value === null) {
-    return { ok: false, error: "Override payload must be an object" };
-  }
-
-  const raw = value as Record<string, unknown>;
-  const taskOpenDate = parseOptionalIsoDateField(raw.taskOpenDate, "taskOpenDate");
-  if (!taskOpenDate.ok) return taskOpenDate;
-  const taskDueDate = parseOptionalIsoDateField(raw.taskDueDate, "taskDueDate");
-  if (!taskDueDate.ok) return taskDueDate;
-  const assessmentOpenDate = parseOptionalIsoDateField(raw.assessmentOpenDate, "assessmentOpenDate");
-  if (!assessmentOpenDate.ok) return assessmentOpenDate;
-  const assessmentDueDate = parseOptionalIsoDateField(raw.assessmentDueDate, "assessmentDueDate");
-  if (!assessmentDueDate.ok) return assessmentDueDate;
-  const feedbackOpenDate = parseOptionalIsoDateField(raw.feedbackOpenDate, "feedbackOpenDate");
-  if (!feedbackOpenDate.ok) return feedbackOpenDate;
-  const feedbackDueDate = parseOptionalIsoDateField(raw.feedbackDueDate, "feedbackDueDate");
-  if (!feedbackDueDate.ok) return feedbackDueDate;
-
-  let reason: string | null | undefined = undefined;
-  if (raw.reason !== undefined) {
-    if (raw.reason === null || raw.reason === "") {
-      reason = null;
-    } else if (typeof raw.reason === "string") {
-      const normalizedReason = raw.reason.trim();
-      reason = normalizedReason.length > 0 ? normalizedReason : null;
-    } else {
-      return { ok: false, error: "reason must be a string, null, or omitted" };
-    }
-  }
-
-  return {
-    ok: true,
-    value: {
-      ...(taskOpenDate.value !== undefined ? { taskOpenDate: taskOpenDate.value } : {}),
-      ...(taskDueDate.value !== undefined ? { taskDueDate: taskDueDate.value } : {}),
-      ...(assessmentOpenDate.value !== undefined ? { assessmentOpenDate: assessmentOpenDate.value } : {}),
-      ...(assessmentDueDate.value !== undefined ? { assessmentDueDate: assessmentDueDate.value } : {}),
-      ...(feedbackOpenDate.value !== undefined ? { feedbackOpenDate: feedbackOpenDate.value } : {}),
-      ...(feedbackDueDate.value !== undefined ? { feedbackDueDate: feedbackDueDate.value } : {}),
-      ...(reason !== undefined ? { reason } : {}),
-    },
-  };
-}
-
-function parseProjectDeadline(value: unknown): { ok: true; value: ParsedProjectDeadline } | { ok: false; error: string } {
-  if (typeof value !== "object" || value === null) {
-    return { ok: false, error: "deadline is required" };
-  }
-
-  const taskOpenDate = parseIsoDate((value as any).taskOpenDate, "taskOpenDate");
-  const taskDueDate = parseIsoDate((value as any).taskDueDate, "taskDueDate");
-  const taskDueDateMcf = parseIsoDate((value as any).taskDueDateMcf, "taskDueDateMcf");
-  const assessmentOpenDate = parseIsoDate((value as any).assessmentOpenDate, "assessmentOpenDate");
-  const assessmentDueDate = parseIsoDate((value as any).assessmentDueDate, "assessmentDueDate");
-  const assessmentDueDateMcf = parseIsoDate((value as any).assessmentDueDateMcf, "assessmentDueDateMcf");
-  const feedbackOpenDate = parseIsoDate((value as any).feedbackOpenDate, "feedbackOpenDate");
-  const feedbackDueDate = parseIsoDate((value as any).feedbackDueDate, "feedbackDueDate");
-  const feedbackDueDateMcf = parseIsoDate((value as any).feedbackDueDateMcf, "feedbackDueDateMcf");
-
-  if (!taskOpenDate) return { ok: false, error: "deadline.taskOpenDate must be a valid date string" };
-  if (!taskDueDate) return { ok: false, error: "deadline.taskDueDate must be a valid date string" };
-  if (!taskDueDateMcf) return { ok: false, error: "deadline.taskDueDateMcf must be a valid date string" };
-  if (!assessmentOpenDate) return { ok: false, error: "deadline.assessmentOpenDate must be a valid date string" };
-  if (!assessmentDueDate) return { ok: false, error: "deadline.assessmentDueDate must be a valid date string" };
-  if (!assessmentDueDateMcf) return { ok: false, error: "deadline.assessmentDueDateMcf must be a valid date string" };
-  if (!feedbackOpenDate) return { ok: false, error: "deadline.feedbackOpenDate must be a valid date string" };
-  if (!feedbackDueDate) return { ok: false, error: "deadline.feedbackDueDate must be a valid date string" };
-  if (!feedbackDueDateMcf) return { ok: false, error: "deadline.feedbackDueDateMcf must be a valid date string" };
-
-  if (taskOpenDate >= taskDueDate) {
-    return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
-  }
-  if (taskDueDate > assessmentOpenDate) {
-    return { ok: false, error: "deadline.assessmentOpenDate must be on or after deadline.taskDueDate" };
-  }
-  if (assessmentOpenDate >= assessmentDueDate) {
-    return { ok: false, error: "deadline.assessmentOpenDate must be before deadline.assessmentDueDate" };
-  }
-  if (assessmentDueDate > feedbackOpenDate) {
-    return { ok: false, error: "deadline.feedbackOpenDate must be on or after deadline.assessmentDueDate" };
-  }
-  if (feedbackOpenDate >= feedbackDueDate) {
-    return { ok: false, error: "deadline.feedbackOpenDate must be before deadline.feedbackDueDate" };
-  }
-  if (taskDueDateMcf < taskDueDate) {
-    return { ok: false, error: "deadline.taskDueDateMcf must be on or after deadline.taskDueDate" };
-  }
-  if (assessmentDueDateMcf < assessmentDueDate) {
-    return { ok: false, error: "deadline.assessmentDueDateMcf must be on or after deadline.assessmentDueDate" };
-  }
-  if (feedbackDueDateMcf < feedbackDueDate) {
-    return { ok: false, error: "deadline.feedbackDueDateMcf must be on or after deadline.feedbackDueDate" };
-  }
-
-  return {
-    ok: true,
-    value: {
-      taskOpenDate,
-      taskDueDate,
-      taskDueDateMcf,
-      assessmentOpenDate,
-      assessmentDueDate,
-      assessmentDueDateMcf,
-      feedbackOpenDate,
-      feedbackDueDate,
-      feedbackDueDateMcf,
-    },
-  };
+  return parsed.value;
 }
 
 export async function createProjectHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
+  const actorUserId = parseAuthenticatedUserId(req);
+  if (!actorUserId.ok) {
+    return res.status(401).json({ error: actorUserId.error });
   }
-
-  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
-    name?: unknown;
-    moduleId?: unknown;
-    questionnaireTemplateId?: unknown;
-    deadline?: unknown;
-  };
-
-  const normalizedName = typeof name === "string" ? name.trim() : "";
-  if (!normalizedName) {
-    return res.status(400).json({ error: "Project name is required and must be a string" });
-  }
-
-  if (normalizedName.length > 160) {
-    return res.status(400).json({ error: "Project name must be 160 characters or fewer" });
-  }
-
-  const parsedModuleId = parsePositiveInt(moduleId);
-  const parsedTemplateId = parsePositiveInt(questionnaireTemplateId);
-  if (!parsedModuleId || !parsedTemplateId) {
-    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
-  }
-
-  const parsedDeadline = parseProjectDeadline(deadline);
-  if (!parsedDeadline.ok) {
-    return res.status(400).json({ error: parsedDeadline.error });
+  const parsedBody = parseCreateProjectBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
   }
 
   try {
     const project = await createProject(
-      actorUserId,
-      normalizedName,
-      parsedModuleId,
-      parsedTemplateId,
-      parsedDeadline.value,
+      actorUserId.value,
+      parsedBody.value.name,
+      parsedBody.value.moduleId,
+      parsedBody.value.questionnaireTemplateId,
+      parsedBody.value.deadline,
     );
     res.status(201).json(project);
   } catch (error: any) {
@@ -277,13 +92,11 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
 
 /** Handles requests for get project by ID. */
 export async function getProjectByIdHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchProjectById(projectId);
+    const project = await fetchProjectById(projectId.value);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -317,22 +130,11 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
     return;
   }
 
-  const scope = req.query.scope === "staff" ? "staff" : "workspace";
-  const compact = req.query.compact === "1";
-  const parsedSearchQuery = parseSearchQuery(req.query.q);
-  if (!parsedSearchQuery.ok) {
-    return res.status(400).json({ error: parsedSearchQuery.error });
-  }
+  const parsedQuery = parseModulesListQuery(req.query);
+  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
 
   try {
-    const options: { staffOnly: boolean; compact: boolean; query?: string | null } = {
-      staffOnly: scope === "staff",
-      compact,
-    };
-    if (parsedSearchQuery.value) {
-      options.query = parsedSearchQuery.value;
-    }
-    const modules = await fetchModulesForUser(userId, options);
+    const modules = await fetchModulesForUser(userId, parsedQuery.value);
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
@@ -341,18 +143,13 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 }
 
 export async function joinModuleHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const code = req.body?.code;
-  if (typeof code !== "string" || code.trim().length === 0) {
-    return res.status(400).json({ error: "code is required" });
-  }
+  const actorUserId = parseAuthenticatedUserId(req);
+  if (!actorUserId.ok) return res.status(401).json({ error: actorUserId.error });
+  const parsedBody = parseJoinModuleBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const result = await joinModuleByCode(actorUserId, code);
+    const result = await joinModuleByCode(actorUserId.value, parsedBody.value.code);
     if (!result.ok) {
       return res.status(result.status).json({ error: result.error });
     }
@@ -366,17 +163,15 @@ export async function joinModuleHandler(req: AuthRequest, res: Response) {
 /** Handles requests for get project deadline. */
 export async function getProjectDeadlineHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
+  const projectId = parseProjectIdParam(req.params.projectId);
 
   if (userId === null) {
     return;
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const deadline = await fetchProjectDeadline(userId, projectId);
+    const deadline = await fetchProjectDeadline(userId, projectId.value);
     res.json({ deadline });
   } catch (error) {
     if (isTeamLifecycleMigrationError(error)) {
@@ -390,17 +185,15 @@ export async function getProjectDeadlineHandler(req: AuthRequest, res: Response)
 /** Handles requests for get teammates for project. */
 export async function getTeammatesForProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
+  const projectId = parseProjectIdParam(req.params.projectId);
 
   if (userId === null) {
     return;
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const teammates = await fetchTeammatesForProject(userId, projectId);
+    const teammates = await fetchTeammatesForProject(userId, projectId.value);
     res.json({ teammates });
   } catch (error) {
     if (isTeamLifecycleMigrationError(error)) {
@@ -413,14 +206,11 @@ export async function getTeammatesForProjectHandler(req: AuthRequest, res: Respo
 
 /** Handles requests for get team by ID. */
 export async function getTeamByIdHandler(req: Request, res: Response) {
-  const teamId = Number(req.params.teamId);
-
-  if (isNaN(teamId)) {
-    return res.status(400).json({ error: "Invalid team ID" });
-  }
+  const teamId = parseTeamIdParam(req.params.teamId);
+  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
 
   try {
-    const team = await fetchTeamById(teamId);
+    const team = await fetchTeamById(teamId.value);
     if (!team) {
       return res.status(404).json({ error: "Team not found" });
     }
@@ -437,17 +227,15 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
 /** Handles requests for get team by user and project. */
 export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
+  const projectId = parseProjectIdParam(req.params.projectId);
 
   if (userId === null) {
     return;
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const team = await fetchTeamByUserAndProject(userId, projectId);
+    const team = await fetchTeamByUserAndProject(userId, projectId.value);
     if (!team) {
       return res.status(404).json({ error: "Team not found" });
     }
@@ -463,14 +251,11 @@ export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Resp
 
 /** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchQuestionsForProject(projectId);
+    const project = await fetchQuestionsForProject(projectId.value);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
@@ -506,16 +291,14 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
 /** Handles requests for get staff project teams. */
 export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
+  const projectId = parseProjectIdParam(req.params.projectId);
   if (userId === null) {
     return;
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const result = await fetchProjectTeamsForStaff(userId, projectId);
+    const result = await fetchProjectTeamsForStaff(userId, projectId.value);
     if (!result) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -532,17 +315,15 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
 /** Handles requests for get project marking. */
 export async function getProjectMarkingHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
+  const projectId = parseProjectIdParam(req.params.projectId);
 
   if (userId === null) {
     return;
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const marking = await fetchProjectMarking(userId, projectId);
+    const marking = await fetchProjectMarking(userId, projectId.value);
     if (!marking) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
@@ -557,27 +338,18 @@ export async function getProjectMarkingHandler(req: AuthRequest, res: Response) 
 }
 
 export async function createTeamHealthMessageHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const userId = Number((req.body as { userId?: unknown }).userId);
-  const subjectRaw = (req.body as { subject?: unknown }).subject;
-  const detailsRaw = (req.body as { details?: unknown }).details;
-
-  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
-  }
-
-  if (typeof subjectRaw !== "string" || typeof detailsRaw !== "string") {
-    return res.status(400).json({ error: "subject and details are required strings" });
-  }
-
-  const subject = subjectRaw.trim();
-  const details = detailsRaw.trim();
-  if (!subject || !details) {
-    return res.status(400).json({ error: "subject and details cannot be empty" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: "Invalid user ID or project ID" });
+  const parsedBody = parseTeamHealthMessageBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const request = await submitTeamHealthMessage(userId, projectId, subject, details);
+    const request = await submitTeamHealthMessage(
+      parsedBody.value.userId,
+      projectId.value,
+      parsedBody.value.subject,
+      parsedBody.value.details,
+    );
     if (!request) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
@@ -589,15 +361,11 @@ export async function createTeamHealthMessageHandler(req: Request, res: Response
 }
 
 export async function getMyTeamHealthMessagesHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const userId = Number(req.query.userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
-  }
+  const parsed = parseProjectAndUserQuery(req as AuthRequest);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error });
 
   try {
-    const requests = await fetchMyTeamHealthMessages(userId, projectId);
+    const requests = await fetchMyTeamHealthMessages(parsed.value.userId, parsed.value.projectId);
     if (!requests) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
@@ -609,16 +377,11 @@ export async function getMyTeamHealthMessagesHandler(req: Request, res: Response
 }
 
 export async function getStaffTeamHealthMessagesHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const teamId = Number(req.params.teamId);
-  const userId = Number(req.query.userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID, project ID, or team ID" });
-  }
+  const parsed = parseProjectTeamAndUserQuery(req as AuthRequest);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error });
 
   try {
-    const requests = await fetchTeamHealthMessagesForStaff(userId, projectId, teamId);
+    const requests = await fetchTeamHealthMessagesForStaff(parsed.value.userId, parsed.value.projectId, parsed.value.teamId);
     if (!requests) {
       return res.status(404).json({ error: "Project or team not found for staff scope" });
     }
@@ -630,22 +393,15 @@ export async function getStaffTeamHealthMessagesHandler(req: Request, res: Respo
 }
 
 export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  const teamId = Number(req.params.teamId);
-  const deadlineProfile = req.body?.deadlineProfile;
-
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(teamId)) {
-    return res.status(400).json({ error: "Invalid team ID" });
-  }
-  if (deadlineProfile !== "STANDARD" && deadlineProfile !== "MCF") {
-    return res.status(400).json({ error: "deadlineProfile must be STANDARD or MCF" });
-  }
+  const actorUserId = parseAuthenticatedUserId(req);
+  if (!actorUserId.ok) return res.status(401).json({ error: actorUserId.error });
+  const teamId = parseTeamIdParam(req.params.teamId);
+  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+  const deadlineProfile = parseDeadlineProfileBody(req.body);
+  if (!deadlineProfile.ok) return res.status(400).json({ error: deadlineProfile.error });
 
   try {
-    const updated = await updateTeamDeadlineProfileForStaff(actorUserId, teamId, deadlineProfile);
+    const updated = await updateTeamDeadlineProfileForStaff(actorUserId.value, teamId.value, deadlineProfile.value);
     return res.json(updated);
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
@@ -660,18 +416,13 @@ export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Re
 }
 
 export async function getStaffStudentDeadlineOverridesHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const actorUserId = parseAuthenticatedUserId(req);
+  if (!actorUserId.ok) return res.status(401).json({ error: actorUserId.error });
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const overrides = await fetchStaffStudentDeadlineOverrides(actorUserId, projectId);
+    const overrides = await fetchStaffStudentDeadlineOverrides(actorUserId.value, projectId.value);
     return res.json({ overrides });
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
@@ -686,18 +437,13 @@ export async function getStaffStudentDeadlineOverridesHandler(req: AuthRequest, 
 }
 
 export async function upsertStaffStudentDeadlineOverrideHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const studentId = Number(req.params.studentId);
-
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId) || Number.isNaN(studentId)) {
-    return res.status(400).json({ error: "Invalid project ID or student ID" });
+  const parsedRoute = parseStaffStudentOverrideRoute(req);
+  if (!parsedRoute.ok) {
+    const status = parsedRoute.error === "Unauthorized" ? 401 : 400;
+    return res.status(status).json({ error: parsedRoute.error });
   }
 
-  const parsed = parseStudentDeadlineOverridePayload(req.body);
+  const parsed = parseStudentDeadlineOverrideBody(req.body);
   if (!parsed.ok) {
     return res.status(400).json({ error: parsed.error });
   }
@@ -715,7 +461,12 @@ export async function upsertStaffStudentDeadlineOverrideHandler(req: AuthRequest
   }
 
   try {
-    const override = await upsertStaffStudentDeadlineOverride(actorUserId, projectId, studentId, parsed.value);
+    const override = await upsertStaffStudentDeadlineOverride(
+      parsedRoute.value.actorUserId,
+      parsedRoute.value.projectId,
+      parsedRoute.value.studentId,
+      parsed.value,
+    );
     return res.json({ override });
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
@@ -733,19 +484,18 @@ export async function upsertStaffStudentDeadlineOverrideHandler(req: AuthRequest
 }
 
 export async function clearStaffStudentDeadlineOverrideHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const studentId = Number(req.params.studentId);
-
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId) || Number.isNaN(studentId)) {
-    return res.status(400).json({ error: "Invalid project ID or student ID" });
+  const parsedRoute = parseStaffStudentOverrideRoute(req);
+  if (!parsedRoute.ok) {
+    const status = parsedRoute.error === "Unauthorized" ? 401 : 400;
+    return res.status(status).json({ error: parsedRoute.error });
   }
 
   try {
-    const result = await clearStaffStudentDeadlineOverride(actorUserId, projectId, studentId);
+    const result = await clearStaffStudentDeadlineOverride(
+      parsedRoute.value.actorUserId,
+      parsedRoute.value.projectId,
+      parsedRoute.value.studentId,
+    );
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
