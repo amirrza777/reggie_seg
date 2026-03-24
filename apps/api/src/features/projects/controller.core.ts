@@ -14,49 +14,28 @@ import {
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
 } from "./service.js";
-import { parsePositiveInt, resolveAuthenticatedUserId } from "./controller.shared.js";
-import { parseProjectDeadline } from "./controller.deadline-parsers.js";
+import {
+  parseAuthenticatedQueryUserId,
+  parseAuthenticatedUserId,
+  parseCreateProjectBody,
+  parseModulesListQuery,
+  parseProjectIdParam,
+  parseTeamIdParam,
+} from "./controller.parsers.js";
 
 export async function createProjectHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
-    name?: unknown;
-    moduleId?: unknown;
-    questionnaireTemplateId?: unknown;
-    deadline?: unknown;
-  };
-
-  const normalizedName = typeof name === "string" ? name.trim() : "";
-  if (!normalizedName) {
-    return res.status(400).json({ error: "Project name is required and must be a string" });
-  }
-
-  if (normalizedName.length > 160) {
-    return res.status(400).json({ error: "Project name must be 160 characters or fewer" });
-  }
-
-  const parsedModuleId = parsePositiveInt(moduleId);
-  const parsedTemplateId = parsePositiveInt(questionnaireTemplateId);
-  if (!parsedModuleId || !parsedTemplateId) {
-    return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
-  }
-
-  const parsedDeadline = parseProjectDeadline(deadline);
-  if (!parsedDeadline.ok) {
-    return res.status(400).json({ error: parsedDeadline.error });
-  }
+  const actorUserId = parseAuthenticatedUserId(req);
+  if (!actorUserId.ok) return res.status(401).json({ error: actorUserId.error });
+  const parsedBody = parseCreateProjectBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
     const project = await createProject(
-      actorUserId,
-      normalizedName,
-      parsedModuleId,
-      parsedTemplateId,
-      parsedDeadline.value,
+      actorUserId.value,
+      parsedBody.value.name,
+      parsedBody.value.moduleId,
+      parsedBody.value.questionnaireTemplateId,
+      parsedBody.value.deadline,
     );
     res.status(201).json(project);
   } catch (error: any) {
@@ -75,13 +54,11 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
 }
 
 export async function getProjectByIdHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchProjectById(projectId);
+    const project = await fetchProjectById(projectId.value);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -93,13 +70,14 @@ export async function getProjectByIdHandler(req: Request, res: Response) {
 }
 
 export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
 
   try {
-    const projects = await fetchProjectsForUser(userId);
+    const projects = await fetchProjectsForUser(userId.value);
     res.json(projects);
   } catch (error) {
     console.error("Error fetching user projects:", error);
@@ -108,16 +86,16 @@ export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
 }
 
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-
-  const scope = req.query.scope === "staff" ? "staff" : "workspace";
-  const compact = req.query.compact === "1";
+  const parsedQuery = parseModulesListQuery(req.query);
+  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
 
   try {
-    const modules = await fetchModulesForUser(userId, { staffOnly: scope === "staff", compact });
+    const modules = await fetchModulesForUser(userId.value, parsedQuery.value);
     res.json(modules);
   } catch (error) {
     console.error("Error fetching user modules:", error);
@@ -126,18 +104,16 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 }
 
 export async function getProjectDeadlineHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
-
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const deadline = await fetchProjectDeadline(userId, projectId);
+    const deadline = await fetchProjectDeadline(userId.value, projectId.value);
     res.json({ deadline });
   } catch (error) {
     console.error("Error fetching project deadline:", error);
@@ -146,18 +122,16 @@ export async function getProjectDeadlineHandler(req: AuthRequest, res: Response)
 }
 
 export async function getTeammatesForProjectHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
-
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const teammates = await fetchTeammatesForProject(userId, projectId);
+    const teammates = await fetchTeammatesForProject(userId.value, projectId.value);
     res.json({ teammates });
   } catch (error) {
     console.error("Error fetching teammates for project:", error);
@@ -166,14 +140,11 @@ export async function getTeammatesForProjectHandler(req: AuthRequest, res: Respo
 }
 
 export async function getTeamByIdHandler(req: Request, res: Response) {
-  const teamId = Number(req.params.teamId);
-
-  if (isNaN(teamId)) {
-    return res.status(400).json({ error: "Invalid team ID" });
-  }
+  const teamId = parseTeamIdParam(req.params.teamId);
+  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
 
   try {
-    const team = await fetchTeamById(teamId);
+    const team = await fetchTeamById(teamId.value);
     if (!team) {
       return res.status(404).json({ error: "Team not found" });
     }
@@ -185,18 +156,16 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
 }
 
 export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
-
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const team = await fetchTeamByUserAndProject(userId, projectId);
+    const team = await fetchTeamByUserAndProject(userId.value, projectId.value);
     if (!team) {
       return res.status(404).json({ error: "Team not found" });
     }
@@ -208,14 +177,11 @@ export async function getTeamByUserAndProjectHandler(req: AuthRequest, res: Resp
 }
 
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchQuestionsForProject(projectId);
+    const project = await fetchQuestionsForProject(projectId.value);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
@@ -227,13 +193,14 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
 }
 
 export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
 
   try {
-    const projects = await fetchProjectsForStaff(userId);
+    const projects = await fetchProjectsForStaff(userId.value);
     res.json(projects);
   } catch (error) {
     console.error("Error fetching staff projects:", error);
@@ -242,17 +209,16 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
 }
 
 export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const result = await fetchProjectTeamsForStaff(userId, projectId);
+    const result = await fetchProjectTeamsForStaff(userId.value, projectId.value);
     if (!result) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -264,18 +230,16 @@ export async function getStaffProjectTeamsHandler(req: AuthRequest, res: Respons
 }
 
 export async function getProjectMarkingHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  const projectId = Number(req.params.projectId);
-
-  if (userId === null) {
-    return;
+  const userId = parseAuthenticatedQueryUserId(req);
+  if (!userId.ok) {
+    const status = userId.error === "Unauthorized" ? 401 : userId.error === "Forbidden" ? 403 : 400;
+    return res.status(status).json({ error: userId.error });
   }
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const marking = await fetchProjectMarking(userId, projectId);
+    const marking = await fetchProjectMarking(userId.value, projectId.value);
     if (!marking) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }

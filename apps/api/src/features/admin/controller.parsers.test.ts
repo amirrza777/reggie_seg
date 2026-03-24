@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   parseAdminEnterpriseIdParam,
+  parseAuditLogsQuery,
   parseAdminUserIdParam,
   parseCreateEnterpriseBody,
   parseUpdateUserBody,
@@ -29,6 +30,13 @@ describe("admin controller parsers", () => {
     expect(parseUpdateUserBody({ active: true, role: "admin" })).toEqual({
       ok: true,
       value: { active: true, role: "ADMIN" },
+    });
+  });
+
+  it("parses audit log query filters", () => {
+    expect(parseAuditLogsQuery({ from: "bad", to: "2026-03-02", limit: "5" })).toEqual({
+      ok: true,
+      value: { to: new Date("2026-03-02"), limit: 5 },
     });
   });
 });

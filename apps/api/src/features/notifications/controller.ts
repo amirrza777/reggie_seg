@@ -1,15 +1,17 @@
 import type { Request, Response } from "express";
 import { listNotifications, countUnread, readNotification, readAllNotifications, removeNotification } from "./service.js";
+import {
+  parseNotificationActionBody,
+  parseNotificationIdParam,
+  parseNotificationUserIdQuery,
+} from "./controller.parsers.js";
 
 export async function listNotificationsHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
-
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid or missing userId" });
-  }
+  const userId = parseNotificationUserIdQuery(req.query.userId);
+  if (!userId.ok) return res.status(400).json({ error: userId.error });
 
   try {
-    const notifications = await listNotifications(userId);
+    const notifications = await listNotifications(userId.value);
     res.json(notifications);
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -18,14 +20,11 @@ export async function listNotificationsHandler(req: Request, res: Response) {
 }
 
 export async function countUnreadHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId);
-
-  if (isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid or missing userId" });
-  }
+  const userId = parseNotificationUserIdQuery(req.query.userId);
+  if (!userId.ok) return res.status(400).json({ error: userId.error });
 
   try {
-    const count = await countUnread(userId);
+    const count = await countUnread(userId.value);
     res.json({ count });
   } catch (error) {
     console.error("Error counting unread notifications:", error);
@@ -34,19 +33,13 @@ export async function countUnreadHandler(req: Request, res: Response) {
 }
 
 export async function markAsReadHandler(req: Request, res: Response) {
-  const notificationId = Number(req.params.id);
-  const { userId } = req.body;
-
-  if (isNaN(notificationId)) {
-    return res.status(400).json({ error: "Invalid notification ID" });
-  }
-
-  if (!userId) {
-    return res.status(400).json({ error: "Missing required field: userId" });
-  }
+  const notificationId = parseNotificationIdParam(req.params.id);
+  if (!notificationId.ok) return res.status(400).json({ error: notificationId.error });
+  const parsedBody = parseNotificationActionBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    await readNotification(notificationId, userId);
+    await readNotification(notificationId.value, parsedBody.value.userId);
     res.json({ ok: true });
   } catch (error) {
     console.error("Error marking notification as read:", error);
@@ -55,14 +48,11 @@ export async function markAsReadHandler(req: Request, res: Response) {
 }
 
 export async function markAllAsReadHandler(req: Request, res: Response) {
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ error: "Missing required field: userId" });
-  }
+  const parsedBody = parseNotificationActionBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    await readAllNotifications(userId);
+    await readAllNotifications(parsedBody.value.userId);
     res.json({ ok: true });
   } catch (error) {
     console.error("Error marking all notifications as read:", error);
@@ -71,19 +61,13 @@ export async function markAllAsReadHandler(req: Request, res: Response) {
 }
 
 export async function deleteNotificationHandler(req: Request, res: Response) {
-  const notificationId = Number(req.params.id);
-  const { userId } = req.body;
-
-  if (isNaN(notificationId)) {
-    return res.status(400).json({ error: "Invalid notification ID" });
-  }
-
-  if (!userId) {
-    return res.status(400).json({ error: "Missing required field: userId" });
-  }
+  const notificationId = parseNotificationIdParam(req.params.id);
+  if (!notificationId.ok) return res.status(400).json({ error: notificationId.error });
+  const parsedBody = parseNotificationActionBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    await removeNotification(notificationId, userId);
+    await removeNotification(notificationId.value, parsedBody.value.userId);
     res.json({ ok: true });
   } catch (error) {
     console.error("Error deleting notification:", error);

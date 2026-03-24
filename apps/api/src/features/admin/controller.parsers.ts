@@ -1,4 +1,12 @@
-import { parseBoolean, parseOptionalTrimmedString, parsePositiveInt, parseTrimmedString, type ParseResult } from "../../shared/parse.js";
+import {
+  parseBoolean,
+  parseOptionalIsoDate,
+  parseOptionalPositiveInt,
+  parseOptionalTrimmedString,
+  parsePositiveInt,
+  parseTrimmedString,
+  type ParseResult,
+} from "../../shared/parse.js";
 import { isRole } from "./service.js";
 
 function parseUserId(value: unknown): ParseResult<number> {
@@ -58,6 +66,22 @@ export function parseCreateEnterpriseBody(body: unknown): ParseResult<{ name: st
     value: {
       name: name.value,
       code: code.value ?? null,
+    },
+  };
+}
+
+export function parseAuditLogsQuery(query: unknown): ParseResult<{ from?: Date; to?: Date; limit?: number }> {
+  const raw = typeof query === "object" && query !== null ? (query as Record<string, unknown>) : {};
+  const from = parseOptionalIsoDate(raw.from, "from");
+  const to = parseOptionalIsoDate(raw.to, "to");
+  const limit = parseOptionalPositiveInt(raw.limit, "limit");
+
+  return {
+    ok: true,
+    value: {
+      ...(from.ok && from.value instanceof Date ? { from: from.value } : {}),
+      ...(to.ok && to.value instanceof Date ? { to: to.value } : {}),
+      ...(limit.ok && limit.value !== undefined ? { limit: limit.value } : {}),
     },
   };
 }

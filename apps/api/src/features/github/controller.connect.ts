@@ -10,6 +10,7 @@ import {
   GithubServiceError,
 } from "./service.js";
 import { toJsonSafe, withQuery } from "./controller.utils.js";
+import { parseGithubCallbackQuery, parseGithubConnectReturnTo } from "./controller.parsers.js";
 
 /** Handles requests for get GitHub connect URL. */
 export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response) {
@@ -19,7 +20,7 @@ export async function getGithubConnectUrlHandler(req: AuthRequest, res: Response
   }
 
   try {
-    const returnTo = typeof req.query.returnTo === "string" ? req.query.returnTo : null;
+    const returnTo = parseGithubConnectReturnTo(req.query.returnTo);
     const url = await buildGithubConnectUrl(userId, returnTo);
     return res.json({ url });
   } catch (error) {
@@ -73,15 +74,14 @@ export async function disconnectGithubAccountHandler(req: AuthRequest, res: Resp
 export async function githubCallbackHandler(req: AuthRequest, res: Response) {
   const appBaseUrl = (process.env.APP_BASE_URL || "http://localhost:3001").replace(/\/$/, "");
   const fallbackPath = "/modules";
-  const code = String(req.query.code || "");
-  const state = String(req.query.state || "");
+  const parsedQuery = parseGithubCallbackQuery(req.query);
 
-  if (!code || !state) {
+  if (!parsedQuery.ok) {
     return res.redirect(`${appBaseUrl}${withQuery(fallbackPath, { github: "error", reason: "missing-code-or-state" })}`);
   }
 
   try {
-    const connected = await connectGithubAccount(code, state);
+    const connected = await connectGithubAccount(parsedQuery.value.code, parsedQuery.value.state);
     const returnPath = connected.returnTo || fallbackPath;
     const target = returnPath.startsWith("http://") || returnPath.startsWith("https://")
       ? withQuery(returnPath, { github: "connected" })

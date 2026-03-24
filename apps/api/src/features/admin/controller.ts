@@ -4,6 +4,7 @@ import { parseAdminUserSearchFilters } from "./userSearch.js";
 import {
   parseAdminEnterpriseIdParam,
   parseAdminUserIdParam,
+  parseAuditLogsQuery,
   parseCreateEnterpriseBody,
   parseUpdateUserBody,
   parseUpdateUserRoleBody,
@@ -123,16 +124,7 @@ export async function deleteEnterpriseHandler(req: AdminRequest, res: Response) 
 export async function listAuditLogsHandler(req: AdminRequest, res: Response) {
   const enterpriseId = req.adminUser?.enterpriseId;
   if (!enterpriseId) return res.status(500).json({ error: "Enterprise not resolved" });
-  const parsedFrom = req.query.from ? new Date(String(req.query.from)) : undefined;
-  const parsedTo = req.query.to ? new Date(String(req.query.to)) : undefined;
-  const from = parsedFrom && !isNaN(parsedFrom.getTime()) ? parsedFrom : undefined;
-  const to = parsedTo && !isNaN(parsedTo.getTime()) ? parsedTo : undefined;
-  const limit = req.query.limit ? Number(req.query.limit) : undefined;
-  return res.json(
-    await getAuditLogs(enterpriseId, {
-      ...(from !== undefined ? { from } : {}),
-      ...(to !== undefined ? { to } : {}),
-      ...(limit !== undefined ? { limit } : {}),
-    })
-  );
+  const parsedQuery = parseAuditLogsQuery(req.query);
+  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
+  return res.json(await getAuditLogs(enterpriseId, parsedQuery.value));
 }

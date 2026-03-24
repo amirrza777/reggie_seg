@@ -6,50 +6,21 @@ import {
   reviewTeamHealthMessageForStaff,
   resolveTeamHealthMessageWithDeadlineOverrideForStaff,
 } from "./service.js";
-
-type DateField =
-  | "taskOpenDate"
-  | "taskDueDate"
-  | "assessmentOpenDate"
-  | "assessmentDueDate"
-  | "feedbackOpenDate"
-  | "feedbackDueDate";
-
-const deadlineFields: DateField[] = [
-  "taskOpenDate",
-  "taskDueDate",
-  "assessmentOpenDate",
-  "assessmentDueDate",
-  "feedbackOpenDate",
-  "feedbackDueDate",
-];
-
-function parseDateField(value: unknown, fieldName: DateField) {
-  if (value === undefined) return { ok: true as const, value: undefined };
-  if (value === null || value === "") return { ok: true as const, value: null };
-  if (typeof value !== "string") {
-    return { ok: false as const, error: `${fieldName} must be an ISO date string, null, or omitted` };
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return { ok: false as const, error: `${fieldName} must be a valid ISO date string` };
-  }
-
-  return { ok: true as const, value: parsed };
-}
+import {
+  parseProjectTeamAndUserQuery,
+  parseProjectTeamRequestAndUserBody,
+  parseTeamHealthResolveBody,
+  parseTeamHealthReviewBody,
+} from "../controller.parsers.js";
 
 export async function getStaffTeamDeadlineHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const teamId = Number(req.params.teamId);
-  const userId = Number(req.query.userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(userId)) {
+  const parsed = parseProjectTeamAndUserQuery(req as any);
+  if (!parsed.ok) {
     return res.status(400).json({ error: "Invalid user ID, project ID, or team ID" });
   }
 
   try {
-    const deadline = await fetchTeamDeadlineForStaff(userId, projectId, teamId);
+    const deadline = await fetchTeamDeadlineForStaff(parsed.value.userId, parsed.value.projectId, parsed.value.teamId);
     if (!deadline) {
       return res.status(404).json({ error: "Project or team not found for staff scope" });
     }
@@ -61,38 +32,21 @@ export async function getStaffTeamDeadlineHandler(req: Request, res: Response) {
 }
 
 export async function reviewStaffTeamHealthMessageHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const teamId = Number(req.params.teamId);
-  const requestId = Number(req.params.requestId);
-  const userId = Number((req.body as { userId?: unknown }).userId);
-  const resolvedRaw = (req.body as { resolved?: unknown }).resolved;
-  const responseTextRaw = (req.body as { responseText?: unknown }).responseText;
-
-  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(requestId) || Number.isNaN(userId)) {
+  const parsedRoute = parseProjectTeamRequestAndUserBody(req as any);
+  if (!parsedRoute.ok) {
     return res.status(400).json({ error: "Invalid user ID, project ID, team ID, or request ID" });
   }
-
-  if (typeof resolvedRaw !== "boolean") {
-    return res.status(400).json({ error: "resolved must be a boolean" });
-  }
-  const resolved = resolvedRaw;
-
-  if (responseTextRaw !== undefined && typeof responseTextRaw !== "string") {
-    return res.status(400).json({ error: "responseText must be a string when provided" });
-  }
-  const responseText = typeof responseTextRaw === "string" ? responseTextRaw.trim() : undefined;
-  if (resolved && !responseText) {
-    return res.status(400).json({ error: "responseText is required when resolving a request" });
-  }
+  const parsedBody = parseTeamHealthReviewBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
     const request = await reviewTeamHealthMessageForStaff(
-      userId,
-      projectId,
-      teamId,
-      requestId,
-      resolved,
-      responseText
+      parsedRoute.value.userId,
+      parsedRoute.value.projectId,
+      parsedRoute.value.teamId,
+      parsedRoute.value.requestId,
+      parsedBody.value.resolved,
+      parsedBody.value.responseText,
     );
     if (!request) {
       return res.status(404).json({ error: "Project, team, or request not found for staff scope" });
@@ -105,90 +59,21 @@ export async function reviewStaffTeamHealthMessageHandler(req: Request, res: Res
 }
 
 export async function resolveStaffTeamHealthMessageHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const teamId = Number(req.params.teamId);
-  const requestId = Number(req.params.requestId);
-  const userId = Number((req.body as { userId?: unknown }).userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(requestId) || Number.isNaN(userId)) {
+  const parsedRoute = parseProjectTeamRequestAndUserBody(req as any);
+  if (!parsedRoute.ok) {
     return res.status(400).json({ error: "Invalid user ID, project ID, team ID, or request ID" });
   }
-
-  const taskOpenDateParsed = parseDateField((req.body as { taskOpenDate?: unknown }).taskOpenDate, "taskOpenDate");
-  if (!taskOpenDateParsed.ok) return res.status(400).json({ error: taskOpenDateParsed.error });
-
-  const taskDueDateParsed = parseDateField((req.body as { taskDueDate?: unknown }).taskDueDate, "taskDueDate");
-  if (!taskDueDateParsed.ok) return res.status(400).json({ error: taskDueDateParsed.error });
-
-  const assessmentOpenDateParsed = parseDateField(
-    (req.body as { assessmentOpenDate?: unknown }).assessmentOpenDate,
-    "assessmentOpenDate"
-  );
-  if (!assessmentOpenDateParsed.ok) return res.status(400).json({ error: assessmentOpenDateParsed.error });
-
-  const assessmentDueDateParsed = parseDateField(
-    (req.body as { assessmentDueDate?: unknown }).assessmentDueDate,
-    "assessmentDueDate"
-  );
-  if (!assessmentDueDateParsed.ok) return res.status(400).json({ error: assessmentDueDateParsed.error });
-
-  const feedbackOpenDateParsed = parseDateField(
-    (req.body as { feedbackOpenDate?: unknown }).feedbackOpenDate,
-    "feedbackOpenDate"
-  );
-  if (!feedbackOpenDateParsed.ok) return res.status(400).json({ error: feedbackOpenDateParsed.error });
-
-  const feedbackDueDateParsed = parseDateField(
-    (req.body as { feedbackDueDate?: unknown }).feedbackDueDate,
-    "feedbackDueDate"
-  );
-  if (!feedbackDueDateParsed.ok) return res.status(400).json({ error: feedbackDueDateParsed.error });
-
-  const deadlineInputModeRaw = (req.body as { deadlineInputMode?: unknown }).deadlineInputMode;
-  const deadlineInputMode =
-    deadlineInputModeRaw === "SHIFT_DAYS" || deadlineInputModeRaw === "SELECT_DATE"
-      ? deadlineInputModeRaw
-      : undefined;
-  if (deadlineInputModeRaw !== undefined && deadlineInputMode === undefined) {
-    return res.status(400).json({ error: "deadlineInputMode must be SHIFT_DAYS or SELECT_DATE when provided" });
-  }
-
-  const shiftDaysRaw = (req.body as { shiftDays?: unknown }).shiftDays;
-  let shiftDays: Partial<Record<DateField, number>> | undefined;
-  if (shiftDaysRaw !== undefined) {
-    if (!shiftDaysRaw || typeof shiftDaysRaw !== "object" || Array.isArray(shiftDaysRaw)) {
-      return res.status(400).json({ error: "shiftDays must be an object when provided" });
-    }
-    shiftDays = {};
-    const candidate = shiftDaysRaw as Record<string, unknown>;
-    for (const field of deadlineFields) {
-      const value = candidate[field];
-      if (value === undefined) continue;
-      if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
-        return res.status(400).json({ error: `${field} shift must be a whole number of 0 or greater` });
-      }
-      shiftDays[field] = value;
-    }
-  }
+  const parsedBody = parseTeamHealthResolveBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
     const result = await resolveTeamHealthMessageWithDeadlineOverrideForStaff(
-      userId,
-      projectId,
-      teamId,
-      requestId,
-      {
-        ...(taskOpenDateParsed.value !== undefined ? { taskOpenDate: taskOpenDateParsed.value } : {}),
-        ...(taskDueDateParsed.value !== undefined ? { taskDueDate: taskDueDateParsed.value } : {}),
-        ...(assessmentOpenDateParsed.value !== undefined ? { assessmentOpenDate: assessmentOpenDateParsed.value } : {}),
-        ...(assessmentDueDateParsed.value !== undefined ? { assessmentDueDate: assessmentDueDateParsed.value } : {}),
-        ...(feedbackOpenDateParsed.value !== undefined ? { feedbackOpenDate: feedbackOpenDateParsed.value } : {}),
-        ...(feedbackDueDateParsed.value !== undefined ? { feedbackDueDate: feedbackDueDateParsed.value } : {}),
-      },
-      {
-        ...(deadlineInputMode !== undefined ? { inputMode: deadlineInputMode } : {}),
-        ...(shiftDays !== undefined ? { shiftDays } : {}),
-      },
+      parsedRoute.value.userId,
+      parsedRoute.value.projectId,
+      parsedRoute.value.teamId,
+      parsedRoute.value.requestId,
+      parsedBody.value.deadlineOverrides,
+      parsedBody.value.options,
     );
 
     if (!result) {
