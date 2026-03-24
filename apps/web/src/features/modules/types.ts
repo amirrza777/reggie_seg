@@ -6,6 +6,7 @@ export type Module = {
   timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
+  moduleLeadNames?: string[];
   teamCount?: number;
   projectCount?: number;
   staffWithAccessCount?: number;

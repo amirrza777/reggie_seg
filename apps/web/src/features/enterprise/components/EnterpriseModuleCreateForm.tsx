@@ -10,6 +10,7 @@ import {
   type StaffModuleGuidanceRow,
 } from "@/features/modules/components/moduleSetup/moduleGuidanceDefaults";
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { useEnterpriseModuleCreateFormState, type ModuleSetupFormState } from "./useEnterpriseModuleCreateFormState";
 
@@ -31,7 +32,12 @@ export function EnterpriseModuleCreateForm({
   const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace, initialAccessSelection });
 
   if (state.isLoadingAccess) {
-    return <p className="muted">Loading module access options...</p>;
+    return (
+      <div className="ui-stack-sm" role="status" aria-live="polite">
+        <SkeletonText lines={2} widths={["42%", "86%"]} />
+        <span className="ui-visually-hidden">Loading module access options...</span>
+      </div>
+    );
   }
 
   if (state.isEditMode && !state.canEditModule) {

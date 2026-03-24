@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { AdminUser, AdminUserRecord, UserRole, AdminSummary } from "../types";
 import { listUsers, searchUsers, updateUserRole, getAdminSummary } from "../api/client";
 import { AuditLogModal } from "./AuditLogModal";
@@ -239,7 +240,15 @@ export function AdminWorkspaceSummary() {
                   <div className="ui-inline-end">Actions</div>
                 </div>
                 <div className="admin-modal__table" role="presentation">
-                  {staffDirectory.length === 0 ? (
+                  {status === "loading" && staffDirectory.length === 0 ? (
+                    Array.from({ length: 4 }).map((_, index) => (
+                      <div key={`staff-loading-${index}`} className="table__row admin-modal__row" aria-hidden="true">
+                        <SkeletonText lines={2} widths={["68%", "34%"]} />
+                        <SkeletonText lines={2} widths={["56%", "28%"]} />
+                        <SkeletonText lines={1} widths={["62%"]} />
+                      </div>
+                    ))
+                  ) : staffDirectory.length === 0 ? (
                     <div className="table__row admin-modal__row">
                       <div className="muted admin-modal__full-span">
                         No staff accounts found. Promote a user to Staff to manage admin access here.

@@ -7,6 +7,7 @@ import { StaffTrelloNav } from "./StaffTrelloNav";
 import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 
 export type StaffTrelloContentViewProps = {
   projectId: string;
@@ -54,8 +55,9 @@ export function StaffProjectTrelloContent({
 
   if (state.status === "loading") {
     return (
-      <div className="stack">
-        <p>Loading Trello…</p>
+      <div className="stack" role="status" aria-live="polite">
+        <SkeletonText lines={2} widths={["28%", "64%"]} />
+        <span className="ui-visually-hidden">Loading Trello…</span>
       </div>
     );
   }

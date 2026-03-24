@@ -18,6 +18,7 @@ type ModuleTabNavProps = {
 
 type ModuleSummaryCardProps = {
   title: string;
+  moduleLeadNames?: string[];
   moduleCode: string;
   teamCount: number;
   projectCount: number;
@@ -60,15 +61,21 @@ export function ModuleTabNav({ moduleId, activeTab }: ModuleTabNavProps) {
 
 export function ModuleSummaryCard({
   title,
+  moduleLeadNames = [],
   moduleCode,
   teamCount,
   projectCount,
   hasLinkedProjects,
   projectPlans = [],
 }: ModuleSummaryCardProps) {
+  const leadLabel = moduleLeadNames.length > 0 ? moduleLeadNames.join(", ") : "Not assigned";
+
   return (
     <Card title={<span className="overview-title">{title}</span>} className="module-dashboard__panel module-dashboard__panel--summary">
-      <p className="muted">
+      <p className="muted module-dashboard__module-lead">
+        Module lead{moduleLeadNames.length === 1 ? "" : "s"}: {leadLabel}
+      </p>
+      <p className="muted module-dashboard__summary-meta">
         {moduleCode} • {teamCount} team{teamCount === 1 ? "" : "s"} •{" "}
         {hasLinkedProjects
           ? `${projectCount} linked project${projectCount === 1 ? "" : "s"}`

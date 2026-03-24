@@ -2,6 +2,7 @@
 
 import type { ComponentProps } from "react";
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import { GithubProjectReposRepositoriesTab } from "./GithubProjectReposRepositoriesTab";
@@ -95,7 +96,12 @@ export function GithubProjectReposMyCodeActivitySection({
 
       <section className="github-repos-tab">
         <div className="github-repos-tab__list">
-          {loading ? <p className="muted">Loading personal analytics...</p> : null}
+          {loading ? (
+            <div role="status" aria-live="polite">
+              <SkeletonText lines={1} widths={["42%"]} />
+              <span className="ui-visually-hidden">Loading personal analytics...</span>
+            </div>
+          ) : null}
           {!loading && !connection?.connected ? (
             <p className="muted">Connect GitHub to view your personal activity analytics.</p>
           ) : null}

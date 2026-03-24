@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
 import { AGREEMENT_OPTIONS } from "../types";
 import { submitPeerFeedback } from "../api/client";
@@ -302,7 +303,7 @@ export function FeedbackReviewForm({
         <label className="stack reviewLabel">
           <span>Your Review</span>
           {isEditing ? (
-            <textarea
+            <AutoGrowTextarea
               rows={4}
               placeholder="Type your response here..."
               value={review}

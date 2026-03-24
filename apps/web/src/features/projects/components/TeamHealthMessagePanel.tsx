@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { createTeamHealthMessage } from "../api/client";
 import type { TeamHealthMessage } from "../types";
 
@@ -85,7 +86,7 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
 
         <label className="stack" style={{ gap: 6 }}>
           <span>Details</span>
-          <textarea
+          <AutoGrowTextarea
             value={details}
             rows={5}
             onChange={(event) => setDetails(event.target.value)}

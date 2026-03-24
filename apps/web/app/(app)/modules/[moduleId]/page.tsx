@@ -52,6 +52,7 @@ export default async function ModulePage({ params, searchParams }: ModulePagePro
 
       <ModuleSummaryCard
         title={module.title}
+        moduleLeadNames={module.moduleLeadNames}
         moduleCode={moduleCode}
         teamCount={teamCount}
         projectCount={projectCount}

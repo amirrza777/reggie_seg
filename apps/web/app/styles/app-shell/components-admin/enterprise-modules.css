@@ -137,9 +137,6 @@
 
 .enterprise-modules__create-textarea {
   min-height: 96px;
-  max-height: min(52vh, 440px);
-  resize: none;
-  overflow-y: hidden;
 }
 
 .enterprise-module-create__access-list {
@@ -159,6 +156,10 @@
   border-radius: var(--radius-md);
   padding: 10px 12px;
   background: var(--surface);
+}
+
+.enterprise-module-create__access-item--skeleton {
+  grid-template-columns: 1fr;
 }
 
 .enterprise-module-create__access-item > input[type="checkbox"] {

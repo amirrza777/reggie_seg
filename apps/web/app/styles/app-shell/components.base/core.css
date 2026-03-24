@@ -230,6 +230,19 @@
 
 .module-dashboard__panel--summary {
   min-height: 134px;
+  gap: 4px;
+}
+
+.module-dashboard__panel--summary .card__header {
+  padding-bottom: 6px;
+}
+
+.module-dashboard__module-lead {
+  margin: 0;
+}
+
+.module-dashboard__summary-meta {
+  margin: 8px 0 0;
 }
 
 .module-dashboard__panel--timeline {

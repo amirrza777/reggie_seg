@@ -1,8 +1,6 @@
-import { useLayoutEffect, useRef, type TextareaHTMLAttributes } from "react";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 
 const COUNTER_WARNING_RATIO = 0.9;
-
-type AutoGrowTextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 type CharacterCountProps = {
   value: string;
@@ -123,29 +121,6 @@ function ModuleTextareaField({
       <CharacterCount value={value} limit={maxLength} />
     </div>
   );
-}
-
-export function AutoGrowTextarea({ value, ...rest }: AutoGrowTextareaProps) {
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useLayoutEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-
-    element.style.height = "auto";
-
-    const computed = window.getComputedStyle(element);
-    const minHeight = Number.parseFloat(computed.minHeight || "0");
-    const maxHeightValue = computed.maxHeight;
-    const parsedMaxHeight = Number.parseFloat(maxHeightValue || "");
-    const maxHeight = Number.isFinite(parsedMaxHeight) ? parsedMaxHeight : Number.POSITIVE_INFINITY;
-
-    const nextHeight = Math.max(minHeight, Math.min(element.scrollHeight, maxHeight));
-    element.style.height = `${nextHeight}px`;
-    element.style.overflowY = element.scrollHeight > maxHeight ? "auto" : "hidden";
-  }, [value]);
-
-  return <textarea ref={ref} value={value} {...rest} />;
 }
 
 export function CharacterCount({ value, limit }: CharacterCountProps) {

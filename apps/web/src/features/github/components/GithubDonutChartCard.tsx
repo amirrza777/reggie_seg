@@ -2,6 +2,7 @@
 
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { GithubChartTitleWithInfo, type GithubChartInfoContent } from "./GithubChartInfo";
+import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 
 type DonutDatum = {
   name: string;
@@ -55,19 +56,12 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
               />
             </Pie>
             <Tooltip
+              content={<ChartTooltipContent />}
               formatter={(value, name) => {
                 const numericValue = Number(value || 0);
                 const percentage = total > 0 ? ((numericValue / total) * 100).toFixed(1) : "0.0";
                 return [`${numericValue.toLocaleString()} (${percentage}%)`, name];
               }}
-              contentStyle={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                color: "var(--ink)",
-              }}
-              itemStyle={{ color: "var(--ink)" }}
-              labelStyle={{ color: "var(--ink)" }}
             />
             <Legend />
           </PieChart>
