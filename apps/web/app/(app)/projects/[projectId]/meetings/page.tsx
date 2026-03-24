@@ -46,7 +46,7 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
     return (
       <PageSection
         title="Meetings"
-        description="Schedule and view your team meetings."
+        description="Schedule, review, and manage meetings for your project team."
         className="ui-page--project"
       >
         <MeetingsPageContent

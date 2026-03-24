@@ -38,10 +38,6 @@ export function MeetingsPageContent({
 
   return (
     <div className="stack projects-panel">
-      <header className="projects-panel__header">
-        <h1 className="projects-panel__title">Team meetings</h1>
-        <p className="projects-panel__subtitle">Schedule, review, and manage meetings for your project team.</p>
-      </header>
       <nav className="pill-nav">
         <button
           type="button"
