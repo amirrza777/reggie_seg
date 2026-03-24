@@ -4,16 +4,16 @@ model Meeting {
   organiserId Int
   title       String
   subject     String?
-  location      String?
+  location    String?
   videoCallLink String?
-  agenda        String?           @db.Text
+  agenda      String?             @db.Text
   date        DateTime
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   team        Team                @relation(fields: [teamId], references: [id])
   organiser   User                @relation("MeetingOrganiser", fields: [organiserId], references: [id])
-  attendances  MeetingAttendance[]
+  attendances MeetingAttendance[]
   participants MeetingParticipant[]
-  minutes      MeetingMinutes?
-  comments     MeetingComment[]
+  minutes     MeetingMinutes?
+  comments    MeetingComment[]
 }

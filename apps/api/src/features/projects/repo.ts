@@ -60,6 +60,16 @@ const STAFF_PROJECT_LIST_SELECT = {
   },
 } satisfies Prisma.ProjectSelect;
 
+const MODULE_LEAD_NAME_SELECT = {
+  userId: true,
+  user: {
+    select: {
+      firstName: true,
+      lastName: true,
+    },
+  },
+} as const;
+
 function matchesModuleSearchQuery(module: { id: number; name: string }, query: string): boolean {
   return matchesFuzzySearchCandidate({
     query,
@@ -111,15 +121,13 @@ function moduleLeadAndTaSelect(
 ): Pick<Prisma.ModuleSelect, "moduleLeads" | "moduleTeachingAssistants"> {
   if (listMode) {
     return {
-      moduleLeads: { select: { userId: true } },
+      moduleLeads: { select: MODULE_LEAD_NAME_SELECT },
       moduleTeachingAssistants: { select: { userId: true } },
     };
   }
   return {
     moduleLeads: {
-      where: { userId: user.id },
-      select: { userId: true },
-      take: 1,
+      select: MODULE_LEAD_NAME_SELECT,
     },
     moduleTeachingAssistants: {
       where: { userId: user.id },
@@ -134,16 +142,11 @@ function moduleAccessFlagsForUser(
   userId: number,
   listMode: boolean,
 ): { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean } {
-  if (listMode) {
-    return {
-      isOwner: module.moduleLeads.some((l) => l.userId === userId),
-      isTeachingAssistant: module.moduleTeachingAssistants.some((t) => t.userId === userId),
-      isEnrolled: module.userModules.length > 0,
-    };
-  }
   return {
-    isOwner: module.moduleLeads.length > 0,
-    isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
+    isOwner: module.moduleLeads.some((l) => l.userId === userId),
+    isTeachingAssistant: listMode
+      ? module.moduleTeachingAssistants.some((t) => t.userId === userId)
+      : module.moduleTeachingAssistants.length > 0,
     isEnrolled: module.userModules.length > 0,
   };
 }
@@ -154,6 +157,28 @@ function countUniqueStaffOnModule(module: ModuleLeadTaSlice, listMode: boolean):
     ...module.moduleLeads.map((l) => l.userId),
     ...module.moduleTeachingAssistants.map((t) => t.userId),
   ]).size;
+}
+
+function formatUserDisplayName(user: { firstName?: string | null; lastName?: string | null } | null | undefined): string {
+  const fullName = [user?.firstName?.trim(), user?.lastName?.trim()].filter((part): part is string => Boolean(part)).join(" ");
+  return fullName.trim();
+}
+
+function buildModuleLeadNames(
+  moduleLeads: Array<{ userId: number; user?: { firstName?: string | null; lastName?: string | null } | null }>,
+): string[] {
+  const seenUserIds = new Set<number>();
+  const names: string[] = [];
+
+  for (const lead of moduleLeads) {
+    if (seenUserIds.has(lead.userId)) continue;
+    seenUserIds.add(lead.userId);
+    const name = formatUserDisplayName(lead.user);
+    if (!name) continue;
+    names.push(name);
+  }
+
+  return names;
 }
 
 type ModuleMembershipUser = { id: number; role: string; enterpriseId: string };
@@ -486,9 +511,7 @@ export async function getModulesForUser(
         id: true,
         name: true,
         moduleLeads: {
-          where: { userId: user.id },
-          select: { userId: true },
-          take: 1,
+          select: MODULE_LEAD_NAME_SELECT,
         },
         moduleTeachingAssistants: {
           where: { userId: user.id },
@@ -512,9 +535,7 @@ export async function getModulesForUser(
             id: true,
             name: true,
             moduleLeads: {
-              where: { userId: user.id },
-              select: { userId: true },
-              take: 1,
+              select: MODULE_LEAD_NAME_SELECT,
             },
             moduleTeachingAssistants: {
               where: { userId: user.id },
@@ -534,8 +555,9 @@ export async function getModulesForUser(
     });
 
     return compactModules.map((module) => {
+      const moduleLeadNames = buildModuleLeadNames(module.moduleLeads);
       const accessRole = resolveModuleAccessRole(user.role, {
-        isOwner: module.moduleLeads.length > 0,
+        isOwner: module.moduleLeads.some((lead) => lead.userId === user.id),
         isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
         isEnrolled: module.userModules.length > 0,
       });
@@ -543,6 +565,7 @@ export async function getModulesForUser(
       return {
         id: module.id,
         name: module.name,
+        moduleLeadNames,
         accessRole,
       };
     });
@@ -613,6 +636,7 @@ export async function getModulesForUser(
   });
 
   return modules.map((module) => {
+    const moduleLeadNames = buildModuleLeadNames(module.moduleLeads);
     const accessRole = resolveModuleAccessRole(
       user.role,
       moduleAccessFlagsForUser(module, user.id, listMode),
@@ -626,6 +650,7 @@ export async function getModulesForUser(
       timelineText: module.timelineText,
       expectationsText: module.expectationsText,
       readinessNotesText: module.readinessNotesText,
+      moduleLeadNames,
       teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
       projectCount: module.projects.length,
       accessRole,

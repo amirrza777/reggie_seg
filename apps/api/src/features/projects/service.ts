@@ -70,6 +70,7 @@ export async function fetchModulesForUser(
       timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
       expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
       readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
+      moduleLeadNames: "moduleLeadNames" in module ? module.moduleLeadNames : [],
       teamCount: "teamCount" in module ? module.teamCount : 0,
       projectCount: "projectCount" in module ? module.projectCount : 0,
       accountRole: module.accessRole,
