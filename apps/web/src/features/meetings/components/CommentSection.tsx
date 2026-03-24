@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import { addComment, deleteComment } from "../api/client";
 import { CommentInput } from "./CommentInput";
 import type { MeetingCommentRecord } from "../types";

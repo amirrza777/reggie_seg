@@ -4,7 +4,7 @@ import { ChevronLeft, Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";

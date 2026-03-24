@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
+import { logDevError } from "@/shared/lib/devLogger";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
 import {
   createDiscussionPost,
   createStudentForumReport,
@@ -21,29 +24,33 @@ type DiscussionForumClientProps = {
 const ROOT_POSTS_PER_PAGE = 8;
 const VOTE_ICON_PATH =
   "M6.25 6.5h6.5a1 1 0 0 1 .98 1.2l-.9 4.5a1 1 0 0 1-.98.8H6.25V6.5Zm-1 0H3.5A1.5 1.5 0 0 0 2 8v3.5A1.5 1.5 0 0 0 3.5 13h1.75V6.5Zm1-1V4a2.5 2.5 0 0 1 2.5-2.5c.55 0 1 .45 1 1v1.2c0 .38-.08.75-.23 1.1l-.3.7H6.25Z";
+const MODULE_ROLE_LABELS: Record<DiscussionPost["author"]["role"], string> = {
+  STUDENT: "Student",
+  STAFF: "Teaching Assistant",
+  ADMIN: "Admin",
+  ENTERPRISE_ADMIN: "Enterprise Admin",
+};
 
-function ensureTextareaMinHeight(textarea: HTMLTextAreaElement) {
-  if (textarea.dataset.minHeightPx) {
-    return Number(textarea.dataset.minHeightPx);
+function compareRepliesByScore(a: DiscussionPost, b: DiscussionPost) {
+  const aIsNonStudent = a.author.role !== "STUDENT";
+  const bIsNonStudent = b.author.role !== "STUDENT";
+  if (aIsNonStudent !== bIsNonStudent) {
+    return aIsNonStudent ? -1 : 1;
   }
-
-  const minHeight = Math.ceil(textarea.getBoundingClientRect().height);
-  textarea.dataset.minHeightPx = String(minHeight);
-  textarea.style.minHeight = `${minHeight}px`;
-  return minHeight;
+  if (b.reactionScore !== a.reactionScore) {
+    return b.reactionScore - a.reactionScore;
+  }
+  const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+  if (createdDiff !== 0) return createdDiff;
+  return a.id - b.id;
 }
 
-function autoGrowTextarea(textarea: HTMLTextAreaElement) {
-  const minHeight = ensureTextareaMinHeight(textarea);
-  textarea.style.height = "auto";
-  const nextHeight = Math.max(textarea.scrollHeight, minHeight);
-  textarea.style.height = `${nextHeight}px`;
-}
-
-function registerAutoGrowingTextarea(textarea: HTMLTextAreaElement | null) {
-  if (!textarea) return;
-  ensureTextareaMinHeight(textarea);
-  autoGrowTextarea(textarea);
+function normalizeReplyOrder(post: DiscussionPost): DiscussionPost {
+  if (post.replies.length === 0) return post;
+  return {
+    ...post,
+    replies: post.replies.map(normalizeReplyOrder).sort(compareRepliesByScore),
+  };
 }
 
 function DiscussionVoteIcon({ direction = "up" }: { direction?: "up" | "down" }) {
@@ -63,7 +70,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -119,35 +126,44 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   }, [totalPages]);
 
   useEffect(() => {
-    if (!user) return;
+    if (userLoading) {
+      setLoadingPosts(true);
+      return;
+    }
+    if (!user) {
+      setLoadingPosts(false);
+      setPosts([]);
+      return;
+    }
+
     setLoadingPosts(true);
     setError(null);
     setCurrentPage(1);
     getDiscussionPosts(user.id, Number(projectId))
-      .then(setPosts)
+      .then((fetchedPosts) => setPosts(fetchedPosts.map(normalizeReplyOrder)))
       .catch((err: unknown) => {
-        console.error(err);
+        logDevError(err);
         setError("Failed to load discussion posts.");
       })
       .finally(() => setLoadingPosts(false));
-  }, [user, projectId]);
+  }, [user, userLoading, projectId]);
 
   const addReplyToTree = (items: DiscussionPost[], parentPostId: number, reply: DiscussionPost): DiscussionPost[] =>
     items.map((post) => {
       if (post.id === parentPostId) {
-        return { ...post, replies: [...post.replies, reply] };
+        return { ...post, replies: [...post.replies, normalizeReplyOrder(reply)].sort(compareRepliesByScore) };
       }
       if (post.replies.length === 0) return post;
-      return { ...post, replies: addReplyToTree(post.replies, parentPostId, reply) };
+      return { ...post, replies: addReplyToTree(post.replies, parentPostId, reply).sort(compareRepliesByScore) };
     });
 
   const updatePostInTree = (items: DiscussionPost[], updated: DiscussionPost): DiscussionPost[] =>
     items.map((post) => {
       if (post.id === updated.id) {
-        return updated;
+        return normalizeReplyOrder(updated);
       }
       if (post.replies.length === 0) return post;
-      return { ...post, replies: updatePostInTree(post.replies, updated) };
+      return { ...post, replies: updatePostInTree(post.replies, updated).sort(compareRepliesByScore) };
     });
 
   const updateReportStatusInTree = (
@@ -185,7 +201,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       setTitle("");
       setBody("");
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to create post.");
     }
   };
@@ -219,7 +235,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       setPosts((prev) => updatePostInTree(prev, updated));
       cancelEditing();
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to update post.");
     } finally {
       setSavingPostId(null);
@@ -234,7 +250,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       setPosts((prev) => removePostFromTree(prev, postId));
       if (editingPostId === postId) cancelEditing();
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to delete post.");
     } finally {
       setDeletingPostId(null);
@@ -249,7 +265,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       await reportDiscussionPost(user.id, Number(projectId), postId);
       setPosts((prev) => removePostFromTree(prev, postId));
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to report post.");
     } finally {
       setReportingPostId(null);
@@ -264,7 +280,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       await createStudentForumReport(user.id, Number(projectId), postId);
       setPosts((prev) => updateReportStatusInTree(prev, postId, "PENDING"));
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to report post.");
     } finally {
       setReportingPostId(null);
@@ -278,7 +294,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       const updated = await reactToDiscussionPost(user.id, Number(projectId), postId, type);
       setPosts((prev) => updatePostInTree(prev, updated));
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to update reaction.");
     } finally {
       setReactingPostId(null);
@@ -306,7 +322,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       setReplyDrafts((prev) => ({ ...prev, [parentPostId]: "" }));
       setReplyOpenByPostId((prev) => ({ ...prev, [parentPostId]: false }));
     } catch (err) {
-      console.error(err);
+      logDevError(err);
       setError("Failed to add reply.");
     } finally {
       setSavingReplyPostId(null);
@@ -384,9 +400,9 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     const isMenuOpen = menuOpenPostId === post.id;
     const isDeletingPost = deletingPostId === post.id;
     const isReportingPost = reportingPostId === post.id;
-    const authorLine = `${post.author.firstName} ${post.author.lastName}${isAuthor ? " (You)" : ""}${
-      post.author.role === "STAFF" ? `${isAuthor ? "," : ""} Staff` : ""
-    } - ${new Date(post.createdAt).toLocaleString()}`;
+    const authorName = `${post.author.firstName} ${post.author.lastName}${isAuthor ? " (You)" : ""}`;
+    const authorRoleLabel = MODULE_ROLE_LABELS[post.author.role];
+    const createdAtLabel = new Date(post.createdAt).toLocaleString();
     const handleReportAction = () => {
       closePostMenu();
       if (canReportAsStaff) {
@@ -490,13 +506,11 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
               ) : null}
               <div className="discussion-field">
                 <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
-                <textarea
-                  ref={registerAutoGrowingTextarea}
+                <AutoGrowTextarea
                   id={`edit-body-${post.id}`}
                   rows={4}
                   value={editingBody}
                   onChange={(event) => setEditingBody(event.target.value)}
-                  onInput={(event) => autoGrowTextarea(event.currentTarget)}
                   disabled={savingPostId === post.id}
                 />
               </div>
@@ -529,7 +543,12 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                 <div className="discussion-post__title-row">
                   <div className="discussion-post__headline">
                     <strong className="discussion-post__title">{post.title}</strong>
-                    <p className="discussion-post__meta">{authorLine}</p>
+                    <p className="discussion-post__meta">
+                      <span>{authorName}</span>
+                      <span className="discussion-post__role-pill pill pill-ghost">{authorRoleLabel}</span>
+                      <span aria-hidden="true">-</span>
+                      <span>{createdAtLabel}</span>
+                    </p>
                     {post.updatedAt !== post.createdAt ? (
                       <p className="discussion-post__edited">Edited: {new Date(post.updatedAt).toLocaleString()}</p>
                     ) : null}
@@ -560,7 +579,12 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
               {!isRoot ? (
                 <div className="discussion-post__meta-row">
-                  <p className="discussion-post__meta">{authorLine}</p>
+                  <p className="discussion-post__meta">
+                    <span>{authorName}</span>
+                    <span className="discussion-post__role-pill pill pill-ghost">{authorRoleLabel}</span>
+                    <span aria-hidden="true">-</span>
+                    <span>{createdAtLabel}</span>
+                  </p>
                   <div className="discussion-post__meta-actions">
                     {canToggleReplies ? (
                       <button
@@ -632,13 +656,11 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
           <div className="discussion-post__reply-editor">
             <div className="discussion-field">
               <label htmlFor={`reply-${post.id}`}>Reply</label>
-              <textarea
-                ref={registerAutoGrowingTextarea}
+              <AutoGrowTextarea
                 id={`reply-${post.id}`}
                 rows={3}
                 value={replyDrafts[post.id] ?? ""}
                 onChange={(event) => handleReplyChange(post.id, event.target.value)}
-                onInput={(event) => autoGrowTextarea(event.currentTarget)}
                 placeholder="Write a reply"
                 disabled={!user || userLoading || savingReplyPostId === post.id}
               />
@@ -693,14 +715,12 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
           <div className="discussion-field">
             <label htmlFor="discussion-body">Post</label>
-            <textarea
-              ref={registerAutoGrowingTextarea}
+            <AutoGrowTextarea
               id="discussion-body"
               name="body"
               rows={4}
               value={body}
               onChange={(event) => setBody(event.target.value)}
-              onInput={(event) => autoGrowTextarea(event.currentTarget)}
               placeholder="Write your update or question"
               disabled={!user || userLoading}
             />
@@ -719,8 +739,8 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       <section className="stack discussion-posts" aria-label="Posts">
         <h2 className="discussion-posts__title">Latest posts</h2>
         {error ? <p className="ui-note ui-note--error">{error}</p> : null}
-        {loadingPosts ? (
-          <p className="ui-note ui-note--muted">Loading posts...</p>
+        {userLoading || loadingPosts ? (
+          <DiscussionPostsSkeleton />
         ) : posts.length === 0 ? (
           <div className="ui-empty-state">
             <p>No posts yet. Start the discussion above.</p>

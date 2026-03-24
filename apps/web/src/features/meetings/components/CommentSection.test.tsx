@@ -2,7 +2,7 @@ import { useState } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi, type MockedFunction } from "vitest";
 
-vi.mock("@/features/auth/context", () => ({
+vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
@@ -43,7 +43,7 @@ vi.mock("./CommentInput", () => ({
   },
 }));
 
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import { addComment, deleteComment } from "../api/client";
 import { CommentSection } from "./CommentSection";
 

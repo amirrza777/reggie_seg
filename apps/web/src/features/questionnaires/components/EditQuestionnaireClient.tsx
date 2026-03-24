@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { logDevError } from "@/shared/lib/devLogger";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
@@ -41,7 +43,7 @@ export default function EditQuestionnairePage() {
         const template = await getQuestionnaireById(templateId);
 
         if (!template || !Array.isArray(template.questions)) {
-          console.error("Invalid questionnaire payload", template);
+          logDevError("Invalid questionnaire payload", template);
           return;
         }
 
@@ -67,7 +69,7 @@ export default function EditQuestionnairePage() {
 
         setLoaded(true);
       } catch (e) {
-        console.error(e);
+        logDevError(e);
       }
     };
 
@@ -172,15 +174,22 @@ export default function EditQuestionnairePage() {
       setHasUnsavedChanges(false);
       router.back();
     } catch (err) {
-      console.error(err);
-      alert("Save failed — check console");
+      logDevError(err);
+      alert("Save failed.");
     } finally {
       setSaving(false);
     }
   };
 
   if (Number.isNaN(templateId)) return <p className="ui-note ui-note--muted ui-page">Invalid questionnaire ID</p>;
-  if (!loaded) return <p className="ui-note ui-note--muted ui-page">Loading…</p>;
+  if (!loaded) {
+    return (
+      <div className="ui-page" role="status" aria-live="polite">
+        <SkeletonText lines={3} widths={["34%", "100%", "82%"]} />
+        <span className="ui-visually-hidden">Loading…</span>
+      </div>
+    );
+  }
 
   if (!canEdit && !isUseMode && !isCopyMode) {
     return (
@@ -493,4 +502,3 @@ export default function EditQuestionnairePage() {
     </div>
   );
 }
-

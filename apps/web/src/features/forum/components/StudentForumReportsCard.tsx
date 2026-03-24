@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useUser } from "@/features/auth/context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useUser } from "@/features/auth/useUser";
+import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import {
   approveStudentForumReport,
   getStudentForumReports,
   getStaffForumConversation,
   ignoreStudentForumReport,
 } from "@/features/forum/api/client";
-import type { ForumConversationPost, ForumPostConversation, StudentForumReportEntry } from "@/features/forum/types";
+import type { ForumPostConversation, StudentForumReportEntry } from "@/features/forum/types";
 
 type StudentForumReportsCardProps = {
   projectId: number;
@@ -25,25 +27,42 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
   const [conversationMessage, setConversationMessage] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ForumPostConversation | null>(null);
   const [activePostId, setActivePostId] = useState<number | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const conversationRequestIdRef = useRef(0);
 
-  const loadReports = async () => {
-    if (!user) return;
+  const loadReports = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
+    if (!user) {
+      setReports([]);
+      setStatus("idle");
+      setMessage(null);
+      setConversation(null);
+      setConversationMessage(null);
+      setConversationStatus("idle");
+      setActivePostId(null);
+      conversationRequestIdRef.current += 1;
+      return;
+    }
     setStatus("loading");
     setMessage(null);
     try {
       const data = await getStudentForumReports(user.id, projectId);
+      if (requestId !== loadRequestIdRef.current) return;
       setReports(data);
       setStatus("success");
     } catch (err) {
+      if (requestId !== loadRequestIdRef.current) return;
       setReports([]);
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not load student reports.");
     }
-  };
+  }, [user, projectId]);
 
   useEffect(() => {
-    void loadReports();
-  }, [user, projectId]);
+    queueMicrotask(() => {
+      void loadReports();
+    });
+  }, [loadReports]);
 
   const handleApprove = async (reportId: number) => {
     if (!user) return;
@@ -85,14 +104,17 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
 
   const handleViewConversation = async (postId: number) => {
     if (!user) return;
+    const requestId = ++conversationRequestIdRef.current;
     setConversationStatus("loading");
     setConversationMessage(null);
     setActivePostId(postId);
     try {
       const data = await getStaffForumConversation(user.id, projectId, postId);
+      if (requestId !== conversationRequestIdRef.current) return;
       setConversation(data);
       setConversationStatus("success");
     } catch (err) {
+      if (requestId !== conversationRequestIdRef.current) return;
       setConversation(null);
       setConversationStatus("error");
       setConversationMessage(err instanceof Error ? err.message : "Could not load conversation.");
@@ -100,37 +122,12 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
   };
 
   const handleHideConversation = () => {
+    conversationRequestIdRef.current += 1;
     setConversation(null);
     setConversationMessage(null);
     setConversationStatus("idle");
     setActivePostId(null);
   };
-
-  const renderConversationPost = (post: ForumConversationPost, focusId: number, depth = 0) => (
-    <div
-      key={post.id}
-      className="card"
-      style={{
-        padding: 12,
-        marginLeft: depth * 16,
-        border: post.id === focusId ? "1px solid var(--primary)" : "1px solid var(--border)",
-        background: post.id === focusId ? "rgba(64, 126, 255, 0.08)" : "transparent",
-      }}
-    >
-      <div className="ui-stack-xs">
-        <strong>{post.title}</strong>
-        <span className="muted">
-          {post.author.firstName} {post.author.lastName} - {new Date(post.createdAt).toLocaleString()}
-        </span>
-      </div>
-      <p style={{ margin: "8px 0 0" }}>{post.body}</p>
-      {post.replies.length ? (
-        <div className="ui-stack-sm" style={{ marginTop: 10 }}>
-          {post.replies.map((reply) => renderConversationPost(reply, focusId, depth + 1))}
-        </div>
-      ) : null}
-    </div>
-  );
 
   return (
     <div className="card stack" style={{ padding: 20 }}>
@@ -141,7 +138,13 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
         </p>
       </div>
       {message ? <p className="muted">{message}</p> : null}
-      {status === "loading" ? <p className="muted">Loading reports...</p> : null}
+      {status === "loading" ? (
+        <div className="ui-stack-sm" role="status" aria-live="polite">
+          <SkeletonText lines={2} widths={["48%", "86%"]} />
+          <SkeletonText lines={2} widths={["42%", "74%"]} />
+          <span className="ui-visually-hidden">Loading reports...</span>
+        </div>
+      ) : null}
       {reports.length === 0 && status !== "loading" ? <p className="muted">No pending reports.</p> : null}
       {reports.map((report) => (
         <div key={report.id} className="card" style={{ padding: 16, marginTop: 12 }}>
@@ -180,9 +183,10 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
             </button>
           </div>
           {activePostId === report.post.id && conversationStatus === "loading" ? (
-            <p className="muted" style={{ marginTop: 12 }}>
-              Loading conversation...
-            </p>
+            <div style={{ marginTop: 12 }} role="status" aria-live="polite">
+              <SkeletonText lines={2} widths={["38%", "82%"]} />
+              <span className="ui-visually-hidden">Loading conversation...</span>
+            </div>
           ) : null}
           {activePostId === report.post.id && conversationMessage ? (
             <p className="muted" style={{ marginTop: 12 }}>
@@ -196,7 +200,9 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
                   The original post is no longer in the forum, so only the reported content is available.
                 </p>
               ) : null}
-              {conversation.thread ? renderConversationPost(conversation.thread, conversation.focusPostId) : null}
+              {conversation.thread ? (
+                <ForumConversationTree post={conversation.thread} focusPostId={conversation.focusPostId} />
+              ) : null}
             </div>
           ) : null}
         </div>

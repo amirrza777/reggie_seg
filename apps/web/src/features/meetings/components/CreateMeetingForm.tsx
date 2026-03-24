@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { useUser } from "@/features/auth/context";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { useUser } from "@/features/auth/useUser";
 import { createMeeting, listTeamMembers } from "../api/client";
 import "../styles/meeting-list.css";
 
@@ -19,6 +20,18 @@ type CreateMeetingFormProps = {
   onCancel: () => void;
 };
 
+type CreateMeetingFieldErrors = {
+  title?: string;
+  date?: string;
+};
+
+function validateCreateMeetingFields(title: string, date: string): CreateMeetingFieldErrors {
+  const errors: CreateMeetingFieldErrors = {};
+  if (!title.trim()) errors.title = "Enter a title.";
+  if (!date.trim()) errors.date = "Select a date and time.";
+  return errors;
+}
+
 export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeetingFormProps) {
   const { user } = useUser();
   const [title, setTitle] = useState("");
@@ -27,6 +40,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   const [location, setLocation] = useState("");
   const [videoCallLink, setVideoCallLink] = useState("");
   const [agenda, setAgenda] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<CreateMeetingFieldErrors>({});
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -36,7 +50,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   useEffect(() => {
     listTeamMembers(teamId).then((data) => {
       setMembers(data);
-      setSelectedIds(new Set(data.map((m) => m.id)));
+      setSelectedIds(new Set(data.map((member) => member.id)));
     });
   }, [teamId]);
 
@@ -54,24 +68,43 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!title || !date) return;
-    setStatus("loading");
     setMessage(null);
+    const nextFieldErrors = validateCreateMeetingFields(title, date);
+    setFieldErrors(nextFieldErrors);
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setStatus("idle");
+      return;
+    }
+
+    if (!user) {
+      setStatus("error");
+      setMessage("You must be signed in to create a meeting.");
+      return;
+    }
+
+    setStatus("loading");
+
+    const trimmedTitle = title.trim();
+    const trimmedSubject = subject.trim();
+    const trimmedLocation = location.trim();
+    const trimmedVideoCallLink = videoCallLink.trim();
+    const trimmedAgenda = agenda.trim();
 
     try {
       await createMeeting({
         teamId,
-        organiserId: user!.id,
-        title,
+        organiserId: user.id,
+        title: trimmedTitle,
         date,
-        subject: subject || undefined,
-        location: location || undefined,
-        videoCallLink: videoCallLink || undefined,
-        agenda: agenda || undefined,
-        participantIds: inviteAll ? undefined : Array.from(selectedIds),
+        subject: trimmedSubject || undefined,
+        location: trimmedLocation || undefined,
+        agenda: trimmedAgenda || undefined,
+        ...(trimmedVideoCallLink ? { videoCallLink: trimmedVideoCallLink } : {}),
+        ...(!inviteAll ? { participantIds: Array.from(selectedIds) } : {}),
       });
       setStatus("success");
       setMessage("Meeting created!");
+      setFieldErrors({});
       setTitle("");
       setDate("");
       setSubject("");
@@ -88,29 +121,59 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   return (
     <Card title="New Meeting">
       <form className="stack" onSubmit={handleSubmit}>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-title">
           <span>Title *</span>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+          {fieldErrors.title ? <p className="ui-note ui-note--error">{fieldErrors.title}</p> : null}
+          <input
+            id="create-meeting-title"
+            type="text"
+            value={title}
+            aria-invalid={fieldErrors.title ? true : undefined}
+            onChange={(e) => {
+              setTitle(e.target.value);
+              if (fieldErrors.title && e.target.value.trim()) {
+                setFieldErrors((prev) => ({ ...prev, title: undefined }));
+              }
+            }}
+          />
         </label>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-date">
           <span>Date *</span>
-          <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+          {fieldErrors.date ? <p className="ui-note ui-note--error">{fieldErrors.date}</p> : null}
+          <input
+            id="create-meeting-date"
+            type="datetime-local"
+            value={date}
+            aria-invalid={fieldErrors.date ? true : undefined}
+            onChange={(e) => {
+              setDate(e.target.value);
+              if (fieldErrors.date && e.target.value.trim()) {
+                setFieldErrors((prev) => ({ ...prev, date: undefined }));
+              }
+            }}
+          />
         </label>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-subject">
           <span>Subject</span>
-          <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} />
+          <input id="create-meeting-subject" type="text" value={subject} onChange={(e) => setSubject(e.target.value)} />
         </label>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-location">
           <span>Location</span>
-          <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
+          <input id="create-meeting-location" type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
         </label>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-video-link">
           <span>Video call link</span>
-          <input type="url" value={videoCallLink} onChange={(e) => setVideoCallLink(e.target.value)} placeholder="https://meet.google.com/..." />
+          <input
+            id="create-meeting-video-link"
+            type="url"
+            value={videoCallLink}
+            onChange={(e) => setVideoCallLink(e.target.value)}
+            placeholder="https://meet.google.com/..."
+          />
         </label>
-        <label className="stack">
+        <label className="stack" htmlFor="create-meeting-agenda">
           <span>Agenda</span>
-          <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
+          <AutoGrowTextarea id="create-meeting-agenda" rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
         </label>
         {members.length > 0 && (
           <div className="stack">

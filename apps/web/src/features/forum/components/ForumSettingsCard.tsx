@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useUser } from "@/features/auth/context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useUser } from "@/features/auth/useUser";
 import { getForumSettings, updateForumSettings } from "@/features/forum/api/client";
+import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton";
 
 type ForumSettingsCardProps = {
   projectId: number;
@@ -14,32 +15,53 @@ export function ForumSettingsCard({ projectId }: ForumSettingsCardProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [anonymousStudents, setAnonymousStudents] = useState(false);
+  const loadRequestIdRef = useRef(0);
+  const saveRequestIdRef = useRef(0);
 
-  useEffect(() => {
-    if (!user) return;
+  const loadSettings = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
+    if (!user) {
+      setLoading(false);
+      setError(null);
+      setAnonymousStudents(false);
+      return;
+    }
     setLoading(true);
     setError(null);
-    getForumSettings(user.id, projectId)
-      .then((settings) => setAnonymousStudents(settings.forumIsAnonymous))
-      .catch((err) => {
-        console.error(err);
-        setError("Unable to load forum settings.");
-      })
-      .finally(() => setLoading(false));
+    try {
+      const settings = await getForumSettings(user.id, projectId);
+      if (requestId !== loadRequestIdRef.current) return;
+      setAnonymousStudents(settings.forumIsAnonymous);
+    } catch {
+      if (requestId !== loadRequestIdRef.current) return;
+      setError("Unable to load forum settings.");
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setLoading(false);
+      }
+    }
   }, [user, projectId]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleToggle = async (value: boolean) => {
     if (!user) return;
+    const requestId = ++saveRequestIdRef.current;
     setSaving(true);
     setError(null);
     try {
       const next = await updateForumSettings(user.id, projectId, value);
+      if (requestId !== saveRequestIdRef.current) return;
       setAnonymousStudents(next.forumIsAnonymous);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      if (requestId !== saveRequestIdRef.current) return;
       setError("Unable to update forum settings.");
     } finally {
-      setSaving(false);
+      if (requestId === saveRequestIdRef.current) {
+        setSaving(false);
+      }
     }
   };
 
@@ -66,7 +88,13 @@ export function ForumSettingsCard({ projectId }: ForumSettingsCardProps) {
         />
         <span>Hide student names</span>
       </label>
-      {loading ? <p className="muted">Loading settings…</p> : null}
+      {loading ? (
+        <div className="ui-stack-sm" role="status" aria-live="polite">
+          <Skeleton inline width={18} height={18} radius={4} />
+          <SkeletonText lines={1} widths={["40%"]} />
+          <span className="ui-visually-hidden">Loading settings…</span>
+        </div>
+      ) : null}
       {saving ? <p className="muted">Saving…</p> : null}
       {!user ? <p className="muted">Sign in as staff to update these settings.</p> : null}
     </div>
