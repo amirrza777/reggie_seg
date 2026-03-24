@@ -601,6 +601,16 @@
   margin: 0;
 }
 
+.staff-projects__enterprise-override-alert {
+  display: grid;
+  gap: 4px;
+  align-items: start;
+}
+
+.staff-projects__enterprise-override-alert p {
+  margin: 0;
+}
+
 @import "./staff-projects/base.css";
 @import "./staff-projects/create.css";
 @import "./staff-projects/allocation-controls.css";

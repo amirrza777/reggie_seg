@@ -8,6 +8,7 @@ vi.mock("../../shared/db.js", () => ({
       findUnique: vi.fn(),
     },
     featureFlag: {
+      createMany: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -20,6 +21,7 @@ describe("featureFlags service", () => {
   });
 
   it("checks a flag by enterprise id", async () => {
+    (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
     (prisma.featureFlag.findUnique as any).mockResolvedValue({ enabled: true });
 
     const enabled = await isFeatureEnabled("newDashboard", "ent-1");
@@ -33,6 +35,7 @@ describe("featureFlags service", () => {
 
   it("checks a flag by user enterprise", async () => {
     (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-2", active: true });
+    (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
     (prisma.featureFlag.findUnique as any).mockResolvedValue({ enabled: false });
 
     const enabled = await isFeatureEnabledForUser("betaFeature", 12);
@@ -59,6 +62,7 @@ describe("featureFlags service", () => {
 
   it("lists flags for user enterprise", async () => {
     (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-2", active: true });
+    (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
     (prisma.featureFlag.findMany as any).mockResolvedValue([{ key: "repos", enabled: true }]);
 
     const flags = await listFeatureFlagsForUser(12);
@@ -70,6 +74,7 @@ describe("featureFlags service", () => {
   });
 
   it("returns false when flag record does not exist", async () => {
+    (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
     (prisma.featureFlag.findUnique as any).mockResolvedValue(null);
 
     await expect(isFeatureEnabled("missingFlag", "ent-1")).resolves.toBe(false);

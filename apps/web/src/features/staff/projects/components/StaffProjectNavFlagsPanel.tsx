@@ -304,10 +304,15 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
         />
       </Card>
       {globallyDisabledTabs.length > 0 ? (
-        <p className="muted" style={{ margin: 0 }}>
-          Note: Admin global flags currently disable {globallyDisabledTabs.join(", ")}. These remain hidden even if
-          enabled here.
-        </p>
+        <div className="status-alert status-alert--error staff-projects__enterprise-override-alert">
+          <p>
+            Enterprise feature flags are currently overriding this project configuration.
+          </p>
+          <p>
+            Disabled at enterprise level: <strong>{globallyDisabledTabs.join(", ")}</strong>.
+          </p>
+          <p>These tabs stay hidden for students until re-enabled in Enterprise feature flags.</p>
+        </div>
       ) : null}
     </div>
   );
