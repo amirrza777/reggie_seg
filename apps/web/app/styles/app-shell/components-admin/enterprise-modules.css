@@ -47,6 +47,7 @@
   .enterprise-module-create__field--readiness,
   .enterprise-module-create__field--students,
   .enterprise-module-create__field--danger,
+  .enterprise-module-create__field--meeting-settings,
   .enterprise-module-create__error,
   .enterprise-module-create__actions {
     grid-column: 1 / -1;

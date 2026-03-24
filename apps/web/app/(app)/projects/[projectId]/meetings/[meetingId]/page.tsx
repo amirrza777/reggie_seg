@@ -5,6 +5,7 @@ type MeetingPageProps = {
 };
 
 export default async function MeetingPage({ params }: MeetingPageProps) {
-  const { meetingId } = await params;
-  return <MeetingDetailContent meetingId={Number(meetingId)} />;
+  const { projectId, meetingId } = await params;
+
+  return <MeetingDetailContent meetingId={Number(meetingId)} projectId={Number(projectId)} />;
 }

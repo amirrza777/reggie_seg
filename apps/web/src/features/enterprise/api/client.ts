@@ -113,3 +113,22 @@ export async function updateEnterpriseModuleStudents(
   });
 }
 
+export type ModuleMeetingSettings = {
+  absenceThreshold: number;
+  minutesEditWindowDays: number;
+};
+
+export async function getModuleMeetingSettings(moduleId: number): Promise<ModuleMeetingSettings> {
+  return apiFetch<ModuleMeetingSettings>(`/enterprise-admin/modules/${moduleId}/meeting-settings`);
+}
+
+export async function updateModuleMeetingSettings(
+  moduleId: number,
+  settings: ModuleMeetingSettings,
+): Promise<ModuleMeetingSettings> {
+  return apiFetch<ModuleMeetingSettings>(`/enterprise-admin/modules/${moduleId}/meeting-settings`, {
+    method: "PUT",
+    body: JSON.stringify(settings),
+  });
+}
+

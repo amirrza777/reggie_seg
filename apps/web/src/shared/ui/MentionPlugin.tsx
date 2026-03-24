@@ -40,15 +40,11 @@ export function MentionPlugin({ members }: MentionPluginProps) {
   });
 
   const options = useMemo(() => {
-    const query = queryString ?? "";
+    const query = queryString?.toLowerCase() ?? "";
     const availableMembers = Array.isArray(members) ? members : [];
-    const matchedMembers = availableMembers.filter((member) =>
-      matchesSearchQuery(member, query, {
-        fields: ["firstName", "lastName"],
-        selectors: [(candidate) => `${candidate.firstName} ${candidate.lastName}`],
-      }),
-    );
-    return matchedMembers.map((member) => new MentionOption(`${member.firstName} ${member.lastName}`));
+    return availableMembers
+      .map((m) => new MentionOption(`${m.firstName} ${m.lastName}`))
+      .filter((option) => option.name.toLowerCase().includes(query));
   }, [members, queryString]);
 
   const onSelectOption = useCallback(

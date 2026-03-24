@@ -5,23 +5,21 @@ import {
   listMeetingsHandler,
   getMeetingHandler,
   createMeetingHandler,
+  updateMeetingHandler,
   deleteMeetingHandler,
-  markAttendanceHandler,
-  saveMinutesHandler,
-  getMinutesHandler,
-  addCommentHandler,
-  deleteCommentHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
   listMeetings: vi.fn(),
   fetchMeeting: vi.fn(),
   addMeeting: vi.fn(),
+  editMeeting: vi.fn(),
   removeMeeting: vi.fn(),
   markAttendance: vi.fn(),
   saveMinutes: vi.fn(),
   addComment: vi.fn(),
   removeComment: vi.fn(),
+  fetchMeetingSettings: vi.fn(),
 }));
 
 function mockResponse() {
@@ -107,12 +105,32 @@ describe("createMeetingHandler", () => {
   it("creates meeting and returns 201", async () => {
     (service.addMeeting as any).mockResolvedValue({ id: 3 });
     const req: any = {
+      body: { teamId: 1, organiserId: 1, title: "Team Meeting", date: "2026-03-01", participantIds: [1, 2] },
+    };
+    const res = mockResponse();
+    await createMeetingHandler(req, res);
+    expect(service.addMeeting).toHaveBeenCalledWith(expect.objectContaining({ participantIds: [1, 2] }));
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
+
+  it("treats non-array participantIds as undefined", async () => {
+    (service.addMeeting as any).mockResolvedValue({ id: 3 });
+    const req: any = {
+      body: { teamId: 1, organiserId: 1, title: "Team Meeting", date: "2026-03-01", participantIds: "not-an-array" },
+    };
+    const res = mockResponse();
+    await createMeetingHandler(req, res);
+    expect(service.addMeeting).toHaveBeenCalledWith(expect.objectContaining({ participantIds: undefined }));
+  });
+
+  it("returns 409 for TEAM_ARCHIVED error", async () => {
+    (service.addMeeting as any).mockRejectedValue({ code: "TEAM_ARCHIVED" });
+    const req: any = {
       body: { teamId: 1, organiserId: 1, title: "Team Meeting", date: "2026-03-01" },
     };
     const res = mockResponse();
     await createMeetingHandler(req, res);
-    expect(service.addMeeting).toHaveBeenCalled();
-    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.status).toHaveBeenCalledWith(409);
   });
 
   it("returns 500 on error", async () => {
@@ -122,6 +140,81 @@ describe("createMeetingHandler", () => {
     };
     const res = mockResponse();
     await createMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+});
+
+describe("updateMeetingHandler", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("returns 400 for invalid meeting id", async () => {
+    const req: any = { params: { meetingId: "abc" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 400 when userId is missing", async () => {
+    const req: any = { params: { meetingId: "1" }, body: {} };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns updated meeting on success", async () => {
+    (service.editMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1, title: "Updated" } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ title: "Updated" }));
+    expect(res.json).toHaveBeenCalledWith({ id: 1, title: "Updated" });
+  });
+
+  it("passes array participantIds to editMeeting", async () => {
+    (service.editMeeting as any).mockResolvedValue({ id: 1 });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1, participantIds: [2, 3] } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ participantIds: [2, 3] }));
+  });
+
+  it("treats non-array participantIds as undefined in updateMeetingHandler", async () => {
+    (service.editMeeting as any).mockResolvedValue({ id: 1 });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1, participantIds: "not-an-array" } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(service.editMeeting).toHaveBeenCalledWith(1, 1, expect.objectContaining({ participantIds: undefined }));
+  });
+
+  it("returns 404 for NOT_FOUND error", async () => {
+    (service.editMeeting as any).mockRejectedValue({ code: "NOT_FOUND" });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 403 for FORBIDDEN error", async () => {
+    (service.editMeeting as any).mockRejectedValue({ code: "FORBIDDEN" });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(403);
+  });
+
+  it("returns 409 for MEETING_PASSED error", async () => {
+    (service.editMeeting as any).mockRejectedValue({ code: "MEETING_PASSED" });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("returns 500 for other errors", async () => {
+    (service.editMeeting as any).mockRejectedValue(new Error("fail"));
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
 });
@@ -157,205 +250,6 @@ describe("deleteMeetingHandler", () => {
     const req: any = { params: { meetingId: "7" } };
     const res = mockResponse();
     await deleteMeetingHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("markAttendanceHandler", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("returns 400 for invalid meeting id", async () => {
-    const req: any = { params: { meetingId: "abc" }, body: {} };
-    const res = mockResponse();
-    await markAttendanceHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns 400 when records is not a non-empty array", async () => {
-    const req: any = { params: { meetingId: "1" }, body: { records: [] } };
-    const res = mockResponse();
-    await markAttendanceHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns ok on success", async () => {
-    (service.markAttendance as any).mockResolvedValue(undefined);
-    const req: any = {
-      params: { meetingId: "1" },
-      body: { records: [{ userId: 1, status: "Present" }] },
-    };
-    const res = mockResponse();
-    await markAttendanceHandler(req, res);
-    expect(res.json).toHaveBeenCalledWith({ ok: true });
-  });
-
-  it("returns 500 on error", async () => {
-    (service.markAttendance as any).mockRejectedValue(new Error("fail"));
-    const req: any = {
-      params: { meetingId: "1" },
-      body: { records: [{ userId: 1, status: "Present" }] },
-    };
-    const res = mockResponse();
-    await markAttendanceHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("saveMinutesHandler", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("returns 400 for invalid meeting id", async () => {
-    const req: any = { params: { meetingId: "abc" }, body: {} };
-    const res = mockResponse();
-    await saveMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns 400 when required fields are missing", async () => {
-    const req: any = { params: { meetingId: "1" }, body: { writerId: 1 } };
-    const res = mockResponse();
-    await saveMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns minutes on success", async () => {
-    (service.saveMinutes as any).mockResolvedValue({ id: 1, content: "notes" });
-    const req: any = {
-      params: { meetingId: "5" },
-      body: { writerId: 1, content: "notes" },
-    };
-    const res = mockResponse();
-    await saveMinutesHandler(req, res);
-    expect(res.json).toHaveBeenCalledWith({ id: 1, content: "notes" });
-  });
-
-  it("returns 500 on error", async () => {
-    (service.saveMinutes as any).mockRejectedValue(new Error("fail"));
-    const req: any = {
-      params: { meetingId: "5" },
-      body: { writerId: 1, content: "notes" },
-    };
-    const res = mockResponse();
-    await saveMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("getMinutesHandler", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("returns 400 for invalid meeting id", async () => {
-    const req: any = { params: { meetingId: "abc" } };
-    const res = mockResponse();
-    await getMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns 404 when meeting has no minutes", async () => {
-    (service.fetchMeeting as any).mockResolvedValue({ id: 1, minutes: null });
-    const req: any = { params: { meetingId: "1" } };
-    const res = mockResponse();
-    await getMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it("returns 404 when meeting not found", async () => {
-    (service.fetchMeeting as any).mockResolvedValue(null);
-    const req: any = { params: { meetingId: "1" } };
-    const res = mockResponse();
-    await getMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it("returns minutes on success", async () => {
-    (service.fetchMeeting as any).mockResolvedValue({ id: 1, minutes: { content: "notes" } });
-    const req: any = { params: { meetingId: "1" } };
-    const res = mockResponse();
-    await getMinutesHandler(req, res);
-    expect(res.json).toHaveBeenCalledWith({ content: "notes" });
-  });
-
-  it("returns 500 on error", async () => {
-    (service.fetchMeeting as any).mockRejectedValue(new Error("fail"));
-    const req: any = { params: { meetingId: "1" } };
-    const res = mockResponse();
-    await getMinutesHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("addCommentHandler", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("returns 400 for invalid meeting id", async () => {
-    const req: any = { params: { meetingId: "abc" }, body: {} };
-    const res = mockResponse();
-    await addCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns 400 when required fields are missing", async () => {
-    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
-    const res = mockResponse();
-    await addCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("creates comment and returns 201", async () => {
-    (service.addComment as any).mockResolvedValue({ id: 10 });
-    const req: any = {
-      params: { meetingId: "5" },
-      body: { userId: 1, content: "looks good" },
-    };
-    const res = mockResponse();
-    await addCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: 10 });
-  });
-
-  it("returns 500 on error", async () => {
-    (service.addComment as any).mockRejectedValue(new Error("fail"));
-    const req: any = {
-      params: { meetingId: "5" },
-      body: { userId: 1, content: "looks good" },
-    };
-    const res = mockResponse();
-    await addCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(500);
-  });
-});
-
-describe("deleteCommentHandler", () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it("returns 400 for invalid comment id", async () => {
-    const req: any = { params: { commentId: "abc" } };
-    const res = mockResponse();
-    await deleteCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(400);
-  });
-
-  it("returns ok on success", async () => {
-    (service.removeComment as any).mockResolvedValue(undefined);
-    const req: any = { params: { commentId: "12" } };
-    const res = mockResponse();
-    await deleteCommentHandler(req, res);
-    expect(res.json).toHaveBeenCalledWith({ ok: true });
-  });
-
-  it("returns 404 for P2025 error", async () => {
-    (service.removeComment as any).mockRejectedValue({ code: "P2025" });
-    const req: any = { params: { commentId: "12" } };
-    const res = mockResponse();
-    await deleteCommentHandler(req, res);
-    expect(res.status).toHaveBeenCalledWith(404);
-  });
-
-  it("returns 500 for other errors", async () => {
-    (service.removeComment as any).mockRejectedValue(new Error("fail"));
-    const req: any = { params: { commentId: "12" } };
-    const res = mockResponse();
-    await deleteCommentHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(500);
   });
 });
