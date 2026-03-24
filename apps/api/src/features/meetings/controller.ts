@@ -1,16 +1,23 @@
 import type { Request, Response } from "express";
 import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment, fetchMeetingSettings } from "./service.js";
+import {
+  parseAddCommentBody,
+  parseCommentIdParam,
+  parseCreateMeetingBody,
+  parseMarkAttendanceBody,
+  parseMeetingIdParam,
+  parseSaveMinutesBody,
+  parseTeamIdParam,
+  parseUpdateMeetingBody,
+} from "./controller.parsers.js";
 
 /** Handles requests for list meetings. */
 export async function listMeetingsHandler(req: Request, res: Response) {
-  const teamId = Number(req.params.teamId);
-
-  if (isNaN(teamId)) {
-    return res.status(400).json({ error: "Invalid team ID" });
-  }
+  const teamId = parseTeamIdParam(req.params.teamId);
+  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
 
   try {
-    const meetings = await listMeetings(teamId);
+    const meetings = await listMeetings(teamId.value);
     res.json(meetings);
   } catch (error) {
     console.error("Error fetching meetings:", error);
@@ -20,14 +27,11 @@ export async function listMeetingsHandler(req: Request, res: Response) {
 
 /** Handles requests for get meeting. */
 export async function getMeetingHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
   try {
-    const meeting = await fetchMeeting(meetingId);
+    const meeting = await fetchMeeting(meetingId.value);
     if (!meeting) {
       return res.status(404).json({ error: "Meeting not found" });
     }
@@ -40,24 +44,11 @@ export async function getMeetingHandler(req: Request, res: Response) {
 
 /** Handles requests for create meeting. */
 export async function createMeetingHandler(req: Request, res: Response) {
-  const { teamId, organiserId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
-
-  if (!teamId || !organiserId || !title || !date) {
-    return res.status(400).json({ error: "Missing required fields: teamId, organiserId, title, date" });
-  }
+  const parsedBody = parseCreateMeetingBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const meeting = await addMeeting({
-      teamId,
-      organiserId,
-      title,
-      date: new Date(date),
-      subject,
-      location,
-      videoCallLink,
-      agenda,
-      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
-    });
+    const meeting = await addMeeting(parsedBody.value);
     res.status(201).json(meeting);
   } catch (error: any) {
     if (error?.code === "TEAM_ARCHIVED") {
@@ -69,27 +60,15 @@ export async function createMeetingHandler(req: Request, res: Response) {
 }
 
 export async function updateMeetingHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-  const { userId, title, date, subject, location, videoCallLink, agenda, participantIds } = req.body;
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
-
-  if (!userId) {
-    return res.status(400).json({ error: "Missing required field: userId" });
-  }
+  const parsedBody = parseUpdateMeetingBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const meeting = await editMeeting(meetingId, userId, {
-      title,
-      date: date ? new Date(date) : undefined,
-      subject,
-      location,
-      videoCallLink,
-      agenda,
-      participantIds: Array.isArray(participantIds) ? participantIds : undefined,
-    });
+    const { userId, ...updates } = parsedBody.value;
+    const meeting = await editMeeting(meetingId.value, userId, updates);
     res.json(meeting);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
@@ -102,14 +81,11 @@ export async function updateMeetingHandler(req: Request, res: Response) {
 
 /** Handles requests for delete meeting. */
 export async function deleteMeetingHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
   try {
-    await removeMeeting(meetingId);
+    await removeMeeting(meetingId.value);
     res.json({ ok: true });
   } catch (error: any) {
     if (error.code === "P2025") {
@@ -122,19 +98,14 @@ export async function deleteMeetingHandler(req: Request, res: Response) {
 
 /** Handles requests for mark attendance. */
 export async function markAttendanceHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-  const { records } = req.body;
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
-
-  if (!Array.isArray(records) || records.length === 0) {
-    return res.status(400).json({ error: "Records must be a non-empty array" });
-  }
+  const parsedBody = parseMarkAttendanceBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    await markAttendance(meetingId, records);
+    await markAttendance(meetingId.value, parsedBody.value.records);
     res.json({ ok: true });
   } catch (error) {
     console.error("Error marking attendance:", error);
@@ -144,19 +115,14 @@ export async function markAttendanceHandler(req: Request, res: Response) {
 
 /** Handles requests for save minutes. */
 export async function saveMinutesHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-  const { writerId, content } = req.body;
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
-
-  if (!writerId || !content) {
-    return res.status(400).json({ error: "Missing required fields: writerId, content" });
-  }
+  const parsedBody = parseSaveMinutesBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const minutes = await saveMinutes(meetingId, writerId, content);
+    const minutes = await saveMinutes(meetingId.value, parsedBody.value.writerId, parsedBody.value.content);
     res.json(minutes);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
@@ -168,14 +134,11 @@ export async function saveMinutesHandler(req: Request, res: Response) {
 
 /** Handles requests for get minutes. */
 export async function getMinutesHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
   try {
-    const meeting = await fetchMeeting(meetingId);
+    const meeting = await fetchMeeting(meetingId.value);
     if (!meeting || !meeting.minutes) {
       return res.status(404).json({ error: "Minutes not found" });
     }
@@ -188,19 +151,19 @@ export async function getMinutesHandler(req: Request, res: Response) {
 
 /** Handles requests for add comment. */
 export async function addCommentHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-  const { userId, content, teamId } = req.body;
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
-
-  if (!userId || !content) {
-    return res.status(400).json({ error: "Missing required fields: userId, content" });
-  }
+  const parsedBody = parseAddCommentBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const comment = await addComment(meetingId, userId, content, teamId);
+    const comment = await addComment(
+      meetingId.value,
+      parsedBody.value.userId,
+      parsedBody.value.content,
+      parsedBody.value.teamId,
+    );
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error adding comment:", error);
@@ -209,14 +172,11 @@ export async function addCommentHandler(req: Request, res: Response) {
 }
 
 export async function getMeetingSettingsHandler(req: Request, res: Response) {
-  const meetingId = Number(req.params.meetingId);
-
-  if (isNaN(meetingId)) {
-    return res.status(400).json({ error: "Invalid meeting ID" });
-  }
+  const meetingId = parseMeetingIdParam(req.params.meetingId);
+  if (!meetingId.ok) return res.status(400).json({ error: meetingId.error });
 
   try {
-    const settings = await fetchMeetingSettings(meetingId);
+    const settings = await fetchMeetingSettings(meetingId.value);
     if (!settings) {
       return res.status(404).json({ error: "Meeting not found" });
     }
@@ -229,14 +189,11 @@ export async function getMeetingSettingsHandler(req: Request, res: Response) {
 
 /** Handles requests for delete comment. */
 export async function deleteCommentHandler(req: Request, res: Response) {
-  const commentId = Number(req.params.commentId);
-
-  if (isNaN(commentId)) {
-    return res.status(400).json({ error: "Invalid comment ID" });
-  }
+  const commentId = parseCommentIdParam(req.params.commentId);
+  if (!commentId.ok) return res.status(400).json({ error: commentId.error });
 
   try {
-    await removeComment(commentId);
+    await removeComment(commentId.value);
     res.json({ ok: true });
   } catch (error: any) {
     if (error.code === "P2025") {

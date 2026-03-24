@@ -5,6 +5,7 @@ import {
   parseIsoDate,
   parseOptionalIsoDate,
   parseOptionalPositiveInt,
+  parsePositiveIntArray,
   parsePositiveInt,
   parseTrimmedString,
 } from "./parse.js";
@@ -18,6 +19,14 @@ describe("shared parse primitives", () => {
   it("parses optional positive integers", () => {
     expect(parseOptionalPositiveInt(undefined, "id")).toEqual({ ok: true, value: undefined });
     expect(parseOptionalPositiveInt("7", "id")).toEqual({ ok: true, value: 7 });
+  });
+
+  it("parses positive integer arrays", () => {
+    expect(parsePositiveIntArray(["1", 2], "participantIds")).toEqual({ ok: true, value: [1, 2] });
+    expect(parsePositiveIntArray([0], "participantIds")).toEqual({
+      ok: false,
+      error: "participantIds must be an array of positive integers",
+    });
   });
 
   it("parses booleans and enums", () => {

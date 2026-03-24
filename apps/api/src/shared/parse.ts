@@ -29,6 +29,23 @@ export function parseOptionalPositiveInt(value: unknown, label: string): ParseRe
   return ok(parsed.value);
 }
 
+export function parsePositiveIntArray(value: unknown, label: string): ParseResult<number[]> {
+  if (!Array.isArray(value)) {
+    return fail(`${label} must be an array of positive integers`);
+  }
+
+  const parsedValues: number[] = [];
+  for (const entry of value) {
+    const parsedEntry = parsePositiveInt(entry, label);
+    if (!parsedEntry.ok) {
+      return fail(`${label} must be an array of positive integers`);
+    }
+    parsedValues.push(parsedEntry.value);
+  }
+
+  return ok(parsedValues);
+}
+
 export function parseBoolean(value: unknown, label: string): ParseResult<boolean> {
   if (typeof value !== "boolean") {
     return fail(`${label} must be a boolean`);
