@@ -12,6 +12,7 @@ import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedU
 import { SEED_COMPLETED_PROJECT_SCENARIO, SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
+import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
 
@@ -65,6 +66,7 @@ async function runSeedSteps(context: SeedContext) {
   if (SEED_COMPLETED_PROJECT_SCENARIO) {
     await seedCompletedProjectScenario(context);
   }
+  await seedPeerAssessmentProgressScenarios(context);
 }
 
 main()

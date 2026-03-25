@@ -213,6 +213,7 @@ export function FeedbackReviewForm({
       ])
     );
   });
+  const reviewWordCount = review.trim().length === 0 ? 0 : review.trim().split(/\s+/).length;
 
   useEffect(() => {
     if (countdownTargetTimestamp == null) return;
@@ -319,14 +320,17 @@ export function FeedbackReviewForm({
         <label className="stack reviewLabel">
           <span>Your Review</span>
           {isEditing ? (
-            <textarea
-              rows={4}
-              placeholder="Type your response here..."
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              disabled={isLoading}
-              className="textarea"
-            />
+            <>
+              <textarea
+                rows={4}
+                placeholder="Type your response here..."
+                value={review}
+                onChange={(e) => setReview(e.target.value)}
+                disabled={isLoading}
+                className="textarea"
+              />
+              <p className="muted reviewWordCount">{reviewWordCount} words</p>
+            </>
           ) : (
             <div className="reviewBox">
               <p className="reviewText">{review || "(No review provided)"}</p>
@@ -344,24 +348,32 @@ export function FeedbackReviewForm({
                 {renderAnswerPreview(a)}
                 <label className="labelBlock">
                   {isEditing ? (
-                    <select
-                      value={agreements[getAnswerKey(a)]?.selected ?? "Reasonable"}
-                      onChange={(e) => {
-                        const selected = e.target.value as AgreementOption;
-                        const score = AGREEMENT_OPTIONS.find((option) => option.label === selected)?.score ?? 3;
-                        setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
-                      }}
-                      disabled={isLoading}
-                      className="select"
-                    >
-                      {AGREEMENT_OPTIONS.map((option) => (
-                        <option key={option.label} value={option.label}>
-                          {option.score} — {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="agreementScale" role="radiogroup" aria-label={`Agreement for ${a.question}`}>
+                      {AGREEMENT_OPTIONS.map((option) => {
+                        const selected = agreements[getAnswerKey(a)]?.selected ?? "Reasonable";
+                        const isSelected = selected === option.label;
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            className={`agreementChoice ${isSelected ? "is-selected" : ""}`}
+                            disabled={isLoading}
+                            aria-pressed={isSelected}
+                            onClick={() =>
+                              setAgreements((prev) => ({
+                                ...prev,
+                                [getAnswerKey(a)]: { selected: option.label as AgreementOption, score: option.score },
+                              }))
+                            }
+                          >
+                            <span className="agreementChoiceScore">{option.score}</span>
+                            <span className="agreementChoiceLabel">{option.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : (
-                    <span className="agreementSpan">
+                    <span className="agreementBadge">
                       {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
                     </span>
                   )}
