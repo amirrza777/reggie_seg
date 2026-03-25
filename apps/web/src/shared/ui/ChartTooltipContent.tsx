@@ -7,6 +7,9 @@ type ChartTooltipValue = number | string | ReadonlyArray<number | string>;
 type ChartTooltipName = string | number;
 type RawChartTooltipProps = TooltipContentProps<ChartTooltipValue, ChartTooltipName>;
 type ChartTooltipProps = Partial<RawChartTooltipProps>;
+type ChartTooltipExtraProps = {
+  className?: string;
+};
 type TooltipEntry = NonNullable<RawChartTooltipProps["payload"]>[number];
 
 type FormattedTooltipEntry = {
@@ -66,7 +69,8 @@ export function ChartTooltipContent({
   formatter,
   labelFormatter,
   filterNull = true,
-}: ChartTooltipProps) {
+  className,
+}: ChartTooltipProps & ChartTooltipExtraProps) {
   if (!active || !payload || payload.length === 0) return null;
 
   const visibleEntries = payload.filter((entry) => {
@@ -81,9 +85,10 @@ export function ChartTooltipContent({
     typeof labelFormatter === "function"
       ? labelFormatter(label, visibleEntries)
       : label;
+  const tooltipClassName = className ? `ui-chart-tooltip ${className}` : "ui-chart-tooltip";
 
   return (
-    <div className="ui-chart-tooltip" role="status" aria-live="polite">
+    <div className={tooltipClassName} role="status" aria-live="polite">
       {formattedLabel != null ? (
         <p className="ui-chart-tooltip__label">{formattedLabel}</p>
       ) : null}
