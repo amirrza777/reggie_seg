@@ -72,40 +72,17 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
   return (
     <Card title="Meeting settings">
       <div className="stack">
-        <div className="form-field">
-          <label className="form-field__label" htmlFor="absence-threshold">
+        <div className="enterprise-modules__create-field">
+          <span className="enterprise-modules__create-field-label" id="absence-threshold-label">
             Consecutive absences before alert
-          </label>
+          </span>
           <FormField
             id="absence-threshold"
+            aria-labelledby="absence-threshold-label"
             type="number"
             min={1}
             value={settings.absenceThreshold}
             onChange={(e) => setSettings((s) => ({ ...s, absenceThreshold: e.target.value }))}
-          />
-        </div>
-        <div className="form-field">
-          <label className="form-field__label" htmlFor="minutes-edit-window">
-            Minutes edit window (days)
-          </label>
-          <FormField
-            id="minutes-edit-window"
-            type="number"
-            min={1}
-            value={settings.minutesEditWindowDays}
-            onChange={(e) => setSettings((s) => ({ ...s, minutesEditWindowDays: e.target.value }))}
-          />
-        </div>
-        <div className="form-field">
-          <label className="form-field__label" htmlFor="attendance-edit-window">
-            Attendance edit window (days)
-          </label>
-          <FormField
-            id="attendance-edit-window"
-            type="number"
-            min={1}
-            value={settings.attendanceEditWindowDays}
-            onChange={(e) => setSettings((s) => ({ ...s, attendanceEditWindowDays: e.target.value }))}
           />
         </div>
         <div className="enterprise-modules__create-field">
@@ -120,6 +97,19 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
           </label>
         </div>
         <div className="enterprise-modules__create-field">
+          <span className="enterprise-modules__create-field-label" id="attendance-window-label">
+            Days after meeting to record attendance
+          </span>
+          <FormField
+            id="attendance-edit-window"
+            aria-labelledby="attendance-window-label"
+            type="number"
+            min={1}
+            value={settings.attendanceEditWindowDays}
+            onChange={(e) => setSettings((s) => ({ ...s, attendanceEditWindowDays: e.target.value }))}
+          />
+        </div>
+        <div className="enterprise-modules__create-field">
           <span className="enterprise-modules__create-field-label">Allow any participant to record attendance</span>
           <label className={`enterprise-module-create__access-item${settings.allowAnyoneToRecordAttendance ? " is-selected" : ""}`}>
             <input
@@ -129,6 +119,19 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
             />
             <span>{settings.allowAnyoneToRecordAttendance ? "Enabled" : "Disabled"}</span>
           </label>
+        </div>
+        <div className="enterprise-modules__create-field">
+          <span className="enterprise-modules__create-field-label" id="minutes-window-label">
+            Days after meeting to edit minutes
+          </span>
+          <FormField
+            id="minutes-edit-window"
+            aria-labelledby="minutes-window-label"
+            type="number"
+            min={1}
+            value={settings.minutesEditWindowDays}
+            onChange={(e) => setSettings((s) => ({ ...s, minutesEditWindowDays: e.target.value }))}
+          />
         </div>
         <div className="enterprise-modules__create-field">
           <span className="enterprise-modules__create-field-label">Allow any participant to write minutes</span>
