@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import type { Question } from "../types";
 import { createPeerAssessment, updatePeerAssessment } from "../api/client";
+import "../styles/form.css";
 
 type AnswerValue = string | number;
 
@@ -25,10 +26,11 @@ const answerInputStyle: CSSProperties = {
   padding: 8,
   border: "1px solid var(--border)",
   borderRadius: 4,
-  backgroundColor: "var(--surface)",
+  backgroundColor: "var(--surface-elevated)",
   color: "var(--ink)",
   fontFamily: "inherit",
   fontSize: "inherit",
+  lineHeight: 1.5,
 };
 const radioInputStyle: CSSProperties = {
   width: "auto",
@@ -43,7 +45,7 @@ const countdownBoxStyle: CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 8,
   padding: "8px 10px",
-  background: "var(--surface)",
+  background: "var(--surface-elevated)",
   fontWeight: 600,
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
@@ -305,9 +307,9 @@ export function PeerAssessmentForm({
   };
 
   return (
-    <form className="stack" onSubmit={handleSubmit}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-        <div style={{ display: "grid", gap: 4 }}>
+    <form className="stack peerAssessmentForm" onSubmit={handleSubmit}>
+      <div className="peerAssessmentForm__header">
+        <div className="peerAssessmentForm__headerText">
           <h3 style={{ margin: 0 }}>{resolvedTitle}</h3>
           <p className="muted" style={{ margin: 0 }}>
             You&apos;re reviewing {teammateName}
@@ -324,7 +326,7 @@ export function PeerAssessmentForm({
           </div>
         ) : null}
       </div>
-      {orderedQuestions.map((question) => {
+        {orderedQuestions.map((question) => {
         const key = String(question.id);
         const answer = answers[key];
         const required = question.configs?.required === true;
@@ -333,8 +335,8 @@ export function PeerAssessmentForm({
         if (question.type === "multiple-choice") {
           const options = Array.isArray(question.configs?.options) ? question.configs.options : [];
           return (
-            <div key={question.id} style={questionContainerStyle}>
-              <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+            <div key={question.id} style={questionContainerStyle} className="peerAssessmentForm__question">
+              <label className="peerAssessmentForm__questionTitle">{question.text}</label>
               {helperText ? (
                 <p className="muted" style={{ margin: 0 }}>{helperText}</p>
               ) : null}
@@ -368,8 +370,8 @@ export function PeerAssessmentForm({
         if (question.type === "rating") {
           const { min, max } = getRatingBounds(question);
           return (
-            <div key={question.id} style={questionContainerStyle}>
-              <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+            <div key={question.id} style={questionContainerStyle} className="peerAssessmentForm__question">
+              <label className="peerAssessmentForm__questionTitle">{question.text}</label>
               {helperText ? (
                 <p className="muted" style={{ margin: 0 }}>{helperText}</p>
               ) : null}
@@ -407,8 +409,8 @@ export function PeerAssessmentForm({
               : config.min;
 
           return (
-            <div key={question.id} style={questionContainerStyle}>
-              <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+            <div key={question.id} style={questionContainerStyle} className="peerAssessmentForm__question">
+              <label className="peerAssessmentForm__questionTitle">{question.text}</label>
               {config.helperText ? (
                 <p className="muted" style={{ margin: 0 }}>{config.helperText}</p>
               ) : null}
@@ -440,8 +442,8 @@ export function PeerAssessmentForm({
 
         const textConfig = getTextConfig(question);
         return (
-          <div key={question.id} style={questionContainerStyle}>
-            <label style={{ color: "var(--ink)", fontWeight: 500 }}>{question.text}</label>
+          <div key={question.id} style={questionContainerStyle} className="peerAssessmentForm__question">
+            <label className="peerAssessmentForm__questionTitle">{question.text}</label>
             {textConfig.helperText ? (
               <p className="muted" style={{ margin: 0 }}>{textConfig.helperText}</p>
             ) : null}

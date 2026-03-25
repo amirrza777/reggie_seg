@@ -289,7 +289,7 @@ export function FeedbackReviewForm({
   }
 
   return (
-    <div className="stack">
+    <div className="stack feedbackReviewForm">
       <div className="headerContainer">
         <div style={{ display: "grid", gap: 4 }}>
           <h3 style={{ margin: 0 }}>{editingMode && !isEditing ? "View Review" : "Respond to Feedback"}</h3>
