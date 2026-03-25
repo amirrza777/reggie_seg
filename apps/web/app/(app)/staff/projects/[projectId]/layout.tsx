@@ -14,6 +14,8 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
 
   let projectName = `Project ${projectId}`;
   let teamNamesById: Record<string, string> = {};
+  let moduleId: string | null = null;
+  let moduleName: string | null = null;
 
   const user = await getCurrentUser();
   const canLoadProjectData =
@@ -24,6 +26,8 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
     try {
       const projectData = await getStaffProjectTeams(user.id, projectIdNumber);
       projectName = projectData.project.name;
+      moduleId = String(projectData.project.moduleId);
+      moduleName = projectData.project.moduleName;
       teamNamesById = Object.fromEntries(projectData.teams.map((team) => [String(team.id), team.teamName]));
     } catch {
       // Keep fallback breadcrumb labels when project data fails to load.
@@ -36,6 +40,8 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
         projectId={projectId}
         projectName={projectName}
         teamNamesById={teamNamesById}
+        moduleId={moduleId}
+        moduleName={moduleName}
       />
       {children}
     </div>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { redirect } from "next/navigation";
 import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
 import { ForumSettingsCard } from "@/features/forum/components/ForumSettingsCard";
@@ -37,7 +38,7 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
 
   return (
     <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} />
+      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
 
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Discussion Forum</p>

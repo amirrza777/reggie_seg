@@ -35,7 +35,7 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
 
   return (
     <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} />
+      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
 
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Project</p>

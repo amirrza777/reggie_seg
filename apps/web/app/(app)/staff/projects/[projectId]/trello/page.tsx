@@ -1,3 +1,10 @@
-/*DELETE 
-* don't know why I can't delete this file rn but don't need it, 
-* or the trello folder it's in*/
+import { redirect } from "next/navigation";
+
+type PageProps = {
+  params: Promise<{ projectId: string }>;
+};
+
+export default async function StaffProjectTrelloPage({ params }: PageProps) {
+  const { projectId } = await params;
+  redirect(`/staff/projects/${encodeURIComponent(projectId)}`);
+}

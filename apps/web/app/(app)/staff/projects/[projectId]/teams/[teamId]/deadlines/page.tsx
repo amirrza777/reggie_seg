@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffStudentDeadlineOverridesPanel } from "@/features/staff/projects/components/StaffStudentDeadlineOverridesPanel";
 import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -53,25 +52,6 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
 
   return (
     <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Deadlines</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">
-          Configure manual per-student deadline adjustments for this team.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">{members.length} student{members.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">
-            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
-          </span>
-          <span className="staff-projects__badge">
-            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
-          </span>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
       <section className="staff-projects__team-policy" aria-label="Deadline policy controls">
         <div className="staff-projects__team-policy-top">
           <div>
