@@ -214,9 +214,7 @@ export async function getManualAllocationWorkspaceForProject(
   const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const [students, existingTeams] = await Promise.all([
     normalizedQuery
-      ? findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id, {
-          query: normalizedQuery,
-        })
+      ? findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id, normalizedQuery)
       : findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id),
     findProjectTeamSummaries(project.id),
   ]);
@@ -226,7 +224,7 @@ export async function getManualAllocationWorkspaceForProject(
     const currentTeam =
       isAssigned && student.currentTeamName
         ? {
-            id: student.currentTeamId,
+            id: student.currentTeamId!,
             teamName: student.currentTeamName,
           }
         : null;
@@ -236,7 +234,7 @@ export async function getManualAllocationWorkspaceForProject(
       firstName: student.firstName,
       lastName: student.lastName,
       email: student.email,
-      status: isAssigned ? "ALREADY_IN_TEAM" : "AVAILABLE",
+      status: isAssigned ? ("ALREADY_IN_TEAM" as const) : ("AVAILABLE" as const),
       currentTeam,
     };
   });
@@ -356,9 +354,10 @@ export async function previewRandomAllocationForProject(
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
+  const randomPlannerOptions = options.seed === undefined ? undefined : { seed: options.seed };
 
   const [plannedTeams, existingTeams] = await Promise.all([
-    Promise.resolve(planRandomTeams(students, teamCount, { seed: options.seed })),
+    Promise.resolve(planRandomTeams(students, teamCount, randomPlannerOptions)),
     findProjectTeamSummaries(projectId),
   ]);
 
@@ -408,8 +407,9 @@ export async function applyRandomAllocationForProject(
   if (teamCount > students.length) {
     throw { code: "TEAM_COUNT_EXCEEDS_STUDENT_COUNT" };
   }
+  const randomPlannerOptions = options.seed === undefined ? undefined : { seed: options.seed };
 
-  const plannedTeams = planRandomTeams(students, teamCount, { seed: options.seed });
+  const plannedTeams = planRandomTeams(students, teamCount, randomPlannerOptions);
   const appliedTeams = await applyRandomAllocationPlan(projectId, project.enterpriseId, plannedTeams, { teamNames });
   await notifyStudentsAboutRandomAllocation(project.name, plannedTeams, appliedTeams);
 

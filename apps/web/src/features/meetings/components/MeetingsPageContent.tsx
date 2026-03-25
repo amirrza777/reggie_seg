@@ -11,11 +11,12 @@ type Tab = "upcoming" | "previous" | "new";
 type MeetingsPageContentProps = {
   teamId: number;
   projectId: number;
+  initialTab?: Tab;
 };
 
-export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentProps) {
+export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming" }: MeetingsPageContentProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [tab, setTab] = useState<Tab>("upcoming");
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   useEffect(() => {
     listMeetings(teamId).then(setMeetings);
@@ -28,10 +29,13 @@ export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentPr
   const now = new Date();
   const upcoming = meetings.filter((m) => new Date(m.date) >= now);
   const previous = meetings.filter((m) => new Date(m.date) < now);
-  const displayed = tab === "upcoming" ? upcoming : previous;
 
   return (
-    <div className="stack">
+    <div className="stack projects-panel">
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">Team meetings</h1>
+        <p className="projects-panel__subtitle">Schedule, review, and manage meetings for your project team.</p>
+      </header>
       <nav className="pill-nav">
         <button
           type="button"
@@ -67,9 +71,10 @@ export function MeetingsPageContent({ teamId, projectId }: MeetingsPageContentPr
         />
       ) : (
         <MeetingList
-          meetings={displayed}
+          meetings={tab === "upcoming" ? upcoming : previous}
           projectId={projectId}
           title={tab === "upcoming" ? "Upcoming meetings" : "Previous meetings"}
+          showMinutesWriter={tab === "previous"}
           emptyMessage={
             tab === "upcoming"
               ? "There are no scheduled meetings to list at this time."

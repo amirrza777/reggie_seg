@@ -1,0 +1,11 @@
+model MeetingParticipant {
+  id        Int     @id @default(autoincrement())
+  meetingId Int
+  userId    Int
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      User    @relation("MeetingParticipant", fields: [userId], references: [id])
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
+  @@index([userId])
+}

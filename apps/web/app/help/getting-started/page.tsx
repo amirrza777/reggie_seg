@@ -14,8 +14,8 @@ const onboardingTracks = [
     title: "Staff",
     steps: [
       "Confirm your profile details and notification preferences.",
-      "Open Staff → Projects to review your active teaching spaces.",
-      "Open Staff → Questionnaires to create or reuse assessment templates.",
+      "Open Staff > Projects to review your active teaching spaces.",
+      "Open Staff > Questionnaires to create or reuse assessment templates.",
     ],
     tip: "Tip: Check Team allocation and Meetings to keep cohorts on schedule.",
   },
@@ -24,8 +24,8 @@ const onboardingTracks = [
     title: "Admins",
     steps: [
       "Confirm your profile details and workspace settings.",
-      "Open Admin → Users to verify roles and access assignments.",
-      "Review Enterprise → Feature flags and Admin → Enterprises if your workspace uses them.",
+      "Open Admin > Users to verify roles and access assignments.",
+      "Review Enterprise > Feature flags and Admin > Enterprises if your workspace uses them.",
     ],
     tip: "Tip: Use the Audit log to verify changes and keep access aligned with policy.",
   },

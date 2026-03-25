@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { Project } from "../types";
 import "@/features/projects/styles/project-list.css";
 
@@ -50,7 +51,9 @@ export function ProjectList({ projects }: ProjectListProps) {
               <p className="project-card__summary">{project.summary}</p>
             )}
             <div className="project-card__footer">
-              <span className="project-card__cta">View Project →</span>
+              <span className="project-card__cta">
+                View Project <ArrowRightIcon />
+              </span>
             </div>
           </Link>
         ))}

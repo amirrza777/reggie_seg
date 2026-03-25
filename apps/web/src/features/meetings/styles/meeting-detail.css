@@ -1,0 +1,90 @@
+.atc-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.atc-dropdown__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atc-dropdown__chevron--open {
+  transform: rotate(180deg);
+}
+
+.atc-dropdown__trigger--compact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 6px;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.atc-dropdown__trigger--compact:hover {
+  background: var(--glass-hover);
+  color: var(--ink);
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+}
+
+.back-link:hover {
+  color: var(--ink);
+}
+
+.atc-dropdown__list {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  list-style: none;
+  margin: 0;
+  width: max-content;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.atc-dropdown__list li {
+  line-height: 0;
+}
+
+.atc-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-size: var(--fs-body);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.atc-dropdown__item:hover {
+  background: var(--glass-hover);
+}
+
+.table--attendance .table__head,
+.table--attendance .table__row {
+  grid-template-columns: 1fr 220px;
+}

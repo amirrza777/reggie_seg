@@ -1,11 +1,17 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { confirmEmailChange, requestEmailChange, updateProfile } from "@/features/auth/api/client";
 import { useUser } from "@/features/auth/context";
+import {
+  disconnectGithubAccount,
+  getGithubConnectUrl,
+  getGithubConnectionStatus,
+} from "@/features/github/api/client";
+import type { GithubConnectionStatus } from "@/features/github/types";
 import { getConnectUrl, getLinkToken, getMyTrelloProfile } from "@/features/trello/api/client";
 import type { TrelloProfile } from "@/features/trello/api/client";
 
@@ -22,14 +28,56 @@ export default function ProfilePage() {
   const [otp, setOtp] = useState<string[]>(Array.from({ length: otpLength }, () => ""));
   const [trelloProfile, setTrelloProfile] = useState<TrelloProfile | null>(null);
   const [trelloLinkLoading, setTrelloLinkLoading] = useState(false);
+  const [githubConnection, setGithubConnection] = useState<GithubConnectionStatus | null>(null);
+  const [githubLoading, setGithubLoading] = useState(true);
+  const [githubBusy, setGithubBusy] = useState(false);
 
   const profile = user;
+
+  const loadGithubConnection = useCallback(async () => {
+    setGithubLoading(true);
+    try {
+      const nextConnection = await getGithubConnectionStatus();
+      setGithubConnection(nextConnection);
+    } catch {
+      setGithubConnection({ connected: false, account: null });
+    } finally {
+      setGithubLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     getMyTrelloProfile()
       .then(setTrelloProfile)
       .catch(() => setTrelloProfile({ trelloMemberId: null, fullName: null, username: null }));
   }, []);
+
+  useEffect(() => {
+    void loadGithubConnection();
+  }, [loadGithubConnection]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const url = new URL(window.location.href);
+    const githubStatus = url.searchParams.get("github");
+    const reason = url.searchParams.get("reason");
+    if (!githubStatus) {
+      return;
+    }
+    if (githubStatus === "connected") {
+      setStatus("success");
+      setMessage("GitHub account connected successfully.");
+      void loadGithubConnection();
+    } else if (githubStatus === "error") {
+      setStatus("error");
+      setMessage(reason ? `GitHub connection failed: ${reason}` : "GitHub connection failed.");
+    }
+    url.searchParams.delete("github");
+    url.searchParams.delete("reason");
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [loadGithubConnection]);
 
   const handleTrelloConnect = async () => {
     setTrelloLinkLoading(true);
@@ -51,6 +99,35 @@ export default function ProfilePage() {
       setTrelloLinkLoading(false);
     }
   };
+
+  const handleGithubConnect = async () => {
+    setGithubBusy(true);
+    try {
+      const returnTo = `${window.location.origin}/profile`;
+      const { url } = await getGithubConnectUrl(returnTo);
+      window.location.href = url;
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Failed to start GitHub connect flow.");
+      setGithubBusy(false);
+    }
+  };
+
+  const handleGithubDisconnect = async () => {
+    setGithubBusy(true);
+    try {
+      await disconnectGithubAccount();
+      await loadGithubConnection();
+      setStatus("success");
+      setMessage("GitHub account disconnected.");
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Failed to disconnect GitHub.");
+    } finally {
+      setGithubBusy(false);
+    }
+  };
+
   const avatarInitials = useMemo(() => {
     if (!profile) return "";
     const first = profile.firstName?.[0] ?? "";
@@ -276,6 +353,41 @@ export default function ProfilePage() {
             >
               {trelloProfile?.trelloMemberId ? "Change account" : "Link Trello account"}
             </Button>
+          </div>
+          <div className="profile-row">
+            <div>
+              <div className="profile-row__label">GitHub account</div>
+              <div className="profile-row__value">
+                {githubLoading
+                  ? "Loading..."
+                  : githubConnection?.connected
+                    ? githubConnection.account?.login
+                      ? `@${githubConnection.account.login}`
+                      : "Connected"
+                    : "Not linked"}
+              </div>
+            </div>
+            <div className="profile-row__actions">
+              {githubConnection?.connected ? (
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={handleGithubDisconnect}
+                  disabled={githubBusy || githubLoading}
+                >
+                  Disconnect GitHub
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  type="button"
+                  onClick={handleGithubConnect}
+                  disabled={githubBusy || githubLoading}
+                >
+                  Connect GitHub
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>

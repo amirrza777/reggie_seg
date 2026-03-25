@@ -27,6 +27,8 @@ const attendances = [
   },
 ];
 
+const members = attendances.map((a) => a.user);
+
 beforeEach(() => {
   vi.clearAllMocks();
   markAttendanceMock.mockResolvedValue(undefined as any);
@@ -34,13 +36,13 @@ beforeEach(() => {
 
 describe("AttendanceTable", () => {
   it("renders attendee names and statuses", () => {
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     expect(screen.getByText("Reggie King")).toBeInTheDocument();
     expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
   it("renders a dropdown for each attendee", () => {
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     const selects = screen.getAllByRole("combobox");
     expect(selects).toHaveLength(2);
     expect(selects[0]).toHaveValue("absent");
@@ -48,14 +50,14 @@ describe("AttendanceTable", () => {
   });
 
   it("updates status when dropdown changes", () => {
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "late" } });
     expect(selects[0]).toHaveValue("late");
   });
 
   it("saves attendance and shows success message", async () => {
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
     await waitFor(() => expect(markAttendanceMock).toHaveBeenCalledWith(10, [
       { userId: 1, status: "absent" },
@@ -65,7 +67,7 @@ describe("AttendanceTable", () => {
   });
 
   it("saves updated status after dropdown change", async () => {
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     const selects = screen.getAllByRole("combobox");
     fireEvent.change(selects[0], { target: { value: "late" } });
     fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
@@ -77,14 +79,14 @@ describe("AttendanceTable", () => {
 
   it("shows error message when save fails", async () => {
     markAttendanceMock.mockRejectedValue(new Error("Network error"));
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
     await waitFor(() => expect(screen.getByText(/network error/i)).toBeInTheDocument());
   });
 
   it("shows fallback error message for non-Error rejection", async () => {
     markAttendanceMock.mockRejectedValue("something went wrong");
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
     await waitFor(() => expect(screen.getByText(/failed to save/i)).toBeInTheDocument());
   });
@@ -92,7 +94,7 @@ describe("AttendanceTable", () => {
   it("disables save button while saving", async () => {
     let resolve: () => void;
     markAttendanceMock.mockReturnValue(new Promise((r) => { resolve = r as () => void; }));
-    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
     expect(screen.getByRole("button", { name: /saving/i })).toBeDisabled();
     resolve!();

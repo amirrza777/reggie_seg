@@ -16,11 +16,13 @@ describe("meetings router", () => {
         { path: "/:meetingId", methods: { get: true } },
         { path: "/", methods: { post: true } },
         { path: "/:meetingId", methods: { delete: true } },
+        { path: "/:meetingId", methods: { patch: true } },
         { path: "/:meetingId/attendance", methods: { put: true } },
         { path: "/:meetingId/minutes", methods: { put: true } },
         { path: "/:meetingId/minutes", methods: { get: true } },
         { path: "/:meetingId/comments", methods: { post: true } },
         { path: "/comments/:commentId", methods: { delete: true } },
+        { path: "/:meetingId/settings", methods: { get: true } },
       ])
     );
   });

@@ -13,6 +13,7 @@ vi.mock("./service.analysis.commit-stats-cache.js", () => cacheMocks);
 
 import {
   contributorKeyFromCommit,
+  fetchBranchCommitCount,
   fetchCommitsForLinkedRepository,
   fetchCommitStatsForRepository,
   fetchRecentCommitsForBranch,
@@ -21,11 +22,17 @@ import {
   toUtcDayKey,
 } from "./service.analysis.fetch.js";
 
-function response(status: number, body: unknown) {
+function response(status: number, body: unknown, headers?: Record<string, string>) {
   return {
     ok: status >= 200 && status < 300,
     status,
     json: vi.fn().mockResolvedValue(body),
+    headers: {
+      get: vi.fn((name: string) => {
+        const key = Object.keys(headers || {}).find((entry) => entry.toLowerCase() === name.toLowerCase());
+        return key ? headers?.[key] ?? null : null;
+      }),
+    },
   } as any;
 }
 
@@ -72,6 +79,45 @@ describe("github service.analysis.fetch", () => {
     ).resolves.toEqual([]);
   });
 
+  it("fetches exact branch commit count via pagination headers", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        response(
+          200,
+          [{ sha: "tip", commit: { author: null }, author: null }],
+          {
+            link:
+              '<https://api.github.com/repositories/1/commits?sha=main&per_page=1&page=2>; rel="next", <https://api.github.com/repositories/1/commits?sha=main&per_page=1&page=371>; rel="last"',
+          }
+        )
+      )
+    );
+
+    await expect(fetchBranchCommitCount("token", "org/repo", "main")).resolves.toBe(371);
+  });
+
+  it("returns zero branch commits for empty repositories", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(409, {})));
+    await expect(fetchBranchCommitCount("token", "org/repo", "main")).resolves.toBe(0);
+  });
+
+  it("fetches beyond 10 pages and can run without a since filter", async () => {
+    const page = new Array(100).fill({ sha: "x", commit: { author: null }, author: null });
+    const fetchMock = vi.fn();
+    for (let i = 0; i < 11; i += 1) {
+      fetchMock.mockResolvedValueOnce(response(200, page));
+    }
+    fetchMock.mockResolvedValueOnce(response(200, []));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const commits = await fetchCommitsForLinkedRepository("token", "org/repo", "main");
+
+    expect(commits).toHaveLength(1100);
+    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(String(fetchMock.mock.calls[0]?.[0] ?? "")).not.toContain("since=");
+  });
+
   it("throws typed errors for recent branch commit fetch", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(404, {})));
     await expect(fetchRecentCommitsForBranch("token", "org/repo", "main", 10)).rejects.toEqual(
@@ -111,5 +157,22 @@ describe("github service.analysis.fetch", () => {
       additions: 2,
       deletions: 4,
     });
+  });
+
+  it("fetches all provided commit stats when no explicit limit is passed", async () => {
+    cacheMocks.getCachedCommitStats.mockReturnValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(response(200, { sha: "one", stats: { additions: 1, deletions: 0 } }))
+        .mockResolvedValueOnce(response(200, { sha: "two", stats: { additions: 2, deletions: 1 } }))
+    );
+
+    const result = await fetchCommitStatsForRepository("token", "org/repo", ["one", "two"]);
+
+    expect(result.get("one")).toEqual({ additions: 1, deletions: 0 });
+    expect(result.get("two")).toEqual({ additions: 2, deletions: 1 });
+    expect(global.fetch).toHaveBeenCalledTimes(2);
   });
 });

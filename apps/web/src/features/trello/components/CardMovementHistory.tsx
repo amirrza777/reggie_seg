@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from "react";
 import { formatDate } from "@/shared/lib/formatDate";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { TrelloBoardAction } from "../types";
 
 type CardMovementHistoryProps = {
@@ -86,8 +87,14 @@ export function CardMovementHistory({
                       {moved.map((a) => (
                         <li key={a.id}>
                           <strong>{a.data?.card?.name ?? "Card"}</strong>
-                          {" → "}
-                          {listName(a.data?.listBefore?.id ?? "")} → {listName(a.data?.listAfter?.id ?? "")}
+                          {" "}
+                          <ArrowRightIcon />
+                          {" "}
+                          {listName(a.data?.listBefore?.id ?? "")}
+                          {" "}
+                          <ArrowRightIcon />
+                          {" "}
+                          {listName(a.data?.listAfter?.id ?? "")}
                         </li>
                       ))}
                     </ul>

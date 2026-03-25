@@ -5,6 +5,7 @@ import { listModules } from "@/features/modules/api/client";
 import { getCalendarEvents } from "@/features/calendar/api/client";
 import type { Module } from "@/features/modules/types";
 import { Card } from "@/shared/ui/Card";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { Table } from "@/shared/ui/Table";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -86,7 +87,11 @@ export default async function DashboardPage() {
 
       <Card
         title="Upcoming deadlines"
-        action={<Link href="/calendar" className="btn btn--sm btn--ghost">View calendar →</Link>}
+        action={
+          <Link href="/calendar" className="btn btn--sm btn--ghost">
+            View calendar <ArrowRightIcon />
+          </Link>
+        }
       >
         <Table headers={["Project", "Type", "Due"]} rows={upcomingRows} />
       </Card>

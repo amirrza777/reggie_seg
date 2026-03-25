@@ -5,10 +5,12 @@ import Link from "next/link";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
-export default async function ProjectMeetingsPage({ params }: ProjectPageProps) {
+export default async function ProjectMeetingsPage({ params, searchParams }: ProjectPageProps) {
   const { projectId } = await params;
+  const { tab } = await searchParams;
   const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
 
@@ -22,11 +24,11 @@ export default async function ProjectMeetingsPage({ params }: ProjectPageProps) 
   }
 
   if (team) {
-    return <MeetingsPageContent teamId={team.id} projectId={numericProjectId} />;
+    return <MeetingsPageContent teamId={team.id} projectId={numericProjectId} initialTab={tab === "previous" ? "previous" : "upcoming"} />;
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div className="stack">
       <p>You are not in a team for this project.</p>
       <Link href={`/projects/${projectId}`}>← Back to project</Link>
     </div>

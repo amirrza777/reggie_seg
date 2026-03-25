@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
+import Link from "next/link";
 
 type StaffCreateProjectPageProps = {
   searchParams?: Promise<{ moduleId?: string }>;

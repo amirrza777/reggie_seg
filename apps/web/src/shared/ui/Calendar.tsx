@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRightIcon } from "./ArrowRightIcon";
 
 export type CalendarEvent = {
   id: number;
@@ -53,9 +54,13 @@ export function Calendar({ events }: CalendarProps) {
   return (
     <div className="calendar">
       <div className="calendar__header">
-        <button type="button" className="calendar__nav" onClick={prevMonth}>←</button>
+        <button type="button" className="calendar__nav" onClick={prevMonth} aria-label="Previous month">
+          <ArrowRightIcon direction="left" />
+        </button>
         <span className="calendar__month">{monthLabel}</span>
-        <button type="button" className="calendar__nav" onClick={nextMonth}>→</button>
+        <button type="button" className="calendar__nav" onClick={nextMonth} aria-label="Next month">
+          <ArrowRightIcon />
+        </button>
       </div>
       <div className="calendar__grid">
         {DAY_LABELS.map((d) => (

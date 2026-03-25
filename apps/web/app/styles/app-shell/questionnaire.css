@@ -35,7 +35,7 @@
 .questionnaire-editor__question {
   margin-top: 4px;
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   padding: 16px;
@@ -126,7 +126,7 @@
 
 .questionnaire-editor__list-card {
   padding: 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
   display: flex;
@@ -148,7 +148,7 @@
 
 .questionnaire-editor__empty {
   padding: 16px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
 }

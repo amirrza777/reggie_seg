@@ -24,15 +24,10 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-weight: 700;
-  border: 1px solid var(--border);
-  color: var(--ink);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent) 28%, white),
-      color-mix(in srgb, var(--surface) 70%, var(--accent) 12%)
-    );
+  font-weight: var(--fw-semibold);
+  border: 1px solid var(--avatar-fallback-border);
+  color: var(--avatar-fallback-text);
+  background: var(--avatar-fallback-bg);
 }
 
 .project-team-list__meta {

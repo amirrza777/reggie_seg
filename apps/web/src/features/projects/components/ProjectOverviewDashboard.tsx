@@ -203,35 +203,35 @@ function TutorMarkingCard({
 }) {
   return (
     <Card title="Tutor marking and formative feedback">
-      <div className="stack" style={{ gap: 14 }}>
-        <section className="stack" style={{ gap: 6 }}>
-          <h4 style={{ margin: 0 }}>Team feedback</h4>
-          <p>
+      <div className="project-overview-marking">
+        <section className="project-overview-marking__section">
+          <h4 className="project-overview-marking__heading">Team feedback</h4>
+          <p className="project-overview-marking__mark-line">
             <strong>Team mark:</strong>{" "}
             {teamMarking?.mark == null ? "Not yet published" : teamMarking.mark}
           </p>
-          <p className="muted">
+          <p className="muted project-overview-marking__feedback">
             {teamMarking?.formativeFeedback ?? "No team-level formative feedback yet."}
           </p>
           {teamMarking ? (
-            <p className="ui-note ui-note--muted">
+            <p className="ui-note ui-note--muted project-overview-marking__meta">
               Updated by {markerName(teamMarking)} on{" "}
               {formatMarkingUpdatedAt(teamMarking.updatedAt)}
             </p>
           ) : null}
         </section>
 
-        <section className="stack" style={{ gap: 6 }}>
-          <h4 style={{ margin: 0 }}>Your individual feedback</h4>
-          <p>
+        <section className="project-overview-marking__section">
+          <h4 className="project-overview-marking__heading">Your individual feedback</h4>
+          <p className="project-overview-marking__mark-line">
             <strong>Your mark:</strong>{" "}
             {studentMarking?.mark == null ? "Not yet published" : studentMarking.mark}
           </p>
-          <p className="muted">
+          <p className="muted project-overview-marking__feedback">
             {studentMarking?.formativeFeedback ?? "No individual formative feedback yet."}
           </p>
           {studentMarking ? (
-            <p className="ui-note ui-note--muted">
+            <p className="ui-note ui-note--muted project-overview-marking__meta">
               Updated by {markerName(studentMarking)} on{" "}
               {formatMarkingUpdatedAt(studentMarking.updatedAt)}
             </p>

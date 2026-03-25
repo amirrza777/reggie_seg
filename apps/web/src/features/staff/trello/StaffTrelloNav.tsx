@@ -22,7 +22,8 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`btn btn--ghost ${active ? "nav-link--active" : "nav-link--inactive"}`}
+      className={`pill-nav__link${active ? " pill-nav__link--active" : ""}`}
+      aria-current={active ? "page" : undefined}
     >
       {children}
     </Link>
@@ -38,9 +39,9 @@ export function StaffTrelloNav({ projectId, teamId, boardName, boardUrl }: Props
 
   return (
     <header className="stack">
-      <div>
-        <h1>Trello</h1>
-        <p className="eyebrow ">
+      <div className="projects-panel__header">
+        <h1 className="projects-panel__title">Trello</h1>
+        <p className="projects-panel__subtitle">
           {boardUrl ? (
             <Link href={boardUrl} target="_blank" rel="noopener noreferrer">{boardName} ⤴</Link>
           ) : (

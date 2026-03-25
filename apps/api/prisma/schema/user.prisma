@@ -27,6 +27,7 @@ model User {
   userModules              UserModule[]
   meetingOrganisers        Meeting[]                 @relation("MeetingOrganiser")
   meetingAttendances       MeetingAttendance[]       @relation("MeetingAttendance")
+  meetingParticipants      MeetingParticipant[]      @relation("MeetingParticipant")
   meetingMinutes           MeetingMinutes[]          @relation("MeetingMinutesWriter")
   meetingComments          MeetingComment[]          @relation("MeetingComment")
   refreshTokens            RefreshToken[]

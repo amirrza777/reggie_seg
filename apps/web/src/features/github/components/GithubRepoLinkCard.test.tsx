@@ -114,10 +114,49 @@ describe("GithubRepoLinkCard", () => {
     expect(screen.getByText("Default branch main")).toBeInTheDocument();
     expect(screen.getByLabelText("Repository overview")).toBeInTheDocument();
     expect(screen.getByText("Default branch commits")).toBeInTheDocument();
-    expect(screen.getByText("All-branches commits")).toBeInTheDocument();
+    expect(screen.queryByText("All-branches commits")).not.toBeInTheDocument();
+    expect(screen.getByText("All additions / deletions")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();
-    expect(screen.getByText("20")).toBeInTheDocument();
     expect(screen.getByTestId("github-repo-charts-dashboard")).toBeInTheDocument();
+  });
+
+  it("normalizes all-branches line totals when they are lower than default-branch totals", () => {
+    render(
+      <GithubRepoLinkCard
+        link={makeLink()}
+        coverage={makeCoverage()}
+        snapshot={makeSnapshot({
+          data: {
+            branchScopeStats: {
+              defaultBranch: {
+                branch: "main",
+                totalCommits: 12,
+                totalAdditions: 120,
+                totalDeletions: 30,
+              },
+              allBranches: {
+                branchCount: 3,
+                totalCommits: 8,
+                totalAdditions: 100,
+                totalDeletions: 20,
+                commitsByBranch: { main: 12, dev: 6, feature: 2 },
+                commitStatsCoverage: {
+                  detailedCommitCount: 20,
+                  requestedCommitCount: 20,
+                },
+              },
+            },
+          },
+        })}
+        currentGithubLogin="alice"
+        readOnly
+      />
+    );
+
+    const allLineChangesStat = screen.getByText("All additions / deletions").parentElement;
+    expect(allLineChangesStat).toHaveTextContent("120");
+    expect(allLineChangesStat).toHaveTextContent("30");
+    expect(allLineChangesStat).not.toHaveTextContent("100 / 20");
   });
 
   it("falls back to repo totals and shows not analysed yet when no coverage timestamp exists", () => {
@@ -206,5 +245,36 @@ describe("GithubRepoLinkCard", () => {
 
     expect(screen.queryByRole("button", { name: "Remove link" })).not.toBeInTheDocument();
     expect(onRemoveLink).not.toHaveBeenCalled();
+  });
+
+  it("uses default-branch commits for personal team snapshot metric", () => {
+    render(
+      <GithubRepoLinkCard
+        link={makeLink()}
+        coverage={makeCoverage()}
+        snapshot={makeSnapshot({
+          userStats: [
+            {
+              id: 1,
+              mappedUserId: 7,
+              githubLogin: "alice",
+              isMatched: true,
+              commits: 3,
+              additions: 30,
+              deletions: 10,
+              commitsByDay: { "2026-02-26": 3 },
+            },
+          ],
+        })}
+        currentGithubLogin="alice"
+        chartMode="personal"
+        readOnly
+      />
+    );
+
+    expect(screen.getByLabelText("Personal overview")).toBeInTheDocument();
+    const teamSnapshotStat = screen.getByText("Team commits (snapshot)").parentElement;
+    expect(teamSnapshotStat).toHaveTextContent("12");
+    expect(teamSnapshotStat).not.toHaveTextContent("20");
   });
 });

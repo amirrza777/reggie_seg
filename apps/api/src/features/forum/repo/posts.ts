@@ -13,7 +13,7 @@ function mapForumAuthor(author: ForumAuthor, hideStudentNames: boolean, viewerId
   };
 }
 
-type EnrichedPost = {
+export type EnrichedPost = {
   id: number;
   title: string;
   body: string;
@@ -255,7 +255,10 @@ export async function createDiscussionPostForProject(
 }
 
 type PostMutationResult =
-  | { status: "ok"; post: NonNullable<Awaited<ReturnType<typeof getDiscussionPostById>>> }
+  | {
+      status: "ok";
+      post: Omit<EnrichedPost, "parentPostId" | "reactionScore" | "myReaction" | "replies">;
+    }
   | { status: "forbidden" }
   | { status: "not_found" };
 

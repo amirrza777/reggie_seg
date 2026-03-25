@@ -7,9 +7,10 @@ import type { Meeting } from "../types";
 
 type MeetingDetailContentProps = {
   meetingId: number;
+  projectId: number;
 };
 
-export function MeetingDetailContent({ meetingId }: MeetingDetailContentProps) {
+export function MeetingDetailContent({ meetingId, projectId }: MeetingDetailContentProps) {
   const [meeting, setMeeting] = useState<Meeting | null>(null);
 
   useEffect(() => {
@@ -18,5 +19,5 @@ export function MeetingDetailContent({ meetingId }: MeetingDetailContentProps) {
 
   if (!meeting) return null;
 
-  return <MeetingDetail meeting={meeting} />;
+  return <MeetingDetail meeting={meeting} projectId={projectId} />;
 }

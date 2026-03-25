@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { getConnectUrl } from "@/features/trello/api/client";
+import "@/features/trello/styles/link-account.css";
 
 export default function LinkTrelloPage() {
   const params = useParams();
@@ -28,31 +28,24 @@ export default function LinkTrelloPage() {
   };
 
   return (
-    <section className="section container">
-      <div className="stack">
-        <h1>Connect your Trello account</h1>
-        <p className="lede">
+    <section className="stack projects-panel trello-setup trello-setup--simple">
+      <header className="projects-panel__header trello-setup__header">
+        <h1 className="projects-panel__title">Connect your Trello account</h1>
+        <p className="projects-panel__subtitle">
           Authorise this app to access your Trello boards so you can link one to your team.
         </p>
+      </header>
+      <div className="trello-setup__actions">
         <button
           type="button"
-          className="btn btn--primary"
+          className="btn btn--primary btn--sm"
           onClick={connectTrello}
           disabled={loading}
         >
-          {loading ? "Connecting…" : "Connect Trello"}
+          {loading ? "Connecting..." : "Connect Trello"}
         </button>
-        {error ? (
-          <p role="alert" className="muted">
-            {error}
-          </p>
-        ) : null}
-        {projectId ? (
-          <Link href={`/projects/${projectId}`} className="link-ghost">
-            ← Back to project
-          </Link>
-        ) : null}
       </div>
+      {error ? <p role="alert" className="ui-note ui-note--error">{error}</p> : null}
     </section>
   );
 }

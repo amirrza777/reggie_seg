@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ComponentType } from "react";
 import { useEffect } from "react";
@@ -77,7 +76,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   if (state.status === "error") {
     return (
       <div className="stack">
-        <Link href={`/projects/${projectId}`}>← Back to project</Link>
         <div className="trello-error" role="alert">
         <p className="trello-error__text">{state.message}</p>
         </div>
@@ -109,7 +107,6 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   if (state.status === "join-board") {
     return (
       <TrelloJoinBoardView
-        projectId={projectId}
         boardUrl={state.boardUrl}
         onRetry={loadTeamBoard}
       />

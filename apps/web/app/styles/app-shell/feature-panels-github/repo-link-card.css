@@ -1,9 +1,16 @@
 .github-repo-link-card {
   padding: var(--space-panel-content-inset);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--glass-surface);
   margin-bottom: 8px;
+}
+
+.github-repo-link-card--personal {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+  background:
+    radial-gradient(100% 120% at 0% 0%, color-mix(in srgb, var(--accent) 8%, transparent) 0%, transparent 68%),
+    var(--glass-surface);
 }
 
 .github-repo-link-card__header {
@@ -20,6 +27,7 @@
   line-height: 1.2;
   letter-spacing: -0.015em;
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .github-repo-link-card__meta-row {
@@ -61,7 +69,7 @@
 
 .github-repo-link-card__stat {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   padding: 10px;
 }
@@ -100,4 +108,3 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-

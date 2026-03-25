@@ -77,7 +77,7 @@ export function AttendanceTable({
 
   return (
     <Card title="Attendance" bodyClassName="stack">
-      <div className="table">
+      <div className="table table--attendance">
         <div className="table__head">
           <div>Name</div>
           <div>Status</div>

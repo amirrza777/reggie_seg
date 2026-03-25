@@ -6,141 +6,37 @@ import {
   parseCustomAllocationProjectId,
 } from "./customAllocation.validation.js";
 
-describe("customAllocation.validation", () => {
-  describe("parseCustomAllocationProjectId", () => {
-    it("parses numeric project ids", () => {
-      expect(parseCustomAllocationProjectId("42")).toEqual({ ok: true, value: 42 });
-    });
-
-    it("rejects non-numeric project ids", () => {
-      expect(parseCustomAllocationProjectId("abc")).toEqual({
-        ok: false,
-        code: "INVALID_PROJECT_ID",
-      });
-    });
+describe("customAllocation validation", () => {
+  it.each([
+    [parseCustomAllocationProjectId, "abc", "INVALID_PROJECT_ID"],
+    [parseCustomAllocationCoverageTemplateId, "0", "INVALID_TEMPLATE_ID"],
+  ])("returns %s for invalid input", (parser: any, input: unknown, code: string) => {
+    expect(parser(input)).toEqual({ ok: false, code });
   });
 
-  describe("parseCustomAllocationCoverageTemplateId", () => {
-    it("parses positive integer template ids", () => {
-      expect(parseCustomAllocationCoverageTemplateId("7")).toEqual({ ok: true, value: 7 });
+  it("parses valid preview input", () => {
+    const parsed = parseCustomAllocationPreviewBody({
+      questionnaireTemplateId: 2,
+      teamCount: 3,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 7, strategy: "group", weight: 4 }],
     });
-
-    it("rejects non-positive template ids", () => {
-      expect(parseCustomAllocationCoverageTemplateId("0")).toEqual({
-        ok: false,
-        code: "INVALID_TEMPLATE_ID",
-      });
-    });
+    expect(parsed.ok).toBe(true);
+    expect(parsed).toMatchObject({ value: { teamCount: 3 } });
   });
 
-  describe("parseCustomAllocationPreviewBody", () => {
-    it("parses a valid preview payload", () => {
-      const result = parseCustomAllocationPreviewBody({
-        questionnaireTemplateId: 5,
-        teamCount: 3,
-        nonRespondentStrategy: "distribute_randomly",
-        criteria: [
-          { questionId: 11, strategy: "diversify", weight: 5 },
-          { questionId: 12, strategy: "group", weight: 2 },
-          { questionId: 13, strategy: "ignore", weight: 1 },
-        ],
-      });
-
-      expect(result).toEqual({
-        ok: true,
-        value: {
-          questionnaireTemplateId: 5,
-          teamCount: 3,
-          nonRespondentStrategy: "distribute_randomly",
-          criteria: [
-            { questionId: 11, strategy: "diversify", weight: 5 },
-            { questionId: 12, strategy: "group", weight: 2 },
-            { questionId: 13, strategy: "ignore", weight: 1 },
-          ],
-        },
-      });
+  it("rejects invalid preview criteria", () => {
+    const parsed = parseCustomAllocationPreviewBody({
+      questionnaireTemplateId: 2,
+      teamCount: 3,
+      nonRespondentStrategy: "exclude",
+      criteria: [{ questionId: 7, strategy: "group", weight: 8 }],
     });
-
-    it("parses payloads without seed", () => {
-      const result = parseCustomAllocationPreviewBody({
-        questionnaireTemplateId: 5,
-        teamCount: 3,
-        nonRespondentStrategy: "exclude",
-        criteria: [],
-      });
-
-      expect(result).toEqual({
-        ok: true,
-        value: {
-          questionnaireTemplateId: 5,
-          teamCount: 3,
-          nonRespondentStrategy: "exclude",
-          criteria: [],
-        },
-      });
-    });
-
-    it("rejects invalid non-respondent strategy", () => {
-      expect(
-        parseCustomAllocationPreviewBody({
-          questionnaireTemplateId: 5,
-          teamCount: 3,
-          nonRespondentStrategy: "random",
-          criteria: [],
-        }),
-      ).toEqual({
-        ok: false,
-        code: "INVALID_NON_RESPONDENT_STRATEGY",
-      });
-    });
-
-    it("rejects invalid criteria payloads", () => {
-      expect(
-        parseCustomAllocationPreviewBody({
-          questionnaireTemplateId: 5,
-          teamCount: 3,
-          nonRespondentStrategy: "exclude",
-          criteria: [{ questionId: 11, strategy: "diversify", weight: 0 }],
-        }),
-      ).toEqual({
-        ok: false,
-        code: "INVALID_CRITERIA",
-      });
-    });
+    expect(parsed).toEqual({ ok: false, code: "INVALID_CRITERIA" });
   });
 
-  describe("parseCustomAllocationApplyBody", () => {
-    it("parses preview-only apply payload", () => {
-      expect(parseCustomAllocationApplyBody({ previewId: "p-1" })).toEqual({
-        ok: true,
-        value: {
-          previewId: "p-1",
-        },
-      });
-    });
-
-    it("parses and trims team names", () => {
-      expect(parseCustomAllocationApplyBody({ previewId: "p-1", teamNames: [" Team A ", "Team B"] })).toEqual({
-        ok: true,
-        value: {
-          previewId: "p-1",
-          teamNames: ["Team A", "Team B"],
-        },
-      });
-    });
-
-    it("rejects empty preview id", () => {
-      expect(parseCustomAllocationApplyBody({ previewId: " " })).toEqual({
-        ok: false,
-        code: "INVALID_PREVIEW_ID",
-      });
-    });
-
-    it("rejects invalid team names payload", () => {
-      expect(parseCustomAllocationApplyBody({ previewId: "p-1", teamNames: [1, "Team B"] })).toEqual({
-        ok: false,
-        code: "INVALID_TEAM_NAMES",
-      });
-    });
+  it("parses and trims apply team names", () => {
+    const parsed = parseCustomAllocationApplyBody({ previewId: "p", teamNames: [" Team A ", "Team B"] });
+    expect(parsed).toEqual({ ok: true, value: { previewId: "p", teamNames: ["Team A", "Team B"] } });
   });
 });

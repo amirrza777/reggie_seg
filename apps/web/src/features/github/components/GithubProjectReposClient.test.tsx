@@ -75,6 +75,18 @@ function makeLink() {
   };
 }
 
+function makeSnapshot(analysedAt: string) {
+  return {
+    snapshot: {
+      id: 1,
+      analysedAt,
+      data: null,
+      userStats: [],
+      repoStats: [],
+    },
+  };
+}
+
 describe("GithubProjectReposClient", () => {
   const getGithubConnectionStatusMock = vi.mocked(githubClient.getGithubConnectionStatus);
   const listProjectGithubRepoLinksMock = vi.mocked(githubClient.listProjectGithubRepoLinks);
@@ -167,6 +179,29 @@ describe("GithubProjectReposClient", () => {
       expect(getGithubConnectionStatusMock).toHaveBeenCalledTimes(2);
       expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(2);
       expect(getProjectGithubMappingCoverageMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("auto-refreshes stale snapshots on a 24h schedule when auto-sync is enabled", async () => {
+    const staleLink = {
+      ...makeLink(),
+      autoSyncEnabled: true,
+    };
+    listProjectGithubRepoLinksMock.mockResolvedValue([staleLink] as never);
+    getLatestProjectGithubSnapshotMock
+      .mockResolvedValueOnce(makeSnapshot("2026-02-24T08:00:00.000Z") as never)
+      .mockResolvedValue(makeSnapshot("2026-03-21T08:05:00.000Z") as never);
+
+    render(<GithubProjectReposClient projectId="1" />);
+
+    await screen.findByText("Linked repositories");
+
+    await waitFor(() => {
+      expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(101);
+    });
+
+    await waitFor(() => {
+      expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(2);
     });
   });
 });

@@ -188,6 +188,82 @@ async function sendInactivityAlerts() {
   }
 }
 
+async function sendMissingPeerAssessmentAlerts() {
+  const now = new Date();
+
+  const teams = await prisma.team.findMany({
+    where: {
+      archivedAt: null,
+      peerAssessmentAlertSentAt: null,
+      project: {
+        deadline: {
+          assessmentDueDate: { lt: now },
+        },
+      },
+    },
+    select: {
+      id: true,
+      teamName: true,
+      project: { select: { name: true } },
+      allocations: {
+        select: { user: { select: { id: true, firstName: true, lastName: true } } },
+      },
+      peerAssessments: { select: { reviewerUserId: true } },
+    },
+  });
+
+  type NonSubmitter = { studentName: string; teamName: string; projectName: string; submitted: number; expected: number };
+  const nonSubmitters: NonSubmitter[] = [];
+
+  for (const team of teams) {
+    const members = team.allocations.map((a) => a.user);
+    const n = members.length;
+    if (n < 2) continue;
+    const expected = n - 1;
+    for (const member of members) {
+      const submitted = team.peerAssessments.filter((pa) => pa.reviewerUserId === member.id).length;
+      if (submitted < expected) {
+        nonSubmitters.push({
+          studentName: `${member.firstName} ${member.lastName}`.trim() || `Student ${member.id}`,
+          teamName: team.teamName,
+          projectName: team.project.name,
+          submitted,
+          expected,
+        });
+      }
+    }
+  }
+
+  const checkedIds = teams.map((t) => t.id);
+  if (checkedIds.length > 0) {
+    await prisma.team.updateMany({
+      where: { id: { in: checkedIds } },
+      data: { peerAssessmentAlertSentAt: now },
+    });
+  }
+
+  if (nonSubmitters.length === 0) return;
+
+  const staffUsers = await prisma.user.findMany({
+    where: { role: "STAFF" },
+    select: { email: true, firstName: true },
+  });
+
+  for (const { email, firstName } of staffUsers) {
+    const count = nonSubmitters.length;
+    const subject = `Peer assessment alert – ${count} student${count === 1 ? "" : "s"} have not submitted`;
+    const rows = nonSubmitters.map(
+      (s) => `• ${s.studentName} (${s.teamName}, ${s.projectName}) – ${s.submitted}/${s.expected} submitted`
+    );
+    const text = `Hi ${firstName},\n\nThe following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:\n\n${rows.join("\n")}\n\nLog in to review their progress.\n`;
+    const htmlRows = nonSubmitters
+      .map((s) => `<li>${s.studentName} (${s.teamName}, ${s.projectName}) – ${s.submitted}/${s.expected} submitted</li>`)
+      .join("");
+    const html = `<p>Hi ${firstName},</p><p>The following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:</p><ul>${htmlRows}</ul><p>Log in to review their progress.</p>`;
+    await sendEmail({ to: email, subject, text, html });
+  }
+}
+
 /**
  * Placeholder for no-repository reminders.
  * Keep as a no-op until the final query and recipient rules are confirmed.
@@ -216,6 +292,11 @@ export function startNotificationJob() {
       await sendInactivityAlerts();
     } catch (err) {
       console.error("Inactivity alert job error:", err);
+    }
+    try {
+      await sendMissingPeerAssessmentAlerts();
+    } catch (err) {
+      console.error("Missing peer assessment alert job error:", err);
     }
     try {
       await sendNoRepoAlerts();

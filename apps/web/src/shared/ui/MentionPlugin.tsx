@@ -9,6 +9,7 @@ import {
   MenuOption,
   useBasicTypeaheadTriggerMatch,
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
+import { matchesSearchQuery } from "@/shared/lib/search";
 import { $createMentionNode } from "./MentionNode";
 
 type Member = {
