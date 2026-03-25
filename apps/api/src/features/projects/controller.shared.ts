@@ -13,7 +13,7 @@ export function resolveAuthenticatedUserId(req: AuthRequest, res: Response): num
     return null;
   }
 
-  const queryUserId = req.query.userId;
+  const queryUserId = req.query?.userId;
   if (queryUserId !== undefined) {
     const parsedQueryUserId = Number(queryUserId);
     if (Number.isNaN(parsedQueryUserId)) {
@@ -28,3 +28,11 @@ export function resolveAuthenticatedUserId(req: AuthRequest, res: Response): num
 
   return authUserId;
 }
+
+export function isTeamLifecycleMigrationError(error: unknown) {
+  const errorCode = (error as { code?: unknown } | null)?.code;
+  return errorCode === "P2021" || errorCode === "P2022";
+}
+
+export const TEAM_LIFECYCLE_MIGRATION_ERROR =
+  "Team allocation lifecycle data is unavailable until the latest database migration is applied";

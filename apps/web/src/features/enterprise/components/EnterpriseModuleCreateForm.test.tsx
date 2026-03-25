@@ -153,7 +153,7 @@ describe("EnterpriseModuleCreateForm", () => {
       }),
     );
 
-    fireEvent.change(screen.getByLabelText(/search staff/i), { target: { value: "owner" } });
+    fireEvent.change(screen.getByLabelText(/module owners\/leaders/i), { target: { value: "owner" } });
 
     await waitFor(() =>
       expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
