@@ -271,6 +271,9 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     return (
       <div className="stack">
         <p className="muted">{projectError ?? "Team not found in this project."}</p>
+        <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
+          Back to project teams
+        </Link>
       </div>
     );
   }

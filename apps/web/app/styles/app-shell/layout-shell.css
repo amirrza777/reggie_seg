@@ -172,7 +172,7 @@ body:has(.app-shell) {
   position: relative;
   background: var(--glass-ui-bg-soft);
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 10px;
   box-shadow: var(--elevation-none);
 }
 

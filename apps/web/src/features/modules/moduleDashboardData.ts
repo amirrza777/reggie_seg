@@ -34,7 +34,7 @@ export function resolveModuleDashboardTab(tab: string | undefined): "expectation
 }
 
 export function buildModuleDashboardData(module: Module): ModuleDashboardData {
-  const moduleCode = toModuleCode(module.id);
+  const moduleCode = toModuleCode(module);
   const teamCount = module.teamCount ?? 0;
   const projectCount = module.projectCount ?? 0;
   const marksRows = buildMarksRows(module);
@@ -68,10 +68,11 @@ export function formatLongDate(value: Date): string {
   }).format(value);
 }
 
-function toModuleCode(moduleId: string): string {
-  const numeric = Number(moduleId);
+function toModuleCode(module: Module): string {
+  if (module.code?.trim()) return module.code.trim();
+  const numeric = Number(module.id);
   if (Number.isFinite(numeric)) return `MOD-${numeric}`;
-  return moduleId;
+  return module.id;
 }
 
 function parseParagraphs(value: string | undefined): string[] {

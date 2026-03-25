@@ -4,28 +4,26 @@ import {
   applyManualAllocationForProject,
   getManualAllocationWorkspaceForProject,
 } from "./service.js";
-import { parseManualAllocationSearchQuery } from "./controller.shared.js";
+import {
+  parseManualAllocationBody,
+  parseManualAllocationWorkspaceQuery,
+  parseProjectIdParam,
+  parseStaffActor,
+} from "./controller.parsers.js";
 
 export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res: Response) {
-  const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const searchQuery = parseManualAllocationSearchQuery(req.query?.q);
-
-  if (!staffId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
-  if (searchQuery === "invalid") {
-    return res.status(400).json({ error: "q must be a string with up to 120 characters" });
-  }
+  const staffId = parseStaffActor(req);
+  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
+  const searchQuery = parseManualAllocationWorkspaceQuery(req.query);
+  if (!searchQuery.ok) return res.status(400).json({ error: searchQuery.error });
 
   try {
     const workspace =
-      searchQuery !== null
-        ? await getManualAllocationWorkspaceForProject(staffId, projectId, searchQuery)
-        : await getManualAllocationWorkspaceForProject(staffId, projectId);
+      searchQuery.value !== null
+        ? await getManualAllocationWorkspaceForProject(staffId.value, projectId.value, searchQuery.value)
+        : await getManualAllocationWorkspaceForProject(staffId.value, projectId.value);
     return res.json(workspace);
   } catch (error: any) {
     if (error?.code === "INVALID_SEARCH_QUERY") {
@@ -43,31 +41,15 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
 }
 
 export async function applyManualAllocationHandler(req: AuthRequest, res: Response) {
-  const staffId = req.user?.sub;
-  const projectId = Number(req.params.projectId);
-  const teamName = typeof req.body?.teamName === "string" ? req.body.teamName : "";
-  const rawStudentIds = Array.isArray(req.body?.studentIds) ? req.body.studentIds : null;
-  const studentIds = rawStudentIds ? rawStudentIds.map((studentId: unknown) => Number(studentId)) : null;
-
-  if (!staffId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
-  if (
-    rawStudentIds === null ||
-    studentIds === null ||
-    studentIds.some((studentId: number) => Number.isNaN(studentId))
-  ) {
-    return res.status(400).json({ error: "studentIds must be an array of numbers" });
-  }
+  const staffId = parseStaffActor(req);
+  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
+  const parsedBody = parseManualAllocationBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const result = await applyManualAllocationForProject(staffId, projectId, {
-      teamName,
-      studentIds,
-    });
+    const result = await applyManualAllocationForProject(staffId.value, projectId.value, parsedBody.value);
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_NAME") {

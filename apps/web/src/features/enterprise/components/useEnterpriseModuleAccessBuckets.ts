@@ -235,7 +235,6 @@ export function useEnterpriseModuleAccessBuckets({
 
     setPage(parsedPage);
   };
-
   const staffStart = getListStart(staffTotal, staffPage, ACCESS_USERS_PAGE_SIZE);
   const staffEnd = getListEnd(staffTotal, staffPage, ACCESS_USERS_PAGE_SIZE, staffUsers.length);
   const taStart = getListStart(taTotal, taPage, ACCESS_USERS_PAGE_SIZE);

@@ -34,6 +34,11 @@ describe("ModuleList", () => {
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
 
+  it("prefers the stored module code over the numeric fallback", () => {
+    render(<ModuleList modules={[{ id: "12", code: "4CCS2DBS", title: "Databases" }]} />);
+    expect(screen.getByText("Code: 4CCS2DBS")).toBeInTheDocument();
+  });
+
   it("shows management actions for module owners", () => {
     render(
       <ModuleList

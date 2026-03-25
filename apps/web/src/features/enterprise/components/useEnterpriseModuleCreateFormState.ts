@@ -1,36 +1,26 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   createEnterpriseModule,
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
   updateEnterpriseModule,
 } from "../api/client";
-import type { ModuleGuidanceDefaults } from "@/features/modules/components/moduleSetup/moduleGuidanceDefaults";
-import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { useEnterpriseModuleAccessBuckets } from "./useEnterpriseModuleAccessBuckets";
 
 type UseEnterpriseModuleCreateFormStateParams = {
   mode: "create" | "edit";
   moduleId?: number;
   workspace: "enterprise" | "staff";
-  /**
-   * When editing, pass the result of `loadModuleSetupInitialSelection` from the Server Component
-   * so fields hydrate from one server fetch — no duplicate client request for the same payload.
-   */
-  initialAccessSelection?: EnterpriseModuleAccessSelectionResponse | null;
-  /**
-   * After a successful update, navigate here instead of the default workspace modules list.
-   */
-  successRedirectHref?: string;
 };
 
 type ModuleSelectionResponse = Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>;
 
 type ModuleUpdatePayload = {
   name: string;
+  code?: string;
   briefText?: string;
   timelineText?: string;
   expectationsText?: string;
@@ -40,49 +30,29 @@ type ModuleUpdatePayload = {
   studentIds: number[];
 };
 
-function stateFromAccessSelection(selection: EnterpriseModuleAccessSelectionResponse) {
-  const m = selection.module;
-  const str = (v: unknown) => (typeof v === "string" ? v : v != null ? String(v) : "");
-  return {
-    moduleName: str(m.name),
-    briefText: str(m.briefText),
-    timelineText: str(m.timelineText),
-    expectationsText: str(m.expectationsText),
-    readinessNotesText: str(m.readinessNotesText),
-    leaderIds: [...selection.leaderIds],
-    taIds: [...selection.taIds],
-    studentIds: [...selection.studentIds],
-  };
-}
-
 export function useEnterpriseModuleCreateFormState({
   mode,
   moduleId,
   workspace,
-  initialAccessSelection,
-  successRedirectHref,
 }: UseEnterpriseModuleCreateFormStateParams) {
   const router = useRouter();
   const isEditMode = mode === "edit";
-  const modulesHomeHref =
-    successRedirectHref ?? (workspace === "staff" ? "/staff/modules" : "/enterprise/modules");
-  const hydratedFromServer = Boolean(initialAccessSelection);
+  const modulesHomeHref = workspace === "staff" ? "/staff/modules" : "/enterprise/modules";
 
-  const seed = initialAccessSelection ? stateFromAccessSelection(initialAccessSelection) : null;
-
-  const [moduleName, setModuleName] = useState(() => (seed ? seed.moduleName : ""));
+  const [moduleName, setModuleName] = useState("");
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
-  const [briefText, setBriefText] = useState(() => (seed ? seed.briefText : ""));
-  const [timelineText, setTimelineText] = useState(() => (seed ? seed.timelineText : ""));
-  const [expectationsText, setExpectationsText] = useState(() => (seed ? seed.expectationsText : ""));
-  const [readinessNotesText, setReadinessNotesText] = useState(() => (seed ? seed.readinessNotesText : ""));
+  const [moduleCode, setModuleCode] = useState("");
+  const [briefText, setBriefText] = useState("");
+  const [timelineText, setTimelineText] = useState("");
+  const [expectationsText, setExpectationsText] = useState("");
+  const [readinessNotesText, setReadinessNotesText] = useState("");
 
-  const [leaderIds, setLeaderIds] = useState<number[]>(() => (seed ? seed.leaderIds : []));
-  const [taIds, setTaIds] = useState<number[]>(() => (seed ? seed.taIds : []));
-  const [studentIds, setStudentIds] = useState<number[]>(() => (seed ? seed.studentIds : []));
+  const [leaderIds, setLeaderIds] = useState<number[]>([]);
+  const [taIds, setTaIds] = useState<number[]>([]);
+  const [studentIds, setStudentIds] = useState<number[]>([]);
 
-  const [isLoadingAccess, setIsLoadingAccess] = useState(() => (isEditMode ? !hydratedFromServer : false));
-  const [canEditModule, setCanEditModule] = useState(() => (isEditMode ? hydratedFromServer : true));
+  const [isLoadingAccess, setIsLoadingAccess] = useState(true);
+  const [canEditModule, setCanEditModule] = useState(mode !== "edit");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -93,31 +63,28 @@ export function useEnterpriseModuleCreateFormState({
     isEditMode,
     isLoadingAccess,
     canEditModule,
-    moduleIdForAccessSearchExclude: isEditMode && moduleId != null ? moduleId : undefined,
   });
 
   useEffect(() => {
     let isActive = true;
 
     async function loadInitialSelection() {
+      setIsLoadingAccess(true);
+      setErrorMessage(null);
+      setConfirmDeleteModule(false);
+      setIsDeleting(false);
+      setCanEditModule(mode !== "edit");
+
       if (mode !== "edit") {
+        if (!isActive) return;
         setCanEditModule(true);
         setIsLoadingAccess(false);
         return;
       }
 
-      if (hydratedFromServer) {
-        return;
-      }
-
-      setIsLoadingAccess(true);
-      setErrorMessage(null);
-      setConfirmDeleteModule(false);
-      setIsDeleting(false);
-      setCanEditModule(false);
-
       if (!moduleId) {
         if (!isActive) return;
+        setCanEditModule(false);
         setErrorMessage("Module id is required for edit mode.");
         setIsLoadingAccess(false);
         return;
@@ -127,8 +94,9 @@ export function useEnterpriseModuleCreateFormState({
         const response = await getEnterpriseModuleAccessSelection(moduleId);
         if (!isActive) return;
         setCanEditModule(true);
-        applyAccessSelection(response, {
+        applyModuleSelection(response, {
           setModuleName,
+          setModuleCode,
           setBriefText,
           setTimelineText,
           setExpectationsText,
@@ -153,7 +121,7 @@ export function useEnterpriseModuleCreateFormState({
     return () => {
       isActive = false;
     };
-  }, [mode, moduleId, hydratedFromServer]);
+  }, [mode, moduleId]);
 
   const leaderSet = useMemo(() => new Set(leaderIds), [leaderIds]);
   const taSet = useMemo(() => new Set(taIds), [taIds]);
@@ -166,16 +134,8 @@ export function useEnterpriseModuleCreateFormState({
     }
   };
 
-  /** Used by {@link ModuleGuidanceSection} to apply server `defaultGuidance` into controlled fields. */
-  const applyGuidanceDefaults = useCallback((g: ModuleGuidanceDefaults) => {
-    setModuleName(g.moduleName);
-    setBriefText(g.briefText);
-    setTimelineText(g.timelineText);
-    setExpectationsText(g.expectationsText);
-    setReadinessNotesText(g.readinessNotesText);
-  }, []);
-
-  const performSubmit = useCallback(async () => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     const name = moduleName.trim();
     const validation = validateModuleSubmit({ isEditMode, name, leaderIds });
     if (validation.moduleNameError) {
@@ -196,6 +156,7 @@ export function useEnterpriseModuleCreateFormState({
         if (!moduleId) throw new Error("Module id is required for edit mode.");
         const payload = buildModuleUpdatePayload({
           name,
+          code: moduleCode,
           briefText,
           timelineText,
           expectationsText,
@@ -207,8 +168,12 @@ export function useEnterpriseModuleCreateFormState({
         await updateEnterpriseModule(moduleId, payload);
         router.push(modulesHomeHref);
       } else {
-        const createdModule = await createEnterpriseModule({ name, leaderIds });
-        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id);
+        const createdModule = await createEnterpriseModule({
+          name,
+          code: normalizeOptionalModuleCode(moduleCode),
+          leaderIds,
+        });
+        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
         router.push(nextHref);
       }
 
@@ -217,25 +182,6 @@ export function useEnterpriseModuleCreateFormState({
       setErrorMessage(resolveModuleActionError(err, isEditMode ? "update" : "create"));
       setIsSubmitting(false);
     }
-  }, [
-    briefText,
-    expectationsText,
-    isEditMode,
-    leaderIds,
-    moduleId,
-    moduleName,
-    modulesHomeHref,
-    readinessNotesText,
-    router,
-    studentIds,
-    taIds,
-    timelineText,
-    workspace,
-  ]);
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await performSubmit();
   };
 
   const handleDeleteModule = async () => {
@@ -280,9 +226,9 @@ export function useEnterpriseModuleCreateFormState({
 
   return {
     isEditMode,
-    moduleId,
     moduleName,
     moduleNameError,
+    moduleCode,
     briefText,
     timelineText,
     expectationsText,
@@ -300,14 +246,13 @@ export function useEnterpriseModuleCreateFormState({
     taSet,
     studentSet,
     setBriefText,
+    setModuleCode,
     setTimelineText,
     setExpectationsText,
     setReadinessNotesText,
     setConfirmDeleteModule,
     handleModuleNameChange,
-    applyGuidanceDefaults,
     handleSubmit,
-    performSubmit,
     handleDeleteModule,
     toggleLeader,
     toggleTeachingAssistant,
@@ -317,18 +262,16 @@ export function useEnterpriseModuleCreateFormState({
   };
 }
 
-/** Shared shape for module setup UI sections (guidance, staff access, student access). */
-export type ModuleSetupFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
-
 function includeId(values: number[], id: number): number[] {
   if (values.includes(id)) return values;
   return [...values, id];
 }
 
-function applyAccessSelection(
+function applyModuleSelection(
   selection: ModuleSelectionResponse,
   setters: {
     setModuleName: (value: string) => void;
+    setModuleCode: (value: string) => void;
     setBriefText: (value: string) => void;
     setTimelineText: (value: string) => void;
     setExpectationsText: (value: string) => void;
@@ -336,18 +279,17 @@ function applyAccessSelection(
     setLeaderIds: (value: number[]) => void;
     setTaIds: (value: number[]) => void;
     setStudentIds: (value: number[]) => void;
-  },
+  }
 ) {
-  const m = selection.module;
-  const str = (v: unknown) => (typeof v === "string" ? v : v != null ? String(v) : "");
-  setters.setModuleName(str(m.name));
-  setters.setBriefText(str(m.briefText));
-  setters.setTimelineText(str(m.timelineText));
-  setters.setExpectationsText(str(m.expectationsText));
-  setters.setReadinessNotesText(str(m.readinessNotesText));
-  setters.setLeaderIds([...selection.leaderIds]);
-  setters.setTaIds([...selection.taIds]);
-  setters.setStudentIds([...selection.studentIds]);
+  setters.setModuleName(selection.module.name ?? "");
+  setters.setModuleCode(selection.module.code ?? "");
+  setters.setBriefText(selection.module.briefText ?? "");
+  setters.setTimelineText(selection.module.timelineText ?? "");
+  setters.setExpectationsText(selection.module.expectationsText ?? "");
+  setters.setReadinessNotesText(selection.module.readinessNotesText ?? "");
+  setters.setLeaderIds(selection.leaderIds);
+  setters.setTaIds(selection.taIds);
+  setters.setStudentIds(selection.studentIds);
 }
 
 function validateModuleSubmit(params: {
@@ -371,6 +313,7 @@ function validateModuleSubmit(params: {
 
 function buildModuleUpdatePayload(input: {
   name: string;
+  code: string;
   briefText: string;
   timelineText: string;
   expectationsText: string;
@@ -381,6 +324,7 @@ function buildModuleUpdatePayload(input: {
 }): ModuleUpdatePayload {
   return {
     name: input.name,
+    code: normalizeOptionalModuleCode(input.code),
     briefText: normalizeOptionalMultilineText(input.briefText),
     timelineText: normalizeOptionalMultilineText(input.timelineText),
     expectationsText: normalizeOptionalMultilineText(input.expectationsText),
@@ -391,9 +335,15 @@ function buildModuleUpdatePayload(input: {
   };
 }
 
-function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number): string {
-  if (workspace === "staff") return `/staff/modules/${moduleId}/manage`;
-  return `/enterprise/modules/${moduleId}/edit`;
+function normalizeOptionalModuleCode(value: string): string | undefined {
+  const normalized = value.trim().toUpperCase();
+  return normalized ? normalized : undefined;
+}
+
+function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number, joinCode: string): string {
+  const basePath = workspace === "staff" ? `/staff/modules/${moduleId}/manage` : `/enterprise/modules/${moduleId}/edit`;
+  const searchParams = new URLSearchParams({ created: "1", joinCode });
+  return `${basePath}?${searchParams.toString()}`;
 }
 
 function normalizeOptionalMultilineText(value: string): string | undefined {

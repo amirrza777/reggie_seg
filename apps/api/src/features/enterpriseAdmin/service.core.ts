@@ -5,6 +5,7 @@ import type { AssignableUser, EnterpriseUser } from "./types.js";
 
 export const MODULE_SELECT = {
   id: true,
+  code: true,
   name: true,
   briefText: true,
   timelineText: true,
@@ -48,6 +49,7 @@ export function buildManagedModuleSelect(enterpriseUser: EnterpriseUser) {
 export function mapModuleRecord(module: Prisma.ModuleGetPayload<{ select: typeof MODULE_SELECT }>) {
   return {
     id: module.id,
+    code: module.code ?? undefined,
     name: module.name,
     createdAt: module.createdAt,
     updatedAt: module.updatedAt,

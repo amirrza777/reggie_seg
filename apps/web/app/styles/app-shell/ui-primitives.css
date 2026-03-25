@@ -55,7 +55,7 @@
 
 .ui-surface {
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   background: var(--glass-ui-bg-soft);
 }
 
@@ -121,7 +121,7 @@
 .ui-empty-state {
   padding: 16px;
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 14px;
   background: var(--glass-ui-bg-soft);
 }
 
@@ -189,7 +189,7 @@
 
 .ui-metric-card {
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   background: var(--glass-ui-bg-soft);
   padding: 12px 14px;
   display: grid;

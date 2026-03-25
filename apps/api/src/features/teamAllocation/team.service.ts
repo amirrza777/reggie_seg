@@ -1,24 +1,23 @@
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../shared/db.js";
-import { TeamService } from "./repo.js";
-
-async function findUserEnterpriseById(userId: number) {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: { enterpriseId: true },
-  });
-}
+import {
+  createTeamAllocation,
+  createTeamWithOwner,
+  findTeamAllocation,
+  findTeamById,
+  findUserEnterpriseById,
+  listTeamMemberUsers,
+} from "./repo.js";
 
 /** Creates a team. */
 export async function createTeam(userId: number, teamData: Prisma.TeamUncheckedCreateInput) {
-  return TeamService.createTeam(userId, teamData);
+  return createTeamWithOwner(userId, teamData);
 }
 
 /** Creates a team for project. */
 export async function createTeamForProject(userId: number, projectId: number, teamName: string) {
   const user = await findUserEnterpriseById(userId);
   if (!user) throw { code: "USER_NOT_FOUND" };
-  return TeamService.createTeam(userId, {
+  return createTeamWithOwner(userId, {
     enterpriseId: user.enterpriseId,
     projectId,
     teamName,
@@ -27,15 +26,26 @@ export async function createTeamForProject(userId: number, projectId: number, te
 
 /** Returns the team by ID. */
 export async function getTeamById(teamId: number) {
-  return TeamService.getTeamById(teamId);
+  const team = await findTeamById(teamId);
+  if (!team) throw { code: "TEAM_NOT_FOUND" };
+  return team;
 }
 
 /** Adds a user to team. */
 export async function addUserToTeam(teamId: number, userId: number, _role: "OWNER" | "MEMBER" = "MEMBER") {
-  return TeamService.addUserToTeam(teamId, userId, _role);
+  const team = await findTeamById(teamId);
+  if (!team) throw { code: "TEAM_NOT_FOUND" };
+
+  const existing = await findTeamAllocation(teamId, userId);
+  if (existing) throw { code: "MEMBER_ALREADY_EXISTS" };
+
+  return createTeamAllocation(teamId, userId);
 }
 
 /** Returns the team members. */
 export async function getTeamMembers(teamId: number) {
-  return TeamService.getTeamMembers(teamId);
+  const team = await findTeamById(teamId);
+  if (!team) throw { code: "TEAM_NOT_FOUND" };
+
+  return listTeamMemberUsers(teamId);
 }

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import type { CSSProperties } from "react";
-import { SidebarChevron } from "./SidebarChevron";
 import type { MobileSpaceLink, SidebarLink, SpaceKey } from "./Sidebar.types";
 import { getBestMatchingHref, getSpaceFromHref, type SearchParamsReader } from "./Sidebar.utils";
 
@@ -126,7 +125,7 @@ function SidebarMobileGroup({
         aria-expanded={groupOpen}
       >
         <span>{link.label}</span>
-        <SidebarChevron isOpen={groupOpen} />
+        <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>{groupOpen ? "↑" : "↓"}</span>
       </button>
       <div className={`sidebar__mobile-group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
         <div className="sidebar__mobile-group-collapse-inner">
@@ -246,7 +245,7 @@ function SidebarMobileTrigger({
         </svg>
       </span>
       <span className="sidebar__mobile-trigger-label">{mode === "mobile" ? "Menu" : currentLabel}</span>
-      {mode === "mobile" ? null : <SidebarChevron isOpen={isOpen} />}
+      {mode === "mobile" ? null : <span className={`sidebar__chevron ${isOpen ? "is-open" : ""}`}>{isOpen ? "↑" : "↓"}</span>}
     </button>
   );
 }

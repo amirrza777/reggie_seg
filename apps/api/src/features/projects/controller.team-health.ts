@@ -4,29 +4,28 @@ import {
   fetchTeamHealthMessagesForStaff,
   submitTeamHealthMessage,
 } from "./service.js";
+import {
+  parseProjectAndUserQuery,
+  parseProjectIdParam,
+  parseProjectTeamAndUserQuery,
+  parseTeamHealthMessageBody,
+} from "./controller.parsers.js";
 
 export async function createTeamHealthMessageHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const userId = Number((req.body as { userId?: unknown }).userId);
-  const subjectRaw = (req.body as { subject?: unknown }).subject;
-  const detailsRaw = (req.body as { details?: unknown }).details;
-
-  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
-    return res.status(400).json({ error: "Invalid user ID or project ID" });
-  }
-
-  if (typeof subjectRaw !== "string" || typeof detailsRaw !== "string") {
-    return res.status(400).json({ error: "subject and details are required strings" });
-  }
-
-  const subject = subjectRaw.trim();
-  const details = detailsRaw.trim();
-  if (!subject || !details) {
-    return res.status(400).json({ error: "subject and details cannot be empty" });
+  const projectId = parseProjectIdParam(req.params.projectId);
+  const parsedBody = parseTeamHealthMessageBody(req.body);
+  if (!projectId.ok || !parsedBody.ok) {
+    const error = projectId.ok ? parsedBody.error : "Invalid user ID or project ID";
+    return res.status(400).json({ error });
   }
 
   try {
-    const request = await submitTeamHealthMessage(userId, projectId, subject, details);
+    const request = await submitTeamHealthMessage(
+      parsedBody.value.userId,
+      projectId.value,
+      parsedBody.value.subject,
+      parsedBody.value.details,
+    );
     if (!request) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
@@ -38,15 +37,13 @@ export async function createTeamHealthMessageHandler(req: Request, res: Response
 }
 
 export async function getMyTeamHealthMessagesHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const userId = Number(req.query.userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(userId)) {
+  const parsed = parseProjectAndUserQuery(req as any);
+  if (!parsed.ok) {
     return res.status(400).json({ error: "Invalid user ID or project ID" });
   }
 
   try {
-    const requests = await fetchMyTeamHealthMessages(userId, projectId);
+    const requests = await fetchMyTeamHealthMessages(parsed.value.userId, parsed.value.projectId);
     if (!requests) {
       return res.status(404).json({ error: "Team not found for user in this project" });
     }
@@ -58,16 +55,13 @@ export async function getMyTeamHealthMessagesHandler(req: Request, res: Response
 }
 
 export async function getStaffTeamHealthMessagesHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-  const teamId = Number(req.params.teamId);
-  const userId = Number(req.query.userId);
-
-  if (Number.isNaN(projectId) || Number.isNaN(teamId) || Number.isNaN(userId)) {
+  const parsed = parseProjectTeamAndUserQuery(req as any);
+  if (!parsed.ok) {
     return res.status(400).json({ error: "Invalid user ID, project ID, or team ID" });
   }
 
   try {
-    const requests = await fetchTeamHealthMessagesForStaff(userId, projectId, teamId);
+    const requests = await fetchTeamHealthMessagesForStaff(parsed.value.userId, parsed.value.projectId, parsed.value.teamId);
     if (!requests) {
       return res.status(404).json({ error: "Project or team not found for staff scope" });
     }
