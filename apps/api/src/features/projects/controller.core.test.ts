@@ -317,8 +317,16 @@ describe("projects controller core handlers", () => {
     const staffProjectsRes = mockResponse();
     (service.fetchProjectsForStaff as any).mockResolvedValue([{ id: 1, name: "P1" }]);
     await getStaffProjectsHandler({ user: { sub: 12 }, query: { userId: "12" } } as any, staffProjectsRes);
-    expect(service.fetchProjectsForStaff).toHaveBeenCalledWith(12);
+    expect(service.fetchProjectsForStaff).toHaveBeenCalledWith(12, {
+      query: undefined,
+      moduleId: undefined,
+    });
     expect(staffProjectsRes.json).toHaveBeenCalledWith([{ id: 1, name: "P1" }]);
+
+    const badModuleIdRes = mockResponse();
+    await getStaffProjectsHandler({ user: { sub: 12 }, query: { userId: "12", moduleId: "abc" } } as any, badModuleIdRes);
+    expect(badModuleIdRes.status).toHaveBeenCalledWith(400);
+    expect(service.fetchProjectsForStaff).toHaveBeenCalledTimes(1);
 
     const staffTeamsRes = mockResponse();
     (service.fetchProjectTeamsForStaff as any).mockResolvedValue({

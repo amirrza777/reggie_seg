@@ -12,6 +12,7 @@ export {
   getQuestionsForProjectHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
+  getStaffMarkingProjectsHandler,
   getProjectMarkingHandler,
 } from "./controller.core.js";
 

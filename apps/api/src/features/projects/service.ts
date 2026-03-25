@@ -1,3 +1,4 @@
+import { matchesFuzzySearch, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import {
   getProjectById,
   getUserProjects,
@@ -14,6 +15,7 @@ import {
   getQuestionsForProject,
   getStaffProjects,
   getStaffProjectTeams,
+  getStaffProjectsForMarking,
   getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
   createTeamHealthMessage,
@@ -225,8 +227,42 @@ export async function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
 }
 
+/** Returns all projects with teams for the staff marking overview. */
+export async function fetchProjectsWithTeamsForStaffMarking(userId: number, options?: { query?: string | null }) {
+  const projects = await getStaffProjectsForMarking(userId, options);
+  const query = typeof options?.query === "string" ? options.query.trim() : "";
+  const numericQuery = query ? parsePositiveIntegerSearchQuery(query) : null;
+
+  return projects.flatMap((project) => {
+    const projectOrModuleMatches =
+      !query ||
+      (numericQuery !== null && project.id === numericQuery) ||
+      matchesFuzzySearch(query, [project.name, project.module?.name ?? ""]);
+
+    const matchingTeams = projectOrModuleMatches
+      ? project.teams
+      : project.teams.filter((team) => matchesFuzzySearch(query, [team.teamName]));
+
+    if (matchingTeams.length === 0) return [];
+
+    return [{
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.module?.name ?? "",
+      teams: matchingTeams.map((team) => ({
+        id: team.id,
+        teamName: team.teamName,
+        projectId: team.projectId,
+        inactivityFlag: team.inactivityFlag as "NONE" | "YELLOW" | "RED",
+        studentCount: team._count.allocations,
+      })),
+    }];
+  });
+}
+
 /** Returns the projects for staff. */
-export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null }) {
+export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null; moduleId?: number }) {
   const projects = await getStaffProjects(userId, options);
   const now = Date.now();
   return projects.map((project) => {

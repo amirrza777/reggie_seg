@@ -5,6 +5,7 @@ import {
   fetchProjectById,
   fetchProjectDeadline,
   fetchProjectsForUser,
+  fetchProjectsWithTeamsForStaffMarking,
   fetchQuestionsForProject,
   joinModuleByCode,
   fetchTeamById,
@@ -41,6 +42,7 @@ vi.mock("./repo.js", () => ({
   getTeamById: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
   getQuestionsForProject: vi.fn(),
+  getStaffProjectsForMarking: vi.fn(),
   createTeamHealthMessage: vi.fn(),
   getTeamHealthMessagesForUserInProject: vi.fn(),
   getTeamHealthMessagesForTeamInProject: vi.fn(),
@@ -58,6 +60,22 @@ vi.mock("./repo.js", () => ({
   updateAutoTeamWarningById: vi.fn(),
 }));
 
+type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
+
+const createProjectMock = vi.mocked(repo.createProject);
+const getProjectByIdMock = vi.mocked(repo.getProjectById);
+const getUserProjectsMock = vi.mocked(repo.getUserProjects);
+const getModulesForUserMock = vi.mocked(repo.getModulesForUser);
+const getTeammatesInProjectMock = vi.mocked(repo.getTeammatesInProject);
+const getUserProjectDeadlineMock = vi.mocked(repo.getUserProjectDeadline);
+const getTeamByIdMock = vi.mocked(repo.getTeamById);
+const getTeamByUserAndProjectMock = vi.mocked(repo.getTeamByUserAndProject);
+const getQuestionsForProjectMock = vi.mocked(repo.getQuestionsForProject);
+const getStaffProjectsForMarkingMock = vi.mocked(repo.getStaffProjectsForMarking);
+const createTeamHealthMessageMock = vi.mocked(repo.createTeamHealthMessage);
+const getTeamHealthMessagesForUserInProjectMock = vi.mocked(repo.getTeamHealthMessagesForUserInProject);
+const getTeamHealthMessagesForTeamInProjectMock = vi.mocked(repo.getTeamHealthMessagesForTeamInProject);
+const canStaffAccessTeamInProjectMock = vi.mocked(repo.canStaffAccessTeamInProject);
 describe("projects service", () => {
   const deadlineInput = {
     taskOpenDate: new Date("2026-03-01T09:00:00.000Z"),
@@ -210,6 +228,32 @@ describe("projects service", () => {
     await expect(fetchTeamById(3)).resolves.toEqual({ id: 3 });
     await expect(fetchTeamByUserAndProject(1, 2)).resolves.toEqual({ id: 3 });
     await expect(fetchQuestionsForProject(2)).resolves.toEqual({ questionnaireTemplate: { id: 8 } });
+  });
+
+  it("retains numeric project-id matches for staff marking queries", async () => {
+    getStaffProjectsForMarkingMock.mockResolvedValue([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        module: { name: "SEGP" },
+        teams: [
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
+        ],
+      },
+    ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
+
+    await expect(fetchProjectsWithTeamsForStaffMarking(9, { query: "42" })).resolves.toEqual([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        moduleName: "SEGP",
+        teams: [
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", studentCount: 5 },
+        ],
+      },
+    ]);
   });
 
   it("submitTeamHealthMessage validates membership and creates request", async () => {

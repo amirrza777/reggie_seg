@@ -235,10 +235,81 @@ export async function saveMinutes(meetingId: number, writerId: number, content: 
   return upsertMinutes(meetingId, writerId, content);
 }
 
+export function parseMentions(content: string): string[] {
+  const matches = content.match(/@([\p{L}][\p{L}'’-]*\s+[\p{L}][\p{L}'’-]*)/gu);
+  if (!matches) return [];
+
+  const seen = new Set<string>();
+  const mentions: string[] = [];
+  for (const mention of matches) {
+    const normalized = mention.slice(1).trim().replace(/\s+/g, " ");
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    mentions.push(normalized);
+  }
+  return mentions;
+}
+
+function normalizeMentionName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+async function processMentions(
+  commentId: number,
+  meetingId: number,
+  userId: number,
+  content: string,
+  teamId: number,
+) {
+  const mentionedNames = parseMentions(content);
+  if (mentionedNames.length === 0) return;
+
+  const members = await getTeamMembers(teamId);
+  const membersByName = new Map<string, number[]>();
+  for (const member of members) {
+    const key = normalizeMentionName(`${member.firstName} ${member.lastName}`);
+    const ids = membersByName.get(key) ?? [];
+    ids.push(member.id);
+    membersByName.set(key, ids);
+  }
+
+  const mentionedIds = new Set<number>();
+  for (const mentionedName of mentionedNames) {
+    const matchedIds = (membersByName.get(normalizeMentionName(mentionedName)) ?? []).filter((id) => id !== userId);
+    // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
+    if (matchedIds.length === 1) {
+      mentionedIds.add(matchedIds[0]);
+    }
+  }
+
+  const uniqueMentionedIds = [...mentionedIds];
+  if (uniqueMentionedIds.length === 0) return;
+
+  await createMentions(commentId, uniqueMentionedIds);
+
+  const team = await getTeamById(teamId);
+  const author = members.find((member) => member.id === userId);
+  const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
+
+  for (const mentionedId of uniqueMentionedIds) {
+    await addNotification({
+      userId: mentionedId,
+      type: "MENTION",
+      message: `${authorName} mentioned you in a comment`,
+      link: `/projects/${team.projectId}/meetings/${meetingId}`,
+    });
+  }
+}
+
 export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
   const comment = await createComment(meetingId, userId, content);
   if (teamId) {
-    await processMentions(comment.id, meetingId, userId, content, teamId);
+    try {
+      await processMentions(comment.id, meetingId, userId, content, teamId);
+    } catch (error) {
+      console.error("Failed to process comment mentions:", error);
+    }
   }
   return comment;
 }

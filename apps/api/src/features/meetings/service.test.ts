@@ -409,6 +409,21 @@ describe("meetings service", () => {
     );
   });
 
+  it("skips ambiguous full-name mentions when multiple members share the same name", async () => {
+    (repo.createComment as any).mockResolvedValue({ id: 5 });
+    (teamAllocationService.getTeamMembers as any).mockResolvedValue([
+      { id: 2, firstName: "Bob", lastName: "Jones", email: "b1@test.com" },
+      { id: 3, firstName: "Bob", lastName: "Jones", email: "b2@test.com" },
+    ]);
+    (teamAllocationService.getTeamById as any).mockResolvedValue({ projectId: 10 });
+    (repo.createMentions as any).mockResolvedValue(undefined);
+
+    await addComment(1, 1, "@Bob Jones please review", 5);
+
+    expect(repo.createMentions).not.toHaveBeenCalled();
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
   it("forwards removeComment to repo", async () => {
     await removeComment(12);
 
@@ -444,6 +459,17 @@ describe("meetings service", () => {
 
     it("extracts multiple mentions", () => {
       expect(parseMentions("cc @Alice Smith and @Bob Jones")).toEqual(["Alice Smith", "Bob Jones"]);
+    });
+
+    it("supports apostrophes, hyphens, and unicode letters", () => {
+      expect(parseMentions("cc @Anne-Marie O'Neil and @José Álvarez")).toEqual([
+        "Anne-Marie O'Neil",
+        "José Álvarez",
+      ]);
+    });
+
+    it("deduplicates repeated mentions", () => {
+      expect(parseMentions("@Alice Smith and @Alice Smith")).toEqual(["Alice Smith"]);
     });
   });
 });

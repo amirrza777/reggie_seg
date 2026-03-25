@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
 import { parseSearchQuery } from "../../shared/search.js";
+import { readSingleQueryString } from "../../shared/searchParams.js";
 import {
   createProject,
   fetchProjectById,
@@ -8,6 +9,7 @@ import {
   fetchProjectMarking,
   fetchProjectTeamsForStaff,
   fetchProjectsForStaff,
+  fetchProjectsWithTeamsForStaffMarking,
   fetchProjectsForUser,
   fetchModulesForUser,
   fetchModuleStaffList,
@@ -77,14 +79,21 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       parsedDeadline.value,
     );
     res.status(201).json(project);
-  } catch (error: any) {
-    if (error?.code === "FORBIDDEN") {
-      return res.status(403).json({ error: error.message || "Forbidden" });
+  } catch (error: unknown) {
+    const errorCode =
+      typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+    const errorMessage =
+      typeof error === "object" && error !== null && "message" in error
+        ? (error as { message?: unknown }).message
+        : undefined;
+
+    if (errorCode === "FORBIDDEN") {
+      return res.status(403).json({ error: typeof errorMessage === "string" ? errorMessage : "Forbidden" });
     }
-    if (error?.code === "MODULE_NOT_FOUND") {
+    if (errorCode === "MODULE_NOT_FOUND") {
       return res.status(404).json({ error: "Module not found" });
     }
-    if (error?.code === "TEMPLATE_NOT_FOUND") {
+    if (errorCode === "TEMPLATE_NOT_FOUND") {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }
     console.error("Error creating project:", error);
@@ -326,10 +335,21 @@ export async function getStaffProjectsHandler(req: AuthRequest, res: Response) {
     return res.status(400).json({ error: parsedSearchQuery.error });
   }
 
+  const rawModuleId = readSingleQueryString(req.query.moduleId);
+  let parsedModuleId: number | undefined;
+  if (rawModuleId !== undefined && rawModuleId.trim() !== "") {
+    const moduleId = Number(rawModuleId);
+    if (!Number.isInteger(moduleId) || moduleId <= 0) {
+      return res.status(400).json({ error: "moduleId must be a positive integer" });
+    }
+    parsedModuleId = moduleId;
+  }
+
   try {
-    const projects = parsedSearchQuery.value
-      ? await fetchProjectsForStaff(userId, { query: parsedSearchQuery.value })
-      : await fetchProjectsForStaff(userId);
+    const projects = await fetchProjectsForStaff(userId, {
+      query: parsedSearchQuery.value ?? undefined,
+      moduleId: parsedModuleId,
+    });
     res.json(projects);
   } catch (error) {
     console.error("Error fetching staff projects:", error);
@@ -385,5 +405,25 @@ export async function getProjectMarkingHandler(req: AuthRequest, res: Response) 
     }
     console.error("Error fetching project marking:", error);
     res.status(500).json({ error: "Failed to fetch project marking" });
+  }
+}
+
+export async function getStaffMarkingProjectsHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) return;
+
+  const parsedSearchQuery = parseSearchQuery(req.query.q);
+  if (!parsedSearchQuery.ok) {
+    return res.status(400).json({ error: parsedSearchQuery.error });
+  }
+
+  try {
+    const projects = await fetchProjectsWithTeamsForStaffMarking(userId, {
+      query: parsedSearchQuery.value ?? undefined,
+    });
+    res.json(projects);
+  } catch (error) {
+    console.error("Error fetching staff marking projects:", error);
+    res.status(500).json({ error: "Failed to fetch marking projects" });
   }
 }

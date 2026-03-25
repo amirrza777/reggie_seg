@@ -833,13 +833,14 @@ async function getScopedStaffUser(userId: number) {
 }
 
 /** Returns the staff projects. */
-export async function getStaffProjects(userId: number, options?: { query?: string | null }) {
+export async function getStaffProjects(userId: number, options?: { query?: string | null; moduleId?: number }) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
 
   const baseWhere: Prisma.ProjectWhereInput = {
     module: {
       enterpriseId: user.enterpriseId,
+      ...(options?.moduleId != null ? { id: options.moduleId } : {}),
     },
   };
 
@@ -964,6 +965,101 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
   });
 
   return project;
+}
+
+const MARKING_PROJECT_SELECT = {
+  id: true,
+  name: true,
+  moduleId: true,
+  module: { select: { name: true } },
+  teams: {
+    where: { archivedAt: null, allocationLifecycle: "ACTIVE" as const },
+    orderBy: { id: "asc" as const },
+    select: {
+      id: true,
+      teamName: true,
+      projectId: true,
+      inactivityFlag: true,
+      _count: { select: { allocations: true } },
+    },
+  },
+} satisfies Prisma.ProjectSelect;
+
+type MarkingProject = Prisma.ProjectGetPayload<{ select: typeof MARKING_PROJECT_SELECT }>;
+
+function matchesMarkingProjectSearchQuery(project: MarkingProject, query: string): boolean {
+  const teamSources = project.teams.map((t) => t.teamName);
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: project.id,
+    sources: [project.name, project.module?.name ?? "", ...teamSources],
+  });
+}
+
+/** Returns all staff projects with teams for the marking overview (single query). */
+export async function getStaffProjectsForMarking(userId: number, options?: { query?: string | null }) {
+  const user = await getScopedStaffUser(userId);
+  if (!user) return [];
+
+  const baseWhere: Prisma.ProjectWhereInput = {
+    archivedAt: null,
+    module: { enterpriseId: user.enterpriseId },
+  };
+
+  const roleCanAccessAll = user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN";
+  const accessWhere: Prisma.ProjectWhereInput = roleCanAccessAll
+    ? baseWhere
+    : {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { module: { moduleLeads: { some: { userId } } } },
+              { module: { moduleTeachingAssistants: { some: { userId } } } },
+            ],
+          },
+        ],
+      };
+
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+
+  const scopedWhere: Prisma.ProjectWhereInput = hasQuery
+    ? {
+        AND: [
+          accessWhere,
+          {
+            OR: [
+              { name: { contains: normalizedQuery } },
+              { module: { name: { contains: normalizedQuery } } },
+              { teams: { some: { teamName: { contains: normalizedQuery }, archivedAt: null, allocationLifecycle: "ACTIVE" } } },
+              ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+            ],
+          },
+        ],
+      }
+    : accessWhere;
+
+  let projects = await prisma.project.findMany({
+    where: scopedWhere,
+    orderBy: [{ moduleId: "asc" }, { id: "asc" }],
+    select: MARKING_PROJECT_SELECT,
+  });
+
+  projects = await applyFuzzyFallback(projects, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: (limit) =>
+      prisma.project.findMany({
+        where: accessWhere,
+        orderBy: [{ moduleId: "asc" }, { id: "asc" }],
+        select: MARKING_PROJECT_SELECT,
+        take: limit,
+      }),
+    matches: (project, query) => matchesMarkingProjectSearchQuery(project, query),
+  });
+
+  return projects;
 }
 
 /** Returns the project by ID. */

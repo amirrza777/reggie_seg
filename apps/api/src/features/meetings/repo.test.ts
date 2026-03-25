@@ -136,6 +136,9 @@ describe("meetings repo", () => {
   });
 
   it("replaces participants by deleting existing and creating new ones in a transaction", async () => {
+    (prisma.meetingParticipant.deleteMany as any).mockReturnValueOnce(Promise.resolve({ count: 1 }));
+    (prisma.meetingParticipant.createMany as any).mockReturnValueOnce(Promise.resolve({ count: 2 }));
+
     await replaceParticipants(3, [1, 2]);
 
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
