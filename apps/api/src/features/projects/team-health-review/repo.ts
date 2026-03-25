@@ -324,7 +324,6 @@ export async function getTeamDeadlineDetailsInProject(projectId: number, teamId:
   if (!team?.project.deadline) return null;
 
   const effectiveDeadline = mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
-  if (!effectiveDeadline) return null;
 
   const metadata = parseDeadlineOverrideMetadata(team.deadlineOverride?.reason);
   return {
@@ -484,7 +483,6 @@ export async function resolveTeamHealthMessageWithDeadlineOverride(
     });
 
     const deadline = mergeDeadlinesForTeam(projectDeadline, deadlineOverride);
-    if (!deadline) return null;
     return { request, deadline };
   });
 }
