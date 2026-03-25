@@ -202,3 +202,8 @@ export async function fetchMeetingSettings(meetingId: number) {
   if (!meeting) return null;
   return getModuleMeetingSettingsForTeam(meeting.teamId);
 }
+
+/** Returns the module meeting settings for a team. */
+export function fetchTeamMeetingSettings(teamId: number) {
+  return getModuleMeetingSettingsForTeam(teamId);
+}
