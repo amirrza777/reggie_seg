@@ -55,7 +55,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         ...studentMatrix.projects.map((p) => (
           <Link
             key={`head-project-${p.id}`}
-            href={`/staff/projects/${p.id}`}
+            href={`/staff/modules/${enc}/projects/${p.id}`}
             className="staff-module-students-matrix__project-head-link"
           >
             {p.name} ⤴︎
@@ -75,7 +75,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
             return (
               <Link
                 key={`${s.userId}-${projectId}-${cell.teamId}`}
-                href={`/staff/projects/${projectId}/teams/${cell.teamId}`}
+                href={`/staff/modules/${enc}/projects/${projectId}/teams/${cell.teamId}`}
                 className="ui-link staff-module-students-matrix__team-link"
               >
                 {cell.teamName}
@@ -88,21 +88,23 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
     : [];
 
   return (
-    <div className="stack module-workspace-students">
-      <h2 className="overview-title">Student members</h2>
-      <p className="muted" style={{ marginBottom: 16 }}>
-        Enrolled students, team placement per project, and where to manage enrollment.
-      </p>
+    <div className="stack module-dashboard">
+      <header className="module-workspace__section-header">
+        <h2 className="overview-title">Student members</h2>
+        <p className="muted">
+          Enrolled students, team placement per project, and where to manage enrollment.
+        </p>
+      </header>
 
       <ModuleJoinCodeBanner moduleCode={moduleJoinCode} />
 
-      <Card title="Enrollment">
+      <Card title="Enrollment" className="module-workspace__card">
         {manageStudentAccessHref ? (
-          <p style={{ marginBottom: 12 }}>
+          <div>
             <Link href={manageStudentAccessHref} className="btn btn--primary">
               Manage access manually
             </Link>
-          </p>
+          </div>
         ) : null}
 
         {access.enterpriseModuleEditor ? (
@@ -116,7 +118,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         ) : null}
 
         {access.staffModuleSetup ? (
-          <p className="muted" style={{ marginTop: access.enterpriseModuleEditor ? 12 : manageStudentAccessHref ? 12 : 0 }}>
+          <p className="muted">
             Update module text and expectations from{" "}
             <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
               Manage module
@@ -130,31 +132,23 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         ) : null}
       </Card>
 
-      <h3 className="overview-title" style={{ marginTop: 28, fontSize: "1.15rem" }}>
-        Students &amp; project teams
-      </h3>
-      <p className="muted" style={{ marginBottom: 16 }}>
-        Each column is a project in this module. Cells show the team that student is on, with a link to that
-        team&apos;s staff page.
-      </p>
-
       {studentMatrixDenied ? (
-        <Card title="Student enrollment">
+        <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">You don&apos;t have permission to view student enrollment for this module.</p>
         </Card>
       ) : studentMatrixFailed ? (
-        <Card title="Students &amp; teams">
+        <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">Could not load student and team data. Please try again later.</p>
         </Card>
       ) : studentMatrix && studentMatrix.projects.length === 0 ? (
-        <Card title="Students &amp; teams">
+        <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">This module has no projects yet.</p>
         </Card>
       ) : studentMatrix && studentMatrix.students.length === 0 ? (
-        <Card title="Students &amp; teams">
+        <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">No students are enrolled in this module yet.</p>
           {access.staffModuleSetup || access.enterpriseModuleEditor ? (
-            <p className="muted" style={{ marginTop: 8 }}>
+            <p className="muted">
               {access.staffModuleSetup ? (
                 <>
                   Enroll students from{" "}
@@ -163,8 +157,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>
-                      {" "}
-                      or the{" "}
+                      {" "}or the{" "}
                       <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
                         enterprise module editor
                       </Link>
@@ -185,8 +178,9 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
           ) : null}
         </Card>
       ) : studentMatrix ? (
-        <Card title="Enrolled students by project">
-          <div style={{ overflowX: "auto", marginTop: 4 }}>
+        <Card title="Enrolled students by project" className="module-workspace__card">
+          <p className="muted">Each column is a project in this module. Cells link to that team&apos;s staff page.</p>
+          <div style={{ overflowX: "auto", marginTop: 8 }}>
             <Table headers={matrixHeaders} rows={matrixRows} columnTemplate={matrixColumnTemplate} />
           </div>
         </Card>
