@@ -2,14 +2,36 @@ import { prisma } from "../../../shared/db.js";
 import { canManageForumSettings, isUserInProject } from "./access.js";
 
 type ForumAuthor = { id: number; firstName: string; lastName: string; role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN" };
+type ForumDisplayRole = "STUDENT" | "MODULE_LEAD" | "TEACHING_ASSISTANT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+type ForumResolvedAuthor = ForumAuthor & { forumRole: ForumDisplayRole };
 
-function mapForumAuthor(author: ForumAuthor, hideStudentNames: boolean, viewerId: number) {
+function getForumDisplayRole(
+  author: ForumAuthor,
+  moduleLeadIds: Set<number>,
+  moduleTeachingAssistantIds: Set<number>
+): ForumDisplayRole {
+  if (author.role === "STUDENT") return "STUDENT";
+  if (author.role === "ADMIN") return "ADMIN";
+  if (author.role === "ENTERPRISE_ADMIN") return "ENTERPRISE_ADMIN";
+  if (moduleLeadIds.has(author.id)) return "MODULE_LEAD";
+  if (moduleTeachingAssistantIds.has(author.id)) return "TEACHING_ASSISTANT";
+  return "STAFF";
+}
+
+function mapForumAuthor(
+  author: ForumAuthor,
+  hideStudentNames: boolean,
+  viewerId: number,
+  moduleLeadIds: Set<number>,
+  moduleTeachingAssistantIds: Set<number>
+): ForumResolvedAuthor {
   const shouldHide = hideStudentNames && author.role === "STUDENT" && author.id !== viewerId;
   return {
     id: author.id,
     firstName: shouldHide ? "Anonymous" : author.firstName,
     lastName: shouldHide ? "Student" : author.lastName,
     role: author.role,
+    forumRole: getForumDisplayRole(author, moduleLeadIds, moduleTeachingAssistantIds),
   };
 }
 
@@ -20,7 +42,7 @@ export type EnrichedPost = {
   createdAt: Date;
   updatedAt: Date;
   parentPostId: number | null;
-  author: ForumAuthor;
+  author: ForumResolvedAuthor;
   reactionScore: number;
   myReaction: "LIKE" | "DISLIKE" | null;
   replies: EnrichedPost[];
@@ -88,7 +110,10 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
     }),
     prisma.project.findUnique({
       where: { id: projectId },
-      select: { forumIsAnonymous: true },
+      select: {
+        forumIsAnonymous: true,
+        moduleId: true,
+      },
     }),
     prisma.forumReport.findMany({
       where: { projectId },
@@ -129,6 +154,9 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
   if (postIds.length === 0) {
     return [];
   }
+  const authorIds = [...new Set(visiblePosts.map((post) => post.author.id))];
+  const moduleId = project?.moduleId ?? null;
+
   const [myReactions, reactionCounts] = await Promise.all([
     prisma.forumReaction.findMany({
       where: { userId, postId: { in: postIds } },
@@ -140,6 +168,19 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
       _count: { _all: true },
     }),
   ]);
+  const [moduleLeadRows, moduleTeachingAssistantRows] =
+    moduleId && authorIds.length > 0
+      ? await Promise.all([
+          prisma.moduleLead.findMany({
+            where: { moduleId, userId: { in: authorIds } },
+            select: { userId: true },
+          }),
+          prisma.moduleTeachingAssistant.findMany({
+            where: { moduleId, userId: { in: authorIds } },
+            select: { userId: true },
+          }),
+        ])
+      : [[], []];
 
   const reactionByPostId = new Map<number, "LIKE" | "DISLIKE">(
     myReactions.map((reaction) => [reaction.postId, reaction.type])
@@ -153,6 +194,8 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
   }
 
   const hideStudentNames = project?.forumIsAnonymous ?? false;
+  const moduleLeadIds = new Set(moduleLeadRows.map((lead) => lead.userId));
+  const moduleTeachingAssistantIds = new Set(moduleTeachingAssistantRows.map((assistant) => assistant.userId));
   const studentReportByPostId = new Map<number, "PENDING" | "APPROVED" | "IGNORED">(
     myStudentReports.map((report) => [report.postId, report.status])
   );
@@ -162,7 +205,7 @@ export async function getFlatPostsForProject(userId: number, projectId: number) 
     const score = counts.likeCount - counts.dislikeCount;
     return {
       ...post,
-      author: mapForumAuthor(post.author, hideStudentNames, userId),
+      author: mapForumAuthor(post.author, hideStudentNames, userId, moduleLeadIds, moduleTeachingAssistantIds),
       reactionScore: score,
       myReaction: reactionByPostId.get(post.id) ?? null,
       myStudentReportStatus: studentReportByPostId.get(post.id) ?? null,

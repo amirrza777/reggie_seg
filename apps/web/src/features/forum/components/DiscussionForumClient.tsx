@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
 import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
@@ -19,17 +19,27 @@ import "../styles/discussion-forum.css";
 
 type DiscussionForumClientProps = {
   projectId: string;
+  showHeader?: boolean;
 };
 
 const ROOT_POSTS_PER_PAGE = 8;
 const VOTE_ICON_PATH =
   "M6.25 6.5h6.5a1 1 0 0 1 .98 1.2l-.9 4.5a1 1 0 0 1-.98.8H6.25V6.5Zm-1 0H3.5A1.5 1.5 0 0 0 2 8v3.5A1.5 1.5 0 0 0 3.5 13h1.75V6.5Zm1-1V4a2.5 2.5 0 0 1 2.5-2.5c.55 0 1 .45 1 1v1.2c0 .38-.08.75-.23 1.1l-.3.7H6.25Z";
-const MODULE_ROLE_LABELS: Record<DiscussionPost["author"]["role"], string> = {
-  STUDENT: "Student",
-  STAFF: "Teaching Assistant",
-  ADMIN: "Admin",
-  ENTERPRISE_ADMIN: "Enterprise Admin",
+type ResolvedForumRole = NonNullable<DiscussionPost["author"]["forumRole"]>;
+
+const AUTHOR_ROLE_META: Record<ResolvedForumRole, { label: string; variant: string }> = {
+  STUDENT: { label: "Student", variant: "student" },
+  MODULE_LEAD: { label: "Module Lead", variant: "module-lead" },
+  TEACHING_ASSISTANT: { label: "Teaching Assistant", variant: "teaching-assistant" },
+  STAFF: { label: "Staff", variant: "staff" },
+  ADMIN: { label: "Admin", variant: "admin" },
+  ENTERPRISE_ADMIN: { label: "Enterprise Admin", variant: "enterprise-admin" },
 };
+
+function getAuthorRoleMeta(author: DiscussionPost["author"]) {
+  const resolvedRole: ResolvedForumRole = author.forumRole ?? author.role;
+  return AUTHOR_ROLE_META[resolvedRole];
+}
 
 function compareRepliesByScore(a: DiscussionPost, b: DiscussionPost) {
   const aIsNonStudent = a.author.role !== "STUDENT";
@@ -65,11 +75,12 @@ function DiscussionVoteIcon({ direction = "up" }: { direction?: "up" | "down" })
   );
 }
 
-export function DiscussionForumClient({ projectId }: DiscussionForumClientProps) {
+export function DiscussionForumClient({ projectId, showHeader = true }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [posts, setPosts] = useState<DiscussionPost[]>([]);
+  const postsRef = useRef<DiscussionPost[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
@@ -126,6 +137,10 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
   }, [totalPages]);
 
   useEffect(() => {
+    postsRef.current = posts;
+  }, [posts]);
+
+  useEffect(() => {
     if (userLoading) {
       setLoadingPosts(true);
       return;
@@ -133,6 +148,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     if (!user) {
       setLoadingPosts(false);
       setPosts([]);
+      postsRef.current = [];
       return;
     }
 
@@ -140,7 +156,11 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setError(null);
     setCurrentPage(1);
     getDiscussionPosts(user.id, Number(projectId))
-      .then((fetchedPosts) => setPosts(fetchedPosts.map(normalizeReplyOrder)))
+      .then((fetchedPosts) => {
+        const normalized = fetchedPosts.map(normalizeReplyOrder);
+        postsRef.current = normalized;
+        setPosts(normalized);
+      })
       .catch((err: unknown) => {
         logDevError(err);
         setError("Failed to load discussion posts.");
@@ -156,6 +176,25 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
       if (post.replies.length === 0) return post;
       return { ...post, replies: addReplyToTree(post.replies, parentPostId, reply).sort(compareRepliesByScore) };
     });
+
+  const findPostPath = (
+    items: DiscussionPost[],
+    postId: number,
+    trail: number[] = []
+  ): number[] | null => {
+    for (const post of items) {
+      const nextTrail = [...trail, post.id];
+      if (post.id === postId) {
+        return nextTrail;
+      }
+      if (post.replies.length === 0) continue;
+      const nestedMatch = findPostPath(post.replies, postId, nextTrail);
+      if (nestedMatch) {
+        return nestedMatch;
+      }
+    }
+    return null;
+  };
 
   const updatePostInTree = (items: DiscussionPost[], updated: DiscussionPost): DiscussionPost[] =>
     items.map((post) => {
@@ -187,6 +226,14 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
         replies: post.replies.length ? removePostFromTree(post.replies, postId) : post.replies,
       }));
 
+  const setPostsWithRef = (updater: (prev: DiscussionPost[]) => DiscussionPost[]) => {
+    setPosts((prev) => {
+      const next = updater(prev);
+      postsRef.current = next;
+      return next;
+    });
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!canSubmit || !user) return;
@@ -196,7 +243,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
         title: title.trim(),
         body: body.trim(),
       });
-      setPosts((prev) => [next, ...prev]);
+      setPostsWithRef((prev) => [next, ...prev]);
       setCurrentPage(1);
       setTitle("");
       setBody("");
@@ -232,7 +279,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
         title: trimmedTitle,
         body: trimmedBody,
       });
-      setPosts((prev) => updatePostInTree(prev, updated));
+      setPostsWithRef((prev) => updatePostInTree(prev, updated));
       cancelEditing();
     } catch (err) {
       logDevError(err);
@@ -247,7 +294,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setDeletingPostId(postId);
     try {
       await deleteDiscussionPost(user.id, Number(projectId), postId);
-      setPosts((prev) => removePostFromTree(prev, postId));
+      setPostsWithRef((prev) => removePostFromTree(prev, postId));
       if (editingPostId === postId) cancelEditing();
     } catch (err) {
       logDevError(err);
@@ -263,7 +310,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReportingPostId(postId);
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
-      setPosts((prev) => removePostFromTree(prev, postId));
+      setPostsWithRef((prev) => removePostFromTree(prev, postId));
     } catch (err) {
       logDevError(err);
       setError("Failed to report post.");
@@ -278,7 +325,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReportingPostId(postId);
     try {
       await createStudentForumReport(user.id, Number(projectId), postId);
-      setPosts((prev) => updateReportStatusInTree(prev, postId, "PENDING"));
+      setPostsWithRef((prev) => updateReportStatusInTree(prev, postId, "PENDING"));
     } catch (err) {
       logDevError(err);
       setError("Failed to report post.");
@@ -292,7 +339,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     setReactingPostId(postId);
     try {
       const updated = await reactToDiscussionPost(user.id, Number(projectId), postId, type);
-      setPosts((prev) => updatePostInTree(prev, updated));
+      setPostsWithRef((prev) => updatePostInTree(prev, updated));
     } catch (err) {
       logDevError(err);
       setError("Failed to update reaction.");
@@ -318,7 +365,16 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
         body: trimmed,
         parentPostId,
       });
-      setPosts((prev) => addReplyToTree(prev, parentPostId, reply));
+      const parentPath = findPostPath(postsRef.current, parentPostId) ?? [parentPostId];
+      setPostsWithRef((prev) => addReplyToTree(prev, parentPostId, reply));
+      setExpandedRepliesByPostId((prev) => {
+        const next = { ...prev };
+        for (const id of parentPath) {
+          next[id] = true;
+        }
+        return next;
+      });
+      setShowAllImmediateRepliesByPostId((prev) => ({ ...prev, [parentPostId]: true }));
       setReplyDrafts((prev) => ({ ...prev, [parentPostId]: "" }));
       setReplyOpenByPostId((prev) => ({ ...prev, [parentPostId]: false }));
     } catch (err) {
@@ -401,7 +457,8 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
     const isDeletingPost = deletingPostId === post.id;
     const isReportingPost = reportingPostId === post.id;
     const authorName = `${post.author.firstName} ${post.author.lastName}${isAuthor ? " (You)" : ""}`;
-    const authorRoleLabel = MODULE_ROLE_LABELS[post.author.role];
+    const authorRoleMeta = getAuthorRoleMeta(post.author);
+    const rolePillClassName = `discussion-post__role-pill pill pill-ghost discussion-post__role-pill--${authorRoleMeta.variant}`;
     const createdAtLabel = new Date(post.createdAt).toLocaleString();
     const handleReportAction = () => {
       closePostMenu();
@@ -545,7 +602,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                     <strong className="discussion-post__title">{post.title}</strong>
                     <p className="discussion-post__meta">
                       <span>{authorName}</span>
-                      <span className="discussion-post__role-pill pill pill-ghost">{authorRoleLabel}</span>
+                      <span className={rolePillClassName}>{authorRoleMeta.label}</span>
                       <span aria-hidden="true">-</span>
                       <span>{createdAtLabel}</span>
                     </p>
@@ -581,7 +638,7 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
                 <div className="discussion-post__meta-row">
                   <p className="discussion-post__meta">
                     <span>{authorName}</span>
-                    <span className="discussion-post__role-pill pill pill-ghost">{authorRoleLabel}</span>
+                    <span className={rolePillClassName}>{authorRoleMeta.label}</span>
                     <span aria-hidden="true">-</span>
                     <span>{createdAtLabel}</span>
                   </p>
@@ -694,10 +751,12 @@ export function DiscussionForumClient({ projectId }: DiscussionForumClientProps)
 
   return (
     <div className="discussion-forum stack projects-panel">
-      <header className="projects-panel__header discussion-forum__header">
-        <h1 className="projects-panel__title">Discussion Forum</h1>
-        <p className="projects-panel__subtitle">Share updates, ask questions, and keep the team aligned.</p>
-      </header>
+      {showHeader ? (
+        <header className="projects-panel__header discussion-forum__header">
+          <h1 className="projects-panel__title">Discussion Forum</h1>
+          <p className="projects-panel__subtitle">Share updates, ask questions, and keep the team aligned.</p>
+        </header>
+      ) : null}
 
       <form className="card discussion-composer" onSubmit={handleSubmit}>
         <div className="discussion-composer__body">

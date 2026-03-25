@@ -9,6 +9,22 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StaffTeamSectionNav", () => {
+  it("renders health tab label for team route", () => {
+    usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
+    render(<StaffTeamSectionNav projectId="2" teamId="3" />);
+
+    const healthLink = screen.getByRole("link", { name: "Health" });
+    expect(healthLink).toHaveAttribute("href", "/staff/projects/2/teams/3/team");
+  });
+
+  it("renders grading as the final tab", () => {
+    usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
+    render(<StaffTeamSectionNav projectId="2" teamId="3" />);
+
+    const links = screen.getAllByRole("link");
+    expect(links.at(-1)).toHaveTextContent("Grading");
+  });
+
   it("renders grading tab link", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);

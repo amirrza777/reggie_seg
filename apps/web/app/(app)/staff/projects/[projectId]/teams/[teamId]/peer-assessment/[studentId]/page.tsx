@@ -1,16 +1,15 @@
-import Link from "next/link";
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
+import { redirect } from "next/navigation";
+import { Card } from "@/shared/ui/Card";
+import { getCurrentUser } from "@/shared/auth/session";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
-  StaffPeerStudentAssessmentsPanel,
-  type StaffPeerAssessmentGroup,
-} from "@/features/staff/projects/components/StaffPeerStudentAssessmentsPanel";
-import { getFeedbackReview, getPeerAssessmentsForUser as getPeerFeedbackAssessmentsForUser } from "@/features/peerFeedback/api/client";
+  getStudentDetails,
+} from "@/features/staff/peerAssessments/api/client";
 import {
   getPeerAssessmentsForUser,
-  getPeerAssessmentsReceivedForUser,
   getQuestionsByProject,
 } from "@/features/peerAssessment/api/client";
-import type { PeerAssessment } from "@/features/peerAssessment/types";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -21,166 +20,160 @@ function fullName(firstName: string, lastName: string) {
   return `${firstName} ${lastName}`.trim() || "Unknown student";
 }
 
-function serialiseSubmittedAt(value: string | Date) {
-  if (typeof value === "string") return value;
-  return value.toISOString();
-}
-
-function buildGivenGroups(assessments: PeerAssessment[]): StaffPeerAssessmentGroup[] {
-  const map = new Map<number, StaffPeerAssessmentGroup>();
-  for (const a of assessments) {
-    const id = a.revieweeUserId;
-    const name = `${a.firstName} ${a.lastName}`.trim() || `Student ${id}`;
-    let g = map.get(id);
-    if (!g) {
-      g = { counterpartId: id, counterpartName: name, assessments: [] };
-      map.set(id, g);
-    }
-    g.assessments.push({
-      id: a.id,
-      submittedAt: serialiseSubmittedAt(a.submittedAt as string),
-      answers: a.answers ?? {},
-    });
-  }
-  return Array.from(map.values());
-}
-
-function buildReceivedGroups(
-  assessments: PeerAssessment[],
-  feedbackById: Record<
-    string,
-    { reviewText: string | null; agreementsJson: Record<string, { selected: string; score: number }> | null }
-  >
-): StaffPeerAssessmentGroup[] {
-  const map = new Map<number, StaffPeerAssessmentGroup>();
-  for (const a of assessments) {
-    const id = a.reviewerUserId;
-    const name = `${a.firstName} ${a.lastName}`.trim() || `Student ${id}`;
-    let g = map.get(id);
-    if (!g) {
-      g = { counterpartId: id, counterpartName: name, assessments: [] };
-      map.set(id, g);
-    }
-    const fb = feedbackById[a.id];
-    g.assessments.push({
-      id: a.id,
-      submittedAt: serialiseSubmittedAt(a.submittedAt as string),
-      answers: a.answers ?? {},
-      feedbackReview: {
-        reviewText: fb?.reviewText ?? null,
-        agreementsJson: fb?.agreementsJson ?? null,
-      },
-    });
-  }
-  return Array.from(map.values());
-}
-
 export default async function StaffPeerAssessmentStudentPage({ params }: PageProps) {
   const { projectId, teamId, studentId } = await params;
-  const ctx = await getStaffTeamContext(projectId, teamId);
 
-  if (!ctx.ok) {
-    return null;
+  const user = await getCurrentUser();
+  if (!user?.isStaff && user?.role !== "ADMIN") {
+    redirect("/dashboard");
   }
 
-  const { project, team } = ctx;
   const numericProjectId = Number(projectId);
+  const numericTeamId = Number(teamId);
   const numericStudentId = Number(studentId);
-
-  if (Number.isNaN(numericProjectId) || Number.isNaN(numericStudentId)) {
-    return (
-      <section className="staff-projects__team-card">
-        <p className="muted" style={{ margin: 0 }}>
-          Invalid route parameters.
-        </p>
-      </section>
-    );
+  if (
+    Number.isNaN(numericProjectId) ||
+    Number.isNaN(numericTeamId) ||
+    Number.isNaN(numericStudentId)
+  ) {
+    return <p className="muted">Invalid route parameters.</p>;
   }
 
-  const student =
-    team.allocations.find((allocation) => allocation.userId === numericStudentId)?.user ?? null;
+  let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
+  try {
+    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to load project team data.";
+    return <p className="muted">{message}</p>;
+  }
+
+  const team = projectData.teams.find((item) => item.id === numericTeamId) ?? null;
+  if (!team) {
+    return <p className="muted">Team not found in this project.</p>;
+  }
+
+  const student = team.allocations.find((allocation) => allocation.userId === numericStudentId)?.user ?? null;
   const studentTitle =
     student != null ? fullName(student.firstName, student.lastName) : `Student ${studentId}`;
 
-  let givenAssessments: PeerAssessment[] = [];
-  let receivedAssessments: PeerAssessment[] = [];
-  let loadError: string | null = null;
-
+  let reviewerRows: Array<{ id: number; reviewedCurrentStudent: boolean }> = [];
+  let reviewerStatsError: string | null = null;
   try {
-    const [given, received] = await Promise.all([
-      getPeerAssessmentsForUser(numericStudentId, numericProjectId),
-      getPeerAssessmentsReceivedForUser(numericStudentId, numericProjectId),
-    ]);
-    givenAssessments = given;
-    receivedAssessments = received;
+    const studentDetails = await getStudentDetails(
+      user.id,
+      projectData.project.moduleId,
+      numericTeamId,
+      numericStudentId
+    );
+    reviewerRows = studentDetails.teamMembers.filter((member) => member.id !== numericStudentId);
   } catch (error) {
-    loadError = error instanceof Error ? error.message : "Failed to load peer assessments.";
+    reviewerStatsError =
+      error instanceof Error ? error.message : "Failed to load received-assessment stats.";
   }
 
-  const questionLabelById: Record<string, string> = {};
+  const receivedCount = reviewerRows.reduce(
+    (count, member) => count + (member.reviewedCurrentStudent ? 1 : 0),
+    0
+  );
+
+  let assessmentLoadError: string | null = null;
+  let assessments: Awaited<ReturnType<typeof getPeerAssessmentsForUser>> = [];
+  try {
+    assessments = await getPeerAssessmentsForUser(numericStudentId, numericProjectId);
+  } catch (error) {
+    assessmentLoadError = error instanceof Error ? error.message : "Failed to load student submissions.";
+  }
+
+  const questionLabelById = new Map<string, string>();
   try {
     const questions = await getQuestionsByProject(projectId);
-    for (const question of questions) {
-      questionLabelById[String(question.id)] = question.text;
-    }
+    questions.forEach((question) => questionLabelById.set(String(question.id), question.text));
   } catch {
-    // keep raw ids as labels
+    // Keep raw question ids if question metadata cannot be loaded.
   }
-
-  const feedbackById: Record<
-    string,
-    { reviewText: string | null; agreementsJson: Record<string, { selected: string; score: number }> | null }
-  > = {};
-
-  try {
-    const feedbackRows = await getPeerFeedbackAssessmentsForUser(String(numericStudentId), projectId);
-    await Promise.all(
-      feedbackRows.map(async (row) => {
-        try {
-          const review = await getFeedbackReview(String(row.id));
-          feedbackById[String(row.id)] = {
-            reviewText: review.reviewText ?? null,
-            agreementsJson:
-              (review.agreementsJson as Record<string, { selected: string; score: number }> | null) ?? null,
-          };
-        } catch {
-          feedbackById[String(row.id)] = { reviewText: null, agreementsJson: null };
-        }
-      })
-    );
-  } catch {
-    // feedback layer optional
-  }
-
-  const givenGroups = buildGivenGroups(givenAssessments);
-  const receivedGroups = buildReceivedGroups(receivedAssessments, feedbackById);
 
   return (
-    <>
-      <section className="staff-projects__team-card">
-        <Link
-          href={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
-          className="pill-nav__link staff-projects__team-action"
-          style={{ width: "fit-content" }}
-        >
-          ← Back to peer overview
-        </Link>
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Peer Assessment</p>
+        <h1 className="staff-projects__title">{studentTitle}</h1>
+        <p className="staff-projects__desc">
+          View-only evidence of what this student submitted about teammates.
+        </p>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">Project {projectData.project.id}</span>
+          <span className="staff-projects__badge">Team {team.id}</span>
+        </div>
       </section>
 
-      {loadError ? (
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
+      <section className="staff-projects__grid" aria-label="Student peer assessment summary">
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Submitted assessments</h3>
+          <p className="staff-projects__card-sub">{assessments.length}</p>
+        </article>
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Received from teammates</h3>
+          <p className="staff-projects__card-sub">
+            {reviewerStatsError ? "Unavailable" : `${receivedCount}/${reviewerRows.length}`}
+          </p>
+        </article>
+      </section>
+
+      {reviewerStatsError ? (
+        <section className="staff-projects__team-card">
+          <p className="muted" style={{ margin: 0 }}>{reviewerStatsError}</p>
+        </section>
+      ) : null}
+
+      {assessmentLoadError ? (
+        <section className="staff-projects__team-card">
+          <p className="muted" style={{ margin: 0 }}>{assessmentLoadError}</p>
+        </section>
+      ) : null}
+
+      {!assessmentLoadError && assessments.length === 0 ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>
-            {loadError}
+            This student has not submitted peer assessments yet.
           </p>
         </section>
-      ) : (
-        <StaffPeerStudentAssessmentsPanel
-          studentTitle={studentTitle}
-          questionLabels={questionLabelById}
-          givenGroups={givenGroups}
-          receivedGroups={receivedGroups}
-        />
-      )}
-    </>
+      ) : null}
+
+      {!assessmentLoadError && assessments.length > 0 ? (
+        <section className="staff-projects__team-list" aria-label="Submitted peer assessments">
+          {assessments.map((assessment) => {
+            const answers = Object.entries(assessment.answers ?? {});
+            const targetName =
+              `${assessment.firstName ?? ""} ${assessment.lastName ?? ""}`.trim() ||
+              `Student ${assessment.revieweeUserId}`;
+
+            return (
+              <Card
+                key={assessment.id}
+                title={`Submitted for ${targetName}`}
+              >
+                <p className="muted" style={{ margin: "0 0 12px 0" }}>
+                  Submitted: {new Date(assessment.submittedAt).toLocaleString()}
+                </p>
+                {answers.length === 0 ? (
+                  <p className="muted" style={{ margin: 0 }}>No answers stored for this submission.</p>
+                ) : (
+                  <ul className="stack" style={{ gap: 10, margin: 0, paddingLeft: 18 }}>
+                    {answers.map(([questionId, answer]) => (
+                      <li key={`${assessment.id}-${questionId}`}>
+                        <strong>{questionLabelById.get(questionId) ?? questionId}:</strong>{" "}
+                        {answer == null || String(answer).length === 0 ? "No response" : String(answer)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            );
+          })}
+        </section>
+      ) : null}
+    </div>
   );
 }

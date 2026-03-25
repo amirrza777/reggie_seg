@@ -35,7 +35,7 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
   }
 
   return (
-    <div className="staff-projects">
+    <div className="staff-projects staff-projects--panel-inset">
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Staff Workspace</p>
         <h1 className="staff-projects__title">Create Project</h1>

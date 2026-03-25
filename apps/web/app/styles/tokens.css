@@ -40,6 +40,9 @@
   --surface-elevated: color-mix(in srgb, var(--surface) 88%, white 12%);
   --surface-hero-start: color-mix(in srgb, var(--surface) 92%, white 8%);
   --ink: #111111;
+  --pure-white: #ffffff;
+  --pure-black: #000000;
+  --breadcrumb-contrast: var(--pure-black);
   --muted: #4f4f4f;
   --border: rgba(0, 0, 0, 0.08);
   --accent: var(--ink);
@@ -179,6 +182,7 @@
     --surface-elevated: color-mix(in srgb, var(--surface) 96%, black 4%);
     --surface-hero-start: color-mix(in srgb, var(--surface) 94%, black 6%);
     --ink: #fcfdff;
+    --breadcrumb-contrast: var(--pure-white);
     --muted: #cbd5e1;
     --ink-strong: #e2e8f0;
     --ink-subtle: #e2e8f0;

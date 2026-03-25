@@ -308,7 +308,7 @@
   }
 
   .staff-projects__title {
-    font-size: clamp(1.65rem, 9vw, 2.3rem);
+    font-size: var(--fs-panel-title);
   }
 
   .staff-projects__team-top {
@@ -428,9 +428,9 @@
 }
 
 .github-alert-badge--no-account {
-  background: rgba(99, 102, 241, 0.12);
-  color: rgb(67, 56, 202);
-  border: 1px solid rgba(99, 102, 241, 0.35);
+  background: var(--status-warning-soft);
+  color: var(--status-warning-text);
+  border: 1px solid var(--status-warning-border);
   cursor: default;
 }
 

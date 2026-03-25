@@ -23,16 +23,27 @@ export function DiscussionPostsSkeleton({
               <div className="discussion-post__title-row">
                 <div className="discussion-post__headline">
                   <Skeleton className="discussion-posts__skeleton-title" />
-                  <Skeleton className="discussion-posts__skeleton-meta" />
+                  <div className="discussion-posts__skeleton-meta-row">
+                    <Skeleton inline className="discussion-posts__skeleton-meta discussion-posts__skeleton-meta--author" />
+                    <Skeleton inline className="discussion-posts__skeleton-role-pill" />
+                    <Skeleton inline className="discussion-posts__skeleton-meta discussion-posts__skeleton-meta--date" />
+                  </div>
                 </div>
-                <Skeleton className="discussion-posts__skeleton-menu" />
+                <div className="discussion-post__title-actions">
+                  <Skeleton className="discussion-posts__skeleton-toggle" />
+                  <Skeleton className="discussion-posts__skeleton-menu" />
+                </div>
               </div>
             </div>
-            <SkeletonText className="discussion-posts__skeleton-body" lines={2} widths={["100%", "76%"]} />
-            <div className="discussion-posts__skeleton-toolbar">
-              <Skeleton inline className="discussion-posts__skeleton-action" />
-              <Skeleton inline className="discussion-posts__skeleton-action" />
-              <Skeleton inline className="discussion-posts__skeleton-action" />
+            <SkeletonText className="discussion-posts__skeleton-body" lines={2} widths={["96%", "78%"]} />
+            <div className="discussion-post__toolbar">
+              <div className="discussion-post__toolbar-left discussion-posts__skeleton-toolbar-left">
+                <Skeleton className="discussion-posts__skeleton-score" />
+                <div className="discussion-post__action-row">
+                  <Skeleton className="discussion-posts__skeleton-vote" />
+                  <Skeleton className="discussion-posts__skeleton-vote" />
+                </div>
+              </div>
             </div>
           </article>
         ))}

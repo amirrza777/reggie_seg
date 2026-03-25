@@ -10,10 +10,14 @@
 
 .workspace-shell .help-page {
   --help-hub-text-inset: clamp(4px, 0.6vw, 8px);
+  --help-hub-panel-inset: clamp(10px, 2.4vw, var(--space-panel-content-inset));
   position: relative;
   display: grid;
   gap: clamp(24px, 4vw, 36px);
   width: 100%;
+  padding-top: var(--help-hub-panel-inset);
+  padding-inline: var(--help-hub-panel-inset);
+  padding-bottom: var(--help-hub-panel-inset);
 }
 
 .workspace-shell .help-page__content {

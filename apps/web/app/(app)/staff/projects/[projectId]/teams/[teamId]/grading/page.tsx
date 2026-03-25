@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/shared/auth/session";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -11,6 +14,7 @@ type PageProps = {
 function formatStableDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown time";
+
   return `${new Intl.DateTimeFormat("en-GB", {
     timeZone: "UTC",
     year: "numeric",
@@ -25,17 +29,40 @@ function formatStableDateTime(value: string) {
 
 export default async function StaffTeamGradingSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
-  const ctx = await getStaffTeamContext(projectId, teamId);
 
-  if (!ctx.ok) return null;
+  const user = await getCurrentUser();
+  if (!user?.isStaff && user?.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
 
-  const { user, project, team } = ctx;
+  const numericProjectId = Number(projectId);
+  const numericTeamId = Number(teamId);
+  if (Number.isNaN(numericProjectId) || Number.isNaN(numericTeamId)) {
+    return <p className="muted">Invalid project or team ID.</p>;
+  }
+
+  let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
+  let projectError: string | null = null;
+  try {
+    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+  } catch (error) {
+    projectError = error instanceof Error ? error.message : "Failed to load project team data.";
+  }
+
+  const team = projectData?.teams.find((item) => item.id === numericTeamId) ?? null;
+  if (!projectData || !team) {
+    return (
+      <div className="stack">
+        <p className="muted">{projectError ?? "Team not found in this project."}</p>
+      </div>
+    );
+  }
 
   let teamMarking: Awaited<ReturnType<typeof getTeamDetails>>["teamMarking"] = null;
   let students: Awaited<ReturnType<typeof getTeamDetails>>["students"] = [];
   let gradingError: string | null = null;
   try {
-    const teamDetails = await getTeamDetails(user.id, project.moduleId, team.id);
+    const teamDetails = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
     teamMarking = teamDetails.teamMarking;
     students = teamDetails.students;
   } catch (error) {
@@ -45,7 +72,21 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
   const lastUpdatedLabel = teamMarking ? formatStableDateTime(teamMarking.updatedAt) : "Not graded yet";
 
   return (
-    <>
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Grading</p>
+        <h1 className="staff-projects__title">{team.teamName}</h1>
+        <p className="staff-projects__desc">
+          Project: {projectData.project.name}. Team-level grading and links to student-level grading details.
+        </p>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">Project {projectData.project.id}</span>
+          <span className="staff-projects__badge">Team {team.id}</span>
+        </div>
+      </section>
+
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
       {gradingError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{gradingError}</p>
@@ -71,7 +112,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
             title="Team marking and formative feedback"
             description="Set a shared team mark and formative guidance visible to all team members."
             staffId={user.id}
-            moduleId={project.moduleId}
+            moduleId={projectData.project.moduleId}
             teamId={team.id}
             initialMarking={teamMarking}
           />
@@ -92,7 +133,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
                   <p className="muted" style={{ margin: 0 }}>Student identifier unavailable.</p>
                 ) : (
                   <Link
-                    href={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment/${student.id}`}
+                    href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${student.id}`}
                     className="pill-nav__link staff-projects__team-action"
                   >
                     Open student grading
@@ -103,6 +144,6 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
           </section>
         </>
       )}
-    </>
+    </div>
   );
 }

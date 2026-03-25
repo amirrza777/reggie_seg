@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import type { Team } from "@/features/projects/types";
 import { dismissTeamFlag } from "@/features/projects/api/client";
 
@@ -17,8 +17,10 @@ function getInitials(firstName: string, lastName: string) {
 }
 
 export function StaffTeamCard({ team, projectId }: Props) {
+  const router = useRouter();
   const [flag, setFlag] = useState(team.inactivityFlag);
   const [dismissing, setDismissing] = useState(false);
+  const teamHref = `/staff/projects/${projectId}/teams/${team.id}`;
 
   const unconnectedMembers = team.allocations
     .filter((a) => !a.user.githubAccount)
@@ -34,8 +36,24 @@ export function StaffTeamCard({ team, projectId }: Props) {
     }
   }
 
+  function openTeamWorkspace() {
+    router.push(teamHref);
+  }
+
+  function handleCardKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openTeamWorkspace();
+  }
+
   return (
-    <article className="staff-projects__team-card">
+    <article
+      className="staff-projects__team-card staff-projects__team-card--clickable"
+      role="link"
+      tabIndex={0}
+      onClick={openTeamWorkspace}
+      onKeyDown={handleCardKeyDown}
+    >
       <div className="staff-projects__team-top">
         <h3 className="staff-projects__team-title">{team.teamName}</h3>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -80,21 +98,24 @@ export function StaffTeamCard({ team, projectId }: Props) {
         <p className="staff-projects__team-count">No students assigned yet.</p>
       )}
 
-      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}>
-        <Link href={`/staff/projects/${projectId}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
-          Open team workspace
-        </Link>
-        {flag === "RED" && (
+      {flag === "RED" && (
+        <div
+          style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginTop: 12 }}
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <button
             type="button"
             className="team-flag__dismiss"
             disabled={dismissing}
-            onClick={handleDismiss}
+            onClick={() => {
+              void handleDismiss();
+            }}
           >
             {dismissing ? "Dismissing…" : "Dismiss flag"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </article>
   );
 }

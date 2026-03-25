@@ -1,6 +1,9 @@
-import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
-import { getTeamDetails, getStudentDetails } from "@/features/staff/peerAssessments/api/client";
-import { StaffPeerMemberDualProgressGrid } from "@/features/staff/projects/components/StaffPeerMemberDualProgressGrid";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/shared/auth/session";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
+import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -9,91 +12,82 @@ type PageProps = {
 
 export default async function StaffPeerAssessmentSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
-  const ctx = await getStaffTeamContext(projectId, teamId);
 
-  if (!ctx.ok) return null;
+  const user = await getCurrentUser();
+  if (!user?.isStaff && user?.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
 
-  const { user, project, team } = ctx;
+  const numericProjectId = Number(projectId);
+  const numericTeamId = Number(teamId);
+  if (Number.isNaN(numericProjectId) || Number.isNaN(numericTeamId)) {
+    return <p className="muted">Invalid project or team ID.</p>;
+  }
+
+  let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
+  let projectError: string | null = null;
+  try {
+    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+  } catch (error) {
+    projectError = error instanceof Error ? error.message : "Failed to load project team data.";
+  }
+
+  const team = projectData?.teams.find((item) => item.id === numericTeamId) ?? null;
+  if (!projectData || !team) {
+    return (
+      <div className="stack">
+        <p className="muted">{projectError ?? "Team not found in this project."}</p>
+      </div>
+    );
+  }
 
   let students: Awaited<ReturnType<typeof getTeamDetails>>["students"] = [];
   let detailError: string | null = null;
   try {
-    const detailData = await getTeamDetails(user.id, project.moduleId, team.id);
+    const detailData = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
     students = detailData.students;
   } catch (error) {
     detailError = error instanceof Error ? error.message : "Failed to load peer assessment data.";
   }
 
-  const receivedByStudentId = new Map<
-    number,
-    { received: number; expected: number; error?: boolean }
-  >();
-
-  if (!detailError && students.length > 0) {
-    await Promise.all(
-      students
-        .filter((s): s is typeof s & { id: number } => s.id != null)
-        .map(async (student) => {
-          try {
-            const details = await getStudentDetails(
-              user.id,
-              project.moduleId,
-              team.id,
-              student.id
-            );
-            const peers = details.teamMembers.filter((m) => m.id !== student.id);
-            const received = peers.filter((m) => m.reviewedCurrentStudent).length;
-            receivedByStudentId.set(student.id, {
-              received,
-              expected: peers.length,
-            });
-          } catch {
-            receivedByStudentId.set(student.id, {
-              received: 0,
-              expected: student.expected,
-              error: true,
-            });
-          }
-        })
-    );
-  }
-
-  const gridItems = students.map((student, index) => {
-    const sid = student.id;
-    const recv =
-      sid != null
-        ? receivedByStudentId.get(sid)
-        : undefined;
-
-    return {
-      id: sid ?? -(index + 1),
-      title: student.title,
-      givenSubmitted: student.submitted,
-      givenExpected: student.expected,
-      receivedSubmitted: recv?.received ?? 0,
-      receivedExpected: recv?.expected ?? student.expected,
-      href:
-        sid != null
-          ? `/staff/projects/${project.id}/teams/${team.id}/peer-assessment/${sid}`
-          : undefined,
-    };
-  });
-
   return (
-    <section className="staff-projects__team-card">
-      <h3 style={{ margin: 0 }}>Peer assessments by student</h3>
-      <p className="muted" style={{ margin: 0 }}>
-        Track assessments each student has written about teammates and assessments they have received. Open a student to
-        see detail grouped by teammate. Written feedback responses on received assessments appear under{" "}
-        <strong>Assessments received</strong>.
-      </p>
-      {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
-      {!detailError && students.length === 0 ? (
-        <p className="muted" style={{ marginTop: 8 }}>
-          No student allocation data is available for this team yet.
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Peer Assessment</p>
+        <h1 className="staff-projects__title">{team.teamName}</h1>
+        <p className="staff-projects__desc">
+          Project: {projectData.project.name}. Review submission progress for each student in this team.
         </p>
-      ) : null}
-      {!detailError && students.length > 0 ? <StaffPeerMemberDualProgressGrid items={gridItems} /> : null}
-    </section>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">Project {projectData.project.id}</span>
+          <span className="staff-projects__badge">Team {team.id}</span>
+        </div>
+      </section>
+
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
+      <section className="staff-projects__team-card">
+        <h3 style={{ margin: 0 }}>Assessment progress by student</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          This section is view-only for peer-assessment completion. No grading actions are available here.
+        </p>
+        {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
+        {!detailError && students.length === 0 ? (
+          <p className="muted" style={{ marginTop: 8 }}>
+            No student allocation data is available for this team yet.
+          </p>
+        ) : null}
+        {!detailError && students.length > 0 ? (
+          <ProgressCardGrid
+            items={students}
+            getHref={(item) =>
+              item.id == null
+                ? undefined
+                : `/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${item.id}`
+            }
+          />
+        ) : null}
+      </section>
+    </div>
   );
 }

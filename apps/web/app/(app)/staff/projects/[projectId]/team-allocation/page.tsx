@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
+import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -17,35 +18,30 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
   }
 
   const { projectId } = await params;
-  const numericProjectId = Number(projectId);
-  if (Number.isNaN(numericProjectId)) {
+  const loadResult = await loadStaffProjectTeamsForPage(
+    user.id,
+    projectId,
+    "Failed to load project team allocation data."
+  );
+  if (loadResult.status === "invalid_project_id") {
     return <p className="muted">Invalid project ID.</p>;
   }
-
-  let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
-  let errorMessage: string | null = null;
-  try {
-    data = await getStaffProjectTeams(user.id, numericProjectId);
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Failed to load project team allocation data.";
-  }
-
-  if (!data) {
+  if (loadResult.status === "error") {
     return (
       <div className="stack">
-        <p className="muted">{errorMessage ?? "Project not found."}</p>
-        <Link href="/staff/modules" className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to my modules
-        </Link>
+        <p className="muted">{loadResult.message}</p>
       </div>
     );
   }
+  const { data } = loadResult;
 
   const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
   const emptyTeams = data.teams.filter((team) => team.allocations.length === 0).length;
 
   return (
     <div className="staff-projects">
+      <StaffProjectSectionNav projectId={projectId} />
+
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Team allocation</p>
         <h1 className="staff-projects__title">{data.project.name}</h1>
@@ -53,9 +49,6 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} allocated student{totalStudents === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}</span>
-          <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
-            Back to teams
-          </Link>
         </div>
       </section>
 

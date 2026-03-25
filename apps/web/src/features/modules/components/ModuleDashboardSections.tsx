@@ -208,7 +208,7 @@ export function ModuleMarksSection({ marksRows = [] }: ModuleMarksSectionProps) 
           rowClassName="module-dashboard__table-row module-dashboard__marks-row"
         />
       </Card>
-      <Card title="Marking notes" className="module-dashboard__panel">
+      <Card title="Marking notes" className="module-dashboard__panel module-dashboard__panel--notes">
         <p className="muted">Marks are scoped to this module. Use this tab for module-level grading visibility only.</p>
       </Card>
     </>

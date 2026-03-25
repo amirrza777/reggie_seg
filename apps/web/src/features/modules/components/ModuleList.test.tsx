@@ -1,9 +1,19 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { vi } from "vitest";
 import { ModuleList } from "./ModuleList";
-import React from "react";
+
+const push = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
 
 describe("ModuleList", () => {
+  beforeEach(() => {
+    push.mockReset();
+  });
+
   it("renders an empty state by default", () => {
     render(<ModuleList />);
     expect(screen.getByText("No modules assigned yet.")).toBeInTheDocument();
@@ -24,7 +34,7 @@ describe("ModuleList", () => {
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
 
-  it("makes the whole card a link to that module's staff overview", () => {
+  it("shows management actions for module owners", () => {
     render(
       <ModuleList
         modules={[
@@ -33,13 +43,19 @@ describe("ModuleList", () => {
       />,
     );
 
-    const cardLink = screen.getByRole("link", { name: /Software Engineering: open module overview/i });
-    expect(cardLink).toHaveAttribute("href", "/staff/modules/12");
-    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Create project" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Module actions for Software Engineering" }));
+
+    expect(screen.getByRole("menuitem", { name: "Manage module" })).toHaveAttribute(
+      "href",
+      "/staff/modules/12/manage",
+    );
+    expect(screen.getByRole("menuitem", { name: "Create project" })).toHaveAttribute(
+      "href",
+      "/staff/projects/create?moduleId=12",
+    );
   });
 
-  it("uses the same card link pattern for admin access role", () => {
+  it("hides manage-module action for admin access role", () => {
     render(
       <ModuleList
         modules={[
@@ -48,9 +64,26 @@ describe("ModuleList", () => {
       />,
     );
 
-    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
-    const cardLink = screen.getByRole("link", { name: /Data Structures: open module overview/i });
-    expect(cardLink).toHaveAttribute("href", "/staff/modules/22");
+    fireEvent.click(screen.getByRole("button", { name: "Module actions for Data Structures" }));
+
+    expect(screen.queryByRole("menuitem", { name: "Manage module" })).not.toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Create project" })).toHaveAttribute(
+      "href",
+      "/staff/projects/create?moduleId=22",
+    );
+  });
+
+  it("opens the module when the card is clicked", () => {
+    render(
+      <ModuleList
+        modules={[
+          { id: "31", title: "Machine Learning", accountRole: "OWNER" },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "View module Machine Learning" }));
+    expect(push).toHaveBeenCalledWith("/modules/31");
   });
 
   it("sorts modules by the selected mode", () => {

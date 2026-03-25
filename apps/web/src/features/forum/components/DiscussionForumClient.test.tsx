@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useUser } from "@/features/auth/useUser";
-import { getDiscussionPosts, reactToDiscussionPost } from "@/features/forum/api/client";
+import { createDiscussionPost, getDiscussionPosts, reactToDiscussionPost } from "@/features/forum/api/client";
 import { DiscussionForumClient } from "./DiscussionForumClient";
 
 vi.mock("@/features/auth/useUser", () => ({
@@ -19,6 +19,7 @@ vi.mock("@/features/forum/api/client", () => ({
 }));
 
 const useUserMock = vi.mocked(useUser);
+const createDiscussionPostMock = vi.mocked(createDiscussionPost);
 const getDiscussionPostsMock = vi.mocked(getDiscussionPosts);
 const reactToDiscussionPostMock = vi.mocked(reactToDiscussionPost);
 
@@ -188,6 +189,106 @@ describe("DiscussionForumClient", () => {
     expect(firstReplyBody).toHaveTextContent("Lower scored reply");
   });
 
+  it("expands the replied thread and shows a newly posted reply", async () => {
+    getDiscussionPostsMock.mockResolvedValue([
+      {
+        id: 100,
+        parentPostId: null,
+        title: "Root post",
+        body: "Root body",
+        createdAt: "2026-03-22T10:00:00.000Z",
+        updatedAt: "2026-03-22T10:00:00.000Z",
+        reactionScore: 0,
+        myReaction: null,
+        myStudentReportStatus: null,
+        author: { id: 2, firstName: "Takao", lastName: "Watson", role: "STUDENT" },
+        replies: [
+          {
+            id: 201,
+            parentPostId: 100,
+            title: "",
+            body: "Older reply 1",
+            createdAt: "2026-03-22T10:05:00.000Z",
+            updatedAt: "2026-03-22T10:05:00.000Z",
+            reactionScore: 0,
+            myReaction: null,
+            myStudentReportStatus: null,
+            author: { id: 3, firstName: "Takako", lastName: "Watson", role: "STUDENT" },
+            replies: [],
+          },
+          {
+            id: 202,
+            parentPostId: 100,
+            title: "",
+            body: "Older reply 2",
+            createdAt: "2026-03-22T10:10:00.000Z",
+            updatedAt: "2026-03-22T10:10:00.000Z",
+            reactionScore: 0,
+            myReaction: null,
+            myStudentReportStatus: null,
+            author: { id: 4, firstName: "Takizo", lastName: "Watson", role: "STUDENT" },
+            replies: [],
+          },
+          {
+            id: 203,
+            parentPostId: 100,
+            title: "",
+            body: "Older reply 3",
+            createdAt: "2026-03-22T10:15:00.000Z",
+            updatedAt: "2026-03-22T10:15:00.000Z",
+            reactionScore: 0,
+            myReaction: null,
+            myStudentReportStatus: null,
+            author: { id: 5, firstName: "Takimi", lastName: "Watson", role: "STUDENT" },
+            replies: [],
+          },
+        ],
+      },
+    ]);
+
+    createDiscussionPostMock.mockResolvedValue({
+      id: 204,
+      parentPostId: 100,
+      title: "",
+      body: "Newest reply",
+      createdAt: "2026-03-22T10:20:00.000Z",
+      updatedAt: "2026-03-22T10:20:00.000Z",
+      reactionScore: 0,
+      myReaction: null,
+      myStudentReportStatus: null,
+      author: { id: 1, firstName: "Ayan", lastName: "Mamun", role: "STUDENT" },
+      replies: [],
+    });
+
+    render(<DiscussionForumClient projectId="9" />);
+
+    await waitFor(() => {
+      expect(getDiscussionPostsMock).toHaveBeenCalledWith(1, 9);
+    });
+
+    expect(screen.queryByText("Older reply 1")).not.toBeInTheDocument();
+
+    const rootCard = screen.getByText("Root body").closest("article");
+    expect(rootCard).not.toBeNull();
+    const rootCardElement = rootCard as HTMLElement;
+
+    fireEvent.click(within(rootCardElement).getByRole("button", { name: "Post actions" }));
+    fireEvent.click(within(rootCardElement).getByRole("button", { name: "Reply" }));
+    fireEvent.change(within(rootCardElement).getByLabelText("Reply"), { target: { value: "Newest reply" } });
+    fireEvent.click(within(rootCardElement).getByRole("button", { name: "Post reply" }));
+
+    await waitFor(() => {
+      expect(createDiscussionPostMock).toHaveBeenCalledWith(1, 9, {
+        title: "",
+        body: "Newest reply",
+        parentPostId: 100,
+      });
+    });
+
+    expect(screen.getByText("Newest reply")).toBeInTheDocument();
+    expect(within(rootCardElement).getByRole("button", { name: "Hide replies" })).toBeInTheDocument();
+  });
+
   it("prioritizes non-student replies above student replies within the same nesting level", async () => {
     getDiscussionPostsMock.mockResolvedValue([
       {
@@ -242,5 +343,18 @@ describe("DiscussionForumClient", () => {
 
     const firstReplyBody = screen.getAllByText(/score$/i)[0];
     expect(firstReplyBody).toHaveTextContent("TA lower score");
+  });
+
+  it("omits the panel heading when showHeader is false", async () => {
+    getDiscussionPostsMock.mockResolvedValue([]);
+
+    render(<DiscussionForumClient projectId="9" showHeader={false} />);
+
+    await waitFor(() => {
+      expect(getDiscussionPostsMock).toHaveBeenCalledWith(1, 9);
+    });
+
+    expect(screen.queryByRole("heading", { name: "Discussion Forum", level: 1 })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Latest posts", level: 2 })).toBeInTheDocument();
   });
 });
