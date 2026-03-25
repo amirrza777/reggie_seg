@@ -10,7 +10,7 @@ import {
   resolveTeamWarningForStaff,
   updateProjectNavFlagsConfigForStaff,
   updateProjectWarningsConfigForStaff,
-} from "./service.js";
+} from "../service.js";
 import { parsePositiveInt, resolveAuthenticatedUserId } from "../controller.shared.js";
 
 function parseSeverity(value: unknown): "LOW" | "MEDIUM" | "HIGH" | null {
