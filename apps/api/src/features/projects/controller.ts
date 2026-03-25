@@ -32,8 +32,11 @@ export {
   resolveStaffTeamWarningHandler,
   getMyTeamWarningsHandler,
   getProjectWarningsConfigHandler,
-  getProjectNavFlagsConfigHandler,
-  updateProjectNavFlagsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
 } from "./warnings/controller.js";
+
+export {
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
+} from "./nav-flags/controller.js";
