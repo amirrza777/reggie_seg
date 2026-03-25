@@ -36,4 +36,4 @@ export {
   updateProjectNavFlagsConfigHandler,
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
-} from "./controller.warnings.js";
+} from "./warnings/controller.js";
