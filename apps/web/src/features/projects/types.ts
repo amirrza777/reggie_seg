@@ -46,6 +46,8 @@ export type User = {
   firstName: string;
   lastName: string;
   email: string;
+  /** Present when the user has linked Trello (member id from Trello). */
+  trelloMemberId?: string | null;
   githubAccount?: { id: number } | null;
 };
 

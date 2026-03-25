@@ -34,8 +34,8 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
     return (
       <div className="stack">
         <p className="muted">{errorMessage ?? "Project not found."}</p>
-        <Link href="/staff/projects" className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to staff projects
+        <Link href="/staff/modules" className="pill-nav__link" style={{ width: "fit-content" }}>
+          Back to my modules
         </Link>
       </div>
     );

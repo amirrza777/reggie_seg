@@ -6,6 +6,8 @@ import {
   fetchProjectById,
   fetchProjectsForUser,
   fetchModulesForUser,
+  fetchModuleStaffList,
+  fetchModuleStudentProjectMatrix,
   fetchProjectDeadline,
   fetchTeammatesForProject,
   fetchTeamById,
@@ -42,7 +44,7 @@ function resolveAuthenticatedUserId(req: AuthRequest, res: Response): number | n
     return null;
   }
 
-  const queryUserId = req.query.userId;
+  const queryUserId = req.query?.userId;
   if (queryUserId !== undefined) {
     const parsedQueryUserId = Number(queryUserId);
     if (Number.isNaN(parsedQueryUserId)) {
@@ -336,6 +338,54 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("Error fetching user modules:", error);
     res.status(500).json({ error: "Failed to fetch modules" });
+  }
+}
+
+/** Module leads + TAs (for staff module pages). */
+export async function getModuleStaffListHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) {
+    return;
+  }
+
+  const moduleId = parsePositiveInt(req.params.moduleId);
+  if (moduleId === null) {
+    return res.status(400).json({ error: "Invalid module id" });
+  }
+
+  try {
+    const result = await fetchModuleStaffList(userId, moduleId);
+    if (!result.ok) {
+      return res.status(result.status).json({ error: "Forbidden" });
+    }
+    return res.json({ members: result.members });
+  } catch (error) {
+    console.error("Error fetching module staff list:", error);
+    return res.status(500).json({ error: "Failed to fetch module staff" });
+  }
+}
+
+/** Enrolled students × project team matrix for a module (staff workspace). */
+export async function getModuleStudentProjectMatrixHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  if (userId === null) {
+    return;
+  }
+
+  const moduleId = parsePositiveInt(req.params.moduleId);
+  if (moduleId === null) {
+    return res.status(400).json({ error: "Invalid module id" });
+  }
+
+  try {
+    const result = await fetchModuleStudentProjectMatrix(userId, moduleId);
+    if (!result.ok) {
+      return res.status(result.status).json({ error: "Forbidden" });
+    }
+    return res.json({ projects: result.projects, students: result.students });
+  } catch (error) {
+    console.error("Error fetching module student project matrix:", error);
+    return res.status(500).json({ error: "Failed to fetch student project matrix" });
   }
 }
 

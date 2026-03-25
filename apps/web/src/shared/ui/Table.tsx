@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 
 type TableProps = {
-  headers: string[];
+  headers: ReactNode[];
   rows: Array<Array<ReactNode>>;
   columnTemplate?: string;
   className?: string;

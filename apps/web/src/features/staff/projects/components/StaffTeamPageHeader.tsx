@@ -27,7 +27,14 @@ export function StaffTeamPageHeader({ project, team, subtitle }: StaffTeamPageHe
   return (
     <section className="staff-projects__hero">
       <nav className="pill-nav" aria-label="Location">
-        {project.moduleName ? (
+        {project.moduleName && project.moduleId != null ? (
+          <>
+            <Link href={`/staff/modules/${project.moduleId}`} className="muted">
+              {project.moduleName}
+            </Link>
+            <span className="muted" aria-hidden>/</span>
+          </>
+        ) : project.moduleName ? (
           <>
             <Link href="/staff/modules" className="muted">
               {project.moduleName}

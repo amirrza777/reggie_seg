@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import type { Module } from "../types";
 import { ModuleList } from "./ModuleList";
@@ -26,9 +25,6 @@ export function StaffModulesPageClient({
         <h1 className="projects-panel__title">My Modules</h1>
         <p className="projects-panel__subtitle">{subtitle}</p>
         <div className="staff-projects__meta staff-modules__meta-row">
-          <Link href="/staff/projects" className="staff-projects__badge">
-            Open staff projects
-          </Link>
           {shouldShowSortControl ? <StaffModulesSortControl sortBy={sortBy} setSortBy={setSortBy} /> : null}
         </div>
       </header>

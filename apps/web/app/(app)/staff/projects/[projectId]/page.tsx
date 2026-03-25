@@ -33,8 +33,8 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
     return (
       <div className="stack">
         <p className="muted">{errorMessage ?? "Project not found."}</p>
-        <Link href="/staff/projects" className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to staff projects
+        <Link href="/staff/modules" className="pill-nav__link" style={{ width: "fit-content" }}>
+          Back to my modules
         </Link>
       </div>
     );
@@ -53,7 +53,9 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
-          <Link href="/staff/projects" className="staff-projects__badge">Back to projects</Link>
+          <Link href={`/staff/modules/${data.project.moduleId}`} className="staff-projects__badge">
+            Back to module
+          </Link>
         </div>
         <div className="staff-projects__hero-actions">
           <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">

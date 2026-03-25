@@ -6,5 +6,5 @@ export default async function TeamHealthPage() {
   if (!isElevatedStaff(user)) {
     redirect("/dashboard");
   }
-  redirect("/staff/projects");
+  redirect("/staff/modules");
 }

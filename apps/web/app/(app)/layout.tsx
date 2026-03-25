@@ -32,7 +32,6 @@ type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 const moduleScopedStaffLinks = new Set([
   "/staff/dashboard",
   "/staff/modules",
-  "/staff/projects",
   "/staff/analytics",
   "/staff/questionnaires",
   "/staff/archive",
@@ -142,7 +141,6 @@ function buildBaseNavLinks(moduleChildren: NonNullable<NavLink["children"]>, pro
     { href: "/calendar", label: "Calendar", space: "workspace" },
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/modules", label: "My Modules", space: "staff" },
-    { href: "/staff/projects", label: "Projects", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
     { href: "/staff/archive", label: "Archive", space: "staff" },

@@ -43,8 +43,15 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
           Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.
         </p>
         <div className="staff-projects__meta">
-          <Link href="/staff/projects" className="staff-projects__badge">
-            Back to projects
+          <Link
+            href={
+              initialModuleId
+                ? `/staff/modules/${encodeURIComponent(initialModuleId)}`
+                : "/staff/modules"
+            }
+            className="staff-projects__badge"
+          >
+            {initialModuleId ? "Back to module" : "Back to my modules"}
           </Link>
         </div>
       </section>

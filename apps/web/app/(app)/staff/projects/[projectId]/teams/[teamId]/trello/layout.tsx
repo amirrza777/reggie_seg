@@ -1,30 +1,22 @@
 /* eslint-disable react-refresh/only-export-components */
-import { getTeamByUserAndProject } from "@/features/projects/api/client";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { TrelloBoardProvider } from "@/features/trello/context/TrelloBoardContext";
-import { getCurrentUser } from "@/shared/auth/session";
+
 export const metadata = { title: "Trello (staff)" };
 
 type LayoutProps = {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ projectId: string; teamId: string }>;
   children: React.ReactNode;
 };
 
-export default async function StaffTrelloLayout({ params, children }: LayoutProps) {
-  const { projectId } = await params;
-  const user = await getCurrentUser();
-  let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
 
-  if (user) {
-    try {
-      team = await getTeamByUserAndProject(user.id, Number(projectId));
-    } catch {
-      team = null;
-    }
+export default async function StaffTeamTrelloLayout({ params, children }: LayoutProps) {
+  const { projectId, teamId } = await params;
+  const ctx = await getStaffTeamContext(projectId, teamId);
+
+  if (!ctx.ok) {
+    return <>{children}</>;
   }
 
-  return team ? (
-    <TrelloBoardProvider teamId={team.id}>{children}</TrelloBoardProvider>
-  ) : (
-    <>{children}</>
-  );
+  return <TrelloBoardProvider teamId={ctx.team.id}>{children}</TrelloBoardProvider>;
 }

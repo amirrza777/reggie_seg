@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 
 const push = vi.fn();
@@ -23,7 +24,25 @@ import {
   searchEnterpriseModuleAccessUsers,
   updateEnterpriseModule,
 } from "../api/client";
+import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { EnterpriseModuleCreateForm } from "./EnterpriseModuleCreateForm";
+import React from "react";
+
+const editInitialSelection: EnterpriseModuleAccessSelectionResponse = {
+  module: {
+    id: 77,
+    name: "Existing module",
+    createdAt: "2026-03-01T00:00:00.000Z",
+    updatedAt: "2026-03-01T00:00:00.000Z",
+    studentCount: 1,
+    leaderCount: 1,
+    teachingAssistantCount: 1,
+    briefText: "Module brief from server",
+  },
+  leaderIds: [11],
+  taIds: [12],
+  studentIds: [31],
+};
 
 const createEnterpriseModuleMock = createEnterpriseModule as MockedFunction<typeof createEnterpriseModule>;
 const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<typeof deleteEnterpriseModule>;
@@ -174,7 +193,9 @@ describe("EnterpriseModuleCreateForm", () => {
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {
-    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} initialAccessSelection={editInitialSelection} />);
+
+    expect(getEnterpriseModuleAccessSelectionMock).not.toHaveBeenCalled();
 
     const deleteButton = await screen.findByRole("button", { name: /delete module/i });
     const confirmation = screen.getByLabelText(/i understand this action cannot be undone/i);

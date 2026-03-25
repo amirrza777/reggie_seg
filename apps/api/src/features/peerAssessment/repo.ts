@@ -129,6 +129,26 @@ export function getTeammateAssessments(userId: number, projectId: number) {
   });
 }
 
+/**  peer assessments where this user is the reviewee (received from teammates). */
+export function getAssessmentsForReviewee(userId: number, projectId: number) {
+  return prisma.peerAssessment.findMany({
+    where: {
+      revieweeUserId: userId,
+      projectId: projectId,
+    },
+    include: {
+      reviewer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
+    },
+  });
+}
+
 /** Returns the questions for project. */
 export function getQuestionsForProject(projectId: number) {
   return prisma.project.findUnique({

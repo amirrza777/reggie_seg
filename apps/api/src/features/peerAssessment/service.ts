@@ -6,6 +6,7 @@ import {
   getPeerAssessment,
   updatePeerAssessment,
   getTeammateAssessments,
+  getAssessmentsForReviewee,
   getQuestionsForProject,
   getPeerAssessmentById,
   getProjectQuestionnaireTemplate,
@@ -97,6 +98,11 @@ export async function updateAssessmentAnswers(assessmentId: number, answersJson:
 /** Returns the teammate assessments. */
 export function fetchTeammateAssessments(userId: number, projectId: number) {
   return getTeammateAssessments(userId, projectId)
+}
+
+/** Returns assessments received by this user (reviewee). */
+export function fetchAssessmentsForReviewee(userId: number, projectId: number) {
+  return getAssessmentsForReviewee(userId, projectId);
 }
 
 /** Returns the questions for project. */

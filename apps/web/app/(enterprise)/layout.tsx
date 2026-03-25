@@ -38,7 +38,6 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
   const workspaceAliases = [
     "/staff/dashboard",
     "/staff/modules",
-    "/staff/projects",
     "/staff/analytics",
     "/staff/questionnaires",
   ];

@@ -1,27 +1,27 @@
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
-import { StaffTrelloProjectGate } from "@/features/staff/trello/StaffTrelloProjectGate";
 import { StaffTrelloBoardView } from "@/features/staff/trello/StaffTrelloBoardView";
 
 type PageProps = {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ projectId: string; teamId: string }>;
 };
 
 export default async function StaffTrelloBoardPage({ params }: PageProps) {
-  const { projectId } = await params;
+  const { projectId, teamId } = await params;
+  const ctx = await getStaffTeamContext(projectId, teamId);
+
+  if (!ctx.ok) {
+    return null;
+  }
+
+  const { team } = ctx;
+
   return (
-    <div className="stack">
-      <StaffTrelloProjectGate projectId={projectId} signInMessage="Please sign in to view the board.">
-        {({ projectId, teamId, teamName }) => (
-          <>
-            <StaffProjectTrelloContent
-              projectId={projectId}
-              teamId={teamId}
-              teamName={teamName}
-              viewComponent={StaffTrelloBoardView}
-            />
-          </>
-        )}
-      </StaffTrelloProjectGate>
-    </div>
+    <StaffProjectTrelloContent
+      projectId={projectId}
+      teamId={team.id}
+      teamName={team.teamName}
+      viewComponent={StaffTrelloBoardView}
+    />
   );
 }

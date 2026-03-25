@@ -39,9 +39,6 @@ function EmptyAnalyticsState() {
         <Link href="/staff/modules" className="pill-nav__link">
           Open modules
         </Link>
-        <Link href="/staff/projects" className="pill-nav__link">
-          Open projects
-        </Link>
       </div>
     </Card>
   );
@@ -106,8 +103,8 @@ export default async function StaffAnalyticsPage() {
 
           <Card title="Explore detailed views">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Link href="/staff/projects" className="pill-nav__link">
-                Team health by project
+              <Link href="/staff/modules" className="pill-nav__link">
+                Browse modules &amp; projects
               </Link>
               <Link href="/staff/repos" className="pill-nav__link">
                 Repository analytics

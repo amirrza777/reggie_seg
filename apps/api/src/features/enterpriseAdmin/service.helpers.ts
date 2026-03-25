@@ -97,6 +97,27 @@ export function normalizeFeatureFlagLabel<T extends { key: string; label: string
   return flag;
 }
 
+/**
+ * students with role STUDENT and excludes module leads/TAs from the student list.
+ */
+export async function sanitiseModuleStudentIdsForUpdate(
+  enterpriseId: string,
+  studentIds: number[],
+  leaderIds: number[],
+  taIds: number[],
+): Promise<number[]> {
+  const leadTa = new Set([...leaderIds, ...taIds]);
+  const unique = [...new Set(studentIds)].filter((id) => !leadTa.has(id));
+  if (unique.length === 0) return [];
+
+  const users = await prisma.user.findMany({
+    where: { enterpriseId, id: { in: unique }, role: "STUDENT" },
+    select: { id: true },
+  });
+  const allowed = new Set(users.map((u) => u.id));
+  return unique.filter((id) => allowed.has(id));
+}
+
 export async function validateAssignmentUsers(input: {
   enterpriseId: string;
   leaderIds: number[];

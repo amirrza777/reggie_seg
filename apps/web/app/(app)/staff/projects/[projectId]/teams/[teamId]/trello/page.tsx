@@ -1,28 +1,35 @@
+import { getProjectDeadline } from "@/features/projects/api/client";
+import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
-import { StaffTrelloProjectGate } from "@/features/staff/trello/StaffTrelloProjectGate";
 import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
 
 type PageProps = {
-  params: Promise<{ projectId: string }>;
+  params: Promise<{ projectId: string; teamId: string }>;
 };
 
 export default async function StaffTrelloSummaryPage({ params }: PageProps) {
-  const { projectId } = await params;
+  const { projectId, teamId } = await params;
+  const ctx = await getStaffTeamContext(projectId, teamId);
+
+  if (!ctx.ok) {
+    return null;
+  }
+
+  const { user, team } = ctx;
+  let deadline: Awaited<ReturnType<typeof getProjectDeadline>> | null = null;
+  try {
+    deadline = await getProjectDeadline(user.id, Number(projectId));
+  } catch {
+    deadline = null;
+  }
+
   return (
-    <div className="stack">
-      <StaffTrelloProjectGate projectId={projectId} needDeadline signInMessage="Please sign in to view Trello for this project.">
-        {({ projectId, teamId, teamName, deadline }) => (
-          <>
-            <StaffProjectTrelloContent
-              projectId={projectId}
-              teamId={teamId}
-              teamName={teamName}
-              deadline={deadline ?? undefined}
-              viewComponent={StaffTrelloSummaryView}
-            />
-          </>
-        )}
-      </StaffTrelloProjectGate>
-    </div>
+    <StaffProjectTrelloContent
+      projectId={projectId}
+      teamId={team.id}
+      teamName={team.teamName}
+      deadline={deadline ?? undefined}
+      viewComponent={StaffTrelloSummaryView}
+    />
   );
 }

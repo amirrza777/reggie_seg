@@ -117,9 +117,11 @@ function ModuleCard({ module }: { module: Module }) {
   const role = getRolePresentation(module.accountRole);
   const teams = module.teamCount ?? 0;
   const projects = module.projectCount ?? 0;
+  const staff = module.staffWithAccessCount ?? 0;
   const moduleId = encodeURIComponent(module.id);
 
   return (
+    <Link href={`/staff/modules/${moduleId}`}>
     <article className="module-card card">
       <div className="module-card__header">
         <div className="module-card__header-top">
@@ -130,21 +132,18 @@ function ModuleCard({ module }: { module: Module }) {
       </div>
       {module.description ? <p className="module-card__summary">{module.description}</p> : null}
       <div className="module-card__footer">
-        <span className="module-card__counts">
-          {teams} {pluralize("team", teams)} · {projects} {pluralize("project", projects)}
+        <span
+          className="module-card__counts"
+          title="Module leads and teaching assistants (unique people)"
+        >
+          {projects} {pluralize("project", projects)}{" "}
+          •{" "}{teams} {pluralize("team", teams)}{" "}
+          •{" "}{staff} {pluralize("staff member", staff)}
         </span>
-        <div className="module-card__actions">
-          {module.accountRole === "OWNER" ? <Link href={`/staff/modules/${moduleId}/manage`} className="module-card__manage">Manage module</Link> : null}
-          {canCreateProject(module.accountRole) ? <Link href={`/staff/projects/create?moduleId=${moduleId}`} className="module-card__manage">Create project</Link> : null}
-          <Link href={`/modules/${moduleId}`} className="module-card__cta">View Module</Link>
-        </div>
       </div>
     </article>
+    </Link>
   );
-}
-
-function canCreateProject(role?: Module["accountRole"]): boolean {
-  return role === "OWNER" || role === "ADMIN_ACCESS";
 }
 
 function formatModuleCode(moduleId: string): string {

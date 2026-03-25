@@ -293,7 +293,7 @@
 .staff-projects__module-team-link {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -311,10 +311,40 @@
   transform: translateY(-1px);
 }
 
+.staff-projects__module-team-main {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1;
+}
+
+.staff-projects__module-team-name {
+  display: block;
+  min-width: 0;
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__module-team-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.staff-projects__module-team-integrations {
+  justify-content: flex-end;
+}
+
 .staff-projects__module-team-meta {
+  display: block;
   color: var(--muted);
   font-size: var(--fs-caption);
-  white-space: nowrap;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .staff-projects__card {
@@ -333,6 +363,15 @@
   .staff-projects__module-team-link {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .staff-projects__module-team-right {
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  .staff-projects__module-team-integrations {
+    justify-content: flex-start;
   }
 
   .staff-projects__module-team-meta {

@@ -24,7 +24,7 @@ export default async function StaffDashboardPage() {
       <Placeholder
         title="Staff Overview"
         titleClassName="overview-title"
-        description="Start from projects, then drill into teams for peer assessment, peer feedback, repositories, and grading."
+        description="Open a module, then its projects and teams for peer assessment, peer feedback, repositories, and grading."
       />
       <StaffModulesCard moduleError={moduleData.moduleError} modules={moduleData.modules} moduleRows={moduleRows} />
       <StaffNavigationCards />
@@ -80,10 +80,10 @@ function StaffNavigationCards() {
   return (
     <div className="stack stack--loose">
       <Card title="Team workspace">
-        <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
+        <p className="muted">Project and team-level workflows are under each module (Projects &amp; teams).</p>
         <StaffQuickLinks
           links={[
-            { href: "/staff/projects", label: "Open staff projects" },
+            { href: "/staff/modules", label: "My modules" },
             { href: "/staff/questionnaires", label: "Open questionnaires" },
           ]}
         />
@@ -95,7 +95,7 @@ function StaffNavigationCards() {
         </p>
         <StaffQuickLinks
           links={[
-            { href: "/staff/projects", label: "Team health by project" },
+            { href: "/staff/modules", label: "Browse modules & projects" },
             { href: "/staff/repos", label: "Repository analytics" },
             { href: "/staff/integrations", label: "Trello velocity" },
           ]}

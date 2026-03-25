@@ -2,6 +2,8 @@ import {
   getProjectById,
   getUserProjects,
   getModulesForUser,
+  getModuleStaffListForUser,
+  getModuleStudentProjectMatrixForUser,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -56,17 +58,34 @@ export async function fetchModulesForUser(
   options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
 ) {
   const modules = await getModulesForUser(userId, options);
-  return modules.map((module) => ({
-    id: String(module.id),
-    title: module.name,
-    briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
-    timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
-    expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
-    readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
-    teamCount: "teamCount" in module ? module.teamCount : 0,
-    projectCount: "projectCount" in module ? module.projectCount : 0,
-    accountRole: module.accessRole,
-  }));
+  const staffFullList = options?.staffOnly === true && options?.compact !== true;
+  return modules.map((module) => {
+    const rawCount = typeof module.staffWithAccessCount === "number" ? module.staffWithAccessCount : undefined;
+    const staffWithAccessCount = staffFullList ? (rawCount ?? 0) : rawCount;
+
+    return {
+      id: String(module.id),
+      title: module.name,
+      briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
+      timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
+      expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
+      readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
+      teamCount: "teamCount" in module ? module.teamCount : 0,
+      projectCount: "projectCount" in module ? module.projectCount : 0,
+      accountRole: module.accessRole,
+      ...(typeof staffWithAccessCount === "number" ? { staffWithAccessCount } : {}),
+    };
+  });
+}
+
+/** Module leads + TAs for staff-accessible module detail pages. */
+export async function fetchModuleStaffList(userId: number, moduleId: number) {
+  return getModuleStaffListForUser(userId, moduleId);
+}
+
+/** Enrolled students and their team per project (staff module matrix). */
+export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: number) {
+  return getModuleStudentProjectMatrixForUser(userId, moduleId);
 }
 
 /** Returns the teammates for project. */

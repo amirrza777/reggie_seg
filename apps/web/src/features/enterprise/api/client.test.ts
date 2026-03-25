@@ -94,6 +94,13 @@ describe("enterprise module api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/access-users/search");
   });
 
+  it("searches assignable users excluding module enrollments", async () => {
+    await searchEnterpriseModuleAccessUsers({ scope: "students", excludeEnrolledInModule: 5 });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/enterprise-admin/modules/access-users/search?scope=students&excludeEnrolledInModule=5",
+    );
+  });
+
   it("loads module access details", async () => {
     await getEnterpriseModuleAccess(22);
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/22/access");

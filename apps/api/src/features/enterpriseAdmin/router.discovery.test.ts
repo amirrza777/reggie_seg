@@ -341,12 +341,14 @@ describe("enterpriseAdmin router discovery", () => {
 
   it("creates module and persists role assignments", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
-    (prisma.user.findMany as any).mockResolvedValueOnce([
-      { id: 11, role: "STAFF" },
-      { id: 99, role: "ENTERPRISE_ADMIN" },
-      { id: 12, role: "STUDENT" },
-      { id: 31, role: "STUDENT" },
-    ]);
+    (prisma.user.findMany as any)
+      .mockResolvedValueOnce([{ id: 31, role: "STUDENT" }])
+      .mockResolvedValueOnce([
+        { id: 11, role: "STAFF" },
+        { id: 99, role: "ENTERPRISE_ADMIN" },
+        { id: 12, role: "STUDENT" },
+        { id: 31, role: "STUDENT" },
+      ]);
     const res = mockRes();
 
     await createModule(
