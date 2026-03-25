@@ -6,6 +6,8 @@ import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
+import "../styles/global-app-shell.css";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,7 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
   const canAccessModuleManagement = canAccessEnterpriseAdmin || user.role === "STAFF";
 
   if (!canAccessModuleManagement) {
-    redirect("/dashboard");
+    redirect(getDefaultSpaceOverviewPath(user));
   }
 
   const enterpriseHomeHref = canAccessEnterpriseAdmin ? "/enterprise" : "/enterprise/modules";
@@ -38,7 +40,6 @@ export default async function EnterpriseLayout({ children }: { children: ReactNo
   const workspaceAliases = [
     "/staff/dashboard",
     "/staff/modules",
-    "/staff/analytics",
     "/staff/questionnaires",
   ];
   const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);

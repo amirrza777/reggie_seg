@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
 import { Card } from "@/shared/ui/Card";
+import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
 
 type EnterpriseModuleEditPageProps = {
   params: Promise<{ id: string }>;
@@ -19,6 +20,8 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
 
   return (
     <div className="ui-page enterprise-module-create-page">
+      <Breadcrumbs items={[{ label: "Module management", href: "/enterprise/modules" }, { label: "Edit module" }]} />
+
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Edit module</h1>
         <p className="ui-page__description">

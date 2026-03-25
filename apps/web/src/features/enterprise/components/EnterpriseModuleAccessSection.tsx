@@ -1,8 +1,10 @@
+import type { FormEvent } from "react";
 import type { EnterpriseAssignableUser } from "../types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
@@ -31,7 +33,7 @@ type EnterpriseModuleAccessSectionProps = {
   pageJumpAriaLabel: string;
   onPageInputChange: (value: string) => void;
   onPageInputBlur: () => void;
-  onPageJump: () => void;
+  onPageJump: (event: FormEvent<HTMLFormElement>) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   loadingLabel: string;
@@ -111,7 +113,7 @@ function AccessPagination({
   pageJumpAriaLabel: string;
   onPageInputChange: (value: string) => void;
   onPageInputBlur: () => void;
-  onPageJump: () => void;
+  onPageJump: (event: FormEvent<HTMLFormElement>) => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
@@ -123,7 +125,7 @@ function AccessPagination({
       <Button type="button" variant="ghost" size="sm" onClick={onPreviousPage} disabled={page === 1}>
         Previous
       </Button>
-      <div className="user-management__page-jump">
+      <form className="user-management__page-jump" onSubmit={onPageJump}>
         <label htmlFor={pageInputId} className="user-management__page-jump-label">
           Page
         </label>
@@ -137,12 +139,11 @@ function AccessPagination({
           value={pageInput}
           onChange={(event) => onPageInputChange(event.target.value)}
           onBlur={onPageInputBlur}
-          onKeyDown={(event) => { if (event.key === "Enter") onPageJump(); }}
           className="user-management__page-jump-input"
           aria-label={pageJumpAriaLabel}
         />
         <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-      </div>
+      </form>
       <Button type="button" variant="ghost" size="sm" onClick={onNextPage} disabled={page === effectiveTotalPages}>
         Next
       </Button>
@@ -184,6 +185,8 @@ export function EnterpriseModuleAccessSection({
   emptyLabel,
   selectedCountLabel,
 }: EnterpriseModuleAccessSectionProps) {
+  const showSkeletonList = status === "loading" && users.length === 0;
+
   return (
     <div className="enterprise-modules__create-field enterprise-module-create__field">
       <label htmlFor={searchId} className="enterprise-modules__create-field-label">
@@ -201,18 +204,28 @@ export function EnterpriseModuleAccessSection({
         <AccessSummaryLabel status={status} total={total} start={start} end={end} loadingLabel={loadingLabel} zeroLabel={zeroLabel} />
       </span>
       <div className="enterprise-module-create__access-list" role="group" aria-label={groupLabel}>
-        {users.map((user) => (
-          <AccessUserItem
-            key={`${groupLabel}-${user.id}`}
-            user={user}
-            groupLabel={groupLabel}
-            isSelected={selectedSet.has(user.id)}
-            onToggle={onToggle}
-            disabled={isCheckedDisabled ? isCheckedDisabled(user) : false}
-          />
-        ))}
+        {showSkeletonList
+          ? Array.from({ length: 4 }).map((_, index) => (
+              <div
+                key={`${groupLabel}-skeleton-${index}`}
+                className="enterprise-module-create__access-item enterprise-module-create__access-item--skeleton"
+                aria-hidden="true"
+              >
+                <SkeletonText lines={2} widths={["42%", "68%"]} />
+              </div>
+            ))
+          : users.map((user) => (
+              <AccessUserItem
+                key={`${groupLabel}-${user.id}`}
+                user={user}
+                groupLabel={groupLabel}
+                isSelected={selectedSet.has(user.id)}
+                onToggle={onToggle}
+                disabled={isCheckedDisabled ? isCheckedDisabled(user) : false}
+              />
+            ))}
       </div>
-      {users.length === 0 ? (
+      {users.length === 0 && !showSkeletonList ? (
         <span className="ui-note ui-note--muted">
           {status === "loading"
             ? loadingLabel
@@ -221,6 +234,7 @@ export function EnterpriseModuleAccessSection({
               : emptyLabel}
         </span>
       ) : null}
+      {showSkeletonList ? <span className="ui-visually-hidden">{loadingLabel}</span> : null}
       {message ? <span className="enterprise-module-create__field-error">{message}</span> : null}
       <AccessPagination
         label={label}

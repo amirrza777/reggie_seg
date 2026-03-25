@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { searchEnterpriseModuleAccessUsers } from "../api/client";
 import type { EnterpriseAccessUserSearchScope, EnterpriseAssignableUser } from "../types";
+import { getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 
 const ACCESS_USERS_PAGE_SIZE = 20;
@@ -224,12 +225,9 @@ export function useEnterpriseModuleAccessBuckets({
       students: setStudentPageInput,
     });
 
-    const parsedPage = Number(rawValue);
-    const maxPage = Math.max(1, totalPages);
-    const fallback = String(currentPage);
-
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > maxPage) {
-      setPageInput(fallback);
+    const parsedPage = parsePageInput(rawValue, totalPages);
+    if (parsedPage === null) {
+      setPageInput(String(currentPage));
       return;
     }
 
@@ -323,11 +321,9 @@ function setBucketError(setters: BucketStateSetters, message: string) {
 }
 
 function getListStart(total: number, page: number, pageSize: number) {
-  if (total === 0) return 0;
-  return (page - 1) * pageSize + 1;
+  return getPaginationStart(total, page, pageSize);
 }
 
 function getListEnd(total: number, page: number, pageSize: number, visibleCount: number) {
-  if (total === 0) return 0;
-  return Math.min((page - 1) * pageSize + visibleCount, total);
+  return getPaginationEnd(total, page, pageSize, visibleCount);
 }

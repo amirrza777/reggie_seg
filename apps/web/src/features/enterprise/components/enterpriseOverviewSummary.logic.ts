@@ -268,7 +268,7 @@ function buildInactiveAccountsAction(inactiveUsers: number): ActionQueueItem {
     label: "Follow up inactive accounts",
     detail: `${inactiveUsers} users are inactive and may need access or onboarding support.`,
     tone: "attention",
-    href: "/staff/analytics",
+    href: "/staff/dashboard",
     cta: "Review analytics",
     impact: inactiveUsers,
   };
@@ -280,7 +280,7 @@ function buildActivationRateAction(activeUsers: number, users: number): ActionQu
     label: "Lift account activation rate",
     detail: `Only ${formatPercent(activeUsers, users)} of users are active right now.`,
     tone: "attention",
-    href: "/staff/analytics",
+    href: "/staff/dashboard",
     cta: "Investigate",
     impact: Math.max(users - activeUsers, 0),
   };
