@@ -1,12 +1,36 @@
 import { describe, expect, it } from "vitest";
 import * as moduleUnderTest from "./repo.drafts.reads.js";
 
+const expectedFunctionExports = [
+  "findProjectDraftTeams",
+  "findDraftTeamInProject",
+  "findDraftTeamById",
+  "findTeamNameConflictInEnterprise",
+  "findModuleStudentsByIdsInModule",
+  "findStudentAllocationConflictsInProject",
+] as const;
+
+const expectedValueExports: string[] = [];
+
+function getNamedExport(name: string) {
+  return (moduleUnderTest as Record<string, unknown>)[name];
+}
+
 describe("repo.drafts.reads", () => {
-  it("loads as a module", () => {
-    expect(moduleUnderTest).toBeTypeOf("object");
+  it("exposes callable runtime functions", () => {
+    for (const name of expectedFunctionExports) {
+      expect(getNamedExport(name)).toBeTypeOf("function");
+    }
   });
 
-  it.each(["findProjectDraftTeams","findDraftTeamInProject","findDraftTeamById","findTeamNameConflictInEnterprise","findModuleStudentsByIdsInModule","findStudentAllocationConflictsInProject"])("exposes %s", (name) => {
-    expect(moduleUnderTest).toHaveProperty(name);
+  it("exposes expected runtime values", () => {
+    for (const name of expectedValueExports) {
+      expect(getNamedExport(name)).toBeDefined();
+    }
+  });
+
+  it("includes the expected export names", () => {
+    const expectedNames = [...expectedFunctionExports, ...expectedValueExports];
+    expect(Object.keys(moduleUnderTest)).toEqual(expect.arrayContaining(expectedNames));
   });
 });

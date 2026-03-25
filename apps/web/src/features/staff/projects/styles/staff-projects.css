@@ -86,13 +86,12 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--avatar-fallback-border);
+  border: 1px solid var(--border);
   display: grid;
   place-items: center;
   font-size: 0.85rem;
   font-weight: var(--fw-semibold);
-  color: var(--avatar-fallback-text);
-  background: var(--avatar-fallback-bg);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .staff-projects__avatar--sm {

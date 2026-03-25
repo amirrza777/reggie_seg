@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./customAllocator.types.js";
+import { EPSILON } from "./customAllocator.types.js";
 
 describe("customAllocator.types", () => {
-  it("loads as a module", () => {
-    expect(moduleUnderTest).toBeTypeOf("object");
+  it("exposes EPSILON as a small positive number", () => {
+    expect(EPSILON).toBeGreaterThan(0);
+    expect(EPSILON).toBeLessThan(0.001);
   });
 
-  it.each(["EPSILON"])("exposes %s", (name) => {
-    expect(moduleUnderTest).toHaveProperty(name);
+  it("keeps EPSILON stable for floating-point guards", () => {
+    expect(EPSILON).toBe(1e-9);
   });
 });

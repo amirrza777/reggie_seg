@@ -1,19 +1,106 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import {
-  buildAdminUserSearchWhere,
-  getRouteHandler,
-  getUseHandlers,
-  matchesAdminUserSearchCandidate,
-  mockRes,
-  parseAdminUserSearchFilters,
-  prisma,
-  setupAdminRouterTestDefaults,
-} from "./router.test-helpers.js";
+import router from "./router.js";
+import { prisma } from "../../shared/db.js";
+import { listAuditLogs } from "../audit/service.js";
+import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
+
+const { generateFromNameMock } = vi.hoisted(() => ({ generateFromNameMock: vi.fn() }));
+
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    user: { findUnique: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn(), count: vi.fn() },
+    module: { count: vi.fn() },
+    team: { count: vi.fn() },
+    meeting: { count: vi.fn() },
+    refreshToken: { updateMany: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
+    enterprise: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn(), delete: vi.fn(), create: vi.fn() },
+    auditLog: { deleteMany: vi.fn() },
+    $transaction: vi.fn(),
+  },
+}));
+
+vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn() }));
+vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchWhere: vi.fn(),
+  parseAdminUserSearchFilters: vi.fn(),
+  matchesAdminUserSearchCandidate: vi.fn(),
+}));
+vi.mock("../services/enterprise/enterpriseCodeGeneratorService.js", () => ({
+  EnterpriseCodeGeneratorService: vi.fn().mockImplementation(() => ({ generateFromName: generateFromNameMock })),
+}));
+
+function mockRes() {
+  const res: Partial<Response> = {
+    status: vi.fn(),
+    json: vi.fn(),
+  };
+  (res.status as any).mockReturnValue(res);
+  (res.json as any).mockReturnValue(res);
+  return res as Response;
+}
+
+function getUseHandlers() {
+  return (router as any).stack.filter((layer: any) => !layer.route).map((layer: any) => layer.handle);
+}
+
+function getRouteHandler(method: "get" | "post" | "patch" | "delete", path: string) {
+  const layer = (router as any).stack.find((item: any) => item.route?.path === path && item.route.methods?.[method]);
+  if (!layer) throw new Error(`Missing route ${method.toUpperCase()} ${path}`);
+  return layer.route.stack[0].handle;
+}
 
 beforeEach(() => {
-  setupAdminRouterTestDefaults();
+  vi.clearAllMocks();
+
+  vi.spyOn(jwt, "verify").mockReturnValue({ sub: 1, admin: true } as any);
+
+  (prisma.user.findUnique as any).mockResolvedValue({
+    id: 1,
+    email: "admin@kcl.ac.uk",
+    enterpriseId: "ent-1",
+    role: "ADMIN",
+  });
+
+  (prisma.user.count as any).mockResolvedValue(10);
+  (prisma.module.count as any).mockResolvedValue(3);
+  (prisma.team.count as any).mockResolvedValue(2);
+  (prisma.meeting.count as any).mockResolvedValue(1);
+
+  (prisma.user.findMany as any).mockResolvedValue([]);
+  (prisma.user.findFirst as any).mockResolvedValue(null);
+  (prisma.user.update as any).mockResolvedValue({ id: 2, email: "u@x.com", role: "STAFF", active: true });
+  (prisma.refreshToken.updateMany as any).mockResolvedValue({ count: 1 });
+
+  (prisma.featureFlag.findMany as any).mockResolvedValue([]);
+  (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
+  (prisma.featureFlag.deleteMany as any).mockResolvedValue({ count: 1 });
+  (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 3 });
+
+  (prisma.enterprise.findMany as any).mockResolvedValue([]);
+  (prisma.enterprise.findUnique as any).mockResolvedValue(null);
+  (prisma.enterprise.count as any).mockResolvedValue(0);
+  (prisma.enterprise.delete as any).mockResolvedValue({ id: "ent-1" });
+  (prisma.enterprise.create as any).mockResolvedValue({ id: "ent-2", code: "ENT2", name: "Enterprise 2", createdAt: new Date() });
+
+  (prisma.auditLog.deleteMany as any).mockResolvedValue({ count: 0 });
+
+  (parseAdminUserSearchFilters as any).mockReturnValue({
+    ok: true,
+    value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
+  });
+  (buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
+  (matchesAdminUserSearchCandidate as any).mockReturnValue(false);
+
+  (prisma.$transaction as any).mockImplementation(async (arg: any) => {
+    if (Array.isArray(arg)) return Promise.all(arg);
+    return arg(prisma);
+  });
+
+  (listAuditLogs as any).mockResolvedValue([]);
+  generateFromNameMock.mockResolvedValue("AUTO123");
 });
 
 describe("admin router middleware and user management", () => {

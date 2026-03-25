@@ -8,6 +8,7 @@ import {
   GithubServiceError,
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
+import { parseGithubRepoLinkBody, parseLinkIdParam, parseProjectIdQuery } from "./controller.parsers.js";
 
 /** Handles requests for link GitHub project repo. */
 export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Response) {
@@ -16,53 +17,11 @@ export async function linkGithubProjectRepoHandler(req: AuthRequest, res: Respon
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const {
-    projectId,
-    githubRepoId,
-    name,
-    fullName,
-    htmlUrl,
-    isPrivate,
-    ownerLogin,
-    defaultBranch,
-  } = req.body ?? {};
-
-  if (typeof projectId !== "number" || Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "projectId must be a number" });
-  }
-  if (typeof githubRepoId !== "number" || Number.isNaN(githubRepoId)) {
-    return res.status(400).json({ error: "githubRepoId must be a number" });
-  }
-  if (!name || typeof name !== "string") {
-    return res.status(400).json({ error: "name is required and must be a string" });
-  }
-  if (!fullName || typeof fullName !== "string") {
-    return res.status(400).json({ error: "fullName is required and must be a string" });
-  }
-  if (!htmlUrl || typeof htmlUrl !== "string") {
-    return res.status(400).json({ error: "htmlUrl is required and must be a string" });
-  }
-  if (typeof isPrivate !== "boolean") {
-    return res.status(400).json({ error: "isPrivate must be a boolean" });
-  }
-  if (!ownerLogin || typeof ownerLogin !== "string") {
-    return res.status(400).json({ error: "ownerLogin is required and must be a string" });
-  }
-  if (!(defaultBranch === null || typeof defaultBranch === "string")) {
-    return res.status(400).json({ error: "defaultBranch must be a string or null" });
-  }
+  const parsedBody = parseGithubRepoLinkBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const linked = await linkGithubRepositoryToProject(userId, {
-      projectId,
-      githubRepoId,
-      name,
-      fullName,
-      htmlUrl,
-      isPrivate,
-      ownerLogin,
-      defaultBranch,
-    });
+    const linked = await linkGithubRepositoryToProject(userId, parsedBody.value);
     return res.status(201).json(toJsonSafe(linked));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -80,13 +39,11 @@ export async function removeGithubProjectRepoHandler(req: AuthRequest, res: Resp
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
 
   try {
-    const removed = await removeProjectGithubRepositoryLink(userId, linkId);
+    const removed = await removeProjectGithubRepositoryLink(userId, linkId.value);
     return res.json(toJsonSafe({ removed }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -104,13 +61,11 @@ export async function listProjectGithubReposHandler(req: AuthRequest, res: Respo
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const projectId = Number(req.query.projectId);
-  if (Number.isNaN(projectId)) {
-    return res.status(400).json({ error: "projectId query param must be a number" });
-  }
+  const projectId = parseProjectIdQuery(req.query.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const links = await listProjectGithubRepositories(userId, projectId);
+    const links = await listProjectGithubRepositories(userId, projectId.value);
     return res.json(toJsonSafe({ links }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -128,13 +83,11 @@ export async function analyseProjectGithubRepoHandler(req: AuthRequest, res: Res
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
 
   try {
-    const snapshot = await analyseProjectGithubRepository(userId, linkId);
+    const snapshot = await analyseProjectGithubRepository(userId, linkId.value);
     return res.status(201).json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {

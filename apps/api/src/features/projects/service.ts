@@ -4,6 +4,8 @@ import {
   getModulesForUser,
   getModuleStaffListForUser,
   getModuleStudentProjectMatrixForUser,
+  getModuleJoinActor,
+  joinModuleByCode as joinModuleByCodeInDb,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -24,6 +26,7 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { normalizeModuleJoinCode } from "../services/moduleJoinCodeService.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -65,6 +68,7 @@ export async function fetchModulesForUser(
 
     return {
       id: String(module.id),
+      code: "code" in module ? module.code ?? undefined : undefined,
       title: module.name,
       briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
       timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
@@ -87,6 +91,40 @@ export async function fetchModuleStaffList(userId: number, moduleId: number) {
 /** Enrolled students and their team per project (staff module matrix). */
 export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: number) {
   return getModuleStudentProjectMatrixForUser(userId, moduleId);
+}
+
+export async function joinModuleByCode(actorUserId: number, rawCode: string) {
+  const actor = await getModuleJoinActor(actorUserId);
+  if (!actor) {
+    return { ok: false as const, status: 401, error: "Unauthorized" };
+  }
+  if (actor.role !== "STUDENT") {
+    return { ok: false as const, status: 403, error: "Forbidden" };
+  }
+
+  const normalizedCode = normalizeModuleJoinCode(rawCode);
+  if (!normalizedCode) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  const enrolled = await joinModuleByCodeInDb({
+    enterpriseId: actor.enterpriseId,
+    userId: actor.id,
+    joinCode: normalizedCode,
+  });
+  if (!enrolled) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  return {
+    ok: true as const,
+    value: {
+      moduleId: enrolled.moduleId,
+      moduleName: enrolled.moduleName,
+      enrolled: true,
+      alreadyEnrolled: enrolled.alreadyEnrolled,
+    },
+  };
 }
 
 /** Returns the teammates for project. */

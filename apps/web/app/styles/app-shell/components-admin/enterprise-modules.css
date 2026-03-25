@@ -129,6 +129,38 @@
   align-content: start;
 }
 
+.enterprise-module-create__field--join-code {
+  grid-column: 1 / -1;
+}
+
+.enterprise-module-join-code__card {
+  width: 100%;
+}
+
+.enterprise-module-join-code__banner {
+  margin-bottom: 12px;
+}
+
+.enterprise-module-join-code__content {
+  display: grid;
+  gap: 10px;
+}
+
+.enterprise-module-join-code__value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 72px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--accent-border);
+  background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface));
+  font-size: clamp(1.35rem, 1vw + 1rem, 1.9rem);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.22em;
+  color: var(--accent-strong);
+}
+
 .enterprise-modules__create-field-label {
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);

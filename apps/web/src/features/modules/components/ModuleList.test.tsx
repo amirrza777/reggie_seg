@@ -34,6 +34,11 @@ describe("ModuleList", () => {
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
 
+  it("prefers the stored module code over the numeric fallback", () => {
+    render(<ModuleList modules={[{ id: "12", code: "4CCS2DBS", title: "Databases" }]} />);
+    expect(screen.getByText("Code: 4CCS2DBS")).toBeInTheDocument();
+  });
+
   it("shows management actions for module owners", () => {
     render(
       <ModuleList
@@ -43,13 +48,11 @@ describe("ModuleList", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Module actions for Software Engineering" }));
-
-    expect(screen.getByRole("menuitem", { name: "Manage module" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Manage module" })).toHaveAttribute(
       "href",
       "/staff/modules/12/manage",
     );
-    expect(screen.getByRole("menuitem", { name: "Create project" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
       "href",
       "/staff/projects/create?moduleId=12",
     );
@@ -64,16 +67,14 @@ describe("ModuleList", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Module actions for Data Structures" }));
-
-    expect(screen.queryByRole("menuitem", { name: "Manage module" })).not.toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Create project" })).toHaveAttribute(
+    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
       "href",
       "/staff/projects/create?moduleId=22",
     );
   });
 
-  it("opens the module when the card is clicked", () => {
+  it("renders a view-module link for each module", () => {
     render(
       <ModuleList
         modules={[
@@ -82,8 +83,7 @@ describe("ModuleList", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("link", { name: "View module Machine Learning" }));
-    expect(push).toHaveBeenCalledWith("/modules/31");
+    expect(screen.getByRole("link", { name: "View Module" })).toHaveAttribute("href", "/modules/31");
   });
 
   it("sorts modules by the selected mode", () => {

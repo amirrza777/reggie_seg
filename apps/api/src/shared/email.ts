@@ -22,7 +22,13 @@ function getTransporter() {
 }
 
 /** Sends an email using the configured transport. */
-export async function sendEmail(params: { to: string; subject: string; text: string; html?: string }) {
+export async function sendEmail(params: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+  attachments?: { filename: string; content: string }[];
+}) {
   const transporter = getTransporter();
   if (!transporter) {
     console.warn("SMTP not configured. Email suppressed.", {
@@ -38,6 +44,7 @@ export async function sendEmail(params: { to: string; subject: string; text: str
     subject: params.subject,
     text: params.text,
     html: params.html,
+    attachments: params.attachments,
   });
   return { suppressed: false };
 }

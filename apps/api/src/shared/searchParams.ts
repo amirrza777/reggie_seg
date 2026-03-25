@@ -1,4 +1,5 @@
-export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
+import type { ParseResult } from "./parse.js";
+export type { ParseResult } from "./parse.js";
 
 /** Returns a query value only when it is a single string. */
 export function readSingleQueryString(value: unknown): string | undefined {

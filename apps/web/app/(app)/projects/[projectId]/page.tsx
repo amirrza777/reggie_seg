@@ -39,6 +39,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     return (
       <div style={{ padding: 24 }}>
         <p>You are not in a team for this project.</p>
+        <Link href="/projects">← Back to projects</Link>
       </div>
     );
   }

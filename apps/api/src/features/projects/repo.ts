@@ -25,6 +25,12 @@ export type StudentDeadlineOverrideInput = {
   reason?: string | null;
 };
 
+export type ModuleJoinActor = {
+  id: number;
+  enterpriseId: string;
+  role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+};
+
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 
 const STAFF_PROJECT_LIST_SELECT = {
@@ -70,11 +76,11 @@ const MODULE_LEAD_NAME_SELECT = {
   },
 } as const;
 
-function matchesModuleSearchQuery(module: { id: number; name: string }, query: string): boolean {
+function matchesModuleSearchQuery(module: { id: number; code?: string | null; name: string }, query: string): boolean {
   return matchesFuzzySearchCandidate({
     query,
     candidateId: module.id,
-    sources: [module.name, `module ${module.id}`],
+    sources: [module.name, module.code ?? "", `module ${module.id}`],
   });
 }
 
@@ -509,6 +515,7 @@ export async function getModulesForUser(
       where: scopedMembershipFilter,
       select: {
         id: true,
+        code: true,
         name: true,
         moduleLeads: {
           select: MODULE_LEAD_NAME_SELECT,
@@ -533,6 +540,7 @@ export async function getModulesForUser(
           where: membershipFilter,
           select: {
             id: true,
+            code: true,
             name: true,
             moduleLeads: {
               select: MODULE_LEAD_NAME_SELECT,
@@ -564,6 +572,7 @@ export async function getModulesForUser(
 
       return {
         id: module.id,
+        code: module.code,
         name: module.name,
         moduleLeadNames,
         accessRole,
@@ -578,6 +587,7 @@ export async function getModulesForUser(
     where: scopedMembershipFilter,
     select: {
       id: true,
+      code: true,
       name: true,
       briefText: true,
       timelineText: true,
@@ -608,6 +618,7 @@ export async function getModulesForUser(
         where: membershipFilter,
         select: {
           id: true,
+          code: true,
           name: true,
           briefText: true,
           timelineText: true,
@@ -645,6 +656,7 @@ export async function getModulesForUser(
 
     return {
       id: module.id,
+      code: module.code,
       name: module.name,
       briefText: module.briefText,
       timelineText: module.timelineText,
@@ -655,6 +667,58 @@ export async function getModulesForUser(
       projectCount: module.projects.length,
       accessRole,
       ...(staffWithAccessCount !== undefined ? { staffWithAccessCount } : {}),
+    };
+  });
+}
+
+export async function getModuleJoinActor(userId: number): Promise<ModuleJoinActor | null> {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      enterpriseId: true,
+      role: true,
+    },
+  });
+}
+
+export async function joinModuleByCode(input: {
+  enterpriseId: string;
+  userId: number;
+  joinCode: string;
+}): Promise<{ moduleId: number; moduleName: string; alreadyEnrolled: boolean } | null> {
+  return prisma.$transaction(async (tx) => {
+    const module = await tx.module.findFirst({
+      where: {
+        enterpriseId: input.enterpriseId,
+        joinCode: input.joinCode,
+        archivedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+      },
+    });
+
+    if (!module) {
+      return null;
+    }
+
+    const inserted = await tx.userModule.createMany({
+      data: [
+        {
+          enterpriseId: input.enterpriseId,
+          userId: input.userId,
+          moduleId: module.id,
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    return {
+      moduleId: module.id,
+      moduleName: module.name,
+      alreadyEnrolled: inserted.count === 0,
     };
   });
 }

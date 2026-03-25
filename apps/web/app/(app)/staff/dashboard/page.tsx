@@ -43,7 +43,7 @@ async function loadStaffModules(userId: number): Promise<{ modules: Module[]; mo
 
 function buildModuleRows(modules: Module[]): StaffModuleRow[] {
   return modules.map((module) => {
-    const moduleCode = formatModuleCode(module.id);
+    const moduleCode = formatModuleCode(module);
     const teams = module.teamCount ?? 0;
     const projects = module.projectCount ?? 0;
 
@@ -117,10 +117,11 @@ function StaffQuickLinks({ links }: { links: Array<{ href: string; label: string
   );
 }
 
-function formatModuleCode(moduleId: string): string {
-  const numericId = Number(moduleId);
+function formatModuleCode(module: Module): string {
+  if (module.code?.trim()) return module.code.trim();
+  const numericId = Number(module.id);
   if (Number.isFinite(numericId)) return `MOD-${numericId}`;
-  return moduleId;
+  return module.id;
 }
 
 function pluralize(label: string, count: number): string {

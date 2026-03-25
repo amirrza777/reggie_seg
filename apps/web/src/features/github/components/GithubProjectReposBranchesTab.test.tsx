@@ -57,6 +57,8 @@ function makeProps() {
     branchCommitsLoadingByLinkId: {},
     branchCommitsErrorByLinkId: {},
     handleRefreshLiveBranches: vi.fn().mockResolvedValue(undefined),
+    getBranchQuery: vi.fn().mockReturnValue(""),
+    onBranchQueryChange: vi.fn(),
     onSelectBranch: vi.fn(),
   };
 }

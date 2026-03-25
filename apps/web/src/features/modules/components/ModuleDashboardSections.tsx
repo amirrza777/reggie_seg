@@ -18,24 +18,23 @@ type ModuleTabNavProps = {
 
 type ModuleSummaryCardProps = {
   title: string;
-  moduleLeadNames?: string[];
   moduleCode: string;
   teamCount: number;
   projectCount: number;
   hasLinkedProjects: boolean;
-  projectPlans?: ModuleProjectPlan[];
+  projectPlans: ModuleProjectPlan[];
 };
 
 type ModuleExpectationsSectionProps = {
-  briefParagraphs?: string[];
-  projectPlans?: ModuleProjectPlan[];
-  timelineRows?: ModuleTimelineItem[];
-  expectationRows?: Array<[string, string, string]>;
-  readinessParagraphs?: string[];
+  briefParagraphs: string[];
+  projectPlans: ModuleProjectPlan[];
+  timelineRows: ModuleTimelineItem[];
+  expectationRows: Array<[string, string, string]>;
+  readinessParagraphs: string[];
 };
 
 type ModuleMarksSectionProps = {
-  marksRows?: Array<[string, string, string]>;
+  marksRows: Array<[string, string, string]>;
 };
 
 export function ModuleTabNav({ moduleId, activeTab }: ModuleTabNavProps) {
@@ -61,21 +60,15 @@ export function ModuleTabNav({ moduleId, activeTab }: ModuleTabNavProps) {
 
 export function ModuleSummaryCard({
   title,
-  moduleLeadNames = [],
   moduleCode,
   teamCount,
   projectCount,
   hasLinkedProjects,
-  projectPlans = [],
+  projectPlans,
 }: ModuleSummaryCardProps) {
-  const leadLabel = moduleLeadNames.length > 0 ? moduleLeadNames.join(", ") : "Not assigned";
-
   return (
     <Card title={<span className="overview-title">{title}</span>} className="module-dashboard__panel module-dashboard__panel--summary">
-      <p className="muted module-dashboard__module-lead">
-        Module lead{moduleLeadNames.length === 1 ? "" : "s"}: {leadLabel}
-      </p>
-      <p className="muted module-dashboard__summary-meta">
+      <p className="muted">
         {moduleCode} • {teamCount} team{teamCount === 1 ? "" : "s"} •{" "}
         {hasLinkedProjects
           ? `${projectCount} linked project${projectCount === 1 ? "" : "s"}`
@@ -86,18 +79,12 @@ export function ModuleSummaryCard({
 }
 
 export function ModuleExpectationsSection(props: ModuleExpectationsSectionProps) {
-  const briefParagraphs = props.briefParagraphs ?? [];
-  const projectPlans = props.projectPlans ?? [];
-  const timelineRows = props.timelineRows ?? [];
-  const expectationRows = props.expectationRows ?? [];
-  const readinessParagraphs = props.readinessParagraphs ?? [];
-
   return (
     <>
-      <ModuleBriefCard briefParagraphs={briefParagraphs} projectPlans={projectPlans} />
-      <ModuleTimelineCard timelineRows={timelineRows} />
-      <ModuleExpectationsCard expectationRows={expectationRows} />
-      <ModuleReadinessCard readinessParagraphs={readinessParagraphs} />
+      <ModuleBriefCard briefParagraphs={props.briefParagraphs} projectPlans={props.projectPlans} />
+      <ModuleTimelineCard timelineRows={props.timelineRows} />
+      <ModuleExpectationsCard expectationRows={props.expectationRows} />
+      <ModuleReadinessCard readinessParagraphs={props.readinessParagraphs} />
     </>
   );
 }
@@ -197,7 +184,7 @@ function ModuleReadinessCard({ readinessParagraphs }: { readinessParagraphs: str
   );
 }
 
-export function ModuleMarksSection({ marksRows = [] }: ModuleMarksSectionProps) {
+export function ModuleMarksSection({ marksRows }: ModuleMarksSectionProps) {
   return (
     <>
       <Card title="Marks overview" className="module-dashboard__panel">
@@ -208,7 +195,7 @@ export function ModuleMarksSection({ marksRows = [] }: ModuleMarksSectionProps) 
           rowClassName="module-dashboard__table-row module-dashboard__marks-row"
         />
       </Card>
-      <Card title="Marking notes" className="module-dashboard__panel module-dashboard__panel--notes">
+      <Card title="Marking notes" className="module-dashboard__panel">
         <p className="muted">Marks are scoped to this module. Use this tab for module-level grading visibility only.</p>
       </Card>
     </>

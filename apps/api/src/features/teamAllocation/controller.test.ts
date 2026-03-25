@@ -1,9 +1,20 @@
 import { describe, expect, it } from "vitest";
 import * as moduleUnderTest from "./controller.js";
 
+function listExports() {
+  return Object.keys(moduleUnderTest);
+}
+
 describe("controller", () => {
-  it("loads as a module", () => {
+  it("loads as a module with runtime exports", () => {
+    const names = listExports();
     expect(moduleUnderTest).toBeTypeOf("object");
-    expect(Object.keys(moduleUnderTest).length).toBeGreaterThan(0);
+    expect(names.length).toBeGreaterThan(0);
+  });
+
+  it("keeps a callable aggregate API surface", () => {
+    for (const name of listExports()) {
+      expect((moduleUnderTest as Record<string, unknown>)[name]).toBeTypeOf("function");
+    }
   });
 });
