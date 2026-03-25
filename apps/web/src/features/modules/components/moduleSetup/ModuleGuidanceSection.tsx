@@ -84,7 +84,11 @@ function ModuleGuidanceSectionStaffManage({
   }
 
   return (
-    <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
+    <form
+      className="enterprise-modules__create-form enterprise-module-create__form enterprise-module-create__form--guidance-only"
+      onSubmit={state.handleSubmit}
+      noValidate
+    >
       <ModuleGuidanceSectionContent
         state={state}
         defaultGuidance={defaultGuidance}
@@ -120,7 +124,7 @@ function ModuleGuidanceSectionContent({
     if (appliedSignatureRef.current === sig) return;
     appliedSignatureRef.current = sig;
     state.applyGuidanceDefaults(defaultGuidance);
-  }, [defaultGuidance, state.applyGuidanceDefaults]);
+  }, [defaultGuidance, state, state.applyGuidanceDefaults]);
 
   return (
     <section className="module-setup-section module-setup-section--guidance" aria-labelledby="module-setup-guidance-title">

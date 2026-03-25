@@ -1,5 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+const push = vi.fn();
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push }),
+}));
+
 import { ModuleList } from "./ModuleList";
 
 describe("ModuleList", () => {
@@ -48,8 +55,22 @@ describe("ModuleList", () => {
     expect(screen.getByText(/2 module leads/i)).toBeInTheDocument();
     expect(screen.getByText(/1 teaching assistant/i)).toBeInTheDocument();
     expect(screen.getByText(/3 projects/i)).toBeInTheDocument();
-    const card = screen.getByRole("article");
+    const card = screen.getByRole("link", { name: "View module Algorithms" });
     expect(card.querySelector(".module-card__dates")?.textContent).toMatch(/2025/);
+  });
+
+  it("opens staff module routes when a staff base path is provided", () => {
+    render(
+      <ModuleList
+        modules={[
+          { id: "31", title: "Machine Learning", accountRole: "OWNER" },
+        ]}
+        moduleHrefBasePath="/staff/modules"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "View module Machine Learning" }));
+    expect(push).toHaveBeenCalledWith("/staff/modules/31");
   });
 
   it("sorts modules by the selected mode", () => {

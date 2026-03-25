@@ -46,7 +46,7 @@ export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavPro
   ];
 
   return (
-    <nav className="pill-nav" aria-label={navLabel}>
+    <nav className="pill-nav module-workspace__tabs" aria-label={navLabel}>
       {links.map((link) => {
         const isActive = link.match(pathname);
         return (

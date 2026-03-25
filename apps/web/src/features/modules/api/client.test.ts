@@ -33,6 +33,11 @@ describe("modules api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&compact=1");
   });
 
+  it("trims and forwards query for module list", async () => {
+    await listModules(42, { query: "  segp  " });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&q=segp");
+  });
+
   it("joins a module by code", async () => {
     await joinModuleByCode({ code: "ABCD2345" });
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/join", {
