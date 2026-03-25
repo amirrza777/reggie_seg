@@ -133,46 +133,19 @@
   gap: 8px;
 }
 
-.feedbackReviewForm .agreementScale {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.feedbackReviewForm .agreementChoice {
+.feedbackReviewForm .select {
+  width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
+  padding: 10px 12px;
   background: var(--surface);
   color: var(--ink);
-  padding: 8px 10px;
-  display: grid;
-  justify-items: center;
-  gap: 2px;
-  cursor: pointer;
+  font: inherit;
+  line-height: 1.4;
 }
 
-.feedbackReviewForm .agreementChoiceScore {
-  font-weight: 700;
-  font-size: 13px;
-  line-height: 1.2;
-}
-
-.feedbackReviewForm .agreementChoiceLabel {
-  font-size: 11px;
-  line-height: 1.2;
-  text-align: center;
-}
-
-.feedbackReviewForm .agreementChoice.is-selected {
-  border-color: var(--accent-border);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-border) 50%, transparent);
-  background: color-mix(in srgb, var(--surface) 85%, var(--surface-elevated) 15%);
-}
-
-.feedbackReviewForm .agreementChoice:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+.feedbackReviewForm .agreementSelect {
+  margin-top: 2px;
 }
 
 .feedbackReviewForm .agreementBadge {
@@ -196,7 +169,7 @@
   .feedbackReviewForm .reviewBox,
   .feedbackReviewForm .answerItem,
   .feedbackReviewForm .answerPreviewInput,
-  .feedbackReviewForm .agreementChoice,
+  .feedbackReviewForm .select,
   .feedbackReviewForm .agreementBadge {
     background-color: color-mix(in srgb, var(--surface) 80%, #111827 20%);
   }
@@ -220,20 +193,5 @@
   .feedbackReviewForm .headerContainer {
     flex-wrap: wrap;
     align-items: flex-start;
-  }
-
-  .feedbackReviewForm .agreementScale {
-    grid-template-columns: 1fr;
-  }
-
-  .feedbackReviewForm .agreementChoice {
-    grid-template-columns: 24px 1fr;
-    justify-items: start;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .feedbackReviewForm .agreementChoiceLabel {
-    text-align: left;
   }
 }

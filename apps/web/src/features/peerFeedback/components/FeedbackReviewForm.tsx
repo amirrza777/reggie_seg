@@ -348,30 +348,22 @@ export function FeedbackReviewForm({
                 {renderAnswerPreview(a)}
                 <label className="labelBlock">
                   {isEditing ? (
-                    <div className="agreementScale" role="radiogroup" aria-label={`Agreement for ${a.question}`}>
-                      {AGREEMENT_OPTIONS.map((option) => {
-                        const selected = agreements[getAnswerKey(a)]?.selected ?? "Reasonable";
-                        const isSelected = selected === option.label;
-                        return (
-                          <button
-                            key={option.label}
-                            type="button"
-                            className={`agreementChoice ${isSelected ? "is-selected" : ""}`}
-                            disabled={isLoading}
-                            aria-pressed={isSelected}
-                            onClick={() =>
-                              setAgreements((prev) => ({
-                                ...prev,
-                                [getAnswerKey(a)]: { selected: option.label as AgreementOption, score: option.score },
-                              }))
-                            }
-                          >
-                            <span className="agreementChoiceScore">{option.score}</span>
-                            <span className="agreementChoiceLabel">{option.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <select
+                      value={agreements[getAnswerKey(a)]?.selected ?? "Reasonable"}
+                      onChange={(e) => {
+                        const selected = e.target.value as AgreementOption;
+                        const score = AGREEMENT_OPTIONS.find((option) => option.label === selected)?.score ?? 3;
+                        setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
+                      }}
+                      disabled={isLoading}
+                      className="select agreementSelect"
+                    >
+                      {AGREEMENT_OPTIONS.map((option) => (
+                        <option key={option.label} value={option.label}>
+                          {option.score} — {option.label}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <span className="agreementBadge">
                       {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
