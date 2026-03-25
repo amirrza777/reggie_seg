@@ -51,6 +51,9 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
+const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
 describe("meetings service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -173,12 +176,30 @@ describe("meetings service", () => {
     await expect(editMeeting(1, 1, { title: "Updated" })).rejects.toEqual({ code: "NOT_FOUND" });
   });
 
-  it("throws FORBIDDEN from editMeeting when user is not the organiser", async () => {
+  it("throws FORBIDDEN from editMeeting when user is not the organiser and toggle is off", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 2,
-      date: new Date(Date.now() + 86400000),
+      id: 1, teamId: 1, organiserId: 2, date: tomorrow, team: { allocations: [] },
     });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: false });
+
+    await expect(editMeeting(1, 1, { title: "Updated" })).rejects.toEqual({ code: "FORBIDDEN" });
+  });
+
+  it("allows non-organiser to edit when toggle is on and user is a team member", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 1, teamId: 1, organiserId: 2, date: tomorrow, team: { allocations: [{ userId: 1 }] },
+    });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: true });
+    (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
+
+    expect(await editMeeting(1, 1, { title: "Updated" })).toEqual({ id: 1, title: "Updated" });
+  });
+
+  it("throws FORBIDDEN from editMeeting when toggle is on but user is not a team member", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 1, teamId: 1, organiserId: 2, date: tomorrow, team: { allocations: [] },
+    });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: true });
 
     await expect(editMeeting(1, 1, { title: "Updated" })).rejects.toEqual({ code: "FORBIDDEN" });
   });
@@ -187,7 +208,7 @@ describe("meetings service", () => {
     (repo.getMeetingById as any).mockResolvedValue({
       id: 1,
       organiserId: 1,
-      date: new Date(Date.now() - 86400000),
+      date: yesterday,
     });
 
     await expect(editMeeting(1, 1, { title: "Updated" })).rejects.toEqual({ code: "MEETING_PASSED" });
@@ -197,7 +218,7 @@ describe("meetings service", () => {
     (repo.getMeetingById as any).mockResolvedValue({
       id: 1,
       organiserId: 1,
-      date: new Date(Date.now() + 86400000),
+      date: tomorrow,
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -211,7 +232,7 @@ describe("meetings service", () => {
     (repo.getMeetingById as any).mockResolvedValue({
       id: 1,
       organiserId: 1,
-      date: new Date(Date.now() + 86400000),
+      date: tomorrow,
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -224,7 +245,7 @@ describe("meetings service", () => {
     (repo.getMeetingById as any).mockResolvedValue({
       id: 1,
       organiserId: 1,
-      date: new Date(Date.now() + 86400000),
+      date: tomorrow,
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -292,12 +313,32 @@ describe("meetings service", () => {
     await expect(saveMinutes(5, 1, "notes")).rejects.toEqual({ code: "NOT_FOUND" });
   });
 
-  it("throws FORBIDDEN from saveMinutes when writer is not the original writer", async () => {
+  it("throws FORBIDDEN from saveMinutes when writer is not the original writer and toggle is off", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 5,
-      minutes: { writerId: 2, content: "original" },
-      organiserId: 2,
+      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [{ userId: 1 }] },
     });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: false });
+
+    await expect(saveMinutes(5, 1, "overwrite")).rejects.toEqual({ code: "FORBIDDEN" });
+  });
+
+  it("allows team member to edit minutes when toggle is on", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [{ userId: 1 }] },
+    });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: true });
+    (repo.upsertMinutes as any).mockResolvedValue({ id: 1, content: "updated" });
+
+    await saveMinutes(5, 1, "updated");
+
+    expect(repo.upsertMinutes).toHaveBeenCalledWith(5, 1, "updated");
+  });
+
+  it("throws FORBIDDEN from saveMinutes when toggle is on but user is not a team member", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [] },
+    });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: true });
 
     await expect(saveMinutes(5, 1, "overwrite")).rejects.toEqual({ code: "FORBIDDEN" });
   });
