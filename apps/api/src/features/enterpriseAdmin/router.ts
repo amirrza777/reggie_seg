@@ -455,14 +455,29 @@ router.put("/modules/:moduleId/meeting-settings", async (req, res) => {
 
   const absenceThreshold = Number(req.body?.absenceThreshold);
   const minutesEditWindowDays = Number(req.body?.minutesEditWindowDays);
+  const attendanceEditWindowDays = Number(req.body?.attendanceEditWindowDays);
   if (!Number.isInteger(absenceThreshold) || absenceThreshold < 1) {
     return res.status(400).json({ error: "absenceThreshold must be a positive integer" });
   }
   if (!Number.isInteger(minutesEditWindowDays) || minutesEditWindowDays < 1) {
     return res.status(400).json({ error: "minutesEditWindowDays must be a positive integer" });
   }
+  if (!Number.isInteger(attendanceEditWindowDays) || attendanceEditWindowDays < 1) {
+    return res.status(400).json({ error: "attendanceEditWindowDays must be a positive integer" });
+  }
 
-  const result = await updateModuleMeetingSettings(enterpriseUser, moduleId, { absenceThreshold, minutesEditWindowDays });
+  const allowAnyoneToEditMeetings = req.body?.allowAnyoneToEditMeetings === true;
+  const allowAnyoneToRecordAttendance = req.body?.allowAnyoneToRecordAttendance === true;
+  const allowAnyoneToWriteMinutes = req.body?.allowAnyoneToWriteMinutes === true;
+
+  const result = await updateModuleMeetingSettings(enterpriseUser, moduleId, {
+    absenceThreshold,
+    minutesEditWindowDays,
+    attendanceEditWindowDays,
+    allowAnyoneToEditMeetings,
+    allowAnyoneToRecordAttendance,
+    allowAnyoneToWriteMinutes,
+  });
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 });

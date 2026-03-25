@@ -116,6 +116,10 @@ export async function updateEnterpriseModuleStudents(
 export type ModuleMeetingSettings = {
   absenceThreshold: number;
   minutesEditWindowDays: number;
+  attendanceEditWindowDays: number;
+  allowAnyoneToEditMeetings: boolean;
+  allowAnyoneToRecordAttendance: boolean;
+  allowAnyoneToWriteMinutes: boolean;
 };
 
 export async function getModuleMeetingSettings(moduleId: number): Promise<ModuleMeetingSettings> {

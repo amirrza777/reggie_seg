@@ -5,6 +5,7 @@ import type { EnterpriseUser } from "./types.js";
 type ModuleMeetingSettings = {
   absenceThreshold: number;
   minutesEditWindowDays: number;
+  attendanceEditWindowDays: number;
   allowAnyoneToEditMeetings: boolean;
   allowAnyoneToRecordAttendance: boolean;
   allowAnyoneToWriteMinutes: boolean;
@@ -19,6 +20,7 @@ export async function getModuleMeetingSettings(
     select: {
       absenceThreshold: true,
       minutesEditWindowDays: true,
+      attendanceEditWindowDays: true,
       allowAnyoneToEditMeetings: true,
       allowAnyoneToRecordAttendance: true,
       allowAnyoneToWriteMinutes: true,
@@ -36,6 +38,7 @@ export async function updateModuleMeetingSettings(
   data: {
     absenceThreshold: number;
     minutesEditWindowDays: number;
+    attendanceEditWindowDays: number;
     allowAnyoneToEditMeetings: boolean;
     allowAnyoneToRecordAttendance: boolean;
     allowAnyoneToWriteMinutes: boolean;
@@ -55,6 +58,7 @@ export async function updateModuleMeetingSettings(
     data: {
       absenceThreshold: data.absenceThreshold,
       minutesEditWindowDays: data.minutesEditWindowDays,
+      attendanceEditWindowDays: data.attendanceEditWindowDays,
       allowAnyoneToEditMeetings: data.allowAnyoneToEditMeetings,
       allowAnyoneToRecordAttendance: data.allowAnyoneToRecordAttendance,
       allowAnyoneToWriteMinutes: data.allowAnyoneToWriteMinutes,
@@ -62,6 +66,7 @@ export async function updateModuleMeetingSettings(
     select: {
       absenceThreshold: true,
       minutesEditWindowDays: true,
+      attendanceEditWindowDays: true,
       allowAnyoneToEditMeetings: true,
       allowAnyoneToRecordAttendance: true,
       allowAnyoneToWriteMinutes: true,
