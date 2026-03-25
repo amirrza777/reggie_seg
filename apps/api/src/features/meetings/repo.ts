@@ -261,6 +261,7 @@ export async function getModuleMeetingSettingsForTeam(teamId: number) {
         select: {
           absenceThreshold: true,
           minutesEditWindowDays: true,
+          attendanceEditWindowDays: true,
           allowAnyoneToEditMeetings: true,
           allowAnyoneToRecordAttendance: true,
           allowAnyoneToWriteMinutes: true,
@@ -271,6 +272,7 @@ export async function getModuleMeetingSettingsForTeam(teamId: number) {
   return project?.module ?? {
     absenceThreshold: 3,
     minutesEditWindowDays: 7,
+    attendanceEditWindowDays: 7,
     allowAnyoneToEditMeetings: false,
     allowAnyoneToRecordAttendance: false,
     allowAnyoneToWriteMinutes: false,

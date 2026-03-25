@@ -17,7 +17,7 @@ import {
   getModuleLeadsForTeam,
   getModuleMeetingSettingsForTeam,
 } from "./repo.js";
-import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
+import { getTeamMembers } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
 
@@ -116,8 +116,13 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 }) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
-  if (meeting.organiserId !== userId) throw { code: "FORBIDDEN" };
   if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
+  const isOrganiser = meeting.organiserId === userId;
+  if (!isOrganiser) {
+    const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
+    const isMember = meeting.team.allocations.some((a) => a.userId === userId);
+    if (!settings.allowAnyoneToEditMeetings || !isMember) throw { code: "FORBIDDEN" };
+  }
   const { participantIds, ...meetingData } = data;
   const updated = await updateMeeting(meetingId, meetingData);
   if (participantIds !== undefined) {
@@ -179,7 +184,12 @@ export async function markAttendance(meetingId: number, records: { userId: numbe
 export async function saveMinutes(meetingId: number, writerId: number, content: string) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
-  if (meeting.minutes && meeting.minutes.writerId !== writerId) throw { code: "FORBIDDEN" };
+  const isOriginalWriter = meeting.minutes?.writerId === writerId;
+  if (meeting.minutes && !isOriginalWriter) {
+    const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
+    const isMember = meeting.team.allocations.some((a) => a.userId === writerId);
+    if (!settings.allowAnyoneToWriteMinutes || !isMember) throw { code: "FORBIDDEN" };
+  }
   return upsertMinutes(meetingId, writerId, content);
 }
 

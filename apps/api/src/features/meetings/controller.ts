@@ -93,7 +93,7 @@ export async function updateMeetingHandler(req: Request, res: Response) {
     res.json(meeting);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
-    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the organiser can edit this meeting" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit this meeting" });
     if (error?.code === "MEETING_PASSED") return res.status(409).json({ error: "Meeting details cannot be edited after the meeting date" });
     console.error("Error updating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -160,7 +160,7 @@ export async function saveMinutesHandler(req: Request, res: Response) {
     res.json(minutes);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
-    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the original writer can edit these minutes" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit these minutes" });
     console.error("Error saving minutes:", error);
     res.status(500).json({ error: "Internal server error" });
   }
