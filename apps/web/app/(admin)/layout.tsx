@@ -6,6 +6,7 @@ import { Topbar } from "@/shared/layout/Topbar";
 import { SpaceSwitcher, type SpaceLink } from "@/shared/layout/SpaceSwitcher";
 import { UserMenu } from "@/features/auth/components/UserMenu";
 import { getCurrentUser, isAdmin } from "@/shared/auth/session";
+import "../styles/global-app-shell.css";
 
 export const dynamic = "force-dynamic";
 

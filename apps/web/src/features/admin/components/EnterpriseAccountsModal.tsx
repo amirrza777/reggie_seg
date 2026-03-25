@@ -1,7 +1,8 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
+import { ModalPortal } from "@/shared/ui/ModalPortal";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { EnterpriseRecord } from "../types";
@@ -54,48 +55,24 @@ function EnterpriseAccountsPagination({
   onUserPageInputBlur: () => void;
   onUserPageJump: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  if (userTotalPages <= 1) return null;
-
   return (
-    <div className="user-management__pagination" aria-label="Enterprise users pagination">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onUserPageChange((prev) => Math.max(1, prev - 1))}
-        disabled={userPage === 1}
-      >
-        Previous
-      </Button>
-      <form className="user-management__page-jump" onSubmit={onUserPageJump}>
-        <label htmlFor="enterprise-user-page-input" className="user-management__page-jump-label">
-          Page
-        </label>
-        <FormField
-          id="enterprise-user-page-input"
-          type="number"
-          min={1}
-          max={effectiveUserTotalPages}
-          step={1}
-          inputMode="numeric"
-          value={userPageInput}
-          onChange={(event) => onUserPageInputChange(event.target.value)}
-          onBlur={onUserPageInputBlur}
-          className="user-management__page-jump-input"
-          aria-label="Go to enterprise user page number"
-        />
-        <span className="muted user-management__page-total">of {effectiveUserTotalPages}</span>
-      </form>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => onUserPageChange((prev) => Math.min(effectiveUserTotalPages, prev + 1))}
-        disabled={userPage === effectiveUserTotalPages}
-      >
-        Next
-      </Button>
-    </div>
+    <PaginationControls
+      ariaLabel="Enterprise users pagination"
+      page={userPage}
+      totalPages={userTotalPages}
+      onPreviousPage={() => onUserPageChange((prev) => Math.max(1, prev - 1))}
+      onNextPage={() => onUserPageChange((prev) => Math.min(effectiveUserTotalPages, prev + 1))}
+    >
+      <PaginationPageJump
+        pageInputId="enterprise-user-page-input"
+        pageInput={userPageInput}
+        totalPages={userTotalPages}
+        pageJumpAriaLabel="Go to enterprise user page number"
+        onPageInputChange={onUserPageInputChange}
+        onPageInputBlur={onUserPageInputBlur}
+        onPageJump={onUserPageJump}
+      />
+    </PaginationControls>
   );
 }
 
@@ -123,6 +100,7 @@ export function EnterpriseAccountsModal({
   const showSkeletonTable = usersStatus === "loading" && userRows.length === 0;
 
   return (
+    <ModalPortal>
     <div
       className="modal"
       role="dialog"
@@ -207,5 +185,6 @@ export function EnterpriseAccountsModal({
         </div>
       </div>
     </div>
+    </ModalPortal>
   );
 }
