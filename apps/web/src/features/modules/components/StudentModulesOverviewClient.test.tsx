@@ -62,7 +62,7 @@ describe("StudentModulesOverviewClient", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/join code/i), { target: { value: "abcd2345" } });
-    fireEvent.click(screen.getByRole("button", { name: /^join module$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^join module$/i })[1]);
 
     await waitFor(() => expect(joinModuleByCodeMock).toHaveBeenCalledWith({ code: "ABCD2345" }));
     await waitFor(() => expect(listModulesMock).toHaveBeenCalledWith(7));
@@ -70,7 +70,7 @@ describe("StudentModulesOverviewClient", () => {
     expect(await screen.findByText(/software engineering has been added/i)).toBeInTheDocument();
     expect(refresh).toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole("button", { name: /close/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /close/i })[1]);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
   });
 
@@ -81,7 +81,7 @@ describe("StudentModulesOverviewClient", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /join module/i }));
     fireEvent.change(screen.getByLabelText(/join code/i), { target: { value: "badcode" } });
-    fireEvent.click(screen.getByRole("button", { name: /^join module$/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /^join module$/i })[1]);
 
     expect(await screen.findByText(/invalid or unavailable module code/i)).toBeInTheDocument();
   });

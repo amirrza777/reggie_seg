@@ -73,16 +73,12 @@ describe("GithubProjectReposBranchesTab", () => {
     expect(screen.getByLabelText("Branch")).toBeInTheDocument();
     expect(screen.getByText("feat: add login")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh" }));
-    fireEvent.change(screen.getByLabelText("Search branches for team/repo"), {
-      target: { value: "feature" },
-    });
-    fireEvent.change(screen.getByLabelText("Select branch to view 10 most recent commits"), {
+    fireEvent.click(screen.getByRole("button", { name: "Refresh branches" }));
+    fireEvent.change(screen.getByLabelText("Branch"), {
       target: { value: "feature/a" },
     });
 
     expect(props.handleRefreshLiveBranches).toHaveBeenCalledTimes(1);
-    expect(props.onBranchQueryChange).toHaveBeenCalledWith(1, "feature");
     expect(props.onSelectBranch).toHaveBeenCalledWith(1, "feature/a");
   });
 

@@ -14,7 +14,9 @@ vi.mock("../api/client", () => ({
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
   getEnterpriseModuleJoinCode: vi.fn(),
+  getModuleMeetingSettings: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),
+  updateModuleMeetingSettings: vi.fn(),
   updateEnterpriseModule: vi.fn(),
 }));
 
@@ -23,7 +25,9 @@ import {
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
   getEnterpriseModuleJoinCode,
+  getModuleMeetingSettings,
   searchEnterpriseModuleAccessUsers,
+  updateModuleMeetingSettings,
   updateEnterpriseModule,
 } from "../api/client";
 import type { EnterpriseModuleAccessSelectionResponse } from "../types";
@@ -55,6 +59,8 @@ const getEnterpriseModuleJoinCodeMock = getEnterpriseModuleJoinCode as MockedFun
 const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers as MockedFunction<
   typeof searchEnterpriseModuleAccessUsers
 >;
+const getModuleMeetingSettingsMock = getModuleMeetingSettings as MockedFunction<typeof getModuleMeetingSettings>;
+const updateModuleMeetingSettingsMock = updateModuleMeetingSettings as MockedFunction<typeof updateModuleMeetingSettings>;
 const updateEnterpriseModuleMock = updateEnterpriseModule as MockedFunction<typeof updateEnterpriseModule>;
 
 const staffOwner = { id: 11, email: "lead@x.com", firstName: "Staff", lastName: "Owner", active: true };
@@ -139,6 +145,14 @@ describe("EnterpriseModuleCreateForm", () => {
       moduleId: 77,
       joinCode: "ABCD2345",
     });
+    getModuleMeetingSettingsMock.mockResolvedValue({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 7,
+    });
+    updateModuleMeetingSettingsMock.mockResolvedValue({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 7,
+    });
     updateEnterpriseModuleMock.mockResolvedValue({
       id: 77,
       code: "4CCS2DBS",
@@ -214,9 +228,7 @@ describe("EnterpriseModuleCreateForm", () => {
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {
-    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} initialAccessSelection={editInitialSelection} />);
-
-    expect(getEnterpriseModuleAccessSelectionMock).not.toHaveBeenCalled();
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
 
     const deleteButton = await screen.findByRole("button", { name: /delete module/i });
     const confirmation = screen.getByLabelText(/i understand this action cannot be undone/i);

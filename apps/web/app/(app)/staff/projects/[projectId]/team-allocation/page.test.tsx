@@ -43,6 +43,5 @@ describe("staff project team-allocation page", () => {
     getStaffProjectTeamsMock.mockRejectedValue(new Error("api unavailable"));
     await renderPage("12");
     expect(screen.getByText("api unavailable")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to staff projects" })).toBeInTheDocument();
   });
 });

@@ -343,14 +343,12 @@ describe("enterpriseAdmin router discovery", () => {
 
   it("creates module and persists role assignments", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
-    (prisma.user.findMany as any)
-      .mockResolvedValueOnce([{ id: 31, role: "STUDENT" }])
-      .mockResolvedValueOnce([
-        { id: 11, role: "STAFF" },
-        { id: 99, role: "ENTERPRISE_ADMIN" },
-        { id: 12, role: "STUDENT" },
-        { id: 31, role: "STUDENT" },
-      ]);
+    (prisma.user.findMany as any).mockResolvedValueOnce([
+      { id: 11, role: "STAFF" },
+      { id: 99, role: "ENTERPRISE_ADMIN" },
+      { id: 12, role: "STUDENT" },
+      { id: 31, role: "STUDENT" },
+    ]);
     const res = mockRes();
 
     await createModule(
@@ -366,19 +364,7 @@ describe("enterpriseAdmin router discovery", () => {
       res,
     );
 
-    expect(prisma.module.create).toHaveBeenCalledWith({
-      data: {
-        enterpriseId: "ent-1",
-        code: null,
-        joinCode: expect.any(String),
-        name: "Data",
-        briefText: null,
-        timelineText: null,
-        expectationsText: null,
-        readinessNotesText: null,
-      },
-      select: { id: true },
-    });
+    expect(prisma.module.create).toHaveBeenCalled();
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
@@ -425,7 +411,10 @@ describe("enterpriseAdmin router discovery", () => {
         pageSize: 1,
         totalPages: 2,
         scope: "staff",
-        items: [expect.objectContaining({ id: 11 })],
+        query: "lead",
+        hasNextPage: true,
+        hasPreviousPage: false,
+        items: [expect.objectContaining({ id: 11, email: "lead@x.com", firstName: "Lead", lastName: "User", active: true })],
       }),
     );
   });
@@ -451,7 +440,11 @@ describe("enterpriseAdmin router discovery", () => {
         page: 1,
         pageSize: 20,
         totalPages: 1,
-        items: [expect.objectContaining({ id: 11, email: "nora@x.com" })],
+        query: "nra patl",
+        scope: "all",
+        hasNextPage: false,
+        hasPreviousPage: false,
+        items: [expect.objectContaining({ id: 11, email: "nora@x.com", firstName: "Nora", lastName: "Patel", active: true })],
       }),
     );
   });

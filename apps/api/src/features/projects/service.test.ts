@@ -102,6 +102,7 @@ describe("projects service", () => {
         teamCount: 5,
         projectCount: 2,
         accountRole: "OWNER",
+        moduleLeadNames: [],
       },
     ]);
   });

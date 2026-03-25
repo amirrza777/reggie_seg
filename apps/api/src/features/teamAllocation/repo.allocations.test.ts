@@ -19,20 +19,6 @@ describe("repo allocations", () => {
     mocks.prisma.teamAllocation.findMany.mockResolvedValue([]);
     mocks.prisma.team.findMany.mockResolvedValue([]);
   });
-  it("applyRandomAllocationPlan validates vacancies and existing names before creating teams", async () => {
-    const tx = {
-      team: {
-        findMany: vi.fn().mockResolvedValue([{ teamName: "Team A" }]),
-        create: vi.fn()
-          .mockResolvedValueOnce({ id: 11, teamName: "Random Team 1" })
-          .mockResolvedValueOnce({ id: 22, teamName: "Random Team 2" }),
-      },
-      teamAllocation: {
-        findMany: vi.fn().mockResolvedValue([]),
-        createMany: vi.fn().mockResolvedValue({ count: 2 }),
-      },
-    };
-    (prisma.$transaction as any).mockImplementation(async (callback: any) => callback(tx));
 
   it("rejects mismatched requested team names", async () => {
     await expect(

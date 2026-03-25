@@ -86,6 +86,9 @@ export async function searchEnterpriseModuleAccessUsers(
   if (params.q) search.set("q", params.q);
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params.excludeEnrolledInModule) {
+    search.set("excludeEnrolledInModule", String(params.excludeEnrolledInModule));
+  }
   const qs = search.toString();
   const path = qs ? `/enterprise-admin/modules/access-users/search?${qs}` : "/enterprise-admin/modules/access-users/search";
   return apiFetch<EnterpriseAccessUserSearchResponse>(path);

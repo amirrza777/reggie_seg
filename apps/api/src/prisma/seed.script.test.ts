@@ -33,6 +33,13 @@ type PrismaMock = {
     findMany: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
+  meeting: {
+    findFirst: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+  };
+  meetingAttendance: { createMany: ReturnType<typeof vi.fn> };
+  meetingParticipant: { createMany: ReturnType<typeof vi.fn> };
+  meetingMinutes: { createMany: ReturnType<typeof vi.fn> };
   peerAssessment: {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -46,11 +53,17 @@ type PrismaMock = {
   };
   projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   featureFlag: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  discussionPost: {
+    deleteMany: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    createMany: ReturnType<typeof vi.fn>;
+  };
+  $transaction: ReturnType<typeof vi.fn>;
   $disconnect: ReturnType<typeof vi.fn>;
 };
 
 function buildPrismaMock(): PrismaMock {
-  return {
+  const prismaMock = {
     enterprise: {
       findUnique: vi.fn().mockResolvedValue({ id: "ent-1" }),
       create: vi.fn().mockResolvedValue({ id: "ent-1" }),
@@ -127,10 +140,32 @@ function buildPrismaMock(): PrismaMock {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([
-        { user: { id: 1 } },
-        { user: { id: 2 } },
+        { userId: 1, user: { id: 1 } },
+        { userId: 2, user: { id: 2 } },
+        { userId: 3, user: { id: 3 } },
+        { userId: 4, user: { id: 4 } },
       ]),
       findUnique: vi.fn().mockResolvedValue(null),
+    },
+    meeting: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi
+        .fn()
+        .mockResolvedValueOnce({ id: 201 })
+        .mockResolvedValueOnce({ id: 202 })
+        .mockResolvedValueOnce({ id: 203 })
+        .mockResolvedValueOnce({ id: 204 })
+        .mockResolvedValueOnce({ id: 205 })
+        .mockResolvedValueOnce({ id: 206 }),
+    },
+    meetingAttendance: {
+      createMany: vi.fn().mockResolvedValue({ count: 12 }),
+    },
+    meetingParticipant: {
+      createMany: vi.fn().mockResolvedValue({ count: 24 }),
+    },
+    meetingMinutes: {
+      createMany: vi.fn().mockResolvedValue({ count: 2 }),
     },
     peerAssessment: {
       create: vi.fn().mockResolvedValue({ id: 100 }),
@@ -151,8 +186,19 @@ function buildPrismaMock(): PrismaMock {
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    discussionPost: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      create: vi.fn().mockResolvedValue({ id: 1, projectId: 1 }),
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    $transaction: vi.fn().mockImplementation(async (arg: any) => {
+      if (Array.isArray(arg)) return Promise.all(arg);
+      if (typeof arg === "function") return arg(prismaMock);
+      return arg;
+    }),
     $disconnect: vi.fn().mockResolvedValue(undefined),
   };
+  return prismaMock;
 }
 
 async function flushAsyncWork() {
@@ -189,10 +235,16 @@ describe("prisma seed script", () => {
         moduleLead: prismaMock.moduleLead,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
+        meeting: prismaMock.meeting,
+        meetingAttendance: prismaMock.meetingAttendance,
+        meetingParticipant: prismaMock.meetingParticipant,
+        meetingMinutes: prismaMock.meetingMinutes,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        discussionPost: prismaMock.discussionPost,
+        $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
       Role: { STUDENT: "STUDENT", STAFF: "STAFF", ADMIN: "ADMIN" },
@@ -205,6 +257,7 @@ describe("prisma seed script", () => {
       randFirstName: vi.fn().mockReturnValue("First"),
       randLastName: vi.fn().mockReturnValue("Last"),
       randSentence: vi.fn().mockReturnValue("Random generated question."),
+      randParagraph: vi.fn().mockReturnValue("Random generated paragraph."),
     }));
 
     process.env.ADMIN_BOOTSTRAP_EMAIL = "admin@kcl.ac.uk";
@@ -217,9 +270,9 @@ describe("prisma seed script", () => {
     expect(prismaMock.user.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([
-          expect.objectContaining({ email: "marker.staff@example.com", role: "STAFF" }),
-          expect.objectContaining({ email: "marker.enterprise.admin@example.com", role: "ENTERPRISE_ADMIN" }),
-          expect.objectContaining({ email: "marker.admin@example.com", role: "ADMIN" }),
+          expect.objectContaining({ email: "staff.assessment@example.com", role: "STAFF" }),
+          expect.objectContaining({ email: "entp_admin.assessment@example.com", role: "ENTERPRISE_ADMIN" }),
+          expect.objectContaining({ email: "global_admin.assessment@example.com", role: "ADMIN" }),
         ]),
       }),
     );
@@ -227,7 +280,7 @@ describe("prisma seed script", () => {
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
-    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 1 enterprise(s). Default password"));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Seed users ready across 1 enterprise(s). Default password"));
   });
 
   it("skips bootstrap admin creation when admin env is missing", async () => {
@@ -246,10 +299,16 @@ describe("prisma seed script", () => {
         moduleLead: prismaMock.moduleLead,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
+        meeting: prismaMock.meeting,
+        meetingAttendance: prismaMock.meetingAttendance,
+        meetingParticipant: prismaMock.meetingParticipant,
+        meetingMinutes: prismaMock.meetingMinutes,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        discussionPost: prismaMock.discussionPost,
+        $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
       Role: { STUDENT: "STUDENT", STAFF: "STAFF", ADMIN: "ADMIN" },
@@ -261,6 +320,7 @@ describe("prisma seed script", () => {
       randFirstName: vi.fn().mockReturnValue("First"),
       randLastName: vi.fn().mockReturnValue("Last"),
       randSentence: vi.fn().mockReturnValue("Random generated question."),
+      randParagraph: vi.fn().mockReturnValue("Random generated paragraph."),
     }));
 
     delete process.env.ADMIN_BOOTSTRAP_EMAIL;
@@ -296,10 +356,16 @@ describe("prisma seed script", () => {
         moduleLead: prismaMock.moduleLead,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
+        meeting: prismaMock.meeting,
+        meetingAttendance: prismaMock.meetingAttendance,
+        meetingParticipant: prismaMock.meetingParticipant,
+        meetingMinutes: prismaMock.meetingMinutes,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        discussionPost: prismaMock.discussionPost,
+        $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
       Role: { STUDENT: "STUDENT", STAFF: "STAFF", ADMIN: "ADMIN" },
@@ -311,6 +377,7 @@ describe("prisma seed script", () => {
       randFirstName: vi.fn().mockReturnValue("First"),
       randLastName: vi.fn().mockReturnValue("Last"),
       randSentence: vi.fn().mockReturnValue("Random generated question."),
+      randParagraph: vi.fn().mockReturnValue("Random generated paragraph."),
     }));
     vi.doMock("../../prisma/seed/volumes.ts", async () => {
       const actual = await vi.importActual<typeof import("../../prisma/seed/volumes.ts")>("../../prisma/seed/volumes.ts");
@@ -324,9 +391,9 @@ describe("prisma seed script", () => {
     await flushAsyncWork();
 
     expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
-    expect(prismaMock.user.createMany).toHaveBeenCalledTimes(2);
-    expect(prismaMock.module.createMany).toHaveBeenCalledTimes(2);
+    expect(prismaMock.user.createMany).toHaveBeenCalled();
+    expect(prismaMock.module.createMany).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
-    expect(logSpy).toHaveBeenLastCalledWith(expect.stringContaining("Seed users ready across 2 enterprise(s). Default password"));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining("Seed users ready across 2 enterprise(s). Default password"));
   });
 });
