@@ -221,7 +221,7 @@ async function runFuzzyModuleSearch(
 
   const fuzzyCandidates = await prisma.module.findMany({
     where: baseWhere,
-    select: { id: true, code: true, name: true },
+    select: { id: true, name: true },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
   const fuzzyPage = fuzzyFilterAndPaginate(fuzzyCandidates, {

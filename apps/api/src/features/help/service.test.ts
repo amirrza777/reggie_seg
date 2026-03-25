@@ -59,4 +59,20 @@ describe("help search service", () => {
     const results = searchHelpRecords(parsed.value);
     expect(results.map((item) => item.id)).toEqual(["topic-1"]);
   });
+
+  it("matches overview records with minor typos", () => {
+    const parsed = parseHelpSearchPayload({
+      q: "roes",
+      scope: "overview",
+      records: [
+        { id: "topic-1", title: "Roles & Permissions", description: "What students, staff, and admins can do." },
+        { id: "topic-2", title: "Support", description: "Contact support and report issues." },
+      ],
+      limit: 5,
+    });
+
+    if (!parsed.ok) throw new Error(parsed.error);
+    const results = searchHelpRecords(parsed.value);
+    expect(results.map((item) => item.id)).toEqual(["topic-1"]);
+  });
 });

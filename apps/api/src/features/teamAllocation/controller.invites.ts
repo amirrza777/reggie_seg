@@ -10,18 +10,20 @@ import {
   listTeamInvites,
   rejectTeamInvite,
 } from "./service.js";
-import {
-  parseCreateTeamInviteBody,
-  parseInviteIdParam,
-  parseStaffActor,
-  parseTeamIdParam,
-} from "./controller.parsers.js";
 
 export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
-  const inviterId = parseStaffActor(req);
-  if (!inviterId.ok) return res.status(401).json({ error: inviterId.error });
-  const parsedBody = parseCreateTeamInviteBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const teamId = Number(req.body?.teamId);
+  const inviterId = req.user?.sub;
+  const inviteeEmail = typeof req.body?.inviteeEmail === "string" ? req.body.inviteeEmail : "";
+  const inviteeId = req.body?.inviteeId ? Number(req.body.inviteeId) : undefined;
+  const message = typeof req.body?.message === "string" ? req.body.message : undefined;
+
+  if (!inviterId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (isNaN(teamId) || !inviteeEmail) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
 
   const origin = typeof req.headers.origin === "string" ? req.headers.origin : undefined;
   const host = req.get("host");
@@ -29,12 +31,12 @@ export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
 
   try {
     const result = await createTeamInvite({
-      teamId: parsedBody.value.teamId,
-      inviterId: inviterId.value,
-      inviteeEmail: parsedBody.value.inviteeEmail,
+      teamId,
+      inviterId,
+      inviteeEmail,
       baseUrl,
-      ...(parsedBody.value.inviteeId !== undefined ? { inviteeId: parsedBody.value.inviteeId } : {}),
-      ...(parsedBody.value.message !== undefined ? { message: parsedBody.value.message } : {}),
+      ...(inviteeId !== undefined ? { inviteeId } : {}),
+      ...(message !== undefined ? { message } : {}),
     });
     return res.json({ ok: true, inviteId: result.invite.id });
   } catch (error: any) {
@@ -59,13 +61,17 @@ export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
 }
 
 export async function listTeamInvitesHandler(req: AuthRequest, res: Response) {
-  const requesterId = parseStaffActor(req);
-  if (!requesterId.ok) return res.status(401).json({ error: requesterId.error });
-  const teamId = parseTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+  const requesterId = req.user?.sub;
+  const teamId = Number(req.params.teamId);
+  if (!requesterId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
 
   try {
-    const invites = await listTeamInvites(teamId.value, requesterId.value);
+    const invites = await listTeamInvites(teamId, requesterId);
     return res.json(invites);
   } catch (error: any) {
     if (error?.code === "TEAM_NOT_FOUND_OR_INACTIVE") {
@@ -103,11 +109,13 @@ async function transitionInviteHandler(
   transition: (inviteId: string) => Promise<unknown>,
   actionName: string,
 ) {
-  const inviteId = parseInviteIdParam(req.params.inviteId);
-  if (!inviteId.ok) return res.status(400).json({ error: inviteId.error });
+  const inviteId = typeof req.params.inviteId === "string" ? req.params.inviteId.trim() : "";
+  if (!inviteId) {
+    return res.status(400).json({ error: "Invalid invite ID" });
+  }
 
   try {
-    const invite = await transition(inviteId.value);
+    const invite = await transition(inviteId);
     return res.json({ ok: true, invite });
   } catch (error: any) {
     if (error?.code === "INVITE_NOT_PENDING") {
@@ -119,13 +127,18 @@ async function transitionInviteHandler(
 }
 
 export async function acceptTeamInviteHandler(req: AuthRequest, res: Response) {
-  const inviteId = parseInviteIdParam(req.params.inviteId);
-  if (!inviteId.ok) return res.status(400).json({ error: inviteId.error });
-  const userId = parseStaffActor(req);
-  if (!userId.ok) return res.status(401).json({ error: userId.error });
+  const inviteId = typeof req.params.inviteId === "string" ? req.params.inviteId.trim() : "";
+  const userId = req.user?.sub;
+
+  if (!inviteId) {
+    return res.status(400).json({ error: "Invalid invite ID" });
+  }
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
 
   try {
-    const invite = await acceptTeamInvite(inviteId.value, userId.value);
+    const invite = await acceptTeamInvite(inviteId, userId);
     return res.json({ ok: true, invite });
   } catch (error: any) {
     if (error?.code === "INVITE_NOT_PENDING") {

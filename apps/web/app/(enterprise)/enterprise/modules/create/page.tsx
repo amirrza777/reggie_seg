@@ -14,7 +14,7 @@ export default async function EnterpriseModuleCreatePage() {
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Create module</h1>
         <p className="ui-page__description">
-          Create the module shell, assign module leaders, and then share the generated join code from module edit.
+          Create the module shell and assign module leaders. Operational setup is managed in module edit.
         </p>
       </header>
 

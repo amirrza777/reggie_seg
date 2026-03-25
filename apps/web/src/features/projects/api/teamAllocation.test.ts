@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const apiFetchMock = vi.fn();
-vi.mock("@/shared/api/http", () => ({ apiFetch: (...args: unknown[]) => apiFetchMock(...args) }));
+
+vi.mock("@/shared/api/http", () => ({
+  apiFetch: (...args: unknown[]) => apiFetchMock(...args),
+}));
 
 import {
   acceptInvite,
@@ -14,20 +17,12 @@ import {
   getCustomAllocationCoverage,
   getCustomAllocationQuestionnaires,
   getManualAllocationWorkspace,
+  previewCustomAllocation,
   getRandomAllocationPreview,
   getReceivedInvites,
   getTeamInvites,
-  previewCustomAllocation,
   sendTeamInvite,
 } from "./teamAllocation";
-
-function expectFetch(path: string, init?: Record<string, unknown>) {
-  if (init === undefined) {
-    expect(apiFetchMock).toHaveBeenCalledWith(path);
-    return;
-  }
-  expect(apiFetchMock).toHaveBeenCalledWith(path, init);
-}
 
 describe("team allocation api client", () => {
   beforeEach(() => {
@@ -35,104 +30,142 @@ describe("team allocation api client", () => {
     apiFetchMock.mockResolvedValue({});
   });
 
-  it("sends invite payloads and supports legacy inviter overload", async () => {
+  it("sends team invite", async () => {
     await sendTeamInvite(8, 4, "student@example.com", "join");
-    expectFetch("/team-allocation/invites", {
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/invites", {
       method: "POST",
-      body: JSON.stringify({ teamId: 8, inviteeEmail: "student@example.com", message: "join" }),
-    });
-    await sendTeamInvite(8, "other@example.com", "hello");
-    expectFetch("/team-allocation/invites", {
-      method: "POST",
-      body: JSON.stringify({ teamId: 8, inviteeEmail: "other@example.com", message: "hello" }),
+      body: JSON.stringify({ teamId: 8, inviterId: 4, inviteeEmail: "student@example.com", message: "join" }),
     });
   });
 
-  it.each([
-    [cancelTeamInvite, "inv-1", "/team-allocation/invites/inv-1/cancel"],
-    [acceptInvite, "inv-2", "/team-allocation/invites/inv-2/accept"],
-    [declineInvite, "inv-3", "/team-allocation/invites/inv-3/decline"],
-  ])("calls invite transition endpoint %s", async (fn, inviteId, path) => {
-    await fn(inviteId);
-    expectFetch(path, { method: "PATCH" });
+  it("cancels and responds to invites", async () => {
+    await cancelTeamInvite("inv-1");
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/invites/inv-1/cancel", {
+      method: "PATCH",
+    });
+
+    await acceptInvite("inv-2");
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/invites/inv-2/accept", {
+      method: "PATCH",
+    });
+
+    await declineInvite("inv-3");
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/invites/inv-3/decline", {
+      method: "PATCH",
+    });
   });
 
-  it("fetches invite lists and creates a team for a project", async () => {
+  it("fetches invites by team and for current user", async () => {
     await getTeamInvites(77);
-    expectFetch("/team-allocation/teams/77/invites");
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/teams/77/invites");
+
     await getReceivedInvites();
-    expectFetch("/team-allocation/invites/received");
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/invites/received");
+  });
+
+  it("creates team for project", async () => {
     await createTeamForProject(12, "Team Delta");
-    expectFetch("/team-allocation/teams/for-project", {
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/teams/for-project", {
       method: "POST",
       body: JSON.stringify({ projectId: 12, teamName: "Team Delta" }),
     });
   });
 
-  it("builds random preview URL with optional size constraints", async () => {
-    await getRandomAllocationPreview(55, 4, { minTeamSize: 2, maxTeamSize: 5 });
-    expectFetch("/team-allocation/projects/55/random-preview?teamCount=4&minTeamSize=2&maxTeamSize=5", {
+  it("fetches random allocation preview with teamCount (seed is ignored)", async () => {
+    await getRandomAllocationPreview(55, 4, 1234);
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/team-allocation/projects/55/random-preview?teamCount=4",
+      { cache: "no-store" }
+    );
+  });
+
+  it("fetches random allocation preview without seed", async () => {
+    await getRandomAllocationPreview(91, 3);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/random-preview?teamCount=3", {
       cache: "no-store",
     });
-    await getRandomAllocationPreview(91, 3);
-    expectFetch("/team-allocation/projects/91/random-preview?teamCount=3", { cache: "no-store" });
   });
 
-  it("applies random allocation with optional names and team-size constraints", async () => {
-    await applyRandomAllocation(55, 4);
-    expectFetch("/team-allocation/projects/55/random-allocate", {
-      method: "POST",
-      body: JSON.stringify({ teamCount: 4 }),
-    });
-    await applyRandomAllocation(55, 4, ["A", "B", "C", "D"], { maxTeamSize: 6 });
-    expectFetch("/team-allocation/projects/55/random-allocate", {
-      method: "POST",
-      body: JSON.stringify({ teamCount: 4, teamNames: ["A", "B", "C", "D"], maxTeamSize: 6 }),
+  it("fetches manual allocation workspace", async () => {
+    await getManualAllocationWorkspace(91);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/manual-workspace", {
+      cache: "no-store",
     });
   });
 
-  it("fetches manual workspace and applies manual allocation", async () => {
-    await getManualAllocationWorkspace(91, "  jin ");
-    expectFetch("/team-allocation/projects/91/manual-workspace?q=jin", { cache: "no-store" });
+  it("fetches custom allocation questionnaires and coverage", async () => {
+    await getCustomAllocationQuestionnaires(91);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/91/custom-questionnaires", {
+      cache: "no-store",
+    });
+
+    await getCustomAllocationCoverage(91, 33);
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/team-allocation/projects/91/custom-coverage?questionnaireTemplateId=33",
+      { cache: "no-store" },
+    );
+  });
+
+  it("applies manual allocation with team name and selected students", async () => {
     await applyManualAllocation(55, "Team Gamma", [4, 8, 11]);
-    expectFetch("/team-allocation/projects/55/manual-allocate", {
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/manual-allocate", {
       method: "POST",
       body: JSON.stringify({ teamName: "Team Gamma", studentIds: [4, 8, 11] }),
     });
   });
 
-  it("fetches questionnaire listing and response coverage", async () => {
-    await getCustomAllocationQuestionnaires(91);
-    expectFetch("/team-allocation/projects/91/custom-questionnaires", { cache: "no-store" });
-    await getCustomAllocationCoverage(91, 33);
-    expectFetch("/team-allocation/projects/91/custom-coverage?questionnaireTemplateId=33", {
-      cache: "no-store",
+  it("applies random allocation with team count (seed is ignored)", async () => {
+    await applyRandomAllocation(55, 4, 1234);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamCount: 4 }),
+    });
+
+    await applyRandomAllocation(55, 4);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({ teamCount: 4 }),
+    });
+
+    await applyRandomAllocation(55, 4, 1234, ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"]);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({
+        teamCount: 4,
+        teamNames: ["Random Team 1", "Random Team 2", "Random Team 3", "Random Team 4"],
+      }),
     });
   });
 
-  it("posts custom preview payload", async () => {
-    const payload: any = {
+  it("previews and applies custom allocation", async () => {
+    await previewCustomAllocation(55, {
       questionnaireTemplateId: 8,
       teamCount: 4,
       seed: 1234,
       nonRespondentStrategy: "distribute_randomly",
       criteria: [{ questionId: 101, strategy: "diversify", weight: 4 }],
-    };
-    await previewCustomAllocation(55, payload);
-    expectFetch("/team-allocation/projects/55/custom-preview", {
-      method: "POST",
-      body: JSON.stringify(payload),
     });
-  });
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/custom-preview", {
+      method: "POST",
+      body: JSON.stringify({
+        questionnaireTemplateId: 8,
+        teamCount: 4,
+        nonRespondentStrategy: "distribute_randomly",
+        criteria: [{ questionId: 101, strategy: "diversify", weight: 4 }],
+      }),
+    });
 
-  it("posts custom apply payload", async () => {
     await applyCustomAllocation(55, {
       previewId: "custom-preview-1",
       teamNames: ["Team Orion", "Team Vega"],
     });
-    expectFetch("/team-allocation/projects/55/custom-allocate", {
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/custom-allocate", {
       method: "POST",
-      body: JSON.stringify({ previewId: "custom-preview-1", teamNames: ["Team Orion", "Team Vega"] }),
+      body: JSON.stringify({
+        previewId: "custom-preview-1",
+        teamNames: ["Team Orion", "Team Vega"],
+      }),
     });
   });
 });

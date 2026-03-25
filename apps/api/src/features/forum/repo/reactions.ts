@@ -21,7 +21,6 @@ export async function setDiscussionPostReaction(
     select: { id: true, authorId: true },
   });
   if (!post) return { status: "not_found" };
-  if (post.authorId === userId) return { status: "forbidden" };
 
   const existing = await prisma.forumReaction.findUnique({
     where: { postId_userId: { postId, userId } },

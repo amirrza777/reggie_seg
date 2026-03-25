@@ -8,7 +8,6 @@ import {
   GithubServiceError,
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
-import { parseLinkIdParam, parseSnapshotIdParam } from "./controller.parsers.js";
 
 /** Handles requests for list project GitHub repo snapshots. */
 export async function listProjectGithubRepoSnapshotsHandler(req: AuthRequest, res: Response) {
@@ -17,11 +16,13 @@ export async function listProjectGithubRepoSnapshotsHandler(req: AuthRequest, re
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = parseLinkIdParam(req.params.linkId);
-  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
 
   try {
-    const snapshots = await listProjectGithubRepositorySnapshots(userId, linkId.value);
+    const snapshots = await listProjectGithubRepositorySnapshots(userId, linkId);
     return res.json(toJsonSafe({ snapshots }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -39,11 +40,13 @@ export async function getGithubSnapshotHandler(req: AuthRequest, res: Response) 
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const snapshotId = parseSnapshotIdParam(req.params.snapshotId);
-  if (!snapshotId.ok) return res.status(400).json({ error: snapshotId.error });
+  const snapshotId = Number(req.params.snapshotId);
+  if (Number.isNaN(snapshotId)) {
+    return res.status(400).json({ error: "snapshotId must be a number" });
+  }
 
   try {
-    const snapshot = await getProjectGithubRepositorySnapshot(userId, snapshotId.value);
+    const snapshot = await getProjectGithubRepositorySnapshot(userId, snapshotId);
     return res.json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -61,11 +64,13 @@ export async function getLatestProjectGithubRepoSnapshotHandler(req: AuthRequest
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = parseLinkIdParam(req.params.linkId);
-  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
 
   try {
-    const snapshot = await getLatestProjectGithubRepositorySnapshot(userId, linkId.value);
+    const snapshot = await getLatestProjectGithubRepositorySnapshot(userId, linkId);
     return res.json(toJsonSafe({ snapshot }));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -83,11 +88,13 @@ export async function getProjectGithubMappingCoverageHandler(req: AuthRequest, r
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = parseLinkIdParam(req.params.linkId);
-  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const linkId = Number(req.params.linkId);
+  if (Number.isNaN(linkId)) {
+    return res.status(400).json({ error: "linkId must be a number" });
+  }
 
   try {
-    const mappingCoverage = await getProjectGithubMappingCoverage(userId, linkId.value);
+    const mappingCoverage = await getProjectGithubMappingCoverage(userId, linkId);
     return res.json(toJsonSafe({ mappingCoverage }));
   } catch (error) {
     if (error instanceof GithubServiceError) {

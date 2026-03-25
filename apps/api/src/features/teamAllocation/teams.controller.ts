@@ -1,24 +1,18 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
-import { parsePositiveInt } from "../../shared/parse.js";
 import { addUserToTeam, createTeam, createTeamForProject, getTeamById, getTeamMembers } from "./service.js";
-import {
-  parseAddUserToTeamBody,
-  parseCreateTeamForProjectBody,
-  parseTeamIdParam,
-} from "./controller.parsers.js";
 
 /** Handles requests for create team. */
 export async function createTeamHandler(req: Request, res: Response) {
-  const userId = parsePositiveInt(req.body?.userId, "userId");
+  const userId = Number(req.body?.userId);
   const teamData = req.body?.teamData;
 
-  if (!userId.ok || !teamData) {
+  if (isNaN(userId) || !teamData) {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
   try {
-    const team = await createTeam(userId.value, teamData);
+    const team = await createTeam(userId, teamData);
     return res.status(201).json(team);
   } catch (error) {
     console.error("Error creating team:", error);
@@ -29,11 +23,15 @@ export async function createTeamHandler(req: Request, res: Response) {
 /** Handles requests for create team for project. */
 export async function createTeamForProjectHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
-  const parsedBody = parseCreateTeamForProjectBody(req.body);
-  if (!userId || !parsedBody.ok) return res.status(400).json({ error: "Invalid request body" });
+  const projectId = Number(req.body?.projectId);
+  const teamName = typeof req.body?.teamName === "string" ? req.body.teamName.trim() : "";
+
+  if (!userId || isNaN(projectId) || !teamName) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
 
   try {
-    const team = await createTeamForProject(userId, parsedBody.value.projectId, parsedBody.value.teamName);
+    const team = await createTeamForProject(userId, projectId, teamName);
     return res.status(201).json(team);
   } catch (error: any) {
     if (error?.code === "USER_NOT_FOUND") {
@@ -46,11 +44,13 @@ export async function createTeamForProjectHandler(req: AuthRequest, res: Respons
 
 /** Handles requests for get team by ID. */
 export async function getTeamByIdHandler(req: Request, res: Response) {
-  const teamId = parseTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+  const teamId = Number(req.params.teamId);
+  if (isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
 
   try {
-    const team = await getTeamById(teamId.value);
+    const team = await getTeamById(teamId);
     return res.json(team);
   } catch (error: any) {
     if (error?.code === "TEAM_NOT_FOUND") {
@@ -63,13 +63,16 @@ export async function getTeamByIdHandler(req: Request, res: Response) {
 
 /** Handles requests for add user to team. */
 export async function addUserToTeamHandler(req: Request, res: Response) {
-  const teamId = parseTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
-  const parsedBody = parseAddUserToTeamBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const teamId = Number(req.params.teamId);
+  const userId = Number(req.body?.userId);
+  const role = typeof req.body?.role === "string" ? req.body.role.toUpperCase() : "MEMBER";
+
+  if (isNaN(teamId) || isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid request body" });
+  }
 
   try {
-    const allocation = await addUserToTeam(teamId.value, parsedBody.value.userId, parsedBody.value.role);
+    const allocation = await addUserToTeam(teamId, userId, role === "OWNER" ? "OWNER" : "MEMBER");
     return res.status(201).json(allocation);
   } catch (error: any) {
     if (error?.code === "TEAM_NOT_FOUND") {
@@ -85,11 +88,13 @@ export async function addUserToTeamHandler(req: Request, res: Response) {
 
 /** Handles requests for get team members. */
 export async function getTeamMembersHandler(req: Request, res: Response) {
-  const teamId = parseTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+  const teamId = Number(req.params.teamId);
+  if (isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
 
   try {
-    const members = await getTeamMembers(teamId.value);
+    const members = await getTeamMembers(teamId);
     return res.json(members);
   } catch (error: any) {
     if (error?.code === "TEAM_NOT_FOUND") {

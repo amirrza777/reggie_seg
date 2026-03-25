@@ -55,7 +55,12 @@ export function contributorKeyFromCommit(commit: GithubCommitListItem) {
 }
 
 /** Returns the commits for linked repository. */
-export async function fetchCommitsForLinkedRepository(accessToken: string, fullName: string, branch: string, sinceIso: string) {
+export async function fetchCommitsForLinkedRepository(
+  accessToken: string,
+  fullName: string,
+  branch: string,
+  sinceIso?: string | null
+) {
   const { baseUrl } = getGitHubApiConfig();
   const commits: GithubCommitListItem[] = [];
   let page = 1;
@@ -105,6 +110,51 @@ export async function fetchCommitsForLinkedRepository(accessToken: string, fullN
   }
 
   return commits;
+}
+
+/** Returns the exact commit count for a repository branch. */
+export async function fetchBranchCommitCount(
+  accessToken: string,
+  fullName: string,
+  branch: string
+) {
+  const { baseUrl } = getGitHubApiConfig();
+  const response = await fetch(
+    `${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=1&page=1`,
+    {
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${accessToken}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new GithubServiceError(404, "Linked GitHub repository was not found");
+    }
+    if (response.status === 409) {
+      return 0;
+    }
+    if (response.status === 401) {
+      throw new GithubServiceError(401, "GitHub access token is invalid or expired");
+    }
+    throw new GithubServiceError(502, "Failed to fetch repository commits");
+  }
+
+  const pageData = (await response.json()) as GithubCommitListItem[];
+  if (pageData.length <= 0) {
+    return 0;
+  }
+
+  const linkHeader = response.headers?.get("link");
+  const lastPage = parseLastPageFromLinkHeader(linkHeader);
+  if (typeof lastPage === "number") {
+    return lastPage;
+  }
+
+  return pageData.length;
 }
 
 /** Returns the recent commits for branch. */
@@ -329,18 +379,3 @@ export async function getBranchAheadBehind(
     status: typeof compare.status === "string" ? compare.status : null,
   };
 }
-
-/** Returns the total number of commits on a branch by reading the last page from the Link header. */
-export async function fetchBranchCommitCount(accessToken: string, fullName: string, branch: string) {
-  const { baseUrl } = getGitHubApiConfig();
-  const response = await fetch(`${baseUrl}/repos/${fullName}/commits?sha=${encodeURIComponent(branch)}&per_page=1`, {
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${accessToken}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-  if (!response.ok) return 0;
-  return parseLastPageFromLinkHeader(response.headers.get("link")) ?? 1;
-}
-

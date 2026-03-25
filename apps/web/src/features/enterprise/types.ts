@@ -1,6 +1,5 @@
 export type EnterpriseModuleRecord = {
   id: number;
-  code?: string;
   name: string;
   createdAt: string;
   updatedAt: string;
@@ -12,15 +11,6 @@ export type EnterpriseModuleRecord = {
   timelineText?: string;
   expectationsText?: string;
   readinessNotesText?: string;
-};
-
-export type EnterpriseModuleCreateResponse = EnterpriseModuleRecord & {
-  joinCode: string;
-};
-
-export type EnterpriseModuleJoinCodeResponse = {
-  moduleId: number;
-  joinCode: string;
 };
 
 export type EnterpriseFeatureFlag = {
@@ -142,7 +132,6 @@ export type EnterpriseModuleAccessSelectionResponse = {
 
 export type CreateEnterpriseModulePayload = {
   name: string;
-  code?: string;
   briefText?: string;
   timelineText?: string;
   expectationsText?: string;
@@ -169,7 +158,6 @@ export type DeleteEnterpriseModuleResponse = {
 
 export type UpdateEnterpriseModulePayload = {
   name: string;
-  code?: string;
   briefText?: string;
   timelineText?: string;
   expectationsText?: string;

@@ -1,13 +1,14 @@
 import type { Request, Response } from "express";
 import { getCalendarEventsForUser } from "./service.js";
-import { parseCalendarUserIdQuery } from "./controller.parsers.js";
 
 /** Handles requests for get calendar events. */
 export async function getCalendarEventsHandler(req: Request, res: Response) {
-  const userId = parseCalendarUserIdQuery(req.query.userId);
-  if (!userId.ok) return res.status(400).json({ error: userId.error });
+  const userId = Number(req.query.userId);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
   try {
-    const events = await getCalendarEventsForUser(userId.value);
+    const events = await getCalendarEventsForUser(userId);
     res.json(events);
   } catch (error) {
     console.error("Error fetching calendar events:", error);

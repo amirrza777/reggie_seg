@@ -11,7 +11,6 @@ import {
   deleteEnterpriseModule,
   getEnterpriseModuleAccess,
   getEnterpriseModuleAccessSelection,
-  getEnterpriseModuleJoinCode,
   listEnterpriseFeatureFlags,
   getEnterpriseOverview,
   listEnterpriseModules,
@@ -110,11 +109,6 @@ describe("enterprise module api client", () => {
   it("loads module access selection details", async () => {
     await getEnterpriseModuleAccessSelection(22);
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/22/access-selection");
-  });
-
-  it("loads module join code details", async () => {
-    await getEnterpriseModuleJoinCode(22);
-    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/22/join-code");
   });
 
   it("updates an enterprise module", async () => {

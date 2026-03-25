@@ -8,65 +8,78 @@ import {
   saveTeamMarkingIfLead,
   saveStudentMarkingIfLead,
 } from "./service.js";
-import {
-  parseMarkingBody as parseMarkingBodyParser,
-  parseModuleIdParam as parseModuleIdParamParser,
-  parseModuleIdQuery,
-  parseStaffIdQuery,
-  parseStudentIdParam as parseStudentIdParamParser,
-  parseTeamIdParam as parseTeamIdParamParser,
-} from "./controller.parsers.js";
 
 const STAFF_SCOPE_NOT_FOUND = "Requested module data was not found.";
 
 type ParseFn = (req: Request, res: Response) => number | null;
 
 function parseStaffId(req: Request, res: Response): number | null {
-  const parsed = parseStaffIdQuery(req.query.staffId);
-  if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+  const staffId = parseInt(req.query.staffId as string);
+  if (!req.query.staffId || Number.isNaN(staffId)) {
+    res.status(400).json({ error: "staffId is required" });
     return null;
   }
-  return parsed.value;
+  return staffId;
 }
 
 function parseModuleIdParam(req: Request, res: Response): number | null {
-  const parsed = parseModuleIdParamParser(req.params.moduleId);
-  if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+  const moduleId = parseInt(req.params.moduleId as string);
+  if (Number.isNaN(moduleId) || req.params.moduleId == null) {
+    res.status(400).json({ error: "Valid module ID is required" });
     return null;
   }
-  return parsed.value;
+  return moduleId;
 }
 
 function parseTeamIdParam(req: Request, res: Response): number | null {
-  const parsed = parseTeamIdParamParser(req.params.teamId);
-  if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+  const teamId = parseInt(req.params.teamId as string);
+  if (Number.isNaN(teamId) || req.params.teamId == null) {
+    res.status(400).json({ error: "Valid team ID is required" });
     return null;
   }
-  return parsed.value;
+  return teamId;
 }
 
 function parseStudentIdParam(req: Request, res: Response): number | null {
-  const parsed = parseStudentIdParamParser(req.params.studentId);
-  if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
+  const studentId = parseInt(req.params.studentId as string);
+  if (Number.isNaN(studentId) || req.params.studentId == null) {
+    res.status(400).json({ error: "Valid student ID is required" });
     return null;
   }
-  return parsed.value;
+  return studentId;
 }
 
 function parseMarkingBody(
   req: Request,
   res: Response
 ): { mark: number | null; formativeFeedback: string | null } | null {
-  const parsed = parseMarkingBodyParser(req.body);
-  if (!parsed.ok) {
-    res.status(400).json({ error: parsed.error });
-    return null;
+  const rawMark = req.body?.mark;
+  const rawFeedback = req.body?.formativeFeedback;
+
+  let mark: number | null = null;
+  if (rawMark !== undefined && rawMark !== null && rawMark !== "") {
+    if (typeof rawMark !== "number" || Number.isNaN(rawMark)) {
+      res.status(400).json({ error: "mark must be a number between 0 and 100." });
+      return null;
+    }
+    if (rawMark < 0 || rawMark > 100) {
+      res.status(400).json({ error: "mark must be between 0 and 100." });
+      return null;
+    }
+    mark = Math.round(rawMark * 100) / 100;
   }
-  return parsed.value;
+
+  let formativeFeedback: string | null = null;
+  if (rawFeedback !== undefined && rawFeedback !== null) {
+    if (typeof rawFeedback !== "string") {
+      res.status(400).json({ error: "formativeFeedback must be a string." });
+      return null;
+    }
+    const trimmed = rawFeedback.trim();
+    formativeFeedback = trimmed.length > 0 ? trimmed : null;
+  }
+
+  return { mark, formativeFeedback };
 }
 
 /**
@@ -135,10 +148,12 @@ export const getAllModulesSummaryHandler = (req: Request, res: Response) =>
 
 /** Handles requests for get module teams summary. */
 export async function getModuleTeamsSummaryHandler(req: Request, res: Response) {
-  const moduleId = parseModuleIdQuery(req.query.moduleId);
-  if (!moduleId.ok) return res.status(400).json({ error: moduleId.error });
+  const moduleId = parseInt(req.query.moduleId as string, 10);
+  if (!req.query.moduleId || Number.isNaN(moduleId)) {
+    return res.status(400).json({ error: "moduleId is required" });
+  }
   try {
-    const teams = await getProgressForTeam(moduleId.value);
+    const teams = await getProgressForTeam(moduleId);
     res.json(teams);
   } catch (error) {
     console.error("Error fetching module teams:", error);

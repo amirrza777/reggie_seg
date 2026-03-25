@@ -8,7 +8,6 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "server-only": path.resolve(__dirname, "test/server-only.ts"),
     },
   },
   test: {
@@ -44,7 +43,6 @@ export default defineConfig({
     },
     alias: {
       "@": path.resolve(__dirname, "src"),
-      "server-only": path.resolve(__dirname, "test/server-only.ts"),
     },
   },
 });

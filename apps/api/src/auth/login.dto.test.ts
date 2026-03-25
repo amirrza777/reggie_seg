@@ -1,4 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("class-validator", () => ({ IsEmail: () => () => undefined, IsString: () => () => undefined }), {
+  virtual: true,
+});
 
 describe("LoginDto", () => {
   it("stores email and password fields", async () => {

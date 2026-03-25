@@ -38,8 +38,12 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
     : "Team Formation";
 
   return (
-    <div style={{ padding: 20 }}>
-      <Card title={cardTitle}>
+    <div className="stack projects-panel">
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">{cardTitle}</h1>
+        <p className="projects-panel__subtitle">Manage teammates and invitations for this project.</p>
+      </header>
+      <Card>
         {user ? (
           <TeamFormationPanel
             team={team}
@@ -47,7 +51,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             initialInvites={initialInvites}
           />
         ) : (
-          <p>Please sign in to manage your team.</p>
+          <p className="ui-note ui-note--muted">Please sign in to manage your team.</p>
         )}
       </Card>
     </div>

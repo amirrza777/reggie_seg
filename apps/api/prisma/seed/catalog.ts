@@ -233,20 +233,7 @@ function buildUserSeedData(enterpriseId: string, seedPasswordHash: string) {
 }
 
 function buildModuleSeedData(enterpriseId: string) {
-  return moduleData.map((module, index) => ({
-    ...module,
-    enterpriseId,
-    code: buildSeedModuleCode(index),
-    joinCode: buildSeedModuleJoinCode(index),
-  }));
-}
-
-function buildSeedModuleCode(index: number) {
-  return `MOD-${index + 1}`;
-}
-
-function buildSeedModuleJoinCode(index: number) {
-  return `SM${String(index + 1).padStart(6, "0")}`;
+  return moduleData.map((module) => ({ ...module, enterpriseId }));
 }
 
 function buildTemplateQuestionData(questionLabels: string[]) {

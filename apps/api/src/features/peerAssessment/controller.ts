@@ -2,24 +2,19 @@ import type { Request, Response } from "express"
 import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments, fetchAssessmentsForReviewee, fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 import { AssessmentAnswerValidationError, normalizeAndValidateAssessmentAnswers } from "./answers.js";
-import {
-  parseAssessmentAnswersBody,
-  parseAssessmentIdParam,
-  parseAssessmentQuery,
-  parseCreateAssessmentBody,
-  parseProjectIdParam,
-  parseUserIdAndProjectIdParams,
-  parseUserIdAndTeamIdQuery,
-} from "./controller.parsers.js";
 const peerService = new PeerAssessmentService();
 
 /** Handles requests for get teammates. */
 export async function getTeammatesHandler(req: Request, res: Response) {
-  const parsed = parseUserIdAndTeamIdQuery(req as any);
-  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const userId = Number(req.query.userId)
+  const teamId = Number(req.params.teamId)
+
+  if (isNaN(userId) || isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid user ID or team ID" })
+  }
 
   try {
-    const teammates = await fetchTeammates(parsed.value.userId, parsed.value.teamId)
+    const teammates = await fetchTeammates(userId, teamId)
     res.json(teammates)
   } catch (error) {
     console.error("Error fetching teammates:", error)
@@ -29,31 +24,54 @@ export async function getTeammatesHandler(req: Request, res: Response) {
 
 /** Handles requests for create assessment. */
 export async function createAssessmentHandler(req: Request, res: Response) {
-  const parsedBody = parseCreateAssessmentBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
+  const {
+    projectId,
+    teamId,
+    reviewerUserId,
+    revieweeUserId,
+    templateId,
+    answersJson
+  } = req.body
+
+  const numericProjectId = Number(projectId);
+  const numericTeamId = Number(teamId);
+  const numericReviewerUserId = Number(reviewerUserId);
+  const numericRevieweeUserId = Number(revieweeUserId);
+  const numericTemplateId = Number(templateId);
+
+  if (
+    !Number.isInteger(numericProjectId) ||
+    !Number.isInteger(numericTeamId) ||
+    !Number.isInteger(numericReviewerUserId) ||
+    !Number.isInteger(numericRevieweeUserId) ||
+    !Number.isInteger(numericTemplateId) ||
+    answersJson == null
+  ) {
+    return res.status(400).json({ error: "Invalid request body" })
+  }
 
   try {
-    const project = await fetchProjectQuestionnaireTemplate(parsedBody.value.projectId);
+    const project = await fetchProjectQuestionnaireTemplate(numericProjectId);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
-    if (project.questionnaireTemplate.id !== parsedBody.value.templateId) {
+    if (project.questionnaireTemplate.id !== numericTemplateId) {
       return res.status(400).json({
         error: "templateId does not match the project's questionnaire template",
       });
     }
 
     const normalizedAnswers = normalizeAndValidateAssessmentAnswers(
-      parsedBody.value.answersJson,
+      answersJson,
       project.questionnaireTemplate.questions
     );
 
     const assessment = await saveAssessment({
-      projectId: parsedBody.value.projectId,
-      teamId: parsedBody.value.teamId,
-      reviewerUserId: parsedBody.value.reviewerUserId,
-      revieweeUserId: parsedBody.value.revieweeUserId,
-      templateId: parsedBody.value.templateId,
+      projectId: numericProjectId,
+      teamId: numericTeamId,
+      reviewerUserId: numericReviewerUserId,
+      revieweeUserId: numericRevieweeUserId,
+      templateId: numericTemplateId,
       answersJson: normalizedAnswers,
     });
 
@@ -77,11 +95,17 @@ export async function createAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for get assessment. */
 export async function getAssessmentHandler(req: Request, res: Response) {
-  const parsed = parseAssessmentQuery(req as any);
-  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
+  const projectId = Number(req.query.projectId)
+  const teamId = Number(req.query.teamId)
+  const reviewerId = Number(req.query.reviewerId)
+  const revieweeId = Number(req.query.revieweeId)
+
+  if (isNaN(projectId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
+    return res.status(400).json({ error: "Invalid query parameters" })
+  }
 
   try {
-    const assessment = await fetchAssessment(parsed.value.projectId, parsed.value.teamId, parsed.value.reviewerId, parsed.value.revieweeId)
+    const assessment = await fetchAssessment(projectId, teamId, reviewerId, revieweeId)
 
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" })
@@ -96,20 +120,27 @@ export async function getAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for update assessment. */
 export async function updateAssessmentHandler(req: Request, res: Response) {
-  const assessmentId = parseAssessmentIdParam(req.params.id)
-  if (!assessmentId.ok) return res.status(400).json({ error: assessmentId.error })
-  const parsedBody = parseAssessmentAnswersBody(req.body)
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
+  
+  const assessmentId = Number(req.params.id)
+  const { answersJson } = req.body
+
+  if (isNaN(assessmentId)) {
+    return res.status(400).json({ error: "Invalid assessment ID" })
+  }
+
+  if (answersJson == null) {
+    return res.status(400).json({ error: "Invalid request body" })
+  }
 
   try {
-    const existingAssessment = await fetchAssessmentById(assessmentId.value);
+    const existingAssessment = await fetchAssessmentById(assessmentId);
     if (!existingAssessment) {
       return res.status(404).json({ error: "Peer assessment not found" });
     }
 
     const templateQuestions = existingAssessment.questionnaireTemplate?.questions ?? [];
-    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(parsedBody.value.answersJson, templateQuestions);
-    await updateAssessmentAnswers(assessmentId.value, normalizedAnswers)
+    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(answersJson, templateQuestions);
+    await updateAssessmentAnswers(assessmentId, normalizedAnswers)
     res.json({ ok: true })
   } catch (error: any) {
     if (error instanceof AssessmentAnswerValidationError) {
@@ -128,11 +159,15 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for get assessments. */
 export async function getAssessmentsHandler(req: Request, res: Response) {
-  const parsed = parseUserIdAndProjectIdParams(req as any);
-  if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+  const userId = Number(req.params.userId);
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
 
   try {
-    const assessments = await fetchTeammateAssessments(parsed.value.userId, parsed.value.projectId);
+    const assessments = await fetchTeammateAssessments(userId, projectId);
     res.json(assessments);
   } catch (error) {
     console.error("Error fetching peer assessments:", error);
@@ -160,11 +195,14 @@ export async function getAssessmentsForRevieweeHandler(req: Request, res: Respon
 
 /** Handles requests for get assessment by ID. */
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
-  const assessmentId = parseAssessmentIdParam(req.params.id);
-  if (!assessmentId.ok) return res.status(400).json({ error: assessmentId.error });
+  const assessmentId = Number(req.params.id);
+
+  if (isNaN(assessmentId)) {
+    return res.status(400).json({ error: "Invalid assessment ID" });
+  }
   
   try {
-    const assessment = await fetchAssessmentById(assessmentId.value);
+    const assessment = await fetchAssessmentById(assessmentId);
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" });
     }
@@ -177,11 +215,14 @@ export async function getAssessmentByIdHandler(req: Request, res: Response) {
 
 /** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
 
   try {
-    const project = await fetchQuestionsForProject(projectId.value);
+    const project = await fetchQuestionsForProject(projectId);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
@@ -194,11 +235,14 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
 
 /** Handles requests for get project questionnaire template. */
 export async function getProjectQuestionnaireTemplateHandler(req: Request, res: Response) {
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
 
   try {
-    const project = await fetchProjectQuestionnaireTemplate(projectId.value);
+    const project = await fetchProjectQuestionnaireTemplate(projectId);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }

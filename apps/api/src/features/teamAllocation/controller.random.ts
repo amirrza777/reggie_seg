@@ -4,26 +4,46 @@ import {
   applyRandomAllocationForProject,
   previewRandomAllocationForProject,
 } from "./service.js";
-import {
-  parseProjectIdParam,
-  parseRandomAllocationApplyBody,
-  parseRandomAllocationPreviewQuery,
-  parseStaffActor,
-} from "./controller.parsers.js";
+import { parseOptionalPositiveInteger } from "./controller.shared.js";
 
 export async function previewRandomAllocationHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
-  const parsedQuery = parseRandomAllocationPreviewQuery(req.query);
-  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamCount = Number(req.query.teamCount);
+  const minTeamSize = parseOptionalPositiveInteger(req.query.minTeamSize);
+  const maxTeamSize = parseOptionalPositiveInteger(req.query.maxTeamSize);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (minTeamSize === "invalid") {
+    return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+  }
+  if (maxTeamSize === "invalid") {
+    return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+  }
+  if (
+    minTeamSize !== null &&
+    maxTeamSize !== null &&
+    minTeamSize > maxTeamSize
+  ) {
+    return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+  }
   try {
-    const { teamCount, ...randomOptions } = parsedQuery.value;
+    const randomOptions = {
+      ...(minTeamSize !== null ? { minTeamSize } : {}),
+      ...(maxTeamSize !== null ? { maxTeamSize } : {}),
+    };
     const preview =
       Object.keys(randomOptions).length > 0
-        ? await previewRandomAllocationForProject(staffId.value, projectId.value, teamCount, randomOptions)
-        : await previewRandomAllocationForProject(staffId.value, projectId.value, teamCount);
+        ? await previewRandomAllocationForProject(staffId, projectId, teamCount, randomOptions)
+        : await previewRandomAllocationForProject(staffId, projectId, teamCount);
     return res.json(preview);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
@@ -61,16 +81,52 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
 }
 
 export async function applyRandomAllocationHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
-  const parsedBody = parseRandomAllocationApplyBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamCount = Number(req.body?.teamCount);
+  const minTeamSize = parseOptionalPositiveInteger(req.body?.minTeamSize);
+  const maxTeamSize = parseOptionalPositiveInteger(req.body?.maxTeamSize);
+  const rawTeamNames = req.body?.teamNames;
+  const hasInvalidTeamNamesPayload =
+    rawTeamNames !== undefined &&
+    (!Array.isArray(rawTeamNames) || rawTeamNames.some((teamName) => typeof teamName !== "string"));
+  const teamNames =
+    !hasInvalidTeamNamesPayload && Array.isArray(rawTeamNames)
+      ? rawTeamNames.map((teamName) => teamName.trim())
+      : undefined;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (!Number.isInteger(teamCount) || teamCount < 1) {
+    return res.status(400).json({ error: "teamCount must be a positive integer" });
+  }
+  if (minTeamSize === "invalid") {
+    return res.status(400).json({ error: "minTeamSize must be a positive integer when provided" });
+  }
+  if (maxTeamSize === "invalid") {
+    return res.status(400).json({ error: "maxTeamSize must be a positive integer when provided" });
+  }
+  if (
+    minTeamSize !== null &&
+    maxTeamSize !== null &&
+    minTeamSize > maxTeamSize
+  ) {
+    return res.status(400).json({ error: "minTeamSize cannot be greater than maxTeamSize" });
+  }
+  if (hasInvalidTeamNamesPayload) {
+    return res.status(400).json({ error: "teamNames must be an array of strings when provided" });
+  }
 
   try {
-    const { teamCount, ...options } = parsedBody.value;
-    const result = await applyRandomAllocationForProject(staffId.value, projectId.value, teamCount, options);
+    const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
+      ...(teamNames !== undefined ? { teamNames } : {}),
+      ...(minTeamSize !== null ? { minTeamSize } : {}),
+      ...(maxTeamSize !== null ? { maxTeamSize } : {}),
+    });
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {

@@ -1,9 +1,8 @@
-import type { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
-import { generateModuleJoinCode } from "../services/moduleJoinCodeService.js";
 import {
   ensureCreatorLeader,
   replaceModuleAssignments,
+  sanitiseModuleStudentIdsForUpdate,
   validateAssignmentUsers,
 } from "./service.helpers.js";
 import {
@@ -13,17 +12,17 @@ import {
 } from "./service.core.js";
 import type { EnterpriseUser, ParsedModulePayload } from "./types.js";
 
-const MODULE_WITH_JOIN_CODE_SELECT = {
-  ...MODULE_SELECT,
-  joinCode: true,
-} satisfies Prisma.ModuleSelect;
-
-const MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS = 5;
-
 /** Creates a module. */
 export async function createModule(enterpriseUser: EnterpriseUser, payload: ParsedModulePayload) {
   const leaderIds = ensureCreatorLeader(payload.leaderIds, enterpriseUser);
   const taIds = payload.taIds.filter((id) => !leaderIds.includes(id));
+
+  const studentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    payload.studentIds,
+    leaderIds,
+    taIds,
+  );
 
   const existing = await prisma.module.findFirst({
     where: { enterpriseId: enterpriseUser.enterpriseId, name: payload.name },
@@ -31,68 +30,42 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
   });
   if (existing) return { ok: false as const, status: 409, error: "Module name already exists" };
 
-  const codeExists = await moduleCodeExists(enterpriseUser.enterpriseId, payload.code);
-  if (codeExists) return { ok: false as const, status: 409, error: "Module code already exists" };
-
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds,
     taIds,
-    studentIds: payload.studentIds,
+    studentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
-  for (let attempt = 0; attempt < MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      const created = await prisma.$transaction(async (tx) => {
-        const joinCode = await generateModuleJoinCode(tx, enterpriseUser.enterpriseId);
-        const module = await tx.module.create({
-          data: {
-            enterpriseId: enterpriseUser.enterpriseId,
-            code: payload.code,
-            joinCode,
-            name: payload.name,
-            briefText: payload.briefText,
-            timelineText: payload.timelineText,
-            expectationsText: payload.expectationsText,
-            readinessNotesText: payload.readinessNotesText,
-          },
-          select: { id: true },
-        });
+  const created = await prisma.$transaction(async (tx) => {
+    const module = await tx.module.create({
+      data: {
+        enterpriseId: enterpriseUser.enterpriseId,
+        name: payload.name,
+        briefText: payload.briefText,
+        timelineText: payload.timelineText,
+        expectationsText: payload.expectationsText,
+        readinessNotesText: payload.readinessNotesText,
+      },
+      select: { id: true },
+    });
 
-        await replaceModuleAssignments(tx, {
-          enterpriseId: enterpriseUser.enterpriseId,
-          moduleId: module.id,
-          leaderIds,
-          taIds,
-          studentIds: payload.studentIds,
-        });
+    await replaceModuleAssignments(tx, {
+      enterpriseId: enterpriseUser.enterpriseId,
+      moduleId: module.id,
+      leaderIds,
+      taIds,
+      studentIds,
+    });
 
-        const withCounts = await tx.module.findUnique({
-          where: { id: module.id },
-          select: MODULE_WITH_JOIN_CODE_SELECT,
-        });
-        if (!withCounts) throw new Error("Failed to load created module");
+    const withCounts = await tx.module.findUnique({ where: { id: module.id }, select: MODULE_SELECT });
+    if (!withCounts) throw new Error("Failed to load created module");
 
-        return withCounts;
-      });
+    return withCounts;
+  });
 
-      return {
-        ok: true as const,
-        value: {
-          ...mapModuleRecord(created),
-          joinCode: created.joinCode,
-        },
-      };
-    } catch (error) {
-      if (isModuleJoinCodeUniqueConstraintError(error) && attempt < MODULE_JOIN_CODE_CREATE_MAX_ATTEMPTS - 1) {
-        continue;
-      }
-      throw error;
-    }
-  }
-
-  throw new Error("Failed to create module join code");
+  return { ok: true as const, value: mapModuleRecord(created) };
 }
 
 /** Returns the module access. */
@@ -137,9 +110,16 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
     }),
     prisma.userModule.findMany({
       where: { enterpriseId: enterpriseUser.enterpriseId, moduleId },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { role: true } },
+      },
     }),
   ]);
+
+  const studentIds = students
+    .filter((row) => row.user?.role === "STUDENT")
+    .map((row) => row.userId);
 
   return {
     ok: true as const,
@@ -147,26 +127,7 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
       module: mapModuleRecord(module),
       leaderIds: leaders.map((item) => item.userId),
       taIds: teachingAssistants.map((item) => item.userId),
-      studentIds: students.map((item) => item.userId),
-    },
-  };
-}
-
-export async function getModuleJoinCode(enterpriseUser: EnterpriseUser, moduleId: number) {
-  const module = await prisma.module.findFirst({
-    where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
-    select: { id: true, joinCode: true },
-  });
-  if (!module) return { ok: false as const, status: 404, error: "Module not found" };
-
-  const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
-  if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
-
-  return {
-    ok: true as const,
-    value: {
-      moduleId: module.id,
-      joinCode: module.joinCode,
+      studentIds,
     },
   };
 }
@@ -185,21 +146,25 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   const nameExists = await moduleNameExists(enterpriseUser.enterpriseId, payload.name, moduleId);
   if (nameExists) return { ok: false as const, status: 409, error: "Module name already exists" };
 
-  const codeExists = await moduleCodeExists(enterpriseUser.enterpriseId, payload.code, moduleId);
-  if (codeExists) return { ok: false as const, status: 409, error: "Module code already exists" };
+  const studentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    payload.studentIds,
+    payload.leaderIds,
+    taIds,
+  );
 
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds: payload.leaderIds,
     taIds,
-    studentIds: payload.studentIds,
+    studentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
   const updated = await updateModuleRecord({
     enterpriseId: enterpriseUser.enterpriseId,
     moduleId,
-    payload,
+    payload: { ...payload, studentIds },
     taIds,
   });
 
@@ -306,20 +271,6 @@ async function moduleNameExists(enterpriseId: string, moduleName: string, exclud
   return Boolean(existing);
 }
 
-async function moduleCodeExists(enterpriseId: string, moduleCode: string | null, excludeModuleId?: number) {
-  if (!moduleCode) return false;
-
-  const existing = await prisma.module.findFirst({
-    where: {
-      enterpriseId,
-      code: moduleCode,
-      ...(excludeModuleId ? { id: { not: excludeModuleId } } : {}),
-    },
-    select: { id: true },
-  });
-  return Boolean(existing);
-}
-
 async function updateModuleRecord(params: {
   enterpriseId: string;
   moduleId: number;
@@ -336,7 +287,6 @@ async function updateModuleRecord(params: {
     await tx.module.update({
       where: { id: params.moduleId },
       data: {
-        code: params.payload.code,
         name: params.payload.name,
         briefText: params.payload.briefText,
         timelineText: params.payload.timelineText,
@@ -356,20 +306,6 @@ async function updateModuleRecord(params: {
 
     return tx.module.findUnique({ where: { id: params.moduleId }, select: MODULE_SELECT });
   });
-}
-
-function isModuleJoinCodeUniqueConstraintError(error: unknown) {
-  const prismaError = error as { code?: unknown; meta?: { target?: unknown } } | null;
-  if (prismaError?.code !== "P2002") {
-    return false;
-  }
-
-  const target = prismaError.meta?.target;
-  if (!Array.isArray(target)) {
-    return false;
-  }
-
-  return target.includes("enterpriseId") && target.includes("joinCode");
 }
 
 /** Deletes the module. */
@@ -449,20 +385,38 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
   });
   if (!module) return { ok: false as const, status: 404, error: "Module not found" };
 
+  const [leaderRows, taRows] = await Promise.all([
+    prisma.moduleLead.findMany({ where: { moduleId }, select: { userId: true } }),
+    prisma.moduleTeachingAssistant.findMany({ where: { moduleId }, select: { userId: true } }),
+  ]);
+  const leaderIds = leaderRows.map((r) => r.userId);
+  const taIds = taRows.map((r) => r.userId);
+
+  const sanitisedStudentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    studentIds,
+    leaderIds,
+    taIds,
+  );
+
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
-    leaderIds: [],
-    taIds: [],
-    studentIds,
+    leaderIds,
+    taIds,
+    studentIds: sanitisedStudentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
   await prisma.$transaction(async (tx) => {
     await tx.userModule.deleteMany({ where: { enterpriseId: enterpriseUser.enterpriseId, moduleId } });
 
-    if (studentIds.length > 0) {
+    if (sanitisedStudentIds.length > 0) {
       await tx.userModule.createMany({
-        data: studentIds.map((studentId) => ({ enterpriseId: enterpriseUser.enterpriseId, moduleId, userId: studentId })),
+        data: sanitisedStudentIds.map((studentId: any) => ({
+          enterpriseId: enterpriseUser.enterpriseId,
+          moduleId,
+          userId: studentId,
+        })),
       });
     }
   });
@@ -471,8 +425,8 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
     ok: true as const,
     value: {
       moduleId,
-      studentIds,
-      studentCount: studentIds.length,
+      studentIds: sanitisedStudentIds,
+      studentCount: sanitisedStudentIds.length,
     },
   };
 }

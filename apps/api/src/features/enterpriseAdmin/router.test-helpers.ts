@@ -75,7 +75,6 @@ export function setupEnterpriseAdminRouterTestDefaults() {
   (mocks.prisma.module.findFirst as any).mockResolvedValue(null);
   (mocks.prisma.module.findUnique as any).mockResolvedValue({
     id: 7,
-    code: "MOD-7",
     name: "Module 7",
     briefText: null,
     timelineText: null,

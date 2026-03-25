@@ -1,8 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { Module } from "../types";
 import { MODULE_SORT_OPTIONS, type ModuleSortKey } from "./moduleSortOptions";
 import "@/features/modules/styles/module-list.css";
@@ -13,7 +13,6 @@ type ModuleListProps = {
   sortBy?: ModuleSortKey;
   onSortByChange?: (sortBy: ModuleSortKey) => void;
   showSortControl?: boolean;
-  toolbarAction?: ReactNode;
 };
 
 const titleCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
@@ -55,7 +54,6 @@ export function ModuleList({
   sortBy,
   onSortByChange,
   showSortControl = true,
-  toolbarAction,
 }: ModuleListProps) {
   const [internalSortBy, setInternalSortBy] = useState<ModuleSortKey>("alphabetical");
   const activeSortBy = sortBy ?? internalSortBy;
@@ -68,25 +66,22 @@ export function ModuleList({
     onSortByChange?.(nextSortBy);
   };
 
+  if (modules.length === 0) {
+    return (
+      <div className="module-list-empty">
+        <p>{emptyMessage}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="module-list">
-      {showSortControl || toolbarAction ? (
-        <div className={`module-list__toolbar${toolbarAction ? "" : " module-list__toolbar--sort-only"}`}>
-          {toolbarAction ? <div className="module-list__toolbar-action">{toolbarAction}</div> : null}
-          {showSortControl ? <ModuleSortControl activeSortBy={activeSortBy} onSortChange={handleSortChange} /> : null}
-        </div>
-      ) : null}
-      {modules.length === 0 ? (
-        <div className="module-list-empty">
-          <p>{emptyMessage}</p>
-        </div>
-      ) : (
-        <div className="module-list__grid">
-          {sortedModules.map((module) => (
-            <ModuleCard key={module.id} module={module} />
-          ))}
-        </div>
-      )}
+      {showSortControl ? <ModuleSortControl activeSortBy={activeSortBy} onSortChange={handleSortChange} /> : null}
+      <div className="module-list__grid">
+        {sortedModules.map((module) => (
+          <ModuleCard key={module.id} module={module} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -99,7 +94,7 @@ function ModuleSortControl({
   onSortChange: (sortBy: ModuleSortKey) => void;
 }) {
   return (
-    <div className="module-list__sort-group">
+    <div className="module-list__toolbar">
       <label htmlFor="module-list-sort" className="module-list__sort-label">
         Sort by
       </label>
@@ -120,30 +115,123 @@ function ModuleSortControl({
 }
 
 function ModuleCard({ module }: { module: Module }) {
+  const router = useRouter();
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState(false);
   const role = getRolePresentation(module.accountRole);
   const teams = module.teamCount ?? 0;
   const projects = module.projectCount ?? 0;
   const moduleId = encodeURIComponent(module.id);
+  const viewModuleHref = `/modules/${moduleId}`;
+  const canManageModule = module.accountRole === "OWNER";
+  const canCreateNewProject = canCreateProject(module.accountRole);
+  const shouldShowActionMenu = canManageModule || canCreateNewProject;
+
+  useEffect(() => {
+    if (!isActionMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!actionMenuRef.current?.contains(event.target as Node)) {
+        setIsActionMenuOpen(false);
+      }
+    };
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsActionMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isActionMenuOpen]);
+
+  const openModule = () => {
+    router.push(viewModuleHref);
+  };
+
+  const handleCardKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openModule();
+  };
 
   return (
-    <article className="module-card card">
+    <article
+      className="module-card card"
+      role="link"
+      tabIndex={0}
+      aria-label={`View module ${module.title}`}
+      onClick={openModule}
+      onKeyDown={handleCardKeyDown}
+    >
       <div className="module-card__header">
         <div className="module-card__header-top">
           <h2 className="module-card__title">{module.title}</h2>
           <span className={`module-card__role module-card__role--${role.tone}`}>{role.label}</span>
         </div>
-        <p className="module-card__meta">Code: {formatModuleCode(module)}</p>
+        <p className="module-card__meta">Code: {formatModuleCode(module.id)}</p>
       </div>
       {module.description ? <p className="module-card__summary">{module.description}</p> : null}
       <div className="module-card__footer">
         <span className="module-card__counts">
           {teams} {pluralize("team", teams)} · {projects} {pluralize("project", projects)}
         </span>
-        <div className="module-card__actions">
-          {module.accountRole === "OWNER" ? <Link href={`/staff/modules/${moduleId}/manage`} className="module-card__manage">Manage module</Link> : null}
-          {canCreateProject(module.accountRole) ? <Link href={`/staff/projects/create?moduleId=${moduleId}`} className="module-card__manage">Create project</Link> : null}
-          <Link href={`/modules/${moduleId}`} className="module-card__cta">View Module</Link>
-        </div>
+        {shouldShowActionMenu ? (
+          <div
+            className="module-card__actions"
+            ref={actionMenuRef}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="module-card__menu-trigger"
+              aria-label={`Module actions for ${module.title}`}
+              aria-expanded={isActionMenuOpen}
+              aria-haspopup="menu"
+              onClick={() => setIsActionMenuOpen((open) => !open)}
+            >
+              •••
+            </button>
+            {isActionMenuOpen ? (
+              <div className="module-card__menu-panel" role="menu">
+                <Link
+                  href={viewModuleHref}
+                  role="menuitem"
+                  className="module-card__menu-item"
+                  onClick={() => setIsActionMenuOpen(false)}
+                >
+                  View module
+                </Link>
+                {canManageModule ? (
+                  <Link
+                    href={`/staff/modules/${moduleId}/manage`}
+                    role="menuitem"
+                    className="module-card__menu-item"
+                    onClick={() => setIsActionMenuOpen(false)}
+                  >
+                    Manage module
+                  </Link>
+                ) : null}
+                {canCreateNewProject ? (
+                  <Link
+                    href={`/staff/projects/create?moduleId=${moduleId}`}
+                    role="menuitem"
+                    className="module-card__menu-item"
+                    onClick={() => setIsActionMenuOpen(false)}
+                  >
+                    Create project
+                  </Link>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </article>
   );
@@ -153,10 +241,9 @@ function canCreateProject(role?: Module["accountRole"]): boolean {
   return role === "OWNER" || role === "ADMIN_ACCESS";
 }
 
-function formatModuleCode(module: Module): string {
-  if (module.code?.trim()) return module.code.trim();
-  const numericId = Number(module.id);
-  return Number.isFinite(numericId) ? `MOD-${numericId}` : module.id;
+function formatModuleCode(moduleId: string): string {
+  const numericId = Number(moduleId);
+  return Number.isFinite(numericId) ? `MOD-${numericId}` : moduleId;
 }
 
 function pluralize(label: string, count: number): string {

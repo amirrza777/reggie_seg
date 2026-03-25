@@ -146,7 +146,7 @@ describe("MeetingList", () => {
   it("shows dash for meetings with no minutes writer", () => {
     const noMinutes = [{ ...meetings[0], minutes: null }];
     render(<MeetingList meetings={noMinutes as any} projectId={1} showMinutesWriter />);
-    expect(screen.getAllByText("—")).not.toHaveLength(0);
+    expect(screen.getByText("—")).toBeInTheDocument();
   });
 
   it("sorts by date descending when showMinutesWriter is true", () => {

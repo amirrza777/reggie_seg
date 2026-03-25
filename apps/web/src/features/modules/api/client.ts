@@ -1,5 +1,10 @@
 import { apiFetch } from "@/shared/api/http";
-import type { JoinModulePayload, JoinModuleResponse, Module } from "../types";
+import type {
+  Module,
+  ModuleStaffListMember,
+  ModuleStudentProjectMatrixProject,
+  ModuleStudentProjectMatrixStudent,
+} from "../types";
 
 type ListModulesOptions = {
   scope?: "staff";
@@ -19,12 +24,28 @@ export async function listModules(userId: number, options?: ListModulesOptions):
     searchParams.set("q", options.query.trim());
   }
 
-  return apiFetch<Module[]>(`/projects/modules?${searchParams.toString()}`);
+  // Avoid stale RSC/cache responses when switching staff vs workspace module shapes.
+  return apiFetch<Module[]>(`/projects/modules?${searchParams.toString()}`, { cache: "no-store" });
 }
 
-export async function joinModuleByCode(payload: JoinModulePayload): Promise<JoinModuleResponse> {
-  return apiFetch<JoinModuleResponse>("/projects/modules/join", {
-    method: "POST",
-    body: JSON.stringify(payload),
+/** Leads + TAs on a module */
+export async function getModuleStaffList(
+  moduleId: string | number,
+): Promise<{ members: ModuleStaffListMember[] }> {
+  const id = encodeURIComponent(String(moduleId));
+  return apiFetch<{ members: ModuleStaffListMember[] }>(`/projects/modules/${id}/staff`, {
+    cache: "no-store",
   });
+}
+
+/** Enrolled students and team assignment per project (staff module matrix). */
+export async function getModuleStudentProjectMatrix(moduleId: string | number): Promise<{
+  projects: ModuleStudentProjectMatrixProject[];
+  students: ModuleStudentProjectMatrixStudent[];
+}> {
+  const id = encodeURIComponent(String(moduleId));
+  return apiFetch<{ projects: ModuleStudentProjectMatrixProject[]; students: ModuleStudentProjectMatrixStudent[] }>(
+    `/projects/modules/${id}/student-project-matrix`,
+    { cache: "no-store" },
+  );
 }

@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiError } from "@/shared/api/errors";
 
 const apiFetchMock = vi.fn();
 const setAccessTokenMock = vi.fn();
@@ -113,7 +112,7 @@ describe("auth api client", () => {
 
   it("retries getCurrentUser after 401 when refresh succeeds", async () => {
     apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
+      .mockRejectedValueOnce({ status: 401 })
       .mockResolvedValueOnce({ accessToken: "token-3" })
       .mockResolvedValueOnce({ id: 1, email: "user@kcl.ac.uk" });
 
@@ -127,16 +126,14 @@ describe("auth api client", () => {
   });
 
   it("returns null from getCurrentUser when refresh fails", async () => {
-    apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
-      .mockRejectedValueOnce(new Error("refresh failed"));
+    apiFetchMock.mockRejectedValueOnce({ status: 401 }).mockRejectedValueOnce(new Error("refresh failed"));
     const user = await getCurrentUser();
     expect(user).toBeNull();
   });
 
   it("retries updateProfile after 401 when refresh succeeds", async () => {
     apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
+      .mockRejectedValueOnce({ status: 401 })
       .mockResolvedValueOnce({ accessToken: "token-4" })
       .mockResolvedValueOnce({ id: 1, firstName: "Ayan" });
 

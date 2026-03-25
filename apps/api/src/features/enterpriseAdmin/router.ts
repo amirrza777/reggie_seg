@@ -3,14 +3,12 @@ import type { Prisma } from "@prisma/client";
 import { requireAuth } from "../../auth/middleware.js";
 import { prisma } from "../../shared/db.js";
 import { resolveEnterpriseUser } from "./middleware.js";
-import { parseFeatureFlagUpdateBody, parseMeetingSettingsBody } from "./router.parsers.js";
 import {
   createModule,
   deleteModule,
   ensureCreatorLeader,
   getModuleAccess,
   getModuleAccessSelection,
-  getModuleJoinCode,
   getModuleStudents,
   getOverview,
   listFeatureFlags,
@@ -27,9 +25,8 @@ import {
   updateModule,
   updateModuleStudents,
   isEnterpriseAdminRole,
-  getModuleMeetingSettings,
-  updateModuleMeetingSettings,
 } from "./service.js";
+import { getModuleMeetingSettings, updateModuleMeetingSettings } from "./service.meeting-settings.js";
 import type { EnterpriseRequest } from "./types.js";
 
 const router = Router();
@@ -57,11 +54,11 @@ router.patch("/feature-flags/:key", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
   if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
 
-  const parsedBody = parseFeatureFlagUpdateBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const enabled = req.body?.enabled;
+  if (typeof enabled !== "boolean") return res.status(400).json({ error: "enabled boolean required" });
 
   try {
-    const result = await updateFeatureFlag(enterpriseUser, String(req.params.key), parsedBody.value.enabled);
+    const result = await updateFeatureFlag(enterpriseUser, String(req.params.key), enabled);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     return res.json(result.value);
   } catch (err) {
@@ -139,18 +136,6 @@ router.get("/modules/:moduleId/access-selection", async (req, res) => {
   if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
 
   const result = await getModuleAccessSelection(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
-  return res.json(result.value);
-});
-
-router.get("/modules/:moduleId/join-code", async (req, res) => {
-  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-
-  const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
-
-  const result = await getModuleJoinCode(enterpriseUser, moduleId);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 });
@@ -468,10 +453,16 @@ router.put("/modules/:moduleId/meeting-settings", async (req, res) => {
   const moduleId = parsePositiveInt(req.params.moduleId);
   if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
 
-  const parsedBody = parseMeetingSettingsBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const absenceThreshold = Number(req.body?.absenceThreshold);
+  const minutesEditWindowDays = Number(req.body?.minutesEditWindowDays);
+  if (!Number.isInteger(absenceThreshold) || absenceThreshold < 1) {
+    return res.status(400).json({ error: "absenceThreshold must be a positive integer" });
+  }
+  if (!Number.isInteger(minutesEditWindowDays) || minutesEditWindowDays < 1) {
+    return res.status(400).json({ error: "minutesEditWindowDays must be a positive integer" });
+  }
 
-  const result = await updateModuleMeetingSettings(enterpriseUser, moduleId, parsedBody.value);
+  const result = await updateModuleMeetingSettings(enterpriseUser, moduleId, { absenceThreshold, minutesEditWindowDays });
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 });

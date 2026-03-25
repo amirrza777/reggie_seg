@@ -6,7 +6,7 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }));
 
-import { joinModuleByCode, listModules } from "./client";
+import { getModuleStudentProjectMatrix, listModules } from "./client";
 
 describe("modules api client", () => {
   beforeEach(() => {
@@ -19,25 +19,29 @@ describe("modules api client", () => {
 
     const result = await listModules(42);
 
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42", { cache: "no-store" });
     expect(result).toEqual(payload);
   });
 
   it("fetches staff-scoped module list", async () => {
     await listModules(42, { scope: "staff" });
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&scope=staff");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&scope=staff", {
+      cache: "no-store",
+    });
   });
 
   it("fetches compact module list", async () => {
     await listModules(42, { compact: true });
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&compact=1");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules?userId=42&compact=1", {
+      cache: "no-store",
+    });
   });
 
-  it("joins a module by code", async () => {
-    await joinModuleByCode({ code: "ABCD2345" });
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/join", {
-      method: "POST",
-      body: JSON.stringify({ code: "ABCD2345" }),
+  it("fetches student project matrix", async () => {
+    apiFetchMock.mockResolvedValue({ projects: [], students: [] });
+    await getModuleStudentProjectMatrix(12);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/12/student-project-matrix", {
+      cache: "no-store",
     });
   });
 });

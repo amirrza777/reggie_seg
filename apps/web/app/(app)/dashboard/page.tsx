@@ -4,7 +4,6 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { listModules } from "@/features/modules/api/client";
 import { getCalendarEvents } from "@/features/calendar/api/client";
 import type { Module } from "@/features/modules/types";
-import { StudentModulesOverviewClient } from "@/features/modules/components/StudentModulesOverviewClient";
 import { Card } from "@/shared/ui/Card";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { Table } from "@/shared/ui/Table";
@@ -26,7 +25,6 @@ function formatDate(iso: string): string {
 export default async function DashboardPage() {
   const user = await getCurrentUser();
   let modules: Module[] = [];
-  let moduleError: string | null = null;
   let upcomingRows: (string | ReactNode)[][] = [];
 
   if (user) {
@@ -35,11 +33,7 @@ export default async function DashboardPage() {
       getCalendarEvents(user.id),
     ]);
 
-    if (fetchedModules.status === "fulfilled") {
-      modules = fetchedModules.value;
-    } else {
-      moduleError = "Could not load modules right now. This can happen if the latest database migrations have not been applied.";
-    }
+    if (fetchedModules.status === "fulfilled") modules = fetchedModules.value;
 
     if (events.status === "fulfilled") {
       const now = new Date();
@@ -63,6 +57,22 @@ export default async function DashboardPage() {
     upcomingRows = [["-", "No upcoming deadlines in the next 14 days", "-"]];
   }
 
+  const moduleRows =
+    modules.length > 0
+      ? modules.map((module) => {
+          const code = Number(module.id);
+          const moduleCode = Number.isFinite(code) ? `MOD-${code}` : module.id;
+          const teams = module.teamCount ?? 0;
+          return [
+            moduleCode,
+            <Link key={module.id} href={`/modules/${encodeURIComponent(module.id)}`} className="ui-link-reset">
+              {module.title}
+            </Link>,
+            `${teams} team${teams === 1 ? "" : "s"}`,
+          ];
+        })
+      : [["-", "No modules assigned", "-"]];
+
   return (
     <div className="stack stack--tabbed">
       <Card title={<span className="overview-title">Modules overview</span>}>
@@ -71,14 +81,9 @@ export default async function DashboardPage() {
         </p>
       </Card>
 
-      {user ? (
-        <StudentModulesOverviewClient
-          initialModules={modules}
-          initialLoadError={moduleError}
-          userId={user.id}
-          canJoin={user.role === "STUDENT"}
-        />
-      ) : null}
+      <Card title="Active modules">
+        <Table headers={["Code", "Title", "Teams"]} rows={moduleRows} />
+      </Card>
 
       <Card
         title="Upcoming deadlines"

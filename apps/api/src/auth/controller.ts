@@ -14,16 +14,6 @@ import {
 } from "./service.js";
 import type { AuthRequest } from "./middleware.js";
 import { prisma } from "../shared/db.js";
-import {
-  parseConfirmEmailChangeBody,
-  parseForgotPasswordBody,
-  parseLoginBody,
-  parseRefreshTokenBody,
-  parseRequestEmailChangeBody,
-  parseResetPasswordBody,
-  parseSignupBody,
-  parseUpdateProfileBody,
-} from "./controller.parsers.js";
 
 const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_ENV === "production";
 // SameSite=None is required for cross-site XHR/fetch with credentials; browsers also require Secure in that case.
@@ -32,11 +22,31 @@ const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
 
 /** Handles requests for signup. */
 export async function signupHandler(req: Request, res: Response) {
-  const parsedBody = parseSignupBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
-
+  const { enterpriseCode, email, password, firstName, lastName, role } = req.body ?? {};
+  if (!enterpriseCode || !email || !password) {
+    return res.status(400).json({ error: "Enterprise code, email and password are required" });
+  }
+  const normalizedRole =
+    typeof role === "string"
+      ? (role.toUpperCase() as "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN")
+      : undefined;
+  if (normalizedRole && !["STUDENT", "STAFF", "ENTERPRISE_ADMIN"].includes(normalizedRole)) {
+    return res.status(400).json({ error: "Invalid role" });
+  }
+  const requestedRole =
+    normalizedRole === "STUDENT" || normalizedRole === "STAFF" || normalizedRole === "ENTERPRISE_ADMIN"
+      ? normalizedRole
+      : undefined;
   try {
-    const tokens = await signUp(parsedBody.value);
+    const signupPayload = {
+      enterpriseCode,
+      email,
+      password,
+      firstName,
+      lastName,
+      ...(requestedRole ? { role: requestedRole } : {}),
+    };
+    const tokens = await signUp(signupPayload);
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
@@ -50,14 +60,17 @@ export async function signupHandler(req: Request, res: Response) {
 
 /** Handles requests for login. */
 export async function loginHandler(req: Request, res: Response) {
-  const parsedBody = parseLoginBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { email, password } = req.body ?? {};
+  if (!email || !password) return res.status(400).json({ error: "Email and Password required" });
   try {
     const meta = {
       userAgent: req.get("user-agent") ?? null,
       ...(typeof req.ip === "string" && req.ip.length > 0 ? { ip: req.ip } : {}),
     };
-    const tokens = await login(parsedBody.value, meta);
+    const tokens = await login(
+      { email, password },
+      meta
+    );
     setRefreshCookie(res, tokens.refreshToken);
     return res.json({ accessToken: tokens.accessToken });
   } catch (e: any) {
@@ -70,10 +83,7 @@ export async function loginHandler(req: Request, res: Response) {
 
 /** Handles requests for refresh. */
 export async function refreshHandler(req: Request, res: Response) {
-  const parsedBody = parseRefreshTokenBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
-
-  const token = req.cookies?.refresh_token || parsedBody.value.refreshToken;
+  const token = req.cookies?.refresh_token || req.body?.refreshToken;
   if (!token) return res.status(400).json({ error: "refresh token missing" });
   try {
     const tokens = await refreshTokens(token);
@@ -93,10 +103,7 @@ export async function refreshHandler(req: Request, res: Response) {
 
 /** Handles requests for logout. */
 export async function logoutHandler(req: Request, res: Response) {
-  const parsedBody = parseRefreshTokenBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
-
-  const token = req.cookies?.refresh_token || parsedBody.value.refreshToken;
+  const token = req.cookies?.refresh_token || req.body?.refreshToken;
   if (token) {
     try {
       const meta = {
@@ -114,10 +121,10 @@ export async function logoutHandler(req: Request, res: Response) {
 
 /** Handles requests for forgot password. */
 export async function forgotPasswordHandler(req: Request, res: Response) {
-  const parsedBody = parseForgotPasswordBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { email } = req.body ?? {};
+  if (!email) return res.status(400).json({ error: "Email required" });
   try {
-    await requestPasswordReset(parsedBody.value.email);
+    await requestPasswordReset(email);
     return res.json({ success: true });
   } catch (e: any) {
     console.error("forgot password error", e);
@@ -127,10 +134,10 @@ export async function forgotPasswordHandler(req: Request, res: Response) {
 
 /** Handles requests for reset password. */
 export async function resetPasswordHandler(req: Request, res: Response) {
-  const parsedBody = parseResetPasswordBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { token, newPassword } = req.body ?? {};
+  if (!token || !newPassword) return res.status(400).json({ error: "Token and newPassword required" });
   try {
-    await resetPassword(parsedBody.value);
+    await resetPassword({ token, newPassword });
     return res.json({ success: true });
   } catch (e: any) {
     console.error("reset password error", e);
@@ -145,10 +152,9 @@ export async function resetPasswordHandler(req: Request, res: Response) {
 export async function updateProfileHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  const parsedBody = parseUpdateProfileBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { firstName, lastName, avatarBase64, avatarMime } = req.body ?? {};
   try {
-    const profile = await updateProfile({ userId, ...parsedBody.value });
+    const profile = await updateProfile({ userId, firstName, lastName, avatarBase64, avatarMime });
     return res.json(profile);
   } catch (e: any) {
     console.error("update profile error", e);
@@ -160,10 +166,10 @@ export async function updateProfileHandler(req: AuthRequest, res: Response) {
 export async function requestEmailChangeHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  const parsedBody = parseRequestEmailChangeBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { newEmail } = req.body ?? {};
+  if (!newEmail) return res.status(400).json({ error: "newEmail required" });
   try {
-    await requestEmailChange({ userId, newEmail: parsedBody.value.newEmail });
+    await requestEmailChange({ userId, newEmail });
     return res.json({ success: true });
   } catch (e: any) {
     console.error("email change request error", e);
@@ -176,10 +182,10 @@ export async function requestEmailChangeHandler(req: AuthRequest, res: Response)
 export async function confirmEmailChangeHandler(req: AuthRequest, res: Response) {
   const userId = req.user?.sub;
   if (!userId) return res.status(401).json({ error: "Unauthorized" });
-  const parsedBody = parseConfirmEmailChangeBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const { newEmail, code } = req.body ?? {};
+  if (!newEmail || !code) return res.status(400).json({ error: "newEmail and code required" });
   try {
-    await confirmEmailChange({ userId, ...parsedBody.value });
+    await confirmEmailChange({ userId, newEmail, code });
     return res.json({ success: true });
   } catch (e: any) {
     console.error("email change confirm error", e);

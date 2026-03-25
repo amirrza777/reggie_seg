@@ -1,108 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { NextFunction, Response } from "express";
-import router from "./router.js";
-import { prisma } from "../../shared/db.js";
-
-vi.mock("../../auth/middleware.js", () => ({
-  requireAuth: (req: any, _res: any, next: NextFunction) => {
-    const raw = req.headers?.["x-user-id"];
-    if (raw) req.user = { sub: Number(raw) };
-    next();
-  },
-}));
-
-vi.mock("../../shared/db.js", () => ({
-  prisma: {
-    user: { findUnique: vi.fn(), count: vi.fn(), findMany: vi.fn() },
-    module: {
-      count: vi.fn(),
-      findMany: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-    },
-    moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    featureFlag: { findMany: vi.fn(), update: vi.fn() },
-    team: { count: vi.fn() },
-    meeting: { count: vi.fn() },
-    userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    $transaction: vi.fn(),
-  },
-}));
-
-function mockRes() {
-  const res: Partial<Response> = {
-    status: vi.fn(),
-    json: vi.fn(),
-  };
-  (res.status as any).mockReturnValue(res);
-  (res.json as any).mockReturnValue(res);
-  return res as Response;
-}
-
-function getUseHandlers() {
-  return (router as any).stack.filter((layer: any) => !layer.route).map((layer: any) => layer.handle);
-}
-
-function getRouteHandler(method: "get" | "post" | "put" | "patch" | "delete", path: string) {
-  const layer = (router as any).stack.find((item: any) => item.route?.path === path && item.route.methods?.[method]);
-  if (!layer) throw new Error(`Missing route ${method.toUpperCase()} ${path}`);
-  return layer.route.stack[0].handle;
-}
+import type { NextFunction } from "express";
+import {
+  getRouteHandler,
+  getUseHandlers,
+  mockRes,
+  prisma,
+  setupEnterpriseAdminRouterTestDefaults,
+} from "./router.test-helpers.js";
 
 beforeEach(() => {
-  vi.clearAllMocks();
-
-  (prisma.user.findUnique as any).mockResolvedValue({
-    id: 99,
-    enterpriseId: "ent-1",
-    role: "ENTERPRISE_ADMIN",
-    active: true,
-  });
-
-  (prisma.user.count as any).mockResolvedValue(5);
-  (prisma.module.count as any).mockResolvedValue(2);
-  (prisma.team.count as any).mockResolvedValue(1);
-  (prisma.meeting.count as any).mockResolvedValue(4);
-
-  (prisma.module.findMany as any).mockResolvedValue([]);
-  (prisma.module.findFirst as any).mockResolvedValue(null);
-  (prisma.module.findUnique as any).mockResolvedValue({
-    id: 7,
-    code: "MOD-7",
-    joinCode: "M0000007",
-    name: "Module 7",
-    briefText: null,
-    timelineText: null,
-    expectationsText: null,
-    readinessNotesText: null,
-    createdAt: new Date("2026-03-01"),
-    updatedAt: new Date("2026-03-01"),
-    _count: { userModules: 0, moduleLeads: 1, moduleTeachingAssistants: 0 },
-  });
-  (prisma.module.create as any).mockResolvedValue({ id: 7 });
-  (prisma.module.delete as any).mockResolvedValue({ id: 7 });
-
-  (prisma.user.findMany as any).mockResolvedValue([]);
-  (prisma.userModule.deleteMany as any).mockResolvedValue({ count: 0 });
-  (prisma.userModule.createMany as any).mockResolvedValue({ count: 0 });
-  (prisma.moduleLead.deleteMany as any).mockResolvedValue({ count: 0 });
-  (prisma.moduleLead.createMany as any).mockResolvedValue({ count: 0 });
-  (prisma.moduleLead.findMany as any).mockResolvedValue([]);
-  (prisma.moduleTeachingAssistant.deleteMany as any).mockResolvedValue({ count: 0 });
-  (prisma.moduleTeachingAssistant.createMany as any).mockResolvedValue({ count: 0 });
-  (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValue([]);
-  (prisma.userModule.findMany as any).mockResolvedValue([]);
-  (prisma.featureFlag.findMany as any).mockResolvedValue([]);
-  (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
-
-  (prisma.$transaction as any).mockImplementation(async (arg: any) => {
-    if (Array.isArray(arg)) return Promise.all(arg);
-    return arg(prisma);
-  });
+  setupEnterpriseAdminRouterTestDefaults();
 });
 
 describe("enterpriseAdmin router discovery", () => {
@@ -343,12 +250,14 @@ describe("enterpriseAdmin router discovery", () => {
 
   it("creates module and persists role assignments", async () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
-    (prisma.user.findMany as any).mockResolvedValueOnce([
-      { id: 11, role: "STAFF" },
-      { id: 99, role: "ENTERPRISE_ADMIN" },
-      { id: 12, role: "STUDENT" },
-      { id: 31, role: "STUDENT" },
-    ]);
+    (prisma.user.findMany as any)
+      .mockResolvedValueOnce([{ id: 31, role: "STUDENT" }])
+      .mockResolvedValueOnce([
+        { id: 11, role: "STAFF" },
+        { id: 99, role: "ENTERPRISE_ADMIN" },
+        { id: 12, role: "STUDENT" },
+        { id: 31, role: "STUDENT" },
+      ]);
     const res = mockRes();
 
     await createModule(
@@ -364,7 +273,17 @@ describe("enterpriseAdmin router discovery", () => {
       res,
     );
 
-    expect(prisma.module.create).toHaveBeenCalled();
+    expect(prisma.module.create).toHaveBeenCalledWith({
+      data: {
+        enterpriseId: "ent-1",
+        name: "Data",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+      },
+      select: { id: true },
+    });
     expect(prisma.moduleLead.createMany).toHaveBeenCalledWith({
       data: [
         { moduleId: 7, userId: 11 },
@@ -381,7 +300,6 @@ describe("enterpriseAdmin router discovery", () => {
       skipDuplicates: true,
     });
     expect((res.status as any)).toHaveBeenCalledWith(201);
-    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ joinCode: expect.any(String) }));
   });
 
   it("validates access-user scope", async () => {
@@ -411,10 +329,7 @@ describe("enterpriseAdmin router discovery", () => {
         pageSize: 1,
         totalPages: 2,
         scope: "staff",
-        query: "lead",
-        hasNextPage: true,
-        hasPreviousPage: false,
-        items: [expect.objectContaining({ id: 11, email: "lead@x.com", firstName: "Lead", lastName: "User", active: true })],
+        items: [expect.objectContaining({ id: 11 })],
       }),
     );
   });
@@ -440,11 +355,7 @@ describe("enterpriseAdmin router discovery", () => {
         page: 1,
         pageSize: 20,
         totalPages: 1,
-        query: "nra patl",
-        scope: "all",
-        hasNextPage: false,
-        hasPreviousPage: false,
-        items: [expect.objectContaining({ id: 11, email: "nora@x.com", firstName: "Nora", lastName: "Patel", active: true })],
+        items: [expect.objectContaining({ id: 11, email: "nora@x.com" })],
       }),
     );
   });

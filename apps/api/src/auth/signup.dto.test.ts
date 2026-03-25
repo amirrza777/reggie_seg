@@ -1,4 +1,15 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock(
+  "class-validator",
+  () => ({
+    IsEmail: () => () => undefined,
+    IsOptional: () => () => undefined,
+    IsString: () => () => undefined,
+    MinLength: () => () => undefined,
+  }),
+  { virtual: true }
+);
 
 describe("SignUpDto", () => {
   it("stores signup fields", async () => {

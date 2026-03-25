@@ -1,42 +1,32 @@
 import { Router } from "express";
 import { requireAuth } from "../../auth/middleware.js";
 import {
-  acceptTeamInviteHandler,
-  cancelTeamInviteHandler,
   createTeamInviteHandler,
+  acceptTeamInviteHandler,
   declineTeamInviteHandler,
-  expireTeamInviteHandler,
-  listReceivedInvitesHandler,
-  listTeamInvitesHandler,
   rejectTeamInviteHandler,
-} from "./controller.invites.js";
-import {
+  cancelTeamInviteHandler,
+  expireTeamInviteHandler,
+  listTeamInvitesHandler,
+  listReceivedInvitesHandler,
+  createTeamHandler,
+  createTeamForProjectHandler,
   applyManualAllocationHandler,
-  getManualAllocationWorkspaceHandler,
-} from "./controller.manual.js";
-import {
   applyRandomAllocationHandler,
-  previewRandomAllocationHandler,
-} from "./controller.random.js";
-import {
   applyCustomAllocationHandler,
-  getCustomAllocationCoverageHandler,
-  listCustomAllocationQuestionnairesHandler,
-  previewCustomAllocationHandler,
-} from "./controller.custom-allocation.js";
-import {
   approveAllocationDraftHandler,
   deleteAllocationDraftHandler,
+  getCustomAllocationCoverageHandler,
+  getManualAllocationWorkspaceHandler,
   listAllocationDraftsHandler,
+  listCustomAllocationQuestionnairesHandler,
+  previewCustomAllocationHandler,
+  previewRandomAllocationHandler,
   updateAllocationDraftHandler,
-} from "./controller.drafts.js";
-import {
-  addUserToTeamHandler,
-  createTeamForProjectHandler,
-  createTeamHandler,
   getTeamByIdHandler,
+  addUserToTeamHandler,
   getTeamMembersHandler,
-} from "./controller.teams.js";
+} from "./controller.js";
 
 const router = Router();
 

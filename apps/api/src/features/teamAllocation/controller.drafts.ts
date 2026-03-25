@@ -6,22 +6,20 @@ import {
   listAllocationDraftsForProject,
   updateAllocationDraftForProject,
 } from "./service.js";
-import {
-  parseDraftExpectedUpdatedAtBody,
-  parseDraftTeamIdParam,
-  parseProjectIdParam,
-  parseStaffActor,
-  parseUpdateDraftBody,
-} from "./controller.parsers.js";
 
 export async function listAllocationDraftsHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
 
   try {
-    const drafts = await listAllocationDraftsForProject(staffId.value, projectId.value);
+    const drafts = await listAllocationDraftsForProject(staffId, projectId);
     return res.json(drafts);
   } catch (error: any) {
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
@@ -41,17 +39,56 @@ export async function listAllocationDraftsHandler(req: AuthRequest, res: Respons
 }
 
 export async function updateAllocationDraftHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
-  const teamId = parseDraftTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
-  const parsedBody = parseUpdateDraftBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const hasTeamName = Object.prototype.hasOwnProperty.call(body, "teamName");
+  const hasStudentIds = Object.prototype.hasOwnProperty.call(body, "studentIds");
+  const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(body, "expectedUpdatedAt");
+  const rawTeamName = (body as Record<string, unknown>).teamName;
+  const rawStudentIds = (body as Record<string, unknown>).studentIds;
+  const rawExpectedUpdatedAt = (body as Record<string, unknown>).expectedUpdatedAt;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid draft team ID" });
+  }
+  if (!hasTeamName && !hasStudentIds) {
+    return res.status(400).json({ error: "Provide teamName and/or studentIds to update draft" });
+  }
+  if (hasTeamName && typeof rawTeamName !== "string") {
+    return res.status(400).json({ error: "teamName must be a non-empty string when provided" });
+  }
+  if (hasStudentIds && !Array.isArray(rawStudentIds)) {
+    return res.status(400).json({ error: "studentIds must be an array of numbers when provided" });
+  }
+  if (hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt !== "string") {
+    return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+  }
+
+  const studentIds =
+    hasStudentIds && Array.isArray(rawStudentIds) ? rawStudentIds.map((studentId) => Number(studentId)) : undefined;
+  if (
+    hasStudentIds &&
+    (studentIds === undefined || studentIds.some((studentId) => Number.isNaN(studentId)))
+  ) {
+    return res.status(400).json({ error: "studentIds must be an array of numbers when provided" });
+  }
 
   try {
-    const result = await updateAllocationDraftForProject(staffId.value, projectId.value, teamId.value, parsedBody.value);
+    const result = await updateAllocationDraftForProject(staffId, projectId, teamId, {
+      ...(hasTeamName && typeof rawTeamName === "string" ? { teamName: rawTeamName } : {}),
+      ...(hasStudentIds && studentIds !== undefined ? { studentIds } : {}),
+      ...(hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt === "string"
+        ? { expectedUpdatedAt: rawExpectedUpdatedAt }
+        : {}),
+    });
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_DRAFT_TEAM_ID") {
@@ -110,17 +147,32 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
 }
 
 export async function approveAllocationDraftHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
-  const teamId = parseDraftTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
-  const parsedBody = parseDraftExpectedUpdatedAtBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(body, "expectedUpdatedAt");
+  const rawExpectedUpdatedAt = (body as Record<string, unknown>).expectedUpdatedAt;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid draft team ID" });
+  }
+  if (hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt !== "string") {
+    return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+  }
 
   try {
-    const result = await approveAllocationDraftForProject(staffId.value, projectId.value, teamId.value, parsedBody.value);
+    const result = await approveAllocationDraftForProject(staffId, projectId, teamId, {
+      ...(hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt === "string"
+        ? { expectedUpdatedAt: rawExpectedUpdatedAt }
+        : {}),
+    });
     return res.status(201).json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_DRAFT_TEAM_ID") {
@@ -165,17 +217,32 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
 }
 
 export async function deleteAllocationDraftHandler(req: AuthRequest, res: Response) {
-  const staffId = parseStaffActor(req);
-  if (!staffId.ok) return res.status(401).json({ error: staffId.error });
-  const projectId = parseProjectIdParam(req.params.projectId);
-  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
-  const teamId = parseDraftTeamIdParam(req.params.teamId);
-  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
-  const parsedBody = parseDraftExpectedUpdatedAtBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  const staffId = req.user?.sub;
+  const projectId = Number(req.params.projectId);
+  const teamId = Number(req.params.teamId);
+  const body = req.body && typeof req.body === "object" ? req.body : {};
+  const hasExpectedUpdatedAt = Object.prototype.hasOwnProperty.call(body, "expectedUpdatedAt");
+  const rawExpectedUpdatedAt = (body as Record<string, unknown>).expectedUpdatedAt;
+
+  if (!staffId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+  if (Number.isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid draft team ID" });
+  }
+  if (hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt !== "string") {
+    return res.status(400).json({ error: "expectedUpdatedAt must be an ISO datetime string when provided" });
+  }
 
   try {
-    const result = await deleteAllocationDraftForProject(staffId.value, projectId.value, teamId.value, parsedBody.value);
+    const result = await deleteAllocationDraftForProject(staffId, projectId, teamId, {
+      ...(hasExpectedUpdatedAt && typeof rawExpectedUpdatedAt === "string"
+        ? { expectedUpdatedAt: rawExpectedUpdatedAt }
+        : {}),
+    });
     return res.json(result);
   } catch (error: any) {
     if (error?.code === "INVALID_DRAFT_TEAM_ID") {

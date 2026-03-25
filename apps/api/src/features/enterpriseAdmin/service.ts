@@ -24,11 +24,8 @@ export {
   createModule,
   getModuleAccess,
   getModuleAccessSelection,
-  getModuleJoinCode,
   updateModule,
   deleteModule,
   getModuleStudents,
   updateModuleStudents,
 } from "./service.module-management.js";
-
-export { getModuleMeetingSettings, updateModuleMeetingSettings } from "./service.meeting-settings.js";

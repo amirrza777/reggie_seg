@@ -1,19 +1,23 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
 import { Card } from "@/shared/ui/Card";
 
 type EnterpriseModuleEditPageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ created?: string; joinCode?: string }>;
 };
 
-export default async function EnterpriseModuleEditPage({ params, searchParams }: EnterpriseModuleEditPageProps) {
+export default async function EnterpriseModuleEditPage({ params }: EnterpriseModuleEditPageProps) {
   const { id } = await params;
-  const resolvedSearchParams = searchParams ? await searchParams : {};
   const moduleId = Number.parseInt(id, 10);
 
   if (!Number.isInteger(moduleId) || moduleId <= 0) {
+    notFound();
+  }
+
+  const initialAccessSelection = await loadModuleSetupInitialSelection(moduleId);
+  if (!initialAccessSelection) {
     notFound();
   }
 
@@ -22,7 +26,7 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Edit module</h1>
         <p className="ui-page__description">
-          Update module guidance, manage access levels, and share the module join code for student self-enrollment.
+          Update module guidance and manage access levels for owners/leaders, teaching assistants, and students.
         </p>
       </header>
 
@@ -35,11 +39,7 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm
-          mode="edit"
-          moduleId={moduleId}
-          createdJoinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
-        />
+        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} initialAccessSelection={initialAccessSelection} />
       </Card>
     </div>
   );
