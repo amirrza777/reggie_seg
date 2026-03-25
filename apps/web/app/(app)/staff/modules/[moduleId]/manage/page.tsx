@@ -1,54 +1,54 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
-import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
-import { listModules } from "@/features/modules/api/client";
-import type { Module } from "@/features/modules/types";
+import { redirect } from "next/navigation";
+import { ModuleGuidanceSection } from "@/features/modules/components/moduleSetup/ModuleGuidanceSection";
+import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
+import { canOpenStaffModuleManagePage } from "@/features/modules/staffModuleWorkspaceAccess";
+import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { Card } from "@/shared/ui/Card";
-import { getCurrentUser } from "@/shared/auth/session";
 
 type StaffModuleManagePageProps = {
   params: Promise<{ moduleId: string }>;
 };
 
 export default async function StaffModuleManagePage({ params }: StaffModuleManagePageProps) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
-  if (!user.isStaff && user.role !== "ADMIN") redirect("/dashboard");
-
   const { moduleId } = await params;
-  const parsedModuleId = Number.parseInt(moduleId, 10);
-  if (!Number.isInteger(parsedModuleId) || parsedModuleId <= 0) notFound();
+  const modId = encodeURIComponent(moduleId);
 
-  let staffModules: Module[] = [];
-  try {
-    staffModules = await listModules(user.id, { scope: "staff" });
-  } catch {
-    redirect("/staff/modules");
+  const ctx = await loadStaffModuleWorkspaceContext(moduleId);
+  if (!ctx) redirect("/staff/modules");
+
+  if (!canOpenStaffModuleManagePage(ctx)) {
+    redirect(`/staff/modules/${modId}`);
   }
-  const moduleRecord = staffModules.find((module) => Number(module.id) === parsedModuleId);
-  if (!moduleRecord) redirect("/staff/modules");
 
-  const canManageModule = moduleRecord.accountRole === "OWNER";
-  if (!canManageModule) redirect(`/modules/${moduleRecord.id}`);
+  const { parsedModuleId: moduleNumericId, moduleRecord } = ctx;
+  if (!moduleRecord) redirect(`/staff/modules/${modId}`);
+
+  const initialAccessSelection = await loadModuleSetupInitialSelection(moduleNumericId, moduleRecord);
+  if (!initialAccessSelection) {
+    redirect(`/staff/modules/${modId}`);
+  }
 
   return (
     <div className="ui-page enterprise-module-create-page">
       <header className="ui-page__header">
-        <h1 className="overview-title ui-page__title">Manage module</h1>
+        <h2 className="overview-title ui-page__title">Manage module</h2>
         <p className="ui-page__description">
-          Update module guidance, leads, TAs, and student assignments from the staff workspace.
+          Update the module overview details and guidance.
         </p>
       </header>
-
       <Card
         title={<span className="overview-title">Module setup</span>}
         action={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <Link
-              href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
+              href={`/staff/projects/create?moduleId=${encodeURIComponent(String(moduleNumericId))}`}
               className="btn btn--primary"
             >
               Create project
+            </Link>
+            <Link href={`/staff/modules/${modId}/projects`} className="btn btn--ghost">
+              Projects &amp; teams
             </Link>
             <Link href="/staff/modules" className="btn btn--ghost">
               Back to my modules
@@ -57,7 +57,11 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={parsedModuleId} workspace="staff" />
+        <ModuleGuidanceSection
+          moduleId={moduleNumericId}
+          initialAccessSelection={initialAccessSelection}
+          staffModuleRow={moduleRecord}
+        />
       </Card>
     </div>
   );

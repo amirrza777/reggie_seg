@@ -67,8 +67,8 @@ const additionalHelpFaqs: HelpFaqItem[] = [
   },
   {
     question: "How do I manage team allocations?",
-    answer: "Open Staff > Projects, choose a project, then use the Team allocation page to review and adjust teams.",
-    links: [{ label: "Open Staff Projects", href: "/staff/projects" }],
+    answer: "Open Staff → My Modules → Projects, choose a project, then open Team allocation to review and adjust teams.",
+    links: [{ label: "Open My Modules", href: "/staff/modules" }],
   },
   {
     question: "What do the different user roles allow?",

@@ -43,6 +43,7 @@ export type EnterpriseAccessUserSearchParams = {
   q?: string;
   page?: number;
   pageSize?: number;
+  excludeEnrolledInModule?: number;
 };
 
 export type EnterpriseAccessUserSearchResponse = {

@@ -16,6 +16,8 @@ type UseEnterpriseModuleAccessBucketsParams = {
   isEditMode: boolean;
   isLoadingAccess: boolean;
   canEditModule: boolean;
+  /** When set, access-user search can omit users already on this module (per-bucket toggles). */
+  moduleIdForAccessSearchExclude?: number;
 };
 
 type AccessUsersResponse = Awaited<ReturnType<typeof searchEnterpriseModuleAccessUsers>>;
@@ -35,7 +37,12 @@ export function useEnterpriseModuleAccessBuckets({
   isEditMode,
   isLoadingAccess,
   canEditModule,
+  moduleIdForAccessSearchExclude,
 }: UseEnterpriseModuleAccessBucketsParams) {
+  const [staffSearchOnlyWithoutModuleAccess, setStaffSearchOnlyWithoutModuleAccess] = useState(false);
+  const [taSearchOnlyWithoutModuleAccess, setTaSearchOnlyWithoutModuleAccess] = useState(false);
+  const [studentSearchOnlyWithoutModuleAccess, setStudentSearchOnlyWithoutModuleAccess] = useState(false);
+
   const [staffSearchQuery, setStaffSearchQuery] = useState("");
   const [taSearchQuery, setTaSearchQuery] = useState("");
   const [studentSearchQuery, setStudentSearchQuery] = useState("");
@@ -108,11 +115,20 @@ export function useEnterpriseModuleAccessBuckets({
     setBucketLoading(setters);
 
     try {
+      const wantExclude =
+        (bucket === "staff" && staffSearchOnlyWithoutModuleAccess) ||
+        (bucket === "ta" && taSearchOnlyWithoutModuleAccess) ||
+        (bucket === "students" && studentSearchOnlyWithoutModuleAccess);
+
+      const excludeEnrolledInModule =
+        wantExclude && moduleIdForAccessSearchExclude != null ? moduleIdForAccessSearchExclude : undefined;
+
       const response = await searchEnterpriseModuleAccessUsers({
         scope: resolveScopeForBucket(bucket),
         q: query.trim() || undefined,
         page,
         pageSize: ACCESS_USERS_PAGE_SIZE,
+        ...(excludeEnrolledInModule != null ? { excludeEnrolledInModule } : {}),
       });
 
       applyIfCurrent(() => {
@@ -128,22 +144,35 @@ export function useEnterpriseModuleAccessBuckets({
         setBucketError(setters, message);
       });
     }
-  }, []);
+  }, [
+    staffSearchOnlyWithoutModuleAccess,
+    taSearchOnlyWithoutModuleAccess,
+    studentSearchOnlyWithoutModuleAccess,
+    moduleIdForAccessSearchExclude,
+  ]);
 
   useEffect(() => {
     if (isLoadingAccess || (mode === "edit" && !canEditModule)) return;
     void loadAccessUsers("staff", staffSearchQuery, staffPage);
-  }, [canEditModule, isLoadingAccess, loadAccessUsers, mode, staffSearchQuery, staffPage]);
+  }, [canEditModule, isLoadingAccess, loadAccessUsers, mode, staffSearchQuery, staffPage, staffSearchOnlyWithoutModuleAccess]);
 
   useEffect(() => {
     if (isLoadingAccess || !isEditMode || !canEditModule) return;
     void loadAccessUsers("ta", taSearchQuery, taPage);
-  }, [canEditModule, isEditMode, isLoadingAccess, loadAccessUsers, taSearchQuery, taPage]);
+  }, [canEditModule, isEditMode, isLoadingAccess, loadAccessUsers, taSearchQuery, taPage, taSearchOnlyWithoutModuleAccess]);
 
   useEffect(() => {
     if (isLoadingAccess || !isEditMode || !canEditModule) return;
     void loadAccessUsers("students", studentSearchQuery, studentPage);
-  }, [canEditModule, isEditMode, isLoadingAccess, loadAccessUsers, studentSearchQuery, studentPage]);
+  }, [
+    canEditModule,
+    studentSearchOnlyWithoutModuleAccess,
+    isEditMode,
+    isLoadingAccess,
+    loadAccessUsers,
+    studentSearchQuery,
+    studentPage,
+  ]);
 
   const normalizedStaffSearchQuery = normalizeSearchQuery(staffSearchQuery);
   const normalizedTaSearchQuery = normalizeSearchQuery(taSearchQuery);
@@ -160,6 +189,18 @@ export function useEnterpriseModuleAccessBuckets({
   useEffect(() => {
     setStudentPage(1);
   }, [normalizedStudentSearchQuery]);
+
+  useEffect(() => {
+    setStaffPage(1);
+  }, [staffSearchOnlyWithoutModuleAccess]);
+
+  useEffect(() => {
+    setTaPage(1);
+  }, [taSearchOnlyWithoutModuleAccess]);
+
+  useEffect(() => {
+    setStudentPage(1);
+  }, [studentSearchOnlyWithoutModuleAccess]);
 
   useEffect(() => {
     setStaffPageInput(String(staffPage));
@@ -193,10 +234,6 @@ export function useEnterpriseModuleAccessBuckets({
     }
 
     setPage(parsedPage);
-  };
-
-  const handlePageJump = (bucket: AccessBucket, inputValue: string) => {
-    applyPageInput(bucket, inputValue);
   };
 
   const staffStart = getListStart(staffTotal, staffPage, ACCESS_USERS_PAGE_SIZE);
@@ -247,7 +284,12 @@ export function useEnterpriseModuleAccessBuckets({
     setTaPageInput,
     setStudentPageInput,
     applyPageInput,
-    handlePageJump,
+    staffSearchOnlyWithoutModuleAccess,
+    setStaffSearchOnlyWithoutModuleAccess,
+    taSearchOnlyWithoutModuleAccess,
+    setTaSearchOnlyWithoutModuleAccess,
+    studentSearchOnlyWithoutModuleAccess,
+    setStudentSearchOnlyWithoutModuleAccess,
   };
 }
 

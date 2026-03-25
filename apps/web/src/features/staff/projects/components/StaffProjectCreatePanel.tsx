@@ -407,7 +407,7 @@ export function StaffProjectCreatePanel({
       setProjectName("");
       setDeadline(buildDefaultDeadlineState());
       setSubmitSuccess(`Project "${created.name}" created.`);
-      router.push(`/staff/projects/${created.id}`);
+      router.push(`/staff/modules/${created.moduleId}`);
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create project.");

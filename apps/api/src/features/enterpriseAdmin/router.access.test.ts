@@ -168,7 +168,7 @@ describe("enterpriseAdmin router access control", () => {
     (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
     (prisma.moduleLead.findMany as any).mockResolvedValueOnce([{ userId: 11 }]);
     (prisma.moduleTeachingAssistant.findMany as any).mockResolvedValueOnce([{ userId: 12 }]);
-    (prisma.userModule.findMany as any).mockResolvedValueOnce([{ userId: 31 }]);
+    (prisma.userModule.findMany as any).mockResolvedValueOnce([{ userId: 31, user: { role: "STUDENT" } }]);
 
     const res = mockRes();
     await getAccessSelection({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);

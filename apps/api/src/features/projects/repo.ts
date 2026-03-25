@@ -94,6 +94,328 @@ function resolveModuleAccessRole(
   return "ENROLLED";
 }
 
+/** Full lead/TA lists */
+function useStaffModuleStaffList(options?: { staffOnly?: boolean; compact?: boolean }): boolean {
+  return options?.staffOnly === true && options?.compact !== true;
+}
+
+type ModuleLeadTaSlice = {
+  moduleLeads: { userId: number }[];
+  moduleTeachingAssistants: { userId: number }[];
+  userModules: { userId: number }[];
+};
+
+function moduleLeadAndTaSelect(
+  user: { id: number },
+  listMode: boolean,
+): Pick<Prisma.ModuleSelect, "moduleLeads" | "moduleTeachingAssistants"> {
+  if (listMode) {
+    return {
+      moduleLeads: { select: { userId: true } },
+      moduleTeachingAssistants: { select: { userId: true } },
+    };
+  }
+  return {
+    moduleLeads: {
+      where: { userId: user.id },
+      select: { userId: true },
+      take: 1,
+    },
+    moduleTeachingAssistants: {
+      where: { userId: user.id },
+      select: { userId: true },
+      take: 1,
+    },
+  };
+}
+
+function moduleAccessFlagsForUser(
+  module: ModuleLeadTaSlice,
+  userId: number,
+  listMode: boolean,
+): { isOwner: boolean; isTeachingAssistant: boolean; isEnrolled: boolean } {
+  if (listMode) {
+    return {
+      isOwner: module.moduleLeads.some((l) => l.userId === userId),
+      isTeachingAssistant: module.moduleTeachingAssistants.some((t) => t.userId === userId),
+      isEnrolled: module.userModules.length > 0,
+    };
+  }
+  return {
+    isOwner: module.moduleLeads.length > 0,
+    isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
+    isEnrolled: module.userModules.length > 0,
+  };
+}
+
+function countUniqueStaffOnModule(module: ModuleLeadTaSlice, listMode: boolean): number | undefined {
+  if (!listMode) return undefined;
+  return new Set([
+    ...module.moduleLeads.map((l) => l.userId),
+    ...module.moduleTeachingAssistants.map((t) => t.userId),
+  ]).size;
+}
+
+type ModuleMembershipUser = { id: number; role: string; enterpriseId: string };
+
+/** Which modules appear in a user's module list (workspace vs staff scope). */
+function buildModuleMembershipFilterForUser(user: ModuleMembershipUser, staffOnly: boolean): Prisma.ModuleWhereInput {
+  if (user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN") {
+    return { enterpriseId: user.enterpriseId };
+  }
+  if (user.role === "STAFF") {
+    return {
+      enterpriseId: user.enterpriseId,
+      OR: [
+        { moduleLeads: { some: { userId: user.id } } },
+        { moduleTeachingAssistants: { some: { userId: user.id } } },
+        { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } },
+      ],
+    };
+  }
+  return {
+    enterpriseId: user.enterpriseId,
+    ...(staffOnly
+      ? { moduleTeachingAssistants: { some: { userId: user.id } } }
+      : { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } }),
+  };
+}
+
+export type ModuleStaffListMember = {
+  userId: number;
+  email: string;
+  displayName: string;
+  roles: Array<"LEAD" | "TA">;
+};
+
+/**
+ * Module leads + teaching assistants (deduped) if the caller has staff-list access to the module.
+ */
+export async function getModuleStaffListForUser(
+  userId: number,
+  moduleId: number,
+): Promise<{ ok: true; members: ModuleStaffListMember[] } | { ok: false; status: 403 }> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, enterpriseId: true },
+  });
+  if (!user) {
+    return { ok: false, status: 403 };
+  }
+
+  const accessWhere = buildModuleMembershipFilterForUser(user, true);
+  const module = await prisma.module.findFirst({
+    where: {
+      id: moduleId,
+      ...accessWhere,
+    },
+    select: {
+      id: true,
+      moduleLeads: {
+        select: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        },
+      },
+      moduleTeachingAssistants: {
+        select: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true } },
+        },
+      },
+    },
+  });
+
+  if (!module) {
+    return { ok: false, status: 403 };
+  }
+
+  type Acc = {
+    userId: number;
+    email: string;
+    displayName: string;
+    roles: Array<"LEAD" | "TA">;
+  };
+  const byId = new Map<number, Acc>();
+
+  const displayName = (firstName: string, lastName: string) =>
+    `${firstName} ${lastName}`.trim() || "Unknown";
+
+  for (const row of module.moduleLeads) {
+    const u = row.user;
+    const cur: Acc = byId.get(u.id) ?? {
+      userId: u.id,
+      email: u.email,
+      displayName: displayName(u.firstName, u.lastName),
+      roles: [],
+    };
+    if (!cur.roles.includes("LEAD")) cur.roles.push("LEAD");
+    byId.set(u.id, cur);
+  }
+  for (const row of module.moduleTeachingAssistants) {
+    const u = row.user;
+    const cur: Acc = byId.get(u.id) ?? {
+      userId: u.id,
+      email: u.email,
+      displayName: displayName(u.firstName, u.lastName),
+      roles: [],
+    };
+    if (!cur.roles.includes("TA")) cur.roles.push("TA");
+    byId.set(u.id, cur);
+  }
+
+  const members = Array.from(byId.values()).sort((a, b) => {
+    const ln = a.displayName.localeCompare(b.displayName);
+    if (ln !== 0) return ln;
+    return a.userId - b.userId;
+  });
+
+  return { ok: true, members };
+}
+
+export type ModuleStudentProjectMatrixProject = { id: number; name: string };
+
+export type ModuleStudentProjectMatrixStudent = {
+  userId: number;
+  email: string;
+  displayName: string;
+  teamCells: Array<{ teamId: number; teamName: string } | null>;
+};
+
+/**
+ * Enrolled module students × project team assignments (for staff module overview).
+ */
+export async function getModuleStudentProjectMatrixForUser(
+  userId: number,
+  moduleId: number,
+): Promise<
+  | { ok: true; projects: ModuleStudentProjectMatrixProject[]; students: ModuleStudentProjectMatrixStudent[] }
+  | { ok: false; status: 403 }
+> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, enterpriseId: true },
+  });
+  if (!user) {
+    return { ok: false, status: 403 };
+  }
+
+  const accessWhere = buildModuleMembershipFilterForUser(user, true);
+  const moduleRow = await prisma.module.findFirst({
+    where: {
+      id: moduleId,
+      ...accessWhere,
+    },
+    select: {
+      id: true,
+      projects: {
+        select: {
+          id: true,
+          name: true,
+          teams: {
+            where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
+            select: {
+              id: true,
+              teamName: true,
+              allocations: { select: { userId: true } },
+            },
+          },
+        },
+      },
+      userModules: {
+        select: {
+          user: {
+            select: { id: true, email: true, firstName: true, lastName: true },
+          },
+        },
+      },
+    },
+  });
+
+  if (!moduleRow) {
+    return { ok: false, status: 403 };
+  }
+
+  const toDisplayName = (firstName: string, lastName: string) =>
+    `${firstName} ${lastName}`.trim() || "Unknown";
+
+  type Cell = { teamId: number; teamName: string };
+  const studentMap = new Map<
+    number,
+    { userId: number; email: string; displayName: string; cells: Map<number, Cell> }
+  >();
+
+  for (const um of moduleRow.userModules) {
+    const u = um.user;
+    studentMap.set(u.id, {
+      userId: u.id,
+      email: u.email,
+      displayName: toDisplayName(u.firstName, u.lastName),
+      cells: new Map(),
+    });
+  }
+
+  const orphanUserIds = new Set<number>();
+  for (const project of moduleRow.projects) {
+    for (const team of project.teams) {
+      for (const alloc of team.allocations) {
+        if (!studentMap.has(alloc.userId)) {
+          orphanUserIds.add(alloc.userId);
+        }
+      }
+    }
+  }
+
+  if (orphanUserIds.size > 0) {
+    const orphans = await prisma.user.findMany({
+      where: { id: { in: [...orphanUserIds] } },
+      select: { id: true, email: true, firstName: true, lastName: true },
+    });
+    for (const u of orphans) {
+      studentMap.set(u.id, {
+        userId: u.id,
+        email: u.email,
+        displayName: toDisplayName(u.firstName, u.lastName),
+        cells: new Map(),
+      });
+    }
+  }
+
+  const pickBetterCell = (current: Cell | undefined, next: Cell): Cell => {
+    if (!current) return next;
+    return next.teamName.localeCompare(current.teamName) < 0 ? next : current;
+  };
+
+  for (const project of moduleRow.projects) {
+    for (const team of project.teams) {
+      for (const alloc of team.allocations) {
+        const row = studentMap.get(alloc.userId);
+        if (!row) continue;
+        const next: Cell = { teamId: team.id, teamName: team.teamName };
+        const prev = row.cells.get(project.id);
+        row.cells.set(project.id, pickBetterCell(prev, next));
+      }
+    }
+  }
+
+  const projects = [...moduleRow.projects]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((p) => ({ id: p.id, name: p.name }));
+
+  const students = Array.from(studentMap.values())
+    .sort((a, b) => {
+      const byName = a.displayName.localeCompare(b.displayName);
+      if (byName !== 0) return byName;
+      return a.userId - b.userId;
+    })
+    .map((row) => ({
+      userId: row.userId,
+      email: row.email,
+      displayName: row.displayName,
+      teamCells: projects.map((p) => row.cells.get(p.id) ?? null),
+    }));
+
+  return { ok: true, projects, students };
+}
+
 /** Returns the user projects. */
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
@@ -137,28 +459,7 @@ export async function getModulesForUser(
     return [];
   }
 
-  const membershipFilter: Prisma.ModuleWhereInput =
-    user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN"
-      ? { enterpriseId: user.enterpriseId }
-      : user.role === "STAFF"
-        ? {
-            enterpriseId: user.enterpriseId,
-            OR: [
-              { moduleLeads: { some: { userId: user.id } } },
-              { moduleTeachingAssistants: { some: { userId: user.id } } },
-              { userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } } },
-            ],
-          }
-        : {
-            enterpriseId: user.enterpriseId,
-            ...(options?.staffOnly
-              ? {
-                  moduleTeachingAssistants: { some: { userId: user.id } },
-                }
-              : {
-                  userModules: { some: { userId: user.id, enterpriseId: user.enterpriseId } },
-                }),
-          };
+  const membershipFilter = buildModuleMembershipFilterForUser(user, options?.staffOnly === true);
 
   const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const hasQuery = normalizedQuery.length > 0;
@@ -247,6 +548,9 @@ export async function getModulesForUser(
     });
   }
 
+  const listMode = useStaffModuleStaffList(options);
+  const leadTaSelect = moduleLeadAndTaSelect(user, listMode);
+
   let modules = await prisma.module.findMany({
     where: scopedMembershipFilter,
     select: {
@@ -256,16 +560,7 @@ export async function getModulesForUser(
       timelineText: true,
       expectationsText: true,
       readinessNotesText: true,
-      moduleLeads: {
-        where: { userId: user.id },
-        select: { userId: true },
-        take: 1,
-      },
-      moduleTeachingAssistants: {
-        where: { userId: user.id },
-        select: { userId: true },
-        take: 1,
-      },
+      ...leadTaSelect,
       userModules: {
         where: { userId: user.id, enterpriseId: user.enterpriseId },
         select: { userId: true },
@@ -295,16 +590,7 @@ export async function getModulesForUser(
           timelineText: true,
           expectationsText: true,
           readinessNotesText: true,
-          moduleLeads: {
-            where: { userId: user.id },
-            select: { userId: true },
-            take: 1,
-          },
-          moduleTeachingAssistants: {
-            where: { userId: user.id },
-            select: { userId: true },
-            take: 1,
-          },
+          ...leadTaSelect,
           userModules: {
             where: { userId: user.id, enterpriseId: user.enterpriseId },
             select: { userId: true },
@@ -327,11 +613,11 @@ export async function getModulesForUser(
   });
 
   return modules.map((module) => {
-    const accessRole = resolveModuleAccessRole(user.role, {
-      isOwner: module.moduleLeads.length > 0,
-      isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
-      isEnrolled: module.userModules.length > 0,
-    });
+    const accessRole = resolveModuleAccessRole(
+      user.role,
+      moduleAccessFlagsForUser(module, user.id, listMode),
+    );
+    const staffWithAccessCount = countUniqueStaffOnModule(module, listMode);
 
     return {
       id: module.id,
@@ -343,6 +629,7 @@ export async function getModulesForUser(
       teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
       projectCount: module.projects.length,
       accessRole,
+      ...(staffWithAccessCount !== undefined ? { staffWithAccessCount } : {}),
     };
   });
 }
@@ -459,6 +746,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
           createdAt: true,
           inactivityFlag: true,
           deadlineProfile: true,
+          trelloBoardId: true,
           deadlineOverride: {
             select: {
               id: true,
@@ -473,6 +761,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
                   firstName: true,
                   lastName: true,
                   email: true,
+                  trelloMemberId: true,
                   githubAccount: { select: { id: true } },
                 },
               },
@@ -1143,7 +1432,7 @@ function serializeDeadlineOverrideMetadata(
   };
 
   if (metadata.inputMode === "SHIFT_DAYS" && metadata.shiftDays) {
-    const sanitized: Partial<Record<DeadlineFieldKey, number>> = {};
+    const sanitised: Partial<Record<DeadlineFieldKey, number>> = {};
     const fields: DeadlineFieldKey[] = [
       "taskOpenDate",
       "taskDueDate",
@@ -1156,11 +1445,11 @@ function serializeDeadlineOverrideMetadata(
     for (const field of fields) {
       const value = metadata.shiftDays[field];
       if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-        sanitized[field] = value;
+        sanitised[field] = value;
       }
     }
-    if (Object.keys(sanitized).length > 0) {
-      payload.shiftDays = sanitized;
+    if (Object.keys(sanitised).length > 0) {
+      payload.shiftDays = sanitised;
     }
   }
 

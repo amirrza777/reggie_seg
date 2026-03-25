@@ -1,5 +1,5 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments, fetchAssessmentsForReviewee, fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 import { AssessmentAnswerValidationError, normalizeAndValidateAssessmentAnswers } from "./answers.js";
 const peerService = new PeerAssessmentService();
@@ -173,6 +173,24 @@ export async function getAssessmentsHandler(req: Request, res: Response) {
     console.error("Error fetching peer assessments:", error);
     res.status(500).json({ error: "Internal server error" });
   }   
+}
+
+/** Handles requests for assessments where the user is the reviewee. */
+export async function getAssessmentsForRevieweeHandler(req: Request, res: Response) {
+  const userId = Number(req.params.userId);
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(userId) || isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid user ID or project ID" });
+  }
+
+  try {
+    const assessments = await fetchAssessmentsForReviewee(userId, projectId);
+    res.json(assessments);
+  } catch (error) {
+    console.error("Error fetching peer assessments for reviewee:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
 }
 
 /** Handles requests for get assessment by ID. */

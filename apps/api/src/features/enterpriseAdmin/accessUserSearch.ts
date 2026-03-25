@@ -11,6 +11,7 @@ export type EnterpriseAccessUserSearchFilters = {
   query: string | null;
   page: number;
   pageSize: number;
+  excludeEnrolledInModuleId?: number;
 };
 
 export type EnterpriseAccessUserSearchCandidate = {
@@ -41,6 +42,8 @@ export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseRe
   );
   if (!parsedPagination.ok) return parsedPagination;
 
+  const excludeEnrolledInModuleId = parseOptionalPositiveIntQuery(query.excludeEnrolledInModule);
+
   return {
     ok: true,
     value: {
@@ -48,14 +51,30 @@ export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseRe
       query: parsedQuery.value,
       page: parsedPagination.value.page,
       pageSize: parsedPagination.value.pageSize,
+      ...(excludeEnrolledInModuleId != null ? { excludeEnrolledInModuleId } : {}),
     },
   };
+}
+
+function parseOptionalPositiveIntQuery(value: unknown): number | undefined {
+  const raw =
+    typeof value === "string"
+      ? value
+      : Array.isArray(value) && typeof value[0] === "string"
+        ? value[0]
+        : undefined;
+  const s = raw?.trim();
+  if (!s) return undefined;
+  const n = Number(s);
+  if (!Number.isInteger(n) || n <= 0) return undefined;
+  return n;
 }
 
 /** Builds the enterprise access user search where. */
 export function buildEnterpriseAccessUserSearchWhere(
   enterpriseId: string,
   filters: Pick<EnterpriseAccessUserSearchFilters, "scope" | "query">,
+  options?: { excludeEnrolledInModuleId?: number },
 ): Prisma.UserWhereInput {
   const clauses: Prisma.UserWhereInput[] = [{ enterpriseId }];
 
@@ -63,6 +82,17 @@ export function buildEnterpriseAccessUserSearchWhere(
     clauses.push({ role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] } });
   } else if (filters.scope === "students") {
     clauses.push({ role: "STUDENT" });
+  }
+
+  const excludeModuleId = options?.excludeEnrolledInModuleId;
+  if (excludeModuleId != null) {
+    clauses.push({
+      NOT: {
+        userModules: {
+          some: { moduleId: excludeModuleId, enterpriseId },
+        },
+      },
+    });
   }
 
   if (filters.query) {

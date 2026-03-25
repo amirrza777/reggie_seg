@@ -107,6 +107,29 @@ describe("projects service", () => {
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
+  it("fetchModulesForUser always includes staffWithAccessCount for staff non-compact lists", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([
+      {
+        id: 9,
+        name: "SEGP",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        teamCount: 1,
+        projectCount: 1,
+        accessRole: "OWNER",
+      },
+    ]);
+
+    await expect(fetchModulesForUser(7, { staffOnly: true, compact: false })).resolves.toEqual([
+      expect.objectContaining({
+        id: "9",
+        staffWithAccessCount: 0,
+      }),
+    ]);
+  });
+
   it("delegates teammates, deadlines, team and questions fetchers", async () => {
     (repo.getTeammatesInProject as any).mockResolvedValue([{ userId: 4 }]);
     (repo.getUserProjectDeadline as any).mockResolvedValue({ taskDueDate: "2026-03-01" });

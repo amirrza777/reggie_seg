@@ -84,6 +84,7 @@ export function StaffProjectTrelloContent({
     <div className="stack">
       <StaffTrelloNav
         projectId={projectId}
+        teamId={teamId}
         boardName={state.view.board.name}
         boardUrl={state.view.board.url}
       />

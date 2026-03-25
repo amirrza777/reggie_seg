@@ -9,7 +9,7 @@ type CharacterCountProps = {
   limit: number;
 };
 
-type EnterpriseModuleEditFieldsProps = {
+export type ModuleGuidanceTextFieldsProps = {
   briefText: string;
   timelineText: string;
   expectationsText: string;
@@ -33,8 +33,9 @@ type ModuleTextareaFieldProps = {
   onChange: (value: string) => void;
 };
 
-export function EnterpriseModuleEditFields(props: EnterpriseModuleEditFieldsProps) {
-  const fields = buildEditFieldConfigs(props);
+/** Brief, timeline, expectations, and readiness — module dashboard copy. */
+export function ModuleGuidanceTextFields(props: ModuleGuidanceTextFieldsProps) {
+  const fields = buildGuidanceFieldConfigs(props);
 
   return (
     <>
@@ -45,7 +46,7 @@ export function EnterpriseModuleEditFields(props: EnterpriseModuleEditFieldsProp
   );
 }
 
-function buildEditFieldConfigs(props: EnterpriseModuleEditFieldsProps): ModuleTextareaFieldProps[] {
+function buildGuidanceFieldConfigs(props: ModuleGuidanceTextFieldsProps): ModuleTextareaFieldProps[] {
   return [
     {
       id: "module-brief-input",

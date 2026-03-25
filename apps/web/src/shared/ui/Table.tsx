@@ -7,7 +7,7 @@ export type SortConfig = {
 };
 
 type TableProps = {
-  headers: string[];
+  headers: ReactNode[];
   rows: Array<Array<ReactNode>>;
   columnTemplate?: string;
   className?: string;

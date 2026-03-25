@@ -1,0 +1,70 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+export type ModuleWorkspaceNavProps = {
+  moduleId: string;
+  /** e.g. `/staff/modules` for staff workspace */
+  basePath: string;
+};
+
+const navLabel = "Module sections";
+
+export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavProps) {
+  const pathname = usePathname();
+  const enc = encodeURIComponent(moduleId);
+  const root = basePath.replace(/\/$/, "");
+  const base = `${root}/${enc}`;
+
+  const links: { href: string; label: string; match: (path: string | null) => boolean }[] = [
+    {
+      href: base,
+      label: "Expectations",
+      match: (path) => path === base,
+    },
+    {
+      href: `${base}/marks`,
+      label: "Marks",
+      match: (path) => path === `${base}/marks` || Boolean(path?.startsWith(`${base}/marks/`)),
+    },
+    {
+      href: `${base}/projects`,
+      label: "Projects",
+      match: (path) => path === `${base}/projects` || Boolean(path?.startsWith(`${base}/projects/`)),
+    },
+    {
+      href: `${base}/staff`,
+      label: "Staff members",
+      match: (path) => path === `${base}/staff` || Boolean(path?.startsWith(`${base}/staff/`)),
+    },
+    {
+      href: `${base}/students`,
+      label: "Student members",
+      match: (path) => path === `${base}/students` || Boolean(path?.startsWith(`${base}/students/`)),
+    },
+    {
+      href: `${base}/settings`,
+      label: "Settings",
+      match: (path) => path === `${base}/settings` || Boolean(path?.startsWith(`${base}/settings/`)),
+    },
+  ];
+
+  return (
+    <nav className="pill-nav" aria-label={navLabel}>
+      {links.map((link) => {
+        const isActive = link.match(pathname);
+        return (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`pill-nav__link${isActive ? " pill-nav__link--active" : ""}`}
+            aria-current={isActive ? "page" : undefined}
+          >
+            {link.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}

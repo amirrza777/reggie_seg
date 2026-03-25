@@ -236,10 +236,6 @@
   min-height: 0;
 }
 
-.module-dashboard__panel--projects {
-  min-height: 0;
-}
-
 .module-dashboard__project-list {
   margin: 0;
   padding-left: 20px;
@@ -253,69 +249,6 @@
 
 .module-dashboard__project-list strong {
   color: var(--ink);
-}
-
-.module-dashboard__linked-projects {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  -webkit-overflow-scrolling: touch;
-}
-
-.module-dashboard__linked-projects::-webkit-scrollbar {
-  width: 0;
-  height: 0;
-  display: none;
-}
-
-.module-dashboard__linked-project-card {
-  display: grid;
-  gap: 12px;
-  flex: 0 0 clamp(260px, 36vw, 420px);
-  padding: 14px;
-  border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--glass-ui-bg) 88%, var(--surface) 12%);
-}
-
-.module-dashboard__linked-project-title {
-  margin: 0;
-  color: var(--ink-strong);
-  font-size: var(--fs-body-lg);
-  line-height: 1.2;
-}
-
-.module-dashboard__linked-project-module {
-  margin: 0;
-  color: var(--muted);
-}
-
-.module-dashboard__linked-project-footer {
-  border-top: 1px solid var(--border);
-  padding-top: 12px;
-}
-
-.module-dashboard__linked-project-link {
-  color: var(--ink-strong);
-  font-weight: var(--fw-semibold);
-  text-decoration: none;
-}
-
-.module-dashboard__linked-project-link:hover {
-  text-decoration: underline;
-}
-
-.module-dashboard__linked-project-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.module-dashboard__linked-project-status {
-  color: var(--muted);
-  font-weight: var(--fw-semibold);
 }
 
 .module-dashboard__when {

@@ -46,6 +46,8 @@ export type User = {
   firstName: string;
   lastName: string;
   email: string;
+  /** Present when the user has linked Trello (member id from Trello). */
+  trelloMemberId?: string | null;
   githubAccount?: { id: number } | null;
 };
 
@@ -58,6 +60,7 @@ export type Team = {
   inactivityFlag: "NONE" | "YELLOW" | "RED";
   deadlineProfile?: "STANDARD" | "MCF";
   hasDeadlineOverride?: boolean;
+  trelloBoardId?: string | null;
   allocations: Array<{
     userId: number;
     user: User;

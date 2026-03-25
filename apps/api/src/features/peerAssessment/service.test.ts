@@ -6,6 +6,7 @@ const repoMocks = vi.hoisted(() => ({
   getPeerAssessment: vi.fn(),
   updatePeerAssessment: vi.fn(),
   getTeammateAssessments: vi.fn(),
+  getAssessmentsForReviewee: vi.fn(),
   getQuestionsForProject: vi.fn(),
   getPeerAssessmentById: vi.fn(),
   getProjectQuestionnaireTemplate: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("./repo.js", () => ({
   getPeerAssessment: repoMocks.getPeerAssessment,
   updatePeerAssessment: repoMocks.updatePeerAssessment,
   getTeammateAssessments: repoMocks.getTeammateAssessments,
+  getAssessmentsForReviewee: repoMocks.getAssessmentsForReviewee,
   getQuestionsForProject: repoMocks.getQuestionsForProject,
   getPeerAssessmentById: repoMocks.getPeerAssessmentById,
   getProjectQuestionnaireTemplate: repoMocks.getProjectQuestionnaireTemplate,
@@ -43,6 +45,7 @@ vi.mock("../../shared/db.js", () => ({
 }));
 
 import {
+  fetchAssessmentsForReviewee,
   fetchAssessment,
   fetchAssessmentById,
   fetchProjectQuestionnaireTemplate,
@@ -228,6 +231,16 @@ describe("peerAssessment service", () => {
     const result = await fetchTeammateAssessments(4, 99);
 
     expect(repoMocks.getTeammateAssessments).toHaveBeenCalledWith(4, 99);
+    expect(result).toBe(expected);
+  });
+
+  it("fetchAssessmentsForReviewee forwards to repo", async () => {
+    const expected = [{ id: 3 }];
+    repoMocks.getAssessmentsForReviewee.mockResolvedValue(expected);
+
+    const result = await fetchAssessmentsForReviewee(8, 99);
+
+    expect(repoMocks.getAssessmentsForReviewee).toHaveBeenCalledWith(8, 99);
     expect(result).toBe(expected);
   });
 

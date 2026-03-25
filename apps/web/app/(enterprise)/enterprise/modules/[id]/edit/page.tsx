@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
 import { Card } from "@/shared/ui/Card";
 
 type EnterpriseModuleEditPageProps = {
@@ -12,6 +13,11 @@ export default async function EnterpriseModuleEditPage({ params }: EnterpriseMod
   const moduleId = Number.parseInt(id, 10);
 
   if (!Number.isInteger(moduleId) || moduleId <= 0) {
+    notFound();
+  }
+
+  const initialAccessSelection = await loadModuleSetupInitialSelection(moduleId);
+  if (!initialAccessSelection) {
     notFound();
   }
 
@@ -33,7 +39,7 @@ export default async function EnterpriseModuleEditPage({ params }: EnterpriseMod
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} />
+        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} initialAccessSelection={initialAccessSelection} />
       </Card>
     </div>
   );

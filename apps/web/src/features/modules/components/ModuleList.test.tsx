@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { ModuleList } from "./ModuleList";
+import React from "react";
 
 describe("ModuleList", () => {
   it("renders an empty state by default", () => {
@@ -23,7 +24,7 @@ describe("ModuleList", () => {
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
 
-  it("shows management actions for module owners", () => {
+  it("makes the whole card a link to that module's staff overview", () => {
     render(
       <ModuleList
         modules={[
@@ -32,17 +33,13 @@ describe("ModuleList", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Manage module" })).toHaveAttribute(
-      "href",
-      "/staff/modules/12/manage",
-    );
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=12",
-    );
+    const cardLink = screen.getByRole("link", { name: /Software Engineering: open module overview/i });
+    expect(cardLink).toHaveAttribute("href", "/staff/modules/12");
+    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Create project" })).not.toBeInTheDocument();
   });
 
-  it("hides manage-module action for admin access role", () => {
+  it("uses the same card link pattern for admin access role", () => {
     render(
       <ModuleList
         modules={[
@@ -52,10 +49,8 @@ describe("ModuleList", () => {
     );
 
     expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=22",
-    );
+    const cardLink = screen.getByRole("link", { name: /Data Structures: open module overview/i });
+    expect(cardLink).toHaveAttribute("href", "/staff/modules/22");
   });
 
   it("sorts modules by the selected mode", () => {

@@ -150,8 +150,8 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr) max-content;
+  gap: 10px 14px;
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--border);

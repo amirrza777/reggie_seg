@@ -2,6 +2,7 @@ import { prisma } from "../../shared/db.js";
 import {
   ensureCreatorLeader,
   replaceModuleAssignments,
+  sanitiseModuleStudentIdsForUpdate,
   validateAssignmentUsers,
 } from "./service.helpers.js";
 import {
@@ -16,6 +17,13 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
   const leaderIds = ensureCreatorLeader(payload.leaderIds, enterpriseUser);
   const taIds = payload.taIds.filter((id) => !leaderIds.includes(id));
 
+  const studentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    payload.studentIds,
+    leaderIds,
+    taIds,
+  );
+
   const existing = await prisma.module.findFirst({
     where: { enterpriseId: enterpriseUser.enterpriseId, name: payload.name },
     select: { id: true },
@@ -26,7 +34,7 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds,
     taIds,
-    studentIds: payload.studentIds,
+    studentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
@@ -48,7 +56,7 @@ export async function createModule(enterpriseUser: EnterpriseUser, payload: Pars
       moduleId: module.id,
       leaderIds,
       taIds,
-      studentIds: payload.studentIds,
+      studentIds,
     });
 
     const withCounts = await tx.module.findUnique({ where: { id: module.id }, select: MODULE_SELECT });
@@ -102,9 +110,16 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
     }),
     prisma.userModule.findMany({
       where: { enterpriseId: enterpriseUser.enterpriseId, moduleId },
-      select: { userId: true },
+      select: {
+        userId: true,
+        user: { select: { role: true } },
+      },
     }),
   ]);
+
+  const studentIds = students
+    .filter((row) => row.user?.role === "STUDENT")
+    .map((row) => row.userId);
 
   return {
     ok: true as const,
@@ -112,7 +127,7 @@ export async function getModuleAccessSelection(enterpriseUser: EnterpriseUser, m
       module: mapModuleRecord(module),
       leaderIds: leaders.map((item) => item.userId),
       taIds: teachingAssistants.map((item) => item.userId),
-      studentIds: students.map((item) => item.userId),
+      studentIds,
     },
   };
 }
@@ -131,18 +146,25 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   const nameExists = await moduleNameExists(enterpriseUser.enterpriseId, payload.name, moduleId);
   if (nameExists) return { ok: false as const, status: 409, error: "Module name already exists" };
 
+  const studentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    payload.studentIds,
+    payload.leaderIds,
+    taIds,
+  );
+
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
     leaderIds: payload.leaderIds,
     taIds,
-    studentIds: payload.studentIds,
+    studentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
   const updated = await updateModuleRecord({
     enterpriseId: enterpriseUser.enterpriseId,
     moduleId,
-    payload,
+    payload: { ...payload, studentIds },
     taIds,
   });
 
@@ -363,20 +385,38 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
   });
   if (!module) return { ok: false as const, status: 404, error: "Module not found" };
 
+  const [leaderRows, taRows] = await Promise.all([
+    prisma.moduleLead.findMany({ where: { moduleId }, select: { userId: true } }),
+    prisma.moduleTeachingAssistant.findMany({ where: { moduleId }, select: { userId: true } }),
+  ]);
+  const leaderIds = leaderRows.map((r) => r.userId);
+  const taIds = taRows.map((r) => r.userId);
+
+  const sanitisedStudentIds = await sanitiseModuleStudentIdsForUpdate(
+    enterpriseUser.enterpriseId,
+    studentIds,
+    leaderIds,
+    taIds,
+  );
+
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,
-    leaderIds: [],
-    taIds: [],
-    studentIds,
+    leaderIds,
+    taIds,
+    studentIds: sanitisedStudentIds,
   });
   if (!validation.ok) return { ok: false as const, status: 400, error: validation.error };
 
   await prisma.$transaction(async (tx) => {
     await tx.userModule.deleteMany({ where: { enterpriseId: enterpriseUser.enterpriseId, moduleId } });
 
-    if (studentIds.length > 0) {
+    if (sanitisedStudentIds.length > 0) {
       await tx.userModule.createMany({
-        data: studentIds.map((studentId) => ({ enterpriseId: enterpriseUser.enterpriseId, moduleId, userId: studentId })),
+        data: sanitisedStudentIds.map((studentId: any) => ({
+          enterpriseId: enterpriseUser.enterpriseId,
+          moduleId,
+          userId: studentId,
+        })),
       });
     }
   });
@@ -385,8 +425,8 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
     ok: true as const,
     value: {
       moduleId,
-      studentIds,
-      studentCount: studentIds.length,
+      studentIds: sanitisedStudentIds,
+      studentCount: sanitisedStudentIds.length,
     },
   };
 }
