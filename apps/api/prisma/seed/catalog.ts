@@ -255,6 +255,7 @@ function buildProjectSeedRow(
   const template = templates[project.moduleIndex % templates.length] ?? defaultTemplate;
   return {
     name: project.name,
+    informationText: project.informationText,
     moduleId: module.id,
     questionnaireTemplateId: template.id,
   };

@@ -221,6 +221,8 @@ export async function seedCompletedProjectScenario(context: SeedContext) {
       : await prisma.project.create({
           data: {
             name: SCENARIO_PROJECT_NAME,
+            informationText:
+              "This completed demo project is seeded for reviewing final outcomes, marks, and feedback history.",
             moduleId: module.id,
             questionnaireTemplateId: template.id,
           },
