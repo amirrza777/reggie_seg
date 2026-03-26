@@ -17,7 +17,7 @@ import {
   getModuleLeadsForTeam,
   getModuleMeetingSettingsForTeam,
 } from "./repo.js";
-import { getTeamMembers } from "../teamAllocation/service.js";
+import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
 
@@ -216,6 +216,8 @@ export async function fetchMeetingSettings(meetingId: number) {
 /** Returns the module meeting settings for a team. */
 export function fetchTeamMeetingSettings(teamId: number) {
   return getModuleMeetingSettingsForTeam(teamId);
+}
+
 export function parseMentions(content: string) {
   const mentionMatches = content.match(/@([A-Za-z]+(?:\s+[A-Za-z]+))/g) ?? [];
   return mentionMatches.map((match) => match.slice(1).trim());
