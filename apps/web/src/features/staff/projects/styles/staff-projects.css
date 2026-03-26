@@ -632,3 +632,8 @@
 @import "./staff-projects/allocation-controls.css";
 @import "./staff-projects/allocation-manual.css";
 @import "./staff-projects/policy.css";
+/* When team pages are rendered inside the shared team layout, hide duplicated per-page hero/nav blocks. */
+.staff-team-layout-content > .staff-projects > .staff-projects__hero,
+.staff-team-layout-content > .staff-projects > .pill-nav[aria-label="Team sections"] {
+  display: none;
+}
