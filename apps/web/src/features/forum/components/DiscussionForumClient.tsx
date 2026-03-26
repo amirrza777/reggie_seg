@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
@@ -101,6 +100,9 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
   const [currentPage, setCurrentPage] = useState(1);
   const [composerKey, setComposerKey] = useState(0);
   const [bodyEmpty, setBodyEmpty] = useState(true);
+  const [editingBodyEmpty, setEditingBodyEmpty] = useState(true);
+  const [replyEmptyByPostId, setReplyEmptyByPostId] = useState<Record<number, boolean>>({});
+  const [replyKeyByPostId, setReplyKeyByPostId] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (menuOpenPostId === null) return;
@@ -264,6 +266,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setEditingPostId(post.id);
     setEditingTitle(post.title);
     setEditingBody(post.body);
+    setEditingBodyEmpty(false);
   };
 
   const cancelEditing = () => {
@@ -271,19 +274,19 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setEditingPostId(null);
     setEditingTitle("");
     setEditingBody("");
+    setEditingBodyEmpty(true);
   };
 
   const handleUpdate = async (post: DiscussionPost) => {
     if (!user) return;
     const trimmedTitle = post.parentPostId === null ? editingTitle.trim() : post.title;
-    const trimmedBody = editingBody.trim();
-    if ((post.parentPostId === null && !trimmedTitle) || !trimmedBody) return;
+    if ((post.parentPostId === null && !trimmedTitle) || editingBodyEmpty) return;
 
     setSavingPostId(post.id);
     try {
       const updated = await updateDiscussionPost(user.id, Number(projectId), post.id, {
         title: trimmedTitle,
-        body: trimmedBody,
+        body: editingBody,
       });
       setPostsWithRef((prev) => updatePostInTree(prev, updated));
       cancelEditing();
@@ -360,15 +363,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleReplySubmit = async (parentPostId: number) => {
     if (!user) return;
-    const draft = replyDrafts[parentPostId] ?? "";
-    const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (replyEmptyByPostId[parentPostId] !== false) return;
 
     setSavingReplyPostId(parentPostId);
     try {
       const reply = await createDiscussionPost(user.id, Number(projectId), {
         title: "",
-        body: trimmed,
+        body: replyDrafts[parentPostId] ?? "",
         parentPostId,
       });
       const parentPath = findPostPath(postsRef.current, parentPostId) ?? [parentPostId];
@@ -382,6 +383,8 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
       });
       setShowAllImmediateRepliesByPostId((prev) => ({ ...prev, [parentPostId]: true }));
       setReplyDrafts((prev) => ({ ...prev, [parentPostId]: "" }));
+      setReplyEmptyByPostId((prev) => ({ ...prev, [parentPostId]: true }));
+      setReplyKeyByPostId((prev) => ({ ...prev, [parentPostId]: (prev[parentPostId] ?? 0) + 1 }));
       setReplyOpenByPostId((prev) => ({ ...prev, [parentPostId]: false }));
     } catch (err) {
       logDevError(err);
@@ -568,13 +571,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 </div>
               ) : null}
               <div className="discussion-field">
-                <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
-                <AutoGrowTextarea
-                  id={`edit-body-${post.id}`}
-                  rows={4}
-                  value={editingBody}
-                  onChange={(event) => setEditingBody(event.target.value)}
-                  disabled={savingPostId === post.id}
+                <span>{isRoot ? "Post" : "Reply"}</span>
+                <RichTextEditor
+                  initialContent={editingBody}
+                  onChange={setEditingBody}
+                  onEmptyChange={setEditingBodyEmpty}
                 />
               </div>
               <div className="discussion-post__action-row">
@@ -593,7 +594,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   disabled={
                     savingPostId === post.id ||
                     (isRoot && editingTitle.trim().length === 0) ||
-                    editingBody.trim().length === 0
+                    editingBodyEmpty
                   }
                 >
                   Save
@@ -722,14 +723,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
         {replyOpenByPostId[post.id] ? (
           <div className="discussion-post__reply-editor">
             <div className="discussion-field">
-              <label htmlFor={`reply-${post.id}`}>Reply</label>
-              <AutoGrowTextarea
-                id={`reply-${post.id}`}
-                rows={3}
-                value={replyDrafts[post.id] ?? ""}
-                onChange={(event) => handleReplyChange(post.id, event.target.value)}
+              <span>Reply</span>
+              <RichTextEditor
+                key={replyKeyByPostId[post.id] ?? 0}
+                initialContent={replyDrafts[post.id] ?? ""}
+                onChange={(value) => handleReplyChange(post.id, value)}
+                onEmptyChange={(empty) => setReplyEmptyByPostId((prev) => ({ ...prev, [post.id]: empty }))}
                 placeholder="Write a reply"
-                disabled={!user || userLoading || savingReplyPostId === post.id}
               />
             </div>
             <div className="discussion-post__reply-editor-actions">
@@ -741,7 +741,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   !user ||
                   userLoading ||
                   savingReplyPostId === post.id ||
-                  (replyDrafts[post.id] ?? "").trim().length === 0
+                  replyEmptyByPostId[post.id] !== false
                 }
               >
                 {savingReplyPostId === post.id ? "Replying..." : "Post reply"}
