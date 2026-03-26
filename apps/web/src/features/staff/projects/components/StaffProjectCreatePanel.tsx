@@ -113,6 +113,7 @@ export function StaffProjectCreatePanel({
   const [templatesError, setTemplatesError] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState("");
+  const [informationText, setInformationText] = useState("");
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
   const [moduleSearchQuery, setModuleSearchQuery] = useState("");
   const [templateId, setTemplateId] = useState("");
@@ -392,6 +393,7 @@ export function StaffProjectCreatePanel({
         name: projectName.trim(),
         moduleId: parsedModuleId,
         questionnaireTemplateId: parsedTemplateId,
+        informationText: informationText.trim().length > 0 ? informationText.trim() : null,
         deadline: {
           taskOpenDate: taskOpenDate.toISOString(),
           taskDueDate: taskDueDate.toISOString(),
@@ -405,6 +407,7 @@ export function StaffProjectCreatePanel({
         },
       });
       setProjectName("");
+      setInformationText("");
       setDeadline(buildDefaultDeadlineState());
       setSubmitSuccess(`Project "${created.name}" created.`);
       router.push(`/staff/modules/${created.moduleId}`);
@@ -701,6 +704,27 @@ export function StaffProjectCreatePanel({
             </section>
           </div>
         </fieldset>
+
+        <section className="staff-projects__create-basics" aria-label="Information board setup">
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 3</p>
+            <h3 className="staff-projects__section-title">Information board</h3>
+            <p className="staff-projects__hint">
+              Add project-specific guidance students will see on the project overview information board.
+            </p>
+          </div>
+          <label className="staff-projects__field">
+            <span className="staff-projects__field-label">Information board text</span>
+            <textarea
+              className="staff-projects__input staff-projects__textarea"
+              value={informationText}
+              onChange={(event) => setInformationText(event.target.value)}
+              placeholder="Add project expectations, process notes, and any key instructions for this cohort."
+              rows={6}
+              maxLength={8000}
+            />
+          </label>
+        </section>
 
         <div className="staff-projects__create-actions">
           <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>

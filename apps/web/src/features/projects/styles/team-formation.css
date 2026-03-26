@@ -5,6 +5,10 @@
   padding-top: 10px;
 }
 
+.team-formation > .team-formation__section:first-child {
+  margin-top: 8px;
+}
+
 /* ── No-team state ── */
 .team-formation__empty {
   display: flex;

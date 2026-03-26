@@ -18,7 +18,16 @@ import {
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
   getStaffTeamHealthMessagesHandler,
+  createStaffTeamWarningHandler,
+  getStaffTeamWarningsHandler,
+  resolveStaffTeamWarningHandler,
+  getMyTeamWarningsHandler,
   updateTeamDeadlineProfileHandler,
+  getProjectWarningsConfigHandler,
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
+  updateProjectWarningsConfigHandler,
+  evaluateProjectWarningsHandler,
   getStaffStudentDeadlineOverridesHandler,
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
@@ -37,6 +46,9 @@ router.get("/modules/:moduleId/student-project-matrix", requireAuth, getModuleSt
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
+router.post("/staff/:projectId/teams/:teamId/warnings", requireAuth, createStaffTeamWarningHandler);
+router.get("/staff/:projectId/teams/:teamId/warnings", requireAuth, getStaffTeamWarningsHandler);
+router.patch("/staff/:projectId/teams/:teamId/warnings/:warningId/resolve", requireAuth, resolveStaffTeamWarningHandler);
 router.get("/staff/:projectId/teams/:teamId/deadline", requireAuth, getStaffTeamDeadlineHandler);
 router.patch(
   "/staff/:projectId/teams/:teamId/team-health-messages/:requestId/review",
@@ -49,6 +61,11 @@ router.post(
   resolveStaffTeamHealthMessageHandler,
 );
 router.patch("/staff/teams/:teamId/deadline-profile", requireAuth, updateTeamDeadlineProfileHandler);
+router.get("/staff/:projectId/warnings-config", requireAuth, getProjectWarningsConfigHandler);
+router.patch("/staff/:projectId/warnings-config", requireAuth, updateProjectWarningsConfigHandler);
+router.get("/staff/:projectId/project-feature-flags", requireAuth, getProjectNavFlagsConfigHandler);
+router.patch("/staff/:projectId/project-feature-flags", requireAuth, updateProjectNavFlagsConfigHandler);
+router.post("/staff/:projectId/warnings/evaluate", requireAuth, evaluateProjectWarningsHandler);
 router.get("/staff/:projectId/students/deadline-overrides", requireAuth, getStaffStudentDeadlineOverridesHandler);
 router.put(
   "/staff/:projectId/students/:studentId/deadline-override",
@@ -64,6 +81,7 @@ router.get("/", requireAuth, getUserProjectsHandler);
 router.get("/:projectId", requireAuth, getProjectByIdHandler);
 router.post("/:projectId/team-health-messages", requireAuth, createTeamHealthMessageHandler);
 router.get("/:projectId/team-health-messages/me", requireAuth, getMyTeamHealthMessagesHandler);
+router.get("/:projectId/team-warnings/me", requireAuth, getMyTeamWarningsHandler);
 router.get("/:projectId/teammates", requireAuth, getTeammatesForProjectHandler);
 router.get("/:projectId/deadline", requireAuth, getProjectDeadlineHandler);
 router.get("/:projectId/marking", requireAuth, getProjectMarkingHandler);

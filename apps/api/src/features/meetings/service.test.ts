@@ -95,6 +95,31 @@ describe("meetings service", () => {
     expect(result).toEqual({ id: 3 });
   });
 
+  it("rejects addMeeting when project is completed", async () => {
+    const data = {
+      teamId: 1,
+      organiserId: 1,
+      title: "Late Meeting",
+      date: new Date("2026-03-01"),
+    };
+    (repo.getTeamMeetingState as any).mockResolvedValue({
+      archivedAt: null,
+      inactivityFlag: "NONE",
+      deadlineProfile: "STANDARD",
+      deadlineOverride: null,
+      project: {
+        archivedAt: null,
+        deadline: {
+          feedbackDueDate: new Date("2020-01-01T00:00:00.000Z"),
+          feedbackDueDateMcf: null,
+        },
+      },
+    });
+
+    await expect(addMeeting(data)).rejects.toEqual({ code: "PROJECT_COMPLETED" });
+    expect(repo.createMeeting).not.toHaveBeenCalled();
+  });
+
   it("creates participants only for invited members when participantIds provided", async () => {
     const members = [
       { id: 1, email: "a@test.com" },

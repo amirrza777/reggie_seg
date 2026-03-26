@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
     },
     moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    featureFlag: { findMany: vi.fn(), update: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn(), createMany: vi.fn() },
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
@@ -98,6 +98,7 @@ export function setupEnterpriseAdminRouterTestDefaults() {
   (mocks.prisma.moduleTeachingAssistant.createMany as any).mockResolvedValue({ count: 0 });
   (mocks.prisma.moduleTeachingAssistant.findMany as any).mockResolvedValue([]);
   (mocks.prisma.userModule.findMany as any).mockResolvedValue([]);
+  (mocks.prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
   (mocks.prisma.featureFlag.findMany as any).mockResolvedValue([]);
   (mocks.prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
 

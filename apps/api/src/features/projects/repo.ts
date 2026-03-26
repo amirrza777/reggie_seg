@@ -3,6 +3,10 @@ import { prisma } from "../../shared/db.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
+export * from "./warnings/repo.js";
+export * from "./nav-flags/repo.js";
+export * from "./team-health-review/repo.js";
+
 export type ProjectDeadlineInput = {
   taskOpenDate: Date;
   taskDueDate: Date;
@@ -969,8 +973,11 @@ export async function getProjectById(projectId: number) {
     select: {
       id: true,
       name: true,
+      informationText: true,
+      archivedAt: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      projectNavFlags: true,
     },
   });
 }
@@ -981,6 +988,7 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
   const actor = await getScopedStaffUser(actorUserId);
@@ -1025,6 +1033,7 @@ export async function createProject(
   const project = await prisma.project.create({
     data: {
       name,
+      informationText,
       moduleId,
       questionnaireTemplateId,
       deadline: {
@@ -1044,6 +1053,7 @@ export async function createProject(
     select: {
       id: true,
       name: true,
+      informationText: true,
       moduleId: true,
       questionnaireTemplateId: true,
       deadline: {

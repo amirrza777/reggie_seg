@@ -240,6 +240,7 @@ describe("projects repo read and create flows", () => {
       select: {
         id: true,
         name: true,
+        informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
       },
@@ -258,17 +259,19 @@ describe("projects repo read and create flows", () => {
     (prisma.project.create as any).mockResolvedValue({
       id: 1,
       name: "P1",
+      informationText: "Info board copy",
       moduleId: 2,
       questionnaireTemplateId: 3,
       deadline: {
         ...deadlineInput,
       },
     });
-    const result = await createProject(99, "P1", 2, 3, deadlineInput);
+    const result = await createProject(99, "P1", 2, 3, "Info board copy", deadlineInput);
 
     expect(prisma.project.create).toHaveBeenCalledWith({
       data: {
         name: "P1",
+        informationText: "Info board copy",
         moduleId: 2,
         questionnaireTemplateId: 3,
         deadline: {
@@ -288,6 +291,7 @@ describe("projects repo read and create flows", () => {
       select: {
         id: true,
         name: true,
+        informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
         deadline: {
@@ -308,6 +312,7 @@ describe("projects repo read and create flows", () => {
     expect(result).toEqual({
       id: 1,
       name: "P1",
+      informationText: "Info board copy",
       moduleId: 2,
       questionnaireTemplateId: 3,
       deadline: {
@@ -325,7 +330,7 @@ describe("projects repo read and create flows", () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce(null);
     (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
 
-    await expect(createProject(44, "Blocked", 7, 3, deadlineInput)).rejects.toMatchObject({
+    await expect(createProject(44, "Blocked", 7, 3, null, deadlineInput)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     expect(prisma.project.create).not.toHaveBeenCalled();
@@ -342,6 +347,7 @@ describe("projects repo read and create flows", () => {
     (prisma.project.create as any).mockResolvedValue({
       id: 17,
       name: "Admin Project",
+      informationText: null,
       moduleId: 7,
       questionnaireTemplateId: 3,
       deadline: {
@@ -349,7 +355,7 @@ describe("projects repo read and create flows", () => {
       },
     });
 
-    await expect(createProject(45, "Admin Project", 7, 3, deadlineInput)).resolves.toMatchObject({
+    await expect(createProject(45, "Admin Project", 7, 3, null, deadlineInput)).resolves.toMatchObject({
       id: 17,
       moduleId: 7,
     });

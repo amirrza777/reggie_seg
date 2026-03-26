@@ -11,10 +11,16 @@ type Tab = "upcoming" | "previous" | "new";
 type MeetingsPageContentProps = {
   teamId: number;
   projectId: number;
+  projectCompleted?: boolean;
   initialTab?: Tab;
 };
 
-export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming" }: MeetingsPageContentProps) {
+export function MeetingsPageContent({
+  teamId,
+  projectId,
+  projectCompleted = false,
+  initialTab = "upcoming",
+}: MeetingsPageContentProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [permissions, setPermissions] = useState<MeetingPermissions | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -42,10 +48,6 @@ export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming"
 
   return (
     <div className="stack projects-panel">
-      <header className="projects-panel__header">
-        <h1 className="projects-panel__title">Team meetings</h1>
-        <p className="projects-panel__subtitle">Schedule, review, and manage meetings for your project team.</p>
-      </header>
       <nav className="pill-nav">
         <button
           type="button"
@@ -61,14 +63,24 @@ export function MeetingsPageContent({ teamId, projectId, initialTab = "upcoming"
         >
           Previous meetings
         </button>
-        <button
-          type="button"
-          className={`pill-nav__link pill-nav__link--action${tab === "new" ? " pill-nav__link--active" : ""}`}
-          onClick={() => setTab("new")}
-        >
-          New meeting
-        </button>
+        {!projectCompleted ? (
+          <button
+            type="button"
+            className={`pill-nav__link pill-nav__link--action${tab === "new" ? " pill-nav__link--active" : ""}`}
+            onClick={() => {
+              setTab("new");
+            }}
+          >
+            New meeting
+          </button>
+        ) : null}
       </nav>
+
+      {projectCompleted ? (
+        <p className="ui-note ui-note--muted">
+          Project is completed. Meeting creation is closed.
+        </p>
+      ) : null}
 
       {tab === "new" ? (
         <CreateMeetingForm

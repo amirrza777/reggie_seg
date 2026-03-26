@@ -143,7 +143,27 @@ export function updateMeeting(meetingId: number, data: {
 export function getTeamMeetingState(teamId: number) {
   return prisma.team.findUnique({
     where: { id: teamId },
-    select: { archivedAt: true, inactivityFlag: true },
+    select: {
+      archivedAt: true,
+      inactivityFlag: true,
+      deadlineProfile: true,
+      deadlineOverride: {
+        select: {
+          feedbackDueDate: true,
+        },
+      },
+      project: {
+        select: {
+          archivedAt: true,
+          deadline: {
+            select: {
+              feedbackDueDate: true,
+              feedbackDueDateMcf: true,
+            },
+          },
+        },
+      },
+    },
   });
 }
 

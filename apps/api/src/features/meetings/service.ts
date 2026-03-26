@@ -21,6 +21,45 @@ import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
 
+function resolveTeamMeetingFeedbackDueDate(team: {
+  deadlineProfile: "STANDARD" | "MCF" | null;
+  deadlineOverride: { feedbackDueDate: Date | null } | null;
+  project: {
+    archivedAt: Date | null;
+    deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
+  } | null;
+}) {
+  const teamOverrideDueDate = team.deadlineOverride?.feedbackDueDate ?? null;
+  if (teamOverrideDueDate) return teamOverrideDueDate;
+
+  const projectDeadline = team.project?.deadline;
+  if (!projectDeadline) return null;
+
+  if (team.deadlineProfile === "MCF") {
+    return projectDeadline.feedbackDueDateMcf ?? projectDeadline.feedbackDueDate;
+  }
+
+  return projectDeadline.feedbackDueDate;
+}
+
+function isProjectCompletedForMeetings(
+  team: {
+    archivedAt: Date | null;
+    deadlineProfile: "STANDARD" | "MCF" | null;
+    deadlineOverride: { feedbackDueDate: Date | null } | null;
+    project: {
+      archivedAt: Date | null;
+      deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
+    } | null;
+  },
+  now: Date = new Date(),
+) {
+  if (team.archivedAt || team.project?.archivedAt) return true;
+  const effectiveDueDate = resolveTeamMeetingFeedbackDueDate(team);
+  if (!effectiveDueDate) return false;
+  return now.getTime() > effectiveDueDate.getTime();
+}
+
 /** Returns the meetings. */
 export function listMeetings(teamId: number) {
   return getMeetingsByTeamId(teamId);
@@ -77,6 +116,9 @@ export async function addMeeting(data: {
   const { participantIds, ...meetingData } = data;
   const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
+  if (team && isProjectCompletedForMeetings(team)) {
+    throw { code: "PROJECT_COMPLETED" };
+  }
   const meeting = await createMeeting(meetingData);
   if (team?.inactivityFlag === "YELLOW") {
     await clearTeamInactivityFlag(data.teamId);

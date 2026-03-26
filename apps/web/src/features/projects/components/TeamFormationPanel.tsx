@@ -21,6 +21,7 @@ type Props = {
   projectId: number;
   userId?: number;
   initialInvites: TeamInvite[];
+  projectCompleted?: boolean;
 };
 
 function formatDate(iso: string) {
@@ -31,7 +32,13 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message ? error.message : fallback;
 }
 
-export function TeamFormationPanel({ team, projectId, userId, initialInvites }: Props) {
+export function TeamFormationPanel({
+  team,
+  projectId,
+  userId,
+  initialInvites,
+  projectCompleted = false,
+}: Props) {
   const router = useRouter();
 
   // Create team state
@@ -224,62 +231,66 @@ export function TeamFormationPanel({ team, projectId, userId, initialInvites }: 
         <ProjectTeamList team={team} />
       </div>
 
-      {/* Invite by email */}
-      <div className="team-formation__section">
-        <p className="team-formation__section-title">Invite a teammate</p>
-        <div className="team-formation__invite-form">
-          <input
-            type="email"
-            placeholder="teammate@university.ac.uk"
-            value={inviteEmail}
-            onChange={(e) => {
-              setInviteEmail(e.target.value);
-              setInviteError("");
-              setInviteSuccess("");
-            }}
-            onKeyDown={(e) => e.key === "Enter" && handleInvite()}
-          />
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={handleInvite}
-            disabled={isInviting || !inviteEmail.trim()}
-          >
-            {isInviting ? "Sending…" : "Send invite"}
-          </button>
-        </div>
-        {inviteError && (
-          <p className="team-formation__feedback team-formation__feedback--error">{inviteError}</p>
-        )}
-        {inviteSuccess && (
-          <p className="team-formation__feedback team-formation__feedback--success">{inviteSuccess}</p>
-        )}
-      </div>
+      {!projectCompleted ? (
+        <>
+          {/* Invite by email */}
+          <div className="team-formation__section">
+            <p className="team-formation__section-title">Invite a teammate</p>
+            <div className="team-formation__invite-form">
+              <input
+                type="email"
+                placeholder="teammate@university.ac.uk"
+                value={inviteEmail}
+                onChange={(e) => {
+                  setInviteEmail(e.target.value);
+                  setInviteError("");
+                  setInviteSuccess("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleInvite()}
+              />
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={handleInvite}
+                disabled={isInviting || !inviteEmail.trim()}
+              >
+                {isInviting ? "Sending…" : "Send invite"}
+              </button>
+            </div>
+            {inviteError && (
+              <p className="team-formation__feedback team-formation__feedback--error">{inviteError}</p>
+            )}
+            {inviteSuccess && (
+              <p className="team-formation__feedback team-formation__feedback--success">{inviteSuccess}</p>
+            )}
+          </div>
 
-      {/* Pending outgoing invites */}
-      {pendingInvites.length > 0 && (
-        <div className="team-formation__section">
-          <p className="team-formation__section-title">Pending invitations</p>
-          <ul className="team-formation__invite-list">
-            {pendingInvites.map((inv) => (
-              <li key={inv.id} className="team-formation__invite-item">
-                <span className="team-formation__invite-email">{inv.inviteeEmail}</span>
-                <div className="team-formation__invite-meta">
-                  <span className="team-formation__invite-date">Sent {formatDate(inv.createdAt)}</span>
-                  <button
-                    type="button"
-                    className="btn--danger-ghost"
-                    onClick={() => handleCancel(inv.id)}
-                    disabled={cancellingId === inv.id}
-                  >
-                    {cancellingId === inv.id ? "Cancelling…" : "Cancel"}
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+          {/* Pending outgoing invites */}
+          {pendingInvites.length > 0 && (
+            <div className="team-formation__section">
+              <p className="team-formation__section-title">Pending invitations</p>
+              <ul className="team-formation__invite-list">
+                {pendingInvites.map((inv) => (
+                  <li key={inv.id} className="team-formation__invite-item">
+                    <span className="team-formation__invite-email">{inv.inviteeEmail}</span>
+                    <div className="team-formation__invite-meta">
+                      <span className="team-formation__invite-date">Sent {formatDate(inv.createdAt)}</span>
+                      <button
+                        type="button"
+                        className="btn--danger-ghost"
+                        onClick={() => handleCancel(inv.id)}
+                        disabled={cancellingId === inv.id}
+                      >
+                        {cancellingId === inv.id ? "Cancelling…" : "Cancel"}
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      ) : null}
     </div>
   );
 }

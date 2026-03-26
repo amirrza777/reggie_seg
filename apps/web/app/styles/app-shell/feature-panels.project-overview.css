@@ -14,50 +14,48 @@
 }
 
 .project-overview-hero__stack {
-  gap: 14px;
+  gap: 10px;
 }
 
 .project-overview-hero__meta {
   gap: var(--space-panel-heading-gap);
 }
 
-.project-overview-hero__top {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
+.project-overview-hero__summary {
+  margin: 0;
+  max-width: 76ch;
 }
 
-.project-overview-hero__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+.project-overview-hero__title {
+  margin: 0;
+  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  line-height: 1.1;
 }
 
-.project-overview-hero__chip {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
+.project-overview-hero__next {
+  margin-top: 8px;
   border: 1px solid var(--border);
-  padding: 4px 10px;
-  font-size: 12px;
-  background: var(--surface);
+  border-radius: 10px;
+  background: var(--surface-elevated);
+  padding: 9px 12px;
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 100%;
 }
 
-.project-overview-hero__chip--muted {
+.project-overview-hero__next-label {
+  margin: 0;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--muted);
 }
 
-.project-overview-hero__chip--override {
-  background: var(--status-warning-soft);
-  color: var(--status-warning-text);
-}
-
-.project-overview-hero__chip--default {
-  background: var(--status-success-soft);
-  color: var(--status-success-text);
+.project-overview-hero__next-value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .project-overview-hero__facts {
@@ -92,11 +90,24 @@
   font-size: 12px;
 }
 
-.project-overview-hero__actions {
+.project-deadlines-hero {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: var(--space-panel-content-inset);
+  background: linear-gradient(180deg, var(--surface-hero-start), var(--surface));
+  box-shadow: var(--shadow-sm);
   display: flex;
-  justify-content: flex-start;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   flex-wrap: wrap;
-  gap: 8px;
+}
+
+.project-deadlines-hero__content {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .project-overview-hero__action-link {
@@ -112,8 +123,16 @@
   background: color-mix(in srgb, var(--accent, var(--surface)) 12%, var(--surface));
 }
 
-.project-overview-hero__action-link:hover {
-  border-color: color-mix(in srgb, var(--accent-border, var(--border)) 80%, var(--ink));
+.project-deadlines-hero__meta {
+  gap: 6px;
+}
+
+.project-deadlines-hero__title {
+  margin: 0;
+}
+
+.project-deadlines-hero__summary {
+  margin: 0;
 }
 
 .project-overview-layout {
@@ -123,8 +142,20 @@
   align-items: start;
 }
 
+.project-overview-layout--overview {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.project-overview-layout--deadlines {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .project-overview-schedule {
   gap: 10px;
+}
+
+.project-overview-schedule--expanded {
+  gap: 12px;
 }
 
 .project-overview-schedule__row {
@@ -138,9 +169,18 @@
   background: var(--surface);
 }
 
+.project-overview-schedule--expanded .project-overview-schedule__row {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) auto;
+  padding: 14px 16px;
+}
+
 .project-overview-schedule__label {
   margin: 0;
   font-weight: 600;
+}
+
+.project-overview-schedule--expanded .project-overview-schedule__label {
+  font-size: 1.05rem;
 }
 
 .project-overview-schedule__group {
@@ -152,6 +192,10 @@
   margin: 0;
 }
 
+.project-overview-schedule--expanded .project-overview-schedule__date {
+  font-size: 1.05rem;
+}
+
 .project-overview-status {
   border-radius: 999px;
   padding: 3px 9px;
@@ -160,6 +204,11 @@
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.project-overview-schedule--expanded .project-overview-status {
+  font-size: 13px;
+  padding: 4px 10px;
 }
 
 .project-overview-status--passed {
@@ -178,6 +227,16 @@
   color: var(--muted);
 }
 
+.project-overview-info-card {
+  min-height: 0;
+}
+
+.project-overview-info-card .card__body {
+  display: flex;
+  width: 100%;
+  align-items: stretch;
+}
+
 .project-overview-info {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -189,20 +248,49 @@
 }
 
 .project-overview-info__body {
-  gap: 14px;
-  padding: 16px;
+  display: flex;
+  width: 100%;
+  padding: 4px 4px 2px;
 }
 
-.project-overview-info__title {
-  margin: 0;
-  font-size: var(--fs-panel-section-title);
-  line-height: 1.2;
-  letter-spacing: -0.015em;
+.project-overview-info__body--large {
+  padding: 8px 6px 6px;
+  justify-content: flex-start;
+}
+
+.project-overview-info__content-box {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  align-content: start;
+  box-sizing: border-box;
 }
 
 .project-overview-info__paragraph {
   margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
   line-height: 1.6;
+}
+
+.project-overview-info__paragraph--large {
+  font-size: clamp(1.12rem, 1.25vw, 1.32rem);
+  line-height: 1.75;
+}
+
+.project-overview-info__empty {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.project-overview-info__body--large .project-overview-info__empty {
+  font-size: clamp(1.02rem, 1.1vw, 1.12rem);
 }
 
 .project-overview-marking {

@@ -183,26 +183,37 @@ describe("FeedbackReviewForm", () => {
     expect(screen.getByRole("slider")).toHaveValue("75");
   });
 
-  it("shows a live countdown until feedback deadline", () => {
+  it("counts down to open, then due, then hides countdown after deadline", () => {
     vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-12T12:00:00.000Z"));
+    try {
+      vi.setSystemTime(new Date("2026-03-12T12:00:00.000Z"));
 
-    render(
-      <FeedbackReviewForm
-        feedback={makeFeedback()}
-        currentUserId="4"
-        feedbackDeadline="2026-03-12T12:00:01.000Z"
-      />
-    );
+      render(
+        <FeedbackReviewForm
+          feedback={makeFeedback()}
+          currentUserId="4"
+          feedbackOpenAt="2026-03-12T12:00:03.000Z"
+          feedbackDueAt="2026-03-12T12:00:06.000Z"
+        />
+      );
 
-    expect(screen.getByText("00d : 00h : 00m : 01s")).toBeInTheDocument();
+      expect(screen.getByTestId("deadline-countdown")).toHaveTextContent("00d : 00h : 00m : 03s");
 
-    act(() => {
-      vi.advanceTimersByTime(1000);
-    });
+      act(() => {
+        vi.advanceTimersByTime(3000);
+      });
 
-    expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
-    vi.useRealTimers();
+      expect(screen.getByTestId("deadline-countdown")).toHaveTextContent("00d : 00h : 00m : 03s");
+
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+
+      expect(screen.queryByTestId("deadline-countdown")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Submit Review" })).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it("locks submit when feedback window has not opened yet", async () => {
@@ -227,7 +238,7 @@ describe("FeedbackReviewForm", () => {
     });
   });
 
-  it("allows submit after due date and shows late message", async () => {
+  it("shows read-only state after due date and hides submit/edit actions", async () => {
     const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     render(
@@ -239,17 +250,8 @@ describe("FeedbackReviewForm", () => {
       />
     );
 
-    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
-    const submitButton = screen.getByRole("button", { name: "Submit Review" });
-    expect(submitButton).toBeEnabled();
-
-    fireEvent.change(screen.getByPlaceholderText("Type your response here..."), {
-      target: { value: "Late response" },
-    });
-    fireEvent.click(submitButton);
-
-    await waitFor(() => {
-      expect(submitPeerFeedbackMock).toHaveBeenCalled();
-    });
+    expect(screen.queryByRole("button", { name: "Submit Review" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(submitPeerFeedbackMock).not.toHaveBeenCalled();
   });
 });

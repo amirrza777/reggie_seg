@@ -30,6 +30,16 @@
   background: var(--glass-hover);
 }
 
+.project-card--completed {
+  border-color: var(--status-success-border, #86efac);
+  background: color-mix(in srgb, var(--status-success-soft, #dcfce7) 40%, var(--surface));
+}
+
+.project-card--completed:hover {
+  border-color: var(--status-success-text, #15803d);
+  background: color-mix(in srgb, var(--status-success-soft, #dcfce7) 52%, var(--surface));
+}
+
 .project-card:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 3px;
@@ -54,6 +64,13 @@
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-medium);
   color: var(--muted-subtle);
+}
+
+.project-card__mark {
+  margin: 0;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  color: var(--status-success-text, #15803d);
 }
 
 .project-card__summary {

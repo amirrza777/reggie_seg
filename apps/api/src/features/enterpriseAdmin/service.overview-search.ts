@@ -21,6 +21,8 @@ import {
   isEnterpriseAdminRole,
   normalizeFeatureFlagLabel,
 } from "./service.helpers.js";
+import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../featureFlags/defaults.js";
+import { ensureFeatureFlagsByEnterprise } from "../featureFlags/repo.js";
 import {
   buildManagedModuleSelect,
   buildModuleScopeWhere,
@@ -40,6 +42,8 @@ export async function listFeatureFlags(enterpriseUser: EnterpriseUser) {
   if (!isEnterpriseAdminRole(enterpriseUser.role)) {
     return { ok: false as const, status: 403, error: "Forbidden" };
   }
+
+  await ensureFeatureFlagsByEnterprise(enterpriseUser.enterpriseId, ENTERPRISE_FEATURE_FLAG_DEFAULTS);
 
   const flags = await prisma.featureFlag.findMany({
     where: { enterpriseId: enterpriseUser.enterpriseId },

@@ -212,6 +212,7 @@ describe("prisma seed script", () => {
   beforeEach(() => {
     vi.resetModules();
     process.env = { ...originalEnv };
+    process.env.SEED_COMPLETED_PROJECT_SCENARIO = "false";
   });
 
   afterEach(() => {

@@ -26,7 +26,42 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { normalizeModuleJoinCode } from "../services/moduleJoinCodeService.js";
+
+export {
+  createTeamWarningForStaff,
+  fetchTeamWarningsForStaff,
+  resolveTeamWarningForStaff,
+  fetchMyTeamWarnings,
+  fetchProjectWarningsConfigForStaff,
+  updateProjectWarningsConfigForStaff,
+  evaluateProjectWarningsForStaff,
+  evaluateProjectWarningsForProject,
+  parseProjectWarningsConfig,
+  getDefaultProjectWarningsConfig,
+} from "./warnings/service.js";
+
+export type {
+  WarningRuleSeverity,
+  ProjectWarningRuleConfig,
+  ProjectWarningsConfig,
+  ProjectWarningsEvaluationSummary,
+} from "./warnings/service.js";
+export {
+  fetchProjectNavFlagsConfigForStaff,
+  updateProjectNavFlagsConfigForStaff,
+  parseProjectNavFlagsConfig,
+  getDefaultProjectNavFlagsConfig,
+} from "./nav-flags/service.js";
+
+export type {
+  ProjectNavFlagKey,
+  ProjectNavFlagsState,
+  ProjectNavPeerMode,
+  ProjectNavPeerModes,
+  ProjectNavFlagsConfig,
+} from "./nav-flags/service.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -34,14 +69,28 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
-  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId, deadline);
+  return createProjectInDb(
+    actorUserId,
+    name,
+    moduleId,
+    questionnaireTemplateId,
+    informationText,
+    deadline,
+  );
 }
 
 /** Returns the project by ID. */
 export async function fetchProjectById(projectId: number) {
-  return getProjectById(projectId);
+  const project = await getProjectById(projectId);
+  if (!project) return null;
+
+  return {
+    ...project,
+    projectNavFlags: normalizeProjectNavFlagsConfig(project.projectNavFlags),
+  };
 }
 
 /** Returns the projects for user. */

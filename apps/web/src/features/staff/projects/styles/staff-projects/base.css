@@ -104,6 +104,17 @@
 
 .staff-projects__hero-actions {
   margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.staff-projects__hero-actions-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .staff-projects__quick-link {

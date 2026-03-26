@@ -165,21 +165,28 @@ describe("PeerAssessmentForm", () => {
     );
   });
 
-  it("shows a live countdown until assessment deadline", () => {
+  it("counts down to open, then due, then hides countdown after deadline", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-03-11T12:00:00.000Z"));
 
     renderForm({
-      assessmentDeadline: "2026-03-11T12:00:01.000Z",
+      assessmentOpenAt: "2026-03-11T12:00:03.000Z",
+      assessmentDueAt: "2026-03-11T12:00:06.000Z",
     });
 
-    expect(screen.getByText("00d : 00h : 00m : 01s")).toBeInTheDocument();
+    expect(screen.getByTestId("deadline-countdown")).toHaveTextContent("00d : 00h : 00m : 03s");
 
     act(() => {
-      vi.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(3000);
     });
 
-    expect(screen.getByText("00d : 00h : 00m : 00s")).toBeInTheDocument();
+    expect(screen.getByTestId("deadline-countdown")).toHaveTextContent("00d : 00h : 00m : 03s");
+
+    act(() => {
+      vi.advanceTimersByTime(4000);
+    });
+
+    expect(screen.queryByTestId("deadline-countdown")).not.toBeInTheDocument();
     vi.useRealTimers();
   });
 
@@ -199,7 +206,7 @@ describe("PeerAssessmentForm", () => {
     });
   });
 
-  it("allows submission after due date and marks message as late", async () => {
+  it("shows read-only state after due date and blocks submission", async () => {
     const openAt = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
     const dueAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
@@ -214,14 +221,7 @@ describe("PeerAssessmentForm", () => {
       target: { value: "80" },
     });
 
-    expect(screen.getByText(/will be marked late/i)).toBeInTheDocument();
-
-    const saveButton = screen.getByRole("button", { name: /save assessment/i });
-    expect(saveButton).toBeEnabled();
-
-    fireEvent.click(saveButton);
-    await waitFor(() => {
-      expect(createPeerAssessmentMock).toHaveBeenCalled();
-    });
+    expect(screen.queryByRole("button", { name: /save assessment/i })).not.toBeInTheDocument();
+    expect(createPeerAssessmentMock).not.toHaveBeenCalled();
   });
 });

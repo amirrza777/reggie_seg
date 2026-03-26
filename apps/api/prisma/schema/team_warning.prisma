@@ -1,0 +1,37 @@
+enum TeamWarningSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TeamWarningSource {
+  AUTO
+  MANUAL
+}
+
+model TeamWarning {
+  id              Int                 @id @default(autoincrement())
+  projectId       Int
+  teamId          Int
+  type            String              @db.VarChar(64)
+  severity        TeamWarningSeverity @default(MEDIUM)
+  title           String              @db.VarChar(160)
+  details         String              @db.Text
+  source          TeamWarningSource   @default(MANUAL)
+  active          Boolean             @default(true)
+  createdByUserId Int?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  resolvedAt      DateTime?
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade, map: "TeamWarning_projectId_fkey")
+  team      Team    @relation(fields: [teamId], references: [id], onDelete: Cascade, map: "TeamWarning_teamId_fkey")
+  createdBy User?   @relation("TeamWarningCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull, map: "TeamWarning_createdByUserId_fkey")
+
+  @@index([projectId])
+  @@index([teamId])
+  @@index([createdByUserId])
+  @@index([projectId, teamId, active])
+  @@index([type, active])
+  @@map("TeamWarning")
+}
