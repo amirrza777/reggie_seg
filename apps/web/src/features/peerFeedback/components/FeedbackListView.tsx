@@ -6,18 +6,36 @@ import "../styles/list.css";
 type FeedbackListViewProps = {
   feedbacks?: PeerFeedback[];
   projectId?: string;
+  listTitle?: string;
+  listDescription?: string;
   readOnly?: boolean;
 };
 
-export function FeedbackAssessmentView({ feedbacks, projectId, readOnly = false }: FeedbackListViewProps) {
-  if (!feedbacks || feedbacks.length === 0) {
-    return <p className="ui-note ui-note--muted">No feedbacks submitted yet.</p>;
-  }
+export function FeedbackAssessmentView({
+  feedbacks,
+  projectId,
+  listTitle,
+  listDescription,
+  readOnly = false,
+}: FeedbackListViewProps) {
+  const hasFeedbacks = Boolean(feedbacks && feedbacks.length > 0);
 
   return (
     <div>
-      <ul className="feedback-list">
-        {feedbacks.map((f) => {
+      {(listTitle || listDescription) && (
+        <section className="feedback-list-intro" aria-label="Peer feedback guidance">
+          {listTitle ? <h3 className="feedback-list-intro__title">{listTitle}</h3> : null}
+          {listDescription ? (
+            <p className="feedback-list-intro__description">{listDescription}</p>
+          ) : null}
+        </section>
+      )}
+
+      {!hasFeedbacks ? (
+        <p className="ui-note ui-note--muted">No feedbacks submitted yet.</p>
+      ) : (
+        <ul className="feedback-list">
+          {feedbacks!.map((f) => {
           const isSubmitted = Boolean(f.reviewSubmitted);
 
           return (
@@ -73,8 +91,9 @@ export function FeedbackAssessmentView({ feedbacks, projectId, readOnly = false 
               </Link>
             </li>
           );
-        })}
-      </ul>
+          })}
+        </ul>
+      )}
     </div>
   );
 }

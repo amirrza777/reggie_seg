@@ -1,3 +1,26 @@
+.peer-assessment-list-intro {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--status-success);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.peer-assessment-list-intro__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink-strong);
+}
+
+.peer-assessment-list-intro__description {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .peer-assessment-list {
   padding-left: 0;
   margin: 0;

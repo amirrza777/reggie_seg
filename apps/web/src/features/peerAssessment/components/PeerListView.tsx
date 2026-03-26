@@ -10,6 +10,8 @@ type PeerListViewProps = {
   projectId: string;
   teamId: number;
   currentUserId: number;
+  listTitle?: string;
+  listDescription?: string;
   completedRevieweeIds?: number[];
   completedAssessmentByRevieweeId?: Record<number, number>;
   readOnly?: boolean;
@@ -20,6 +22,8 @@ export function PeerListView({
   projectId,
   teamId,
   currentUserId,
+  listTitle,
+  listDescription,
   completedRevieweeIds = [],
   completedAssessmentByRevieweeId = {},
   readOnly = false,
@@ -51,6 +55,14 @@ export function PeerListView({
 
   return (
     <div>
+      {(listTitle || listDescription) && (
+        <section className="peer-assessment-list-intro" aria-label="Peer assessment guidance">
+          {listTitle ? <h3 className="peer-assessment-list-intro__title">{listTitle}</h3> : null}
+          {listDescription ? (
+            <p className="peer-assessment-list-intro__description">{listDescription}</p>
+          ) : null}
+        </section>
+      )}
       <ul className="peer-assessment-list">
         {peers.map((allocation) => {
           const isCompleted = completedRevieweeIdSet.has(allocation.user.id);
