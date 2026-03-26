@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getMyTeamHealthMessages, getTeamByUserAndProject } from "@/features/projects/api/client";
-import { Card } from "@/shared/ui/Card";
-import { TeamHealthMessagePanel } from "@/features/projects/components/TeamHealthMessagePanel";
-import type { TeamHealthMessage } from "@/features/projects/types";
+import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } from "@/features/projects/api/client";
+import { ProjectTeamHealthPanels } from "@/features/projects/components/ProjectTeamHealthPanels";
+import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/ProjectTeamHealthTitleWithInfo";
+import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
+import { PageSection } from "@/shared/ui/PageSection";
 
 type ProjectTeamHealthPageProps = {
   params: Promise<{ projectId: string }>;
@@ -49,37 +50,47 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   }
 
   let initialRequests: TeamHealthMessage[] = [];
+  let initialWarnings: TeamWarning[] = [];
   let loadError: string | null = null;
-  try {
-    initialRequests = await getMyTeamHealthMessages(numericProjectId, user.id);
-  } catch (error) {
-    loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
-  }
-  return (
-    <div className="stack projects-panel">
-      <Card title="Team Health">
-        <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
-          <h3 style={{ margin: 0 }}>Warnings</h3>
-          <p className="muted" style={{ margin: 0 }}>
-            No warnings for your team right now.
-          </p>
-        </div>
+  let warningsLoadError: string | null = null;
 
-        <TeamHealthMessagePanel
-          projectId={numericProjectId}
-          userId={user.id}
-          initialRequests={initialRequests}
-        />
-        {loadError ? <p className="error">{loadError}</p> : null}
-        <div style={{ display: "flex", justifyContent: "flex-start", marginTop: 18 }}>
-          <Link
-            href={`/projects/${projectId}`}
-            className="btn btn--quiet"
-          >
-            Back
-          </Link>
-        </div>
-      </Card>
-    </div>
+  const [messagesResult, warningsResult] = await Promise.allSettled([
+    getMyTeamHealthMessages(numericProjectId, user.id),
+    getMyTeamWarnings(numericProjectId, user.id),
+  ]);
+
+  if (messagesResult.status === "fulfilled") {
+    initialRequests = messagesResult.value;
+  } else {
+    loadError = messagesResult.reason instanceof Error
+      ? messagesResult.reason.message
+      : "Failed to load existing team health messages.";
+  }
+
+  if (warningsResult.status === "fulfilled") {
+    initialWarnings = warningsResult.value;
+  } else {
+    warningsLoadError = warningsResult.reason instanceof Error
+      ? warningsResult.reason.message
+      : "Failed to load team warnings.";
+  }
+
+  const activeWarnings = initialWarnings.filter((warning) => warning.active);
+
+  return (
+    <PageSection
+      title={<ProjectTeamHealthTitleWithInfo title="Team Health" />}
+      description="View active warnings and submit team health messages."
+      className="ui-page--project"
+    >
+      <ProjectTeamHealthPanels
+        projectId={numericProjectId}
+        userId={user.id}
+        initialRequests={initialRequests}
+        activeWarnings={activeWarnings}
+        messagesLoadError={loadError}
+        warningsLoadError={warningsLoadError}
+      />
+    </PageSection>
   );
 }

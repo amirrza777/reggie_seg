@@ -63,6 +63,9 @@ export async function createMeetingHandler(req: Request, res: Response) {
     if (error?.code === "TEAM_ARCHIVED") {
       return res.status(409).json({ error: "This team is archived and cannot create new meetings" });
     }
+    if (error?.code === "PROJECT_COMPLETED") {
+      return res.status(409).json({ error: "This project is completed. Meeting creation is closed." });
+    }
     console.error("Error creating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }

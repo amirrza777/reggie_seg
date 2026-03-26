@@ -18,7 +18,13 @@ type StaffTeamHealthMessageReviewPanelProps = {
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown time";
-  return date.toLocaleString();
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} UTC`;
 }
 
 export function StaffTeamHealthMessageReviewPanel({
@@ -36,6 +42,20 @@ export function StaffTeamHealthMessageReviewPanel({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
+  const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
+  const compactTitleStyle = { margin: 0, fontSize: "1.02rem", lineHeight: 1.2 } as const;
+  const compactMutedStyle = { margin: 0 } as const;
+  const compactDetailStyle = {
+    margin: 0,
+    lineHeight: 1.3,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
+  } as const;
+  const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "0.84rem", lineHeight: 1.1 } as const;
+  const openMessageCount = requests.filter((request) => !request.resolved).length;
 
   const updateRequest = (updated: TeamHealthMessage) => {
     setRequests((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -100,117 +120,141 @@ export function StaffTeamHealthMessageReviewPanel({
   return (
     <>
       <section className="staff-projects__team-list" aria-label="Team queries and complaints">
-        <h3 style={{ margin: 0 }}>Messages</h3>
-        {requestLoadError ? (
-          <article className="staff-projects__team-card">
+        <details
+          className="staff-projects__team-card staff-projects__team-card--signal staff-projects__collapsible"
+          style={compactPanelStyle}
+        >
+          <summary className="staff-projects__collapsible-summary">
+            <div>
+              <h3 className="staff-projects__team-title" style={compactTitleStyle}>Messages</h3>
+              <p className="staff-projects__team-count" style={{ margin: 0 }}>
+                {openMessageCount} open · {requests.length} total. Click to expand and respond.
+              </p>
+            </div>
+          </summary>
+          <p className="staff-projects__team-count" style={{ margin: 0 }}>
+            Review student-submitted queries and complaints, then respond directly from this panel.
+          </p>
+
+          {requestLoadError ? (
             <p className="muted" style={{ margin: 0 }}>{requestLoadError}</p>
-          </article>
-        ) : requests.length === 0 ? (
-          <article className="staff-projects__team-card">
+          ) : requests.length === 0 ? (
             <p className="muted" style={{ margin: 0 }}>
               No queries or complaints have been submitted for this team yet.
             </p>
-          </article>
-        ) : (
-          requests.map((request) => {
-            const isResolved = request.resolved;
-            const isRespondOpen = activeRespondRequestId === request.id;
-            const statusCardClass = isResolved ? " staff-projects__team-card--resolved" : "";
+          ) : (
+            requests.map((request) => {
+              const isResolved = request.resolved;
+              const isRespondOpen = activeRespondRequestId === request.id;
+              const statusCardClass = isResolved ? " staff-projects__team-card--resolved" : "";
+              const statusBadgeStyle = {
+                display: "inline-flex",
+                alignItems: "center",
+                borderRadius: 999,
+                padding: "2px 10px",
+                fontSize: "0.88rem",
+                fontWeight: 600,
+                border: "1px solid var(--border)",
+              } as const;
 
-            return (
-              <article key={request.id} className={`staff-projects__team-card${statusCardClass}`}>
-                <div className="staff-projects__team-top">
-                  <h3 className="staff-projects__team-title">{request.subject}</h3>
-                  <span>{isResolved ? "Resolved" : "Open"}</span>
-                </div>
-                <div style={{ margin: 0 }}>
-                  <RichTextViewer content={request.details} />
-                </div>
-                <p className="staff-projects__team-count">
-                  Submitted by {request.requester.firstName} {request.requester.lastName} on{" "}
-                  {formatDate(request.createdAt)}
-                </p>
-                {request.responseText ? (
-                  <div className="staff-projects__team-count" style={{ margin: 0 }}>
-                    <strong>Staff response:</strong>
-                    <RichTextViewer content={request.responseText!} />
+              return (
+                <article key={request.id} className={`staff-projects__team-card${statusCardClass}`} style={compactCardStyle}>
+                  <div className="staff-projects__team-top">
+                    <h3 className="staff-projects__team-title" style={compactTitleStyle}>{request.subject}</h3>
+                    <span style={statusBadgeStyle}>{isResolved ? "Resolved" : "Open"}</span>
                   </div>
-                ) : null}
-                {request.reviewedBy ? (
-                  <p className="muted" style={{ margin: 0 }}>
-                    Last updated by {request.reviewedBy.firstName} {request.reviewedBy.lastName}
-                    {request.reviewedAt ? ` on ${formatDate(request.reviewedAt)}` : ""}
+                  <div style={{ margin: 0 }}>
+                    <RichTextViewer content={request.details} />
+                  </div>
+                  <p className="staff-projects__team-count" style={compactMutedStyle}>
+                    Submitted by {request.requester.firstName} {request.requester.lastName} on{" "}
+                    {formatDate(request.createdAt)}
                   </p>
-                ) : null}
+                  {request.responseText ? (
+                    <div className="staff-projects__team-count" style={compactMutedStyle}>
+                      <strong>Staff response:</strong>
+                      <RichTextViewer content={request.responseText!} />
+                    </div>
+                  ) : null}
+                  {request.reviewedBy ? (
+                    <p className="muted" style={compactMutedStyle}>
+                      Last updated by {request.reviewedBy.firstName} {request.reviewedBy.lastName}
+                      {request.reviewedAt ? ` on ${formatDate(request.reviewedAt)}` : ""}
+                    </p>
+                  ) : null}
 
-                <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 8 }}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => openRespondBox(request)}
-                    disabled={isActionLoading}
-                  >
-                    {isRespondOpen ? "Close response" : request.responseText ? "Edit response" : "Respond"}
-                  </Button>
-                  {isResolved ? (
+                  <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 }}>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => void handleMarkUnresolved(request.id)}
+                      style={compactButtonStyle}
+                      onClick={() => openRespondBox(request)}
                       disabled={isActionLoading}
                     >
-                      {isActionLoading ? "Saving..." : "Mark unresolved"}
+                      {isRespondOpen ? "Close response" : request.responseText ? "Edit response" : "Respond"}
                     </Button>
-                  ) : null}
-                </div>
-
-                {isRespondOpen ? (
-                  <div className="staff-projects__team-health-review-box">
-                    <div className="staff-projects__team-health-deadline-field">
-                      <span>Staff response</span>
-                      <RichTextEditor
-                        initialContent={responseDraft}
-                        onChange={setResponseDraft}
-                        onEmptyChange={setResponseDraftEmpty}
-                        placeholder="Write your response to this query or complaint..."
-                      />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                    {isResolved ? (
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          setActiveRespondRequestId(null);
-                          setResponseDraft("");
-                          setPanelError(null);
-                          setPanelMessage(null);
-                        }}
+                        style={compactButtonStyle}
+                        onClick={() => void handleMarkUnresolved(request.id)}
                         disabled={isActionLoading}
                       >
-                        Cancel
+                        {isActionLoading ? "Saving..." : "Mark unresolved"}
                       </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => void handleSubmitResponse(request.id)}
-                        disabled={isActionLoading}
-                      >
-                        {isActionLoading ? "Sending..." : "Send response"}
-                      </Button>
-                    </div>
+                    ) : null}
                   </div>
-                ) : null}
-              </article>
-            );
-          })
-        )}
-      </section>
 
-      {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}
-      {panelError ? <p className="error" style={{ margin: 0 }}>{panelError}</p> : null}
+                  {isRespondOpen ? (
+                    <div className="staff-projects__team-health-review-box">
+                      <div className="staff-projects__team-health-deadline-field">
+                        <span>Staff response</span>
+                        <RichTextEditor
+                          initialContent={responseDraft}
+                          onChange={setResponseDraft}
+                          onEmptyChange={setResponseDraftEmpty}
+                          placeholder="Write your response to this query or complaint..."
+                        />
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          style={compactButtonStyle}
+                          onClick={() => {
+                            setActiveRespondRequestId(null);
+                            setResponseDraft("");
+                            setPanelError(null);
+                            setPanelMessage(null);
+                          }}
+                          disabled={isActionLoading}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          style={compactButtonStyle}
+                          onClick={() => void handleSubmitResponse(request.id)}
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading ? "Sending..." : "Send response"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })
+          )}
+          {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}
+          {panelError ? <p className="error" style={{ margin: 0 }}>{panelError}</p> : null}
+        </details>
+      </section>
     </>
   );
 }

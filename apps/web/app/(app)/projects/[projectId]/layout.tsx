@@ -9,8 +9,10 @@ type LayoutProps = {
 
 export default async function ProjectLayout({ params, children }: LayoutProps) {
   const { projectId } = await params;
+  const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
-  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
+  const navFlags = await getProjectNavFlags(user?.id, numericProjectId);
+
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
       <ProjectNav projectId={projectId} enabledFlags={navFlags} />

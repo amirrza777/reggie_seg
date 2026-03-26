@@ -48,34 +48,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     );
   }
 
-  let openSupportRequestCount: number | null = null;
-  let recordedMeetingCount: number | null = null;
-  let lastMeetingLabel: string | null = null;
-
-  const [supportRequestsResult, meetingsResult] = await Promise.allSettled([
-    getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
-    listTeamMeetings(numericTeamId),
-  ]);
-
-  if (supportRequestsResult.status === "fulfilled") {
-    openSupportRequestCount = supportRequestsResult.value.filter((request) => !request.resolved).length;
-  }
-
-  if (meetingsResult.status === "fulfilled") {
-    recordedMeetingCount = meetingsResult.value.length;
-
-    const latestMeetingTimestamp = meetingsResult.value.reduce<number | null>((latest, meeting) => {
-      const timestamp = new Date(meeting.date).getTime();
-      if (!Number.isFinite(timestamp)) return latest;
-      if (latest == null || timestamp > latest) return timestamp;
-      return latest;
-    }, null);
-
-    if (latestMeetingTimestamp != null) {
-      lastMeetingLabel = new Date(latestMeetingTimestamp).toLocaleDateString();
-    }
-  }
-
   return (
     <div className="staff-projects">
       <section className="staff-projects__hero">

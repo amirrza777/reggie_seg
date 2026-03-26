@@ -14,6 +14,11 @@ import type {
   TeamHealthMessage,
   StaffStudentDeadlineOverride,
   StaffStudentDeadlineOverridePayload,
+  ProjectWarningsConfig,
+  StaffProjectWarningsConfigResponse,
+  ProjectNavFlagsConfig,
+  StaffProjectNavFlagsConfigResponse,
+  TeamWarning,
 } from "../types";
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -64,6 +69,42 @@ export async function getStaffProjects(userId: number, options?: StaffProjectSea
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`, {
     cache: "no-store",
+  });
+}
+
+export async function getStaffProjectWarningsConfig(
+  projectId: number,
+): Promise<StaffProjectWarningsConfigResponse> {
+  return apiFetch<StaffProjectWarningsConfigResponse>(`/projects/staff/${projectId}/warnings-config`, {
+    cache: "no-store",
+  });
+}
+
+export async function updateStaffProjectWarningsConfig(
+  projectId: number,
+  warningsConfig: ProjectWarningsConfig,
+): Promise<StaffProjectWarningsConfigResponse> {
+  return apiFetch<StaffProjectWarningsConfigResponse>(`/projects/staff/${projectId}/warnings-config`, {
+    method: "PATCH",
+    body: JSON.stringify({ warningsConfig }),
+  });
+}
+
+export async function getStaffProjectNavFlagsConfig(
+  projectId: number,
+): Promise<StaffProjectNavFlagsConfigResponse> {
+  return apiFetch<StaffProjectNavFlagsConfigResponse>(`/projects/staff/${projectId}/project-feature-flags`, {
+    cache: "no-store",
+  });
+}
+
+export async function updateStaffProjectNavFlagsConfig(
+  projectId: number,
+  projectNavFlags: ProjectNavFlagsConfig,
+): Promise<StaffProjectNavFlagsConfigResponse> {
+  return apiFetch<StaffProjectNavFlagsConfigResponse>(`/projects/staff/${projectId}/project-feature-flags`, {
+    method: "PATCH",
+    body: JSON.stringify({ projectNavFlags }),
   });
 }
 
@@ -149,6 +190,14 @@ export async function getMyTeamHealthMessages(projectId: number, userId: number)
   return Array.isArray(response.requests) ? response.requests : [];
 }
 
+export async function getMyTeamWarnings(projectId: number, userId: number): Promise<TeamWarning[]> {
+  const response = await apiFetch<{ warnings: TeamWarning[] }>(
+    `/projects/${projectId}/team-warnings/me?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.warnings) ? response.warnings : [];
+}
+
 export async function getStaffTeamHealthMessages(
   userId: number,
   projectId: number,
@@ -159,6 +208,34 @@ export async function getStaffTeamHealthMessages(
     { cache: "no-store" }
   );
   return Array.isArray(response.requests) ? response.requests : [];
+}
+
+export async function getStaffTeamWarnings(
+  userId: number,
+  projectId: number,
+  teamId: number
+): Promise<TeamWarning[]> {
+  const response = await apiFetch<{ warnings: TeamWarning[] }>(
+    `/projects/staff/${projectId}/teams/${teamId}/warnings?userId=${userId}`,
+    { cache: "no-store" }
+  );
+  return Array.isArray(response.warnings) ? response.warnings : [];
+}
+
+export async function resolveStaffTeamWarning(
+  userId: number,
+  projectId: number,
+  teamId: number,
+  warningId: number,
+): Promise<TeamWarning> {
+  const response = await apiFetch<{ warning: TeamWarning }>(
+    `/projects/staff/${projectId}/teams/${teamId}/warnings/${warningId}/resolve`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ userId }),
+    }
+  );
+  return response.warning;
 }
 
 export async function getStaffTeamDeadline(

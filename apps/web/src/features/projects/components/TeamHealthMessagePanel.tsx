@@ -30,7 +30,21 @@ function getResolvedTone(resolved: boolean) {
 function formatDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Unknown time";
-  return date.toLocaleString();
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const year = date.getUTCFullYear();
+  const hours = String(date.getUTCHours()).padStart(2, "0");
+  const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+  const seconds = String(date.getUTCSeconds()).padStart(2, "0");
+  return `${day}/${month}/${year}, ${hours}:${minutes}:${seconds} UTC`;
+}
+
+function formatAuthorName(request: TeamHealthMessage) {
+  const firstName = request.requester?.firstName?.trim();
+  const lastName = request.requester?.lastName?.trim();
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (fullName) return fullName;
+  return request.requester?.email ?? `User #${request.requesterUserId}`;
 }
 
 export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: TeamHealthMessagePanelProps) {
@@ -145,9 +159,21 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                 <div style={{ margin: 0 }}>
                   <RichTextViewer content={request.details} />
                 </div>
-                <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                  Submitted: {formatDate(request.createdAt)}
-                </p>
+                <div
+                  className="muted"
+                  style={{
+                    margin: 0,
+                    fontSize: 12,
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 12,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <span>Submitted: {formatDate(request.createdAt)}</span>
+                  <span>Author: {formatAuthorName(request)}</span>
+                </div>
 
                 {hasResponse ? (
                   <div

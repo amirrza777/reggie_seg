@@ -7,12 +7,14 @@ import {
   seedStudentEnrollments,
   seedTeamAllocations,
 } from "./allocation";
+import { seedCompletedProjectScenario } from "./completed-project";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
-import { SEED_USER_PASSWORD } from "./config";
+import { SEED_COMPLETED_PROJECT_SCENARIO, SEED_USER_PASSWORD } from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedMarkerUserData } from "./data";
 import { seedForumPosts } from "./forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
+import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
@@ -70,6 +72,10 @@ async function runSeedSteps(context: SeedContext) {
   await seedProjectDeadlines(context.projects);
   await seedPeerAssessments(context.projects, context.teams, context.templates);
   await seedFeatureFlags(context.enterprise.id);
+  if (SEED_COMPLETED_PROJECT_SCENARIO) {
+    await seedCompletedProjectScenario(context);
+  }
+  await seedPeerAssessmentProgressScenarios(context);
   await seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students);
   await seedMeetings(context);
 }

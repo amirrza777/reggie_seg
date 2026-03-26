@@ -161,21 +161,24 @@ describe("GithubProjectReposClient", () => {
     } as never);
   });
 
-  it("renders the GitHub repo tabs and loads initial project data", async () => {
+  it("refreshes snapshots by analysing linked repos and reloading data", async () => {
     render(<GithubProjectReposClient projectId="1" />);
 
-    expect(await screen.findByTestId("github-hero")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Team code activity" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "My code activity" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "My commits" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Branches" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Configurations" })).toBeInTheDocument();
+    await screen.findByText("Linked repositories");
+    expect(await screen.findByTestId("github-link-card")).toHaveTextContent("adxmir/demo-repo");
+
+    const refreshButton = screen.getByRole("button", { name: "Refresh" });
+    fireEvent.click(refreshButton);
 
     await waitFor(() => {
-      expect(listProjectGithubRepoLinksMock).toHaveBeenCalledTimes(1);
-      expect(getGithubConnectionStatusMock).toHaveBeenCalledTimes(1);
-      expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(1);
-      expect(getProjectGithubMappingCoverageMock).toHaveBeenCalledTimes(1);
+      expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(101);
+    });
+
+    await waitFor(() => {
+      expect(listProjectGithubRepoLinksMock).toHaveBeenCalledTimes(2);
+      expect(getGithubConnectionStatusMock).toHaveBeenCalledTimes(2);
+      expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(2);
+      expect(getProjectGithubMappingCoverageMock).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -191,7 +194,7 @@ describe("GithubProjectReposClient", () => {
 
     render(<GithubProjectReposClient projectId="1" />);
 
-    await screen.findByRole("button", { name: "Team code activity" });
+    await screen.findByText("Linked repositories");
 
     await waitFor(() => {
       expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(101);

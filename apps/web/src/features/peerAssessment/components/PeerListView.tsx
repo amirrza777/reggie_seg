@@ -10,8 +10,11 @@ type PeerListViewProps = {
   projectId: string;
   teamId: number;
   currentUserId: number;
+  listTitle?: string;
+  listDescription?: string;
   completedRevieweeIds?: number[];
   completedAssessmentByRevieweeId?: Record<number, number>;
+  readOnly?: boolean;
 };
 
 export function PeerListView({
@@ -19,8 +22,11 @@ export function PeerListView({
   projectId,
   teamId,
   currentUserId,
+  listTitle,
+  listDescription,
   completedRevieweeIds = [],
   completedAssessmentByRevieweeId = {},
+  readOnly = false,
 }: PeerListViewProps) {
   const router = useRouter();
   const completedRevieweeIdSet = new Set(completedRevieweeIds);
@@ -38,6 +44,10 @@ export function PeerListView({
       return;
     }
 
+    if (readOnly) {
+      return;
+    }
+
     router.push(
       `/projects/${projectId}/peer-assessments/create?teamId=${teamId}&revieweeId=${peerId}&reviewerId=${currentUserId}&teammateName=${teammateName}`
     );
@@ -45,7 +55,15 @@ export function PeerListView({
 
   return (
     <div>
-      <ul className="peer-assessment-list" style={{ marginTop: "20px" }}>
+      {(listTitle || listDescription) && (
+        <section className="peer-assessment-list-intro" aria-label="Peer assessment guidance">
+          {listTitle ? <h3 className="peer-assessment-list-intro__title">{listTitle}</h3> : null}
+          {listDescription ? (
+            <p className="peer-assessment-list-intro__description">{listDescription}</p>
+          ) : null}
+        </section>
+      )}
+      <ul className="peer-assessment-list">
         {peers.map((allocation) => {
           const isCompleted = completedRevieweeIdSet.has(allocation.user.id);
           const cardClassName = `peer-assessment-card ${
@@ -60,6 +78,7 @@ export function PeerListView({
                 type="button"
                 onClick={() => handlePeerClick(allocation.user.id, allocation)}
                 className={cardClassName}
+                disabled={readOnly && !isCompleted}
               >
                 <div className="peer-assessment-card__header">
                   <div className="peer-assessment-card__name">
@@ -88,14 +107,19 @@ export function PeerListView({
                   {isCompleted
                     ? (
                       <>
-                        Review submitted - click to edit <ArrowRightIcon />
+                        {readOnly
+                          ? "Review submitted - click to view"
+                          : "Review submitted - click to edit"}{" "}
+                        <ArrowRightIcon />
                       </>
                     )
-                    : (
-                      <>
-                        Not submitted yet - click to assess <ArrowRightIcon />
-                      </>
-                    )}
+                    : (readOnly
+                      ? "Submission window closed"
+                      : (
+                        <>
+                          Not submitted yet - click to assess <ArrowRightIcon />
+                        </>
+                      ))}
                 </div>
               </button>
             </li>

@@ -14,15 +14,12 @@ import {
   fuzzyFilterAndPaginate,
   shouldUseFuzzyFallback,
 } from "../../shared/fuzzyFallback.js";
+import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../featureFlags/defaults.js";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
 const ENTERPRISE_CODE_REGEX = /^[A-Z0-9]{3,16}$/;
 const enterpriseCodeGenerator = new EnterpriseCodeGeneratorService();
-const defaultEnterpriseFeatureFlags: EnterpriseFlagSeed[] = [
-  { key: "peer_feedback", label: "Peer feedback", enabled: true },
-  { key: "modules", label: "Modules", enabled: true },
-  { key: "repos", label: "Repositories", enabled: true },
-];
+const defaultEnterpriseFeatureFlags: EnterpriseFlagSeed[] = [...ENTERPRISE_FEATURE_FLAG_DEFAULTS];
 
 export async function resolveAdminUser(payload: { sub?: number; admin?: boolean }) {
   if (!payload?.sub || !payload.admin) return null;

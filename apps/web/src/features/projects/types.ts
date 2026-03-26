@@ -1,12 +1,50 @@
 export type Project = {
   id: string;
   name: string;
-  summary?: string;
+  informationText?: string | null;
   moduleName?: string;
   moduleId?: number;
   teamCount?: number;
   questionnaireTemplateId: number;
   archivedAt?: string | null;
+  projectNavFlags?: ProjectNavFlagsConfig | null;
+};
+
+export type ProjectNavFlagKey =
+  | "team"
+  | "meetings"
+  | "peer_assessment"
+  | "peer_feedback"
+  | "repos"
+  | "trello"
+  | "discussion"
+  | "team_health";
+
+export type ProjectNavFlagsState = Record<ProjectNavFlagKey, boolean>;
+
+export type ProjectNavPeerMode = "NATURAL" | "MANUAL";
+
+export type ProjectNavPeerModes = {
+  peer_assessment: ProjectNavPeerMode;
+  peer_feedback: ProjectNavPeerMode;
+};
+
+export type ProjectNavFlagsConfig = {
+  version: 1;
+  active: ProjectNavFlagsState;
+  completed: ProjectNavFlagsState;
+  peerModes: ProjectNavPeerModes;
+};
+
+export type StaffProjectNavFlagsConfigResponse = {
+  id: number;
+  name: string;
+  hasPersistedProjectNavFlags: boolean;
+  projectNavFlags: ProjectNavFlagsConfig;
+  deadlineWindow: {
+    assessmentOpenDate: string | null;
+    feedbackOpenDate: string | null;
+  };
 };
 
 export type ProjectDeadline = {
@@ -91,6 +129,42 @@ export type TeamHealthMessage = {
     | null;
 };
 
+export type TeamWarning = {
+  id: number;
+  projectId: number;
+  teamId: number;
+  type: string;
+  severity: "LOW" | "MEDIUM" | "HIGH";
+  title: string;
+  details: string;
+  source: "AUTO" | "MANUAL";
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  resolvedAt: string | null;
+};
+
+export type WarningRuleSeverity = "LOW" | "MEDIUM" | "HIGH";
+
+export type ProjectWarningRuleConfig = {
+  key: string;
+  enabled: boolean;
+  severity?: WarningRuleSeverity;
+  ttlDays?: number;
+  params?: Record<string, unknown>;
+};
+
+export type ProjectWarningsConfig = {
+  version: 1;
+  rules: ProjectWarningRuleConfig[];
+};
+
+export type StaffProjectWarningsConfigResponse = {
+  id: number;
+  hasPersistedWarningsConfig: boolean;
+  warningsConfig: ProjectWarningsConfig;
+};
+
 export type StaffProject = {
   id: number;
   name: string;
@@ -140,6 +214,7 @@ export type CreateStaffProjectPayload = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  informationText?: string | null;
   deadline: {
     taskOpenDate: string;
     taskDueDate: string;
@@ -158,6 +233,7 @@ export type CreatedStaffProject = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  informationText?: string | null;
   deadline?: {
     taskOpenDate: string;
     taskDueDate: string;
@@ -194,6 +270,7 @@ export type ProjectOverviewDashboardProps = {
   deadline: ProjectDeadline;
   team: Team;
   marking: ProjectMarkingSummary | null;
+  view?: "overview" | "deadlines";
 };
 
 export type DeadlineItem = {

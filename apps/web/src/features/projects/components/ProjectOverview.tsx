@@ -8,14 +8,13 @@ type ProjectOverviewProps = {
 const fallbackProject: Project = {
   id: "project-123",
   name: "Capstone Project",
-  summary: "Project overview stub. Replace with fetched data.",
 };
 
 export function ProjectOverview({ project }: ProjectOverviewProps) {
   const data = project ?? fallbackProject;
   return (
     <Card title={data.name}>
-      <p className="lede">{data.summary}</p>
+      <p className="lede">Project overview.</p>
       <dl>
         <dt>ID</dt>
         <dd>{data.id}</dd>

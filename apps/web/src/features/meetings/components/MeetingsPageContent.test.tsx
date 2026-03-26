@@ -148,4 +148,11 @@ describe("MeetingsPageContent", () => {
     await waitFor(() => screen.getByText("Team Meeting"));
     expect(screen.getByText("Bush House 3.01")).toBeInTheDocument();
   });
+
+  it("locks new meeting tab when project is completed", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} projectCompleted />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    expect(screen.queryByRole("button", { name: /new meeting/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Project is completed. Meeting creation is closed.")).toBeInTheDocument();
+  });
 });

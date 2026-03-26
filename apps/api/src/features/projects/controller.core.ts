@@ -31,10 +31,11 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { name, moduleId, questionnaireTemplateId, deadline } = req.body as {
+  const { name, moduleId, questionnaireTemplateId, informationText, deadline } = req.body as {
     name?: unknown;
     moduleId?: unknown;
     questionnaireTemplateId?: unknown;
+    informationText?: unknown;
     deadline?: unknown;
   };
 
@@ -53,6 +54,14 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
   }
 
+  let normalizedInformationText: string | null = null;
+  if (typeof informationText === "string") {
+    const trimmed = informationText.trim();
+    normalizedInformationText = trimmed.length > 0 ? trimmed : null;
+  } else if (informationText !== undefined && informationText !== null) {
+    return res.status(400).json({ error: "informationText must be a string when provided" });
+  }
+
   const parsedDeadline = parseProjectDeadline(deadline);
   if (!parsedDeadline.ok) {
     return res.status(400).json({ error: parsedDeadline.error });
@@ -64,6 +73,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       normalizedName,
       parsedModuleId,
       parsedTemplateId,
+      normalizedInformationText,
       parsedDeadline.value,
     );
     res.status(201).json(project);
