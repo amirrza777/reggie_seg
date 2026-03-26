@@ -64,18 +64,24 @@ export function ArchiveManager() {
 
   return (
     <div className="archive-manager">
-      <div className="archive-tabs">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`archive-tab${activeTab === tab.key ? " archive-tab--active" : ""}`}
-            onClick={() => setActiveTab(tab.key)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <nav className="pill-nav archive-tabs" role="tablist" aria-label="Archive sections">
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              className={`pill-nav__link${isActive ? " pill-nav__link--active" : ""}`}
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </nav>
 
       {activeTab === "modules" && (
         <ArchiveTable
@@ -142,42 +148,44 @@ function ArchiveTable({ rows, type, loading, onToggle }: TableProps) {
   }
 
   return (
-    <table className="archive-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Details</th>
-          <th>Status</th>
-          <th>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row) => {
-          const isArchived = !!row.archivedAt;
-          const key = `${type}-${row.id}`;
-          return (
-            <tr key={row.id} className={isArchived ? "archive-row--archived" : ""}>
-              <td className="archive-row__name">{row.name}</td>
-              <td className="archive-row__subtitle">{row.subtitle}</td>
-              <td>
-                <span className={`archive-badge ${isArchived ? "archive-badge--archived" : "archive-badge--active"}`}>
-                  {isArchived ? "Archived" : "Active"}
-                </span>
-              </td>
-              <td>
-                <button
-                  type="button"
-                  className={`archive-btn ${isArchived ? "archive-btn--unarchive" : "archive-btn--archive"}`}
-                  disabled={loading === key}
-                  onClick={() => onToggle(type, row.id, isArchived)}
-                >
-                  {loading === key ? "…" : isArchived ? "Unarchive" : "Archive"}
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div className="archive-table-wrap">
+      <table className="archive-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Details</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const isArchived = !!row.archivedAt;
+            const key = `${type}-${row.id}`;
+            return (
+              <tr key={row.id} className={isArchived ? "archive-row--archived" : ""}>
+                <td className="archive-row__name">{row.name}</td>
+                <td className="archive-row__subtitle">{row.subtitle}</td>
+                <td>
+                  <span className={`archive-badge ${isArchived ? "archive-badge--archived" : "archive-badge--active"}`}>
+                    {isArchived ? "Archived" : "Active"}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className={`archive-btn ${isArchived ? "archive-btn--unarchive" : "archive-btn--archive"}`}
+                    disabled={loading === key}
+                    onClick={() => onToggle(type, row.id, isArchived)}
+                  >
+                    {loading === key ? "…" : isArchived ? "Unarchive" : "Archive"}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

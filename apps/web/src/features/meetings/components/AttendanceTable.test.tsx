@@ -41,6 +41,28 @@ describe("AttendanceTable", () => {
     expect(screen.getByText("John Smith")).toBeInTheDocument();
   });
 
+  it("derives members from attendances when members prop is omitted", () => {
+    render(<AttendanceTable meetingId={10} initialAttendances={attendances} />);
+    expect(screen.getByText("Reggie King")).toBeInTheDocument();
+    expect(screen.getByText("John Smith")).toBeInTheDocument();
+  });
+
+  it("adds default absent records for members without existing attendance", async () => {
+    const onlyOneAttendance = [attendances[0]];
+    const expandedMembers = [...members, { id: 3, firstName: "Casey", lastName: "Jones" }];
+
+    render(<AttendanceTable meetingId={10} members={expandedMembers} initialAttendances={onlyOneAttendance} />);
+    fireEvent.click(screen.getByRole("button", { name: /save attendance/i }));
+
+    await waitFor(() =>
+      expect(markAttendanceMock).toHaveBeenCalledWith(10, [
+        { userId: 1, status: "absent" },
+        { userId: 2, status: "absent" },
+        { userId: 3, status: "absent" },
+      ]),
+    );
+  });
+
   it("renders a dropdown for each attendee", () => {
     render(<AttendanceTable meetingId={10} members={members} initialAttendances={attendances} />);
     const selects = screen.getAllByRole("combobox");

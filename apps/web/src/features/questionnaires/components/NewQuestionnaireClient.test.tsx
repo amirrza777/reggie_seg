@@ -15,13 +15,11 @@ vi.mock("../api/client", () => ({
 
 describe("NewQuestionnaireClient", () => {
   const createQuestionnaireMock = vi.mocked(createQuestionnaire);
-  let alertSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     push.mockReset();
     createQuestionnaireMock.mockReset();
-    alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -153,7 +151,7 @@ describe("NewQuestionnaireClient", () => {
     expect(screen.queryByPlaceholderText("Question label")).not.toBeInTheDocument();
   });
 
-  it("shows save failure alert and leaves editor usable", async () => {
+  it("shows save failure message and leaves editor usable", async () => {
     createQuestionnaireMock.mockRejectedValueOnce(new Error("fail"));
 
     render(<NewQuestionnaireClient />);
@@ -169,7 +167,7 @@ describe("NewQuestionnaireClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Save failed — check console");
+      expect(screen.getByText("fail")).toBeInTheDocument();
     });
     expect(errorSpy).toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();

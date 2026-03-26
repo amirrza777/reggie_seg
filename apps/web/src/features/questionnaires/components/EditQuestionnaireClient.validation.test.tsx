@@ -20,7 +20,6 @@ vi.mock("@/shared/api/http", () => ({
 
 describe("EditQuestionnaireClient validation and fallback paths", () => {
   const apiFetchMock = vi.mocked(apiFetch);
-  let alertSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
@@ -30,7 +29,6 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     push.mockReset();
     apiFetchMock.mockReset();
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -43,7 +41,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     return JSON.parse(String(init?.body));
   };
 
-  it("shows alert when update API fails", async () => {
+  it("shows inline save error when update API fails", async () => {
     apiFetchMock
       .mockResolvedValueOnce({
         templateName: "Health Survey",
@@ -57,7 +55,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Save failed.");
+      expect(screen.getByText("network")).toBeInTheDocument();
     });
     expect(back).not.toHaveBeenCalled();
   });

@@ -22,14 +22,12 @@ vi.mock("../api/client", () => ({
 
 describe("SharedQuestionnaireButtons", () => {
   const deleteQuestionnaireMock = vi.mocked(deleteQuestionnaire);
-  let alertSpy: ReturnType<typeof vi.spyOn>;
   let errorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     push.mockReset();
     refresh.mockReset();
     deleteQuestionnaireMock.mockReset();
-    alertSpy = vi.spyOn(window, "alert").mockImplementation(() => undefined);
     errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -118,13 +116,11 @@ describe("SharedQuestionnaireButtons", () => {
     const dialog = screen.getByRole("dialog", { name: /delete questionnaire/i });
     fireEvent.click(within(dialog).getByRole("button", { name: /delete questionnaire/i }));
 
-    await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Cannot delete in use template");
-    });
+    await waitFor(() => expect(screen.getByText("Cannot delete in use template")).toBeInTheDocument());
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it("logs and shows generic alert for unknown delete errors", async () => {
+  it("logs and shows generic delete error for unknown failures", async () => {
     const unknownError = new Error("network down");
     deleteQuestionnaireMock.mockRejectedValue(unknownError);
     render(<DeleteQuestionnaireButton questionnaireId={23} />);
@@ -135,7 +131,7 @@ describe("SharedQuestionnaireButtons", () => {
 
     await waitFor(() => {
       expect(errorSpy).toHaveBeenCalledWith(unknownError);
-      expect(alertSpy).toHaveBeenCalledWith("Delete failed - check console");
+      expect(screen.getByText("Delete failed - check console")).toBeInTheDocument();
     });
   });
 });

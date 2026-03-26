@@ -235,9 +235,48 @@ describe("MeetingList", () => {
   });
 
   it("shows dash for meetings with no minutes writer", () => {
-    const noMinutes = [{ ...recentPastMeeting, minutes: null }];
+    const noMinutes = [
+      {
+        ...meetings[0],
+        minutes: null,
+        attendances: [
+          {
+            id: 1,
+            status: "present",
+            user: { id: 1, firstName: "Reggie", lastName: "King" },
+          },
+        ],
+      },
+    ];
     render(<MeetingList meetings={noMinutes as any} projectId={1} showMinutesWriter />);
     expect(screen.getAllByText("—")).not.toHaveLength(0);
+  });
+
+  it("shows invited count as participants of team allocations", () => {
+    const withParticipants = [
+      {
+        ...meetings[0],
+        participants: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        team: { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] },
+      },
+    ];
+    render(<MeetingList meetings={withParticipants as any} projectId={1} />);
+    expect(screen.getByText("3 of 4")).toBeInTheDocument();
+  });
+
+  it("shows attendance summary when showMinutesWriter is true", () => {
+    const withAttendance = [
+      {
+        ...meetings[0],
+        attendances: [
+          { status: "on_time" },
+          { status: "late" },
+          { status: "absent" },
+        ],
+      },
+    ];
+    render(<MeetingList meetings={withAttendance as any} projectId={1} showMinutesWriter />);
+    expect(screen.getByText("2 of 3")).toBeInTheDocument();
   });
 
   it("sorts by date descending when showMinutesWriter is true", () => {
@@ -256,6 +295,114 @@ describe("MeetingList", () => {
     fireEvent.click(dateHeader);
     fireEvent.click(dateHeader);
     expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+  });
+
+  it("sorts by invited count when invited header is clicked", () => {
+    const byInvites = [
+      {
+        ...meetings[0],
+        id: 10,
+        title: "Large Invite",
+        participants: [{ id: 1 }, { id: 2 }, { id: 3 }],
+        team: { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] },
+      },
+      {
+        ...meetings[0],
+        id: 11,
+        title: "Small Invite",
+        participants: [{ id: 1 }],
+        team: { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] },
+      },
+    ];
+
+    render(<MeetingList meetings={byInvites as any} projectId={1} />);
+    fireEvent.click(screen.getByText("Invited"));
+    expect(screen.getByText("Small Invite")).toBeInTheDocument();
+  });
+
+  it("sorts by title when title header is clicked", () => {
+    const byTitle = [
+      { ...meetings[0], id: 1, title: "Zulu Meeting" },
+      { ...meetings[0], id: 2, title: "Alpha Meeting" },
+    ];
+    render(<MeetingList meetings={byTitle as any} projectId={1} />);
+    fireEvent.click(screen.getByText("Title"));
+    expect(screen.getByText("Alpha Meeting")).toBeInTheDocument();
+  });
+
+  it("sorts by organiser name when organiser header is clicked", () => {
+    const byOrganiser = [
+      { ...meetings[0], id: 1, organiser: { id: 1, firstName: "Zane", lastName: "King" } },
+      { ...meetings[0], id: 2, organiser: { id: 2, firstName: "Amy", lastName: "Brown" } },
+    ];
+    render(<MeetingList meetings={byOrganiser as any} projectId={1} />);
+    fireEvent.click(screen.getByText("Organiser"));
+    expect(screen.getByText("Amy Brown")).toBeInTheDocument();
+  });
+
+  it("sorts by location when location header is clicked", () => {
+    const byLocation = [
+      { ...meetings[0], id: 1, location: "Room Z" },
+      { ...meetings[0], id: 2, location: "Room A" },
+    ];
+    render(<MeetingList meetings={byLocation as any} projectId={1} />);
+    fireEvent.click(screen.getByText("Location"));
+    expect(screen.getByText("Room A")).toBeInTheDocument();
+  });
+
+  it("sorts by minutes writer when minutes-by header is clicked", () => {
+    const byWriter = [
+      {
+        ...meetings[0],
+        id: 1,
+        minutes: { writer: { id: 1, firstName: "Zoe", lastName: "Writer" } },
+      },
+      {
+        ...meetings[0],
+        id: 2,
+        minutes: { writer: { id: 2, firstName: "Adam", lastName: "Author" } },
+      },
+    ];
+    render(<MeetingList meetings={byWriter as any} projectId={1} showMinutesWriter />);
+    fireEvent.click(screen.getByText("Minutes by"));
+    expect(screen.getByText("Adam Author")).toBeInTheDocument();
+  });
+
+  it("ignores attendance-header sorting when minutes-writer mode is enabled", () => {
+    const twoMeetings = [
+      {
+        ...meetings[0],
+        id: 1,
+        title: "Older Meeting",
+        date: "2024-01-01T10:00:00Z",
+        attendances: [{ status: "absent" }],
+      },
+      {
+        ...meetings[0],
+        id: 2,
+        title: "Newer Meeting",
+        date: "2024-06-01T10:00:00Z",
+        attendances: [{ status: "on_time" }],
+      },
+    ];
+    render(<MeetingList meetings={twoMeetings as any} projectId={1} showMinutesWriter />);
+
+    const before = screen.getByText("Newer Meeting").compareDocumentPosition(screen.getByText("Older Meeting"));
+    expect(before & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    fireEvent.click(screen.getByText("Attendance"));
+    const after = screen.getByText("Newer Meeting").compareDocumentPosition(screen.getByText("Older Meeting"));
+    expect(after & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("ignores action-column sorting clicks", () => {
+    const { container } = render(<MeetingList meetings={meetings as any} projectId={1} />);
+    const actionHeader = container.querySelector(".table__head > div:last-child") as HTMLElement;
+    expect(actionHeader).toBeTruthy();
+
+    fireEvent.click(actionHeader);
+    expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+    expect(screen.getByText("Group Check-in")).toBeInTheDocument();
   });
 
   it("renders empty message when no meetings", () => {

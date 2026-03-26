@@ -56,4 +56,30 @@ describe("ForumSettingsCard", () => {
 
     expect(hideNamesCheckbox).toBeChecked();
   });
+
+  it("shows staff sign-in hint and skips loading settings when user is missing", async () => {
+    useUserMock.mockReturnValue({
+      user: null,
+      loading: false,
+    } as ReturnType<typeof useUser>);
+
+    render(<ForumSettingsCard projectId={4} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Sign in as staff to update these settings.")).toBeInTheDocument();
+    });
+
+    expect(getForumSettingsMock).not.toHaveBeenCalled();
+    expect(screen.getByRole("checkbox", { name: "Hide student names" })).toBeDisabled();
+  });
+
+  it("shows an error when loading settings fails", async () => {
+    getForumSettingsMock.mockRejectedValue(new Error("load failed"));
+
+    render(<ForumSettingsCard projectId={2} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to load forum settings.")).toBeInTheDocument();
+    });
+  });
 });

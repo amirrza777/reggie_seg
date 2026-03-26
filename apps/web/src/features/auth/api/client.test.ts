@@ -113,7 +113,7 @@ describe("auth api client", () => {
 
   it("retries getCurrentUser after 401 when refresh succeeds", async () => {
     apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
       .mockResolvedValueOnce({ accessToken: "token-3" })
       .mockResolvedValueOnce({ id: 1, email: "user@kcl.ac.uk" });
 
@@ -128,7 +128,7 @@ describe("auth api client", () => {
 
   it("returns null from getCurrentUser when refresh fails", async () => {
     apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
       .mockRejectedValueOnce(new Error("refresh failed"));
     const user = await getCurrentUser();
     expect(user).toBeNull();
@@ -136,7 +136,7 @@ describe("auth api client", () => {
 
   it("retries updateProfile after 401 when refresh succeeds", async () => {
     apiFetchMock
-      .mockRejectedValueOnce(new ApiError("unauthorized", { status: 401 }))
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
       .mockResolvedValueOnce({ accessToken: "token-4" })
       .mockResolvedValueOnce({ id: 1, firstName: "Ayan" });
 

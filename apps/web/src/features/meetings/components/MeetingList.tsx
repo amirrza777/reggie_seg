@@ -68,7 +68,7 @@ export function MeetingList({
         }
         case 4: {
           if (!showMinutesWriter) {
-            return dir * (a.participants.length - b.participants.length);
+            return dir * ((a.participants?.length ?? 0) - (b.participants?.length ?? 0));
           }
           return 0;
         }
@@ -177,7 +177,6 @@ export function MeetingList({
 
     const teamSize = meeting.team?.allocations?.length ?? 0;
     const invitedCount = meeting.participants?.length ?? 0;
-
     const attendances = meeting.attendances ?? [];
     const attendedCount = attendances.filter((a) => a.status !== "absent").length;
     const recordedCount = attendances.length;

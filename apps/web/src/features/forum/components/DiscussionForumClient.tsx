@@ -5,7 +5,9 @@ import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
+import { PaginationControls, PaginationPageIndicator } from "@/shared/ui/PaginationControls";
 import {
   createDiscussionPost,
   createStudentForumReport,
@@ -22,6 +24,7 @@ type DiscussionForumClientProps = {
   projectId: string;
   showHeader?: boolean;
 };
+type ReportConfirmationState = { postId: number; mode: "staff" | "student" } | null;
 
 const ROOT_POSTS_PER_PAGE = 8;
 const VOTE_ICON_PATH =
@@ -90,6 +93,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
   const [savingPostId, setSavingPostId] = useState<number | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
+  const [reportConfirmation, setReportConfirmation] = useState<ReportConfirmationState>(null);
   const [reactingPostId, setReactingPostId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
   const [savingReplyPostId, setSavingReplyPostId] = useState<number | null>(null);
@@ -315,7 +319,6 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleReport = async (postId: number) => {
     if (!user) return;
-    if (!window.confirm("Report this post to staff?")) return;
     setReportingPostId(postId);
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
@@ -330,7 +333,6 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleStudentReport = async (postId: number) => {
     if (!user) return;
-    if (!window.confirm("Report this post to project staff?")) return;
     setReportingPostId(postId);
     try {
       await createStudentForumReport(user.id, Number(projectId), postId);
@@ -446,6 +448,17 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setMenuOpenPostId(null);
   };
 
+  const confirmReport = async () => {
+    if (!reportConfirmation) return;
+    const { postId, mode } = reportConfirmation;
+    setReportConfirmation(null);
+    if (mode === "staff") {
+      await handleReport(postId);
+      return;
+    }
+    await handleStudentReport(postId);
+  };
+
   const renderPost = (post: DiscussionPost, depth = 0) => {
     const isAuthor = user?.id === post.author.id;
     const isEditing = editingPostId === post.id;
@@ -472,11 +485,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     const handleReportAction = () => {
       closePostMenu();
       if (canReportAsStaff) {
-        void handleReport(post.id);
+        setReportConfirmation({ postId: post.id, mode: "staff" });
         return;
       }
       if (canReportAsStudent) {
-        void handleStudentReport(post.id);
+        setReportConfirmation({ postId: post.id, mode: "student" });
       }
     };
 
@@ -816,31 +829,34 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           <>
             {visiblePosts.map((post) => renderPost(post))}
             {totalPages > 1 ? (
-              <nav className="discussion-posts__pagination" aria-label="Discussion posts pagination">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <p className="discussion-posts__page-indicator" aria-live="polite">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </nav>
+              <PaginationControls
+                as="nav"
+                className="discussion-posts__pagination"
+                ariaLabel="Discussion posts pagination"
+                page={currentPage}
+                totalPages={totalPages}
+                onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                onNextPage={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                <PaginationPageIndicator page={currentPage} totalPages={totalPages} />
+              </PaginationControls>
             ) : null}
           </>
         )}
       </section>
+      <ConfirmationModal
+        open={reportConfirmation !== null}
+        title="Report post?"
+        message={
+          reportConfirmation?.mode === "staff"
+            ? "Report this post to staff?"
+            : "Report this post to project staff?"
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Report post"
+        onCancel={() => setReportConfirmation(null)}
+        onConfirm={() => void confirmReport()}
+      />
     </div>
   );
 }

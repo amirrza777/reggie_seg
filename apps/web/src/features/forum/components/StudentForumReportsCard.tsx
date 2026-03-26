@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import {
   approveStudentForumReport,
@@ -17,6 +18,7 @@ type StudentForumReportsCardProps = {
 };
 
 type RequestState = "idle" | "loading" | "success" | "error";
+type PendingAction = { reportId: number; kind: "approve" | "ignore" } | null;
 
 export function StudentForumReportsCard({ projectId }: StudentForumReportsCardProps) {
   const { user } = useUser();
@@ -27,6 +29,7 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
   const [conversationMessage, setConversationMessage] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ForumPostConversation | null>(null);
   const [activePostId, setActivePostId] = useState<number | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const loadRequestIdRef = useRef(0);
   const conversationRequestIdRef = useRef(0);
 
@@ -64,33 +67,27 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
     });
   }, [loadReports]);
 
-  const handleApprove = async (reportId: number) => {
-    if (!user) return;
-    const reportPostId = reports.find((report) => report.id === reportId)?.post.id ?? null;
-    if (!window.confirm("Approve this report and hide the post from the forum?")) return;
-    setStatus("loading");
-    setMessage(null);
-    try {
-      await approveStudentForumReport(user.id, projectId, reportId);
-      setReports((prev) => prev.filter((report) => report.id !== reportId));
-      if (reportPostId && activePostId === reportPostId) {
-        handleHideConversation();
-      }
-      setStatus("success");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not approve report.");
-    }
+  const handleApprove = (reportId: number) => {
+    setPendingAction({ reportId, kind: "approve" });
   };
 
-  const handleIgnore = async (reportId: number) => {
-    if (!user) return;
+  const handleIgnore = (reportId: number) => {
+    setPendingAction({ reportId, kind: "ignore" });
+  };
+
+  const confirmPendingAction = async () => {
+    if (!user || !pendingAction) return;
+    const { reportId, kind } = pendingAction;
+    setPendingAction(null);
     const reportPostId = reports.find((report) => report.id === reportId)?.post.id ?? null;
-    if (!window.confirm("Ignore this report?")) return;
     setStatus("loading");
     setMessage(null);
     try {
-      await ignoreStudentForumReport(user.id, projectId, reportId);
+      if (kind === "approve") {
+        await approveStudentForumReport(user.id, projectId, reportId);
+      } else {
+        await ignoreStudentForumReport(user.id, projectId, reportId);
+      }
       setReports((prev) => prev.filter((report) => report.id !== reportId));
       if (reportPostId && activePostId === reportPostId) {
         handleHideConversation();
@@ -98,7 +95,13 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not ignore report.");
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : kind === "approve"
+            ? "Could not approve report."
+            : "Could not ignore report.",
+      );
     }
   };
 
@@ -207,6 +210,20 @@ export function StudentForumReportsCard({ projectId }: StudentForumReportsCardPr
           ) : null}
         </div>
       ))}
+      <ConfirmationModal
+        open={pendingAction !== null}
+        title={pendingAction?.kind === "approve" ? "Approve report?" : "Ignore report?"}
+        message={
+          pendingAction?.kind === "approve"
+            ? "Approve this report and hide the post from the forum?"
+            : "Ignore this report?"
+        }
+        cancelLabel="Cancel"
+        confirmLabel={pendingAction?.kind === "approve" ? "Approve report" : "Ignore report"}
+        confirmVariant={pendingAction?.kind === "approve" ? "danger" : "primary"}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => void confirmPendingAction()}
+      />
     </div>
   );
 }
