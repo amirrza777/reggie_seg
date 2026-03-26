@@ -63,8 +63,28 @@ export async function fetchModulesForUser(
   const modules = await getModulesForUser(userId, options);
   const staffFullList = options?.staffOnly === true && options?.compact !== true;
   return modules.map((module) => {
-    const rawCount = typeof module.staffWithAccessCount === "number" ? module.staffWithAccessCount : undefined;
+    const rawCount =
+      "staffWithAccessCount" in module && typeof module.staffWithAccessCount === "number"
+        ? module.staffWithAccessCount
+        : undefined;
     const staffWithAccessCount = staffFullList ? (rawCount ?? 0) : rawCount;
+
+    const projectWindowStart =
+      "projectWindowStart" in module
+        ? module.projectWindowStart === null
+          ? null
+          : module.projectWindowStart instanceof Date
+            ? module.projectWindowStart.toISOString()
+            : undefined
+        : undefined;
+    const projectWindowEnd =
+      "projectWindowEnd" in module
+        ? module.projectWindowEnd === null
+          ? null
+          : module.projectWindowEnd instanceof Date
+            ? module.projectWindowEnd.toISOString()
+            : undefined
+        : undefined;
 
     return {
       id: String(module.id),
@@ -75,6 +95,10 @@ export async function fetchModulesForUser(
       expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
       readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
       moduleLeadNames: "moduleLeadNames" in module ? module.moduleLeadNames : [],
+      leaderCount: "leaderCount" in module ? module.leaderCount : undefined,
+      teachingAssistantCount: "teachingAssistantCount" in module ? module.teachingAssistantCount : undefined,
+      ...(projectWindowStart !== undefined ? { projectWindowStart } : {}),
+      ...(projectWindowEnd !== undefined ? { projectWindowEnd } : {}),
       teamCount: "teamCount" in module ? module.teamCount : 0,
       projectCount: "projectCount" in module ? module.projectCount : 0,
       accountRole: module.accessRole,

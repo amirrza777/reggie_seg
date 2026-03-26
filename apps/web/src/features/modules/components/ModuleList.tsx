@@ -2,10 +2,11 @@
 
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import type { Module } from "../types";
+import { formatDate } from "@/shared/lib/formatDate";
 import { MODULE_SORT_OPTIONS, type ModuleSortKey } from "./moduleSortOptions";
 import "@/features/modules/styles/module-list.css";
+import Link from "next/link";
 
 type ModuleListProps = {
   modules?: Module[];
@@ -38,7 +39,7 @@ function compareByTitle(a: Module, b: Module) {
 
 function sortModules(modules: Module[], sortBy: ModuleSortKey) {
   return [...modules].sort((a, b) => {
-    if (sortBy === "teamCount") return compareWithFallback((b.teamCount ?? 0) - (a.teamCount ?? 0), a, b);
+    if (sortBy === "leaderCount") return compareWithFallback((b.leaderCount ?? 0) - (a.leaderCount ?? 0), a, b);
     if (sortBy === "projectCount") return compareWithFallback((b.projectCount ?? 0) - (a.projectCount ?? 0), a, b);
     if (sortBy === "accessLevel") return compareWithFallback(getAccessLevelRank(a.accountRole) - getAccessLevelRank(b.accountRole), a, b);
     return compareByTitle(a, b);
@@ -99,13 +100,12 @@ function ModuleSortControl({
   onSortChange: (sortBy: ModuleSortKey) => void;
 }) {
   return (
-    <div className="module-list__sort-group">
-      <label htmlFor="module-list-sort" className="module-list__sort-label">
+    <div>
+      <label htmlFor="module-list-sort">
         Sort by
       </label>
       <select
         id="module-list-sort"
-        className="module-list__sort-select"
         value={activeSortBy}
         onChange={(event) => onSortChange(event.target.value as ModuleSortKey)}
       >
@@ -119,44 +119,39 @@ function ModuleSortControl({
   );
 }
 
+function formatModuleDateRange(module: Module): string | null {
+  const startLabel = formatDate(module.projectWindowStart);
+  if (!startLabel) return null;
+  const endLabel = formatDate(module.projectWindowEnd);
+  return endLabel ? `${startLabel} – ${endLabel}` : `${startLabel} – ongoing`;
+}
+
 function ModuleCard({ module }: { module: Module }) {
   const role = getRolePresentation(module.accountRole);
-  const teams = module.teamCount ?? 0;
+  const leads = module.leaderCount ?? 0;
+  const tas = module.teachingAssistantCount ?? 0;
   const projects = module.projectCount ?? 0;
-  const moduleId = encodeURIComponent(module.id);
+  const dateRange = formatModuleDateRange(module);
 
   return (
+    <Link href={`/staff/modules/${module.id}`}>
     <article className="module-card card">
       <div className="module-card__header">
         <div className="module-card__header-top">
           <h2 className="module-card__title">{module.title}</h2>
           <span className={`module-card__role module-card__role--${role.tone}`}>{role.label}</span>
         </div>
-        <p className="module-card__meta">Code: {formatModuleCode(module)}</p>
+        {dateRange ? <p className="module-card__dates muted">{dateRange}</p> : null}
       </div>
       {module.description ? <p className="module-card__summary">{module.description}</p> : null}
       <div className="module-card__footer">
         <span className="module-card__counts">
-          {teams} {pluralize("team", teams)} · {projects} {pluralize("project", projects)}
+        {projects}{" "} {pluralize("project", projects)} • {leads} module {pluralize("lead", leads)} • {tas} {pluralize("TA", tas)}
         </span>
-        <div className="module-card__actions">
-          {module.accountRole === "OWNER" ? <Link href={`/staff/modules/${moduleId}/manage`} className="module-card__manage">Manage module</Link> : null}
-          {canCreateProject(module.accountRole) ? <Link href={`/staff/projects/create?moduleId=${moduleId}`} className="module-card__manage">Create project</Link> : null}
-          <Link href={`/modules/${moduleId}`} className="module-card__cta">View Module</Link>
-        </div>
       </div>
     </article>
+    </Link>
   );
-}
-
-function canCreateProject(role?: Module["accountRole"]): boolean {
-  return role === "OWNER" || role === "ADMIN_ACCESS";
-}
-
-function formatModuleCode(module: Module): string {
-  if (module.code?.trim()) return module.code.trim();
-  const numericId = Number(module.id);
-  return Number.isFinite(numericId) ? `MOD-${numericId}` : module.id;
 }
 
 function pluralize(label: string, count: number): string {

@@ -139,15 +139,48 @@ describe("projects repo read and create flows", () => {
       .mockResolvedValueOnce([
         {
           id: 7,
+          code: null,
           name: "SEGP",
           briefText: null,
           timelineText: null,
           expectationsText: null,
           readinessNotesText: null,
+          createdAt: new Date("2025-01-01T00:00:00.000Z"),
+          archivedAt: null,
+          _count: { moduleLeads: 1, moduleTeachingAssistants: 1 },
           moduleLeads: [{ userId: 21 }],
           moduleTeachingAssistants: [{ userId: 21 }],
           userModules: [{ userId: 21 }],
-          projects: [{ _count: { teams: 2 } }, { _count: { teams: 1 } }],
+          projects: [
+            {
+              _count: { teams: 2 },
+              deadline: {
+                taskOpenDate: new Date("2025-02-01T00:00:00.000Z"),
+                taskDueDate: new Date("2025-02-15T00:00:00.000Z"),
+                taskDueDateMcf: null,
+                assessmentOpenDate: new Date("2025-03-01T00:00:00.000Z"),
+                assessmentDueDate: new Date("2025-04-01T00:00:00.000Z"),
+                assessmentDueDateMcf: null,
+                feedbackOpenDate: new Date("2025-04-15T00:00:00.000Z"),
+                feedbackDueDate: new Date("2025-05-01T00:00:00.000Z"),
+                feedbackDueDateMcf: null,
+              },
+            },
+            {
+              _count: { teams: 1 },
+              deadline: {
+                taskOpenDate: new Date("2025-01-01T00:00:00.000Z"),
+                taskDueDate: new Date("2025-02-01T00:00:00.000Z"),
+                taskDueDateMcf: null,
+                assessmentOpenDate: new Date("2025-02-10T00:00:00.000Z"),
+                assessmentDueDate: new Date("2025-03-01T00:00:00.000Z"),
+                assessmentDueDateMcf: null,
+                feedbackOpenDate: new Date("2025-04-01T00:00:00.000Z"),
+                feedbackDueDate: new Date("2025-06-15T00:00:00.000Z"),
+                feedbackDueDateMcf: null,
+              },
+            },
+          ],
         },
       ]);
 
@@ -155,8 +188,12 @@ describe("projects repo read and create flows", () => {
       expect.objectContaining({
         id: 7,
         accessRole: "OWNER",
+        leaderCount: 1,
+        teachingAssistantCount: 1,
         teamCount: 3,
         projectCount: 2,
+        projectWindowStart: new Date("2025-01-01T00:00:00.000Z"),
+        projectWindowEnd: new Date("2025-06-15T00:00:00.000Z"),
       }),
     ]);
   });
@@ -170,11 +207,15 @@ describe("projects repo read and create flows", () => {
     (prisma.module.findMany as any).mockResolvedValueOnce([
       {
         id: 8,
+        code: null,
         name: "IOT",
         briefText: null,
         timelineText: null,
         expectationsText: null,
         readinessNotesText: null,
+        createdAt: new Date("2025-02-01T00:00:00.000Z"),
+        archivedAt: null,
+        _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
         moduleLeads: [],
         moduleTeachingAssistants: [],
         userModules: [],
@@ -186,6 +227,8 @@ describe("projects repo read and create flows", () => {
       expect.objectContaining({
         id: 8,
         accessRole: "ADMIN_ACCESS",
+        projectWindowStart: null,
+        projectWindowEnd: null,
       }),
     ]);
   });

@@ -1,19 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
-import { vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { ModuleList } from "./ModuleList";
 
-const push = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push }),
-}));
-
 describe("ModuleList", () => {
-  beforeEach(() => {
-    push.mockReset();
-  });
-
   it("renders an empty state by default", () => {
     render(<ModuleList />);
     expect(screen.getByText("No modules assigned yet.")).toBeInTheDocument();
@@ -39,60 +28,37 @@ describe("ModuleList", () => {
     expect(screen.getByText("Code: 4CCS2DBS")).toBeInTheDocument();
   });
 
-  it("shows management actions for module owners", () => {
+  it("shows module leads, teaching assistants, projects, and project-derived date range", () => {
     render(
       <ModuleList
         modules={[
-          { id: "12", title: "Software Engineering", accountRole: "OWNER" },
+          {
+            id: "m1",
+            title: "Algorithms",
+            leaderCount: 2,
+            teachingAssistantCount: 1,
+            projectCount: 3,
+            projectWindowStart: "2025-01-01T00:00:00.000Z",
+            projectWindowEnd: "2025-06-30T00:00:00.000Z",
+          },
         ]}
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Manage module" })).toHaveAttribute(
-      "href",
-      "/staff/modules/12/manage",
-    );
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=12",
-    );
-  });
-
-  it("hides manage-module action for admin access role", () => {
-    render(
-      <ModuleList
-        modules={[
-          { id: "22", title: "Data Structures", accountRole: "ADMIN_ACCESS" },
-        ]}
-      />,
-    );
-
-    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=22",
-    );
-  });
-
-  it("renders a view-module link for each module", () => {
-    render(
-      <ModuleList
-        modules={[
-          { id: "31", title: "Machine Learning", accountRole: "OWNER" },
-        ]}
-      />,
-    );
-
-    expect(screen.getByRole("link", { name: "View Module" })).toHaveAttribute("href", "/modules/31");
+    expect(screen.getByText(/2 module leads/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 teaching assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 projects/i)).toBeInTheDocument();
+    const card = screen.getByRole("article");
+    expect(card.querySelector(".module-card__dates")?.textContent).toMatch(/2025/);
   });
 
   it("sorts modules by the selected mode", () => {
     render(
       <ModuleList
         modules={[
-          { id: "m1", title: "Zeta", teamCount: 1, projectCount: 2, accountRole: "TEACHING_ASSISTANT" },
-          { id: "m2", title: "Alpha", teamCount: 5, projectCount: 1, accountRole: "OWNER" },
-          { id: "m3", title: "Beta", teamCount: 3, projectCount: 8, accountRole: "ADMIN_ACCESS" },
+          { id: "m1", title: "Zeta", leaderCount: 1, projectCount: 2, accountRole: "TEACHING_ASSISTANT" },
+          { id: "m2", title: "Alpha", leaderCount: 5, projectCount: 1, accountRole: "OWNER" },
+          { id: "m3", title: "Beta", leaderCount: 3, projectCount: 8, accountRole: "ADMIN_ACCESS" },
         ]}
       />,
     );
@@ -102,7 +68,7 @@ describe("ModuleList", () => {
 
     expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
 
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "teamCount" } });
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "leaderCount" } });
     expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
 
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "projectCount" } });
