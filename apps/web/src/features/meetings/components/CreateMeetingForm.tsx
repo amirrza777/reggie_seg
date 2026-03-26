@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { useUser } from "@/features/auth/useUser";
 import { createMeeting, listTeamMembers } from "../api/client";
 import "../styles/meeting-list.css";
@@ -171,10 +171,10 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
             placeholder="https://meet.google.com/..."
           />
         </label>
-        <label className="stack" htmlFor="create-meeting-agenda">
+        <div className="stack">
           <span>Agenda</span>
-          <AutoGrowTextarea id="create-meeting-agenda" rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
-        </label>
+          <RichTextEditor initialContent={agenda} onChange={setAgenda} placeholder="Outline the meeting agenda..." />
+        </div>
         {members.length > 0 && (
           <div className="stack">
             <span>Participants</span>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { updateMeeting, deleteMeeting } from "../api/client";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import "../styles/meeting-list.css";
 import type { Meeting } from "../types";
 
@@ -98,10 +99,10 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
           <span>Video call link</span>
           <input type="url" value={videoCallLink} onChange={(e) => setVideoCallLink(e.target.value)} placeholder="https://meet.google.com/..." />
         </label>
-        <label className="stack">
+        <div className="stack">
           <span>Agenda</span>
-          <textarea rows={4} value={agenda} onChange={(e) => setAgenda(e.target.value)} />
-        </label>
+          <RichTextEditor initialContent={agenda} onChange={setAgenda} placeholder="Outline the meeting agenda..." />
+        </div>
         {members.length > 0 && (
           <div className="stack">
             <span>Participants</span>

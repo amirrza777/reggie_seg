@@ -95,7 +95,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
         {meeting.agenda && (
           <div>
             <h3>Agenda</h3>
-            <p>{meeting.agenda}</p>
+            <RichTextViewer content={meeting.agenda} />
           </div>
         )}
       </Card>

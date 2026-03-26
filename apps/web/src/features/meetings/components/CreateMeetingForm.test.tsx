@@ -10,6 +10,12 @@ vi.mock("../api/client", () => ({
   listTeamMembers: vi.fn(),
 }));
 
+vi.mock("@/shared/ui/RichTextEditor", () => ({
+  RichTextEditor: ({ onChange, placeholder }: { onChange: (v: string) => void; placeholder?: string }) => (
+    <textarea aria-label="Agenda" placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
+  ),
+}));
+
 import { useUser } from "@/features/auth/useUser";
 import { createMeeting, listTeamMembers } from "../api/client";
 import { CreateMeetingForm } from "./CreateMeetingForm";
