@@ -147,6 +147,10 @@
     margin: 2px 0;
 }
 
+.rich-editor__nested-listitem {
+    list-style-type: none;
+}
+
 .comment {
     border-bottom: 1px solid var(--border);
     padding: 10px 0;
