@@ -8,9 +8,9 @@ type NavigationPrefetchProps = {
   limit?: number;
 };
 
-const DEFAULT_PREFETCH_LIMIT = 8;
-const PREFETCH_DELAY_MS = 160;
-const PREFETCH_STEP_MS = 90;
+const DEFAULT_PREFETCH_LIMIT = 18;
+const PREFETCH_DELAY_MS = 0;
+const PREFETCH_STEP_MS = 45;
 const SLOW_EFFECTIVE_TYPES = new Set(["slow-2g", "2g", "3g"]);
 
 type NavigatorConnection = {

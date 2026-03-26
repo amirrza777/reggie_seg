@@ -11,6 +11,7 @@ import { getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from "@/shared/auth/session";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
+import { logDevError } from "@/shared/lib/devLogger";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,6 @@ type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 const moduleScopedStaffLinks = new Set([
   "/staff/dashboard",
   "/staff/modules",
-  "/staff/projects",
   "/staff/analytics",
   "/staff/questionnaires",
   "/staff/archive",
@@ -46,16 +46,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!user) redirect("/login");
   if (user.suspended === true || user.active === false) return renderSuspendedAccountView();
 
-  const [modulesResult, projectsResult] = await Promise.allSettled([
-    listModules(user.id, { compact: true }),
-    getUserProjects(user.id),
-  ]);
+  const navChildren = await loadNavChildrenData(user.id);
 
   const navData = buildLayoutNavigationData({
     user,
     flagMap,
-    modulesResult,
-    projectsResult,
+    modules: navChildren.modules,
+    projects: navChildren.projects,
   });
   const prefetchHrefs = buildPrefetchHrefs(navData);
 
@@ -101,11 +98,11 @@ function renderSuspendedAccountView() {
 function buildLayoutNavigationData(params: {
   user: AuthenticatedUser;
   flagMap: Record<string, boolean>;
-  modulesResult: PromiseSettledResult<Awaited<ReturnType<typeof listModules>>>;
-  projectsResult: PromiseSettledResult<Awaited<ReturnType<typeof getUserProjects>>>;
+  modules: Awaited<ReturnType<typeof listModules>> | null;
+  projects: Awaited<ReturnType<typeof getUserProjects>> | null;
 }) {
-  const moduleChildren = buildModuleChildren(params.modulesResult);
-  const projectChildren = buildProjectChildren(params.projectsResult);
+  const moduleChildren = buildModuleChildren(params.modules);
+  const projectChildren = buildProjectChildren(params.projects);
   const navLinks = buildBaseNavLinks(moduleChildren, projectChildren);
   const accessibleLinks = filterAccessibleNavLinks(navLinks, params.user, params.flagMap);
   const spaceLinks = buildSpaceLinks(params.user);
@@ -129,30 +126,52 @@ function buildPrefetchHrefs(navData: {
   return Array.from(new Set(queue));
 }
 
-function buildModuleChildren(modulesResult: PromiseSettledResult<Awaited<ReturnType<typeof listModules>>>) {
+function buildModuleChildren(modules: Awaited<ReturnType<typeof listModules>> | null) {
   const base: NonNullable<NavLink["children"]> = [{ href: "/dashboard", label: "Overview" }];
-  if (modulesResult.status !== "fulfilled" || modulesResult.value.length === 0) return base;
+  if (!modules || modules.length === 0) return base;
 
   return [
     ...base,
-    ...modulesResult.value.map((module) => ({
+    ...modules.map((module) => ({
       href: `/modules/${encodeURIComponent(module.id)}`,
       label: module.title,
     })),
   ];
 }
 
-function buildProjectChildren(projectsResult: PromiseSettledResult<Awaited<ReturnType<typeof getUserProjects>>>) {
+function buildProjectChildren(projects: Awaited<ReturnType<typeof getUserProjects>> | null) {
   const base: NonNullable<NavLink["children"]> = [{ href: "/projects", label: "All projects" }];
-  if (projectsResult.status !== "fulfilled") return base;
+  if (!projects) return base;
 
   return [
     ...base,
-    ...projectsResult.value.map((project) => ({
+    ...projects.map((project) => ({
       href: `/projects/${project.id}`,
       label: project.name,
     })),
   ];
+}
+
+async function loadNavChildrenData(userId: number): Promise<{
+  modules: Awaited<ReturnType<typeof listModules>> | null;
+  projects: Awaited<ReturnType<typeof getUserProjects>> | null;
+}> {
+  const [modulesResult, projectsResult] = await Promise.allSettled([
+    listModules(userId, { compact: true }),
+    getUserProjects(userId),
+  ]);
+
+  if (modulesResult.status === "rejected") {
+    logDevError("Failed to load module navigation children", modulesResult.reason);
+  }
+  if (projectsResult.status === "rejected") {
+    logDevError("Failed to load project navigation children", projectsResult.reason);
+  }
+
+  return {
+    modules: modulesResult.status === "fulfilled" ? modulesResult.value : null,
+    projects: projectsResult.status === "fulfilled" ? projectsResult.value : null,
+  };
 }
 
 function buildBaseNavLinks(moduleChildren: NonNullable<NavLink["children"]>, projectChildren: NonNullable<NavLink["children"]>): NavLink[] {
@@ -162,7 +181,6 @@ function buildBaseNavLinks(moduleChildren: NonNullable<NavLink["children"]>, pro
     { href: "/calendar", label: "Calendar", space: "workspace" },
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/modules", label: "My Modules", space: "staff" },
-    { href: "/staff/projects", label: "Projects", space: "staff" },
     { href: "/staff/analytics", label: "Analytics", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
     { href: "/staff/archive", label: "Archive", space: "staff" },

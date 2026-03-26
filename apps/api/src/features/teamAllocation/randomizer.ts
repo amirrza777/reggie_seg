@@ -85,11 +85,10 @@ function buildTeamSizeTargets(
   while (remaining > 0) {
     let progressed = false;
     for (let teamIndex = 0; teamIndex < teamCount && remaining > 0; teamIndex += 1) {
-      const currentTarget = targets[teamIndex];
-      if (currentTarget === undefined || currentTarget >= maxTeamSize) {
+      if (targets[teamIndex] >= maxTeamSize) {
         continue;
       }
-      targets[teamIndex] = currentTarget + 1;
+      targets[teamIndex] += 1;
       remaining -= 1;
       progressed = true;
     }
@@ -114,12 +113,10 @@ function assignShuffledStudentsToTargets<T>(
   let teamIndex = 0;
   for (const student of shuffledStudents) {
     let attempts = 0;
-    while (attempts < planned.length) {
-      const currentTeam = planned[teamIndex];
-      const currentTarget = targets[teamIndex];
-      if (!currentTeam || currentTarget === undefined || currentTeam.members.length < currentTarget) {
-        break;
-      }
+    while (
+      attempts < planned.length &&
+      planned[teamIndex].members.length >= targets[teamIndex]
+    ) {
       teamIndex = (teamIndex + 1) % planned.length;
       attempts += 1;
     }
@@ -128,11 +125,7 @@ function assignShuffledStudentsToTargets<T>(
       throw new Error("team size targets are overfilled");
     }
 
-    const destinationTeam = planned[teamIndex];
-    if (!destinationTeam) {
-      throw new Error("team index out of range");
-    }
-    destinationTeam.members.push(student);
+    planned[teamIndex].members.push(student);
     teamIndex = (teamIndex + 1) % planned.length;
   }
 

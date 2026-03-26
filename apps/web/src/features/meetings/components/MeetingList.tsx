@@ -175,11 +175,12 @@ export function MeetingList({
       </div>
     );
 
-    const teamSize = meeting.team.allocations.length;
-    const invitedCount = meeting.participants.length;
+    const teamSize = meeting.team?.allocations?.length ?? 0;
+    const invitedCount = meeting.participants?.length ?? 0;
 
-    const attendedCount = meeting.attendances.filter((a) => a.status !== "absent").length;
-    const recordedCount = meeting.attendances.length;
+    const attendances = meeting.attendances ?? [];
+    const attendedCount = attendances.filter((a) => a.status !== "absent").length;
+    const recordedCount = attendances.length;
     const attendanceCell = recordedCount > 0
       ? `${attendedCount} of ${recordedCount}`
       : <span className="muted">—</span>;

@@ -1,10 +1,17 @@
 import { render, screen } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { type MockedFunction } from "vitest";
+import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import { MeetingDetail } from "./MeetingDetail";
+import { useUser } from "@/features/auth/useUser";
+import type { Meeting } from "../types";
+
+vi.mock("@/features/auth/useUser", () => ({
+  useUser: vi.fn(),
+}));
+
+type MockChildProps = { meetingId: number };
 
 vi.mock("./CommentSection", () => ({
-  CommentSection: ({ meetingId }: any) => <div data-testid="comments">{meetingId}</div>,
+  CommentSection: ({ meetingId }: MockChildProps) => <div data-testid="comments">{meetingId}</div>,
 }));
 
 vi.mock("./AddToCalendarDropdown", () => ({
@@ -15,12 +22,6 @@ vi.mock("@/shared/ui/RichTextViewer", () => ({
   RichTextViewer: () => <div data-testid="rich-text-viewer" />,
 }));
 
-vi.mock("@/features/auth/context", () => ({
-  useUser: vi.fn(),
-}));
-
-import { useUser } from "@/features/auth/context";
-
 const useUserMock = useUser as MockedFunction<typeof useUser>;
 
 const recentPastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
@@ -28,6 +29,18 @@ const futureDate = "2099-01-01T10:00:00Z";
 const pastDate = "2020-01-01T10:00:00Z";
 
 const baseMeeting = {
+type UseUserValue = ReturnType<typeof useUser>;
+
+function makeUseUserValue(user: UseUserValue["user"]): UseUserValue {
+  return {
+    user,
+    loading: false,
+    setUser: vi.fn(),
+    refresh: vi.fn().mockResolvedValue(user),
+  };
+}
+
+const baseMeeting: Meeting = {
   id: 1,
   teamId: 1,
   organiserId: 1,
@@ -40,7 +53,7 @@ const baseMeeting = {
   createdAt: "2026-03-01T10:00:00Z",
   updatedAt: "2026-03-01T10:00:00Z",
   organiser: { id: 1, firstName: "Reggie", lastName: "King" },
-  team: { allocations: [{ user: { id: 1, firstName: "Reggie", lastName: "King" } }] },
+  team: { enterpriseId: "DEFAULT", allocations: [{ user: { id: 1, firstName: "Reggie", lastName: "King" } }] },
   participants: [],
   attendances: [],
   minutes: null,
@@ -58,11 +71,11 @@ const defaultPermissions = {
 const organiserUser = { id: 1, firstName: "Reggie", lastName: "King" };
 const otherUser = { id: 99, firstName: "Other", lastName: "User" };
 
-beforeEach(() => {
-  useUserMock.mockReturnValue({ user: otherUser } as any);
-});
-
 describe("MeetingDetail", () => {
+  beforeEach(() => {
+    useUserMock.mockReturnValue(makeUseUserValue(otherUser as UseUserValue["user"]));
+  });
+
   it("renders meeting title and organiser", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByText("Team Meeting")).toBeInTheDocument();
@@ -132,7 +145,7 @@ describe("MeetingDetail", () => {
   });
 
   it("shows attendance section when attendances exist", () => {
-    const withAttendances = {
+    const withAttendances: Meeting = {
       ...baseMeeting,
       date: pastDate,
       attendances: [
@@ -147,10 +160,18 @@ describe("MeetingDetail", () => {
   });
 
   it("shows minutes when present", () => {
-    const withMinutes = {
+    const withMinutes: Meeting = {
       ...baseMeeting,
       date: pastDate,
-      minutes: { id: 1, meetingId: 1, writerId: 1, writer: { id: 1, firstName: "Reggie", lastName: "King" }, content: "{}", createdAt: "", updatedAt: "" },
+      minutes: {
+        id: 1,
+        meetingId: 1,
+        writerId: 1,
+        writer: { id: 1, firstName: "Reggie", lastName: "King" },
+        content: "{}",
+        createdAt: "",
+        updatedAt: "",
+      },
     };
     render(<MeetingDetail meeting={withMinutes as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByText("Minutes")).toBeInTheDocument();
@@ -175,7 +196,7 @@ describe("MeetingDetail", () => {
   });
 
   it("shows edit link for organiser on upcoming meetings", () => {
-    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    useUserMock.mockReturnValue(makeUseUserValue(organiserUser as UseUserValue["user"]));
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByRole("link", { name: /edit meeting/i })).toHaveAttribute("href", "/projects/5/meetings/1/edit");

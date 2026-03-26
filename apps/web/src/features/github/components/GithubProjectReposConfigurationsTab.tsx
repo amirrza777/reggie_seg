@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { GithubConnectionStatus } from "../types";
 
 type Props = {
@@ -29,7 +30,10 @@ export function GithubProjectReposConfigurationsTab({
           <p className="github-repos-tab__kicker">Setup</p>
           <h2 className="github-repos-tab__heading">GitHub account</h2>
           {loading ? (
-            <p className="muted">Loading connection...</p>
+            <div role="status" aria-live="polite">
+              <SkeletonText lines={1} widths={["46%"]} />
+              <span className="ui-visually-hidden">Loading connection...</span>
+            </div>
           ) : connection?.connected ? (
             <p className="muted">Connected as @{connection.account?.login}</p>
           ) : (

@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import {
   Bar,
   BarChart,
@@ -63,12 +65,6 @@ type GithubRepoChartsDashboardProps = {
   branchCommitsLoading?: boolean;
   branchCommitsError?: string | null;
   onRefreshBranches?: () => void;
-};
-
-const tooltipStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--border)",
-  borderRadius: 8,
 };
 
 function EmptyState() {
@@ -133,6 +129,7 @@ function WeeklyCommitTotalsChart({
               label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
+              content={<ChartTooltipContent />}
               labelFormatter={(_, payload) => {
                 const row = payload?.[0]?.payload as
                   | { weekKey?: string; rangeStart?: string; rangeEnd?: string }
@@ -142,7 +139,6 @@ function WeeklyCommitTotalsChart({
                   : "Week";
               }}
               formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
-              contentStyle={tooltipStyle}
             />
             <Bar
               dataKey="commits"
@@ -209,9 +205,9 @@ function LineChangesTimelineChart({
               label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
+              content={<ChartTooltipContent />}
               labelFormatter={(label) => formatShortDate(String(label))}
               formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
-              contentStyle={tooltipStyle}
             />
             <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
             <Bar
@@ -300,9 +296,9 @@ function RepositoryAnalyticsCharts({
                   label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                 />
                 <Tooltip
+                  content={<ChartTooltipContent />}
                   labelFormatter={(label) => formatShortDate(String(label))}
                   formatter={(value, name) => [formatNumber(Number(value ?? 0)), name]}
-                  contentStyle={tooltipStyle}
                 />
                 <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
                 <Bar
@@ -478,13 +474,19 @@ function BranchActivity({
             ) : null}
           </div>
         ) : liveBranchesLoading ? (
-          <p className="muted github-repos-tab__table-wrap">Loading branches...</p>
+          <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+            <SkeletonText lines={1} widths={["26%"]} />
+            <span className="ui-visually-hidden">Loading branches...</span>
+          </div>
         ) : (
           <p className="muted github-repos-tab__table-wrap">No branches returned for this repository.</p>
         )}
 
         {branchCommitsLoading ? (
-          <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
+          <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+            <SkeletonText lines={1} widths={["38%"]} />
+            <span className="ui-visually-hidden">Loading recent commits...</span>
+          </div>
         ) : null}
         {branchCommitsError ? (
           <p className="muted github-repos-tab__table-wrap">
@@ -627,9 +629,9 @@ function PersonalActivity({
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
                   <Tooltip
+                    content={<ChartTooltipContent />}
                     labelFormatter={(label) => formatShortDate(String(label))}
                     formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
-                    contentStyle={tooltipStyle}
                   />
                   <Bar
                     dataKey="commits"
@@ -662,9 +664,7 @@ function PersonalActivity({
 
 export function GithubRepoChartsDashboard({
   snapshot,
-  coverage: _coverage,
   currentGithubLogin,
-  viewerMode: _viewerMode = "student",
   viewMode,
   repositoryFullName,
   liveBranches = null,

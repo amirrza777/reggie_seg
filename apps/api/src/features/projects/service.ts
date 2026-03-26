@@ -2,6 +2,10 @@ import {
   getProjectById,
   getUserProjects,
   getModulesForUser,
+  getModuleStaffListForUser,
+  getModuleStudentProjectMatrixForUser,
+  getModuleJoinActor,
+  joinModuleByCode as joinModuleByCodeInDb,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -22,6 +26,7 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { normalizeModuleJoinCode } from "../services/moduleJoinCodeService.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -56,17 +61,94 @@ export async function fetchModulesForUser(
   options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
 ) {
   const modules = await getModulesForUser(userId, options);
-  return modules.map((module) => ({
-    id: String(module.id),
-    title: module.name,
-    briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
-    timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
-    expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
-    readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
-    teamCount: "teamCount" in module ? module.teamCount : 0,
-    projectCount: "projectCount" in module ? module.projectCount : 0,
-    accountRole: module.accessRole,
-  }));
+  const staffFullList = options?.staffOnly === true && options?.compact !== true;
+  return modules.map((module) => {
+    const rawCount =
+      "staffWithAccessCount" in module && typeof module.staffWithAccessCount === "number"
+        ? module.staffWithAccessCount
+        : undefined;
+    const staffWithAccessCount = staffFullList ? (rawCount ?? 0) : rawCount;
+
+    const projectWindowStart =
+      "projectWindowStart" in module
+        ? module.projectWindowStart === null
+          ? null
+          : module.projectWindowStart instanceof Date
+            ? module.projectWindowStart.toISOString()
+            : undefined
+        : undefined;
+    const projectWindowEnd =
+      "projectWindowEnd" in module
+        ? module.projectWindowEnd === null
+          ? null
+          : module.projectWindowEnd instanceof Date
+            ? module.projectWindowEnd.toISOString()
+            : undefined
+        : undefined;
+
+    return {
+      id: String(module.id),
+      code: "code" in module ? module.code ?? undefined : undefined,
+      title: module.name,
+      briefText: "briefText" in module ? module.briefText ?? undefined : undefined,
+      timelineText: "timelineText" in module ? module.timelineText ?? undefined : undefined,
+      expectationsText: "expectationsText" in module ? module.expectationsText ?? undefined : undefined,
+      readinessNotesText: "readinessNotesText" in module ? module.readinessNotesText ?? undefined : undefined,
+      moduleLeadNames: "moduleLeadNames" in module ? module.moduleLeadNames : [],
+      leaderCount: "leaderCount" in module ? module.leaderCount : undefined,
+      teachingAssistantCount: "teachingAssistantCount" in module ? module.teachingAssistantCount : undefined,
+      ...(projectWindowStart !== undefined ? { projectWindowStart } : {}),
+      ...(projectWindowEnd !== undefined ? { projectWindowEnd } : {}),
+      teamCount: "teamCount" in module ? module.teamCount : 0,
+      projectCount: "projectCount" in module ? module.projectCount : 0,
+      accountRole: module.accessRole,
+      ...(typeof staffWithAccessCount === "number" ? { staffWithAccessCount } : {}),
+    };
+  });
+}
+
+/** Module leads + TAs for staff-accessible module detail pages. */
+export async function fetchModuleStaffList(userId: number, moduleId: number) {
+  return getModuleStaffListForUser(userId, moduleId);
+}
+
+/** Enrolled students and their team per project (staff module matrix). */
+export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: number) {
+  return getModuleStudentProjectMatrixForUser(userId, moduleId);
+}
+
+export async function joinModuleByCode(actorUserId: number, rawCode: string) {
+  const actor = await getModuleJoinActor(actorUserId);
+  if (!actor) {
+    return { ok: false as const, status: 401, error: "Unauthorized" };
+  }
+  if (actor.role !== "STUDENT") {
+    return { ok: false as const, status: 403, error: "Forbidden" };
+  }
+
+  const normalizedCode = normalizeModuleJoinCode(rawCode);
+  if (!normalizedCode) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  const enrolled = await joinModuleByCodeInDb({
+    enterpriseId: actor.enterpriseId,
+    userId: actor.id,
+    joinCode: normalizedCode,
+  });
+  if (!enrolled) {
+    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+  }
+
+  return {
+    ok: true as const,
+    value: {
+      moduleId: enrolled.moduleId,
+      moduleName: enrolled.moduleName,
+      enrolled: true,
+      alreadyEnrolled: enrolled.alreadyEnrolled,
+    },
+  };
 }
 
 /** Returns the teammates for project. */
@@ -137,6 +219,7 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       inactivityFlag: team.inactivityFlag,
       deadlineProfile: team.deadlineProfile,
       hasDeadlineOverride: Boolean(team.deadlineOverride),
+      trelloBoardId: team.trelloBoardId ?? null,
       allocations: team.allocations,
     })),
   };

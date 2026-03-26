@@ -1,12 +1,12 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getStaffProjectTeams, getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
 import { listMeetings } from "@/features/meetings/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import "@/features/staff/projects/styles/staff-projects.css";
 import type { TeamHealthMessage } from "@/features/projects/types";
 import type { GithubLatestSnapshot } from "@/features/github/types";
@@ -271,6 +271,9 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     return (
       <div className="stack">
         <p className="muted">{projectError ?? "Team not found in this project."}</p>
+        <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
+          Back to project teams
+        </Link>
       </div>
     );
   }
@@ -340,9 +343,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
           <span className="staff-projects__badge">Health: {healthLabel}</span>
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}`} className="staff-projects__badge">
-            Back to team overview
-          </Link>
         </div>
       </section>
 

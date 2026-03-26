@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams, getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -89,20 +90,21 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
           <span className="staff-projects__badge">
             {team.hasDeadlineOverride ? "Team override active" : "No team override"}
           </span>
-          <Link href={`/staff/projects/${data.project.id}`} className="staff-projects__badge">
-            Back to teams
-          </Link>
         </div>
       </section>
 
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
       <section className="staff-projects__grid" aria-label="Team health summary">
-        <article className="staff-projects__card">
+        <Link
+          href={`/staff/projects/${projectId}/teams/${teamId}/team`}
+          className="staff-projects__card"
+          aria-label="Team health"
+        >
           <h3 className="staff-projects__card-title">Team health</h3>
           <p className="staff-projects__card-sub">
             {openSupportRequestCount == null
-              ? "Open team health to review risk indicators and support requests."
+              ? "Review risk indicators and support requests in the team health view."
               : `${openSupportRequestCount} open support request${openSupportRequestCount === 1 ? "" : "s"}.`}
           </p>
           <p className="staff-projects__card-sub">
@@ -112,13 +114,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                   lastMeetingLabel ? ` · Last meeting ${lastMeetingLabel}` : ""
                 }.`}
           </p>
-          <Link
-            href={`/staff/projects/${projectId}/teams/${teamId}/team`}
-            className="staff-projects__card-action"
-          >
-            Open team health
-          </Link>
-        </article>
+        </Link>
       </section>
 
       <section className="staff-projects__team-card" aria-label="Team members">

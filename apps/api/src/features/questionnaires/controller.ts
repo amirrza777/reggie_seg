@@ -14,6 +14,7 @@ import jwt from "jsonwebtoken";
 import { verifyRefreshToken } from "../../auth/service.js";
 import type { AuthRequest } from "../../auth/middleware.js";
 import { parseSearchQuery } from "../../shared/search.js";
+import { parseCreateOrUpdateTemplateBody, parseQuestionnaireTemplateId } from "./controller.parsers.js";
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 
@@ -56,17 +57,14 @@ function resolveUserId(req: AuthRequest): number | null {
 
 /** Handles requests for create template. */
 export async function createTemplateHandler(req: AuthRequest, res: Response) {
-  const { templateName, questions, isPublic } = req.body
-
-  if (!templateName || !Array.isArray(questions)) {
-    return res.status(400).json({ error: "Invalid request body" })
-  }
+  const parsedBody = parseCreateOrUpdateTemplateBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
 
   try {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
-    const visibility = typeof isPublic === "boolean" ? isPublic : true;
-    const template = await createTemplate(templateName, questions, userId, visibility)
+    const visibility = typeof parsedBody.value.isPublic === "boolean" ? parsedBody.value.isPublic : true;
+    const template = await createTemplate(parsedBody.value.templateName, parsedBody.value.questions as IncomingQuestion[], userId, visibility)
     res.json({ ok: true, templateID: template.id, userId, isPublic: visibility })
   } catch (error) {
     console.error("Error creating questionnaire template:", error)
@@ -76,14 +74,11 @@ export async function createTemplateHandler(req: AuthRequest, res: Response) {
 
 /** Handles requests for get template. */
 export async function getTemplateHandler(req: AuthRequest, res: Response) {
-  const id = Number(req.params.id)
-
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "Invalid template ID" })
-  }
+  const id = parseQuestionnaireTemplateId(req.params.id, "Invalid template ID")
+  if (!id.ok) return res.status(400).json({ error: id.error })
 
   const requesterUserId = resolveUserId(req);
-  const template = await getTemplate(id, requesterUserId)
+  const template = await getTemplate(id.value, requesterUserId)
 
   if (!template) {
     return res.status(404).json({ error: "Template wasn't found" })
@@ -147,23 +142,20 @@ export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res:
 
 /** Handles requests for update template. */
 export async function updateTemplateHandler(req: Request, res: Response) {
-  const templateId = Number(req.params.id);
-  const { templateName, questions, isPublic } = req.body as {
-    templateName: string;
-    questions: IncomingQuestion[];
-    isPublic?: boolean;
-  };
-
-  if (isNaN(templateId)) {
-    return res.status(400).json({ error: "Invalid questionnaire template ID" });
-  }
-  if (!templateName || !Array.isArray(questions)) {
-    return res.status(400).json({ error: "Invalid request body" });
-  }
+  const templateId = parseQuestionnaireTemplateId(req.params.id);
+  if (!templateId.ok) return res.status(400).json({ error: templateId.error });
+  const parsedBody = parseCreateOrUpdateTemplateBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
     const requesterUserId = requireRequesterUserId(req);
-    await updateTemplate(requesterUserId, templateId, templateName, questions, isPublic);
+    await updateTemplate(
+      requesterUserId,
+      templateId.value,
+      parsedBody.value.templateName,
+      parsedBody.value.questions as IncomingQuestion[],
+      parsedBody.value.isPublic,
+    );
     res.json({ ok: true });
   } catch (error: any) {
     if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
@@ -178,15 +170,12 @@ export async function updateTemplateHandler(req: Request, res: Response) {
 
 /** Handles requests for delete template. */
 export async function deleteTemplateHandler(req: Request, res: Response) {
-  const id = Number(req.params.id);
-
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "Invalid questionnaire template ID" });
-  }
+  const id = parseQuestionnaireTemplateId(req.params.id);
+  if (!id.ok) return res.status(400).json({ error: id.error });
 
   try {
     const requesterUserId = requireRequesterUserId(req);
-    await deleteTemplate(requesterUserId, id);
+    await deleteTemplate(requesterUserId, id.value);
     res.json({ ok: true });
   } catch (error: any) {
     if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
@@ -207,14 +196,12 @@ export async function deleteTemplateHandler(req: Request, res: Response) {
 
 /** Handles requests for use template. */
 export async function useTemplateHandler(req: Request, res: Response) {
-  const id = Number(req.params.id);
-  if (isNaN(id)) {
-    return res.status(400).json({ error: "Invalid questionnaire template ID" });
-  }
+  const id = parseQuestionnaireTemplateId(req.params.id);
+  if (!id.ok) return res.status(400).json({ error: id.error });
 
   try {
     const requesterUserId = requireRequesterUserId(req);
-    const copied = await usePublicTemplate(requesterUserId, id);
+    const copied = await usePublicTemplate(requesterUserId, id.value);
     if (!copied) return res.status(404).json({ error: "Public questionnaire template not found" });
     res.json({ ok: true, templateID: copied.id });
   } catch (error: any) {

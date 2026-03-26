@@ -1,22 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
+import { getStaffProjects } from "@/features/projects/api/client";
 import { StaffProjectsModuleList, type ModuleGroup } from "@/features/staff/projects/components/StaffProjectsModuleList";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
 import { SearchField } from "@/shared/ui/SearchField";
 import "@/features/staff/projects/styles/staff-projects.css";
 
-type ProjectTeamLink = {
-  id: number;
-  teamName: string;
-  memberCount: number;
-};
-
-type StaffProjectWithTeams = Awaited<ReturnType<typeof getStaffProjects>>[number] & {
-  teams: ProjectTeamLink[];
-  teamFetchFailed: boolean;
-};
+type StaffProject = Awaited<ReturnType<typeof getStaffProjects>>[number];
 
 type StaffProjectsPageProps = {
   searchParams?: Promise<{ q?: string | string[] }>;
@@ -29,19 +20,19 @@ function toStaffLoadErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-function buildModuleGroups(projects: StaffProjectWithTeams[]): ModuleGroup[] {
+function buildModuleGroups(projects: StaffProject[]): ModuleGroup[] {
   const moduleMap = new Map<number, ModuleGroup>();
   for (const project of projects) {
     const existing = moduleMap.get(project.moduleId);
     if (existing) {
-      existing.projects.push({ ...project, visibleTeams: project.teams });
+      existing.projects.push(project);
       continue;
     }
 
     moduleMap.set(project.moduleId, {
       moduleId: project.moduleId,
       moduleName: project.moduleName,
-      projects: [{ ...project, visibleTeams: project.teams }],
+      projects: [project],
     });
   }
 
@@ -63,34 +54,10 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
   const rawQuery = Array.isArray(resolvedSearchParams.q) ? resolvedSearchParams.q[0] : resolvedSearchParams.q;
   const hasQuery = typeof rawQuery === "string" && rawQuery.trim().length > 0;
 
-  let projects: StaffProjectWithTeams[] = [];
+  let projects: StaffProject[] = [];
   let errorMessage: string | null = null;
   try {
-    const baseProjects = await getStaffProjects(user.id, { query: rawQuery });
-    projects = await Promise.all(
-      baseProjects.map(async (project) => {
-        try {
-          const projectTeams = await getStaffProjectTeams(user.id, project.id);
-          return {
-            ...project,
-            teams: projectTeams.teams
-              .map((team) => ({
-                id: team.id,
-                teamName: team.teamName,
-                memberCount: team.allocations.length,
-              }))
-              .sort((a, b) => a.teamName.localeCompare(b.teamName)),
-            teamFetchFailed: false,
-          };
-        } catch {
-          return {
-            ...project,
-            teams: [],
-            teamFetchFailed: true,
-          };
-        }
-      }),
-    );
+    projects = await getStaffProjects(user.id, { query: rawQuery });
   } catch (error) {
     errorMessage = toStaffLoadErrorMessage(error, "Failed to load staff projects.");
   }
@@ -99,11 +66,11 @@ export default async function StaffProjectsPage({ searchParams }: StaffProjectsP
   const visibleProjectCount = modules.reduce((sum, module) => sum + module.projects.length, 0);
 
   return (
-    <div className="staff-projects">
+    <div className="staff-projects staff-projects--panel-inset">
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Staff Workspace</p>
         <h1 className="staff-projects__title">Projects</h1>
-        <p className="staff-projects__desc">Navigate by module, then project, then jump directly into the team workspace you need.</p>
+        <p className="staff-projects__desc">Navigate by module, open a project, then choose the team workspace you need.</p>
         {!errorMessage ? (
           <div className="staff-projects__meta">
             <span className="staff-projects__badge">

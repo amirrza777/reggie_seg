@@ -1,29 +1,41 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi, type MockedFunction } from "vitest";
 
-vi.mock("@/features/auth/context", () => ({
+vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
 vi.mock("../api/client", () => ({
   createMeeting: vi.fn(),
-  listTeamMembers: vi.fn().mockResolvedValue([]),
+  listTeamMembers: vi.fn(),
 }));
 
-import { useUser } from "@/features/auth/context";
-import { createMeeting } from "../api/client";
+import { useUser } from "@/features/auth/useUser";
+import { createMeeting, listTeamMembers } from "../api/client";
 import { CreateMeetingForm } from "./CreateMeetingForm";
 
 const useUserMock = useUser as MockedFunction<typeof useUser>;
 const createMeetingMock = createMeeting as MockedFunction<typeof createMeeting>;
+const listTeamMembersMock = listTeamMembers as MockedFunction<typeof listTeamMembers>;
+type UseUserValue = ReturnType<typeof useUser>;
 
 const onCreated = vi.fn();
 const onCancel = vi.fn();
 
+function makeUseUserValue(user: UseUserValue["user"]): UseUserValue {
+  return {
+    user,
+    loading: false,
+    setUser: vi.fn(),
+    refresh: vi.fn().mockResolvedValue(user),
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
-  useUserMock.mockReturnValue({ user: { id: 1, firstName: "Reggie", lastName: "King" } } as any);
-  createMeetingMock.mockResolvedValue(undefined as any);
+  useUserMock.mockReturnValue(makeUseUserValue({ id: 1, firstName: "Reggie", lastName: "King" } as UseUserValue["user"]));
+  createMeetingMock.mockResolvedValue(undefined);
+  listTeamMembersMock.mockResolvedValue([]);
 });
 
 function fillRequiredFields() {
@@ -51,6 +63,25 @@ describe("CreateMeetingForm", () => {
     render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
     expect(createMeetingMock).not.toHaveBeenCalled();
+    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/title/i)).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText(/date/i)).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("clears field errors as required fields are completed", () => {
+    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
+    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Team Meeting" } });
+    expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
+    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2026-03-01T10:00" } });
+    expect(screen.queryByText("Select a date and time.")).not.toBeInTheDocument();
   });
 
   it("submits with required fields and calls onCreated", async () => {
@@ -126,7 +157,7 @@ describe("CreateMeetingForm", () => {
   });
 
   it("disables submit button when no user is logged in", () => {
-    useUserMock.mockReturnValue({ user: null } as any);
+    useUserMock.mockReturnValue(makeUseUserValue(null));
     render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
     expect(screen.getByRole("button", { name: /create meeting/i })).toBeDisabled();
   });

@@ -1,5 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
-import type { Module } from "../types";
+import type { JoinModulePayload, JoinModuleResponse, Module } from "../types";
 
 type ListModulesOptions = {
   scope?: "staff";
@@ -20,4 +20,11 @@ export async function listModules(userId: number, options?: ListModulesOptions):
   }
 
   return apiFetch<Module[]>(`/projects/modules?${searchParams.toString()}`);
+}
+
+export async function joinModuleByCode(payload: JoinModulePayload): Promise<JoinModuleResponse> {
+  return apiFetch<JoinModuleResponse>("/projects/modules/join", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

@@ -57,7 +57,7 @@ describe("EditQuestionnaireClient validation and fallback paths", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith("Save failed — check console");
+      expect(alertSpy).toHaveBeenCalledWith("Save failed.");
     });
     expect(back).not.toHaveBeenCalled();
   });

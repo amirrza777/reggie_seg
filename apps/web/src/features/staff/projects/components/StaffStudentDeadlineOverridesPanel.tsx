@@ -8,7 +8,9 @@ import {
 } from "@/features/projects/api/client";
 import type { StaffStudentDeadlineOverride, StaffStudentDeadlineOverridePayload } from "@/features/projects/types";
 import { filterBySearchQuery } from "@/shared/lib/search";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 
 type StaffTeamMemberLite = {
   id: number;
@@ -206,7 +208,12 @@ export function StaffStudentDeadlineOverridesPanel({
         />
       </label>
 
-      {loading ? <p className="muted" style={{ margin: 0 }}>Loading overrides...</p> : null}
+      {loading ? (
+        <div style={{ margin: 0 }} role="status" aria-live="polite">
+          <SkeletonText lines={1} widths={["30%"]} />
+          <span className="ui-visually-hidden">Loading overrides...</span>
+        </div>
+      ) : null}
       {loadError ? <p className="staff-projects__error">{loadError}</p> : null}
       {actionError ? <p className="staff-projects__error">{actionError}</p> : null}
 
@@ -310,7 +317,7 @@ export function StaffStudentDeadlineOverridesPanel({
 
                   <label className="staff-projects__field">
                     <span className="staff-projects__field-label">Reason (optional)</span>
-                    <textarea
+                    <AutoGrowTextarea
                       className="staff-projects__input"
                       value={draft.reason}
                       onChange={(event) => updateDraft(member.id, { reason: event.target.value })}

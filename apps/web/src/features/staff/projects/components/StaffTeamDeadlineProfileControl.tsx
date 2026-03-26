@@ -20,6 +20,16 @@ export function StaffTeamDeadlineProfileControl({
 
   async function handleChange(nextProfile: "STANDARD" | "MCF") {
     if (nextProfile === profile || pending) return;
+
+    const confirmMessage =
+      nextProfile === "MCF"
+        ? "Grant this team an MCF? Dates for this team will follow the extended schedule."
+        : "Revert this team to standard deadlines? Dates for this team will follow the default schedule.";
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
     setPending(true);
     setError(null);
     try {

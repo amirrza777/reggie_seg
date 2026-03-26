@@ -20,6 +20,15 @@ describe("parseEnterpriseAccessUserSearchFilters", () => {
     });
   });
 
+  it("parses excludeEnrolledInModule when valid", () => {
+    expect(
+      parseEnterpriseAccessUserSearchFilters({ scope: "students", excludeEnrolledInModule: "42" }),
+    ).toEqual({
+      ok: true,
+      value: { scope: "students", query: null, page: 1, pageSize: 20, excludeEnrolledInModuleId: 42 },
+    });
+  });
+
   it("rejects invalid scope and pagination", () => {
     expect(parseEnterpriseAccessUserSearchFilters({ scope: "teachers" })).toEqual({
       ok: false,
@@ -78,6 +87,22 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
   it("returns enterprise-only filter when scope is all and query is empty", () => {
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "all", query: null })).toEqual({
       enterpriseId: "ent_1",
+    });
+  });
+
+  it("excludes users enrolled in a module when requested", () => {
+    expect(
+      buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "students", query: null }, { excludeEnrolledInModuleId: 7 }),
+    ).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        { role: "STUDENT" },
+        {
+          NOT: {
+            userModules: { some: { moduleId: 7, enterpriseId: "ent_1" } },
+          },
+        },
+      ],
     });
   });
 });

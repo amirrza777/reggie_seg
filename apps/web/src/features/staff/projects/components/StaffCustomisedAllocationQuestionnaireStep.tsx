@@ -1,4 +1,5 @@
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { CustomAllocationCoverage } from "@/features/projects/api/teamAllocation";
 import {
   countEligibleQuestions,
@@ -89,7 +90,10 @@ export function StaffCustomisedAllocationQuestionnaireStep({
         </label>
       </div>
       {isLoadingQuestionnaires ? (
-        <p className="staff-projects__allocation-note">Loading questionnaires...</p>
+        <div role="status" aria-live="polite">
+          <SkeletonText lines={1} widths={["38%"]} />
+          <span className="ui-visually-hidden">Loading questionnaires...</span>
+        </div>
       ) : null}
       {loadError ? <p className="staff-projects__allocation-error">{loadError}</p> : null}
       {!isLoadingQuestionnaires && !loadError && eligibleQuestionnaires.length === 0 ? (
@@ -117,7 +121,10 @@ export function StaffCustomisedAllocationQuestionnaireStep({
         </div>
       ) : null}
       {isLoadingCoverage ? (
-        <p className="staff-projects__allocation-note">Loading response coverage...</p>
+        <div role="status" aria-live="polite">
+          <SkeletonText lines={1} widths={["44%"]} />
+          <span className="ui-visually-hidden">Loading response coverage...</span>
+        </div>
       ) : null}
       {coverageError ? <p className="staff-projects__allocation-error">{coverageError}</p> : null}
       {coverage ? (

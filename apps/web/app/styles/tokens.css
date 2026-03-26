@@ -40,6 +40,9 @@
   --surface-elevated: color-mix(in srgb, var(--surface) 88%, white 12%);
   --surface-hero-start: color-mix(in srgb, var(--surface) 92%, white 8%);
   --ink: #111111;
+  --pure-white: #ffffff;
+  --pure-black: #000000;
+  --breadcrumb-contrast: var(--pure-black);
   --muted: #4f4f4f;
   --border: rgba(0, 0, 0, 0.08);
   --accent: var(--ink);
@@ -58,6 +61,16 @@
   --btn-primary-text: var(--surface);
   --btn-ghost-text: #111111;
   --btn-ghost-border: #111111;
+  --btn-border-width: 1px;
+  --btn-font-size: var(--fs-body-sm);
+  --btn-line-height: 1.2;
+  --btn-min-height: 34px;
+  --btn-padding-block: 8px;
+  --btn-padding-inline: 14px;
+  --btn-sm-font-size: var(--fs-body-xs);
+  --btn-sm-min-height: 30px;
+  --btn-sm-padding-block: 6px;
+  --btn-sm-padding-inline: 10px;
   --surface-strong: #ffffff;
   --on-surface-strong: #0f0f0f;
   --radius-lg: 20px;
@@ -84,16 +97,13 @@
   --glass-ui-blur: 10px;
   --glass-ui-saturate: 130%;
   --glass-ui-hover: color-mix(in srgb, var(--glass-ui-bg) 88%, var(--accent-soft) 12%);
-  --avatar-fallback-bg: color-mix(in srgb, var(--accent) 16%, var(--surface));
-  --avatar-fallback-border: var(--glass-ui-border);
-  --avatar-fallback-text: var(--ink-strong);
-  --popup-glass-surface-strength: 86%;
+  --popup-glass-surface-strength: 60%;
   --popup-glass-bg: color-mix(in srgb, var(--surface) var(--popup-glass-surface-strength), transparent);
   --popup-glass-border: color-mix(in srgb, var(--glass-ui-border) 86%, rgba(255, 255, 255, 0.34) 14%);
   --popup-glass-shadow: var(--elevation-popup);
   --popup-glass-noise-size: 140px;
-  --modal-backdrop: rgba(15, 23, 42, 0.24);
-  --backdrop-strong: rgba(15, 23, 42, 0.42);
+  --modal-backdrop: rgba(0, 0, 0, 0.42);
+  --backdrop-strong: rgba(0, 0, 0, 0.62);
   --placeholder-hint: #f2fff6;
   --panel-gradient-1: #e3f7ef;
   --panel-gradient-2: #e9fff3;
@@ -140,6 +150,7 @@
   --mobile-menu-bg: var(--surface);
   --status-success: var(--accent-strong);
   --status-success-text: #1f7a36;
+  --forum-vote-like-active: #1f7a36;
   --status-success-soft: rgba(34, 197, 94, 0.12);
   --status-success-border: rgba(34, 197, 94, 0.32);
   --status-warning: #f59e0b;
@@ -156,6 +167,8 @@
   --scrollbar-thumb-hover: color-mix(in srgb, var(--ink) 44%, var(--surface) 56%);
   --showcase-bg-start: #eef1ff;
   --showcase-bg-end: #f7f7fb;
+  --skeleton-base: color-mix(in srgb, var(--ink) 10%, var(--surface) 90%);
+  --skeleton-highlight: color-mix(in srgb, var(--surface) 72%, transparent 28%);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -166,6 +179,7 @@
     --surface-elevated: color-mix(in srgb, var(--surface) 96%, black 4%);
     --surface-hero-start: color-mix(in srgb, var(--surface) 94%, black 6%);
     --ink: #fcfdff;
+    --breadcrumb-contrast: var(--pure-white);
     --muted: #cbd5e1;
     --ink-strong: #e2e8f0;
     --ink-subtle: #e2e8f0;
@@ -184,6 +198,16 @@
     --btn-primary-text: var(--surface);
     --btn-ghost-text: #e2e8f0;
     --btn-ghost-border: #e2e8f0;
+    --btn-border-width: 1px;
+    --btn-font-size: var(--fs-body-sm);
+    --btn-line-height: 1.2;
+    --btn-min-height: 34px;
+    --btn-padding-block: 8px;
+    --btn-padding-inline: 14px;
+    --btn-sm-font-size: var(--fs-body-xs);
+    --btn-sm-min-height: 30px;
+    --btn-sm-padding-block: 6px;
+    --btn-sm-padding-inline: 10px;
     --surface-strong: #0f0f0f;
     --on-surface-strong: #e2e8f0;
     --glass-surface: rgba(3, 3, 3, 0.32);
@@ -258,6 +282,7 @@
     --mobile-menu-bg: var(--bg);
     --status-success: var(--accent-strong);
     --status-success-text: #c7f8d8;
+    --forum-vote-like-active: #34d399;
     --status-success-soft: rgba(34, 197, 94, 0.12);
     --status-success-border: rgba(34, 197, 94, 0.24);
     --status-warning: #fbbf24;
@@ -274,6 +299,8 @@
     --scrollbar-thumb-hover: color-mix(in srgb, var(--ink) 50%, var(--surface) 50%);
     --showcase-bg-start: #0f172a;
     --showcase-bg-end: #111827;
+    --skeleton-base: color-mix(in srgb, var(--ink) 14%, var(--surface) 86%);
+    --skeleton-highlight: color-mix(in srgb, var(--surface) 70%, transparent 30%);
     color: var(--ink);
     background-color: var(--bg);
   }

@@ -1,6 +1,6 @@
-export type ParsedSearchQuery =
-  | { ok: true; value: string | null }
-  | { ok: false; error: string };
+import type { ParseResult } from "./parse.js";
+
+export type ParsedSearchQuery = ParseResult<string | null>;
 
 const DEFAULT_MAX_SEARCH_QUERY_LENGTH = 120;
 

@@ -9,8 +9,8 @@ import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
-import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import { SearchField } from "@/shared/ui/SearchField";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 
 type StaffProjectCreatePanelProps = {
   currentUserId: number;
@@ -407,7 +407,7 @@ export function StaffProjectCreatePanel({
       setProjectName("");
       setDeadline(buildDefaultDeadlineState());
       setSubmitSuccess(`Project "${created.name}" created.`);
-      router.push(`/staff/projects/${created.id}`);
+      router.push(`/staff/modules/${created.moduleId}`);
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create project.");

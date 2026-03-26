@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import { Table } from "@/shared/ui/Table";
-import type { ForumReportConversation, ForumReportEntry, ForumConversationPost } from "../types";
+import type { ForumReportConversation, ForumReportEntry } from "../types";
 import {
   dismissForumReport,
   getForumReports,
@@ -27,24 +29,31 @@ export function ForumReportsTable() {
   const [conversationMessage, setConversationMessage] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ForumReportConversation | null>(null);
   const [activeReportId, setActiveReportId] = useState<number | null>(null);
+  const loadRequestIdRef = useRef(0);
+  const conversationRequestIdRef = useRef(0);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
     setStatus("loading");
     setMessage(null);
     try {
       const data = await getForumReports();
+      if (requestId !== loadRequestIdRef.current) return;
       setReports(data);
       setStatus("success");
     } catch (err) {
+      if (requestId !== loadRequestIdRef.current) return;
       setReports([]);
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not load forum reports.");
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void loadReports();
-  }, []);
+    queueMicrotask(() => {
+      void loadReports();
+    });
+  }, [loadReports]);
 
   const handleDismiss = async (reportId: number) => {
     if (!window.confirm("Dismiss this report and restore the post?")) return;
@@ -79,14 +88,17 @@ export function ForumReportsTable() {
   };
 
   const handleViewConversation = async (reportId: number) => {
+    const requestId = ++conversationRequestIdRef.current;
     setConversationStatus("loading");
     setConversationMessage(null);
     setActiveReportId(reportId);
     try {
       const data = await getForumReportConversation(reportId);
+      if (requestId !== conversationRequestIdRef.current) return;
       setConversation(data);
       setConversationStatus("success");
     } catch (err) {
+      if (requestId !== conversationRequestIdRef.current) return;
       setConversation(null);
       setConversationStatus("error");
       setConversationMessage(err instanceof Error ? err.message : "Could not load conversation.");
@@ -94,37 +106,12 @@ export function ForumReportsTable() {
   };
 
   const handleHideConversation = () => {
+    conversationRequestIdRef.current += 1;
     setConversation(null);
     setConversationMessage(null);
     setConversationStatus("idle");
     setActiveReportId(null);
   };
-
-  const renderConversationPost = (post: ForumConversationPost, focusId: number, depth = 0) => (
-    <div
-      key={post.id}
-      className="card"
-      style={{
-        padding: 12,
-        marginLeft: depth * 16,
-        border: post.id === focusId ? "1px solid var(--primary)" : "1px solid var(--border)",
-        background: post.id === focusId ? "rgba(64, 126, 255, 0.08)" : "transparent",
-      }}
-    >
-      <div className="ui-stack-xs">
-        <strong>{post.title}</strong>
-        <span className="muted">
-          {post.author.firstName} {post.author.lastName} - {new Date(post.createdAt).toLocaleString()}
-        </span>
-      </div>
-      <p style={{ margin: "8px 0 0" }}>{post.body}</p>
-      {post.replies.length ? (
-        <div className="ui-stack-sm" style={{ marginTop: 10 }}>
-          {post.replies.map((reply) => renderConversationPost(reply, focusId, depth + 1))}
-        </div>
-      ) : null}
-    </div>
-  );
 
   const rows = reports.map((report) => [
     <div key={`${report.id}-project`} className="ui-stack-xs">
@@ -164,6 +151,7 @@ export function ForumReportsTable() {
       </Button>
     </div>,
   ]);
+  const showSkeletonTable = status === "loading" && rows.length === 0;
 
   return (
     <Card title="Forum reports" action={null}>
@@ -172,20 +160,24 @@ export function ForumReportsTable() {
           <span>{message}</span>
         </div>
       ) : null}
-      {rows.length > 0 ? (
+      {rows.length > 0 || showSkeletonTable ? (
         <Table
           headers={["Project", "Author", "Reporter", "Content", "Reported", ""]}
           rows={rows}
           rowClassName="user-management__row"
+          isLoading={showSkeletonTable}
+          loadingLabel="Loading reports..."
+          loadingRowCount={6}
         />
       ) : (
         <div className="ui-empty-state">
-          <p>{status === "loading" ? "Loading reports..." : "No forum reports yet."}</p>
+          <p>No forum reports yet.</p>
         </div>
       )}
       {activeReportId && conversationStatus === "loading" ? (
         <div className="ui-empty-state">
-          <p>Loading conversation...</p>
+          <SkeletonText lines={3} widths={["42%", "100%", "84%"]} />
+          <span className="ui-visually-hidden">Loading conversation...</span>
         </div>
       ) : null}
       {conversationMessage ? (
@@ -199,7 +191,7 @@ export function ForumReportsTable() {
           {conversation.missingPost ? (
             <p className="muted">The original post is no longer in the forum, so only the reported content is available.</p>
           ) : null}
-          {renderConversationPost(conversation.thread, conversation.focusPostId)}
+          <ForumConversationTree post={conversation.thread} focusPostId={conversation.focusPostId} />
         </div>
       ) : null}
     </Card>

@@ -9,6 +9,12 @@ import {
   GithubServiceError,
 } from "./service.js";
 import { toJsonSafe } from "./controller.utils.js";
+import {
+  parseBranchCommitsQuery,
+  parseLinkIdParam,
+  parseMyCommitsQuery,
+  parseSyncSettingsBody,
+} from "./controller.parsers.js";
 
 /** Handles requests for list live project GitHub repo branches. */
 export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest, res: Response) {
@@ -17,10 +23,8 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
   const parsedSearchQuery = parseSearchQuery(req.query?.q);
   if (!parsedSearchQuery.ok) {
     return res.status(400).json({ error: parsedSearchQuery.error });
@@ -28,8 +32,8 @@ export async function listLiveProjectGithubRepoBranchesHandler(req: AuthRequest,
 
   try {
     const branchData = parsedSearchQuery.value
-      ? await listLiveProjectGithubRepositoryBranches(userId, linkId, { query: parsedSearchQuery.value })
-      : await listLiveProjectGithubRepositoryBranches(userId, linkId);
+      ? await listLiveProjectGithubRepositoryBranches(userId, linkId.value, { query: parsedSearchQuery.value })
+      : await listLiveProjectGithubRepositoryBranches(userId, linkId.value);
     return res.json(toJsonSafe(branchData));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -47,26 +51,13 @@ export async function listLiveProjectGithubRepoBranchCommitsHandler(req: AuthReq
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
-
-  const branch =
-    typeof req.query.branch === "string" && req.query.branch.trim().length > 0
-      ? req.query.branch.trim()
-      : null;
-  if (!branch) {
-    return res.status(400).json({ error: "branch query param is required" });
-  }
-
-  const limit = typeof req.query.limit === "string" ? Number(req.query.limit) : 10;
-  if (Number.isNaN(limit)) {
-    return res.status(400).json({ error: "limit query param must be a number" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const parsedQuery = parseBranchCommitsQuery(req.query);
+  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
 
   try {
-    const commitData = await listLiveProjectGithubRepositoryBranchCommits(userId, linkId, branch, limit);
+    const commitData = await listLiveProjectGithubRepositoryBranchCommits(userId, linkId.value, parsedQuery.value.branch, parsedQuery.value.limit);
     return res.json(toJsonSafe(commitData));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -84,20 +75,19 @@ export async function listLiveProjectGithubRepoMyCommitsHandler(req: AuthRequest
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
-
-  const page = typeof req.query.page === "string" ? Number(req.query.page) : 1;
-  const perPage = typeof req.query.perPage === "string" ? Number(req.query.perPage) : 10;
-  const includeTotals = req.query.includeTotals === "false" ? false : true;
-  if (Number.isNaN(page) || Number.isNaN(perPage)) {
-    return res.status(400).json({ error: "page and perPage query params must be numbers" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const parsedQuery = parseMyCommitsQuery(req.query);
+  if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
 
   try {
-    const commitData = await listLiveProjectGithubRepositoryMyCommits(userId, linkId, page, perPage, { includeTotals });
+    const commitData = await listLiveProjectGithubRepositoryMyCommits(
+      userId,
+      linkId.value,
+      parsedQuery.value.page,
+      parsedQuery.value.perPage,
+      { includeTotals: parsedQuery.value.includeTotals },
+    );
     return res.json(toJsonSafe(commitData));
   } catch (error) {
     if (error instanceof GithubServiceError) {
@@ -115,24 +105,13 @@ export async function updateProjectGithubSyncSettingsHandler(req: AuthRequest, r
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const linkId = Number(req.params.linkId);
-  if (Number.isNaN(linkId)) {
-    return res.status(400).json({ error: "linkId must be a number" });
-  }
-
-  const { autoSyncEnabled, syncIntervalMinutes } = req.body ?? {};
-  if (typeof autoSyncEnabled !== "boolean") {
-    return res.status(400).json({ error: "autoSyncEnabled must be a boolean" });
-  }
-  if (typeof syncIntervalMinutes !== "number" || Number.isNaN(syncIntervalMinutes)) {
-    return res.status(400).json({ error: "syncIntervalMinutes must be a number" });
-  }
+  const linkId = parseLinkIdParam(req.params.linkId);
+  if (!linkId.ok) return res.status(400).json({ error: linkId.error });
+  const parsedBody = parseSyncSettingsBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const syncSettings = await updateProjectGithubSyncSettings(userId, linkId, {
-      autoSyncEnabled,
-      syncIntervalMinutes,
-    });
+    const syncSettings = await updateProjectGithubSyncSettings(userId, linkId.value, parsedBody.value);
     return res.json(toJsonSafe({ syncSettings }));
   } catch (error) {
     if (error instanceof GithubServiceError) {

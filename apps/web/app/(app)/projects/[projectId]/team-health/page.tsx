@@ -27,6 +27,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>Invalid project ID.</p>
+        <Link href="/projects">Back to projects</Link>
       </div>
     );
   }
@@ -42,6 +43,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>You are not in a team for this project.</p>
+        <Link href={`/projects/${projectId}`}>Back to project overview</Link>
       </div>
     );
   }
@@ -54,7 +56,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     loadError = error instanceof Error ? error.message : "Failed to load existing team health messages.";
   }
   return (
-    <div style={{ padding: 20 }}>
+    <div className="stack projects-panel">
       <Card title="Team Health">
         <div className="stack" style={{ gap: 8, marginBottom: 16 }}>
           <h3 style={{ margin: 0 }}>Warnings</h3>
@@ -73,7 +75,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
           <Link
             href={`/projects/${projectId}`}
             className="btn btn--quiet"
-            style={{ padding: "12px 24px" }}
           >
             Back
           </Link>

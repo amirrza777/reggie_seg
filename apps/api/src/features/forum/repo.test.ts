@@ -48,6 +48,12 @@ vi.mock("../../shared/db.js", () => ({
     teamAllocation: {
       findFirst: vi.fn(),
     },
+    moduleLead: {
+      findMany: vi.fn(),
+    },
+    moduleTeachingAssistant: {
+      findMany: vi.fn(),
+    },
     $transaction: vi.fn(),
   },
 }));
@@ -57,6 +63,8 @@ const prismaMock = vi.mocked(prisma);
 describe("forum repo", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.moduleLead.findMany.mockResolvedValue([] as any);
+    prismaMock.moduleTeachingAssistant.findMany.mockResolvedValue([] as any);
   });
 
   it("returns null when user is not in the project", async () => {
@@ -111,6 +119,33 @@ describe("forum repo", () => {
 
     expect(result?.map((post) => post.id)).toEqual([3]);
     expect(result?.[0].myStudentReportStatus).toBe("PENDING");
+  });
+
+  it("labels staff author as MODULE_LEAD when assigned as module lead for the project module", async () => {
+    prismaMock.project.findFirst.mockResolvedValue({ id: 10 } as any);
+    prismaMock.project.findUnique.mockResolvedValue({ forumIsAnonymous: false, moduleId: 77 } as any);
+    prismaMock.discussionPost.findMany.mockResolvedValue([
+      {
+        id: 1,
+        title: "Lead post",
+        body: "Lead body",
+        createdAt: new Date("2026-03-01T10:00:00Z"),
+        updatedAt: new Date("2026-03-01T10:00:00Z"),
+        parentPostId: null,
+        author: { id: 7, firstName: "Marker", lastName: "Staff", role: "STAFF" },
+      },
+    ] as any);
+    prismaMock.forumReport.findMany.mockResolvedValue([]);
+    prismaMock.forumReaction.findMany.mockResolvedValue([]);
+    prismaMock.forumReaction.groupBy.mockResolvedValue([]);
+    prismaMock.forumStudentReport.findMany.mockResolvedValue([]);
+    prismaMock.moduleLead.findMany.mockResolvedValue([{ userId: 7 }] as any);
+    prismaMock.moduleTeachingAssistant.findMany.mockResolvedValue([]);
+
+    const result = await getDiscussionPostsForProject(7, 10);
+
+    expect(result).toHaveLength(1);
+    expect(result?.[0]?.author.forumRole).toBe("MODULE_LEAD");
   });
 
   it("prevents student report when role is not STUDENT", async () => {

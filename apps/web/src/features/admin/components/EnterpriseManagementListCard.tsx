@@ -127,6 +127,7 @@ function EnterprisePageJumpForm({
 
 export function EnterpriseManagementListCard(props: EnterpriseManagementListCardProps) {
   const hasRows = props.rows.length > 0;
+  const showSkeletonTable = props.enterpriseTableStatus === "loading" && !hasRows;
 
   return (
     <Card title="Enterprises" className="user-management-card" action={<EnterpriseCardActions searchQuery={props.searchQuery} setSearchQuery={props.setSearchQuery} onOpenCreateModal={props.onOpenCreateModal} />}>
@@ -141,7 +142,11 @@ export function EnterpriseManagementListCard(props: EnterpriseManagementListCard
           />
         </span>
       </div>
-      {hasRows ? <EnterpriseRowsTable {...props} /> : <EnterpriseEmptyState searchQuery={props.searchQuery} enterpriseTableStatus={props.enterpriseTableStatus} />}
+      {hasRows || showSkeletonTable ? (
+        <EnterpriseRowsTable {...props} />
+      ) : (
+        <EnterpriseEmptyState searchQuery={props.searchQuery} />
+      )}
     </Card>
   );
 }
@@ -182,6 +187,8 @@ function EnterpriseErrorMessage({ message, status }: { message: string | null; s
 }
 
 function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
+  const showSkeletonTable = props.enterpriseTableStatus === "loading" && props.rows.length === 0;
+
   return (
     <>
       <Table
@@ -190,8 +197,11 @@ function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
         className="enterprise-management__table"
         rowClassName="enterprise-management__row"
         columnTemplate="var(--enterprise-management-columns)"
+        isLoading={showSkeletonTable}
+        loadingLabel="Loading enterprises..."
+        loadingRowCount={6}
       />
-      {props.enterpriseTotalPages > 1 ? (
+      {props.enterpriseTotalPages > 1 && !showSkeletonTable ? (
         <EnterprisePageControls
           currentPage={props.currentPage}
           setCurrentPage={props.setCurrentPage}
@@ -208,19 +218,15 @@ function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
 
 function EnterpriseEmptyState({
   searchQuery,
-  enterpriseTableStatus,
 }: {
   searchQuery: string;
-  enterpriseTableStatus: RequestState;
 }) {
   return (
     <div className="ui-empty-state">
       <p>
-        {enterpriseTableStatus === "loading"
-          ? "Loading enterprises..."
-          : normalizeSearchQuery(searchQuery)
-            ? `No enterprises match "${searchQuery.trim()}".`
-            : "No enterprises found."}
+        {normalizeSearchQuery(searchQuery)
+          ? `No enterprises match "${searchQuery.trim()}".`
+          : "No enterprises found."}
       </p>
     </div>
   );

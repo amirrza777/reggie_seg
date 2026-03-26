@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
-import * as moduleUnderTest from "./service.manual.js";
+import { applyManualAllocationForProject } from "./service.manual.js";
 
 describe("service.manual", () => {
-  it("loads as a module", () => {
-    expect(moduleUnderTest).toBeTypeOf("object");
+  it("rejects empty team names", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "", studentIds: [1] })).rejects.toMatchObject({
+      code: "INVALID_TEAM_NAME",
+    });
   });
 
-  it.each(["getManualAllocationWorkspaceForProject","applyManualAllocationForProject"])("exposes %s", (name) => {
-    expect(moduleUnderTest).toHaveProperty(name);
+  it("rejects non-positive and duplicate student ids", async () => {
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "Team A", studentIds: [0] })).rejects.toMatchObject({
+      code: "INVALID_STUDENT_IDS",
+    });
+    await expect(applyManualAllocationForProject(1, 2, { teamName: "Team A", studentIds: [2, 2] })).rejects.toMatchObject({
+      code: "INVALID_STUDENT_IDS",
+    });
   });
 });

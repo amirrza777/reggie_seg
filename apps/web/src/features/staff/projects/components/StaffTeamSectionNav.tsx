@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isStaffNavLinkActive } from "./navLinkActive";
 
 type StaffTeamSectionNavProps = {
   projectId: string;
@@ -11,13 +12,13 @@ type StaffTeamSectionNavProps = {
 const teamTabs = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
   { key: "deadlines", label: "Deadlines", hrefSuffix: "/deadlines" },
-  { key: "team", label: "Team", hrefSuffix: "/team" },
+  { key: "team", label: "Health", hrefSuffix: "/team" },
   { key: "team-meetings", label: "Team meetings", hrefSuffix: "/team-meetings" },
   { key: "peer-assessment", label: "Peer assessment", hrefSuffix: "/peer-assessment" },
-  { key: "grading", label: "Grading", hrefSuffix: "/grading" },
   { key: "peer-feedback", label: "Peer feedback", hrefSuffix: "/peer-feedback" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
   { key: "trello", label: "Trello", hrefSuffix: "/trello" },
+  { key: "grading", label: "Grading", hrefSuffix: "/grading" },
 ];
 
 export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavProps) {
@@ -28,10 +29,12 @@ export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavPr
     <nav className="pill-nav" aria-label="Team sections">
       {teamTabs.map((tab) => {
         const href = `${base}${tab.hrefSuffix}`;
-        const isOverview = tab.hrefSuffix === "";
-        const isActive = isOverview
-          ? pathname === base
-          : pathname === href || pathname?.startsWith(`${href}/`);
+        const isActive = isStaffNavLinkActive({
+          pathname,
+          baseHref: base,
+          href,
+          isOverview: tab.hrefSuffix === "",
+        });
 
         return (
           <Link

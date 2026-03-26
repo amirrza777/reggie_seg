@@ -8,6 +8,8 @@ import type {
   DeleteEnterpriseModuleResponse,
   EnterpriseModuleAccessUsersResponse,
   EnterpriseFeatureFlag,
+  EnterpriseModuleCreateResponse,
+  EnterpriseModuleJoinCodeResponse,
   EnterpriseModuleRecord,
   EnterpriseModuleSearchParams,
   EnterpriseModuleSearchResponse,
@@ -49,8 +51,8 @@ export async function searchEnterpriseModules(
   return apiFetch<EnterpriseModuleSearchResponse>(path);
 }
 
-export async function createEnterpriseModule(payload: CreateEnterpriseModulePayload): Promise<EnterpriseModuleRecord> {
-  return apiFetch<EnterpriseModuleRecord>("/enterprise-admin/modules", {
+export async function createEnterpriseModule(payload: CreateEnterpriseModulePayload): Promise<EnterpriseModuleCreateResponse> {
+  return apiFetch<EnterpriseModuleCreateResponse>("/enterprise-admin/modules", {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -84,6 +86,9 @@ export async function searchEnterpriseModuleAccessUsers(
   if (params.q) search.set("q", params.q);
   if (params.page) search.set("page", String(params.page));
   if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params.excludeEnrolledInModule) {
+    search.set("excludeEnrolledInModule", String(params.excludeEnrolledInModule));
+  }
   const qs = search.toString();
   const path = qs ? `/enterprise-admin/modules/access-users/search?${qs}` : "/enterprise-admin/modules/access-users/search";
   return apiFetch<EnterpriseAccessUserSearchResponse>(path);
@@ -97,6 +102,10 @@ export async function getEnterpriseModuleAccessSelection(
   moduleId: number,
 ): Promise<EnterpriseModuleAccessSelectionResponse> {
   return apiFetch<EnterpriseModuleAccessSelectionResponse>(`/enterprise-admin/modules/${moduleId}/access-selection`);
+}
+
+export async function getEnterpriseModuleJoinCode(moduleId: number): Promise<EnterpriseModuleJoinCodeResponse> {
+  return apiFetch<EnterpriseModuleJoinCodeResponse>(`/enterprise-admin/modules/${moduleId}/join-code`);
 }
 
 export async function listEnterpriseModuleStudents(moduleId: number): Promise<EnterpriseModuleStudentsResponse> {
@@ -135,4 +144,3 @@ export async function updateModuleMeetingSettings(
     body: JSON.stringify(settings),
   });
 }
-

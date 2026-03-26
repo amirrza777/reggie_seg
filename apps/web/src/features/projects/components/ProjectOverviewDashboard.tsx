@@ -66,6 +66,9 @@ function ProjectOverviewHero({
   teamName: string;
   nextDeadline?: { label: string; value: string | null };
 }) {
+  const moduleHref =
+    typeof project.moduleId === "number" ? `/modules/${encodeURIComponent(String(project.moduleId))}` : null;
+
   return (
     <section className="project-overview-hero">
       <div className="stack project-overview-hero__stack">
@@ -84,6 +87,11 @@ function ProjectOverviewHero({
               </span>
             </div>
             <div className="project-overview-hero__actions">
+              {moduleHref ? (
+                <Link href={moduleHref} className="project-overview-hero__action-link">
+                  View module
+                </Link>
+              ) : null}
               <Link href={`/projects/${project.id}/team-health`} className="project-overview-hero__action-link">
                 Team Health
               </Link>

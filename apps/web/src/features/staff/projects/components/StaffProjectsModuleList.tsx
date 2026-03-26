@@ -1,27 +1,19 @@
 import Link from "next/link";
 import { Fragment, type ReactNode } from "react";
 
-type ProjectTeamLink = {
-  id: number;
-  teamName: string;
-  memberCount: number;
-};
-
-type StaffProjectWithTeams = {
+type StaffProjectSummary = {
   id: number;
   name: string;
   teamCount: number;
   hasGithubRepo: boolean;
   membersTotal: number;
   membersConnected: number;
-  visibleTeams: ProjectTeamLink[];
-  teamFetchFailed: boolean;
 };
 
 export type ModuleGroup = {
   moduleId: number;
   moduleName: string;
-  projects: StaffProjectWithTeams[];
+  projects: StaffProjectSummary[];
 };
 
 function escapeRegExp(value: string): string {
@@ -96,47 +88,16 @@ function getConnectionTone({
   return "staff-projects__gh-pill--warn";
 }
 
-function ProjectTeams({
-  projectId,
-  teams,
-  teamFetchFailed,
-  rawQuery,
-}: {
-  projectId: number;
-  teams: ProjectTeamLink[];
-  teamFetchFailed: boolean;
-  rawQuery: string | undefined;
-}) {
-  if (teams.length === 0) {
-    return <p className="muted">{teamFetchFailed ? "Could not load teams right now." : "No teams in this project yet."}</p>;
-  }
-
-  return (
-    <>
-      {teams.map((team) => (
-        <Link key={team.id} href={`/staff/projects/${projectId}/teams/${team.id}`} className="staff-projects__module-team-link">
-          <span>{highlightSearchText(team.teamName, rawQuery)}</span>
-          <span className="staff-projects__module-team-meta">
-            {team.memberCount} member{team.memberCount === 1 ? "" : "s"}
-          </span>
-        </Link>
-      ))}
-    </>
-  );
-}
-
 function ProjectCard({
   project,
-  hasQuery,
   rawQuery,
 }: {
-  project: StaffProjectWithTeams;
-  hasQuery: boolean;
+  project: StaffProjectSummary;
   rawQuery: string | undefined;
 }) {
   return (
-    <details className="staff-projects__module-project-card" open={hasQuery}>
-      <summary className="staff-projects__module-project-summary">
+    <article className="staff-projects__module-project-card">
+      <Link href={`/staff/projects/${project.id}`} className="staff-projects__module-project-link">
         <div className="staff-projects__module-project-head">
           <div className="staff-projects__module-project-copy">
             <h3 className="staff-projects__module-project-title">{highlightSearchText(project.name, rawQuery)}</h3>
@@ -150,34 +111,16 @@ function ProjectCard({
             membersConnected={project.membersConnected}
           />
         </div>
-        <span className="staff-projects__project-toggle" aria-hidden="true" />
-      </summary>
-
-      <div className="staff-projects__module-project-content">
-        <div className="staff-projects__module-project-actions">
-          <Link href={`/staff/projects/${project.id}`} className="staff-projects__badge">
-            Open project
-          </Link>
-          <Link href={`/staff/projects/${project.id}/team-allocation`} className="staff-projects__badge">
-            Team allocation
-          </Link>
-        </div>
-
-        <div className="staff-projects__module-team-list" aria-label={`Teams in ${project.name}`}>
-          <ProjectTeams
-            projectId={project.id}
-            teams={project.visibleTeams}
-            teamFetchFailed={project.teamFetchFailed}
-            rawQuery={rawQuery}
-          />
-        </div>
-      </div>
-    </details>
+        <span className="staff-projects__project-toggle" aria-hidden="true">
+          →
+        </span>
+      </Link>
+    </article>
   );
 }
 
 function ModuleGroupCard({ module, hasQuery, rawQuery }: { module: ModuleGroup; hasQuery: boolean; rawQuery: string | undefined }) {
-  const teamTotal = module.projects.reduce((sum, project) => sum + project.visibleTeams.length, 0);
+  const teamTotal = module.projects.reduce((sum, project) => sum + project.teamCount, 0);
 
   return (
     <details className="staff-projects__module-group" open={hasQuery}>
@@ -193,7 +136,7 @@ function ModuleGroupCard({ module, hasQuery, rawQuery }: { module: ModuleGroup; 
 
       <div className="staff-projects__module-projects">
         {module.projects.map((project) => (
-          <ProjectCard key={project.id} project={project} hasQuery={hasQuery} rawQuery={rawQuery} />
+          <ProjectCard key={project.id} project={project} rawQuery={rawQuery} />
         ))}
       </div>
     </details>

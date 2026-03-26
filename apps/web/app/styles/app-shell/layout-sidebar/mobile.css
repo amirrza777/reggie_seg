@@ -161,7 +161,9 @@
   width: min(88vw, 380px);
   max-width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  background: var(--glass-ui-bg);
+  border: 1px solid var(--glass-ui-border);
+  box-shadow: var(--elevation-popup);
 }
 
 .sidebar__mobile-header {
@@ -360,7 +362,8 @@
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .sidebar__mobile-trigger,
-  .sidebar__mobile-space {
+  .sidebar__mobile-space,
+  .sidebar__mobile-sheet--drawer {
     backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
     -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
   }

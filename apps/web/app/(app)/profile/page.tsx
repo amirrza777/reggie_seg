@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
+import { Skeleton } from "@/shared/ui/Skeleton";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { confirmEmailChange, requestEmailChange, updateProfile } from "@/features/auth/api/client";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import {
   disconnectGithubAccount,
   getGithubConnectUrl,
@@ -359,7 +360,7 @@ export default function ProfilePage() {
               <div className="profile-row__label">GitHub account</div>
               <div className="profile-row__value">
                 {githubLoading
-                  ? "Loading..."
+                  ? <Skeleton inline width="92px" height="12px" />
                   : githubConnection?.connected
                     ? githubConnection.account?.login
                       ? `@${githubConnection.account.login}`

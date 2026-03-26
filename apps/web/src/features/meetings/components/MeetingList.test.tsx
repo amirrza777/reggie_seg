@@ -237,7 +237,7 @@ describe("MeetingList", () => {
   it("shows dash for meetings with no minutes writer", () => {
     const noMinutes = [{ ...recentPastMeeting, minutes: null }];
     render(<MeetingList meetings={noMinutes as any} projectId={1} showMinutesWriter />);
-    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("—")).not.toHaveLength(0);
   });
 
   it("sorts by date descending when showMinutesWriter is true", () => {

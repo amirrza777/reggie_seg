@@ -24,7 +24,7 @@ export default async function StaffDashboardPage() {
       <Placeholder
         title="Staff Overview"
         titleClassName="overview-title"
-        description="Start from projects, then drill into teams for peer assessment, peer feedback, repositories, and grading."
+        description="Open a module, then its projects and teams for peer assessment, peer feedback, repositories, and grading."
       />
       <StaffModulesCard moduleError={moduleData.moduleError} modules={moduleData.modules} moduleRows={moduleRows} />
       <StaffNavigationCards />
@@ -43,7 +43,7 @@ async function loadStaffModules(userId: number): Promise<{ modules: Module[]; mo
 
 function buildModuleRows(modules: Module[]): StaffModuleRow[] {
   return modules.map((module) => {
-    const moduleCode = formatModuleCode(module.id);
+    const moduleCode = formatModuleCode(module);
     const teams = module.teamCount ?? 0;
     const projects = module.projectCount ?? 0;
 
@@ -80,10 +80,10 @@ function StaffNavigationCards() {
   return (
     <div className="stack stack--loose">
       <Card title="Team workspace">
-        <p className="muted">Project and team-level workflows now live under Staff Projects.</p>
+        <p className="muted">Project and team-level workflows are under each module (Projects &amp; teams).</p>
         <StaffQuickLinks
           links={[
-            { href: "/staff/projects", label: "Open staff projects" },
+            { href: "/staff/modules", label: "My modules" },
             { href: "/staff/questionnaires", label: "Open questionnaires" },
           ]}
         />
@@ -95,7 +95,7 @@ function StaffNavigationCards() {
         </p>
         <StaffQuickLinks
           links={[
-            { href: "/staff/projects", label: "Team health by project" },
+            { href: "/staff/modules", label: "Browse modules & projects" },
             { href: "/staff/repos", label: "Repository analytics" },
             { href: "/staff/integrations", label: "Trello velocity" },
           ]}
@@ -117,10 +117,11 @@ function StaffQuickLinks({ links }: { links: Array<{ href: string; label: string
   );
 }
 
-function formatModuleCode(moduleId: string): string {
-  const numericId = Number(moduleId);
+function formatModuleCode(module: Module): string {
+  if (module.code?.trim()) return module.code.trim();
+  const numericId = Number(module.id);
   if (Number.isFinite(numericId)) return `MOD-${numericId}`;
-  return moduleId;
+  return module.id;
 }
 
 function pluralize(label: string, count: number): string {

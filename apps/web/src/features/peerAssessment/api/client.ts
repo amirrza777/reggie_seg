@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/shared/api/http";
 import { PeerAssessmentData, TeamAllocation, Question } from "../types";
-import { mapApiQuestionsToQuestions , mapApiAssessmentToPeerAssessment } from "./mapper";
+import {
+  mapApiQuestionsToQuestions,
+  mapApiAssessmentToPeerAssessment,
+  mapApiAssessmentToPeerAssessmentReceived,
+} from "./mapper";
 
 export async function getTeammates(userId: number, teamId: number): Promise<TeamAllocation[]> {
   return apiFetch(`/peer-assessments/teams/${teamId}/teammates?userId=${userId}`);
@@ -59,12 +63,11 @@ export async function getPeerAssessmentsForUser(userId: number, projectId: numbe
   const raw = await apiFetch<any[]>(`/peer-assessments/projects/${projectId}/user/${userId}`);
   return Array.isArray(raw) ? raw.map(mapApiAssessmentToPeerAssessment) : [];
 }
-/*
-export async function getQuestionsByAssessment(projectId: string): Promise<Question[]> {
-  const raw = await apiFetch<{ questionnaireTemplate: { questions: any[] } }>(`/peer-assessments/projects/${projectId}/questions`);
-    return mapApiQuestionsToQuestions(raw.questionnaireTemplate.questions);
+
+export async function getPeerAssessmentsReceivedForUser(userId: number, projectId: number) {
+  const raw = await apiFetch<any[]>(`/peer-assessments/projects/${projectId}/reviewee/${userId}`);
+  return Array.isArray(raw) ? raw.map(mapApiAssessmentToPeerAssessmentReceived) : [];
 }
-*/
 
 export async function getQuestionsByProject(projectId: string): Promise<Question[]> {
   const raw = await apiFetch<{ questions: any[] }>(`/projects/${projectId}/questions`);

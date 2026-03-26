@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import { Table } from "@/shared/ui/Table";
 import type {
   GithubConnectionStatus,
@@ -37,7 +38,12 @@ export function GithubProjectReposMyCommitsTab({
         <h2 className="github-repos-tab__heading">My commits</h2>
       </div>
       <div className="github-repos-tab__list">
-        {loading ? <p className="muted">Loading commits...</p> : null}
+        {loading ? (
+          <div role="status" aria-live="polite">
+            <SkeletonText lines={1} widths={["30%"]} />
+            <span className="ui-visually-hidden">Loading commits...</span>
+          </div>
+        ) : null}
         {!loading && !connection?.connected ? <p className="muted">Connect GitHub to view your commits.</p> : null}
         {!loading && connection?.connected && links.length === 0 ? (
           <p className="muted">Link a repository first to view your commits.</p>
@@ -76,7 +82,12 @@ export function GithubProjectReposMyCommitsTab({
                   </div>
                 </div>
 
-                {myCommitsLoadingByLinkId[link.id] ? <p className="muted github-repos-tab__table-wrap">Loading your commits...</p> : null}
+                {myCommitsLoadingByLinkId[link.id] ? (
+                  <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+                    <SkeletonText lines={1} widths={["36%"]} />
+                    <span className="ui-visually-hidden">Loading your commits...</span>
+                  </div>
+                ) : null}
                 {myCommitsErrorByLinkId[link.id] ? (
                   <p className="muted github-repos-tab__table-wrap">
                     Failed to load commits: {myCommitsErrorByLinkId[link.id]}

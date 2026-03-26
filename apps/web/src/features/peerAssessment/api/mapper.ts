@@ -104,3 +104,13 @@ export function mapApiAssessmentToPeerAssessment(raw: any): PeerAssessment {
     lastName: raw.reviewee?.lastName ?? "",
   };
 }
+
+/** assessments received by the current user */
+export function mapApiAssessmentToPeerAssessmentReceived(raw: any): PeerAssessment {
+  const base = mapApiAssessmentToPeerAssessment(raw);
+  return {
+    ...base,
+    firstName: raw.reviewer?.firstName ?? "",
+    lastName: raw.reviewer?.lastName ?? "",
+  };
+}

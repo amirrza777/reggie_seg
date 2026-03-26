@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
 import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
 import "@/features/staff/projects/styles/staff-projects.css";
-import Link from "next/link";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -39,9 +38,6 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
     return (
       <div className="stack">
         <p className="muted">{projectError ?? "Team not found in this project."}</p>
-        <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to project teams
-        </Link>
       </div>
     );
   }
@@ -70,9 +66,6 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}`} className="staff-projects__badge">
-            Back to team overview
-          </Link>
         </div>
       </section>
 

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import "@testing-library/jest-dom";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 
 const push = vi.fn();
@@ -13,7 +14,10 @@ vi.mock("../api/client", () => ({
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
   getModuleMeetingSettings: vi.fn().mockResolvedValue({ absenceThreshold: 3, minutesEditWindowDays: 7, attendanceEditWindowDays: 7, allowAnyoneToEditMeetings: false, allowAnyoneToRecordAttendance: false, allowAnyoneToWriteMinutes: false }),
+  getEnterpriseModuleJoinCode: vi.fn(),
+  getModuleMeetingSettings: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),
+  updateModuleMeetingSettings: vi.fn(),
   updateEnterpriseModule: vi.fn(),
 }));
 
@@ -21,19 +25,43 @@ import {
   createEnterpriseModule,
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
+  getEnterpriseModuleJoinCode,
+  getModuleMeetingSettings,
   searchEnterpriseModuleAccessUsers,
+  updateModuleMeetingSettings,
   updateEnterpriseModule,
 } from "../api/client";
+import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { EnterpriseModuleCreateForm } from "./EnterpriseModuleCreateForm";
+import React from "react";
+
+const editInitialSelection: EnterpriseModuleAccessSelectionResponse = {
+  module: {
+    id: 77,
+    name: "Existing module",
+    createdAt: "2026-03-01T00:00:00.000Z",
+    updatedAt: "2026-03-01T00:00:00.000Z",
+    studentCount: 1,
+    leaderCount: 1,
+    teachingAssistantCount: 1,
+    briefText: "Module brief from server",
+  },
+  leaderIds: [11],
+  taIds: [12],
+  studentIds: [31],
+};
 
 const createEnterpriseModuleMock = createEnterpriseModule as MockedFunction<typeof createEnterpriseModule>;
 const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<typeof deleteEnterpriseModule>;
 const getEnterpriseModuleAccessSelectionMock = getEnterpriseModuleAccessSelection as MockedFunction<
   typeof getEnterpriseModuleAccessSelection
 >;
+const getEnterpriseModuleJoinCodeMock = getEnterpriseModuleJoinCode as MockedFunction<typeof getEnterpriseModuleJoinCode>;
 const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers as MockedFunction<
   typeof searchEnterpriseModuleAccessUsers
 >;
+const getModuleMeetingSettingsMock = getModuleMeetingSettings as MockedFunction<typeof getModuleMeetingSettings>;
+const updateModuleMeetingSettingsMock = updateModuleMeetingSettings as MockedFunction<typeof updateModuleMeetingSettings>;
 const updateEnterpriseModuleMock = updateEnterpriseModule as MockedFunction<typeof updateEnterpriseModule>;
 
 const staffOwner = { id: 11, email: "lead@x.com", firstName: "Staff", lastName: "Owner", active: true };
@@ -86,6 +114,8 @@ describe("EnterpriseModuleCreateForm", () => {
     refresh.mockReset();
     createEnterpriseModuleMock.mockResolvedValue({
       id: 99,
+      code: "4CCS2DBS",
+      joinCode: "ABCD2345",
       name: "Created module",
       createdAt: "2026-03-01T00:00:00.000Z",
       updatedAt: "2026-03-01T00:00:00.000Z",
@@ -100,6 +130,7 @@ describe("EnterpriseModuleCreateForm", () => {
     getEnterpriseModuleAccessSelectionMock.mockResolvedValue({
       module: {
         id: 77,
+        code: "4CCS2DBS",
         name: "Existing module",
         createdAt: "2026-03-01T00:00:00.000Z",
         updatedAt: "2026-03-01T00:00:00.000Z",
@@ -111,8 +142,21 @@ describe("EnterpriseModuleCreateForm", () => {
       taIds: [12],
       studentIds: [31],
     });
+    getEnterpriseModuleJoinCodeMock.mockResolvedValue({
+      moduleId: 77,
+      joinCode: "ABCD2345",
+    });
+    getModuleMeetingSettingsMock.mockResolvedValue({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 7,
+    });
+    updateModuleMeetingSettingsMock.mockResolvedValue({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 7,
+    });
     updateEnterpriseModuleMock.mockResolvedValue({
       id: 77,
+      code: "4CCS2DBS",
       name: "Updated module",
       createdAt: "2026-03-01T00:00:00.000Z",
       updatedAt: "2026-03-02T00:00:00.000Z",
@@ -135,7 +179,7 @@ describe("EnterpriseModuleCreateForm", () => {
       }),
     );
 
-    fireEvent.change(screen.getByLabelText(/search staff/i), { target: { value: "owner" } });
+    fireEvent.change(screen.getByLabelText(/module owners\/leaders/i), { target: { value: "owner" } });
 
     await waitFor(() =>
       expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
@@ -155,6 +199,7 @@ describe("EnterpriseModuleCreateForm", () => {
     );
 
     fireEvent.change(screen.getByLabelText(/module name/i), { target: { value: "Backend Search Module" } });
+    fireEvent.change(screen.getByLabelText(/module code/i), { target: { value: "4ccs2dbs" } });
     expect(screen.getByRole("button", { name: /create module/i })).toBeDisabled();
 
     const leadersGroup = screen.getByRole("group", { name: /module leaders/i });
@@ -167,11 +212,20 @@ describe("EnterpriseModuleCreateForm", () => {
     await waitFor(() =>
       expect(createEnterpriseModuleMock).toHaveBeenCalledWith({
         name: "Backend Search Module",
+        code: "4CCS2DBS",
         leaderIds: [11],
       }),
     );
-    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit");
+    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit?created=1&joinCode=ABCD2345");
     expect(refresh).toHaveBeenCalled();
+  });
+
+  it("shows the join code card in edit mode", async () => {
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} createdJoinCode="ZXCV6789" />);
+
+    expect(await screen.findByText(/students can now join with this code/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
+    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(77);
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

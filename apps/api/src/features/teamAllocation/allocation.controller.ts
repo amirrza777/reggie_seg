@@ -30,7 +30,7 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
   }
 
   try {
-    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount);
+    const preview = await previewRandomAllocationForProject(staffId, projectId, teamCount, { seed });
     return res.json(preview);
   } catch (error: any) {
     if (error?.code === "INVALID_TEAM_COUNT") {
@@ -70,7 +70,9 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
   }
 
   try {
-    const workspace = await getManualAllocationWorkspaceForProject(staffId, projectId, parsedSearchQuery.value);
+    const workspace = parsedSearchQuery.value
+      ? await getManualAllocationWorkspaceForProject(staffId, projectId, { query: parsedSearchQuery.value })
+      : await getManualAllocationWorkspaceForProject(staffId, projectId);
     return res.json(workspace);
   } catch (error: any) {
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
@@ -118,6 +120,7 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
 
   try {
     const result = await applyRandomAllocationForProject(staffId, projectId, teamCount, {
+      seed,
       ...(teamNames !== undefined ? { teamNames } : {}),
     });
     return res.status(201).json(result);
@@ -159,8 +162,8 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
   const staffId = req.user?.sub;
   const projectId = Number(req.params.projectId);
   const teamName = typeof req.body?.teamName === "string" ? req.body.teamName : "";
-  const rawStudentIds: unknown[] | null = Array.isArray(req.body?.studentIds) ? req.body.studentIds : null;
-  const studentIds = rawStudentIds ? rawStudentIds.map((studentId: unknown) => Number(studentId)) : null;
+  const rawStudentIds = Array.isArray(req.body?.studentIds) ? req.body.studentIds : null;
+  const studentIds = rawStudentIds ? rawStudentIds.map((studentId) => Number(studentId)) : null;
 
   if (!staffId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -168,11 +171,7 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
   if (Number.isNaN(projectId)) {
     return res.status(400).json({ error: "Invalid project ID" });
   }
-  if (
-    rawStudentIds === null ||
-    studentIds === null ||
-    studentIds.some((studentId: number) => Number.isNaN(studentId))
-  ) {
+  if (rawStudentIds === null || studentIds === null || studentIds.some((studentId) => Number.isNaN(studentId))) {
     return res.status(400).json({ error: "studentIds must be an array of numbers" });
   }
 
