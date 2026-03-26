@@ -2,11 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
-import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
-import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import {
   GithubProjectReposClientStatusMessages,
   GithubProjectReposClientTabNav,
@@ -84,8 +81,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
     fetchMyCommits,
-    setBranchSearchQuery,
-    getBranchSearchQuery,
   } = useGithubProjectReposLiveData({
     activeTab:
       activeTab === "my-commits"
@@ -402,38 +397,47 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         />
       ) : null}
 
-      {activeTab === "branches" ? (
-        <GithubProjectReposBranchesTab
-          loading={loading}
-          liveBranchesRefreshing={liveBranchesRefreshing}
-          links={links}
-          latestSnapshotByLinkId={latestSnapshotByLinkId}
-          liveBranchesByLinkId={liveBranchesByLinkId}
-          liveBranchesLoadingByLinkId={liveBranchesLoadingByLinkId}
-          liveBranchesErrorByLinkId={liveBranchesErrorByLinkId}
-          selectedBranchByLinkId={selectedBranchByLinkId}
-          branchCommitsByLinkId={branchCommitsByLinkId}
-          branchCommitsLoadingByLinkId={branchCommitsLoadingByLinkId}
-          branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
-          handleRefreshLiveBranches={handleRefreshLiveBranches}
-          getBranchQuery={getBranchSearchQuery}
-          onBranchQueryChange={setBranchSearchQuery}
-          onSelectBranch={(linkId: number, nextBranch: string) => {
-            setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
-            void fetchBranchCommits(linkId, nextBranch);
-          }}
-        />
-      ) : null}
-
-      {activeTab === "configurations" ? (
-        <GithubProjectReposConfigurationsTab
+      {activeTab === "team-code-activity" ? (
+        <GithubProjectReposTeamCodeActivitySection
           loading={loading}
           busy={busy}
+          linking={linking}
           connection={connection}
           needsGithubAppInstall={needsGithubAppInstall}
           onInstallGithubApp={handleOpenGithubAppInstall}
           onDisconnect={handleDisconnect}
           onConnect={handleConnect}
+          repositoriesTabProps={{
+            loading,
+            busy,
+            linking,
+            connection,
+            links,
+            availableRepos,
+            selectedRepoId,
+            setSelectedRepoId,
+            repoSearchQuery,
+            onRepoSearchQueryChange: setRepoSearchQuery,
+            searchingRepos,
+            coverageByLinkId,
+            latestSnapshotByLinkId,
+            currentGithubLogin: connection?.account?.login ?? null,
+            liveBranchesByLinkId,
+            liveBranchesLoadingByLinkId,
+            liveBranchesErrorByLinkId,
+            liveBranchesRefreshing,
+            selectedBranchByLinkId,
+            setSelectedBranchByLinkId,
+            branchCommitsByLinkId,
+            branchCommitsLoadingByLinkId,
+            branchCommitsErrorByLinkId,
+            removingLinkId,
+            onRefresh: handleRefreshSnapshots,
+            onRefreshBranches: handleRefreshLiveBranches,
+            onFetchBranchCommits: fetchBranchCommits,
+            onLinkSelected: handleLinkSelectedRepo,
+            onRemoveLink: (linkId) => void handleRemoveLink(linkId),
+          }}
         />
       ) : null}
     </div>
