@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ModalPortal } from "@/shared/ui/ModalPortal";
 
 export type GithubChartInfoContent = {
   overview: string;
@@ -32,35 +33,37 @@ export function GithubChartTitleWithInfo({ title, info }: GithubChartTitleWithIn
       </div>
 
       {open ? (
-        <div className="github-chart-info__overlay" role="dialog" aria-modal="true" aria-label={`${title} guidance`} onClick={() => setOpen(false)}>
-          <div className="github-chart-info__modal" onClick={(event) => event.stopPropagation()}>
-            <div className="github-chart-info__header">
-              <h3 className="github-chart-info__title">{title}</h3>
-              <button
-                type="button"
-                className="github-chart-info__close"
-                aria-label="Close"
-                onClick={() => setOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="github-chart-info__body">
-              <section className="github-chart-info__block">
-                <p className="github-chart-info__label">What this shows</p>
-                <p className="github-chart-info__text">{info.overview}</p>
-              </section>
-              <section className="github-chart-info__block">
-                <p className="github-chart-info__label">How to interpret it</p>
-                <p className="github-chart-info__text">{info.interpretation}</p>
-              </section>
-              <section className="github-chart-info__block">
-                <p className="github-chart-info__label">How this may be used</p>
-                <p className="github-chart-info__text">{info.staffUse}</p>
-              </section>
+        <ModalPortal>
+          <div className="github-chart-info__overlay" role="dialog" aria-modal="true" aria-label={`${title} guidance`} onClick={() => setOpen(false)}>
+            <div className="github-chart-info__modal" onClick={(event) => event.stopPropagation()}>
+              <div className="github-chart-info__header">
+                <h3 className="github-chart-info__title">{title}</h3>
+                <button
+                  type="button"
+                  className="github-chart-info__close"
+                  aria-label="Close"
+                  onClick={() => setOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="github-chart-info__body">
+                <section className="github-chart-info__block">
+                  <p className="github-chart-info__label">What this shows</p>
+                  <p className="github-chart-info__text">{info.overview}</p>
+                </section>
+                <section className="github-chart-info__block">
+                  <p className="github-chart-info__label">How to interpret it</p>
+                  <p className="github-chart-info__text">{info.interpretation}</p>
+                </section>
+                <section className="github-chart-info__block">
+                  <p className="github-chart-info__label">How this may be used</p>
+                  <p className="github-chart-info__text">{info.staffUse}</p>
+                </section>
+              </div>
             </div>
           </div>
-        </div>
+        </ModalPortal>
       ) : null}
     </>
   );

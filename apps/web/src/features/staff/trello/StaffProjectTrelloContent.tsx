@@ -21,6 +21,7 @@ export type StaffTrelloContentViewProps = {
 type StaffProjectTrelloContentProps = {
   projectId: string;
   teamId: number;
+  moduleId?: string | number | null;
   teamName?: string;
   deadline?: ProjectDeadline | null;
   viewComponent: ComponentType<StaffTrelloContentViewProps>;
@@ -29,6 +30,7 @@ type StaffProjectTrelloContentProps = {
 export function StaffProjectTrelloContent({
   projectId,
   teamId,
+  moduleId,
   deadline,
   viewComponent: View,
 }: StaffProjectTrelloContentProps) {
@@ -87,6 +89,7 @@ export function StaffProjectTrelloContent({
       <StaffTrelloNav
         projectId={projectId}
         teamId={teamId}
+        moduleId={moduleId}
         boardName={state.view.board.name}
         boardUrl={state.view.board.url}
       />

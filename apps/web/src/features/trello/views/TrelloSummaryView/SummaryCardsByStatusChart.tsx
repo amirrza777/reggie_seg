@@ -35,12 +35,13 @@ export function SummaryCardsByStatusChart({ counts }: Props) {
                   innerRadius={48}
                   outerRadius={72}
                   paddingAngle={2}
+                  isAnimationActive
                 >
                   {pieData.map((entry) => (
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip content={<ChartTooltipContent />} formatter={(value, name) => [value, name]} />
+                <Tooltip content={<ChartTooltipContent />} formatter={(value, name) => [value, name]} isAnimationActive />
               </PieChart>
             </ResponsiveContainer>
           </div>

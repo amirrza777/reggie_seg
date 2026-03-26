@@ -249,6 +249,7 @@ export function CardDistributionGraph({
             />
             <YAxis allowDecimals={false} />
             <Tooltip
+              isAnimationActive
               content={<ChartTooltipContent />}
               labelFormatter={(t) => formatDate(new Date(t as number).toISOString().slice(0, 10))}
               cursor={{
@@ -302,9 +303,9 @@ export function CardDistributionGraph({
                 }}
               />
             ) : null}
-            <Line type="monotone" dataKey="backlog" stroke="#0079bf" name="Backlog" strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="inProgress" stroke="#f2d600" name="In progress" strokeWidth={2} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="completed" stroke="#61bd4f" name="Completed" strokeWidth={2} dot={{ r: 3 }} />
+            <Line type="monotone" dataKey="backlog" stroke="#0079bf" name="Backlog" strokeWidth={2} dot={{ r: 3 }} isAnimationActive />
+            <Line type="monotone" dataKey="inProgress" stroke="#f2d600" name="In progress" strokeWidth={2} dot={{ r: 3 }} isAnimationActive />
+            <Line type="monotone" dataKey="completed" stroke="#61bd4f" name="Completed" strokeWidth={2} dot={{ r: 3 }} isAnimationActive />
           </LineChart>
         </ResponsiveContainer>
       </div>

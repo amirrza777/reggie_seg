@@ -39,6 +39,7 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
               innerRadius={56}
               outerRadius={90}
               paddingAngle={2}
+              isAnimationActive
               label={({ percent }) => `${(Number(percent || 0) * 100).toFixed(1)}%`}
               labelLine={false}
             >
@@ -56,6 +57,7 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
               />
             </Pie>
             <Tooltip
+              isAnimationActive
               content={<ChartTooltipContent />}
               formatter={(value, name) => {
                 const numericValue = Number(value || 0);

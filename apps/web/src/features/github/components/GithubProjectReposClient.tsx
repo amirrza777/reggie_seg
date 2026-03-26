@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
@@ -94,7 +94,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     latestSnapshotByLinkId,
   });
 
-  function applyRepositoryOptions(repos: GithubRepositoryOption[]) {
+  const applyRepositoryOptions = useCallback((repos: GithubRepositoryOption[]) => {
     setAvailableRepos(repos);
     setSelectedRepoId((currentSelectedRepoId) => {
       if (repos.length === 0) {
@@ -107,9 +107,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
       return String(preferredRepo?.githubRepoId || "");
     });
-  }
+  }, []);
 
-  async function loadRepositoryOptions(query?: string, options?: { suppressLoadingState?: boolean }) {
+  const loadRepositoryOptions = useCallback(async (query?: string, options?: { suppressLoadingState?: boolean }) => {
     const requestId = repoSearchRequestRef.current + 1;
     repoSearchRequestRef.current = requestId;
     if (!options?.suppressLoadingState) {
@@ -127,9 +127,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         setSearchingRepos(false);
       }
     }
-  }
+  }, [applyRepositoryOptions]);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (Number.isNaN(numericProjectId)) {
       setError("Invalid project id.");
       setLoading(false);
@@ -187,11 +187,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     } finally {
       setLoading(false);
     }
-  }
+  }, [loadRepositoryOptions, numericProjectId, repoSearchQuery]);
 
   useEffect(() => {
     void load();
-  }, [projectId]);
+  }, [load]);
 
   useEffect(() => {
     didAutoSelectInitialTabRef.current = false;
@@ -209,7 +209,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [connection?.connected, repoSearchQuery]);
+  }, [connection?.connected, repoSearchQuery, loadRepositoryOptions]);
 
   useEffect(() => {
     if (loading || didAutoSelectInitialTabRef.current) {
@@ -239,7 +239,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     url.searchParams.delete("github");
     url.searchParams.delete("reason");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, []);
+  }, [load]);
 
   async function handleConnect() {
     setBusy(true);

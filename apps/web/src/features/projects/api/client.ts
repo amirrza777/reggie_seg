@@ -56,12 +56,40 @@ export async function getProjectMarking(userId: number, projectId: number): Prom
 
 type StaffProjectSearchOptions = {
   query?: string;
+  moduleId?: number;
 };
+
+export type StaffMarkingTeam = {
+  id: number;
+  teamName: string;
+  projectId: number;
+  inactivityFlag: "NONE" | "YELLOW" | "RED";
+  studentCount: number;
+};
+
+export type StaffMarkingProject = {
+  id: number;
+  name: string;
+  moduleId: number;
+  moduleName: string;
+  teams: StaffMarkingTeam[];
+};
+
+export async function getStaffProjectsForMarking(userId: number, options?: { query?: string }): Promise<StaffMarkingProject[]> {
+  const searchParams = new URLSearchParams({ userId: String(userId) });
+  if (options?.query?.trim()) {
+    searchParams.set("q", options.query.trim());
+  }
+  return apiFetch<StaffMarkingProject[]>(`/projects/staff/marking?${searchParams.toString()}`);
+}
 
 export async function getStaffProjects(userId: number, options?: StaffProjectSearchOptions): Promise<StaffProject[]> {
   const searchParams = new URLSearchParams({ userId: String(userId) });
   if (options?.query?.trim()) {
     searchParams.set("q", options.query.trim());
+  }
+  if (options?.moduleId != null) {
+    searchParams.set("moduleId", String(options.moduleId));
   }
   return apiFetch<StaffProject[]>(`/projects/staff/mine?${searchParams.toString()}`);
 }

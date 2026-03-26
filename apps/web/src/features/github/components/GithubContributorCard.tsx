@@ -119,10 +119,11 @@ export function GithubContributorCard({
               />
               <YAxis allowDecimals={false} hide />
               <Tooltip
+                isAnimationActive
                 content={<ChartTooltipContent />}
                 labelFormatter={(label) => formatShortDate(String(label))}
               />
-              <Bar dataKey="commits" fill={CHART_COLOR_COMMITS} maxBarSize={20} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="commits" fill={CHART_COLOR_COMMITS} maxBarSize={20} radius={[4, 4, 0, 0]} isAnimationActive />
             </BarChart>
           </ResponsiveContainer>
         </div>
