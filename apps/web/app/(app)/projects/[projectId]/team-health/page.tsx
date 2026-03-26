@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { ProjectTeamHealthPanels } from "@/features/projects/components/ProjectTeamHealthPanels";
+import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/ProjectTeamHealthTitleWithInfo";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import { PageSection } from "@/shared/ui/PageSection";
 
@@ -74,7 +75,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   const activeWarnings = initialWarnings.filter((warning) => warning.active);
   return (
     <PageSection
-      title="Team Health"
+      title={<ProjectTeamHealthTitleWithInfo title="Team Health" />}
       description="View active warnings and submit team health messages."
       className="ui-page--project"
     >
