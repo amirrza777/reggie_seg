@@ -1,10 +1,10 @@
-.peer-feedback-title-with-info {
+.title-info {
   display: inline-flex;
   align-items: center;
   gap: 10px;
 }
 
-.peer-feedback-title-with-info__button {
+.title-info__button {
   width: 34px;
   height: 34px;
   display: inline-flex;
@@ -19,22 +19,22 @@
   transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
 }
 
-.peer-feedback-title-with-info__button:hover {
+.title-info__button:hover {
   border-color: transparent;
   color: color-mix(in srgb, var(--ink-strong) 96%, var(--ink) 2%);
   background: var(--sidebar-active-bg);
 }
 
-.peer-feedback-title-with-info__button:focus-visible {
+.title-info__button:focus-visible {
   outline: 2px solid var(--accent-border);
   outline-offset: 2px;
 }
 
-.peer-feedback-title-with-info__button svg {
+.title-info__button svg {
   display: block;
 }
 
-.peer-feedback-info-modal {
+.title-info-modal {
   width: min(980px, 94vw);
   max-height: min(82vh, 980px);
   background: var(--surface);
@@ -43,19 +43,19 @@
   -webkit-backdrop-filter: none;
 }
 
-.peer-feedback-info-modal .modal__header {
+.title-info-modal .modal__header {
   padding: 16px 20px;
 }
 
-.peer-feedback-info-modal .modal__body {
+.title-info-modal .modal__body {
   padding: 20px;
 }
 
-.peer-feedback-info-modal .modal__footer {
+.title-info-modal .modal__footer {
   padding: 14px 20px 18px;
 }
 
-.peer-feedback-info-modal__body {
+.title-info-modal__body {
   display: grid;
   gap: 18px;
   color: var(--ink);
@@ -66,12 +66,12 @@
   text-rendering: optimizeLegibility;
 }
 
-.peer-feedback-info-modal__body p {
+.title-info-modal__body p {
   margin: 0;
   line-height: 1.68;
 }
 
-.peer-feedback-info-modal__title {
+.title-info-modal__title {
   margin: 0;
   display: inline-flex;
   align-items: center;
@@ -79,7 +79,7 @@
   font-size: 1.9rem;
 }
 
-.peer-feedback-info-modal__footer {
+.title-info-modal__footer {
   display: flex;
   justify-content: flex-end;
 }
