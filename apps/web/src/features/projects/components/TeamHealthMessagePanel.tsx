@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { createTeamHealthMessage } from "../api/client";
 import type { TeamHealthMessage } from "../types";
 
@@ -35,20 +36,21 @@ function formatDate(value: string) {
 export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: TeamHealthMessagePanelProps) {
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
+  const [detailsEmpty, setDetailsEmpty] = useState(true);
+  const [composerKey, setComposerKey] = useState(0);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [requests, setRequests] = useState<TeamHealthMessage[]>(initialRequests);
 
   const canSubmit = useMemo(
-    () => subject.trim().length > 0 && details.trim().length > 0 && status !== "loading",
-    [details, status, subject]
+    () => subject.trim().length > 0 && !detailsEmpty && status !== "loading",
+    [detailsEmpty, status, subject]
   );
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmedSubject = subject.trim();
-    const trimmedDetails = details.trim();
-    if (!trimmedSubject || !trimmedDetails) {
+    if (!trimmedSubject || detailsEmpty) {
       setStatus("error");
       setMessage("Please add both a subject and details.");
       return;
@@ -57,10 +59,12 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
     setStatus("loading");
     setMessage(null);
     try {
-      const created = await createTeamHealthMessage(projectId, userId, trimmedSubject, trimmedDetails);
+      const created = await createTeamHealthMessage(projectId, userId, trimmedSubject, details);
       setRequests((prev) => [created, ...prev]);
       setSubject("");
       setDetails("");
+      setDetailsEmpty(true);
+      setComposerKey((prev) => prev + 1);
       setStatus("success");
       setMessage("Team health message submitted.");
     } catch (error) {
@@ -84,16 +88,16 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
           />
         </label>
 
-        <label className="stack" style={{ gap: 6 }}>
+        <div className="stack" style={{ gap: 6 }}>
           <span>Details</span>
-          <AutoGrowTextarea
-            value={details}
-            rows={5}
-            onChange={(event) => setDetails(event.target.value)}
+          <RichTextEditor
+            key={composerKey}
+            initialContent={details}
+            onChange={setDetails}
+            onEmptyChange={setDetailsEmpty}
             placeholder="Describe what is happening and why support is needed"
-            style={textInputStyle}
           />
-        </label>
+        </div>
 
         <div
           style={{
@@ -138,7 +142,9 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                     {request.resolved ? "Resolved" : "Open"}
                   </span>
                 </div>
-                <p style={{ margin: 0 }}>{request.details}</p>
+                <div style={{ margin: 0 }}>
+                  <RichTextViewer content={request.details} />
+                </div>
                 <p className="muted" style={{ margin: 0, fontSize: 12 }}>
                   Submitted: {formatDate(request.createdAt)}
                 </p>
@@ -153,7 +159,9 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                     }}
                   >
                     <p style={{ margin: "0 0 6px", fontWeight: 600 }}>Staff response</p>
-                    <p style={{ margin: 0 }}>{request.responseText}</p>
+                    <div style={{ margin: 0 }}>
+                      <RichTextViewer content={request.responseText!} />
+                    </div>
                   </div>
                 ) : null}
               </article>
