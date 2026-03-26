@@ -8,6 +8,7 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND, $getSelection, $isRangeSelection, type EditorState } from "lexical";
@@ -146,6 +147,7 @@ export function RichTextEditor({ initialContent, onChange, placeholder = "Start 
         ul: "rich-editor__ul",
         ol: "rich-editor__ol",
         listitem: "rich-editor__listitem",
+        nested: { listitem: "rich-editor__nested-listitem" },
       },
     },
   };
@@ -174,6 +176,7 @@ export function RichTextEditor({ initialContent, onChange, placeholder = "Start 
         <ListPlugin />
         <OnChangePlugin onChange={(state: EditorState) => onChange(JSON.stringify(state.toJSON()))} />
         <InitialContentPlugin content={initialContent} />
+        <TabIndentationPlugin />
       </div>
     </LexicalComposer>
   );
