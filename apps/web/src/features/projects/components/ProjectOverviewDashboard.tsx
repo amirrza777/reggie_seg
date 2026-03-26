@@ -6,6 +6,7 @@ import type {
   ProjectOverviewDashboardProps,
 } from "../types";
 import { Card } from "@/shared/ui/Card";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
 import Link from "next/link";
 
@@ -218,9 +219,13 @@ function TutorMarkingCard({
             <strong>Team mark:</strong>{" "}
             {teamMarking?.mark == null ? "Not yet published" : teamMarking.mark}
           </p>
-          <p className="muted project-overview-marking__feedback">
-            {teamMarking?.formativeFeedback ?? "No team-level formative feedback yet."}
-          </p>
+          <div className="muted project-overview-marking__feedback">
+            {teamMarking?.formativeFeedback ? (
+              <RichTextViewer content={teamMarking.formativeFeedback} />
+            ) : (
+              <p>No team-level formative feedback yet.</p>
+            )}
+          </div>
           {teamMarking ? (
             <p className="ui-note ui-note--muted project-overview-marking__meta">
               Updated by {markerName(teamMarking)} on{" "}
@@ -235,9 +240,13 @@ function TutorMarkingCard({
             <strong>Your mark:</strong>{" "}
             {studentMarking?.mark == null ? "Not yet published" : studentMarking.mark}
           </p>
-          <p className="muted project-overview-marking__feedback">
-            {studentMarking?.formativeFeedback ?? "No individual formative feedback yet."}
-          </p>
+          <div className="muted project-overview-marking__feedback">
+            {studentMarking?.formativeFeedback ? (
+              <RichTextViewer content={studentMarking.formativeFeedback} />
+            ) : (
+              <p>No individual formative feedback yet.</p>
+            )}
+          </div>
           {studentMarking ? (
             <p className="ui-note ui-note--muted project-overview-marking__meta">
               Updated by {markerName(studentMarking)} on{" "}
