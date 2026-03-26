@@ -10,7 +10,7 @@ import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { formatDate } from "@/shared/lib/formatDate";
 import { useUser } from "@/features/auth/context";
 import "../styles/meeting-list.css";
-import type { Meeting } from "../types";
+import type { Meeting, MeetingPermissions } from "../types";
 
 type MeetingListProps = {
   meetings: Meeting[];
@@ -18,12 +18,12 @@ type MeetingListProps = {
   title?: string;
   emptyMessage?: string;
   showMinutesWriter?: boolean;
+  permissions?: MeetingPermissions | null;
 };
 
 function isUpcoming(meeting: Meeting) {
   return new Date(meeting.date) >= new Date();
 }
-
 
 export function MeetingList({
   meetings,
@@ -31,6 +31,7 @@ export function MeetingList({
   title = "Meetings",
   emptyMessage,
   showMinutesWriter = false,
+  permissions = null,
 }: MeetingListProps) {
   const { user } = useUser();
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -107,6 +108,15 @@ export function MeetingList({
   const rows = sorted.map((meeting) => {
     const upcoming = isUpcoming(meeting);
     const isOrganiser = user?.id === meeting.organiser.id;
+    const isMember = meeting.team?.allocations?.some((a) => a.user.id === user?.id) ?? false;
+    const canEdit = isOrganiser || (!!permissions?.allowAnyoneToEditMeetings && isMember);
+    const canRecordAttendance = isOrganiser || (!!permissions?.allowAnyoneToRecordAttendance && isMember);
+    const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (!!permissions?.allowAnyoneToWriteMinutes && isMember);
+    const msElapsed = Date.now() - new Date(meeting.date).getTime();
+    const minutesWindowMs = (permissions?.minutesEditWindowDays ?? 0) * 24 * 60 * 60 * 1000;
+    const minutesWindowOpen = minutesWindowMs > 0 && msElapsed <= minutesWindowMs;
+    const attendanceWindowMs = (permissions?.attendanceEditWindowDays ?? 0) * 24 * 60 * 60 * 1000;
+    const attendanceWindowOpen = attendanceWindowMs > 0 && msElapsed <= attendanceWindowMs;
     const writer = meeting.minutes?.writer;
 
     const actions = (
@@ -119,7 +129,7 @@ export function MeetingList({
         >
           <Eye size={16} />
         </AnchorLink>
-        {isOrganiser && upcoming && (
+        {canEdit && upcoming && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/edit`}
             className="meeting-list__action"
@@ -129,7 +139,7 @@ export function MeetingList({
             <Pencil size={16} />
           </AnchorLink>
         )}
-        {isOrganiser && !upcoming && (
+        {canRecordAttendance && !upcoming && attendanceWindowOpen && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/attendance`}
             className="meeting-list__action"
@@ -139,7 +149,7 @@ export function MeetingList({
             <UserCheck size={16} />
           </AnchorLink>
         )}
-        {!upcoming && (
+        {!upcoming && canWriteMinutes && minutesWindowOpen && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/minutes`}
             className="meeting-list__action"

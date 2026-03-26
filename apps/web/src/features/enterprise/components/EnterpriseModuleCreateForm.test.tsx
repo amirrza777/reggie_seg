@@ -13,6 +13,7 @@ vi.mock("../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
+  getModuleMeetingSettings: vi.fn().mockResolvedValue({ absenceThreshold: 3, minutesEditWindowDays: 7, attendanceEditWindowDays: 7, allowAnyoneToEditMeetings: false, allowAnyoneToRecordAttendance: false, allowAnyoneToWriteMinutes: false }),
   getEnterpriseModuleJoinCode: vi.fn(),
   getModuleMeetingSettings: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),

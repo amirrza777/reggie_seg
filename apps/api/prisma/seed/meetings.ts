@@ -46,7 +46,7 @@ function buildMinutesContent(text: string): string {
   });
 }
 
-function buildAttendanceData(
+function buildAttendanceRows(
   meetingId: number,
   presentIds: number[],
   absentIds: number[]
@@ -60,15 +60,10 @@ function buildAttendanceData(
 export async function seedMeetings(context: SeedContext) {
   return withSeedLogging("seedMeetings", async () => {
     const team = context.teams[0];
-
-    if (!team) {
-      return { value: undefined, rows: 0, details: "skipped (no teams)" };
-    }
+    if (!team) return { value: undefined, rows: 0, details: "skipped (no teams)" };
 
     const existing = await prisma.meeting.findFirst({ where: { teamId: team.id } });
-    if (existing) {
-      return { value: undefined, rows: 0, details: "skipped (meetings already seeded)" };
-    }
+    if (existing) return { value: undefined, rows: 0, details: "skipped (meetings already seeded)" };
 
     const teamAllocations = await prisma.teamAllocation.findMany({
       where: { teamId: team.id },
@@ -83,9 +78,6 @@ export async function seedMeetings(context: SeedContext) {
 
     const organiser = teamStudents[0];
     const minutesWriter = teamStudents[1];
-
-    const presentIds = [organiser.id, minutesWriter.id];
-    const absentIds = teamStudents.slice(2, 4).map((s) => s.id);
 
     const teamIntro = await prisma.meeting.create({
       data: {
@@ -159,18 +151,18 @@ export async function seedMeetings(context: SeedContext) {
       },
     });
 
-    const attendanceRows = [
-      ...buildAttendanceData(teamIntro.id, presentIds, absentIds),
-      ...buildAttendanceData(weeklyCheckIn.id, presentIds, absentIds),
-      ...buildAttendanceData(uiReview.id, presentIds, absentIds),
-    ];
+    const pastMeetings = [testingSession, uiReview, weeklyCheckIn, teamIntro];
+    const attendanceRows = pastMeetings.flatMap((meeting, position) => {
+      const presentIds = teamStudents.filter((_, i) => i <= position).map((s) => s.id);
+      const absentIds = teamStudents.filter((_, i) => i > position).map((s) => s.id);
+      return buildAttendanceRows(meeting.id, presentIds, absentIds);
+    });
 
     await prisma.meetingAttendance.createMany({ data: attendanceRows, skipDuplicates: true });
 
-    const allStudentIds = teamStudents.slice(0, 4).map((s) => s.id);
     const allMeetingIds = [teamIntro.id, weeklyCheckIn.id, uiReview.id, testingSession.id, submissionPrep.id, demoRehearsal.id];
     const participantRows = allMeetingIds.flatMap((meetingId) =>
-      allStudentIds.map((userId) => ({ meetingId, userId }))
+      teamAllocations.map(({ userId }) => ({ meetingId, userId }))
     );
 
     await prisma.meetingParticipant.createMany({ data: participantRows, skipDuplicates: true });
@@ -197,7 +189,7 @@ export async function seedMeetings(context: SeedContext) {
     return {
       value: undefined,
       rows: 6,
-      details: `team=${team.id}, 4 past + 2 upcoming, participants from ${teamStudents.length} team students`,
+      details: `team=${team.id}, 4 past + 2 upcoming, ${teamStudents.length} participants`,
     };
   });
 }

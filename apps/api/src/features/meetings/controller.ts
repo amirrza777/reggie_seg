@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment, fetchMeetingSettings } from "./service.js";
+import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting, markAttendance, saveMinutes, addComment, removeComment, fetchMeetingSettings, fetchTeamMeetingSettings } from "./service.js";
 
 /** Handles requests for list meetings. */
 export async function listMeetingsHandler(req: Request, res: Response) {
@@ -93,7 +93,7 @@ export async function updateMeetingHandler(req: Request, res: Response) {
     res.json(meeting);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
-    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the organiser can edit this meeting" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit this meeting" });
     if (error?.code === "MEETING_PASSED") return res.status(409).json({ error: "Meeting details cannot be edited after the meeting date" });
     console.error("Error updating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -160,7 +160,7 @@ export async function saveMinutesHandler(req: Request, res: Response) {
     res.json(minutes);
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
-    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "Only the original writer can edit these minutes" });
+    if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit these minutes" });
     console.error("Error saving minutes:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -223,6 +223,22 @@ export async function getMeetingSettingsHandler(req: Request, res: Response) {
     res.json(settings);
   } catch (error) {
     console.error("Error fetching meeting settings:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function getTeamMeetingSettingsHandler(req: Request, res: Response) {
+  const teamId = Number(req.params.teamId);
+
+  if (isNaN(teamId)) {
+    return res.status(400).json({ error: "Invalid team ID" });
+  }
+
+  try {
+    const settings = await fetchTeamMeetingSettings(teamId);
+    res.json(settings);
+  } catch (error) {
+    console.error("Error fetching team meeting settings:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 }
