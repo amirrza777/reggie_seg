@@ -4,7 +4,7 @@ model PeerFeedback {
   peerAssessmentId Int       @unique
   reviewerUserId   Int
   revieweeUserId   Int
-  reviewText       String?
+  reviewText       String?   @db.Text
   agreementsJson   Json
   submittedLate    Boolean   @default(false)
   effectiveDueDate DateTime?
