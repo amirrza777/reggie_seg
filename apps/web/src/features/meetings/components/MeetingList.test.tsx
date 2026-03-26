@@ -20,35 +20,73 @@ import { MeetingList } from "./MeetingList";
 
 const useUserMock = useUser as MockedFunction<typeof useUser>;
 
-const pastDate = "2025-01-01T10:00:00Z";
 const futureDate = "2099-01-01T10:00:00Z";
+const recentPastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+const oldPastDate = "2025-01-01T10:00:00Z";
 
 const organiserUser = { id: 1, firstName: "Reggie", lastName: "King" };
-const otherUser = { id: 99, firstName: "Other", lastName: "User" };
+const memberUser = { id: 99, firstName: "Other", lastName: "User" };
+const writerUser = { id: 3, firstName: "Alice", lastName: "Doe" };
 
-const meetings = [
-  {
-    id: 1,
-    title: "Team Meeting",
-    date: pastDate,
-    organiser: { id: 1, firstName: "Reggie", lastName: "King" },
-    location: "Bush House 3.01",
-    videoCallLink: null,
-    minutes: { writer: { id: 3, firstName: "Alice", lastName: "Doe" } },
-  },
-  {
-    id: 2,
-    title: "Group Check-in",
-    date: futureDate,
-    organiser: { id: 2, firstName: "John", lastName: "Smith" },
-    location: null,
-    videoCallLink: "https://meet.google.com/abc-defg-hij",
-    minutes: null,
-  },
-];
+const sharedTeam = {
+  allocations: [
+    { user: organiserUser },
+    { user: memberUser },
+    { user: writerUser },
+  ],
+};
+
+const recentPastMeeting = {
+  id: 1,
+  title: "Team Meeting",
+  date: recentPastDate,
+  organiser: organiserUser,
+  location: "Bush House 3.01",
+  videoCallLink: null,
+  minutes: { writerId: writerUser.id, writer: writerUser },
+  team: sharedTeam,
+  participants: [{ user: organiserUser }],
+  attendances: [],
+};
+
+const futureMeeting = {
+  id: 2,
+  title: "Group Check-in",
+  date: futureDate,
+  organiser: { id: 2, firstName: "John", lastName: "Smith" },
+  location: null,
+  videoCallLink: "https://meet.google.com/abc-defg-hij",
+  minutes: null,
+  team: { allocations: [{ user: { id: 2, firstName: "John", lastName: "Smith" } }, { user: memberUser }] },
+  participants: [{ user: { id: 2 } }],
+  attendances: [],
+};
+
+const oldPastMeeting = {
+  id: 3,
+  title: "Old Meeting",
+  date: oldPastDate,
+  organiser: organiserUser,
+  location: null,
+  videoCallLink: null,
+  minutes: { writerId: writerUser.id, writer: writerUser },
+  team: sharedTeam,
+  participants: [{ user: organiserUser }],
+  attendances: [],
+};
+
+const meetings = [recentPastMeeting, futureMeeting];
+
+const defaultPermissions = {
+  minutesEditWindowDays: 7,
+  attendanceEditWindowDays: 7,
+  allowAnyoneToEditMeetings: false,
+  allowAnyoneToRecordAttendance: false,
+  allowAnyoneToWriteMinutes: false,
+};
 
 beforeEach(() => {
-  useUserMock.mockReturnValue({ user: otherUser } as any);
+  useUserMock.mockReturnValue({ user: memberUser } as any);
 });
 
 describe("MeetingList", () => {
@@ -83,30 +121,83 @@ describe("MeetingList", () => {
     expect(screen.getByRole("link", { name: /edit meeting/i })).toHaveAttribute("href", "/projects/1/meetings/2/edit");
   });
 
-  it("does not show edit link for non-organiser", () => {
-    render(<MeetingList meetings={meetings as any} projectId={1} />);
+  it("does not show edit link for non-organiser when toggle is off", () => {
+    render(<MeetingList meetings={meetings as any} projectId={1} permissions={defaultPermissions} />);
     expect(screen.queryByRole("link", { name: /edit meeting/i })).not.toBeInTheDocument();
   });
 
-  it("shows attendance link for organiser on past meetings", () => {
+  it("shows edit link for non-organiser when toggle is on and user is a team member", () => {
+    const permissions = { ...defaultPermissions, allowAnyoneToEditMeetings: true };
+    render(<MeetingList meetings={[futureMeeting] as any} projectId={1} permissions={permissions} />);
+    expect(screen.getByRole("link", { name: /edit meeting/i })).toBeInTheDocument();
+  });
+
+  it("does not show edit link for past meetings even for organiser", () => {
     useUserMock.mockReturnValue({ user: organiserUser } as any);
-    render(<MeetingList meetings={meetings as any} projectId={1} />);
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /edit meeting/i })).not.toBeInTheDocument();
+  });
+
+  it("shows attendance link for organiser on past meetings within window", () => {
+    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
     expect(screen.getByRole("link", { name: /record attendance/i })).toHaveAttribute("href", "/projects/1/meetings/1/attendance");
   });
 
-  it("does not show attendance link for non-organiser", () => {
-    render(<MeetingList meetings={meetings as any} projectId={1} />);
+  it("does not show attendance link for non-organiser when toggle is off", () => {
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
     expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
   });
 
-  it("shows minutes link for past meetings for all users", () => {
-    render(<MeetingList meetings={meetings as any} projectId={1} />);
-    expect(screen.getByRole("link", { name: /meeting minutes/i })).toHaveAttribute("href", "/projects/1/meetings/1/minutes");
+  it("shows attendance link for team member when toggle is on", () => {
+    const permissions = { ...defaultPermissions, allowAnyoneToRecordAttendance: true };
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={permissions} />);
+    expect(screen.getByRole("link", { name: /record attendance/i })).toBeInTheDocument();
+  });
+
+  it("does not show attendance link when window has closed", () => {
+    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    render(<MeetingList meetings={[oldPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
+  });
+
+  it("does not show attendance link for upcoming meetings", () => {
+    useUserMock.mockReturnValue({ user: organiserUser } as any);
+    render(<MeetingList meetings={[futureMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
+  });
+
+  it("shows minutes link when no minutes exist within window", () => {
+    const noMinutesMeeting = { ...recentPastMeeting, minutes: null };
+    render(<MeetingList meetings={[noMinutesMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.getByRole("link", { name: /meeting minutes/i })).toBeInTheDocument();
+  });
+
+  it("shows minutes link for the original writer within window", () => {
+    useUserMock.mockReturnValue({ user: writerUser } as any);
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.getByRole("link", { name: /meeting minutes/i })).toBeInTheDocument();
+  });
+
+  it("does not show minutes link for non-writer when toggle is off", () => {
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
+  });
+
+  it("shows minutes link for team member when toggle is on", () => {
+    const permissions = { ...defaultPermissions, allowAnyoneToWriteMinutes: true };
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} permissions={permissions} />);
+    expect(screen.getByRole("link", { name: /meeting minutes/i })).toBeInTheDocument();
+  });
+
+  it("does not show minutes link when window has closed", () => {
+    useUserMock.mockReturnValue({ user: writerUser } as any);
+    render(<MeetingList meetings={[oldPastMeeting] as any} projectId={1} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
   });
 
   it("does not show minutes link for upcoming meetings", () => {
-    const upcomingOnly = [meetings[1]];
-    render(<MeetingList meetings={upcomingOnly as any} projectId={1} />);
+    render(<MeetingList meetings={[futureMeeting] as any} projectId={1} permissions={defaultPermissions} />);
     expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
   });
 
@@ -116,13 +207,13 @@ describe("MeetingList", () => {
   });
 
   it("does not show join link for past meetings", () => {
-    const pastWithLink = [{ ...meetings[0], videoCallLink: "https://meet.google.com/abc" }];
+    const pastWithLink = [{ ...recentPastMeeting, videoCallLink: "https://meet.google.com/abc" }];
     render(<MeetingList meetings={pastWithLink as any} projectId={1} />);
     expect(screen.queryByRole("link", { name: /join video call/i })).not.toBeInTheDocument();
   });
 
   it("does not show join link for upcoming meetings without a video call link", () => {
-    const upcomingNoLink = [{ ...meetings[1], videoCallLink: null }];
+    const upcomingNoLink = [{ ...futureMeeting, videoCallLink: null }];
     render(<MeetingList meetings={upcomingNoLink as any} projectId={1} />);
     expect(screen.queryByRole("link", { name: /join video call/i })).not.toBeInTheDocument();
   });
@@ -133,7 +224,7 @@ describe("MeetingList", () => {
   });
 
   it("does not show calendar dropdown for past-only list", () => {
-    render(<MeetingList meetings={[meetings[0]] as any} projectId={1} />);
+    render(<MeetingList meetings={[recentPastMeeting] as any} projectId={1} />);
     expect(screen.queryByTestId("atc-compact")).not.toBeInTheDocument();
   });
 
@@ -144,19 +235,19 @@ describe("MeetingList", () => {
   });
 
   it("shows dash for meetings with no minutes writer", () => {
-    const noMinutes = [{ ...meetings[0], minutes: null }];
+    const noMinutes = [{ ...recentPastMeeting, minutes: null }];
     render(<MeetingList meetings={noMinutes as any} projectId={1} showMinutesWriter />);
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
   });
 
   it("sorts by date descending when showMinutesWriter is true", () => {
     const twoMeetings = [
-      { ...meetings[0], id: 1, title: "Older Meeting", date: "2024-01-01T10:00:00Z" },
-      { ...meetings[0], id: 2, title: "Newer Meeting", date: "2024-06-01T10:00:00Z" },
+      { ...recentPastMeeting, id: 1, title: "Older Meeting", date: "2024-01-01T10:00:00Z" },
+      { ...recentPastMeeting, id: 2, title: "Newer Meeting", date: "2024-06-01T10:00:00Z" },
     ];
     render(<MeetingList meetings={twoMeetings as any} projectId={1} showMinutesWriter />);
-    const allText = screen.getByText("Newer Meeting").compareDocumentPosition(screen.getByText("Older Meeting"));
-    expect(allText & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const position = screen.getByText("Newer Meeting").compareDocumentPosition(screen.getByText("Older Meeting"));
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("toggles sort direction when clicking an active column header", () => {

@@ -7,6 +7,7 @@ vi.mock("@/features/auth/context", () => ({
 
 vi.mock("../api/client", () => ({
   createMeeting: vi.fn(),
+  listTeamMembers: vi.fn().mockResolvedValue([]),
 }));
 
 import { useUser } from "@/features/auth/context";
