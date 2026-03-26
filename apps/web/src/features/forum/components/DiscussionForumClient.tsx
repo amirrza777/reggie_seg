@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
 import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
 import {
   createDiscussionPost,
@@ -97,6 +99,8 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
   const [replyOpenByPostId, setReplyOpenByPostId] = useState<Record<number, boolean>>({});
   const [menuOpenPostId, setMenuOpenPostId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [composerKey, setComposerKey] = useState(0);
+  const [bodyEmpty, setBodyEmpty] = useState(true);
 
   useEffect(() => {
     if (menuOpenPostId === null) return;
@@ -127,7 +131,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     user?.role === "ENTERPRISE_ADMIN";
   const isStudent = user?.role === "STUDENT";
 
-  const canSubmit = title.trim().length > 0 && body.trim().length > 0;
+  const canSubmit = title.trim().length > 0 && !bodyEmpty;
   const totalPages = Math.max(1, Math.ceil(posts.length / ROOT_POSTS_PER_PAGE));
   const pageStart = (currentPage - 1) * ROOT_POSTS_PER_PAGE;
   const visiblePosts = posts.slice(pageStart, pageStart + ROOT_POSTS_PER_PAGE);
@@ -241,12 +245,14 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     try {
       const next = await createDiscussionPost(user.id, Number(projectId), {
         title: title.trim(),
-        body: body.trim(),
+        body,
       });
       setPostsWithRef((prev) => [next, ...prev]);
       setCurrentPage(1);
       setTitle("");
       setBody("");
+      setBodyEmpty(true);
+      setComposerKey((prev) => prev + 1);
     } catch (err) {
       logDevError(err);
       setError("Failed to create post.");
@@ -660,7 +666,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           )}
         </div>
 
-        {isEditing ? null : <p className="discussion-post__body">{post.body}</p>}
+        {isEditing ? null : (
+          <div className="discussion-post__body">
+            <RichTextViewer content={post.body} />
+          </div>
+        )}
 
         <div className="discussion-post__toolbar">
           <div className="discussion-post__toolbar-left">
@@ -773,15 +783,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           </div>
 
           <div className="discussion-field">
-            <label htmlFor="discussion-body">Post</label>
-            <AutoGrowTextarea
-              id="discussion-body"
-              name="body"
-              rows={4}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
+            <span>Post</span>
+            <RichTextEditor
+              key={composerKey}
+              initialContent={body}
+              onChange={setBody}
+              onEmptyChange={setBodyEmpty}
               placeholder="Write your update or question"
-              disabled={!user || userLoading}
             />
           </div>
 
