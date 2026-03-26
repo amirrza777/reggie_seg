@@ -22,6 +22,7 @@ describe("projects router", () => {
         { path: "/:projectId/team-warnings/me", methods: { get: true } },
         { path: "/:projectId/team", methods: { get: true } },
         { path: "/modules", methods: { get: true } },
+        { path: "/modules/join", methods: { post: true } },
         { path: "/modules/:moduleId/staff", methods: { get: true } },
         { path: "/modules/:moduleId/student-project-matrix", methods: { get: true } },
         { path: "/staff/mine", methods: { get: true } },

@@ -102,7 +102,6 @@ describe("projects service", () => {
   });
 
   it("fetchModulesForUser maps module fields to API shape", async () => {
-    const createdAt = new Date("2025-01-15T12:00:00.000Z");
     const projectWindowStart = new Date("2025-01-10T00:00:00.000Z");
     const projectWindowEnd = new Date("2025-06-01T00:00:00.000Z");
     (repo.getModulesForUser as any).mockResolvedValue([
@@ -116,8 +115,6 @@ describe("projects service", () => {
         readinessNotesText: null,
         leaderCount: 2,
         teachingAssistantCount: 1,
-        createdAt,
-        archivedAt: null,
         projectWindowStart,
         projectWindowEnd,
         teamCount: 5,
@@ -137,8 +134,6 @@ describe("projects service", () => {
         readinessNotesText: undefined,
         leaderCount: 2,
         teachingAssistantCount: 1,
-        createdAt: createdAt.toISOString(),
-        archivedAt: null,
         projectWindowStart: projectWindowStart.toISOString(),
         projectWindowEnd: projectWindowEnd.toISOString(),
         teamCount: 5,
