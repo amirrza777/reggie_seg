@@ -76,6 +76,46 @@ const MODULE_LEAD_NAME_SELECT = {
   },
 } as const;
 
+/** Date columns only — window min/max uses every selected `Date` (excludes `createdAt` / `updatedAt` on the full row). */
+const MODULE_LIST_PROJECT_DEADLINE_SELECT = {
+  taskOpenDate: true,
+  taskDueDate: true,
+  taskDueDateMcf: true,
+  assessmentOpenDate: true,
+  assessmentDueDate: true,
+  assessmentDueDateMcf: true,
+  feedbackOpenDate: true,
+  feedbackDueDate: true,
+  feedbackDueDateMcf: true,
+} as const;
+
+type ModuleListProjectDeadline = Prisma.ProjectDeadlineGetPayload<{ select: typeof MODULE_LIST_PROJECT_DEADLINE_SELECT }>;
+
+function deadlineInstantsMs(deadline: ModuleListProjectDeadline): number[] {
+  return Object.values(deadline)
+    .filter((v): v is Date => v instanceof Date)
+    .map((d) => d.getTime());
+}
+
+function aggregateModuleProjectDateWindow(projects: { deadline: ModuleListProjectDeadline | null }[]): {
+  projectWindowStart: Date | null;
+  projectWindowEnd: Date | null;
+} {
+  let minMs: number | null = null;
+  let maxMs: number | null = null;
+  for (const p of projects) {
+    if (!p.deadline) continue;
+    for (const ms of deadlineInstantsMs(p.deadline)) {
+      if (minMs === null || ms < minMs) minMs = ms;
+      if (maxMs === null || ms > maxMs) maxMs = ms;
+    }
+  }
+  return {
+    projectWindowStart: minMs === null ? null : new Date(minMs),
+    projectWindowEnd: maxMs === null ? null : new Date(maxMs),
+  };
+}
+
 function matchesModuleSearchQuery(module: { id: number; code?: string | null; name: string }, query: string): boolean {
   return matchesFuzzySearchCandidate({
     query,
@@ -517,6 +557,14 @@ export async function getModulesForUser(
         id: true,
         code: true,
         name: true,
+        createdAt: true,
+        archivedAt: true,
+        _count: {
+          select: {
+            moduleLeads: true,
+            moduleTeachingAssistants: true,
+          },
+        },
         moduleLeads: {
           select: MODULE_LEAD_NAME_SELECT,
         },
@@ -530,6 +578,11 @@ export async function getModulesForUser(
           select: { userId: true },
           take: 1,
         },
+        projects: {
+          select: {
+            deadline: { select: MODULE_LIST_PROJECT_DEADLINE_SELECT },
+          },
+        },
       },
       orderBy: [{ name: "asc" }, { id: "asc" }],
     });
@@ -542,6 +595,14 @@ export async function getModulesForUser(
             id: true,
             code: true,
             name: true,
+            createdAt: true,
+            archivedAt: true,
+            _count: {
+              select: {
+                moduleLeads: true,
+                moduleTeachingAssistants: true,
+              },
+            },
             moduleLeads: {
               select: MODULE_LEAD_NAME_SELECT,
             },
@@ -554,6 +615,11 @@ export async function getModulesForUser(
               where: { userId: user.id, enterpriseId: user.enterpriseId },
               select: { userId: true },
               take: 1,
+            },
+            projects: {
+              select: {
+                deadline: { select: MODULE_LIST_PROJECT_DEADLINE_SELECT },
+              },
             },
           },
           orderBy: [{ name: "asc" }, { id: "asc" }],
@@ -569,6 +635,7 @@ export async function getModulesForUser(
         isTeachingAssistant: module.moduleTeachingAssistants.length > 0,
         isEnrolled: module.userModules.length > 0,
       });
+      const { projectWindowStart, projectWindowEnd } = aggregateModuleProjectDateWindow(module.projects);
 
       return {
         id: module.id,
@@ -576,6 +643,12 @@ export async function getModulesForUser(
         name: module.name,
         moduleLeadNames,
         accessRole,
+        leaderCount: module._count.moduleLeads,
+        teachingAssistantCount: module._count.moduleTeachingAssistants,
+        createdAt: module.createdAt,
+        archivedAt: module.archivedAt,
+        projectWindowStart,
+        projectWindowEnd,
       };
     });
   }
@@ -593,6 +666,14 @@ export async function getModulesForUser(
       timelineText: true,
       expectationsText: true,
       readinessNotesText: true,
+      createdAt: true,
+      archivedAt: true,
+      _count: {
+        select: {
+          moduleLeads: true,
+          moduleTeachingAssistants: true,
+        },
+      },
       ...leadTaSelect,
       userModules: {
         where: { userId: user.id, enterpriseId: user.enterpriseId },
@@ -606,6 +687,7 @@ export async function getModulesForUser(
               teams: true,
             },
           },
+          deadline: { select: MODULE_LIST_PROJECT_DEADLINE_SELECT },
         },
       },
     },
@@ -624,6 +706,14 @@ export async function getModulesForUser(
           timelineText: true,
           expectationsText: true,
           readinessNotesText: true,
+          createdAt: true,
+          archivedAt: true,
+          _count: {
+            select: {
+              moduleLeads: true,
+              moduleTeachingAssistants: true,
+            },
+          },
           ...leadTaSelect,
           userModules: {
             where: { userId: user.id, enterpriseId: user.enterpriseId },
@@ -637,6 +727,7 @@ export async function getModulesForUser(
                   teams: true,
                 },
               },
+              deadline: { select: MODULE_LIST_PROJECT_DEADLINE_SELECT },
             },
           },
         },
@@ -653,6 +744,7 @@ export async function getModulesForUser(
       moduleAccessFlagsForUser(module, user.id, listMode),
     );
     const staffWithAccessCount = countUniqueStaffOnModule(module, listMode);
+    const { projectWindowStart, projectWindowEnd } = aggregateModuleProjectDateWindow(module.projects);
 
     return {
       id: module.id,
@@ -663,6 +755,12 @@ export async function getModulesForUser(
       expectationsText: module.expectationsText,
       readinessNotesText: module.readinessNotesText,
       moduleLeadNames,
+      leaderCount: module._count.moduleLeads,
+      teachingAssistantCount: module._count.moduleTeachingAssistants,
+      createdAt: module.createdAt,
+      archivedAt: module.archivedAt,
+      projectWindowStart,
+      projectWindowEnd,
       teamCount: module.projects.reduce((sum, project) => sum + project._count.teams, 0),
       projectCount: module.projects.length,
       accessRole,

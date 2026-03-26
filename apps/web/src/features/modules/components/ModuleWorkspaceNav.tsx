@@ -20,13 +20,8 @@ export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavPro
   const links: { href: string; label: string; match: (path: string | null) => boolean }[] = [
     {
       href: base,
-      label: "Expectations",
+      label: "Overview",
       match: (path) => path === base,
-    },
-    {
-      href: `${base}/marks`,
-      label: "Marks",
-      match: (path) => path === `${base}/marks` || Boolean(path?.startsWith(`${base}/marks/`)),
     },
     {
       href: `${base}/projects`,
