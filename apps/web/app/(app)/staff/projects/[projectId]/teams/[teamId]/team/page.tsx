@@ -1,5 +1,6 @@
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import type { User } from "@/features/projects/types";
 
 type StaffProjectTeamTabsPageProps = {
@@ -80,7 +81,24 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   }
 
   return (
-    <>
+    <div className="staff-projects">
+      <section className="staff-projects__hero">
+        <p className="staff-projects__eyebrow">Team</p>
+        <h1 className="staff-projects__title">{team.teamName}</h1>
+        <p className="staff-projects__desc">Project: {project.name}</p>
+        <div className="staff-projects__meta">
+          <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
+          <span className="staff-projects__badge">
+            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
+          </span>
+          <span className="staff-projects__badge">
+            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
+          </span>
+        </div>
+      </section>
+
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+
       <section className="staff-projects__team-card" aria-label="Team members">
         <h3 style={{ margin: 0 }}>Team members</h3>
         <p className="muted" style={{ margin: 0 }}>
@@ -125,9 +143,9 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                 Notify student
               </button>
             </div>
-          ))}
+        ))}
         </div>
       </section>
-    </>
+    </div>
   );
 }

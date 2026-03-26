@@ -7,9 +7,11 @@ const SEGMENT_SUBTITLES: Record<string, string> = {
   team: "Team member details",
   "team-meetings": "Meeting logs and attendance",
   "peer-assessment": "Assessments written and received by student",
+  "peer-feedback": "Feedback progress and review evidence",
   grading: "Team and student grading",
   repositories: "Repository activity and contribution evidence",
   trello: "Task planning summary",
+  teamhealth: "Warnings, messages, and team support signals",
   deadlines: "Per-student deadline adjustments and team profile",
 };
 
