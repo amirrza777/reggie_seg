@@ -3,6 +3,7 @@ import {
   getTeammates,
 } from "@/features/peerAssessment/api/client";
 import { PeerListView } from "@/features/peerAssessment/components/PeerListView";
+import { PeerAssessmentTitleWithInfo } from "@/features/peerAssessment/components/PeerAssessmentTitleWithInfo";
 import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
@@ -64,7 +65,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   if (!user || !team) {
     return (
       <PageSection
-        title="Peer Assessments"
+        title={<PeerAssessmentTitleWithInfo title="Peer Assessments" />}
         className="ui-page--project"
       >
         <p>You are not in a team for this project.</p>
@@ -123,7 +124,7 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
 
   return (
     <PageSection
-      title="Peer Assessments"
+      title={<PeerAssessmentTitleWithInfo title="Peer Assessments" />}
       className="ui-page--project"
     >
       <PeerListView

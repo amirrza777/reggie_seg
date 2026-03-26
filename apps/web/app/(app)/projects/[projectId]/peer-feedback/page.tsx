@@ -3,6 +3,7 @@ import {
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
 import { FeedbackAssessmentView } from "@/features/peerFeedback/components/FeedbackListView";
+import { PeerFeedbackTitleWithInfo } from "@/features/peerFeedback/components/PeerFeedbackTitleWithInfo";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { PageSection } from "@/shared/ui/PageSection";
@@ -53,7 +54,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   if (!user) {
     return (
       <PageSection
-        title="Peer Feedback"
+        title={<PeerFeedbackTitleWithInfo title="Peer Feedback" />}
         className="ui-page--project"
       >
         <p className="muted">Please sign in to view peer feedback.</p>
@@ -83,7 +84,7 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
 
   return (
     <PageSection
-      title="Peer Feedback"
+      title={<PeerFeedbackTitleWithInfo title="Peer Feedback" />}
       className="ui-page--project"
     >
       <FeedbackAssessmentView
