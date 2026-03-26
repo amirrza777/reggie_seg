@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ContributorRow } from "./GithubRepoChartsDashboard.helpers";
+import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 import {
   buildContributorMiniSeries,
   CHART_COLOR_COMMITS,
@@ -118,12 +119,8 @@ export function GithubContributorCard({
               />
               <YAxis allowDecimals={false} hide />
               <Tooltip
+                content={<ChartTooltipContent />}
                 labelFormatter={(label) => formatShortDate(String(label))}
-                contentStyle={{
-                  background: "var(--surface)",
-                  border: "1px solid var(--border)",
-                  borderRadius: 8,
-                }}
               />
               <Bar dataKey="commits" fill={CHART_COLOR_COMMITS} maxBarSize={20} radius={[4, 4, 0, 0]} />
             </BarChart>

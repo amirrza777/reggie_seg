@@ -4,6 +4,7 @@ import { MeetingsPageContent } from "./MeetingsPageContent";
 
 vi.mock("../api/client", () => ({
   listMeetings: vi.fn(),
+  getTeamMeetingSettings: vi.fn().mockResolvedValue({ minutesEditWindowDays: 7, attendanceEditWindowDays: 7, allowAnyoneToEditMeetings: false, allowAnyoneToRecordAttendance: false, allowAnyoneToWriteMinutes: false }),
 }));
 
 vi.mock("@/features/auth/context", () => ({
@@ -35,6 +36,9 @@ const futureMeeting = {
   location: "Bush House 3.01",
   minutes: null,
   videoCallLink: null,
+  team: { allocations: [] },
+  participants: [],
+  attendances: [],
 };
 
 const pastMeeting = {
@@ -45,6 +49,9 @@ const pastMeeting = {
   location: null,
   minutes: null,
   videoCallLink: null,
+  team: { allocations: [] },
+  participants: [],
+  attendances: [],
 };
 
 describe("MeetingsPageContent", () => {

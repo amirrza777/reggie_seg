@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, X } from "lucide-react";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import { useNotifications } from "../hooks/useNotifications";
 import type { Notification } from "../types";
 

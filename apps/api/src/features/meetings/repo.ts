@@ -276,7 +276,25 @@ export async function getModuleLeadsForTeam(teamId: number) {
 export async function getModuleMeetingSettingsForTeam(teamId: number) {
   const project = await prisma.project.findFirst({
     where: { teams: { some: { id: teamId } } },
-    select: { module: { select: { absenceThreshold: true, minutesEditWindowDays: true } } },
+    select: {
+      module: {
+        select: {
+          absenceThreshold: true,
+          minutesEditWindowDays: true,
+          attendanceEditWindowDays: true,
+          allowAnyoneToEditMeetings: true,
+          allowAnyoneToRecordAttendance: true,
+          allowAnyoneToWriteMinutes: true,
+        },
+      },
+    },
   });
-  return project?.module ?? { absenceThreshold: 3, minutesEditWindowDays: 7 };
+  return project?.module ?? {
+    absenceThreshold: 3,
+    minutesEditWindowDays: 7,
+    attendanceEditWindowDays: 7,
+    allowAnyoneToEditMeetings: false,
+    allowAnyoneToRecordAttendance: false,
+    allowAnyoneToWriteMinutes: false,
+  };
 }

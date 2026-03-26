@@ -9,7 +9,7 @@
   position: relative;
   background: var(--glass-ui-bg-soft);
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: 8px;
   color: var(--ink);
   cursor: pointer;
@@ -48,7 +48,7 @@
   min-width: min(340px, 92vw);
   background: var(--glass-ui-bg);
   border: 1px solid var(--glass-ui-border);
-  border-radius: var(--radius-md);
+  border-radius: 18px;
   z-index: 20;
   overflow: hidden;
 }

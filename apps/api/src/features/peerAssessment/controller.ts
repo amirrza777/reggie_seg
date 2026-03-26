@@ -1,20 +1,25 @@
 import type { Request, Response } from "express"
-import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments , fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
+import { fetchTeammates, saveAssessment, fetchAssessment, updateAssessmentAnswers, fetchTeammateAssessments, fetchAssessmentsForReviewee, fetchQuestionsForProject, fetchAssessmentById, fetchProjectQuestionnaireTemplate } from "./service.js"
 import { PeerAssessmentService } from "./services/PeerAssessmentService.js" 
 import { AssessmentAnswerValidationError, normalizeAndValidateAssessmentAnswers } from "./answers.js";
+import {
+  parseAssessmentAnswersBody,
+  parseAssessmentIdParam,
+  parseAssessmentQuery,
+  parseCreateAssessmentBody,
+  parseProjectIdParam,
+  parseUserIdAndProjectIdParams,
+  parseUserIdAndTeamIdQuery,
+} from "./controller.parsers.js";
 const peerService = new PeerAssessmentService();
 
 /** Handles requests for get teammates. */
 export async function getTeammatesHandler(req: Request, res: Response) {
-  const userId = Number(req.query.userId)
-  const teamId = Number(req.params.teamId)
-
-  if (isNaN(userId) || isNaN(teamId)) {
-    return res.status(400).json({ error: "Invalid user ID or team ID" })
-  }
+  const parsed = parseUserIdAndTeamIdQuery(req as any);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
 
   try {
-    const teammates = await fetchTeammates(userId, teamId)
+    const teammates = await fetchTeammates(parsed.value.userId, parsed.value.teamId)
     res.json(teammates)
   } catch (error) {
     console.error("Error fetching teammates:", error)
@@ -24,54 +29,31 @@ export async function getTeammatesHandler(req: Request, res: Response) {
 
 /** Handles requests for create assessment. */
 export async function createAssessmentHandler(req: Request, res: Response) {
-  const {
-    projectId,
-    teamId,
-    reviewerUserId,
-    revieweeUserId,
-    templateId,
-    answersJson
-  } = req.body
-
-  const numericProjectId = Number(projectId);
-  const numericTeamId = Number(teamId);
-  const numericReviewerUserId = Number(reviewerUserId);
-  const numericRevieweeUserId = Number(revieweeUserId);
-  const numericTemplateId = Number(templateId);
-
-  if (
-    !Number.isInteger(numericProjectId) ||
-    !Number.isInteger(numericTeamId) ||
-    !Number.isInteger(numericReviewerUserId) ||
-    !Number.isInteger(numericRevieweeUserId) ||
-    !Number.isInteger(numericTemplateId) ||
-    answersJson == null
-  ) {
-    return res.status(400).json({ error: "Invalid request body" })
-  }
+  const parsedBody = parseCreateAssessmentBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
 
   try {
-    const project = await fetchProjectQuestionnaireTemplate(numericProjectId);
+    const project = await fetchProjectQuestionnaireTemplate(parsedBody.value.projectId);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
-    if (project.questionnaireTemplate.id !== numericTemplateId) {
+    if (project.questionnaireTemplate.id !== parsedBody.value.templateId) {
       return res.status(400).json({
         error: "templateId does not match the project's questionnaire template",
       });
     }
 
     const normalizedAnswers = normalizeAndValidateAssessmentAnswers(
-      answersJson,
+      parsedBody.value.answersJson,
       project.questionnaireTemplate.questions
     );
 
     const assessment = await saveAssessment({
-      projectId: numericProjectId,
-      teamId: numericTeamId,
-      reviewerUserId: numericReviewerUserId,
-      revieweeUserId: numericRevieweeUserId,
-      templateId: numericTemplateId,
+      projectId: parsedBody.value.projectId,
+      teamId: parsedBody.value.teamId,
+      reviewerUserId: parsedBody.value.reviewerUserId,
+      revieweeUserId: parsedBody.value.revieweeUserId,
+      templateId: parsedBody.value.templateId,
       answersJson: normalizedAnswers,
     });
 
@@ -95,17 +77,11 @@ export async function createAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for get assessment. */
 export async function getAssessmentHandler(req: Request, res: Response) {
-  const projectId = Number(req.query.projectId)
-  const teamId = Number(req.query.teamId)
-  const reviewerId = Number(req.query.reviewerId)
-  const revieweeId = Number(req.query.revieweeId)
-
-  if (isNaN(projectId) || isNaN(teamId) || isNaN(reviewerId) || isNaN(revieweeId)) {
-    return res.status(400).json({ error: "Invalid query parameters" })
-  }
+  const parsed = parseAssessmentQuery(req as any);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error })
 
   try {
-    const assessment = await fetchAssessment(projectId, teamId, reviewerId, revieweeId)
+    const assessment = await fetchAssessment(parsed.value.projectId, parsed.value.teamId, parsed.value.reviewerId, parsed.value.revieweeId)
 
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" })
@@ -120,27 +96,20 @@ export async function getAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for update assessment. */
 export async function updateAssessmentHandler(req: Request, res: Response) {
-  
-  const assessmentId = Number(req.params.id)
-  const { answersJson } = req.body
-
-  if (isNaN(assessmentId)) {
-    return res.status(400).json({ error: "Invalid assessment ID" })
-  }
-
-  if (answersJson == null) {
-    return res.status(400).json({ error: "Invalid request body" })
-  }
+  const assessmentId = parseAssessmentIdParam(req.params.id)
+  if (!assessmentId.ok) return res.status(400).json({ error: assessmentId.error })
+  const parsedBody = parseAssessmentAnswersBody(req.body)
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
 
   try {
-    const existingAssessment = await fetchAssessmentById(assessmentId);
+    const existingAssessment = await fetchAssessmentById(assessmentId.value);
     if (!existingAssessment) {
       return res.status(404).json({ error: "Peer assessment not found" });
     }
 
     const templateQuestions = existingAssessment.questionnaireTemplate?.questions ?? [];
-    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(answersJson, templateQuestions);
-    await updateAssessmentAnswers(assessmentId, normalizedAnswers)
+    const normalizedAnswers = normalizeAndValidateAssessmentAnswers(parsedBody.value.answersJson, templateQuestions);
+    await updateAssessmentAnswers(assessmentId.value, normalizedAnswers)
     res.json({ ok: true })
   } catch (error: any) {
     if (error instanceof AssessmentAnswerValidationError) {
@@ -159,6 +128,20 @@ export async function updateAssessmentHandler(req: Request, res: Response) {
 
 /** Handles requests for get assessments. */
 export async function getAssessmentsHandler(req: Request, res: Response) {
+  const parsed = parseUserIdAndProjectIdParams(req as any);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+
+  try {
+    const assessments = await fetchTeammateAssessments(parsed.value.userId, parsed.value.projectId);
+    res.json(assessments);
+  } catch (error) {
+    console.error("Error fetching peer assessments:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }   
+}
+
+/** Handles requests for assessments where the user is the reviewee. */
+export async function getAssessmentsForRevieweeHandler(req: Request, res: Response) {
   const userId = Number(req.params.userId);
   const projectId = Number(req.params.projectId);
 
@@ -167,24 +150,21 @@ export async function getAssessmentsHandler(req: Request, res: Response) {
   }
 
   try {
-    const assessments = await fetchTeammateAssessments(userId, projectId);
+    const assessments = await fetchAssessmentsForReviewee(userId, projectId);
     res.json(assessments);
   } catch (error) {
-    console.error("Error fetching peer assessments:", error);
+    console.error("Error fetching peer assessments for reviewee:", error);
     res.status(500).json({ error: "Internal server error" });
-  }   
+  }
 }
 
 /** Handles requests for get assessment by ID. */
 export async function getAssessmentByIdHandler(req: Request, res: Response) {
-  const assessmentId = Number(req.params.id);
-
-  if (isNaN(assessmentId)) {
-    return res.status(400).json({ error: "Invalid assessment ID" });
-  }
+  const assessmentId = parseAssessmentIdParam(req.params.id);
+  if (!assessmentId.ok) return res.status(400).json({ error: assessmentId.error });
   
   try {
-    const assessment = await fetchAssessmentById(assessmentId);
+    const assessment = await fetchAssessmentById(assessmentId.value);
     if (!assessment) {
       return res.status(404).json({ error: "Assessment not found" });
     }
@@ -197,14 +177,11 @@ export async function getAssessmentByIdHandler(req: Request, res: Response) {
 
 /** Handles requests for get questions for project. */
 export async function getQuestionsForProjectHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchQuestionsForProject(projectId);
+    const project = await fetchQuestionsForProject(projectId.value);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }
@@ -217,14 +194,11 @@ export async function getQuestionsForProjectHandler(req: Request, res: Response)
 
 /** Handles requests for get project questionnaire template. */
 export async function getProjectQuestionnaireTemplateHandler(req: Request, res: Response) {
-  const projectId = Number(req.params.projectId);
-
-  if (isNaN(projectId)) {
-    return res.status(400).json({ error: "Invalid project ID" });
-  }
+  const projectId = parseProjectIdParam(req.params.projectId);
+  if (!projectId.ok) return res.status(400).json({ error: projectId.error });
 
   try {
-    const project = await fetchProjectQuestionnaireTemplate(projectId);
+    const project = await fetchProjectQuestionnaireTemplate(projectId.value);
     if (!project || !project.questionnaireTemplate) {
       return res.status(404).json({ error: "Questionnaire template not found for this project" });
     }

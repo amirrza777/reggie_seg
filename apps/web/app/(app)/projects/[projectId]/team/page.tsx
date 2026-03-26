@@ -69,7 +69,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             projectCompleted={projectCompleted}
           />
         ) : (
-          <p className="ui-note ui-note--muted">Please sign in to manage your team.</p>
+          <p>Please sign in to manage your team.</p>
         )}
       </Card>
     </PageSection>

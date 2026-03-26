@@ -5,16 +5,15 @@
 .sidebar__mobile-sheet,
 .mobile-menu__panel,
 .github-chart-info__modal,
-.mention-dropdown,
-.discussion-post__menu-panel {
-  background: var(--popup-glass-bg);
-  border-color: var(--popup-glass-border);
-  box-shadow: var(--popup-glass-shadow);
+.mention-dropdown {
+  background: rgba(10, 10, 10, 0.38);
+  border-color: rgba(148, 163, 184, 0.22);
+  box-shadow: var(--elevation-popup);
 }
 
 .ui-toast--success {
-  background: color-mix(in srgb, var(--popup-glass-bg) 72%, var(--status-success-soft) 28%);
-  border-color: color-mix(in srgb, var(--popup-glass-border) 70%, var(--status-success-border) 30%);
+  background: color-mix(in srgb, rgba(10, 10, 10, 0.38) 72%, var(--status-success-soft) 28%);
+  border-color: color-mix(in srgb, rgba(148, 163, 184, 0.22) 70%, var(--status-success-border) 30%);
 }
 
 .user-menu__meta,
@@ -39,20 +38,32 @@
   .sidebar__mobile-sheet,
   .mobile-menu__panel,
   .github-chart-info__modal,
-  .mention-dropdown,
-  .discussion-post__menu-panel {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  .mention-dropdown {
+    backdrop-filter: blur(18px) saturate(1.28);
+    -webkit-backdrop-filter: blur(18px) saturate(1.28);
   }
 }
 
 @media (prefers-color-scheme: light) {
-  .modal,
-  .github-chart-info__overlay,
-  .sidebar__mobile-overlay,
-  .mobile-menu__scrim {
-    background: var(--modal-backdrop, var(--backdrop-strong));
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+  .modal__dialog,
+  .ui-toast,
+  .user-menu__dropdown,
+  .notification-bell__dropdown,
+  .sidebar__mobile-sheet,
+  .mobile-menu__panel,
+  .github-chart-info__modal,
+  .mention-dropdown {
+    background: rgba(255, 255, 255, 0.46);
+    border-color: rgba(15, 23, 42, 0.12);
+  }
+
+  .sidebar__mobile-sheet {
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(15, 23, 42, 0.16);
+  }
+
+  .ui-toast--success {
+    background: color-mix(in srgb, rgba(255, 255, 255, 0.46) 72%, var(--status-success-soft) 28%);
+    border-color: color-mix(in srgb, rgba(15, 23, 42, 0.12) 70%, var(--status-success-border) 30%);
   }
 }

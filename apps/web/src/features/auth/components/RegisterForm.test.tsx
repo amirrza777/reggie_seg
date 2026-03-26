@@ -15,7 +15,7 @@ vi.mock("../api/client", () => ({
   signup: vi.fn(),
 }));
 
-vi.mock("../context", () => ({
+vi.mock("../useUser", () => ({
   useUser: () => ({ refresh }),
 }));
 

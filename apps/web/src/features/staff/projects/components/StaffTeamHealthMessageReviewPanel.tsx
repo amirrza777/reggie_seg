@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { reviewStaffTeamHealthMessage } from "@/features/projects/api/client";
 import type { TeamHealthMessage } from "@/features/projects/types";
 
@@ -206,11 +207,11 @@ export function StaffTeamHealthMessageReviewPanel({
                     <div className="staff-projects__team-health-review-box">
                       <label className="staff-projects__team-health-deadline-field">
                         <span>Staff response</span>
-                        <textarea
+                        <AutoGrowTextarea
                           value={responseDraft}
                           onChange={(event) => setResponseDraft(event.target.value)}
                           placeholder="Write your response to this query or complaint..."
-                          rows={3}
+                          rows={4}
                           style={{ resize: "vertical" }}
                         />
                       </label>

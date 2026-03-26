@@ -7,6 +7,7 @@ import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { Card } from "@/shared/ui/Card";
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import "@/features/trello/styles/link-board.css";
 
 const MAX_PREVIEW_CARDS_PER_LIST = 5;
@@ -169,7 +170,10 @@ export function TrelloLinkBoardView({ projectId, teamId, teamName, boards, onAss
       </div>
 
       {previewLoading ? (
-        <p className="muted">Loading board preview…</p>
+        <div role="status" aria-live="polite">
+          <SkeletonText lines={2} widths={["40%", "72%"]} />
+          <span className="ui-visually-hidden">Loading board preview…</span>
+        </div>
       ) : preview ? (
         <section className="trello-link-board__preview">
           <div className="trello-link-board__preview-header">

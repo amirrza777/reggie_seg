@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
@@ -134,7 +135,7 @@ export function StaffMarkingCard({
 
         <label className="stack" style={{ gap: 6 }}>
           <span>Formative feedback</span>
-          <textarea
+          <AutoGrowTextarea
             value={feedback}
             onChange={(event) => setFeedback(event.target.value)}
             rows={5}

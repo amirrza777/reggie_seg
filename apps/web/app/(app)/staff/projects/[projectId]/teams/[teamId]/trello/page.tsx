@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getProjectDeadline, getStaffProjectTeams } from "@/features/projects/api/client";
+import { getProjectDeadline } from "@/features/projects/api/client";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -32,7 +32,7 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
   const projectResult = await loadProjectTeamData(user.id, context.numericProjectId);
   const team = projectResult.projectData?.teams.find((item) => item.id === context.numericTeamId) ?? null;
   if (!projectResult.projectData || !team) {
-    return <MissingTeamView projectId={context.projectId} message={projectResult.projectError} />;
+    return <MissingTeamView message={projectResult.projectError} />;
   }
 
   const deadline = await loadProjectDeadline(user.id, context.numericProjectId);
@@ -80,10 +80,13 @@ async function loadProjectDeadline(userId: number, projectId: number) {
   }
 }
 
-function MissingTeamView({ projectId, message }: { projectId: string; message: string | null }) {
+function MissingTeamView({ message }: { message: string | null }) {
   return (
     <div className="stack">
       <p className="muted">{message ?? "Team not found in this project."}</p>
+      <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
+        Back to project teams
+      </Link>
     </div>
   );
 }
@@ -107,9 +110,6 @@ function StaffTrelloHero({
       <div className="staff-projects__meta">
         <span className="staff-projects__badge">Project {projectData.project.id}</span>
         <span className="staff-projects__badge">Team {teamId}</span>
-        <Link href={`/staff/projects/${projectData.project.id}/teams/${teamId}`} className="staff-projects__badge">
-          Back to team overview
-        </Link>
       </div>
     </section>
   );

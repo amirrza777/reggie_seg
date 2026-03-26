@@ -23,48 +23,42 @@ describe("ModuleList", () => {
     expect(screen.getByText("Databases")).toBeInTheDocument();
   });
 
-  it("shows management actions for module owners", () => {
-    render(
-      <ModuleList
-        modules={[
-          { id: "12", title: "Software Engineering", accountRole: "OWNER" },
-        ]}
-      />,
-    );
-
-    expect(screen.getByRole("link", { name: "Manage module" })).toHaveAttribute(
-      "href",
-      "/staff/modules/12/manage",
-    );
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=12",
-    );
+  it("prefers the stored module code over the numeric fallback", () => {
+    render(<ModuleList modules={[{ id: "12", code: "4CCS2DBS", title: "Databases" }]} />);
+    expect(screen.getByText("Code: 4CCS2DBS")).toBeInTheDocument();
   });
 
-  it("hides manage-module action for admin access role", () => {
+  it("shows module leads, teaching assistants, projects, and project-derived date range", () => {
     render(
       <ModuleList
         modules={[
-          { id: "22", title: "Data Structures", accountRole: "ADMIN_ACCESS" },
+          {
+            id: "m1",
+            title: "Algorithms",
+            leaderCount: 2,
+            teachingAssistantCount: 1,
+            projectCount: 3,
+            projectWindowStart: "2025-01-01T00:00:00.000Z",
+            projectWindowEnd: "2025-06-30T00:00:00.000Z",
+          },
         ]}
       />,
     );
 
-    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Create project" })).toHaveAttribute(
-      "href",
-      "/staff/projects/create?moduleId=22",
-    );
+    expect(screen.getByText(/2 module leads/i)).toBeInTheDocument();
+    expect(screen.getByText(/1 teaching assistant/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 projects/i)).toBeInTheDocument();
+    const card = screen.getByRole("article");
+    expect(card.querySelector(".module-card__dates")?.textContent).toMatch(/2025/);
   });
 
   it("sorts modules by the selected mode", () => {
     render(
       <ModuleList
         modules={[
-          { id: "m1", title: "Zeta", teamCount: 1, projectCount: 2, accountRole: "TEACHING_ASSISTANT" },
-          { id: "m2", title: "Alpha", teamCount: 5, projectCount: 1, accountRole: "OWNER" },
-          { id: "m3", title: "Beta", teamCount: 3, projectCount: 8, accountRole: "ADMIN_ACCESS" },
+          { id: "m1", title: "Zeta", leaderCount: 1, projectCount: 2, accountRole: "TEACHING_ASSISTANT" },
+          { id: "m2", title: "Alpha", leaderCount: 5, projectCount: 1, accountRole: "OWNER" },
+          { id: "m3", title: "Beta", leaderCount: 3, projectCount: 8, accountRole: "ADMIN_ACCESS" },
         ]}
       />,
     );
@@ -74,7 +68,7 @@ describe("ModuleList", () => {
 
     expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
 
-    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "teamCount" } });
+    fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "leaderCount" } });
     expect(getTitles()).toEqual(["Alpha", "Beta", "Zeta"]);
 
     fireEvent.change(screen.getByLabelText("Sort by"), { target: { value: "projectCount" } });

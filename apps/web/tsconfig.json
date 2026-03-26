@@ -20,7 +20,8 @@
     "incremental": true,
     "types": [
       "@types/node",
-      "vitest/globals"
+      "vitest/globals",
+      "@testing-library/jest-dom/vitest"
     ],
     "paths": {
       "@/*": [

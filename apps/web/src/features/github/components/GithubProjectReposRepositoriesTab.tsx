@@ -3,6 +3,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Button } from "@/shared/ui/Button";
 import { SearchField } from "@/shared/ui/SearchField";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import type {
   GithubConnectionStatus,
@@ -164,7 +165,12 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
         {connection?.connected && links.length > 0 ? (
           <p className="muted">This project already has a linked repository. Remove it before linking another one.</p>
         ) : null}
-        {loading ? <p className="muted">Loading repositories...</p> : null}
+        {loading ? (
+          <div role="status" aria-live="polite">
+            <SkeletonText lines={1} widths={["38%"]} />
+            <span className="ui-visually-hidden">Loading repositories...</span>
+          </div>
+        ) : null}
         {!loading && links.length === 0 ? <p className="muted">No repositories linked to this project yet.</p> : null}
         {!loading &&
           links.map((link) => (

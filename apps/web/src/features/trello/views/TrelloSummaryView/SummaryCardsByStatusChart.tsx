@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import type { CardCountByStatus } from "@/features/trello/lib/velocity";
+import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 
 type Props = { counts: CardCountByStatus };
 
@@ -39,7 +40,7 @@ export function SummaryCardsByStatusChart({ counts }: Props) {
                     <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [value, name]} />
+                <Tooltip content={<ChartTooltipContent />} formatter={(value, name) => [value, name]} />
               </PieChart>
             </ResponsiveContainer>
           </div>

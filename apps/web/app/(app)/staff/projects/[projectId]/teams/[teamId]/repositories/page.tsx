@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
@@ -53,9 +52,6 @@ export default async function StaffRepositoriesSectionPage({ params }: PageProps
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {data.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
-          <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="staff-projects__badge">
-            Back to team overview
-          </Link>
         </div>
       </section>
 

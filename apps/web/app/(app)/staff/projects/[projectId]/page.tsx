@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffTeamCard } from "@/features/staff/projects/components/StaffTeamCard";
 import { StaffProjectWarningsConfigPanel } from "@/features/staff/projects/components/StaffProjectWarningsConfigPanel";
+import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectTeamsPageProps = {
@@ -17,34 +18,25 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
   }
 
   const { projectId } = await params;
-  const numericProjectId = Number(projectId);
-  if (Number.isNaN(numericProjectId)) {
+  const loadResult = await loadStaffProjectTeamsForPage(user.id, projectId, "Failed to load project teams.");
+  if (loadResult.status === "invalid_project_id") {
     return <p className="muted">Invalid project ID.</p>;
   }
-
-  let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
-  let errorMessage: string | null = null;
-  try {
-    data = await getStaffProjectTeams(user.id, numericProjectId);
-  } catch (error) {
-    errorMessage = error instanceof Error ? error.message : "Failed to load project teams.";
-  }
-
-  if (!data) {
+  if (loadResult.status === "error") {
     return (
       <div className="stack">
-        <p className="muted">{errorMessage ?? "Project not found."}</p>
-        <Link href="/staff/projects" className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to staff projects
-        </Link>
+        <p className="muted">{loadResult.message}</p>
       </div>
     );
   }
+  const { data } = loadResult;
 
   const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
 
   return (
     <div className="staff-projects">
+      <StaffProjectSectionNav projectId={projectId} />
+
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Project</p>
         <h1 className="staff-projects__title">{data.project.name}</h1>

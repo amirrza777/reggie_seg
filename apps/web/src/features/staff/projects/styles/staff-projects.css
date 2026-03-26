@@ -129,6 +129,11 @@
   gap: 12px;
 }
 
+.staff-projects__team-list > :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  padding-inline-start: 12px;
+}
+
 .staff-projects__team-card {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -136,6 +141,18 @@
   padding: 14px;
   display: grid;
   gap: 10px;
+}
+
+.staff-projects__team-card--clickable {
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+}
+
+.staff-projects__team-card--clickable:hover,
+.staff-projects__team-card--clickable:focus-visible {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  transform: translateY(-1px);
 }
 
 .staff-projects__team-card--resolved {
@@ -343,8 +360,8 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  gap: 10px;
+  grid-template-columns: 34px minmax(0, 1fr) max-content;
+  gap: 10px 14px;
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--border);
@@ -355,13 +372,12 @@
   width: 34px;
   height: 34px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--avatar-fallback-border);
+  border: 1px solid var(--border);
   display: grid;
   place-items: center;
   font-size: 0.85rem;
   font-weight: var(--fw-semibold);
-  color: var(--avatar-fallback-text);
-  background: var(--avatar-fallback-bg);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .staff-projects__avatar--sm {

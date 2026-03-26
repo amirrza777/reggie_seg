@@ -3,6 +3,15 @@ import jwt from "jsonwebtoken"
 import { TrelloRepo } from "./repo.js"
 import { TrelloService } from "./service.js"
 import { parseSearchQuery } from "../../shared/search.js"
+import {
+  parseAssignBoardBody,
+  parseBoardIdParam,
+  parseCallbackUrlQuery,
+  parseLinkTokenCallbackBody,
+  parseSectionConfigBody,
+  parseTeamIdQuery,
+  parseTrelloCallbackBody,
+} from "./controller.parsers.js"
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || ""
 
@@ -69,11 +78,9 @@ export const TrelloController = {
   //Returns an auth URL the frontend can redirect to
   getConnectUrl(req: Request, res: Response) {
     try {
-      const callbackUrl = typeof req.query?.callbackUrl === "string" ? req.query.callbackUrl : ""
-      if (!callbackUrl.startsWith("http")) {
-        return res.status(400).json({ error: "callbackUrl query is required (e.g. app origin + /projects/:projectId/trello/callback)" })
-      }
-      const url = TrelloService.getAuthoriseUrl(callbackUrl)
+      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl)
+      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error })
+      const url = TrelloService.getAuthoriseUrl(callbackUrl.value)
       return res.status(200).json({ url })
     } catch (err: any) {
       return res.status(503).json({ error: err.message })
@@ -83,11 +90,9 @@ export const TrelloController = {
   //Redirects endpoint for browser navigation.
   connect(req: Request, res: Response) {
     try {
-      const callbackUrl = typeof req.query?.callbackUrl === "string" ? req.query.callbackUrl : ""
-      if (!callbackUrl.startsWith("http")) {
-        return res.status(400).json({ error: "callbackUrl query is required (e.g. app origin + /projects/:projectId/trello/callback)" })
-      }
-      const url = TrelloService.getAuthoriseUrl(callbackUrl)
+      const callbackUrl = parseCallbackUrlQuery(req.query?.callbackUrl)
+      if (!callbackUrl.ok) return res.status(400).json({ error: callbackUrl.error })
+      const url = TrelloService.getAuthoriseUrl(callbackUrl.value)
       return res.redirect(url)
     } catch (err: any) {
       return res.status(503).json({ error: err.message })
@@ -97,9 +102,10 @@ export const TrelloController = {
   //Receives Trello token from frontend callback page and links it to current user
   async callback(req: Request, res: Response) {
     try {
-      const token = String(req.body?.token ?? "")
+      const parsedBody = parseTrelloCallbackBody(req.body)
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
       const userId = (req.user as any).sub as number
-      await TrelloService.completeOauthCallback(userId, token)
+      await TrelloService.completeOauthCallback(userId, parsedBody.value.token)
       return res.status(200).json({ ok: true })
     } catch (err: any) {
       return res.status(500).json({ error: err.message })
@@ -109,12 +115,9 @@ export const TrelloController = {
   /** Completes Trello link using a short-lived link token (no session cookie needed). */
   async callbackWithLinkToken(req: Request, res: Response) {
     try {
-      const linkToken = String(req.body?.linkToken ?? "").trim()
-      const token = String(req.body?.token ?? "").trim()
-      if (!linkToken || !token) {
-        return res.status(400).json({ error: "Missing linkToken or token" })
-      }
-      const verified = jwt.verify(linkToken, accessSecret)
+      const parsedBody = parseLinkTokenCallbackBody(req.body)
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
+      const verified = jwt.verify(parsedBody.value.linkToken, accessSecret)
       const payload = parseTrelloLinkTokenPayload(verified)
       if (!payload) {
         return res.status(400).json({ error: "Invalid link token" })
@@ -122,7 +125,7 @@ export const TrelloController = {
       if (payload.purpose !== "trello-link") {
         return res.status(400).json({ error: "Invalid link token" })
       }
-      await TrelloService.completeOauthCallback(payload.sub, token)
+      await TrelloService.completeOauthCallback(payload.sub, parsedBody.value.token)
       return res.status(200).json({ ok: true })
     } catch (err: any) {
       if (err?.name === "TokenExpiredError") {
@@ -142,15 +145,11 @@ export const TrelloController = {
   //Assigns one Trello board to one team
   async assignBoardToTeam(req: Request, res: Response) {
     try {
-      const teamId = Number(req.body?.teamId)
-      const boardId = String(req.body?.boardId ?? "").trim()
+      const parsedBody = parseAssignBoardBody(req.body)
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
       const ownerId = (req.user as any).sub as number
 
-      if (!teamId || !boardId) {
-        return res.status(400).json({ error: "Missing teamId or boardId" })
-      }
-
-      await TrelloService.assignBoardToTeam(teamId, boardId, ownerId)
+      await TrelloService.assignBoardToTeam(parsedBody.value.teamId, parsedBody.value.boardId, ownerId)
       res.status(200).json({ message: "Board assigned" })
     } catch (err: any) {
       res.status(400).json({ error: err.message })
@@ -160,10 +159,10 @@ export const TrelloController = {
   //Returns the board assigned to a team
   async fetchAssignedTeamBoard(req: Request, res: Response) {
     try {
-      const teamId = Number(req.query.teamId)
-      if (!teamId) return res.status(400).json({ error: "Missing teamId" })
+      const teamId = parseTeamIdQuery(req.query.teamId)
+      if (!teamId.ok) return res.status(400).json({ error: teamId.error })
       const userId = (req.user as any).sub
-      const board = await TrelloService.fetchAssignedTeamBoard(teamId, userId)
+      const board = await TrelloService.fetchAssignedTeamBoard(teamId.value, userId)
       res.status(200).json(board)
     } catch (err: any) {
       res.status(400).json({ error: err.message })
@@ -188,13 +187,10 @@ export const TrelloController = {
   /** Saves trello status config (list name -> status). */
   async putTrelloSectionConfig(req: Request, res: Response) {
     try {
-      const teamId = Number(req.body?.teamId)
-      const config = req.body?.config
-      if (!teamId || !config || typeof config !== "object" || Array.isArray(config)) {
-        return res.status(400).json({ error: "Missing or invalid teamId and config (object)" })
-      }
+      const parsedBody = parseSectionConfigBody(req.body)
+      if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error })
       const userId = (req.user as any).sub
-      await TrelloService.updateTeamTrelloSectionConfig(teamId, userId, config)
+      await TrelloService.updateTeamTrelloSectionConfig(parsedBody.value.teamId, userId, parsedBody.value.config)
       return res.status(200).json({ ok: true })
     } catch (err: any) {
       if (err?.message === "Not a member of this team") return res.status(403).json({ error: err.message })
@@ -206,7 +202,7 @@ export const TrelloController = {
   async fetchBoardById(req: Request, res: Response) {
     try {
       const userId = (req.user as any).sub
-      const boardId = typeof req.params.boardId === "string" ? req.params.boardId : ""
+      const boardId = parseBoardIdParam(req.params.boardId)
       const board = await TrelloService.fetchBoardById(userId, boardId)
       res.status(200).json(board)
     } catch (err: any) {

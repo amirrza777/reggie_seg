@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import { GithubRepoLinkCard } from "./GithubRepoLinkCard";
 import {
   analyseProjectGithubRepo,
@@ -258,7 +259,12 @@ export function StaffProjectReposReadOnlyClient({
         </div>
       ) : null}
 
-      {loading ? <p className="muted github-repos-tab__table-wrap">Loading repository analytics...</p> : null}
+      {loading ? (
+        <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+          <SkeletonText lines={1} widths={["46%"]} />
+          <span className="ui-visually-hidden">Loading repository analytics...</span>
+        </div>
+      ) : null}
       {!loading && links.length === 0 ? (
         <p className="muted github-repos-tab__table-wrap">No repositories are linked to this project yet.</p>
       ) : null}

@@ -10,9 +10,30 @@
 
 .module-list__toolbar {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
   gap: 10px;
+}
+
+.module-list__toolbar--sort-only {
+  justify-content: flex-start;
+}
+
+.module-list__toolbar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.module-list__sort-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.module-list__toolbar--sort-only .module-list__sort-group {
+  margin-left: 0;
 }
 
 .module-list__toolbar--inline {
@@ -78,6 +99,7 @@
 }
 
 .module-card {
+  position: relative;
   display: grid;
   gap: 14px;
   text-decoration: none;
@@ -88,6 +110,8 @@
   border-radius: 14px;
   padding: 20px var(--space-panel-content-inset);
   background: var(--surface);
+  cursor: pointer;
+  overflow: visible;
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
@@ -175,13 +199,17 @@
 
 .module-card__footer {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: flex-start;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
   margin-top: auto;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.module-card__dates {
+  margin: 0;
+  font-size: var(--fs-body-sm);
 }
 
 .module-card__counts {
@@ -189,40 +217,68 @@
   color: var(--muted-subtle);
 }
 
-.module-card__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--fs-body-sm);
-  font-weight: var(--fw-semibold);
-  color: var(--accent-strong);
-  text-decoration: none;
-}
-
 .module-card__actions {
+  position: relative;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   justify-content: flex-end;
   margin-left: auto;
-  gap: 10px;
+  z-index: 5;
 }
 
-.module-card__manage {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.module-card__menu-trigger {
+  min-width: 40px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
-  color: var(--muted);
-  text-decoration: none;
+  letter-spacing: 0.08em;
+  cursor: pointer;
 }
 
-.module-card__manage:hover,
-.module-card__manage:focus-visible,
-.module-card__cta:hover,
-.module-card__cta:focus-visible {
-  text-decoration: underline;
+.module-card__menu-trigger:hover,
+.module-card__menu-trigger:focus-visible {
+  background: var(--glass-hover);
+  color: var(--ink-strong);
+  outline: none;
+}
+
+.module-card__menu-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  min-width: 156px;
+  padding: 6px;
+  background: var(--glass-ui-bg);
+  border: 1px solid var(--glass-ui-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--elevation-popup);
+}
+
+.module-card__menu-item {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  font-size: var(--fs-body-sm);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.module-card__menu-item:hover,
+.module-card__menu-item:focus-visible {
+  background: var(--glass-ui-hover);
+  color: var(--ink-strong);
+  outline: none;
 }
 
 .module-list-empty {
@@ -238,6 +294,40 @@
   margin: 0;
 }
 
+.module-list__banner {
+  margin-bottom: 14px;
+}
+
+.module-join-modal {
+  width: min(520px, 96vw);
+}
+
+.module-join-modal__body {
+  display: grid;
+  gap: 10px;
+}
+
+.module-join-modal__footer {
+  gap: 8px;
+}
+
+.module-join-modal__error {
+  margin-top: 4px;
+}
+
+.module-join-modal__success {
+  display: grid;
+  gap: 8px;
+  padding: 8px 0 2px;
+}
+
+.module-join-modal__headline {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: var(--fw-semibold);
+  color: var(--ink-strong);
+}
+
 @media (max-width: 860px) {
   .module-list {
     padding-top: 4px;
@@ -246,6 +336,11 @@
   .module-list__toolbar {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .module-list__toolbar-action,
+  .module-list__sort-group {
+    width: 100%;
   }
 
   .staff-modules__meta-row {

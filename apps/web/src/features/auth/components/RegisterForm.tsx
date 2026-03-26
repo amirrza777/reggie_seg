@@ -7,7 +7,7 @@ import { signup } from "../api/client";
 import { API_BASE_URL } from "@/shared/api/env";
 import { Button } from "@/shared/ui/Button";
 import { GoogleAuthButton } from "./GoogleAuthButton";
-import { useUser } from "../context";
+import { useUser } from "../useUser";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 export function RegisterForm() {

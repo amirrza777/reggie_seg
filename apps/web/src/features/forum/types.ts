@@ -13,6 +13,7 @@ export type DiscussionPost = {
     firstName: string;
     lastName: string;
     role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
+    forumRole?: "STUDENT" | "MODULE_LEAD" | "TEACHING_ASSISTANT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
   };
   replies: DiscussionPost[];
 };

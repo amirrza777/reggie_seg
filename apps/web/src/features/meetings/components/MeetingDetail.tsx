@@ -4,17 +4,18 @@ import { ChevronLeft, Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { useUser } from "@/features/auth/context";
+import { useUser } from "@/features/auth/useUser";
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import "../styles/meeting-detail.css";
 import "../styles/meeting-list.css";
-import type { Meeting } from "../types";
+import type { Meeting, MeetingPermissions } from "../types";
 
 type MeetingDetailProps = {
   meeting: Meeting;
   projectId: number;
+  permissions: MeetingPermissions;
 };
 
 function formatStatus(status: string) {
@@ -22,16 +23,23 @@ function formatStatus(status: string) {
   return labels[status] ?? status;
 }
 
-export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
+export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetailProps) {
   const { user } = useUser();
   const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
   const isOrganiser = user?.id === meeting.organiserId;
+  const isMember = meeting.team?.allocations?.some((a) => a.user.id === user?.id) ?? false;
+  const canEdit = isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember);
+  const canRecordAttendance = isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember);
+  const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember);
+  const msElapsed = Date.now() - new Date(meeting.date).getTime();
+  const minutesWindowOpen = msElapsed <= permissions.minutesEditWindowDays * 24 * 60 * 60 * 1000;
+  const attendanceWindowOpen = msElapsed <= permissions.attendanceEditWindowDays * 24 * 60 * 60 * 1000;
 
   const cardAction = (
     <div className="meeting-list__actions">
       {upcoming && <AddToCalendarDropdown meeting={meeting} compact />}
-      {isOrganiser && upcoming && (
+      {canEdit && upcoming && (
         <AnchorLink
           href={`/projects/${projectId}/meetings/${meeting.id}/edit`}
           className="meeting-list__action"
@@ -41,7 +49,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
           <Pencil size={16} />
         </AnchorLink>
       )}
-      {isOrganiser && !upcoming && (
+      {canRecordAttendance && !upcoming && attendanceWindowOpen && (
         <AnchorLink
           href={`/projects/${projectId}/meetings/${meeting.id}/attendance`}
           className="meeting-list__action"
@@ -51,7 +59,7 @@ export function MeetingDetail({ meeting, projectId }: MeetingDetailProps) {
           <UserCheck size={16} />
         </AnchorLink>
       )}
-      {!upcoming && (
+      {!upcoming && canWriteMinutes && minutesWindowOpen && (
         <AnchorLink
           href={`/projects/${projectId}/meetings/${meeting.id}/minutes`}
           className="meeting-list__action"

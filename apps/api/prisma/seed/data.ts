@@ -35,21 +35,27 @@ const randomStaff = Array.from({ length: SEED_STAFF_COUNT }, (_, index) => {
 
 const specialMarkerUsers = [
   {
-    firstName: "Marker",
+    firstName: "Assessment",
     lastName: "Staff",
-    email: "marker.staff@example.com",
+    email: "staff.assessment@example.com",
     role: "STAFF" as const,
   },
   {
-    firstName: "Marker",
+    firstName: "Assessment",
     lastName: "Enterprise Admin",
-    email: "marker.enterprise.admin@example.com",
+    email: "entp_admin.assessment@example.com",
     role: "ENTERPRISE_ADMIN" as const,
   },
   {
-    firstName: "Marker",
-    lastName: "Platform Admin",
-    email: "marker.admin@example.com",
+    firstName: "Assessment",
+    lastName: "Student",
+    email: "student.assessment@example.com",
+    role: "STUDENT" as const,
+  },
+  {
+    firstName: "Assessment",
+    lastName: "Global Admin",
+    email: "global_admin.assessment@example.com",
     role: "ADMIN" as const,
   },
 ];

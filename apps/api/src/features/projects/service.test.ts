@@ -6,6 +6,7 @@ import {
   fetchProjectDeadline,
   fetchProjectsForUser,
   fetchQuestionsForProject,
+  joinModuleByCode,
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
@@ -32,6 +33,8 @@ vi.mock("./repo.js", () => ({
   getProjectById: vi.fn(),
   getUserProjects: vi.fn(),
   getModulesForUser: vi.fn(),
+  getModuleJoinActor: vi.fn(),
+  joinModuleByCode: vi.fn(),
   createProject: vi.fn(),
   getTeammatesInProject: vi.fn(),
   getUserProjectDeadline: vi.fn(),
@@ -99,14 +102,24 @@ describe("projects service", () => {
   });
 
   it("fetchModulesForUser maps module fields to API shape", async () => {
+    const createdAt = new Date("2025-01-15T12:00:00.000Z");
+    const projectWindowStart = new Date("2025-01-10T00:00:00.000Z");
+    const projectWindowEnd = new Date("2025-06-01T00:00:00.000Z");
     (repo.getModulesForUser as any).mockResolvedValue([
       {
         id: 9,
+        code: "4CCS2DBS",
         name: "SEGP",
         briefText: null,
         timelineText: "Timeline",
         expectationsText: null,
         readinessNotesText: null,
+        leaderCount: 2,
+        teachingAssistantCount: 1,
+        createdAt,
+        archivedAt: null,
+        projectWindowStart,
+        projectWindowEnd,
         teamCount: 5,
         projectCount: 2,
         accessRole: "OWNER",
@@ -116,14 +129,22 @@ describe("projects service", () => {
     await expect(fetchModulesForUser(7, { staffOnly: true, compact: true })).resolves.toEqual([
       {
         id: "9",
+        code: "4CCS2DBS",
         title: "SEGP",
         briefText: undefined,
         timelineText: "Timeline",
         expectationsText: undefined,
         readinessNotesText: undefined,
+        leaderCount: 2,
+        teachingAssistantCount: 1,
+        createdAt: createdAt.toISOString(),
+        archivedAt: null,
+        projectWindowStart: projectWindowStart.toISOString(),
+        projectWindowEnd: projectWindowEnd.toISOString(),
         teamCount: 5,
         projectCount: 2,
         accountRole: "OWNER",
+        moduleLeadNames: [],
       },
     ]);
   });
@@ -132,6 +153,49 @@ describe("projects service", () => {
     (repo.getModulesForUser as any).mockResolvedValue([]);
     await fetchModulesForUser(7, { staffOnly: true, compact: true });
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
+  });
+
+  it("joinModuleByCode restricts joins to students and maps idempotent enrollments", async () => {
+    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STAFF" });
+    await expect(joinModuleByCode(7, "ABCD-2345")).resolves.toEqual({
+      ok: false,
+      status: 403,
+      error: "Forbidden",
+    });
+
+    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    (repo.joinModuleByCode as any).mockResolvedValueOnce({ moduleId: 9, moduleName: "SEGP", alreadyEnrolled: true });
+    await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
+      ok: true,
+      value: {
+        moduleId: 9,
+        moduleName: "SEGP",
+        enrolled: true,
+        alreadyEnrolled: true,
+      },
+    });
+    expect(repo.joinModuleByCode).toHaveBeenCalledWith({
+      enterpriseId: "ent-1",
+      userId: 7,
+      joinCode: "ABCD2345",
+    });
+  });
+
+  it("joinModuleByCode rejects invalid or unavailable codes with the generic error", async () => {
+    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
+
+    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    (repo.joinModuleByCode as any).mockResolvedValueOnce(null);
+    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {

@@ -4,16 +4,19 @@ import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
 import { CharacterCount, EnterpriseModuleEditFields } from "./EnterpriseModuleFormFields";
+import { ModuleJoinCodeCard } from "./ModuleJoinCodeCard";
 import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
 import { MeetingSettingsSection } from "./MeetingSettingsSection";
 
 const MODULE_NAME_MAX_LENGTH = 120;
+const MODULE_CODE_MAX_LENGTH = 32;
 const MODULE_SECTION_MAX_LENGTH = 8000;
 
 type EnterpriseModuleCreateFormProps = {
   mode?: "create" | "edit";
   moduleId?: number;
   workspace?: "enterprise" | "staff";
+  createdJoinCode?: string | null;
 };
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
@@ -22,6 +25,7 @@ export function EnterpriseModuleCreateForm({
   mode = "create",
   moduleId,
   workspace = "enterprise",
+  createdJoinCode = null,
 }: EnterpriseModuleCreateFormProps) {
   const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
 
@@ -33,13 +37,23 @@ export function EnterpriseModuleCreateForm({
     return <ModuleEditBlockedNotice state={state} />;
   }
 
-  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} />;
+  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} createdJoinCode={createdJoinCode} />;
 }
 
-function EnterpriseModuleCreateFormBody({ state, moduleId }: { state: ModuleCreateFormState; moduleId?: number }) {
+function EnterpriseModuleCreateFormBody({
+  state,
+  moduleId,
+  createdJoinCode,
+}: {
+  state: ModuleCreateFormState;
+  moduleId?: number;
+  createdJoinCode?: string | null;
+}) {
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
+      <ModuleCodeField state={state} />
+      {state.isEditMode && moduleId ? <ModuleJoinCodeCard moduleId={moduleId} initialJoinCode={createdJoinCode} /> : null}
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
@@ -90,12 +104,30 @@ function ModuleNameField({ state }: { state: ModuleCreateFormState }) {
   );
 }
 
+function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
+  return (
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--name">
+      <label htmlFor="module-code-input" className="enterprise-modules__create-field-label">
+        Module code
+      </label>
+      <FormField
+        id="module-code-input"
+        value={state.moduleCode}
+        onChange={(event) => state.setModuleCode(event.target.value.toUpperCase())}
+        placeholder="Enter code"
+        aria-label="Module code"
+      />
+      <CharacterCount value={state.moduleCode} limit={MODULE_CODE_MAX_LENGTH} />
+    </div>
+  );
+}
+
 function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
   if (!state.isEditMode) {
     return (
       <p className="ui-note ui-note--muted">
-        You can define module brief, timeline, expectations, teaching assistants, and student enrollment after creating
-        the module.
+        You can define module brief, timeline, expectations, teaching assistants, manual student assignments, and share
+        the join code after creating the module. You can also set the university-facing module code here.
       </p>
     );
   }
@@ -199,7 +231,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
 
       <EnterpriseModuleAccessSection
         label="Students"
-        helperText="Enrolled students can participate in module projects and assessments."
+        helperText="Students can be assigned manually here and can also self-join with the module code."
         groupLabel="Module students"
         searchId="module-student-search"
         searchAriaLabel="Search students"

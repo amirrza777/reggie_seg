@@ -4,6 +4,7 @@ import { StaffProjectCreatePanel } from "@/features/staff/projects/components/St
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
+import Link from "next/link";
 
 type StaffCreateProjectPageProps = {
   searchParams?: Promise<{ moduleId?: string }>;
@@ -34,13 +35,25 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
   }
 
   return (
-    <div className="staff-projects">
+    <div className="staff-projects staff-projects--panel-inset">
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Staff Workspace</p>
         <h1 className="staff-projects__title">Create Project</h1>
         <p className="staff-projects__desc">
           Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.
         </p>
+        <div className="staff-projects__meta">
+          <Link
+            href={
+              initialModuleId
+                ? `/staff/modules/${encodeURIComponent(initialModuleId)}`
+                : "/staff/modules"
+            }
+            className="staff-projects__badge"
+          >
+            {initialModuleId ? "Back to module" : "Back to my modules"}
+          </Link>
+        </div>
       </section>
 
       <section className="staff-projects__create-layout">

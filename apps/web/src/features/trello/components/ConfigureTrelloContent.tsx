@@ -10,6 +10,7 @@ import {
 } from "@/features/trello/api/client";
 import { SECTION_STATUS_LABELS } from "@/features/trello/lib/listStatus";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import "@/features/trello/styles/configure.css";
 
 type Props = {
@@ -83,7 +84,10 @@ export function ConfigureTrelloContent({ projectId, teamId }: Props) {
             Set a status for each list on your board. This is used for graphs and is shared within your team.
           </p>
         </header>
-        <p className="ui-note ui-note--muted">Loading board sections...</p>
+        <div role="status" aria-live="polite">
+          <SkeletonText lines={2} widths={["36%", "78%"]} />
+          <span className="ui-visually-hidden">Loading board sections...</span>
+        </div>
       </section>
     );
   }

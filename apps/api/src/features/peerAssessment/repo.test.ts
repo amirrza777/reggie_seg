@@ -21,6 +21,7 @@ vi.mock("../../shared/db.js", () => ({
 
 import {
   createPeerAssessment,
+  getAssessmentsForReviewee,
   getPeerAssessment,
   getPeerAssessmentById,
   getProjectQuestionnaireTemplate,
@@ -153,6 +154,31 @@ describe("peerAssessment repo", () => {
       },
       include: {
         reviewee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+    expect(result).toBe(expected);
+  });
+
+  it("getAssessmentsForReviewee fetches assessments where user is reviewee", async () => {
+    const expected = [{ id: 9 }];
+    prismaMock.peerAssessment.findMany.mockResolvedValue(expected);
+
+    const result = await getAssessmentsForReviewee(5, 10);
+
+    expect(prismaMock.peerAssessment.findMany).toHaveBeenCalledWith({
+      where: {
+        revieweeUserId: 5,
+        projectId: 10,
+      },
+      include: {
+        reviewer: {
           select: {
             id: true,
             firstName: true,

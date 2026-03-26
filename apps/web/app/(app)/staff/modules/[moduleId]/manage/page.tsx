@@ -8,14 +8,16 @@ import { getCurrentUser } from "@/shared/auth/session";
 
 type StaffModuleManagePageProps = {
   params: Promise<{ moduleId: string }>;
+  searchParams?: Promise<{ created?: string; joinCode?: string }>;
 };
 
-export default async function StaffModuleManagePage({ params }: StaffModuleManagePageProps) {
+export default async function StaffModuleManagePage({ params, searchParams }: StaffModuleManagePageProps) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   if (!user.isStaff && user.role !== "ADMIN") redirect("/dashboard");
 
   const { moduleId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
   const parsedModuleId = Number.parseInt(moduleId, 10);
   if (!Number.isInteger(parsedModuleId) || parsedModuleId <= 0) notFound();
 
@@ -36,7 +38,8 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Manage module</h1>
         <p className="ui-page__description">
-          Update module guidance, leads, TAs, and student assignments from the staff workspace.
+          Update module guidance, leads, TAs, manual student assignments, and share the module join code from the staff
+          workspace.
         </p>
       </header>
 
@@ -57,7 +60,12 @@ export default async function StaffModuleManagePage({ params }: StaffModuleManag
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={parsedModuleId} workspace="staff" />
+        <EnterpriseModuleCreateForm
+          mode="edit"
+          moduleId={parsedModuleId}
+          workspace="staff"
+          createdJoinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
+        />
       </Card>
     </div>
   );

@@ -21,6 +21,7 @@ export type AssignableUser = {
 
 export type ParsedModulePayload = {
   name: string;
+  code: string | null;
   briefText: string | null;
   timelineText: string | null;
   expectationsText: string | null;

@@ -28,6 +28,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>Invalid project ID.</p>
+        <Link href="/projects">Back to projects</Link>
       </div>
     );
   }
@@ -43,6 +44,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>You are not in a team for this project.</p>
+        <Link href={`/projects/${projectId}`}>Back to project overview</Link>
       </div>
     );
   }
@@ -51,6 +53,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   let initialWarnings: TeamWarning[] = [];
   let loadError: string | null = null;
   let warningsLoadError: string | null = null;
+
   const [messagesResult, warningsResult] = await Promise.allSettled([
     getMyTeamHealthMessages(numericProjectId, user.id),
     getMyTeamWarnings(numericProjectId, user.id),
@@ -73,6 +76,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   }
 
   const activeWarnings = initialWarnings.filter((warning) => warning.active);
+
   return (
     <PageSection
       title={<ProjectTeamHealthTitleWithInfo title="Team Health" />}

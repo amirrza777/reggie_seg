@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { ArchivableModule, ArchivableProject, ArchivableTeam, ArchiveTab } from "../types";
 import { getArchiveModules, getArchiveProjects, getArchiveTeams, archiveItem, unarchiveItem } from "../api/client";
 
@@ -53,7 +54,12 @@ export function ArchiveManager() {
   ];
 
   if (fetching) {
-    return <p className="archive-empty">Loading…</p>;
+    return (
+      <div className="archive-empty" role="status" aria-live="polite">
+        <SkeletonText lines={2} widths={["34%", "74%"]} />
+        <span className="ui-visually-hidden">Loading…</span>
+      </div>
+    );
   }
 
   return (

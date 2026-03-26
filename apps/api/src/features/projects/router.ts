@@ -5,6 +5,8 @@ import {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
+  getModuleStaffListHandler,
+  getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
   getProjectMarkingHandler,
   getTeammatesForProjectHandler,
@@ -39,6 +41,8 @@ import {
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", requireAuth, getUserModulesHandler);
+router.get("/modules/:moduleId/staff", requireAuth, getModuleStaffListHandler);
+router.get("/modules/:moduleId/student-project-matrix", requireAuth, getModuleStudentProjectMatrixHandler);
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);

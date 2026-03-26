@@ -208,6 +208,7 @@ export function UserManagementTable() {
       ),
     ];
   });
+  const shouldShowLoadingSkeleton = tableStatus === "loading" && rows.length === 0;
 
   return (
     <Card
@@ -241,7 +242,7 @@ export function UserManagementTable() {
               : `Showing ${pageStart}-${pageEnd} of ${totalUsers} account${totalUsers === 1 ? "" : "s"}.`}
         </span>
       </div>
-      {rows.length > 0 ? (
+      {rows.length > 0 || shouldShowLoadingSkeleton ? (
         <>
           <Table
             headers={["Email", "Name", "Role", "Account status"]}
@@ -250,6 +251,9 @@ export function UserManagementTable() {
             headClassName="user-management__head"
             rowClassName="user-management__row"
             columnTemplate="var(--user-management-columns)"
+            isLoading={shouldShowLoadingSkeleton}
+            loadingLabel="Loading user accounts..."
+            loadingRowCount={6}
           />
           {totalPages > 1 ? (
             <div className="user-management__pagination" aria-label="User accounts pagination">
@@ -296,9 +300,7 @@ export function UserManagementTable() {
       ) : (
         <div className="ui-empty-state">
           <p>
-            {tableStatus === "loading"
-              ? "Loading user accounts..."
-              : normalizedSearch
+            {normalizedSearch
                 ? `No user accounts match "${searchQuery.trim()}".`
                 : "No user accounts found."}
           </p>

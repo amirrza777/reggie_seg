@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { formatDate } from "@/shared/lib/formatDate";
+import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 
 const BACKLOG_NAME = "backlog";
 const COMPLETED_NAME = "completed";
@@ -248,23 +249,11 @@ export function CardDistributionGraph({
             />
             <YAxis allowDecimals={false} />
             <Tooltip
+              content={<ChartTooltipContent />}
               labelFormatter={(t) => formatDate(new Date(t as number).toISOString().slice(0, 10))}
-              contentStyle={{
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 10,
-                boxShadow: "var(--shadow-sm)",
-                color: "var(--ink)",
-                padding: "8px 10px",
-              }}
               cursor={{
                 stroke: "color-mix(in srgb, var(--muted) 40%, transparent)",
                 strokeWidth: 1,
-              }}
-              labelStyle={{
-                color: "var(--muted)",
-                fontWeight: 600,
-                marginBottom: 6,
               }}
             />
             <Legend />

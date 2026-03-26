@@ -95,15 +95,15 @@ export function SummaryCumulativeChart({
                         })()
                       : p.week;
                   return (
-                    <div className="placeholder stack" style={{ padding: "8px 12px", gap: 4 }}>
-                      <div>{weekLabel}</div>
-                      <div className="muted" style={{ fontSize: "0.85em" }}>
+                    <div className="ui-chart-tooltip ui-chart-tooltip--compact">
+                      <p className="ui-chart-tooltip__label">{weekLabel}</p>
+                      <p className="ui-chart-tooltip__meta">
                         {formatDate(p.weekStartDateKey)} – {formatDate(p.weekEndDateKey)}
-                      </div>
-                      <div style={{ marginTop: 4 }}>
+                      </p>
+                      <p className="ui-chart-tooltip__summary">
                         Total: {payload.find((e) => e.dataKey === "total")?.value ?? 0} · Completed:{" "}
                         {payload.find((e) => e.dataKey === "completed")?.value ?? 0}
-                      </div>
+                      </p>
                     </div>
                   );
                 }}

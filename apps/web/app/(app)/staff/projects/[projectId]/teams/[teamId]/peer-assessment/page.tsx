@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
@@ -62,9 +61,6 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}`} className="staff-projects__badge">
-            Back to team overview
-          </Link>
         </div>
       </section>
 

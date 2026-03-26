@@ -9,6 +9,7 @@ import {
   buildEnterpriseAccessUserSearchWhere,
   matchesEnterpriseAccessUserSearchCandidate,
   parseEnterpriseAccessUserSearchFilters,
+  type EnterpriseAccessUserSearchFilters,
 } from "./accessUserSearch.js";
 import {
   buildEnterpriseModuleSearchWhere,
@@ -140,13 +141,28 @@ export function parseAccessUserSearchFilters(query: unknown) {
 }
 
 /** Executes the search assignable users. */
-export async function searchAssignableUsers(
-  enterpriseUser: EnterpriseUser,
-  filters: { scope: "staff" | "students" | "all"; query: string | null; page: number; pageSize: number },
-) {
-  const strictResponse = await runStrictAssignableUserSearch(enterpriseUser.enterpriseId, filters);
+export async function searchAssignableUsers(enterpriseUser: EnterpriseUser, filters: EnterpriseAccessUserSearchFilters) {
+  let excludeEnrolledInModuleId = filters.excludeEnrolledInModuleId;
+  if (excludeEnrolledInModuleId != null) {
+    const mod = await prisma.module.findFirst({
+      where: { id: excludeEnrolledInModuleId, enterpriseId: enterpriseUser.enterpriseId },
+      select: { id: true },
+    });
+    if (!mod) excludeEnrolledInModuleId = undefined;
+  }
+
+  const strictResponse = await runStrictAssignableUserSearch(
+    enterpriseUser.enterpriseId,
+    filters,
+    excludeEnrolledInModuleId,
+  );
   if (!shouldUseFuzzyFallback(strictResponse.total, filters.query)) return strictResponse;
-  return runFuzzyAssignableUserSearch(enterpriseUser.enterpriseId, filters, strictResponse);
+  return runFuzzyAssignableUserSearch(
+    enterpriseUser.enterpriseId,
+    filters,
+    strictResponse,
+    excludeEnrolledInModuleId,
+  );
 }
 
 async function buildOverview(enterpriseUser: EnterpriseUser) {
@@ -209,7 +225,7 @@ async function runFuzzyModuleSearch(
 
   const fuzzyCandidates = await prisma.module.findMany({
     where: baseWhere,
-    select: { id: true, name: true },
+    select: { id: true, code: true, name: true },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
   });
   const fuzzyPage = fuzzyFilterAndPaginate(fuzzyCandidates, {
@@ -250,9 +266,14 @@ function mapManagedModule(
 
 async function runStrictAssignableUserSearch(
   enterpriseId: string,
-  filters: { scope: "staff" | "students" | "all"; query: string | null; page: number; pageSize: number }
+  filters: Pick<EnterpriseAccessUserSearchFilters, "scope" | "query" | "page" | "pageSize">,
+  excludeEnrolledInModuleId?: number,
 ) {
-  const where = buildEnterpriseAccessUserSearchWhere(enterpriseId, filters);
+  const where = buildEnterpriseAccessUserSearchWhere(
+    enterpriseId,
+    filters,
+    excludeEnrolledInModuleId === undefined ? undefined : { excludeEnrolledInModuleId },
+  );
   const offset = (filters.page - 1) * filters.pageSize;
   const [total, users] = await prisma.$transaction([
     prisma.user.count({ where }),
@@ -269,10 +290,15 @@ async function runStrictAssignableUserSearch(
 
 async function runFuzzyAssignableUserSearch(
   enterpriseId: string,
-  filters: { scope: "staff" | "students" | "all"; query: string | null; page: number; pageSize: number },
-  strictResponse: ReturnType<typeof toEnterpriseAccessUserSearchResponse>
+  filters: Pick<EnterpriseAccessUserSearchFilters, "scope" | "query" | "page" | "pageSize">,
+  strictResponse: ReturnType<typeof toEnterpriseAccessUserSearchResponse>,
+  excludeEnrolledInModuleId?: number,
 ) {
-  const fuzzyBaseWhere = buildEnterpriseAccessUserSearchWhere(enterpriseId, { scope: filters.scope, query: null });
+  const fuzzyBaseWhere = buildEnterpriseAccessUserSearchWhere(
+    enterpriseId,
+    { scope: filters.scope, query: null },
+    excludeEnrolledInModuleId === undefined ? undefined : { excludeEnrolledInModuleId },
+  );
   const candidateTotal = await prisma.user.count({ where: fuzzyBaseWhere });
   if (candidateTotal === 0 || candidateTotal > DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES) return strictResponse;
 

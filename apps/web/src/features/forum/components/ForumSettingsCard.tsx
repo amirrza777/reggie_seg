@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useUser } from "@/features/auth/context";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useUser } from "@/features/auth/useUser";
 import { getForumSettings, updateForumSettings } from "@/features/forum/api/client";
+import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton";
 
 type ForumSettingsCardProps = {
   projectId: number;
@@ -14,60 +15,84 @@ export function ForumSettingsCard({ projectId }: ForumSettingsCardProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [anonymousStudents, setAnonymousStudents] = useState(false);
+  const loadRequestIdRef = useRef(0);
+  const saveRequestIdRef = useRef(0);
+  const isControlDisabled = loading || saving || !user;
 
-  useEffect(() => {
-    if (!user) return;
+  const loadSettings = useCallback(async () => {
+    const requestId = ++loadRequestIdRef.current;
+    if (!user) {
+      setLoading(false);
+      setError(null);
+      setAnonymousStudents(false);
+      return;
+    }
     setLoading(true);
     setError(null);
-    getForumSettings(user.id, projectId)
-      .then((settings) => setAnonymousStudents(settings.forumIsAnonymous))
-      .catch((err) => {
-        console.error(err);
-        setError("Unable to load forum settings.");
-      })
-      .finally(() => setLoading(false));
+    try {
+      const settings = await getForumSettings(user.id, projectId);
+      if (requestId !== loadRequestIdRef.current) return;
+      setAnonymousStudents(settings.forumIsAnonymous);
+    } catch {
+      if (requestId !== loadRequestIdRef.current) return;
+      setError("Unable to load forum settings.");
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setLoading(false);
+      }
+    }
   }, [user, projectId]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleToggle = async (value: boolean) => {
     if (!user) return;
+    const requestId = ++saveRequestIdRef.current;
     setSaving(true);
     setError(null);
     try {
       const next = await updateForumSettings(user.id, projectId, value);
+      if (requestId !== saveRequestIdRef.current) return;
       setAnonymousStudents(next.forumIsAnonymous);
-    } catch (err) {
-      console.error(err);
+    } catch {
+      if (requestId !== saveRequestIdRef.current) return;
       setError("Unable to update forum settings.");
     } finally {
-      setSaving(false);
+      if (requestId === saveRequestIdRef.current) {
+        setSaving(false);
+      }
     }
   };
 
   return (
-    <div className="card stack" style={{ padding: 20 }}>
+    <div className="card stack forum-settings-card">
       <div>
-        <h3 style={{ marginBottom: 6 }}>Forum anonymity</h3>
-        <p className="muted" style={{ margin: 0 }}>
+        <h3 className="forum-settings-card__title">Forum anonymity</h3>
+        <p className="muted forum-settings-card__desc">
           Control whether student names are visible in the project forum. Staff names are always visible.
         </p>
       </div>
       {error ? <p className="muted">{error}</p> : null}
-      <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      <label className={`forum-settings-card__toggle${isControlDisabled ? " is-disabled" : ""}`}>
         <input
+          className="forum-settings-card__control"
           type="checkbox"
           checked={anonymousStudents}
           onChange={(event) => handleToggle(event.target.checked)}
-          disabled={loading || saving || !user}
-          style={{
-            width: 18,
-            height: 18,
-            accentColor: "#1f6feb",
-          }}
+          disabled={isControlDisabled}
         />
-        <span>Hide student names</span>
+        <span className="forum-settings-card__control-indicator" aria-hidden="true" />
+        <span className="forum-settings-card__toggle-text">Hide student names</span>
       </label>
-      {loading ? <p className="muted">Loading settings…</p> : null}
-      {saving ? <p className="muted">Saving…</p> : null}
+      {loading ? (
+        <div className="ui-stack-sm" role="status" aria-live="polite">
+          <Skeleton inline width={18} height={18} radius={999} />
+          <SkeletonText className="forum-settings-card__skeleton-text" lines={1} widths={["40%"]} />
+          <span className="ui-visually-hidden">Loading settings…</span>
+        </div>
+      ) : null}
       {!user ? <p className="muted">Sign in as staff to update these settings.</p> : null}
     </div>
   );

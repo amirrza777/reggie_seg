@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { listMeetings } from "../api/client";
+import { listMeetings, getTeamMeetingSettings } from "../api/client";
 import { MeetingList } from "./MeetingList";
 import { CreateMeetingForm } from "./CreateMeetingForm";
-import type { Meeting } from "../types";
+import type { Meeting, MeetingPermissions } from "../types";
 
 type Tab = "upcoming" | "previous" | "new";
 
@@ -22,10 +22,20 @@ export function MeetingsPageContent({
   initialTab = "upcoming",
 }: MeetingsPageContentProps) {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [permissions, setPermissions] = useState<MeetingPermissions | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
 
   useEffect(() => {
-    listMeetings(teamId).then(setMeetings);
+    Promise.all([listMeetings(teamId), getTeamMeetingSettings(teamId)]).then(([m, s]) => {
+      setMeetings(m);
+      setPermissions({
+        minutesEditWindowDays: s.minutesEditWindowDays,
+        attendanceEditWindowDays: s.attendanceEditWindowDays,
+        allowAnyoneToEditMeetings: s.allowAnyoneToEditMeetings,
+        allowAnyoneToRecordAttendance: s.allowAnyoneToRecordAttendance,
+        allowAnyoneToWriteMinutes: s.allowAnyoneToWriteMinutes,
+      });
+    });
   }, [teamId]);
 
   function refreshList() {
@@ -87,6 +97,7 @@ export function MeetingsPageContent({
           projectId={projectId}
           title={tab === "upcoming" ? "Upcoming meetings" : "Previous meetings"}
           showMinutesWriter={tab === "previous"}
+          permissions={permissions}
           emptyMessage={
             tab === "upcoming"
               ? "There are no scheduled meetings to list at this time."

@@ -1,1 +1,1 @@
-export { default } from "@/shared/ui/SectionLoading";
+export { HelpSectionLoading as default } from "@/shared/ui/SectionLoading";

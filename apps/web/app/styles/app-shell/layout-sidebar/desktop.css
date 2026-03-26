@@ -106,12 +106,13 @@
   width: 100%;
   max-width: 320px;
   display: grid;
-  gap: var(--sidebar-group-gap);
+  gap: 0;
 }
 
 .sidebar__group-collapse {
   display: grid;
   grid-template-rows: 0fr;
+  margin-top: 0;
   opacity: 0;
   transform: translateY(-8px);
   transform-origin: top;
@@ -128,6 +129,7 @@
 
 .sidebar__group-collapse.is-open {
   grid-template-rows: 1fr;
+  margin-top: var(--sidebar-group-gap);
   opacity: 1;
   transform: translateY(0);
   visibility: visible;

@@ -99,7 +99,7 @@ function buildModuleRows(modules: EnterpriseModuleRecord[]) {
   return modules.map((module) => [
     <div key={`${module.id}-name`} className="ui-stack-xs">
       <strong>{module.name}</strong>
-      <span className="muted">Module ID {module.id}</span>
+      <span className="muted">{module.code?.trim() ? `Module code ${module.code.trim()}` : `Module ID ${module.id}`}</span>
     </div>,
     <span key={`${module.id}-leaders`}>{module.leaderCount}</span>,
     <span key={`${module.id}-tas`}>{module.teachingAssistantCount}</span>,
@@ -195,6 +195,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
     totalModules === 0 ? 0 : Math.min((currentPage - 1) * MODULES_PER_PAGE + modules.length, totalModules);
 
   const moduleRows = buildModuleRows(modules);
+  const showSkeletonTable = modulesStatus === "loading" && moduleRows.length === 0;
 
   return (
     <Card
@@ -232,15 +233,18 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
         </div>
       ) : null}
 
-      {moduleRows.length > 0 ? (
+      {moduleRows.length > 0 || showSkeletonTable ? (
         <>
           <Table
             headers={["Module", "Leaders", "TAs", "Students", "Updated", "Actions"]}
             rows={moduleRows}
             rowClassName="enterprise-modules__row"
             columnTemplate="1.5fr 0.5fr 0.5fr 0.7fr 0.8fr 1fr"
+            isLoading={showSkeletonTable}
+            loadingLabel="Loading modules..."
+            loadingRowCount={6}
           />
-          {totalPages > 1 ? (
+          {totalPages > 1 && !showSkeletonTable ? (
             <EnterpriseModulesPagination
               currentPage={currentPage}
               effectiveTotalPages={effectiveTotalPages}
@@ -255,9 +259,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
       ) : (
         <div className="ui-empty-state">
           <p>
-            {modulesStatus === "loading"
-              ? "Loading modules..."
-              : normalizeSearchQuery(moduleSearchQuery)
+            {normalizeSearchQuery(moduleSearchQuery)
                 ? `No modules match "${moduleSearchQuery.trim()}".`
                 : "No modules yet. Create your first module above."}
           </p>

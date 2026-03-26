@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/shared/ui/Button";
+import { SkeletonText } from "@/shared/ui/Skeleton";
 import type {
   GithubLatestSnapshot,
   GithubLiveProjectRepoBranchCommits,
@@ -63,7 +64,12 @@ export function GithubProjectReposBranchesTab({
       </p>
 
       <div className="github-repos-tab__list">
-        {loading ? <p className="muted">Loading branch data...</p> : null}
+        {loading ? (
+          <div role="status" aria-live="polite">
+            <SkeletonText lines={1} widths={["34%"]} />
+            <span className="ui-visually-hidden">Loading branch data...</span>
+          </div>
+        ) : null}
         {!loading && links.length === 0 ? <p className="muted">No linked repository available.</p> : null}
 
         {!loading &&
@@ -98,7 +104,10 @@ export function GithubProjectReposBranchesTab({
                 </div>
 
                 {liveBranchesLoadingByLinkId[link.id] ? (
-                  <p className="muted github-repos-tab__table-wrap">Loading branches...</p>
+                  <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+                    <SkeletonText lines={1} widths={["26%"]} />
+                    <span className="ui-visually-hidden">Loading branches...</span>
+                  </div>
                 ) : null}
 
                 {liveBranchesErrorByLinkId[link.id] ? (
@@ -136,7 +145,10 @@ export function GithubProjectReposBranchesTab({
                 ) : null}
 
                 {branchCommitsLoadingByLinkId[link.id] ? (
-                  <p className="muted github-repos-tab__table-wrap">Loading recent commits...</p>
+                  <div className="github-repos-tab__table-wrap" role="status" aria-live="polite">
+                    <SkeletonText lines={1} widths={["38%"]} />
+                    <span className="ui-visually-hidden">Loading recent commits...</span>
+                  </div>
                 ) : null}
 
                 {branchCommitsErrorByLinkId[link.id] ? (

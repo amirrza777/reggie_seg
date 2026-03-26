@@ -9,10 +9,15 @@
 }
 
 .workspace-shell .help-page {
+  --help-hub-text-inset: clamp(4px, 0.6vw, 8px);
+  --help-hub-panel-inset: clamp(10px, 2.4vw, var(--space-panel-content-inset));
   position: relative;
   display: grid;
   gap: clamp(24px, 4vw, 36px);
   width: 100%;
+  padding-top: var(--help-hub-panel-inset);
+  padding-inline: var(--help-hub-panel-inset);
+  padding-bottom: var(--help-hub-panel-inset);
 }
 
 .workspace-shell .help-page__content {
@@ -73,7 +78,7 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: clamp(18px, 3vw, 30px);
+  padding: clamp(22px, 3.2vw, 34px);
   display: grid;
   gap: clamp(14px, 2vw, 20px);
   background:
@@ -111,7 +116,7 @@
   margin: 0;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 11px 12px;
+  padding: 13px 14px;
   display: grid;
   gap: 5px;
   background: rgba(255, 255, 255, 0.03);
@@ -136,7 +141,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 10px;
+  padding: 12px 12px clamp(20px, 2.4vw, 28px);
+  margin-bottom: clamp(16px, 2.2vw, 26px);
   border-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.24);
   background: rgba(10, 10, 10, 0.52);
@@ -193,6 +199,12 @@
   max-width: 74ch;
 }
 
+.workspace-shell .help-hub__overview-header,
+.workspace-shell .help-hub__topics-head,
+.workspace-shell .help-hub__tasks > h3 {
+  padding-inline-start: var(--help-hub-text-inset);
+}
+
 .workspace-shell .help-hub__overview {
   gap: clamp(20px, 2.3vw, 32px);
 }
@@ -206,7 +218,7 @@
 .workspace-shell .help-section {
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: clamp(16px, 2.2vw, 22px);
+  padding: clamp(18px, 2.4vw, 26px);
   background: var(--surface-elevated);
 }
 
@@ -237,7 +249,7 @@
 
 .workspace-shell .help-hub__search .help-faq__search-input,
 .workspace-shell .help-faq__search--wide .help-faq__search-input {
-  padding: 14px 16px;
+  padding: 15px 17px;
   font-size: var(--fs-body);
   border-radius: var(--radius-md);
 }
@@ -276,7 +288,7 @@
   color: inherit;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 15px;
+  padding: 17px;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 16px;

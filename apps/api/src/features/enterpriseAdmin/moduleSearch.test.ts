@@ -55,7 +55,7 @@ describe("buildEnterpriseModuleSearchWhere", () => {
       AND: [
         { enterpriseId: "ent-1" },
         {
-          OR: [{ name: { contains: "12" } }, { id: 12 }],
+          OR: [{ name: { contains: "12" } }, { code: { contains: "12" } }, { id: 12 }],
         },
       ],
     });

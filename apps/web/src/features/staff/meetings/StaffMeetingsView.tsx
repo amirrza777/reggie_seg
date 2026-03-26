@@ -9,17 +9,18 @@ import { AttendanceTable } from "./components/AttendanceTable";
 
 type StaffMeetingsViewProps = {
   meetings: StaffMeeting[];
+  absenceThreshold: number;
 };
 
-export function StaffMeetingsView({ meetings }: StaffMeetingsViewProps) {
+export function StaffMeetingsView({ meetings, absenceThreshold }: StaffMeetingsViewProps) {
   const stats = computeMeetingStats(meetings);
-  const flaggedMembers = getFlaggedMembers(meetings);
-  const memberAttendance = getMemberAttendanceStats(meetings);
+  const flaggedMembers = getFlaggedMembers(meetings, absenceThreshold);
+  const memberAttendance = getMemberAttendanceStats(meetings, absenceThreshold);
 
   return (
     <div className="stack">
       <MeetingStatsPanel stats={stats} />
-      <LowAttendanceAlert flaggedMembers={flaggedMembers} />
+      <LowAttendanceAlert flaggedMembers={flaggedMembers} absenceThreshold={absenceThreshold} />
       <MeetingList meetings={meetings} />
       <AttendanceTable members={memberAttendance} />
     </div>

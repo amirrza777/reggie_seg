@@ -1,11 +1,11 @@
 import type { FlaggedMember } from "../types";
-import { ABSENCES_BEFORE_ALERT } from "../attendance";
 
 type LowAttendanceAlertProps = {
   flaggedMembers: FlaggedMember[];
+  absenceThreshold: number;
 };
 
-export function LowAttendanceAlert({ flaggedMembers }: LowAttendanceAlertProps) {
+export function LowAttendanceAlert({ flaggedMembers, absenceThreshold }: LowAttendanceAlertProps) {
   if (flaggedMembers.length === 0) return null;
 
   const heading = flaggedMembers.length === 1
@@ -15,7 +15,7 @@ export function LowAttendanceAlert({ flaggedMembers }: LowAttendanceAlertProps) 
   return (
     <div className="low-attendance-alert">
       <p className="low-attendance-alert__title">
-        {heading} with {ABSENCES_BEFORE_ALERT}+ consecutive absences
+        {heading} with {absenceThreshold}+ consecutive absences
       </p>
       <div className="low-attendance-alert__list">
         {flaggedMembers.map((member) => (

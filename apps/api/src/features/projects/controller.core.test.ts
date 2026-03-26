@@ -13,6 +13,7 @@ import {
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
   getUserModulesHandler,
+  getModuleStaffListHandler,
   getUserProjectsHandler,
   createTeamHealthMessageHandler,
   getMyTeamHealthMessagesHandler,
@@ -36,6 +37,7 @@ vi.mock("./service.js", () => ({
   fetchProjectsForUser: vi.fn(),
   fetchProjectsForStaff: vi.fn(),
   fetchModulesForUser: vi.fn(),
+  fetchModuleStaffList: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
   fetchTeamById: vi.fn(),
@@ -214,6 +216,32 @@ describe("projects controller core handlers", () => {
       compactRes,
     );
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
+  });
+
+  it("getModuleStaffListHandler returns members or 403", async () => {
+    const unauthorizedRes = mockResponse();
+    await getModuleStaffListHandler({ params: { moduleId: "2" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getModuleStaffListHandler({ user: { sub: 7 }, params: { moduleId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchModuleStaffList as any).mockResolvedValueOnce({ ok: false, status: 403 });
+    const forbiddenRes = mockResponse();
+    await getModuleStaffListHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, forbiddenRes);
+    expect(service.fetchModuleStaffList).toHaveBeenCalledWith(7, 3);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+
+    (service.fetchModuleStaffList as any).mockResolvedValueOnce({
+      ok: true,
+      members: [{ userId: 1, email: "a@b.c", displayName: "A B", roles: ["LEAD"] }],
+    });
+    const okRes = mockResponse();
+    await getModuleStaffListHandler({ user: { sub: 7 }, params: { moduleId: "3" } } as any, okRes);
+    expect(okRes.json).toHaveBeenCalledWith({
+      members: [{ userId: 1, email: "a@b.c", displayName: "A B", roles: ["LEAD"] }],
+    });
   });
 
   it("getProjectDeadlineHandler validates ids and returns deadline", async () => {

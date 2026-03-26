@@ -158,8 +158,13 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 }) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
-  if (meeting.organiserId !== userId) throw { code: "FORBIDDEN" };
   if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
+  const isOrganiser = meeting.organiserId === userId;
+  if (!isOrganiser) {
+    const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
+    const isMember = meeting.team.allocations.some((a) => a.userId === userId);
+    if (!settings.allowAnyoneToEditMeetings || !isMember) throw { code: "FORBIDDEN" };
+  }
   const { participantIds, ...meetingData } = data;
   const updated = await updateMeeting(meetingId, meetingData);
   if (participantIds !== undefined) {
@@ -221,7 +226,12 @@ export async function markAttendance(meetingId: number, records: { userId: numbe
 export async function saveMinutes(meetingId: number, writerId: number, content: string) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
-  if (meeting.minutes && meeting.minutes.writerId !== writerId) throw { code: "FORBIDDEN" };
+  const isOriginalWriter = meeting.minutes?.writerId === writerId;
+  if (meeting.minutes && !isOriginalWriter) {
+    const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
+    const isMember = meeting.team.allocations.some((a) => a.userId === writerId);
+    if (!settings.allowAnyoneToWriteMinutes || !isMember) throw { code: "FORBIDDEN" };
+  }
   return upsertMinutes(meetingId, writerId, content);
 }
 
@@ -243,4 +253,48 @@ export async function fetchMeetingSettings(meetingId: number) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) return null;
   return getModuleMeetingSettingsForTeam(meeting.teamId);
+}
+
+/** Returns the module meeting settings for a team. */
+export function fetchTeamMeetingSettings(teamId: number) {
+  return getModuleMeetingSettingsForTeam(teamId);
+}
+
+export function parseMentions(content: string) {
+  const mentionMatches = content.match(/@([A-Za-z]+(?:\s+[A-Za-z]+))/g) ?? [];
+  return mentionMatches.map((match) => match.slice(1).trim());
+}
+
+async function processMentions(
+  commentId: number,
+  meetingId: number,
+  authorId: number,
+  content: string,
+  teamId: number,
+) {
+  const mentions = parseMentions(content);
+  if (mentions.length === 0) return;
+
+  const [teamMembers, team] = await Promise.all([getTeamMembers(teamId), getTeamById(teamId)]);
+  const mentionedUsers = teamMembers.filter((member) => {
+    if (member.id === authorId) return false;
+    const fullName = `${member.firstName} ${member.lastName}`.trim();
+    return mentions.includes(fullName);
+  });
+
+  if (mentionedUsers.length === 0) return;
+
+  const mentionedUserIds = [...new Set(mentionedUsers.map((member) => member.id))];
+  await createMentions(commentId, mentionedUserIds);
+
+  await Promise.all(
+    mentionedUserIds.map((mentionedUserId) =>
+      addNotification({
+        userId: mentionedUserId,
+        type: "MENTION",
+        message: "You were mentioned in a meeting comment",
+        link: `/projects/${team.projectId}/meetings/${meetingId}`,
+      }),
+    ),
+  );
 }

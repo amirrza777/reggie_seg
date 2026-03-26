@@ -1,8 +1,7 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
   getFeedbackReview,
   getPeerAssessmentsForUser,
@@ -114,12 +113,6 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">Project {projectData.project.id}</span>
           <span className="staff-projects__badge">Team {team.id}</span>
-          <Link
-            href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-feedback`}
-            className="staff-projects__badge"
-          >
-            Back to peer feedback
-          </Link>
         </div>
       </section>
 

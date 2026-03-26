@@ -161,24 +161,21 @@ describe("GithubProjectReposClient", () => {
     } as never);
   });
 
-  it("refreshes snapshots by analysing linked repos and reloading data", async () => {
+  it("renders the GitHub repo tabs and loads initial project data", async () => {
     render(<GithubProjectReposClient projectId="1" />);
 
-    await screen.findByText("Linked repositories");
-    expect(await screen.findByTestId("github-link-card")).toHaveTextContent("adxmir/demo-repo");
-
-    const refreshButton = screen.getByRole("button", { name: "Refresh" });
-    fireEvent.click(refreshButton);
-
-    await waitFor(() => {
-      expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(101);
-    });
+    expect(await screen.findByTestId("github-hero")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Team code activity" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "My code activity" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "My commits" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Branches" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Configurations" })).toBeInTheDocument();
 
     await waitFor(() => {
-      expect(listProjectGithubRepoLinksMock).toHaveBeenCalledTimes(2);
-      expect(getGithubConnectionStatusMock).toHaveBeenCalledTimes(2);
-      expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(2);
-      expect(getProjectGithubMappingCoverageMock).toHaveBeenCalledTimes(2);
+      expect(listProjectGithubRepoLinksMock).toHaveBeenCalledTimes(1);
+      expect(getGithubConnectionStatusMock).toHaveBeenCalledTimes(1);
+      expect(getLatestProjectGithubSnapshotMock).toHaveBeenCalledTimes(1);
+      expect(getProjectGithubMappingCoverageMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -194,7 +191,7 @@ describe("GithubProjectReposClient", () => {
 
     render(<GithubProjectReposClient projectId="1" />);
 
-    await screen.findByText("Linked repositories");
+    await screen.findByRole("button", { name: "Team code activity" });
 
     await waitFor(() => {
       expect(analyseProjectGithubRepoMock).toHaveBeenCalledWith(101);

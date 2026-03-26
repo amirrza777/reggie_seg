@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { formatDate } from "@/shared/lib/formatDate";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { TrelloBoardAction } from "../types";
@@ -8,13 +8,37 @@ import type { TrelloBoardAction } from "../types";
 type CardMovementHistoryProps = {
   actionsByDate: Record<string, TrelloBoardAction[]>;
   listNamesById: Record<string, string>;
+  dateKeysSorted: string[];
+  selectedDate: string | "current";
 };
 
-export function CardMovementHistory({ actionsByDate, listNamesById }: CardMovementHistoryProps) {
-  const dateKeys = Object.keys(actionsByDate).sort((a, b) => b.localeCompare(a));
-  const listName = (id: string) => listNamesById[id] ?? id;
+export function CardMovementHistory({
+  actionsByDate,
+  listNamesById,
+  dateKeysSorted,
+  selectedDate,
+}: CardMovementHistoryProps) {
+  const selectedRowRef = useRef<HTMLTableRowElement>(null);
+  const tableWrapRef = useRef<HTMLDivElement>(null);
 
-  if (dateKeys.length === 0) return null;
+  useEffect(() => {
+    if (selectedDate === "current") return;
+    const row = selectedRowRef.current;
+    const container = tableWrapRef.current;
+    if (!row || !container) return;
+    const rowRect = row.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+    if (rowRect.top < containerRect.top) {
+      container.scrollTop -= containerRect.top - rowRect.top;
+    } else if (rowRect.bottom > containerRect.bottom) {
+      container.scrollTop += rowRect.bottom - containerRect.bottom;
+    }
+  }, [selectedDate]);
+
+  const listName = (id: string) => listNamesById[id] ?? id;
+  const dateKeysNewestFirst = [...dateKeysSorted].reverse();
+
+  if (dateKeysNewestFirst.length === 0) return null;
 
   return (
     <section className="stack trello-history">
@@ -22,7 +46,7 @@ export function CardMovementHistory({ actionsByDate, listNamesById }: CardMoveme
       <p className="muted trello-history__hint">
         Grouped by date. Max 500 actions fetched from Trello.
       </p>
-      <div className="trello-history__table-wrap">
+      <div className="trello-history__table-wrap" ref={tableWrapRef}>
         <table className="trello-history__table">
           <thead>
             <tr>
@@ -32,17 +56,23 @@ export function CardMovementHistory({ actionsByDate, listNamesById }: CardMoveme
             </tr>
           </thead>
           <tbody>
-            {dateKeys.map((dateKey) => {
+            {dateKeysNewestFirst.map((dateKey) => {
               const dayActions = actionsByDate[dateKey];
-              const created = dayActions.filter((a) => a.type === "createCard");
-              const moved = dayActions.filter(
-                (a) => a.type === "updateCard" && a.data?.listBefore && a.data?.listAfter
-              );
+              const created = dayActions?.filter((a) => a.type === "createCard") ?? [];
+              const moved =
+                dayActions?.filter(
+                  (a) => a.type === "updateCard" && a.data?.listBefore && a.data?.listAfter
+                ) ?? [];
               const summary: string[] = [];
               if (created.length) summary.push(`${created.length} created`);
               if (moved.length) summary.push(`${moved.length} moved`);
+              const isSelected = selectedDate !== "current" && selectedDate === dateKey;
               return (
-                <tr key={dateKey}>
+                <tr
+                  key={dateKey}
+                  ref={isSelected ? selectedRowRef : undefined}
+                  className={isSelected ? "trello-history__row trello-history__row--selected" : "trello-history__row"}
+                >
                   <td>{formatDate(dateKey)}</td>
                   <td>{summary.join(", ")}</td>
                   <td>

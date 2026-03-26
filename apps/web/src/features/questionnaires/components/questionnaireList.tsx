@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { useRouter } from "next/navigation";
+import { logDevError } from "@/shared/lib/devLogger";
 import { Button } from "@/shared/ui/Button";
+import { QuestionnaireListSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
 import {
   getMyQuestionnaires,
   getPublicQuestionnairesFromOthers,
@@ -32,7 +34,7 @@ export function QuestionnaireList() {
       })
       .catch((err: unknown) => {
         if (!active) return;
-        console.error(err);
+        logDevError(err);
         setError("Failed to load questionnaires.");
       })
       .finally(() => {
@@ -45,7 +47,9 @@ export function QuestionnaireList() {
     };
   }, []);
 
-  if (loading) return <p className="ui-note ui-note--muted">Loading questionnaires...</p>;
+  if (loading) {
+    return <QuestionnaireListSkeleton />;
+  }
   if (error) return <p className="ui-note ui-note--muted">{error}</p>;
 
   const scrollToSection = (sectionRef: RefObject<HTMLElement | null>) => {

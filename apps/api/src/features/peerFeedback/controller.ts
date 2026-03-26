@@ -5,33 +5,21 @@ import {
   saveFeedbackReview,
   getPeerAssessment,
 } from "./service.js"
+import {
+  parseCreatePeerFeedbackBody,
+  parseFeedbackIdParam,
+  parseFeedbackStatusesBody,
+} from "./controller.parsers.js";
 
 /** Handles requests for create peer feedback. */
 export async function createPeerFeedbackHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  const { reviewText, agreements, reviewerUserId, revieweeUserId } = req.body;
-
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
-  }
-
-  if (typeof agreements !== 'object' || !agreements) {
-    return res.status(400).json({ error: "Invalid agreements object" });
-  }
-
-  const validOptions = ['Strongly Disagree', 'Disagree', 'Reasonable', 'Agree', 'Strongly Agree'];
-  for (const [answerId, value] of Object.entries(agreements)) {
-    if (typeof value !== 'object' || !value) {
-      return res.status(400).json({ error: `Invalid agreement value for ${answerId}` });
-    }
-    const { selected, score } = value as any;
-    if (!validOptions.includes(selected) || typeof score !== 'number' || score < 1 || score > 5) {
-      return res.status(400).json({ error: `Invalid agreement option or score for ${answerId}` });
-    }
-  }
+  const feedbackId = parseFeedbackIdParam(req.params.feedbackId);
+  if (!feedbackId.ok) return res.status(400).json({ error: feedbackId.error });
+  const parsedBody = parseCreatePeerFeedbackBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const saved = await saveFeedbackReview(feedbackId, { reviewText: reviewText || '', agreements, reviewerUserId, revieweeUserId});
+    const saved = await saveFeedbackReview(feedbackId.value, parsedBody.value);
     res.json({ ok: true, saved });
   } catch (error: any) {
     if (error?.code === "PEER_ASSESSMENT_NOT_FOUND") {
@@ -50,12 +38,10 @@ export async function createPeerFeedbackHandler(req: Request, res: Response) {
 
 /** Handles requests for get peer feedback. */
 export async function getPeerFeedbackHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  if (isNaN(feedbackId)) {
-    return res.status(400).json({ error: "Invalid feedback ID" });
-  }
+  const feedbackId = parseFeedbackIdParam(req.params.feedbackId);
+  if (!feedbackId.ok) return res.status(400).json({ error: feedbackId.error });
   try {
-    const review = await getFeedbackReview(feedbackId);
+    const review = await getFeedbackReview(feedbackId.value);
     if (!review) return res.status(404).json({ error: "Review not found" });
     res.json(review);
   } catch (error) {
@@ -66,18 +52,11 @@ export async function getPeerFeedbackHandler(req: Request, res: Response) {
 
 /** Handles requests for bulk peer feedback completion statuses. */
 export async function getPeerFeedbackStatusesHandler(req: Request, res: Response) {
-  const feedbackIds = req.body?.feedbackIds;
-  if (!Array.isArray(feedbackIds)) {
-    return res.status(400).json({ error: "feedbackIds must be an array" });
-  }
-
-  const parsedFeedbackIds = feedbackIds.map((feedbackId) => Number(feedbackId));
-  if (parsedFeedbackIds.some((feedbackId) => Number.isNaN(feedbackId))) {
-    return res.status(400).json({ error: "feedbackIds must contain only numeric IDs" });
-  }
+  const parsedBody = parseFeedbackStatusesBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
 
   try {
-    const statuses = await getFeedbackReviewStatuses(parsedFeedbackIds);
+    const statuses = await getFeedbackReviewStatuses(parsedBody.value.feedbackIds);
     return res.json({ statuses });
   } catch (error) {
     console.error("Error retrieving peer feedback statuses:", error);
@@ -87,10 +66,10 @@ export async function getPeerFeedbackStatusesHandler(req: Request, res: Response
 
 /** Handles requests for get peer assessment. */
 export async function getPeerAssessmentHandler(req: Request, res: Response) {
-  const feedbackId = Number(req.params.feedbackId);
-  if (isNaN(feedbackId)) return res.status(400).json({ error: "Invalid feedback ID" });
+  const feedbackId = parseFeedbackIdParam(req.params.feedbackId);
+  if (!feedbackId.ok) return res.status(400).json({ error: feedbackId.error });
   try {
-    const assessment = await getPeerAssessment(feedbackId);
+    const assessment = await getPeerAssessment(feedbackId.value);
     if (!assessment) return res.status(404).json({ error: "Assessment not found" });
     res.json(assessment);
   } catch (err) {

@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffStudentDeadlineOverridesPanel } from "@/features/staff/projects/components/StaffStudentDeadlineOverridesPanel";
 import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
@@ -68,9 +67,6 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
           <span className="staff-projects__badge">
             {team.hasDeadlineOverride ? "Team override active" : "No team override"}
           </span>
-          <Link href={`/staff/projects/${projectId}/teams/${teamId}`} className="staff-projects__badge">
-            Back to overview
-          </Link>
         </div>
       </section>
 

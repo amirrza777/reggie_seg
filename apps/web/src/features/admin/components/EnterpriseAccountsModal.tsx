@@ -120,6 +120,7 @@ export function EnterpriseAccountsModal({
   onUserPageJump,
 }: EnterpriseAccountsModalProps) {
   if (!enterprise) return null;
+  const showSkeletonTable = usersStatus === "loading" && userRows.length === 0;
 
   return (
     <div
@@ -166,7 +167,7 @@ export function EnterpriseAccountsModal({
             <AccountsCountLabel usersStatus={usersStatus} userTotal={userTotal} userStart={userStart} userEnd={userEnd} />
           </span>
 
-          {userRows.length > 0 ? (
+          {userRows.length > 0 || showSkeletonTable ? (
             <>
               <div className="enterprise-management__modal-table">
                 <Table
@@ -176,25 +177,28 @@ export function EnterpriseAccountsModal({
                   headClassName="user-management__head"
                   rowClassName="user-management__row"
                   columnTemplate="var(--user-management-columns)"
+                  isLoading={showSkeletonTable}
+                  loadingLabel="Loading accounts..."
+                  loadingRowCount={6}
                 />
               </div>
-              <EnterpriseAccountsPagination
-                userPage={userPage}
-                userPageInput={userPageInput}
-                userTotalPages={userTotalPages}
-                effectiveUserTotalPages={effectiveUserTotalPages}
-                onUserPageChange={onUserPageChange}
-                onUserPageInputChange={onUserPageInputChange}
-                onUserPageInputBlur={onUserPageInputBlur}
-                onUserPageJump={onUserPageJump}
-              />
+              {!showSkeletonTable ? (
+                <EnterpriseAccountsPagination
+                  userPage={userPage}
+                  userPageInput={userPageInput}
+                  userTotalPages={userTotalPages}
+                  effectiveUserTotalPages={effectiveUserTotalPages}
+                  onUserPageChange={onUserPageChange}
+                  onUserPageInputChange={onUserPageInputChange}
+                  onUserPageInputBlur={onUserPageInputBlur}
+                  onUserPageJump={onUserPageJump}
+                />
+              ) : null}
             </>
           ) : (
             <div className="ui-empty-state">
               <p>
-                {usersStatus === "loading"
-                  ? "Loading accounts..."
-                  : normalizeSearchQuery(userSearchQuery)
+                {normalizeSearchQuery(userSearchQuery)
                     ? `No accounts match "${userSearchQuery.trim()}".`
                     : "No accounts found in this enterprise."}
               </p>

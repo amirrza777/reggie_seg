@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/shared/api/http";
 import type { AuthResponse, LoginCredentials, SignupPayload, UserProfile } from "../types";
 import { setAccessToken, clearAccessToken } from "./session";
+import { ApiError } from "@/shared/api/errors";
 
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   const res = await apiFetch<AuthResponse>("/auth/login", {
@@ -42,9 +42,16 @@ export async function resetPassword(payload: { token: string; newPassword: strin
 export async function refreshAccessToken(): Promise<string | null> {
   try {
     const res = await apiFetch<{ accessToken: string }>("/auth/refresh", { method: "POST" });
-    if (res.accessToken) setAccessToken(res.accessToken);
-    return res.accessToken ?? null;
-  } catch {
+    if (res.accessToken) {
+      setAccessToken(res.accessToken);
+      return res.accessToken;
+    }
+    clearAccessToken();
+    return null;
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
+      clearAccessToken();
+    }
     return null;
   }
 }
@@ -52,8 +59,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 export async function getCurrentUser(): Promise<UserProfile | null> {
   try {
     return await apiFetch<UserProfile>("/auth/me");
-  } catch (err: any) {
-    if (err?.status === 401) {
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
       const token = await refreshAccessToken();
       if (!token) return null;
       return await apiFetch<UserProfile>("/auth/me");
@@ -73,8 +80,8 @@ export async function updateProfile(payload: {
       method: "PATCH",
       body: JSON.stringify(payload),
     });
-  } catch (err: any) {
-    if (err?.status === 401) {
+  } catch (err: unknown) {
+    if (err instanceof ApiError && err.status === 401) {
       const token = await refreshAccessToken();
       if (!token) throw err;
       return await apiFetch<UserProfile>("/auth/profile", {
