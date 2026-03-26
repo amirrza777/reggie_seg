@@ -11,6 +11,7 @@ import {
   type AllocationDraftsWorkspace,
   type ManualAllocationWorkspace,
 } from "@/features/projects/api/teamAllocation";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { STAFF_ALLOCATION_DRAFTS_REFRESH_EVENT } from "./allocationDraftEvents";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -63,6 +64,7 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
 
   const [editingNameTeamId, setEditingNameTeamId] = useState<number | null>(null);
   const [editedTeamName, setEditedTeamName] = useState("");
+  const [pendingDeleteDraftId, setPendingDeleteDraftId] = useState<number | null>(null);
 
   const [editingMembersTeamId, setEditingMembersTeamId] = useState<number | null>(null);
   const [memberCandidates, setMemberCandidates] = useState<ManualWorkspaceStudent[]>([]);
@@ -139,6 +141,10 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
   const editingDraft = useMemo(
     () => workspace?.drafts.find((draft) => draft.id === editingMembersTeamId) ?? null,
     [editingMembersTeamId, workspace?.drafts],
+  );
+  const pendingDeleteDraft = useMemo(
+    () => workspace?.drafts.find((draft) => draft.id === pendingDeleteDraftId) ?? null,
+    [pendingDeleteDraftId, workspace?.drafts],
   );
 
   function startRename(draft: DraftTeam) {
@@ -305,14 +311,17 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
       setNotice({ type: "error", text: "Draft not found. Refresh drafts and try again." });
       return;
     }
+    setPendingDeleteDraftId(draft.id);
+  }
 
-    const confirmed = window.confirm(
-      `Delete draft "${draft.teamName}"? This will remove it from Allocation Drafts.`,
-    );
-    if (!confirmed) {
+  function confirmDelete() {
+    const draft = pendingDeleteDraft;
+    if (!draft) {
+      setPendingDeleteDraftId(null);
       return;
     }
 
+    setPendingDeleteDraftId(null);
     setNotice(null);
     startSavingTransition(async () => {
       try {
@@ -557,6 +566,22 @@ export function StaffAllocationDraftsPanel({ projectId }: StaffAllocationDraftsP
           Editing members for "{editingDraft.teamName}". You can select available students and members already in this draft.
         </p>
       ) : null}
+
+      <ConfirmationModal
+        open={pendingDeleteDraft !== null}
+        title="Delete allocation draft?"
+        message={
+          pendingDeleteDraft
+            ? `Delete draft "${pendingDeleteDraft.teamName}"? This will remove it from Allocation Drafts.`
+            : ""
+        }
+        cancelLabel="Cancel"
+        confirmLabel={isSaving ? "Deleting..." : "Delete draft"}
+        confirmVariant="danger"
+        busy={isSaving}
+        onCancel={() => setPendingDeleteDraftId(null)}
+        onConfirm={() => confirmDelete()}
+      />
 
       {workspace && !canApprove ? (
         <p className="staff-projects__allocation-note">

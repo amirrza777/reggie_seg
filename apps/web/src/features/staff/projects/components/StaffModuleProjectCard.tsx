@@ -67,7 +67,11 @@ function ProjectTeams({
       {teams.map((team) => {
         const hasBoard = Boolean(team.trelloBoardId && String(team.trelloBoardId).trim().length > 0);
         return (
-          <Link key={team.id} href={`/staff/projects/${projectId}/teams/${team.id}`} className="staff-projects__module-team-link">
+          <Link
+            key={team.id}
+            href={`/staff/projects/${projectId}/teams/${team.id}`}
+            className="staff-projects__module-team-link"
+          >
             <div className="staff-projects__module-team-main">
               <span className="staff-projects__module-team-name">{highlightSearchText(team.teamName, rawQuery)}</span>
               <span className="staff-projects__module-team-meta">
@@ -105,6 +109,8 @@ export type StaffModuleProjectCardProps = {
  * Expandable project row (teams, staff hub links, GitHub health) — shared by the all-modules list and single-module views.
  */
 export function StaffModuleProjectCard({ project, hasQuery, rawQuery }: StaffModuleProjectCardProps) {
+  const baseProjectHref = `/staff/projects/${project.id}`;
+
   return (
     <details className="staff-projects__module-project-card" open={hasQuery}>
       <summary className="staff-projects__module-project-summary">
@@ -116,13 +122,13 @@ export function StaffModuleProjectCard({ project, hasQuery, rawQuery }: StaffMod
             </p>
           </div>
           <div className="staff-projects__module-project-actions">
-          <Link href={`/staff/projects/${project.id}`} className="staff-projects__badge">
-            Open project
-          </Link>
-          <Link href={`/staff/projects/${project.id}/team-allocation`} className="staff-projects__badge">
-            Team allocation
-          </Link>
-        </div>
+            <Link href={baseProjectHref} className="staff-projects__badge">
+              Open project
+            </Link>
+            <Link href={`${baseProjectHref}/team-allocation`} className="staff-projects__badge">
+              Team allocation
+            </Link>
+          </div>
         </div>
         <span className="staff-projects__project-toggle" aria-hidden="true" />
       </summary>
@@ -161,7 +167,12 @@ export function StaffModuleProjectCardList({
     <section className="staff-projects__module-list staff-projects__module-list--flat" aria-label={ariaLabel}>
       <div className="staff-projects__module-projects">
         {projects.map((project) => (
-          <StaffModuleProjectCard key={project.id} project={project} hasQuery={hasQuery} rawQuery={rawQuery} />
+          <StaffModuleProjectCard
+            key={project.id}
+            project={project}
+            hasQuery={hasQuery}
+            rawQuery={rawQuery}
+          />
         ))}
       </div>
     </section>

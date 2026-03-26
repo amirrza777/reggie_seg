@@ -3,28 +3,29 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isStaffNavLinkActive } from "./navLinkActive";
+import { resolveStaffTeamBasePath } from "./navBasePath";
 
 type StaffTeamSectionNavProps = {
   projectId: string;
   teamId: string;
+  moduleId?: string | number | null;
 };
 
 const teamTabs = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
   { key: "deadlines", label: "Deadlines", hrefSuffix: "/deadlines" },
-  { key: "team", label: "Team", hrefSuffix: "/team" },
-  { key: "team-meetings", label: "Meetings", hrefSuffix: "/team-meetings" },
+  { key: "team", label: "Health", hrefSuffix: "/team" },
+  { key: "team-meetings", label: "Team meetings", hrefSuffix: "/team-meetings" },
   { key: "peer-assessment", label: "Peer assessment", hrefSuffix: "/peer-assessment" },
   { key: "peer-feedback", label: "Peer feedback", hrefSuffix: "/peer-feedback" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
   { key: "trello", label: "Trello", hrefSuffix: "/trello" },
-  { key: "team-health", label: "Team health", hrefSuffix: "/teamhealth" },
-  { key: "grading", label: "Grading", hrefSuffix: "/grading" },
+  { key: "grading", label: "Marking", hrefSuffix: "/grading" },
 ];
 
-export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavProps) {
+export function StaffTeamSectionNav({ projectId, teamId, moduleId }: StaffTeamSectionNavProps) {
   const pathname = usePathname();
-  const base = `/staff/projects/${projectId}/teams/${teamId}`;
+  const base = resolveStaffTeamBasePath({ projectId, teamId, moduleId, pathname });
 
   return (
     <nav className="pill-nav" aria-label="Team sections">

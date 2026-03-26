@@ -17,27 +17,44 @@ describe("StaffTeamSectionNav", () => {
     expect(healthLink).toHaveAttribute("href", "/staff/projects/2/teams/3/team");
   });
 
-  it("renders grading as the final tab", () => {
+  it("renders marking as the final tab", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
     const links = screen.getAllByRole("link");
-    expect(links.at(-1)).toHaveTextContent("Grading");
+    expect(links.at(-1)).toHaveTextContent("Marking");
   });
 
-  it("renders grading tab link", () => {
+  it("renders marking tab link", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
-    expect(screen.getByRole("link", { name: "Grading" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Marking" })).toBeInTheDocument();
   });
 
-  it("marks grading tab active on grading route", () => {
+  it("marks marking tab active on grading route", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3/grading");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
-    const gradingLink = screen.getByRole("link", { name: "Grading" });
-    expect(gradingLink.className).toContain("pill-nav__link--active");
-    expect(gradingLink).toHaveAttribute("aria-current", "page");
+    const markingLink = screen.getByRole("link", { name: "Marking" });
+    expect(markingLink.className).toContain("pill-nav__link--active");
+    expect(markingLink).toHaveAttribute("aria-current", "page");
+  });
+
+  it("keeps staff/projects route links when moduleId is provided", () => {
+    usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
+    render(<StaffTeamSectionNav projectId="2" teamId="3" moduleId={12} />);
+
+    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute("href", "/staff/projects/2/teams/3/team");
+  });
+
+  it("normalizes module-scoped routes to canonical staff/projects links", () => {
+    usePathnameMock.mockReturnValue("/staff/modules/12/projects/2/teams/3");
+    render(<StaffTeamSectionNav projectId="2" teamId="3" moduleId={12} />);
+
+    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute(
+      "href",
+      "/staff/projects/2/teams/3/team",
+    );
   });
 });

@@ -25,4 +25,24 @@ describe("StaffProjectSectionNav", () => {
     expect(forumLink.className).toContain("pill-nav__link--active");
     expect(forumLink).toHaveAttribute("aria-current", "page");
   });
+
+  it("keeps staff/projects links when moduleId is provided on project routes", () => {
+    usePathnameMock.mockReturnValue("/staff/projects/9");
+    render(<StaffProjectSectionNav projectId="9" moduleId={12} />);
+
+    expect(screen.getByRole("link", { name: "Team allocation" })).toHaveAttribute(
+      "href",
+      "/staff/projects/9/team-allocation",
+    );
+  });
+
+  it("normalizes module-scoped routes to canonical staff/projects links", () => {
+    usePathnameMock.mockReturnValue("/staff/modules/12/projects/9/discussion");
+    render(<StaffProjectSectionNav projectId="9" moduleId={12} />);
+
+    expect(screen.getByRole("link", { name: "Discussion Forum" })).toHaveAttribute(
+      "href",
+      "/staff/projects/9/discussion",
+    );
+  });
 });

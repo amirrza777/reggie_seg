@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Fragment, type ReactNode } from "react";
+import { highlightSearchText } from "@/shared/lib/highlightSearchText";
 
-type StaffProjectSummary = {
+export type StaffProjectSummary = {
   id: number;
   name: string;
   teamCount: number;
@@ -16,32 +16,6 @@ export type ModuleGroup = {
   projects: StaffProjectSummary[];
 };
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function highlightSearchText(text: string, query?: string): ReactNode {
-  const terms = String(query ?? "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (terms.length === 0) return text;
-
-  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "ig");
-  const parts = text.split(pattern);
-  if (parts.length <= 1) return text;
-
-  const lowerTerms = new Set(terms.map((term) => term.toLowerCase()));
-  return parts.map((part, index) =>
-    lowerTerms.has(part.toLowerCase()) ? (
-      <mark key={`hit-${index}`} className="staff-projects__search-hit">
-        {part}
-      </mark>
-    ) : (
-      <Fragment key={`txt-${index}`}>{part}</Fragment>
-    ),
-  );
-}
 
 function GithubHealthPills({
   hasGithubRepo,
@@ -88,7 +62,7 @@ function getConnectionTone({
   return "staff-projects__gh-pill--warn";
 }
 
-function ProjectCard({
+export function ProjectCard({
   project,
   rawQuery,
 }: {
