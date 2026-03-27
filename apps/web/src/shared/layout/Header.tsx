@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
 import { BrandWordmark } from "./BrandWordmark";
 
 const navLinks = [
@@ -13,6 +13,10 @@ const navLinks = [
   { href: "/?section=about", label: "About" },
   { href: "/?section=faq", label: "FAQ" },
 ];
+
+const subscribe = () => () => {};
+
+const useIsHydrated = () => useSyncExternalStore(subscribe, () => true, () => false);
 
 const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
@@ -204,7 +208,7 @@ function MobileMenuActions({ onCloseMenu }: { onCloseMenu: () => void }) {
 
 function useMobileMenuState() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const isMounted = typeof document !== "undefined";
+  const isMounted = useIsHydrated();
 
   useEffect(() => {
     const closeMenu = () => setIsMenuOpen(false);
