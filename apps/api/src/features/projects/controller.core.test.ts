@@ -231,7 +231,7 @@ describe("projects controller core handlers", () => {
 
     (service.joinModuleByCode as any).mockResolvedValue({
       ok: true,
-      value: { moduleId: 3, moduleName: "SEGP", enrolled: true, alreadyEnrolled: false },
+      value: { moduleId: 3, moduleName: "SEGP", result: "joined" },
     });
     const okRes = mockResponse();
     await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, okRes);
@@ -240,8 +240,7 @@ describe("projects controller core handlers", () => {
     expect(okRes.json).toHaveBeenCalledWith({
       moduleId: 3,
       moduleName: "SEGP",
-      enrolled: true,
-      alreadyEnrolled: false,
+      result: "joined",
     });
   });
 

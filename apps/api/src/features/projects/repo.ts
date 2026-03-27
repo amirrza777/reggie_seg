@@ -29,12 +29,6 @@ export type StudentDeadlineOverrideInput = {
   reason?: string | null;
 };
 
-export type ModuleJoinActor = {
-  id: number;
-  enterpriseId: string;
-  role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
-};
-
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 
 const STAFF_PROJECT_LIST_SELECT = {
@@ -769,58 +763,6 @@ export async function getModulesForUser(
       projectCount: module.projects.length,
       accessRole,
       ...(staffWithAccessCount !== undefined ? { staffWithAccessCount } : {}),
-    };
-  });
-}
-
-export async function getModuleJoinActor(userId: number): Promise<ModuleJoinActor | null> {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      enterpriseId: true,
-      role: true,
-    },
-  });
-}
-
-export async function joinModuleByCode(input: {
-  enterpriseId: string;
-  userId: number;
-  joinCode: string;
-}): Promise<{ moduleId: number; moduleName: string; alreadyEnrolled: boolean } | null> {
-  return prisma.$transaction(async (tx) => {
-    const module = await tx.module.findFirst({
-      where: {
-        enterpriseId: input.enterpriseId,
-        joinCode: input.joinCode,
-        archivedAt: null,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (!module) {
-      return null;
-    }
-
-    const inserted = await tx.userModule.createMany({
-      data: [
-        {
-          enterpriseId: input.enterpriseId,
-          userId: input.userId,
-          moduleId: module.id,
-        },
-      ],
-      skipDuplicates: true,
-    });
-
-    return {
-      moduleId: module.id,
-      moduleName: module.name,
-      alreadyEnrolled: inserted.count === 0,
     };
   });
 }

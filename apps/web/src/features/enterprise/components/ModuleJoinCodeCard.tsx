@@ -8,18 +8,25 @@ import { getEnterpriseModuleJoinCode } from "../api/client";
 type ModuleJoinCodeCardProps = {
   moduleId: number;
   initialJoinCode?: string | null;
+  showCreatedBanner?: boolean;
 };
 
 type JoinCodeStatus = "loading" | "success" | "error";
 
-export function ModuleJoinCodeCard({ moduleId, initialJoinCode = null }: ModuleJoinCodeCardProps) {
+export function ModuleJoinCodeCard({
+  moduleId,
+  initialJoinCode = null,
+  showCreatedBanner = false,
+}: ModuleJoinCodeCardProps) {
   const [status, setStatus] = useState<JoinCodeStatus>(initialJoinCode ? "success" : "loading");
   const [joinCode, setJoinCode] = useState<string | null>(initialJoinCode);
-  const [message, setMessage] = useState<string | null>(
-    initialJoinCode ? "Module created. Share this join code with students so they can self-enroll." : null,
-  );
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialJoinCode) {
+      return;
+    }
+
     let active = true;
 
     async function loadJoinCode() {
@@ -40,7 +47,7 @@ export function ModuleJoinCodeCard({ moduleId, initialJoinCode = null }: ModuleJ
     return () => {
       active = false;
     };
-  }, [moduleId]);
+  }, [initialJoinCode, moduleId]);
 
   const handleCopy = async () => {
     if (!joinCode || typeof navigator === "undefined" || !navigator.clipboard) {
@@ -69,7 +76,7 @@ export function ModuleJoinCodeCard({ moduleId, initialJoinCode = null }: ModuleJ
         }
         className="enterprise-module-join-code__card"
       >
-        {initialJoinCode ? (
+        {showCreatedBanner ? (
           <div className="status-alert status-alert--success enterprise-module-join-code__banner">
             Module created. Students can now join with this code.
           </div>

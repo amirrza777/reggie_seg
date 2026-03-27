@@ -28,6 +28,19 @@ describe("ModuleJoinCodeCard", () => {
     expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
   });
 
+  it("renders from initial join code without fetching", () => {
+    render(<ModuleJoinCodeCard moduleId={12} initialJoinCode="ABCD2345" />);
+
+    expect(screen.getByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
+    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+  });
+
+  it("shows the created banner only when requested", () => {
+    render(<ModuleJoinCodeCard moduleId={12} initialJoinCode="ABCD2345" showCreatedBanner />);
+
+    expect(screen.getByText(/module created\. students can now join with this code/i)).toBeInTheDocument();
+  });
+
   it("copies the code and shows feedback", async () => {
     getEnterpriseModuleJoinCodeMock.mockResolvedValue({ moduleId: 12, joinCode: "ABCD2345" });
 

@@ -25,6 +25,5 @@ export type JoinModulePayload = {
 export type JoinModuleResponse = {
   moduleId: number;
   moduleName: string;
-  enrolled: true;
-  alreadyEnrolled: boolean;
+  result: "joined" | "already_joined";
 };

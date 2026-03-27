@@ -53,7 +53,13 @@ function EnterpriseModuleCreateFormBody({
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
       <ModuleCodeField state={state} />
-      {state.isEditMode && moduleId ? <ModuleJoinCodeCard moduleId={moduleId} initialJoinCode={createdJoinCode} /> : null}
+      {state.isEditMode && moduleId ? (
+        <ModuleJoinCodeCard
+          moduleId={moduleId}
+          initialJoinCode={createdJoinCode}
+          showCreatedBanner={Boolean(createdJoinCode)}
+        />
+      ) : null}
       <ModuleEditFieldsSection state={state} />
       <ModuleLeaderAccessSection state={state} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}

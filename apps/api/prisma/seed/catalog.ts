@@ -1,5 +1,6 @@
 import { Role } from "@prisma/client";
 import { moduleData, projectData, questionnaireTemplateData, teamData, userData } from "./data";
+import { planSeedModuleJoinCode } from "./joinCodes";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "./types";
@@ -7,7 +8,7 @@ import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "
 export async function seedUsers(enterpriseId: string, seedPasswordHash: string): Promise<SeedUser[]> {
   return withSeedLogging("seedUsers", async () => {
     const created = await prisma.user.createMany({
-      data: buildUserSeedData(enterpriseId, seedPasswordHash),
+      data: planUserSeedData(enterpriseId, seedPasswordHash),
       skipDuplicates: true,
     });
 
@@ -43,7 +44,7 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
 export async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
   return withSeedLogging("seedModules", async () => {
     const created = await prisma.module.createMany({
-      data: buildModuleSeedData(enterpriseId),
+      data: planModuleSeedData(enterpriseId),
       skipDuplicates: true,
     });
 
@@ -77,8 +78,7 @@ export async function seedQuestionnaireTemplates(ownerId?: number): Promise<Seed
     let questionCount = 0;
     let createdCount = 0;
 
-    for (let index = 0; index < questionnaireTemplateData.length; index += 1) {
-      const config = questionnaireTemplateData[index];
+    for (const config of planQuestionnaireTemplateSeedData()) {
       const existingTemplate = await prisma.questionnaireTemplate.findFirst({
         where: {
           ownerId,
@@ -86,7 +86,7 @@ export async function seedQuestionnaireTemplates(ownerId?: number): Promise<Seed
         },
         select: { id: true },
       });
-      const templateData = buildTemplateQuestionData(config.questions);
+      const templateData = planTemplateQuestionData(config.questions);
       const include = { questions: { orderBy: { order: "asc" } } } as const;
 
       const template = existingTemplate
@@ -154,9 +154,7 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
       };
     }
 
-    const data = projectData.map((project) => {
-      return buildProjectSeedRow(project, modules, templates, fallbackModule, defaultTemplate);
-    });
+    const data = planProjectSeedRows(modules, templates, fallbackModule, defaultTemplate);
 
     const created = await prisma.project.createMany({
       data,
@@ -200,9 +198,7 @@ export async function seedTeams(enterpriseId: string, projects: SeedProject[]): 
       };
     }
 
-    const data = teamData.map((team) => {
-      return buildTeamSeedRow(team, enterpriseId, projects, fallbackProject);
-    });
+    const data = planTeamSeedRows(enterpriseId, projects, fallbackProject);
 
     const created = await prisma.team.createMany({
       data,
@@ -228,16 +224,16 @@ export async function seedTeams(enterpriseId: string, projects: SeedProject[]): 
   });
 }
 
-function buildUserSeedData(enterpriseId: string, seedPasswordHash: string) {
+export function planUserSeedData(enterpriseId: string, seedPasswordHash: string) {
   return userData.map((user) => ({ ...user, enterpriseId, passwordHash: seedPasswordHash }));
 }
 
-function buildModuleSeedData(enterpriseId: string) {
+export function planModuleSeedData(enterpriseId: string) {
   return moduleData.map((module, index) => ({
     ...module,
     enterpriseId,
     code: buildSeedModuleCode(index),
-    joinCode: buildSeedModuleJoinCode(index),
+    joinCode: planSeedModuleJoinCode(index),
   }));
 }
 
@@ -245,11 +241,15 @@ function buildSeedModuleCode(index: number) {
   return `MOD-${index + 1}`;
 }
 
-function buildSeedModuleJoinCode(index: number) {
-  return `SM${String(index + 1).padStart(6, "0")}`;
+export function planQuestionnaireTemplateSeedData() {
+  return questionnaireTemplateData.map((template) => ({
+    templateName: template.templateName,
+    isPublic: template.isPublic,
+    questions: [...template.questions],
+  }));
 }
 
-function buildTemplateQuestionData(questionLabels: string[]) {
+export function planTemplateQuestionData(questionLabels: string[]) {
   return questionLabels.map((label, questionIndex) => ({
     label,
     type: "text" as const,
@@ -274,6 +274,15 @@ function buildProjectSeedRow(
   };
 }
 
+export function planProjectSeedRows(
+  modules: SeedModule[],
+  templates: SeedTemplate[],
+  fallbackModule: SeedModule,
+  defaultTemplate: SeedTemplate
+) {
+  return projectData.map((project) => buildProjectSeedRow(project, modules, templates, fallbackModule, defaultTemplate));
+}
+
 function buildTeamSeedRow(
   team: (typeof teamData)[number],
   enterpriseId: string,
@@ -286,4 +295,8 @@ function buildTeamSeedRow(
     projectId: project.id,
     enterpriseId,
   };
+}
+
+export function planTeamSeedRows(enterpriseId: string, projects: SeedProject[], fallbackProject: SeedProject) {
+  return teamData.map((team) => buildTeamSeedRow(team, enterpriseId, projects, fallbackProject));
 }
