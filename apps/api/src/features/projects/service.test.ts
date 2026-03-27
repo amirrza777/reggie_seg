@@ -29,13 +29,12 @@ import {
   parseProjectWarningsConfig,
 } from "./service.js";
 import * as repo from "./repo.js";
+import * as moduleJoinService from "../moduleJoin/service.js";
 
 vi.mock("./repo.js", () => ({
   getProjectById: vi.fn(),
   getUserProjects: vi.fn(),
   getModulesForUser: vi.fn(),
-  getModuleJoinActor: vi.fn(),
-  joinModuleByCode: vi.fn(),
   createProject: vi.fn(),
   getTeammatesInProject: vi.fn(),
   getUserProjectDeadline: vi.fn(),
@@ -58,6 +57,9 @@ vi.mock("./repo.js", () => ({
   getActiveAutoTeamWarningsForProject: vi.fn(),
   resolveTeamWarningById: vi.fn(),
   updateAutoTeamWarningById: vi.fn(),
+}));
+vi.mock("../moduleJoin/service.js", () => ({
+  joinModuleByCode: vi.fn(),
 }));
 
 type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
@@ -169,41 +171,45 @@ describe("projects service", () => {
   });
 
   it("joinModuleByCode restricts joins to students and maps idempotent enrollments", async () => {
-    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STAFF" });
+    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
     await expect(joinModuleByCode(7, "ABCD-2345")).resolves.toEqual({
       ok: false,
       status: 403,
       error: "Forbidden",
     });
 
-    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
-    (repo.joinModuleByCode as any).mockResolvedValueOnce({ moduleId: 9, moduleName: "SEGP", alreadyEnrolled: true });
+    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
+      ok: true,
+      value: { moduleId: 9, moduleName: "SEGP", result: "already_joined" },
+    });
     await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
       ok: true,
       value: {
         moduleId: 9,
         moduleName: "SEGP",
-        enrolled: true,
-        alreadyEnrolled: true,
+        result: "already_joined",
       },
     });
-    expect(repo.joinModuleByCode).toHaveBeenCalledWith({
-      enterpriseId: "ent-1",
-      userId: 7,
-      joinCode: "ABCD2345",
-    });
+    expect(moduleJoinService.joinModuleByCode).toHaveBeenCalledWith(7, "abcd-2345");
   });
 
   it("joinModuleByCode rejects invalid or unavailable codes with the generic error", async () => {
-    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
     await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
       ok: false,
       status: 400,
       error: "Invalid or unavailable module code",
     });
 
-    (repo.getModuleJoinActor as any).mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
-    (repo.joinModuleByCode as any).mockResolvedValueOnce(null);
+    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
     await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
       ok: false,
       status: 400,

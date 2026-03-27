@@ -212,10 +212,8 @@ describe("enterpriseAdmin service.module-management", () => {
     expect(result).toEqual({ ok: false, status: 400, error: "invalid student" });
   });
 
-  it("updates module students and skips insert when sanitised list is empty", async () => {
-    mockState.helpers.sanitiseModuleStudentIdsForUpdate.mockResolvedValueOnce([]);
-
-    const result = await updateModuleStudents(enterpriseUser as any, 7, [31, 32]);
+  it("updates module students and skips insert when the requested list is empty", async () => {
+    const result = await updateModuleStudents(enterpriseUser as any, 7, []);
 
     expect(mockState.prisma.userModule.deleteMany).toHaveBeenCalledWith({ where: { enterpriseId: "ent-1", moduleId: 7 } });
     expect(mockState.prisma.userModule.createMany).not.toHaveBeenCalled();

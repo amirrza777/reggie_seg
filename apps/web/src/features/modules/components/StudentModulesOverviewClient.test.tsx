@@ -52,8 +52,7 @@ describe("StudentModulesOverviewClient", () => {
     joinModuleByCodeMock.mockResolvedValue({
       moduleId: 12,
       moduleName: "Software Engineering",
-      enrolled: true,
-      alreadyEnrolled: false,
+      result: "joined",
     });
 
     render(<StudentModulesOverviewClient initialModules={[]} userId={7} canJoin />);
@@ -84,6 +83,23 @@ describe("StudentModulesOverviewClient", () => {
     fireEvent.click(screen.getAllByRole("button", { name: /^join module$/i })[1]);
 
     expect(await screen.findByText(/invalid or unavailable module code/i)).toBeInTheDocument();
+  });
+
+  it("renders already-joined copy from the explicit result enum", async () => {
+    joinModuleByCodeMock.mockResolvedValue({
+      moduleId: 12,
+      moduleName: "Software Engineering",
+      result: "already_joined",
+    });
+
+    render(<StudentModulesOverviewClient initialModules={[]} userId={7} canJoin />);
+
+    fireEvent.click(screen.getByRole("button", { name: /join module/i }));
+    fireEvent.change(screen.getByLabelText(/join code/i), { target: { value: "abcd2345" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /^join module$/i })[1]);
+
+    expect(await screen.findByText(/module already linked/i)).toBeInTheDocument();
+    expect(await screen.findByText(/software engineering is already available in your workspace/i)).toBeInTheDocument();
   });
 
   it("closes the modal via overlay and escape", async () => {
