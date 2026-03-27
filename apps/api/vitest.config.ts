@@ -9,6 +9,8 @@ export default defineConfig({
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],
+      reportsDirectory: "coverage",
+      reportOnFailure: true,
       thresholds: {
         lines: 100,
         functions: 100,

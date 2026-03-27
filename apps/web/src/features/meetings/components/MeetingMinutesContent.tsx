@@ -20,15 +20,23 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
   const { user } = useUser();
   const [meeting, setMeeting] = useState<Meeting | null>(null);
   const [editWindowMs, setEditWindowMs] = useState<number | null>(null);
+  const [allowAnyoneToWrite, setAllowAnyoneToWrite] = useState(false);
 
   useEffect(() => {
-    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, settings]) => {
+    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, s]) => {
       setMeeting(m);
-      setEditWindowMs(settings.minutesEditWindowDays * 24 * 60 * 60 * 1000);
+      setEditWindowMs(s.minutesEditWindowDays * 24 * 60 * 60 * 1000);
+      setAllowAnyoneToWrite(s.allowAnyoneToWriteMinutes);
     });
   }, [meetingId]);
 
   if (!meeting || !user || editWindowMs === null) return null;
+
+  const isMember = meeting.team.allocations.some((a) => a.user.id === user.id);
+  const isOriginalWriter = meeting.minutes?.writerId === user.id;
+  const canWriteMinutes = !meeting.minutes
+    || isOriginalWriter
+    || (allowAnyoneToWrite && isMember);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
@@ -61,13 +69,13 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
     );
   }
 
-  if (meeting.minutes && meeting.minutes.writerId !== user.id) {
+  if (!canWriteMinutes) {
     return (
       <div className="stack">
         {backLink}
         <Card title="Minutes">
-          <p className="muted">Written by {meeting.minutes.writer.firstName} {meeting.minutes.writer.lastName}</p>
-          <RichTextViewer content={meeting.minutes.content} />
+          <p className="muted">Only the original writer can edit these minutes.</p>
+          {meeting.minutes && <RichTextViewer content={meeting.minutes.content} />}
         </Card>
       </div>
     );

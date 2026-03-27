@@ -3,6 +3,7 @@ export {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
+  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
@@ -12,6 +13,7 @@ export {
   getQuestionsForProjectHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
+  getStaffMarkingProjectsHandler,
   getProjectMarkingHandler,
 } from "./controller.core.js";
 
@@ -27,3 +29,18 @@ export {
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
 } from "./controller.staff-deadlines.js";
+
+export {
+  createStaffTeamWarningHandler,
+  getStaffTeamWarningsHandler,
+  resolveStaffTeamWarningHandler,
+  getMyTeamWarningsHandler,
+  getProjectWarningsConfigHandler,
+  updateProjectWarningsConfigHandler,
+  evaluateProjectWarningsHandler,
+} from "./warnings/controller.js";
+
+export {
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
+} from "./nav-flags/controller.js";

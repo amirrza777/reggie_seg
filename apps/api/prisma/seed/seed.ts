@@ -7,12 +7,19 @@ import {
   seedStudentEnrollments,
   seedTeamAllocations,
 } from "./allocation";
+import { seedCompletedProjectScenario } from "./completed-project";
 import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
-import { SEED_USER_PASSWORD } from "./config";
+import {
+  SEED_COMPLETED_PROJECT_SCENARIO,
+  SEED_ENABLE_ADMIN_TEAM_ALLOCATION,
+  SEED_PROFILE,
+  SEED_USER_PASSWORD,
+} from "./config";
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedMarkerUserData } from "./data";
 import { seedForumPosts } from "./forum";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
+import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
@@ -29,6 +36,7 @@ async function main() {
   }
 
   console.log(`Seed users ready across ${enterprises.length} enterprise(s). Default password: ${seedPassword}`);
+  console.log(`Seed profile: ${SEED_PROFILE}`);
   console.log("Assessment accounts seeded for project assessment workflows:");
   for (const account of seedMarkerUserData) {
     console.log(`- ${account.email} (${account.role})`);
@@ -62,16 +70,34 @@ async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string
 const seedPassword = SEED_USER_PASSWORD;
 
 async function runSeedSteps(context: SeedContext) {
-  await seedModuleLeads(context.usersByRole.adminOrStaff, context.modules);
-  await seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules);
-  await seedTeamAllocations(context.usersByRole.students, context.teams);
-  await seedAdminTeamAllocation(context.enterprise.id); // TODO: only for testing Trello integration, remove later
-  await seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams);
-  await seedProjectDeadlines(context.projects);
-  await seedPeerAssessments(context.projects, context.teams, context.templates);
-  await seedFeatureFlags(context.enterprise.id);
-  await seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students);
-  await seedMeetings(context);
+  for (const step of buildSeedStepPlan(context)) {
+    await step();
+  }
+}
+
+function buildSeedStepPlan(context: SeedContext) {
+  const steps = [
+    () => seedModuleLeads(context.usersByRole.adminOrStaff, context.modules),
+    () => seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules),
+    () => seedTeamAllocations(context.usersByRole.students, context.teams),
+    () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams),
+    () => seedProjectDeadlines(context.projects),
+    () => seedPeerAssessments(context.projects, context.teams, context.templates),
+    () => seedFeatureFlags(context.enterprise.id),
+    () => seedPeerAssessmentProgressScenarios(context),
+    () => seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students),
+    () => seedMeetings(context),
+  ];
+
+  if (SEED_ENABLE_ADMIN_TEAM_ALLOCATION) {
+    steps.splice(3, 0, () => seedAdminTeamAllocation(context.enterprise.id));
+  }
+
+  if (SEED_COMPLETED_PROJECT_SCENARIO) {
+    steps.splice(7, 0, () => seedCompletedProjectScenario(context));
+  }
+
+  return steps;
 }
 
 main()

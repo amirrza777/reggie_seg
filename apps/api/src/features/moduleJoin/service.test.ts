@@ -1,0 +1,103 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockState = vi.hoisted(() => ({
+  repo: {
+    findJoinActor: vi.fn(),
+    findJoinableModuleByCode: vi.fn(),
+    insertModuleEnrollment: vi.fn(),
+    getManagedModuleJoinCode: vi.fn(),
+  },
+  enterpriseCore: {
+    canManageModuleAccess: vi.fn(),
+  },
+}));
+
+vi.mock("./repo.js", () => mockState.repo);
+vi.mock("../enterpriseAdmin/service.core.js", () => ({
+  canManageModuleAccess: mockState.enterpriseCore.canManageModuleAccess,
+}));
+
+import { getModuleJoinCode, joinModuleByCode, withGeneratedModuleJoinCode } from "./service.js";
+
+describe("moduleJoin service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("joins a module and returns the explicit joined result", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    mockState.repo.findJoinableModuleByCode.mockResolvedValue({ id: 9, name: "SEGP" });
+    mockState.repo.insertModuleEnrollment.mockResolvedValue(true);
+
+    await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
+      ok: true,
+      value: {
+        moduleId: 9,
+        moduleName: "SEGP",
+        result: "joined",
+      },
+    });
+
+    expect(mockState.repo.findJoinableModuleByCode).toHaveBeenCalledWith("ent-1", "ABCD2345");
+  });
+
+  it("returns already_joined when enrollment is idempotent", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    mockState.repo.findJoinableModuleByCode.mockResolvedValue({ id: 9, name: "SEGP" });
+    mockState.repo.insertModuleEnrollment.mockResolvedValue(false);
+
+    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
+      ok: true,
+      value: {
+        moduleId: 9,
+        moduleName: "SEGP",
+        result: "already_joined",
+      },
+    });
+  });
+
+  it("rejects non-students and bad codes", async () => {
+    mockState.repo.findJoinActor.mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STAFF" });
+    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
+      ok: false,
+      status: 403,
+      error: "Forbidden",
+    });
+
+    mockState.repo.findJoinActor.mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
+  });
+
+  it("returns managed join codes only when access is allowed", async () => {
+    mockState.repo.getManagedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
+    mockState.enterpriseCore.canManageModuleAccess.mockResolvedValueOnce(true);
+
+    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+      ok: true,
+      value: { moduleId: 12, joinCode: "ABCD2345" },
+    });
+
+    mockState.repo.getManagedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
+    mockState.enterpriseCore.canManageModuleAccess.mockResolvedValueOnce(false);
+
+    await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+      ok: false,
+      status: 403,
+      error: "Forbidden",
+    });
+  });
+
+  it("retries on join-code unique conflicts", async () => {
+    const write = vi
+      .fn()
+      .mockRejectedValueOnce({ code: "P2002", meta: { target: ["enterpriseId", "joinCode"] } })
+      .mockResolvedValueOnce({ id: 22 });
+
+    await expect(withGeneratedModuleJoinCode("ent-1", write, 2)).resolves.toEqual({ id: 22 });
+    expect(write).toHaveBeenCalledTimes(2);
+  });
+});

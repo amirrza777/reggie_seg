@@ -2,7 +2,7 @@ import { normalizeSearchQuery } from "@/shared/lib/search";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { FormField } from "@/shared/ui/FormField";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 
@@ -43,86 +43,6 @@ function EnterpriseTableSummary({
   if (enterpriseTableStatus === "loading" && enterpriseTotal === 0) return "Loading enterprises...";
   if (enterpriseTotal === 0) return "Showing 0 enterprises.";
   return `Showing ${enterpriseStart}-${enterpriseEnd} of ${enterpriseTotal} enterprise${enterpriseTotal === 1 ? "" : "s"}.`;
-}
-
-function EnterprisePageControls(props: {
-  currentPage: number;
-  setCurrentPage: (update: (prev: number) => number) => void;
-  pageInput: string;
-  setPageInput: (value: string) => void;
-  effectiveEnterpriseTotalPages: number;
-  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
-  applyPageInput: (value: string) => void;
-}) {
-  return (
-    <div className="user-management__pagination" aria-label="Enterprise pagination">
-      <PaginationButton direction="previous" {...props} />
-      <EnterprisePageJumpForm {...props} />
-      <PaginationButton direction="next" {...props} />
-    </div>
-  );
-}
-
-function PaginationButton({
-  direction,
-  currentPage,
-  setCurrentPage,
-  effectiveEnterpriseTotalPages,
-}: {
-  direction: "previous" | "next";
-  currentPage: number;
-  setCurrentPage: (update: (prev: number) => number) => void;
-  effectiveEnterpriseTotalPages: number;
-}) {
-  const isPrevious = direction === "previous";
-  const label = isPrevious ? "Previous" : "Next";
-  const disabled = isPrevious ? currentPage === 1 : currentPage === effectiveEnterpriseTotalPages;
-  const advance = () =>
-    setCurrentPage((prev) =>
-      isPrevious ? Math.max(1, prev - 1) : Math.min(effectiveEnterpriseTotalPages, prev + 1)
-    );
-
-  return (
-    <Button type="button" variant="ghost" size="sm" onClick={advance} disabled={disabled}>
-      {label}
-    </Button>
-  );
-}
-
-function EnterprisePageJumpForm({
-  pageInput,
-  setPageInput,
-  effectiveEnterpriseTotalPages,
-  handlePageJump,
-  applyPageInput,
-}: {
-  pageInput: string;
-  setPageInput: (value: string) => void;
-  effectiveEnterpriseTotalPages: number;
-  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
-  applyPageInput: (value: string) => void;
-}) {
-  return (
-    <form className="user-management__page-jump" onSubmit={handlePageJump}>
-      <label htmlFor="enterprise-page-input" className="user-management__page-jump-label">
-        Page
-      </label>
-      <FormField
-        id="enterprise-page-input"
-        type="number"
-        min={1}
-        max={effectiveEnterpriseTotalPages}
-        step={1}
-        inputMode="numeric"
-        value={pageInput}
-        onChange={(event) => setPageInput(event.target.value)}
-        onBlur={() => applyPageInput(pageInput)}
-        className="user-management__page-jump-input"
-        aria-label="Go to enterprise page number"
-      />
-      <span className="muted user-management__page-total">of {effectiveEnterpriseTotalPages}</span>
-    </form>
-  );
 }
 
 export function EnterpriseManagementListCard(props: EnterpriseManagementListCardProps) {
@@ -202,15 +122,25 @@ function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
         loadingRowCount={6}
       />
       {props.enterpriseTotalPages > 1 && !showSkeletonTable ? (
-        <EnterprisePageControls
-          currentPage={props.currentPage}
-          setCurrentPage={props.setCurrentPage}
-          pageInput={props.pageInput}
-          setPageInput={props.setPageInput}
-          effectiveEnterpriseTotalPages={props.effectiveEnterpriseTotalPages}
-          handlePageJump={props.handlePageJump}
-          applyPageInput={props.applyPageInput}
-        />
+        <PaginationControls
+          ariaLabel="Enterprise pagination"
+          page={props.currentPage}
+          totalPages={props.enterpriseTotalPages}
+          onPreviousPage={() => props.setCurrentPage((prev) => Math.max(1, prev - 1))}
+          onNextPage={() =>
+            props.setCurrentPage((prev) => Math.min(props.effectiveEnterpriseTotalPages, prev + 1))
+          }
+        >
+          <PaginationPageJump
+            pageInputId="enterprise-page-input"
+            pageInput={props.pageInput}
+            totalPages={props.enterpriseTotalPages}
+            pageJumpAriaLabel="Go to enterprise page number"
+            onPageInputChange={props.setPageInput}
+            onPageInputBlur={() => props.applyPageInput(props.pageInput)}
+            onPageJump={props.handlePageJump}
+          />
+        </PaginationControls>
       ) : null}
     </>
   );

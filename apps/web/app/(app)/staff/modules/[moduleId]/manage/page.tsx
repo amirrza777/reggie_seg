@@ -34,7 +34,7 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
   if (!canManageModule) redirect(`/modules/${moduleRecord.id}`);
 
   return (
-    <div className="ui-page enterprise-module-create-page">
+    <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Manage module</h1>
         <p className="ui-page__description">

@@ -12,6 +12,7 @@ import {
   TrustSection,
 } from "./sections/marketing";
 import { MarketingLayout } from "./layouts/marketing";
+import "./styles/global-marketing.css";
 
 export default function HomePage() {
   return (

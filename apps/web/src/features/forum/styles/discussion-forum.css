@@ -247,7 +247,6 @@
 
 .discussion-post__body {
   margin: 0;
-  white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -414,10 +413,12 @@
   gap: 4px;
   min-width: 138px;
   padding: 6px;
-  background: var(--glass-ui-bg);
-  border: 1px solid var(--glass-ui-border);
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
+  border: 1px solid var(--popup-glass-border-fallback);
+  border-color: var(--popup-glass-border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--elevation-popup);
+  box-shadow: var(--popup-glass-shadow);
 }
 
 .workspace-shell .discussion-post,

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
-import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent } from "react";
+import { BrandWordmark } from "./BrandWordmark";
 
 const navLinks = [
   { href: "/?section=product", label: "Product" },
@@ -12,6 +13,10 @@ const navLinks = [
   { href: "/?section=about", label: "About" },
   { href: "/?section=faq", label: "FAQ" },
 ];
+
+const subscribe = () => () => {};
+
+const useIsHydrated = () => useSyncExternalStore(subscribe, () => true, () => false);
 
 const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
@@ -112,7 +117,7 @@ function HeaderTopBar({
   return (
     <div className="header__inner">
       <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
-        Team Feedback
+        <BrandWordmark />
       </Link>
       <HeaderNav />
       <HeaderActions />
@@ -167,7 +172,7 @@ function MobileMenuTopBar({
   return (
     <div className="mobile-menu__top">
       <Link href="/" className="logo" aria-label="Back to landing" onClick={handleLogoClick}>
-        Team Feedback
+        <BrandWordmark />
       </Link>
       <button className="mobile-menu__close" type="button" aria-label="Close menu" onClick={onCloseMenu}>
         <CloseIcon />
@@ -203,7 +208,7 @@ function MobileMenuActions({ onCloseMenu }: { onCloseMenu: () => void }) {
 
 function useMobileMenuState() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useIsHydrated();
 
   useEffect(() => {
     const closeMenu = () => setIsMenuOpen(false);
@@ -224,11 +229,6 @@ function useMobileMenuState() {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsMounted(true);
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
+import { ModalPortal } from "@/shared/ui/ModalPortal";
 
 type EnterpriseCreateModalProps = {
   open: boolean;
@@ -26,19 +27,21 @@ export function EnterpriseCreateModal({
   if (!open) return null;
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-enterprise-title" onClick={onClose}>
-      <div className="modal__dialog admin-modal ui-content-width enterprise-management__create-modal" onClick={(event) => event.stopPropagation()}>
-        <EnterpriseCreateModalBody
-          nameInput={nameInput}
-          codeInput={codeInput}
-          isCreating={isCreating}
-          onNameInputChange={onNameInputChange}
-          onCodeInputChange={onCodeInputChange}
-          onClose={onClose}
-          onSubmit={onSubmit}
-        />
+    <ModalPortal>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-enterprise-title" onClick={onClose}>
+        <div className="modal__dialog admin-modal ui-content-width enterprise-management__create-modal" onClick={(event) => event.stopPropagation()}>
+          <EnterpriseCreateModalBody
+            nameInput={nameInput}
+            codeInput={codeInput}
+            isCreating={isCreating}
+            onNameInputChange={onNameInputChange}
+            onCodeInputChange={onCodeInputChange}
+            onClose={onClose}
+            onSubmit={onSubmit}
+          />
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 

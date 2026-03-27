@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { searchEnterpriseModules } from "../api/client";
 import type { EnterpriseModuleRecord } from "../types";
+import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { FormField } from "@/shared/ui/FormField";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 
@@ -33,66 +33,6 @@ function ModulesSummaryLabel({
   if (modulesStatus === "loading" && totalModules === 0) return "Loading modules...";
   if (totalModules === 0) return "Showing 0 modules";
   return `Showing ${moduleStart}-${moduleEnd} of ${totalModules} module${totalModules === 1 ? "" : "s"}`;
-}
-
-function EnterpriseModulesPagination({
-  currentPage,
-  effectiveTotalPages,
-  pageInput,
-  setPageInput,
-  setCurrentPage,
-  handlePageJump,
-  applyPageInput,
-}: {
-  currentPage: number;
-  effectiveTotalPages: number;
-  pageInput: string;
-  setPageInput: (value: string) => void;
-  setCurrentPage: (update: (prev: number) => number) => void;
-  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
-  applyPageInput: (value: string) => void;
-}) {
-  return (
-    <div className="user-management__pagination" aria-label="Enterprise modules pagination">
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-        disabled={currentPage === 1}
-      >
-        Previous
-      </Button>
-      <form className="user-management__page-jump" onSubmit={handlePageJump}>
-        <label htmlFor="enterprise-modules-page-input" className="user-management__page-jump-label">
-          Page
-        </label>
-        <FormField
-          id="enterprise-modules-page-input"
-          type="number"
-          min={1}
-          max={effectiveTotalPages}
-          step={1}
-          inputMode="numeric"
-          value={pageInput}
-          onChange={(event) => setPageInput(event.target.value)}
-          onBlur={() => applyPageInput(pageInput)}
-          className="user-management__page-jump-input"
-          aria-label="Go to modules page number"
-        />
-        <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-      </form>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
-        disabled={currentPage === effectiveTotalPages}
-      >
-        Next
-      </Button>
-    </div>
-  );
 }
 
 function buildModuleRows(modules: EnterpriseModuleRecord[]) {
@@ -129,7 +69,7 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
   const latestRequestId = useRef(0);
 
   const normalizedSearch = normalizeSearchQuery(moduleSearchQuery);
-  const effectiveTotalPages = Math.max(1, totalPages);
+  const effectiveTotalPages = getEffectiveTotalPages(totalPages);
 
   const loadModules = useCallback(async (query: string, page: number) => {
     const requestId = latestRequestId.current + 1;
@@ -177,8 +117,8 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
   }, [currentPage]);
 
   const applyPageInput = (value: string) => {
-    const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveTotalPages) {
+    const parsedPage = parsePageInput(value, totalPages);
+    if (parsedPage === null) {
       setPageInput(String(currentPage));
       return;
     }
@@ -190,9 +130,8 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
     applyPageInput(pageInput);
   };
 
-  const moduleStart = totalModules === 0 ? 0 : (currentPage - 1) * MODULES_PER_PAGE + 1;
-  const moduleEnd =
-    totalModules === 0 ? 0 : Math.min((currentPage - 1) * MODULES_PER_PAGE + modules.length, totalModules);
+  const moduleStart = getPaginationStart(totalModules, currentPage, MODULES_PER_PAGE);
+  const moduleEnd = getPaginationEnd(totalModules, currentPage, MODULES_PER_PAGE, modules.length);
 
   const moduleRows = buildModuleRows(modules);
   const showSkeletonTable = modulesStatus === "loading" && moduleRows.length === 0;
@@ -245,15 +184,23 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
             loadingRowCount={6}
           />
           {totalPages > 1 && !showSkeletonTable ? (
-            <EnterpriseModulesPagination
-              currentPage={currentPage}
-              effectiveTotalPages={effectiveTotalPages}
-              pageInput={pageInput}
-              setPageInput={setPageInput}
-              setCurrentPage={setCurrentPage}
-              handlePageJump={handlePageJump}
-              applyPageInput={applyPageInput}
-            />
+            <PaginationControls
+              ariaLabel="Enterprise modules pagination"
+              page={currentPage}
+              totalPages={totalPages}
+              onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              onNextPage={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
+            >
+              <PaginationPageJump
+                pageInputId="enterprise-modules-page-input"
+                pageInput={pageInput}
+                totalPages={totalPages}
+                pageJumpAriaLabel="Go to modules page number"
+                onPageInputChange={setPageInput}
+                onPageInputBlur={() => applyPageInput(pageInput)}
+                onPageJump={handlePageJump}
+              />
+            </PaginationControls>
           ) : null}
         </>
       ) : (

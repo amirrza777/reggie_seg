@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
+import { ModalPortal } from "@/shared/ui/ModalPortal";
 import { Skeleton } from "@/shared/ui/Skeleton";
 import { AuthField } from "@/features/auth/components/AuthField";
 import { confirmEmailChange, requestEmailChange, updateProfile } from "@/features/auth/api/client";
@@ -394,6 +395,7 @@ export default function ProfilePage() {
       </div>
 
       {emailModalOpen ? (
+        <ModalPortal>
         <div className="modal" role="dialog" aria-modal="true" onClick={() => setEmailModalOpen(false)}>
           <div className="modal__dialog profile-modal" onClick={(event) => event.stopPropagation()}>
             <div className="profile-modal__icon">✉️</div>
@@ -457,6 +459,7 @@ export default function ProfilePage() {
             )}
           </div>
         </div>
+        </ModalPortal>
       ) : null}
     </div>
   );

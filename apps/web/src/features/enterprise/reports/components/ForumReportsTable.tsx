@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { ForumConversationTree } from "@/shared/ui/ForumConversationTree";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import { Table } from "@/shared/ui/Table";
@@ -15,6 +16,7 @@ import {
 } from "../api/client";
 
 type RequestState = "idle" | "loading" | "success" | "error";
+type PendingAction = { reportId: number; kind: "dismiss" | "remove" } | null;
 
 const toName = (user: ForumReportEntry["reporter"]) => `${user.firstName} ${user.lastName}`;
 
@@ -29,6 +31,7 @@ export function ForumReportsTable() {
   const [conversationMessage, setConversationMessage] = useState<string | null>(null);
   const [conversation, setConversation] = useState<ForumReportConversation | null>(null);
   const [activeReportId, setActiveReportId] = useState<number | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const loadRequestIdRef = useRef(0);
   const conversationRequestIdRef = useRef(0);
 
@@ -55,35 +58,38 @@ export function ForumReportsTable() {
     });
   }, [loadReports]);
 
-  const handleDismiss = async (reportId: number) => {
-    if (!window.confirm("Dismiss this report and restore the post?")) return;
-    setStatus("loading");
-    setMessage(null);
-    try {
-      await dismissForumReport(reportId);
-      setReports((prev) => prev.filter((report) => report.id !== reportId));
-      if (activeReportId === reportId) handleHideConversation();
-      setStatus("success");
-    } catch (err) {
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not dismiss report.");
-    }
+  const handleDismiss = (reportId: number) => {
+    setPendingAction({ reportId, kind: "dismiss" });
   };
 
-  const handleRemove = async (reportId: number) => {
-    if (!window.confirm("Permanently remove this post from the database? This cannot be undone.")) {
-      return;
-    }
+  const handleRemove = (reportId: number) => {
+    setPendingAction({ reportId, kind: "remove" });
+  };
+
+  const confirmPendingAction = async () => {
+    if (!pendingAction) return;
+    const { reportId, kind } = pendingAction;
+    setPendingAction(null);
     setStatus("loading");
     setMessage(null);
     try {
-      await removeForumReportPost(reportId);
+      if (kind === "dismiss") {
+        await dismissForumReport(reportId);
+      } else {
+        await removeForumReportPost(reportId);
+      }
       setReports((prev) => prev.filter((report) => report.id !== reportId));
       if (activeReportId === reportId) handleHideConversation();
       setStatus("success");
     } catch (err) {
       setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not remove post.");
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : kind === "dismiss"
+            ? "Could not dismiss report."
+            : "Could not remove post.",
+      );
     }
   };
 
@@ -194,6 +200,20 @@ export function ForumReportsTable() {
           <ForumConversationTree post={conversation.thread} focusPostId={conversation.focusPostId} />
         </div>
       ) : null}
+      <ConfirmationModal
+        open={pendingAction !== null}
+        title={pendingAction?.kind === "remove" ? "Remove post permanently?" : "Dismiss report?"}
+        message={
+          pendingAction?.kind === "remove"
+            ? "Permanently remove this post from the database? This cannot be undone."
+            : "Dismiss this report and restore the post?"
+        }
+        cancelLabel="Cancel"
+        confirmLabel={pendingAction?.kind === "remove" ? "Remove post" : "Dismiss report"}
+        confirmVariant={pendingAction?.kind === "remove" ? "danger" : "primary"}
+        onCancel={() => setPendingAction(null)}
+        onConfirm={() => void confirmPendingAction()}
+      />
     </Card>
   );
 }

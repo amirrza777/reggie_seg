@@ -9,16 +9,16 @@ function mergeModuleWithStaffRow(
   module: EnterpriseModuleAccessSelectionResponse["module"],
   row: Pick<Module, "title" | "briefText" | "timelineText" | "expectationsText" | "readinessNotesText">,
 ): EnterpriseModuleAccessSelectionResponse["module"] {
-  const useList = (api: string | undefined, list: string | undefined) =>
+  const chooseValue = (api: string | undefined, list: string | undefined) =>
     api != null && api.trim().length > 0 ? api : (list ?? "");
 
   return {
     ...module,
     name: module.name?.trim() ? module.name : (row.title ?? module.name),
-    briefText: useList(module.briefText, row.briefText),
-    timelineText: useList(module.timelineText, row.timelineText),
-    expectationsText: useList(module.expectationsText, row.expectationsText),
-    readinessNotesText: useList(module.readinessNotesText, row.readinessNotesText),
+    briefText: chooseValue(module.briefText, row.briefText),
+    timelineText: chooseValue(module.timelineText, row.timelineText),
+    expectationsText: chooseValue(module.expectationsText, row.expectationsText),
+    readinessNotesText: chooseValue(module.readinessNotesText, row.readinessNotesText),
   };
 }
 

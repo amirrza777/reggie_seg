@@ -1,0 +1,64 @@
+.peerAssessmentForm {
+  gap: 20px;
+}
+
+.peerAssessmentForm__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.peerAssessmentForm__headerText {
+  display: grid;
+  gap: 4px;
+}
+
+.peerAssessmentForm__question {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent-border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background-color: var(--surface-elevated);
+  gap: 8px;
+}
+
+.peerAssessmentForm__questionTitle {
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.45;
+  max-width: 80ch;
+}
+
+.peerAssessmentForm .muted {
+  color: var(--ink-lede);
+  line-height: 1.5;
+  max-width: 80ch;
+}
+
+.peerAssessmentForm input[type="text"] {
+  background-color: var(--surface-elevated);
+}
+
+@media (prefers-color-scheme: dark) {
+  .peerAssessmentForm__question,
+  .peerAssessmentForm input[type="text"] {
+    background-color: color-mix(in srgb, var(--surface) 80%, #111827 20%);
+  }
+
+  .peerAssessmentForm__question {
+    border-color: color-mix(in srgb, var(--border) 55%, #334155 45%);
+    border-left-color: color-mix(in srgb, var(--accent-border) 40%, #60a5fa 60%);
+  }
+
+  .peerAssessmentForm .muted {
+    color: #b6c2d1;
+  }
+}
+
+@media (max-width: 860px) {
+  .peerAssessmentForm__header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+}

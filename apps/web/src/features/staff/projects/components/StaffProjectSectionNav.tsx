@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isStaffNavLinkActive } from "./navLinkActive";
+import { resolveStaffProjectBasePath } from "./navBasePath";
 
 type StaffProjectSectionNavProps = {
   projectId: string;
+  moduleId?: string | number | null;
 };
 
 const projectTabs = [
@@ -14,9 +16,9 @@ const projectTabs = [
   { key: "discussion", label: "Discussion Forum", hrefSuffix: "/discussion" },
 ];
 
-export function StaffProjectSectionNav({ projectId }: StaffProjectSectionNavProps) {
+export function StaffProjectSectionNav({ projectId, moduleId }: StaffProjectSectionNavProps) {
   const pathname = usePathname();
-  const base = `/staff/projects/${projectId}`;
+  const base = resolveStaffProjectBasePath({ projectId, moduleId, pathname });
 
   return (
     <nav className="pill-nav" aria-label="Project sections">

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
+import { logDevError } from "@/shared/lib/devLogger";
 import { FormField } from "@/shared/ui/FormField";
 import type {
   EditableQuestion,
@@ -23,6 +24,7 @@ export default function NewQuestionnairePage() {
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
 
@@ -94,6 +96,7 @@ export default function NewQuestionnairePage() {
 
     setSaving(true);
     setSaved(false);
+    setSaveError(null);
 
     try {
       await createQuestionnaire({
@@ -114,8 +117,8 @@ export default function NewQuestionnairePage() {
       setSaved(true);
       router.push("/staff/questionnaires");
     } catch (err) {
-      console.error(err);
-      alert("Save failed — check console");
+      logDevError(err);
+      setSaveError(err instanceof Error ? err.message : "Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -170,6 +173,7 @@ export default function NewQuestionnairePage() {
           ))}
         </ul>
       )}
+      {saveError ? <p className="ui-note ui-note--error">{saveError}</p> : null}
 
       {saved && <p className="questionnaire-editor__success">Questionnaire saved successfully.</p>}
 

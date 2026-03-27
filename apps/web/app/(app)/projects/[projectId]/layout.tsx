@@ -1,6 +1,8 @@
+import { getProject } from "@/features/projects/api/client";
 import { ProjectNav } from "@/features/projects/components/ProjectNav";
 import { getProjectNavFlags } from "@/features/projects/navFlags";
 import { getCurrentUser } from "@/shared/auth/session";
+import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
 
 type LayoutProps = {
   params: Promise<{ projectId: string }>;
@@ -9,10 +11,21 @@ type LayoutProps = {
 
 export default async function ProjectLayout({ params, children }: LayoutProps) {
   const { projectId } = await params;
+  const numericProjectId = Number(projectId);
   const user = await getCurrentUser();
-  const navFlags = await getProjectNavFlags(user?.id, Number(projectId));
+  const navFlags = await getProjectNavFlags(user?.id, numericProjectId);
+
+  let projectName = `Project ${projectId}`;
+  try {
+    const project = await getProject(projectId);
+    projectName = project.name;
+  } catch {
+    // keep fallback label
+  }
+
   return (
     <div className="stack stack--tabbed" style={{ gap: 16 }}>
+      <Breadcrumbs items={[{ label: "Projects", href: "/projects" }, { label: projectName }]} />
       <ProjectNav projectId={projectId} enabledFlags={navFlags} />
       {children}
     </div>

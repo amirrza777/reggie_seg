@@ -39,6 +39,7 @@ export function RichTextViewer({ content }: RichTextViewerProps) {
         ul: "rich-editor__ul",
         ol: "rich-editor__ol",
         listitem: "rich-editor__listitem",
+        nested: { listitem: "rich-editor__nested-listitem" },
       },
     },
   };

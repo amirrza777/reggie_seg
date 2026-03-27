@@ -2,6 +2,7 @@
 
 import { useEffect, useId } from "react";
 import { Button } from "./Button";
+import { ModalPortal } from "./ModalPortal";
 
 type ConfirmationModalProps = {
   open: boolean;
@@ -43,21 +44,23 @@ export function ConfirmationModal({
   if (!open) return null;
 
   return (
-    <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={() => !busy && onCancel()}>
-      <div className="modal__dialog confirmation-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
-        <ConfirmationModalBody
-          titleId={titleId}
-          title={title}
-          message={message}
-          cancelLabel={cancelLabel}
-          confirmLabel={confirmLabel}
-          confirmVariant={confirmVariant}
-          busy={busy}
-          onConfirm={onConfirm}
-          onCancel={onCancel}
-        />
+    <ModalPortal>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} onClick={() => !busy && onCancel()}>
+        <div className="modal__dialog confirmation-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
+          <ConfirmationModalBody
+            titleId={titleId}
+            title={title}
+            message={message}
+            cancelLabel={cancelLabel}
+            confirmLabel={confirmLabel}
+            confirmVariant={confirmVariant}
+            busy={busy}
+            onConfirm={onConfirm}
+            onCancel={onCancel}
+          />
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }
 

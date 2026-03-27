@@ -55,7 +55,13 @@
 
 .card__body {
   color: var(--muted);
-  padding: 0 var(--space-panel-content-inset) 12px;
+  padding: 0 var(--space-panel-content-inset) 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.card__body > p {
+  margin: 0;
 }
 
 @media (max-width: 860px) {

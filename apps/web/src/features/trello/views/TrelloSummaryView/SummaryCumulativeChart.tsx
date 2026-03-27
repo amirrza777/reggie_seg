@@ -78,6 +78,7 @@ export function SummaryCumulativeChart({
               />
               <YAxis allowDecimals={false} domain={[0, (max: number) => Math.max(max ?? 0, 1)]} />
               <Tooltip
+                isAnimationActive
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const p = payload[0].payload as SummaryChartPoint;
@@ -157,6 +158,7 @@ export function SummaryCumulativeChart({
                 fill="var(--muted-subtle, #97a0af)"
                 radius={[4, 4, 0, 0]}
                 barSize={28}
+                isAnimationActive
               />
               <Bar
                 dataKey="completed"
@@ -164,6 +166,7 @@ export function SummaryCumulativeChart({
                 fill="var(--accent-strong, #61bd4f)"
                 radius={[4, 4, 0, 0]}
                 barSize={28}
+                isAnimationActive
               />
             </BarChart>
           </ResponsiveContainer>

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { Module } from "../types";
 import { ModuleList } from "./ModuleList";
-import { MODULE_SORT_OPTIONS, type ModuleSortKey } from "./moduleSortOptions";
+import type { ModuleSortKey } from "./moduleSortOptions";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffModulesPageClientProps = {
   modules: Module[];
@@ -20,14 +21,11 @@ export function StaffModulesPageClient({
   const shouldShowSortControl = !errorMessage && modules.length > 0;
 
   return (
-    <div className="stack ui-page projects-panel">
-      <header className="projects-panel__header">
-        <h1 className="projects-panel__title">My Modules</h1>
-        <p className="projects-panel__subtitle">{subtitle}</p>
-        <div className="staff-projects__meta staff-modules__meta-row">
-          {shouldShowSortControl ? <StaffModulesSortControl sortBy={sortBy} setSortBy={setSortBy} /> : null}
-        </div>
-      </header>
+    <div className="staff-projects staff-projects--panel-inset">
+      <section className="staff-projects__hero">
+        <h1 className="staff-projects__title">My Modules</h1>
+        <p className="staff-projects__desc">{subtitle}</p>
+      </section>
       {errorMessage ? (
         <p className="muted">{errorMessage}</p>
       ) : (
@@ -36,37 +34,10 @@ export function StaffModulesPageClient({
           emptyMessage="No modules are currently assigned to your account."
           sortBy={sortBy}
           onSortByChange={setSortBy}
-          showSortControl={false}
+          showSortControl={shouldShowSortControl}
+          moduleHrefBasePath="/staff/modules"
         />
       )}
-    </div>
-  );
-}
-
-function StaffModulesSortControl({
-  sortBy,
-  setSortBy,
-}: {
-  sortBy: ModuleSortKey;
-  setSortBy: (value: ModuleSortKey) => void;
-}) {
-  return (
-    <div className="module-list__toolbar module-list__toolbar--inline">
-      <label htmlFor="module-list-sort" className="module-list__sort-label">
-        Sort by
-      </label>
-      <select
-        id="module-list-sort"
-        className="module-list__sort-select"
-        value={sortBy}
-        onChange={(event) => setSortBy(event.target.value as ModuleSortKey)}
-      >
-        {MODULE_SORT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
     </div>
   );
 }

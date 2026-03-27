@@ -61,7 +61,6 @@ function filterActionsByCardIds(
 export function TrelloBoardView({
   view,
   sectionConfig,
-  onRequestChangeBoard: _onRequestChangeBoard,
   filterVariant = "project",
 }: Props) {
   const { cardsByList, listNamesById, actionsByDate } = view;
@@ -109,17 +108,16 @@ export function TrelloBoardView({
     [effectiveMemberId, filteredActionsByDate, actionsByDate]
   );
   const firstChangeDate = dateKeysSorted[0] ?? "";
-  const [selectedDate, setSelectedDate] = useState<string | "current">("current");
-
-  useEffect(() => {
-    if (dateKeysSorted.length === 0) setSelectedDate("current");
-  }, [dateKeysSorted.length]);
-
-  useEffect(() => {
-    if (selectedDate === "current") return;
-    const inList = dateKeysSorted.some((d) => d === selectedDate);
-    if (!inList) setSelectedDate("current");
-  }, [effectiveMemberId, dateKeysSorted]);
+  const [selectedDateInput, setSelectedDateInput] = useState<string | "current">("current");
+  const selectedDate = useMemo<string | "current">(() => {
+    if (dateKeysSorted.length === 0) {
+      return "current";
+    }
+    if (selectedDateInput === "current") {
+      return "current";
+    }
+    return dateKeysSorted.includes(selectedDateInput) ? selectedDateInput : "current";
+  }, [dateKeysSorted, selectedDateInput]);
 
   const cardsToShow = useMemo(() => {
     if (selectedDate === "current") {
@@ -161,33 +159,33 @@ export function TrelloBoardView({
   const handleInnerEarlier = () => {
     const from = selectedDate === "current" ? todayKey : selectedDate;
     const prev = prevCalendarDay(from, firstChangeDate);
-    if (prev !== null) setSelectedDate(prev);
+    if (prev !== null) setSelectedDateInput(prev);
   };
   const handleInnerLater = () => {
     if (selectedDate === "current") return;
     const next = nextCalendarDay(selectedDate);
     if (next !== null && next === todayKey) {
-      setSelectedDate("current");
+      setSelectedDateInput("current");
     } else if (next !== null) {
-      setSelectedDate(next);
+      setSelectedDateInput(next);
     } else {
-      setSelectedDate("current");
+      setSelectedDateInput("current");
     }
   };
   const handleOuterEarlier = () => {
     if (selectedDate === "current" && dateKeysSorted.length > 0) {
-      setSelectedDate(dateKeysSorted[dateKeysSorted.length - 1]!);
+      setSelectedDateInput(dateKeysSorted[dateKeysSorted.length - 1]!);
       return;
     }
     if (selectedDate !== "current") {
       const prev = prevChangeDay(selectedDate, dateKeysSorted);
-      if (prev !== null) setSelectedDate(prev);
+      if (prev !== null) setSelectedDateInput(prev);
     }
   };
   const handleOuterLater = () => {
     if (selectedDate === "current") return;
     const next = nextChangeDay(selectedDate, dateKeysSorted);
-    setSelectedDate(next);
+    setSelectedDateInput(next);
   };
 
   return (

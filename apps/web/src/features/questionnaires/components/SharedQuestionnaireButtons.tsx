@@ -125,10 +125,12 @@ export function DeleteQuestionnaireButton({
   const router = useRouter();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async () => {
     setDeleting(true);
     setConfirmOpen(false);
+    setDeleteError(null);
     try {
       await deleteQuestionnaire(questionnaireId);
 
@@ -141,11 +143,11 @@ export function DeleteQuestionnaireButton({
       router.refresh();
     } catch (err) {
       if (err instanceof ApiError) {
-        alert(err.message);
+        setDeleteError(err.message);
         return;
       }
       console.error(err);
-      alert("Delete failed - check console");
+      setDeleteError("Delete failed - check console");
     } finally {
       setDeleting(false);
     }
@@ -153,9 +155,18 @@ export function DeleteQuestionnaireButton({
 
   return (
     <>
-      <Button type="button" variant="danger" onClick={() => setConfirmOpen(true)} disabled={deleting}>
+      <Button
+        type="button"
+        variant="danger"
+        onClick={() => {
+          setDeleteError(null);
+          setConfirmOpen(true);
+        }}
+        disabled={deleting}
+      >
         {label}
       </Button>
+      {deleteError ? <p className="ui-note ui-note--error">{deleteError}</p> : null}
       <ConfirmationModal
         open={confirmOpen}
         title="Delete questionnaire?"

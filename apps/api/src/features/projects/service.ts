@@ -1,11 +1,10 @@
+import { matchesFuzzySearch, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import {
   getProjectById,
   getUserProjects,
   getModulesForUser,
   getModuleStaffListForUser,
   getModuleStudentProjectMatrixForUser,
-  getModuleJoinActor,
-  joinModuleByCode as joinModuleByCodeInDb,
   createProject as createProjectInDb,
   getTeammatesInProject,
   getUserProjectDeadline,
@@ -14,6 +13,7 @@ import {
   getQuestionsForProject,
   getStaffProjects,
   getStaffProjectTeams,
+  getStaffProjectsForMarking,
   getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
   createTeamHealthMessage,
@@ -26,7 +26,42 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
-import { normalizeModuleJoinCode } from "../services/moduleJoinCodeService.js";
+import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
+import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
+
+export {
+  createTeamWarningForStaff,
+  fetchTeamWarningsForStaff,
+  resolveTeamWarningForStaff,
+  fetchMyTeamWarnings,
+  fetchProjectWarningsConfigForStaff,
+  updateProjectWarningsConfigForStaff,
+  evaluateProjectWarningsForStaff,
+  evaluateProjectWarningsForProject,
+  parseProjectWarningsConfig,
+  getDefaultProjectWarningsConfig,
+} from "./warnings/service.js";
+
+export type {
+  WarningRuleSeverity,
+  ProjectWarningRuleConfig,
+  ProjectWarningsConfig,
+  ProjectWarningsEvaluationSummary,
+} from "./warnings/service.js";
+export {
+  fetchProjectNavFlagsConfigForStaff,
+  updateProjectNavFlagsConfigForStaff,
+  parseProjectNavFlagsConfig,
+  getDefaultProjectNavFlagsConfig,
+} from "./nav-flags/service.js";
+
+export type {
+  ProjectNavFlagKey,
+  ProjectNavFlagsState,
+  ProjectNavPeerMode,
+  ProjectNavPeerModes,
+  ProjectNavFlagsConfig,
+} from "./nav-flags/service.js";
 
 /** Creates a project. */
 export async function createProject(
@@ -34,14 +69,28 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
-  return createProjectInDb(actorUserId, name, moduleId, questionnaireTemplateId, deadline);
+  return createProjectInDb(
+    actorUserId,
+    name,
+    moduleId,
+    questionnaireTemplateId,
+    informationText,
+    deadline,
+  );
 }
 
 /** Returns the project by ID. */
 export async function fetchProjectById(projectId: number) {
-  return getProjectById(projectId);
+  const project = await getProjectById(projectId);
+  if (!project) return null;
+
+  return {
+    ...project,
+    projectNavFlags: normalizeProjectNavFlagsConfig(project.projectNavFlags),
+  };
 }
 
 /** Returns the projects for user. */
@@ -118,37 +167,7 @@ export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: 
 }
 
 export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  const actor = await getModuleJoinActor(actorUserId);
-  if (!actor) {
-    return { ok: false as const, status: 401, error: "Unauthorized" };
-  }
-  if (actor.role !== "STUDENT") {
-    return { ok: false as const, status: 403, error: "Forbidden" };
-  }
-
-  const normalizedCode = normalizeModuleJoinCode(rawCode);
-  if (!normalizedCode) {
-    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
-  }
-
-  const enrolled = await joinModuleByCodeInDb({
-    enterpriseId: actor.enterpriseId,
-    userId: actor.id,
-    joinCode: normalizedCode,
-  });
-  if (!enrolled) {
-    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
-  }
-
-  return {
-    ok: true as const,
-    value: {
-      moduleId: enrolled.moduleId,
-      moduleName: enrolled.moduleName,
-      enrolled: true,
-      alreadyEnrolled: enrolled.alreadyEnrolled,
-    },
-  };
+  return joinModuleByCodeInModuleJoin(actorUserId, rawCode);
 }
 
 /** Returns the teammates for project. */
@@ -176,8 +195,42 @@ export async function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
 }
 
+/** Returns all projects with teams for the staff marking overview. */
+export async function fetchProjectsWithTeamsForStaffMarking(userId: number, options?: { query?: string | null }) {
+  const projects = await getStaffProjectsForMarking(userId, options);
+  const query = typeof options?.query === "string" ? options.query.trim() : "";
+  const numericQuery = query ? parsePositiveIntegerSearchQuery(query) : null;
+
+  return projects.flatMap((project) => {
+    const projectOrModuleMatches =
+      !query ||
+      (numericQuery !== null && project.id === numericQuery) ||
+      matchesFuzzySearch(query, [project.name, project.module?.name ?? ""]);
+
+    const matchingTeams = projectOrModuleMatches
+      ? project.teams
+      : project.teams.filter((team) => matchesFuzzySearch(query, [team.teamName]));
+
+    if (matchingTeams.length === 0) return [];
+
+    return [{
+      id: project.id,
+      name: project.name,
+      moduleId: project.moduleId,
+      moduleName: project.module?.name ?? "",
+      teams: matchingTeams.map((team) => ({
+        id: team.id,
+        teamName: team.teamName,
+        projectId: team.projectId,
+        inactivityFlag: team.inactivityFlag as "NONE" | "YELLOW" | "RED",
+        studentCount: team._count.allocations,
+      })),
+    }];
+  });
+}
+
 /** Returns the projects for staff. */
-export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null }) {
+export async function fetchProjectsForStaff(userId: number, options?: { query?: string | null; moduleId?: number }) {
   const projects = await getStaffProjects(userId, options);
   const now = Date.now();
   return projects.map((project) => {

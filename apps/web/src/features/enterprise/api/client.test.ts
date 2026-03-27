@@ -12,6 +12,7 @@ import {
   getEnterpriseModuleAccess,
   getEnterpriseModuleAccessSelection,
   getEnterpriseModuleJoinCode,
+  getModuleMeetingSettings,
   listEnterpriseFeatureFlags,
   getEnterpriseOverview,
   listEnterpriseModules,
@@ -19,6 +20,7 @@ import {
   listEnterpriseModuleStudents,
   searchEnterpriseModuleAccessUsers,
   searchEnterpriseModules,
+  updateModuleMeetingSettings,
   updateEnterpriseFeatureFlag,
   updateEnterpriseModule,
   updateEnterpriseModuleStudents,
@@ -152,6 +154,19 @@ describe("enterprise module api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/12/students", {
       method: "PUT",
       body: JSON.stringify({ studentIds: [3, 4] }),
+    });
+  });
+
+  it("loads module meeting settings", async () => {
+    await getModuleMeetingSettings(12);
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/12/meeting-settings");
+  });
+
+  it("updates module meeting settings", async () => {
+    await updateModuleMeetingSettings(12, { absenceThreshold: 3, minutesEditWindowDays: 5 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/12/meeting-settings", {
+      method: "PUT",
+      body: JSON.stringify({ absenceThreshold: 3, minutesEditWindowDays: 5 }),
     });
   });
 });

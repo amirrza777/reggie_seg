@@ -16,7 +16,7 @@ export function MarketingLayout({ children }: MarketingLayoutProps) {
         <HomeSectionScroll />
       </Suspense>
       <ScrollReveal />
-      <main>{children}</main>
+      <main className="marketing-main">{children}</main>
       <Footer />
     </div>
   );

@@ -8,13 +8,44 @@
 
 .marketing-shell {
   --landing-body: var(--fs-marketing-body, var(--fs-body-lg, var(--fs-body)));
+  --footer-offset-top: clamp(88px, 12vh, 180px);
+  --footer-offset-bottom: clamp(32px, 5vh, 56px);
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
   isolation: isolate;
   overflow: hidden;
   background: var(--bg);
   contain: paint;
   backface-visibility: hidden;
   transform: translateZ(0);
+}
+
+@media (max-aspect-ratio: 10 / 11) and (min-width: 641px) {
+  .marketing-shell {
+    --footer-offset-top: clamp(128px, 19vh, 300px);
+  }
+}
+
+@media (max-aspect-ratio: 3 / 4) and (min-width: 641px) {
+  .marketing-shell {
+    --footer-offset-top: clamp(170px, 26vh, 420px);
+  }
+}
+
+@media (max-width: 640px) {
+  .marketing-shell {
+    --footer-offset-top: clamp(180px, 28vh, 340px);
+    --footer-offset-bottom: clamp(24px, 5vh, 40px);
+  }
+}
+
+.marketing-main {
+  width: 100%;
+  flex: 1 0 auto;
 }
 
 .marketing-shell::before {
@@ -30,7 +61,6 @@
   mix-blend-mode: screen;
   transform: translate3d(0, 0, 0);
   backface-visibility: hidden;
-  will-change: transform, opacity, filter;
   pointer-events: none;
   z-index: -2;
 }
@@ -47,7 +77,6 @@
   background-position: center, center;
   opacity: var(--marketing-noise-opacity);
   backface-visibility: hidden;
-  will-change: transform, opacity;
   pointer-events: none;
   z-index: 0;
 }
@@ -64,40 +93,36 @@
     mix-blend-mode: multiply;
   }
 }
+/* Elements are visible by default — SSR content renders immediately without waiting for JS.
+   Once JS runs and adds .reveal-ready, below-fold elements animate in as they scroll into view. */
 [data-reveal] {
-  --reveal-translate: 32px;
-  opacity: 0;
-  transform: translateY(var(--reveal-translate)) scale(0.98);
-  filter: blur(2px);
-  visibility: hidden;
+  --reveal-translate: 22px;
 }
 
-/* Keep elements hidden until reveal-ready so the first animation plays fully */
-html:not(.reveal-ready) [data-reveal] {
+html.reveal-ready [data-reveal]:not(.is-visible) {
   opacity: 0;
-  transform: translateY(var(--reveal-translate)) scale(0.98);
-  filter: blur(2px);
-  visibility: hidden;
-}
-
-html.reveal-ready [data-reveal] {
-  opacity: 0;
-  transform: translateY(var(--reveal-translate)) scale(0.98);
-  filter: blur(2px);
-  visibility: hidden;
+  transform: translateY(var(--reveal-translate));
   transition:
-    opacity 0.7s ease,
-    transform 0.85s cubic-bezier(0.16, 1, 0.3, 1),
-    filter 0.6s ease;
+    opacity 0.65s ease,
+    transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--reveal-delay, 0ms);
   will-change: opacity, transform;
 }
 
 html.reveal-ready [data-reveal].is-visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
-  filter: blur(0);
-  visibility: visible;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.reveal-ready [data-reveal]:not(.is-visible) {
+    transition: opacity 0.3s ease;
+    transform: none;
+    will-change: auto;
+  }
+  html.reveal-ready [data-reveal].is-visible {
+    transform: none;
+  }
 }
 
 .hero--lavender {

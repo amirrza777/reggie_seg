@@ -68,6 +68,14 @@ export type MeetingMinutesRecord = {
   updatedAt: string;
 };
 
+export type MeetingPermissions = {
+  minutesEditWindowDays: number;
+  attendanceEditWindowDays: number;
+  allowAnyoneToEditMeetings: boolean;
+  allowAnyoneToRecordAttendance: boolean;
+  allowAnyoneToWriteMinutes: boolean;
+};
+
 export type MeetingCommentRecord = {
   id: number;
   meetingId: number;

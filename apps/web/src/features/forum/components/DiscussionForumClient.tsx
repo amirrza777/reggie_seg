@@ -3,8 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
+import { PaginationControls, PaginationPageIndicator } from "@/shared/ui/PaginationControls";
 import {
   createDiscussionPost,
   createStudentForumReport,
@@ -21,6 +24,7 @@ type DiscussionForumClientProps = {
   projectId: string;
   showHeader?: boolean;
 };
+type ReportConfirmationState = { postId: number; mode: "staff" | "student" } | null;
 
 const ROOT_POSTS_PER_PAGE = 8;
 const VOTE_ICON_PATH =
@@ -89,6 +93,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
   const [savingPostId, setSavingPostId] = useState<number | null>(null);
   const [deletingPostId, setDeletingPostId] = useState<number | null>(null);
   const [reportingPostId, setReportingPostId] = useState<number | null>(null);
+  const [reportConfirmation, setReportConfirmation] = useState<ReportConfirmationState>(null);
   const [reactingPostId, setReactingPostId] = useState<number | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<number, string>>({});
   const [savingReplyPostId, setSavingReplyPostId] = useState<number | null>(null);
@@ -97,6 +102,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
   const [replyOpenByPostId, setReplyOpenByPostId] = useState<Record<number, boolean>>({});
   const [menuOpenPostId, setMenuOpenPostId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [composerKey, setComposerKey] = useState(0);
+  const [bodyEmpty, setBodyEmpty] = useState(true);
+  const [editingBodyEmpty, setEditingBodyEmpty] = useState(true);
+  const [replyEmptyByPostId, setReplyEmptyByPostId] = useState<Record<number, boolean>>({});
+  const [replyKeyByPostId, setReplyKeyByPostId] = useState<Record<number, number>>({});
 
   useEffect(() => {
     if (menuOpenPostId === null) return;
@@ -127,7 +137,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     user?.role === "ENTERPRISE_ADMIN";
   const isStudent = user?.role === "STUDENT";
 
-  const canSubmit = title.trim().length > 0 && body.trim().length > 0;
+  const canSubmit = title.trim().length > 0 && !bodyEmpty;
   const totalPages = Math.max(1, Math.ceil(posts.length / ROOT_POSTS_PER_PAGE));
   const pageStart = (currentPage - 1) * ROOT_POSTS_PER_PAGE;
   const visiblePosts = posts.slice(pageStart, pageStart + ROOT_POSTS_PER_PAGE);
@@ -241,12 +251,14 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     try {
       const next = await createDiscussionPost(user.id, Number(projectId), {
         title: title.trim(),
-        body: body.trim(),
+        body,
       });
       setPostsWithRef((prev) => [next, ...prev]);
       setCurrentPage(1);
       setTitle("");
       setBody("");
+      setBodyEmpty(true);
+      setComposerKey((prev) => prev + 1);
     } catch (err) {
       logDevError(err);
       setError("Failed to create post.");
@@ -258,6 +270,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setEditingPostId(post.id);
     setEditingTitle(post.title);
     setEditingBody(post.body);
+    setEditingBodyEmpty(false);
   };
 
   const cancelEditing = () => {
@@ -265,19 +278,19 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setEditingPostId(null);
     setEditingTitle("");
     setEditingBody("");
+    setEditingBodyEmpty(true);
   };
 
   const handleUpdate = async (post: DiscussionPost) => {
     if (!user) return;
     const trimmedTitle = post.parentPostId === null ? editingTitle.trim() : post.title;
-    const trimmedBody = editingBody.trim();
-    if ((post.parentPostId === null && !trimmedTitle) || !trimmedBody) return;
+    if ((post.parentPostId === null && !trimmedTitle) || editingBodyEmpty) return;
 
     setSavingPostId(post.id);
     try {
       const updated = await updateDiscussionPost(user.id, Number(projectId), post.id, {
         title: trimmedTitle,
-        body: trimmedBody,
+        body: editingBody,
       });
       setPostsWithRef((prev) => updatePostInTree(prev, updated));
       cancelEditing();
@@ -306,7 +319,6 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleReport = async (postId: number) => {
     if (!user) return;
-    if (!window.confirm("Report this post to staff?")) return;
     setReportingPostId(postId);
     try {
       await reportDiscussionPost(user.id, Number(projectId), postId);
@@ -321,7 +333,6 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleStudentReport = async (postId: number) => {
     if (!user) return;
-    if (!window.confirm("Report this post to project staff?")) return;
     setReportingPostId(postId);
     try {
       await createStudentForumReport(user.id, Number(projectId), postId);
@@ -354,15 +365,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
 
   const handleReplySubmit = async (parentPostId: number) => {
     if (!user) return;
-    const draft = replyDrafts[parentPostId] ?? "";
-    const trimmed = draft.trim();
-    if (!trimmed) return;
+    if (replyEmptyByPostId[parentPostId] !== false) return;
 
     setSavingReplyPostId(parentPostId);
     try {
       const reply = await createDiscussionPost(user.id, Number(projectId), {
         title: "",
-        body: trimmed,
+        body: replyDrafts[parentPostId] ?? "",
         parentPostId,
       });
       const parentPath = findPostPath(postsRef.current, parentPostId) ?? [parentPostId];
@@ -376,6 +385,8 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
       });
       setShowAllImmediateRepliesByPostId((prev) => ({ ...prev, [parentPostId]: true }));
       setReplyDrafts((prev) => ({ ...prev, [parentPostId]: "" }));
+      setReplyEmptyByPostId((prev) => ({ ...prev, [parentPostId]: true }));
+      setReplyKeyByPostId((prev) => ({ ...prev, [parentPostId]: (prev[parentPostId] ?? 0) + 1 }));
       setReplyOpenByPostId((prev) => ({ ...prev, [parentPostId]: false }));
     } catch (err) {
       logDevError(err);
@@ -437,6 +448,17 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     setMenuOpenPostId(null);
   };
 
+  const confirmReport = async () => {
+    if (!reportConfirmation) return;
+    const { postId, mode } = reportConfirmation;
+    setReportConfirmation(null);
+    if (mode === "staff") {
+      await handleReport(postId);
+      return;
+    }
+    await handleStudentReport(postId);
+  };
+
   const renderPost = (post: DiscussionPost, depth = 0) => {
     const isAuthor = user?.id === post.author.id;
     const isEditing = editingPostId === post.id;
@@ -463,11 +485,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     const handleReportAction = () => {
       closePostMenu();
       if (canReportAsStaff) {
-        void handleReport(post.id);
+        setReportConfirmation({ postId: post.id, mode: "staff" });
         return;
       }
       if (canReportAsStudent) {
-        void handleStudentReport(post.id);
+        setReportConfirmation({ postId: post.id, mode: "student" });
       }
     };
 
@@ -562,13 +584,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 </div>
               ) : null}
               <div className="discussion-field">
-                <label htmlFor={`edit-body-${post.id}`}>{isRoot ? "Post" : "Reply"}</label>
-                <AutoGrowTextarea
-                  id={`edit-body-${post.id}`}
-                  rows={4}
-                  value={editingBody}
-                  onChange={(event) => setEditingBody(event.target.value)}
-                  disabled={savingPostId === post.id}
+                <span>{isRoot ? "Post" : "Reply"}</span>
+                <RichTextEditor
+                  initialContent={editingBody}
+                  onChange={setEditingBody}
+                  onEmptyChange={setEditingBodyEmpty}
                 />
               </div>
               <div className="discussion-post__action-row">
@@ -587,7 +607,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   disabled={
                     savingPostId === post.id ||
                     (isRoot && editingTitle.trim().length === 0) ||
-                    editingBody.trim().length === 0
+                    editingBodyEmpty
                   }
                 >
                   Save
@@ -660,7 +680,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           )}
         </div>
 
-        {isEditing ? null : <p className="discussion-post__body">{post.body}</p>}
+        {isEditing ? null : (
+          <div className="discussion-post__body">
+            <RichTextViewer content={post.body} />
+          </div>
+        )}
 
         <div className="discussion-post__toolbar">
           <div className="discussion-post__toolbar-left">
@@ -712,14 +736,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
         {replyOpenByPostId[post.id] ? (
           <div className="discussion-post__reply-editor">
             <div className="discussion-field">
-              <label htmlFor={`reply-${post.id}`}>Reply</label>
-              <AutoGrowTextarea
-                id={`reply-${post.id}`}
-                rows={3}
-                value={replyDrafts[post.id] ?? ""}
-                onChange={(event) => handleReplyChange(post.id, event.target.value)}
+              <span>Reply</span>
+              <RichTextEditor
+                key={replyKeyByPostId[post.id] ?? 0}
+                initialContent={replyDrafts[post.id] ?? ""}
+                onChange={(value) => handleReplyChange(post.id, value)}
+                onEmptyChange={(empty) => setReplyEmptyByPostId((prev) => ({ ...prev, [post.id]: empty }))}
                 placeholder="Write a reply"
-                disabled={!user || userLoading || savingReplyPostId === post.id}
               />
             </div>
             <div className="discussion-post__reply-editor-actions">
@@ -731,7 +754,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   !user ||
                   userLoading ||
                   savingReplyPostId === post.id ||
-                  (replyDrafts[post.id] ?? "").trim().length === 0
+                  replyEmptyByPostId[post.id] !== false
                 }
               >
                 {savingReplyPostId === post.id ? "Replying..." : "Post reply"}
@@ -773,15 +796,13 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           </div>
 
           <div className="discussion-field">
-            <label htmlFor="discussion-body">Post</label>
-            <AutoGrowTextarea
-              id="discussion-body"
-              name="body"
-              rows={4}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
+            <span>Post</span>
+            <RichTextEditor
+              key={composerKey}
+              initialContent={body}
+              onChange={setBody}
+              onEmptyChange={setBodyEmpty}
               placeholder="Write your update or question"
-              disabled={!user || userLoading}
             />
           </div>
 
@@ -808,31 +829,34 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
           <>
             {visiblePosts.map((post) => renderPost(post))}
             {totalPages > 1 ? (
-              <nav className="discussion-posts__pagination" aria-label="Discussion posts pagination">
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </button>
-                <p className="discussion-posts__page-indicator" aria-live="polite">
-                  Page {currentPage} of {totalPages}
-                </p>
-                <button
-                  type="button"
-                  className="btn btn--ghost btn--sm"
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </button>
-              </nav>
+              <PaginationControls
+                as="nav"
+                className="discussion-posts__pagination"
+                ariaLabel="Discussion posts pagination"
+                page={currentPage}
+                totalPages={totalPages}
+                onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                onNextPage={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              >
+                <PaginationPageIndicator page={currentPage} totalPages={totalPages} />
+              </PaginationControls>
             ) : null}
           </>
         )}
       </section>
+      <ConfirmationModal
+        open={reportConfirmation !== null}
+        title="Report post?"
+        message={
+          reportConfirmation?.mode === "staff"
+            ? "Report this post to staff?"
+            : "Report this post to project staff?"
+        }
+        cancelLabel="Cancel"
+        confirmLabel="Report post"
+        onCancel={() => setReportConfirmation(null)}
+        onConfirm={() => void confirmReport()}
+      />
     </div>
   );
 }

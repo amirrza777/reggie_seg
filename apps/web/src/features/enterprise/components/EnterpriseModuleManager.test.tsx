@@ -92,4 +92,80 @@ describe("EnterpriseModuleManager", () => {
     );
     expect(screen.queryByRole("link", { name: /create module/i })).not.toBeInTheDocument();
   });
+
+  it("shows empty states for no results and filtered no-match search", async () => {
+    installSearchMock([]);
+    render(<EnterpriseModuleManager />);
+
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+    expect(screen.getByText("No modules yet. Create your first module above.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search modules" }), {
+      target: { value: "missing" },
+    });
+
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: "missing", page: 1, pageSize: 10 }),
+    );
+    expect(screen.getByText('No modules match "missing".')).toBeInTheDocument();
+  });
+
+  it("shows error alerts when loading modules fails", async () => {
+    searchEnterpriseModulesMock.mockRejectedValueOnce(new Error("Load failed."));
+    render(<EnterpriseModuleManager />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Load failed.")).toBeInTheDocument();
+    });
+  });
+
+  it("shows leader-only action for non-manageable modules", async () => {
+    installSearchMock([
+      {
+        ...moduleRecord,
+        id: 33,
+        name: "Read only module",
+        updatedAt: "not-a-date",
+        canManageAccess: false,
+      },
+    ]);
+
+    render(<EnterpriseModuleManager />);
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    expect(screen.getByText("Leader only")).toBeInTheDocument();
+    expect(screen.getByText("-")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Edit module" })).not.toBeInTheDocument();
+  });
+
+  it("resets invalid page-input blur and jumps on valid submit", async () => {
+    const modules = Array.from({ length: 21 }, (_, index) => ({
+      ...moduleRecord,
+      id: index + 1,
+      name: `Paged module ${index + 1}`,
+    }));
+    installSearchMock(modules);
+
+    render(<EnterpriseModuleManager />);
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    const pageInput = screen.getByRole("spinbutton", { name: "Go to modules page number" });
+    fireEvent.change(pageInput, { target: { value: "99" } });
+    fireEvent.blur(pageInput);
+    expect((pageInput as HTMLInputElement).value).toBe("1");
+
+    fireEvent.change(pageInput, { target: { value: "2" } });
+    fireEvent.submit(pageInput.closest("form") as HTMLFormElement);
+
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
+    );
+    expect(screen.getByText("Paged module 11")).toBeInTheDocument();
+  });
 });

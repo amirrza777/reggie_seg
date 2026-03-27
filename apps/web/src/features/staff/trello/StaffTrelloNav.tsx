@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { resolveStaffTeamBasePath } from "@/features/staff/projects/components/navBasePath";
 
 type Props = {
   projectId: string;
   teamId: string | number;
   boardName: string;
   boardUrl?: string;
+  moduleId?: string | number | null;
 };
 
 function NavLink({
@@ -30,9 +32,15 @@ function NavLink({
   );
 }
 
-export function StaffTrelloNav({ projectId, teamId, boardName, boardUrl }: Props) {
+export function StaffTrelloNav({ projectId, teamId, boardName, boardUrl, moduleId }: Props) {
   const pathname = usePathname();
-  const base = `/staff/projects/${projectId}/teams/${teamId}/trello`;
+  const teamBasePath = resolveStaffTeamBasePath({
+    projectId,
+    teamId: String(teamId),
+    moduleId,
+    pathname,
+  });
+  const base = `${teamBasePath}/trello`;
   const isSummary = pathname === base || pathname === `${base}/`;
   const isBoard = pathname === `${base}/board`;
   const isGraphs = pathname === `${base}/graphs`;

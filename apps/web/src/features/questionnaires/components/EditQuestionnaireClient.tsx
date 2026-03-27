@@ -29,6 +29,7 @@ export default function EditQuestionnairePage() {
   const [questions, setQuestions] = useState<EditableQuestion[]>([]);
   const [preview, setPreview] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
   const [canEdit, setCanEdit] = useState(true);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
@@ -142,6 +143,7 @@ export default function EditQuestionnairePage() {
     if (!isValid) return;
 
     setSaving(true);
+    setSaveError(null);
 
     try {
       const shouldDuplicate = isCopyMode || (isUseMode && !canEdit);
@@ -175,7 +177,7 @@ export default function EditQuestionnairePage() {
       router.back();
     } catch (err) {
       logDevError(err);
-      alert("Save failed.");
+      setSaveError(err instanceof Error ? err.message : "Save failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -260,6 +262,7 @@ export default function EditQuestionnairePage() {
           ))}
         </ul>
       )}
+      {saveError ? <p className="ui-note ui-note--error">{saveError}</p> : null}
 
       {questions.map((q, i) => (
         <article key={q.uiId} className="questionnaire-editor__question">

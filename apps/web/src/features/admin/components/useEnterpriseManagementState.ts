@@ -1,5 +1,6 @@
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { createEnterprise, deleteEnterprise, searchEnterprises } from "../api/client";
 import type { EnterpriseRecord } from "../types";
 import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
@@ -38,7 +39,7 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
   const { clearSelectedEnterpriseIfDeleted } = userState;
 
   const normalizedEnterpriseSearch = normalizeSearchQuery(searchQuery);
-  const effectiveEnterpriseTotalPages = Math.max(1, enterpriseTotalPages);
+  const effectiveEnterpriseTotalPages = getEffectiveTotalPages(enterpriseTotalPages);
 
   const loadEnterprises = useCallback(async (query: string, page: number) => {
     const requestId = latestEnterpriseRequestId.current + 1;
@@ -127,13 +128,13 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
   }, [clearSelectedEnterpriseIfDeleted, currentPage, loadEnterprises, pendingDeleteEnterprise, searchQuery, showSuccessToast]);
 
   const applyPageInput = useCallback((value: string) => {
-    const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveEnterpriseTotalPages) {
+    const parsedPage = parsePageInput(value, enterpriseTotalPages);
+    if (parsedPage === null) {
       setPageInput(String(currentPage));
       return;
     }
     setCurrentPage(parsedPage);
-  }, [currentPage, effectiveEnterpriseTotalPages]);
+  }, [currentPage, enterpriseTotalPages]);
 
   const handlePageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -167,7 +168,7 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  const enterpriseStart = enterpriseTotal === 0 ? 0 : (currentPage - 1) * ENTERPRISES_PER_PAGE + 1;
+  const enterpriseStart = getPaginationStart(enterpriseTotal, currentPage, ENTERPRISES_PER_PAGE);
   const enterpriseEnd = getEnterpriseListEnd({
     enterpriseTotal,
     currentPage,
@@ -265,7 +266,5 @@ function resolveUnknownError(error: unknown, fallback: string): string {
 }
 
 function getEnterpriseListEnd(params: { enterpriseTotal: number; currentPage: number; visibleCount: number }): number {
-  if (params.enterpriseTotal === 0) return 0;
-  const rangeEnd = (params.currentPage - 1) * ENTERPRISES_PER_PAGE + params.visibleCount;
-  return Math.min(rangeEnd, params.enterpriseTotal);
+  return getPaginationEnd(params.enterpriseTotal, params.currentPage, ENTERPRISES_PER_PAGE, params.visibleCount);
 }

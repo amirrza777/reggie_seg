@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
-import { GithubProjectReposBranchesTab } from "./GithubProjectReposBranchesTab";
-import { GithubProjectReposConfigurationsTab } from "./GithubProjectReposConfigurationsTab";
 import {
   GithubProjectReposClientStatusMessages,
   GithubProjectReposClientTabNav,
@@ -84,8 +81,6 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     myCommitsLoadingByLinkId,
     myCommitsErrorByLinkId,
     fetchMyCommits,
-    setBranchSearchQuery,
-    getBranchSearchQuery,
   } = useGithubProjectReposLiveData({
     activeTab:
       activeTab === "my-commits"
@@ -99,7 +94,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     latestSnapshotByLinkId,
   });
 
-  function applyRepositoryOptions(repos: GithubRepositoryOption[]) {
+  const applyRepositoryOptions = useCallback((repos: GithubRepositoryOption[]) => {
     setAvailableRepos(repos);
     setSelectedRepoId((currentSelectedRepoId) => {
       if (repos.length === 0) {
@@ -112,9 +107,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
       const preferredRepo = repos.find((repo) => repo.isAppInstalled) || repos[0];
       return String(preferredRepo?.githubRepoId || "");
     });
-  }
+  }, []);
 
-  async function loadRepositoryOptions(query?: string, options?: { suppressLoadingState?: boolean }) {
+  const loadRepositoryOptions = useCallback(async (query?: string, options?: { suppressLoadingState?: boolean }) => {
     const requestId = repoSearchRequestRef.current + 1;
     repoSearchRequestRef.current = requestId;
     if (!options?.suppressLoadingState) {
@@ -132,9 +127,9 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         setSearchingRepos(false);
       }
     }
-  }
+  }, [applyRepositoryOptions]);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (Number.isNaN(numericProjectId)) {
       setError("Invalid project id.");
       setLoading(false);
@@ -192,11 +187,11 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     } finally {
       setLoading(false);
     }
-  }
+  }, [loadRepositoryOptions, numericProjectId, repoSearchQuery]);
 
   useEffect(() => {
     void load();
-  }, [projectId]);
+  }, [load]);
 
   useEffect(() => {
     didAutoSelectInitialTabRef.current = false;
@@ -214,7 +209,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     }, SEARCH_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [connection?.connected, repoSearchQuery]);
+  }, [connection?.connected, repoSearchQuery, loadRepositoryOptions]);
 
   useEffect(() => {
     if (loading || didAutoSelectInitialTabRef.current) {
@@ -244,7 +239,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     url.searchParams.delete("github");
     url.searchParams.delete("reason");
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
-  }, []);
+  }, [load]);
 
   async function handleConnect() {
     setBusy(true);
@@ -402,38 +397,47 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
         />
       ) : null}
 
-      {activeTab === "branches" ? (
-        <GithubProjectReposBranchesTab
-          loading={loading}
-          liveBranchesRefreshing={liveBranchesRefreshing}
-          links={links}
-          latestSnapshotByLinkId={latestSnapshotByLinkId}
-          liveBranchesByLinkId={liveBranchesByLinkId}
-          liveBranchesLoadingByLinkId={liveBranchesLoadingByLinkId}
-          liveBranchesErrorByLinkId={liveBranchesErrorByLinkId}
-          selectedBranchByLinkId={selectedBranchByLinkId}
-          branchCommitsByLinkId={branchCommitsByLinkId}
-          branchCommitsLoadingByLinkId={branchCommitsLoadingByLinkId}
-          branchCommitsErrorByLinkId={branchCommitsErrorByLinkId}
-          handleRefreshLiveBranches={handleRefreshLiveBranches}
-          getBranchQuery={getBranchSearchQuery}
-          onBranchQueryChange={setBranchSearchQuery}
-          onSelectBranch={(linkId: number, nextBranch: string) => {
-            setSelectedBranchByLinkId((prev) => ({ ...prev, [linkId]: nextBranch }));
-            void fetchBranchCommits(linkId, nextBranch);
-          }}
-        />
-      ) : null}
-
-      {activeTab === "configurations" ? (
-        <GithubProjectReposConfigurationsTab
+      {activeTab === "team-code-activity" ? (
+        <GithubProjectReposTeamCodeActivitySection
           loading={loading}
           busy={busy}
+          linking={linking}
           connection={connection}
           needsGithubAppInstall={needsGithubAppInstall}
           onInstallGithubApp={handleOpenGithubAppInstall}
           onDisconnect={handleDisconnect}
           onConnect={handleConnect}
+          repositoriesTabProps={{
+            loading,
+            busy,
+            linking,
+            connection,
+            links,
+            availableRepos,
+            selectedRepoId,
+            setSelectedRepoId,
+            repoSearchQuery,
+            onRepoSearchQueryChange: setRepoSearchQuery,
+            searchingRepos,
+            coverageByLinkId,
+            latestSnapshotByLinkId,
+            currentGithubLogin: connection?.account?.login ?? null,
+            liveBranchesByLinkId,
+            liveBranchesLoadingByLinkId,
+            liveBranchesErrorByLinkId,
+            liveBranchesRefreshing,
+            selectedBranchByLinkId,
+            setSelectedBranchByLinkId,
+            branchCommitsByLinkId,
+            branchCommitsLoadingByLinkId,
+            branchCommitsErrorByLinkId,
+            removingLinkId,
+            onRefresh: handleRefreshSnapshots,
+            onRefreshBranches: handleRefreshLiveBranches,
+            onFetchBranchCommits: fetchBranchCommits,
+            onLinkSelected: handleLinkSelectedRepo,
+            onRemoveLink: (linkId) => void handleRemoveLink(linkId),
+          }}
         />
       ) : null}
     </div>

@@ -36,13 +36,13 @@ export function mergeGuidanceDefaultsWithStaffRow(
   row: StaffModuleGuidanceRow | null | undefined,
 ): ModuleGuidanceDefaults {
   if (!row) return defaults;
-  const useList = (api: string, list: string | undefined) => (api.trim().length > 0 ? api : (list ?? ""));
+  const chooseValue = (api: string, list: string | undefined) => (api.trim().length > 0 ? api : (list ?? ""));
   return {
     moduleName: defaults.moduleName.trim().length > 0 ? defaults.moduleName : (row.title ?? defaults.moduleName),
-    briefText: useList(defaults.briefText, row.briefText),
-    timelineText: useList(defaults.timelineText, row.timelineText),
-    expectationsText: useList(defaults.expectationsText, row.expectationsText),
-    readinessNotesText: useList(defaults.readinessNotesText, row.readinessNotesText),
+    briefText: chooseValue(defaults.briefText, row.briefText),
+    timelineText: chooseValue(defaults.timelineText, row.timelineText),
+    expectationsText: chooseValue(defaults.expectationsText, row.expectationsText),
+    readinessNotesText: chooseValue(defaults.readinessNotesText, row.readinessNotesText),
   };
 }
 

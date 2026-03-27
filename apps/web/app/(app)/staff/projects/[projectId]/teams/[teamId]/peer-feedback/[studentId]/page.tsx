@@ -6,7 +6,6 @@ import {
   getFeedbackReview,
   getPeerAssessmentsForUser,
 } from "@/features/peerFeedback/api/client";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -115,8 +114,6 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
           <span className="staff-projects__badge">Team {team.id}</span>
         </div>
       </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
 
       <section className="staff-projects__grid" aria-label="Student peer feedback summary">
         <article className="staff-projects__card">

@@ -164,6 +164,20 @@ describe("CommentSection", () => {
     await waitFor(() => expect(screen.getByText(/failed to delete comment/i)).toBeInTheDocument());
   });
 
+  it("highlights mentions in comment content with mention-node class", () => {
+    const withMention = [{ ...comments[0], content: "@Alice Smith go team!" }];
+    render(<CommentSection meetingId={10} initialComments={withMention} />);
+    const mention = screen.getByText("@Alice Smith");
+    expect(mention.tagName).toBe("SPAN");
+    expect(mention).toHaveClass("mention-node");
+  });
+
+  it("renders plain text without mention spans when no mentions present", () => {
+    render(<CommentSection meetingId={10} initialComments={comments} />);
+    const body = screen.getByText("Looks good");
+    expect(body.tagName).not.toBe("SPAN");
+  });
+
   it("disables post button while posting", async () => {
     let resolve: () => void;
     addCommentMock.mockReturnValue(new Promise((r) => { resolve = r as () => void; }));

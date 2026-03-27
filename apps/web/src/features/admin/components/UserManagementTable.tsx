@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
-import { FormField } from "@/shared/ui/FormField";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { AdminUser, AdminUserRecord, UserRole } from "../types";
@@ -109,7 +110,7 @@ export function UserManagementTable() {
   };
 
   const normalizedSearch = normalizeSearchQuery(searchQuery);
-  const effectiveTotalPages = Math.max(1, totalPages);
+  const effectiveTotalPages = getEffectiveTotalPages(totalPages);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -119,13 +120,12 @@ export function UserManagementTable() {
     setPageInput(String(currentPage));
   }, [currentPage]);
 
-  const pageStart = totalUsers === 0 ? 0 : (currentPage - 1) * USERS_PER_PAGE + 1;
-  const pageEnd = totalUsers === 0 ? 0 : Math.min((currentPage - 1) * USERS_PER_PAGE + users.length, totalUsers);
+  const pageStart = getPaginationStart(totalUsers, currentPage, USERS_PER_PAGE);
+  const pageEnd = getPaginationEnd(totalUsers, currentPage, USERS_PER_PAGE, users.length);
 
   const applyPageInput = (value: string) => {
-    const parsedPage = Number(value);
-    const isValidPage = Number.isInteger(parsedPage) && parsedPage >= 1 && parsedPage <= effectiveTotalPages;
-    if (!isValidPage) {
+    const parsedPage = parsePageInput(value, totalPages);
+    if (parsedPage === null) {
       setPageInput(String(currentPage));
       return;
     }
@@ -256,45 +256,23 @@ export function UserManagementTable() {
             loadingRowCount={6}
           />
           {totalPages > 1 ? (
-            <div className="user-management__pagination" aria-label="User accounts pagination">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-              >
-                Previous
-              </Button>
-              <form className="user-management__page-jump" onSubmit={handlePageJump}>
-                <label htmlFor="user-management-page-input" className="user-management__page-jump-label">
-                  Page
-                </label>
-                <FormField
-                  id="user-management-page-input"
-                  type="number"
-                  min={1}
-                  max={effectiveTotalPages}
-                  step={1}
-                  inputMode="numeric"
-                  value={pageInput}
-                  onChange={(event) => setPageInput(event.target.value)}
-                  onBlur={() => applyPageInput(pageInput)}
-                  className="user-management__page-jump-input"
-                  aria-label="Go to page number"
-                />
-                <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-              </form>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
-                disabled={currentPage === effectiveTotalPages}
-              >
-                Next
-              </Button>
-            </div>
+            <PaginationControls
+              ariaLabel="User accounts pagination"
+              page={currentPage}
+              totalPages={totalPages}
+              onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              onNextPage={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
+            >
+              <PaginationPageJump
+                pageInputId="user-management-page-input"
+                pageInput={pageInput}
+                totalPages={totalPages}
+                pageJumpAriaLabel="Go to page number"
+                onPageInputChange={setPageInput}
+                onPageInputBlur={() => applyPageInput(pageInput)}
+                onPageJump={handlePageJump}
+              />
+            </PaginationControls>
           ) : null}
         </>
       ) : (

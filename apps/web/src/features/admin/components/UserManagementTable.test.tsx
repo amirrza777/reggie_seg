@@ -206,4 +206,65 @@ describe("UserManagementTable", () => {
     expect(screen.queryByRole("button", { name: /student/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /staff/i })).not.toBeInTheDocument();
   });
+
+  it("shows admin role chip and locks status control for super-admin email", async () => {
+    installSearchMock([
+      {
+        ...apiUser,
+        id: 1,
+        email: "admin@kcl.ac.uk",
+        role: "ADMIN",
+        isStaff: true,
+      },
+    ] as any);
+
+    await renderTable();
+
+    expect(screen.getByText("Admin", { selector: ".role-chip" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /student/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /staff/i })).not.toBeInTheDocument();
+    const lockedStatusChip = document.querySelector(".status-chip--disabled");
+    expect(lockedStatusChip).not.toBeNull();
+    expect(lockedStatusChip).toHaveTextContent("Active");
+  });
+
+  it("shows empty-state messages for no users and filtered no-match searches", async () => {
+    installSearchMock([]);
+
+    await renderTable();
+    expect(screen.getByText("No user accounts found.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: /search user accounts/i }), {
+      target: { value: "missing" },
+    });
+
+    await waitFor(() =>
+      expect(searchUsersMock).toHaveBeenLastCalledWith({ q: "missing", page: 1, pageSize: 10 }),
+    );
+    expect(screen.getByText('No user accounts match "missing".')).toBeInTheDocument();
+  });
+
+  it("shows API load errors in an error alert", async () => {
+    searchUsersMock.mockRejectedValueOnce(new Error("Users API failed."));
+    render(<UserManagementTable />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Users API failed.")).toBeInTheDocument();
+    });
+  });
+
+  it("rolls back optimistic role and status updates when API calls fail", async () => {
+    updateUserRoleMock.mockRejectedValueOnce(new Error("Role failed."));
+    updateUserMock.mockRejectedValueOnce(new Error("Status failed."));
+
+    await renderTable();
+
+    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    await waitFor(() => expect(screen.getByText("Role failed.")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: /Student/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByText("Active"));
+    await waitFor(() => expect(screen.getByText("Status failed.")).toBeInTheDocument());
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
 });

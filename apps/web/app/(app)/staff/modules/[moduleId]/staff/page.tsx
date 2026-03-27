@@ -42,14 +42,16 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
   }
 
   return (
-    <div className="stack module-workspace-staff">
-      <h2 className="overview-title">Staff members</h2>
-      <p className="muted" style={{ marginBottom: 16 }}>
-        Module leads and teaching assistants with access to this module.
-      </p>
+    <div className="stack module-dashboard">
+      <header className="module-workspace__section-header">
+        <h2 className="overview-title">Staff members</h2>
+        <p className="muted">
+          Module leads and teaching assistants with access to this module.
+        </p>
+      </header>
 
-      {access.staffModuleSetup || access.enterpriseModuleEditor ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+      {(access.staffModuleSetup || access.enterpriseModuleEditor) ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {access.staffModuleSetup ? (
             <Link href={`/staff/modules/${enc}/staff/access`} className="btn btn--primary btn--sm">
               Manage staff access
@@ -64,14 +66,14 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
       ) : null}
 
       {denied ? (
-        <Card title="List">
+        <Card title="Staff list">
           <p className="muted">You don&apos;t have permission to view this list.</p>
         </Card>
       ) : members && members.length === 0 ? (
         <Card title="Staff list">
           <p className="muted">No module leads or teaching assistants are assigned yet.</p>
-          {access.staffModuleSetup || access.enterpriseModuleEditor ? (
-            <p className="muted" style={{ marginTop: 8 }}>
+          {(access.staffModuleSetup || access.enterpriseModuleEditor) ? (
+            <p className="muted">
               {access.staffModuleSetup ? (
                 <>
                   Assign leads and TAs in{" "}
@@ -80,8 +82,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>
-                      {" "}
-                      or the{" "}
+                      {" "}or the{" "}
                       <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
                         enterprise module editor
                       </Link>

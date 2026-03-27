@@ -1,54 +1,19 @@
 import Link from "next/link";
 import { QuestionnaireList } from "@/features/questionnaires/components/questionnaireList";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 export default function QuestionnairesPage() {
   return (
-    <div className="stack ui-page" style={{ gap: 24 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 16,
-        }}
-      >
-        <div>
-          <h1
-            style={{
-              fontSize: "var(--fs-h2)",
-              lineHeight: "var(--lh-heading)",
-              marginBottom: 6,
-            }}
-          >
-            Questionnaires
-          </h1>
-
-          <p
-            style={{
-              color: "var(--muted)",
-              fontSize: "var(--fs-body)",
-            }}
-          >
-            Create, view, and manage questionnaire templates.
-          </p>
-        </div>
-
-        <Link href="/staff/questionnaires/new">
-          <button
-            style={{
-              padding: "14px 18px",
-              background: "var(--btn-primary-bg)",
-              color: "var(--btn-primary-text)",
-              border: "1px solid var(--btn-primary-border)",
-              cursor: "pointer",
-              boxShadow: "var(--shadow-sm)",
-            }}
-            className="btn"
-          >
+    <div className="staff-projects staff-projects--panel-inset">
+      <section className="staff-projects__hero">
+        <h1 className="staff-projects__title">Questionnaires</h1>
+        <p className="staff-projects__desc">Create, view, and manage questionnaire templates.</p>
+        <div className="staff-projects__hero-actions">
+          <Link href="/staff/questionnaires/new" className="staff-projects__quick-link">
             + Create questionnaire
-          </button>
-        </Link>
-      </div>
+          </Link>
+        </div>
+      </section>
       <QuestionnaireList />
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import {
   saveStudentMarking,
   saveTeamMarking,
@@ -59,6 +59,7 @@ export function StaffMarkingCard({
     initialMarking?.mark == null ? "" : String(initialMarking.mark)
   );
   const [feedback, setFeedback] = useState(initialMarking?.formativeFeedback ?? "");
+  const [feedbackEmpty, setFeedbackEmpty] = useState(!initialMarking?.formativeFeedback);
   const [state, setState] = useState<SaveState>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -76,6 +77,7 @@ export function StaffMarkingCard({
       setMarking(saved);
       setMarkInput(saved.mark == null ? "" : String(saved.mark));
       setFeedback(saved.formativeFeedback ?? "");
+      setFeedbackEmpty(!saved.formativeFeedback);
       setState("success");
       setMessage("Marking and formative feedback saved.");
     } catch (error) {
@@ -100,7 +102,7 @@ export function StaffMarkingCard({
       parsedMark = Math.round(numeric * 100) / 100;
     }
 
-    const parsedFeedback = feedback.trim().length > 0 ? feedback.trim() : null;
+    const parsedFeedback = feedbackEmpty ? null : feedback;
     await submitMarking(parsedMark, parsedFeedback);
   }
 
@@ -133,28 +135,15 @@ export function StaffMarkingCard({
           />
         </label>
 
-        <label className="stack" style={{ gap: 6 }}>
+        <div className="stack" style={{ gap: 6 }}>
           <span>Formative feedback</span>
-          <AutoGrowTextarea
-            value={feedback}
-            onChange={(event) => setFeedback(event.target.value)}
-            rows={5}
+          <RichTextEditor
+            initialContent={feedback}
+            onChange={setFeedback}
+            onEmptyChange={setFeedbackEmpty}
             placeholder="Write specific strengths, issues, and next actions."
-            disabled={state === "saving"}
-            style={{
-              width: "100%",
-              resize: "vertical",
-              border: "1px solid var(--border)",
-              borderRadius: 6,
-              padding: 10,
-              background: "var(--surface)",
-              color: "var(--ink)",
-              fontFamily: "inherit",
-              fontSize: "inherit",
-              lineHeight: "1.45",
-            }}
           />
-        </label>
+        </div>
 
         <div className="ui-row ui-row--wrap">
           <Button type="submit" disabled={state === "saving"}>

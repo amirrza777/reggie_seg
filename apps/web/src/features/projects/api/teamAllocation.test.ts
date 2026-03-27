@@ -89,6 +89,12 @@ describe("team allocation api client", () => {
       method: "POST",
       body: JSON.stringify({ teamCount: 4, teamNames: ["A", "B", "C", "D"], maxTeamSize: 6 }),
     });
+
+    await getRandomAllocationPreview(91, 3, { minTeamSize: 2, maxTeamSize: 4 });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/team-allocation/projects/91/random-preview?teamCount=3&minTeamSize=2&maxTeamSize=4",
+      { cache: "no-store" },
+    );
   });
 
   it("fetches manual workspace and applies manual allocation", async () => {
@@ -108,13 +114,22 @@ describe("team allocation api client", () => {
     expectFetch("/team-allocation/projects/91/custom-coverage?questionnaireTemplateId=33", {
       cache: "no-store",
     });
+
+    await applyRandomAllocation(55, 4, undefined, { minTeamSize: 1, maxTeamSize: 2 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/projects/55/random-allocate", {
+      method: "POST",
+      body: JSON.stringify({
+        teamCount: 4,
+        minTeamSize: 1,
+        maxTeamSize: 2,
+      }),
+    });
   });
 
   it("posts custom preview payload", async () => {
     const payload: any = {
       questionnaireTemplateId: 8,
       teamCount: 4,
-      seed: 1234,
       nonRespondentStrategy: "distribute_randomly",
       criteria: [{ questionId: 101, strategy: "diversify", weight: 4 }],
     };

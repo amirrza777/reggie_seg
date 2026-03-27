@@ -123,10 +123,12 @@
   max-height: 85vh;
   overflow-y: auto;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-strong);
+  border: 1px solid var(--popup-glass-border-fallback);
+  border-color: var(--popup-glass-border);
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
   color: var(--ink);
-  box-shadow: var(--elevation-overlay);
+  box-shadow: var(--popup-glass-shadow);
 }
 
 .github-chart-info__header {

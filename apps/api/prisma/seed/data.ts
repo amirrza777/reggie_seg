@@ -109,8 +109,19 @@ export const questionnaireTemplateData = Array.from({ length: SEED_TEMPLATE_COUN
 export const projectData = Array.from({ length: SEED_PROJECT_COUNT }, (_, index) => {
   const module = moduleData[index % moduleData.length];
   const cycle = Math.floor(index / moduleData.length) + 1;
+  const projectName = `${module.name} Project ${cycle}`;
+  const longProjectInformationText = [
+    `${projectName} is a collaborative delivery project where your team is expected to plan, implement, review, and improve a complete solution over multiple milestones.`,
+    "You should define clear roles early, keep responsibilities transparent, and maintain regular communication so blockers are identified quickly and resolved before they impact delivery.",
+    "Use repository history, meeting notes, and peer feedback to evidence contributions and reflect on progress across each stage of the project lifecycle.",
+    "Teams are expected to demonstrate consistent technical progress, thoughtful decision-making, and professional collaboration practices including attendance, preparation, and constructive review behaviour.",
+    "Treat each deadline as a checkpoint for quality, not just completion: document design choices, justify trade-offs, and keep your implementation maintainable and testable.",
+    "By the end of this project, you should be able to present a coherent delivery narrative covering planning, execution, quality assurance, teamwork, and lessons learned for future iterations.",
+  ].join(" ");
+
   return {
-    name: `${module.name} Project ${cycle}`,
+    name: projectName,
+    informationText: longProjectInformationText,
     moduleIndex: index % moduleData.length,
   };
 });

@@ -3,8 +3,7 @@
 import { useId, useMemo } from "react";
 import type { EnterpriseAssignableUser } from "@/features/enterprise/types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
-import { FormField } from "@/shared/ui/FormField";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 
 type RequestState = "idle" | "loading" | "success" | "error";
@@ -139,43 +138,27 @@ function AccessPagination({
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
-  if (totalPages <= 1) return null;
-
-  const effectiveTotalPages = Math.max(1, totalPages);
   return (
-    <div className="user-management__pagination" aria-label={`${label} search pagination`}>
-      <Button type="button" variant="ghost" size="sm" onClick={onPreviousPage} disabled={page === 1}>
-        Previous
-      </Button>
-      <div className="user-management__page-jump">
-        <label htmlFor={pageInputId} className="user-management__page-jump-label">
-          Page
-        </label>
-        <FormField
-          id={pageInputId}
-          type="number"
-          min={1}
-          max={effectiveTotalPages}
-          step={1}
-          inputMode="numeric"
-          value={pageInput}
-          onChange={(event) => onPageInputChange(event.target.value)}
-          onBlur={onPageInputBlur}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") {
-              event.preventDefault();
-              onCommitPageJump();
-            }
-          }}
-          className="user-management__page-jump-input"
-          aria-label={pageJumpAriaLabel}
-        />
-        <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-      </div>
-      <Button type="button" variant="ghost" size="sm" onClick={onNextPage} disabled={page === effectiveTotalPages}>
-        Next
-      </Button>
-    </div>
+    <PaginationControls
+      ariaLabel={`${label} search pagination`}
+      page={page}
+      totalPages={totalPages}
+      onPreviousPage={onPreviousPage}
+      onNextPage={onNextPage}
+    >
+      <PaginationPageJump
+        pageInputId={pageInputId}
+        pageInput={pageInput}
+        totalPages={totalPages}
+        pageJumpAriaLabel={pageJumpAriaLabel}
+        onPageInputChange={onPageInputChange}
+        onPageInputBlur={onPageInputBlur}
+        onPageJump={(event) => {
+          event.preventDefault();
+          onCommitPageJump();
+        }}
+      />
+    </PaginationControls>
   );
 }
 

@@ -129,6 +129,7 @@ function WeeklyCommitTotalsChart({
               label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
+              isAnimationActive
               content={<ChartTooltipContent />}
               labelFormatter={(_, payload) => {
                 const row = payload?.[0]?.payload as
@@ -147,6 +148,7 @@ function WeeklyCommitTotalsChart({
               radius={[6, 6, 0, 0]}
               minPointSize={2}
               animationDuration={420}
+              isAnimationActive
             />
           </BarChart>
         </ResponsiveContainer>
@@ -205,6 +207,7 @@ function LineChangesTimelineChart({
               label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
+              isAnimationActive
               content={<ChartTooltipContent />}
               labelFormatter={(label) => formatShortDate(String(label))}
               formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
@@ -217,6 +220,7 @@ function LineChangesTimelineChart({
               radius={[4, 4, 0, 0]}
               maxBarSize={14}
               animationDuration={420}
+              isAnimationActive
             />
             <Bar
               dataKey="deletions"
@@ -225,6 +229,7 @@ function LineChangesTimelineChart({
               radius={[4, 4, 0, 0]}
               maxBarSize={14}
               animationDuration={420}
+              isAnimationActive
             />
           </BarChart>
         </ResponsiveContainer>
@@ -296,6 +301,7 @@ function RepositoryAnalyticsCharts({
                   label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                 />
                 <Tooltip
+                  isAnimationActive
                   content={<ChartTooltipContent />}
                   labelFormatter={(label) => formatShortDate(String(label))}
                   formatter={(value, name) => [formatNumber(Number(value ?? 0)), name]}
@@ -308,6 +314,7 @@ function RepositoryAnalyticsCharts({
                   radius={[4, 4, 0, 0]}
                   maxBarSize={12}
                   animationDuration={300}
+                  isAnimationActive
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -629,6 +636,7 @@ function PersonalActivity({
                     label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
                   />
                   <Tooltip
+                    isAnimationActive
                     content={<ChartTooltipContent />}
                     labelFormatter={(label) => formatShortDate(String(label))}
                     formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
@@ -640,6 +648,7 @@ function PersonalActivity({
                     radius={[4, 4, 0, 0]}
                     maxBarSize={14}
                     animationDuration={300}
+                    isAnimationActive
                   />
                 </BarChart>
               </ResponsiveContainer>

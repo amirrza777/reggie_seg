@@ -12,6 +12,7 @@ import { getCurrentUser, isAdmin, isEnterpriseAdmin, isModuleScopedStaff } from 
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 import { getFeatureFlagMap } from "@/shared/featureFlags";
 import { logDevError } from "@/shared/lib/devLogger";
+import "../styles/global-app-shell.css";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ type NavLink = {
   space: "workspace" | "staff" | "enterprise" | "admin";
   flag?: string;
   children?: NavChild[];
+  defaultExpanded?: boolean;
 };
 
 type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
@@ -34,7 +36,7 @@ type AuthenticatedUser = NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>
 const moduleScopedStaffLinks = new Set([
   "/staff/dashboard",
   "/staff/modules",
-  "/staff/analytics",
+  "/staff/marks",
   "/staff/questionnaires",
   "/staff/archive",
 ]);
@@ -103,7 +105,8 @@ function buildLayoutNavigationData(params: {
 }) {
   const moduleChildren = buildModuleChildren(params.modules);
   const projectChildren = buildProjectChildren(params.projects);
-  const navLinks = buildBaseNavLinks(moduleChildren, projectChildren);
+  const projectsDefaultExpanded = shouldDefaultExpandProjects(params.projects);
+  const navLinks = buildBaseNavLinks(moduleChildren, projectChildren, projectsDefaultExpanded);
   const accessibleLinks = filterAccessibleNavLinks(navLinks, params.user, params.flagMap);
   const spaceLinks = buildSpaceLinks(params.user);
   const defaultSpaceHref = getDefaultSpaceOverviewPath(params.user);
@@ -174,26 +177,43 @@ async function loadNavChildrenData(userId: number): Promise<{
   };
 }
 
-function buildBaseNavLinks(moduleChildren: NonNullable<NavLink["children"]>, projectChildren: NonNullable<NavLink["children"]>): NavLink[] {
+function buildBaseNavLinks(
+  moduleChildren: NonNullable<NavLink["children"]>,
+  projectChildren: NonNullable<NavLink["children"]>,
+  projectsDefaultExpanded: boolean
+): NavLink[] {
   return [
     { href: "/dashboard", label: "Modules", space: "workspace", children: moduleChildren },
-    { href: "/projects", label: "Projects", space: "workspace", children: projectChildren },
+    {
+      href: "/projects",
+      label: "Projects",
+      space: "workspace",
+      children: projectChildren,
+      defaultExpanded: projectsDefaultExpanded,
+    },
     { href: "/calendar", label: "Calendar", space: "workspace" },
     { href: "/staff/dashboard", label: "Staff Overview", space: "staff" },
     { href: "/staff/modules", label: "My Modules", space: "staff" },
-    { href: "/staff/analytics", label: "Analytics", space: "staff" },
+    { href: "/staff/marks", label: "Marking", space: "staff" },
     { href: "/staff/questionnaires", label: "Questionnaires", space: "staff" },
     { href: "/staff/archive", label: "Archive", space: "staff" },
     { href: "/admin", label: "Admin Home", space: "admin" },
   ];
 }
 
+function shouldDefaultExpandProjects(projects: Awaited<ReturnType<typeof getUserProjects>> | null) {
+  if (!projects) return true;
+  return projects.length <= 7;
+}
+
 function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser, flagMap: Record<string, boolean>) {
   const limitedStaffUser = isModuleScopedStaff(user);
+  const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
 
   return navLinks
     .filter((link) => {
       if (link.flag && flagMap[link.flag] === false) return false;
+      if (link.space === "workspace" && isStaffOnlyAccount) return false;
       if (link.space === "staff") {
         if (!(user.isStaff || isAdmin(user))) return false;
         if (limitedStaffUser && !moduleScopedStaffLinks.has(link.href)) return false;

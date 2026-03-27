@@ -1,6 +1,6 @@
 import type { StaffMeeting, MeetingStats, FlaggedMember } from "./types";
 
-export const ABSENCES_BEFORE_ALERT = 3;
+const DEFAULT_ABSENCE_THRESHOLD = 3;
 
 export function isPresent(status: string) {
   return ["on_time", "late"].includes(status.toLowerCase());
@@ -8,7 +8,9 @@ export function isPresent(status: string) {
 
 function getConsecutiveAbsences(userId: number, meetings: StaffMeeting[]): number {
   let count = 0;
+  const now = new Date();
   for (const meeting of meetings) {
+    if (new Date(meeting.date) > now) continue;
     const attendance = meeting.attendances.find((a) => a.userId === userId);
     if (!attendance) break; // stop here, gaps in records should not carry the streak forward
     if (attendance.status.toLowerCase() === "absent") {
@@ -45,7 +47,7 @@ export type MemberAttendance = {
   atRisk: boolean;
 };
 
-export function getMemberAttendanceStats(meetings: StaffMeeting[]): MemberAttendance[] {
+export function getMemberAttendanceStats(meetings: StaffMeeting[], threshold = DEFAULT_ABSENCE_THRESHOLD): MemberAttendance[] {
   const memberMap = new Map<number, MemberAttendance>();
 
   for (const meeting of meetings) {
@@ -69,11 +71,11 @@ export function getMemberAttendanceStats(meetings: StaffMeeting[]): MemberAttend
   }
 
   return [...memberMap.values()]
-    .map((m) => ({ ...m, atRisk: getConsecutiveAbsences(m.id, meetings) >= ABSENCES_BEFORE_ALERT }))
+    .map((m) => ({ ...m, atRisk: getConsecutiveAbsences(m.id, meetings) >= threshold }))
     .sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`));
 }
 
-export function getFlaggedMembers(meetings: StaffMeeting[]): FlaggedMember[] {
+export function getFlaggedMembers(meetings: StaffMeeting[], threshold = DEFAULT_ABSENCE_THRESHOLD): FlaggedMember[] {
   const memberMap = new Map<number, { id: number; firstName: string; lastName: string }>();
   for (const meeting of meetings) {
     for (const attendance of meeting.attendances) {
@@ -85,6 +87,6 @@ export function getFlaggedMembers(meetings: StaffMeeting[]): FlaggedMember[] {
 
   return [...memberMap.values()]
     .map((user) => ({ ...user, consecutiveAbsences: getConsecutiveAbsences(user.id, meetings) }))
-    .filter((m) => m.consecutiveAbsences >= ABSENCES_BEFORE_ALERT)
+    .filter((m) => m.consecutiveAbsences >= threshold)
     .sort((a, b) => b.consecutiveAbsences - a.consecutiveAbsences);
 }

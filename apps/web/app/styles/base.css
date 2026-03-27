@@ -100,6 +100,44 @@ h3 {
     gap: 10px;
 }
 
+.breadcrumbs__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--fs-label, 0.8rem);
+    color: var(--muted);
+}
+
+.breadcrumbs__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.breadcrumbs__link {
+    color: inherit;
+    text-decoration: none;
+    transition: color 0.15s ease;
+}
+
+.breadcrumbs__link:hover,
+.breadcrumbs__link:focus-visible {
+    color: var(--ink-strong);
+}
+
+.breadcrumbs__current {
+    color: var(--ink-strong);
+}
+
+.breadcrumbs__sep {
+    color: var(--muted);
+    opacity: 0.5;
+}
+
 .stack--tabbed {
     padding: 20px;
 }
@@ -259,6 +297,13 @@ a.muted:hover {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+}
+
+nav.pill-nav:not(.pill-nav--inline),
+.pill-nav[role="tablist"] {
+    position: sticky;
+    top: var(--pill-nav-sticky-top, 8px);
+    z-index: 20;
 }
 
 .pill-nav__link {

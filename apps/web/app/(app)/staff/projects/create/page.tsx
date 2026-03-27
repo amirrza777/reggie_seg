@@ -34,10 +34,52 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
     modulesError = toStaffModuleLoadError(error, "Failed to load staff modules.");
   }
 
+  const selectedModule =
+    initialModuleId != null ? modules.find((module) => module.id === initialModuleId) ?? null : null;
+  const selectedModuleHref = selectedModule ? `/staff/modules/${encodeURIComponent(selectedModule.id)}` : null;
+  const selectedModuleProjectsHref = selectedModuleHref ? `${selectedModuleHref}/projects` : null;
+
   return (
     <div className="staff-projects staff-projects--panel-inset">
+      <nav className="staff-projects__breadcrumbs" aria-label="Breadcrumb">
+        <ol className="staff-projects__breadcrumb-list">
+          <li className="staff-projects__breadcrumb-item">
+            <Link href="/staff" className="staff-projects__breadcrumb-link">
+              Staff
+            </Link>
+            <span className="staff-projects__breadcrumb-sep">/</span>
+          </li>
+          <li className="staff-projects__breadcrumb-item">
+            <Link href="/staff/modules" className="staff-projects__breadcrumb-link">
+              My Modules
+            </Link>
+            <span className="staff-projects__breadcrumb-sep">/</span>
+          </li>
+          {selectedModuleHref ? (
+            <li className="staff-projects__breadcrumb-item">
+              <Link href={selectedModuleHref} className="staff-projects__breadcrumb-link">
+                {selectedModule?.title ?? `Module ${initialModuleId}`}
+              </Link>
+              <span className="staff-projects__breadcrumb-sep">/</span>
+            </li>
+          ) : null}
+          {selectedModuleProjectsHref ? (
+            <li className="staff-projects__breadcrumb-item">
+              <Link href={selectedModuleProjectsHref} className="staff-projects__breadcrumb-link">
+                Projects
+              </Link>
+              <span className="staff-projects__breadcrumb-sep">/</span>
+            </li>
+          ) : null}
+          <li className="staff-projects__breadcrumb-item">
+            <span className="staff-projects__breadcrumb-current" aria-current="page">
+              Create project
+            </span>
+          </li>
+        </ol>
+      </nav>
+
       <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Staff Workspace</p>
         <h1 className="staff-projects__title">Create Project</h1>
         <p className="staff-projects__desc">
           Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.

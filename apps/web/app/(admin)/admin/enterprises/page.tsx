@@ -11,7 +11,7 @@ export default async function AdminEnterprisesPage() {
   }
 
   return (
-    <div className="stack">
+    <div className="ui-page">
       <EnterpriseManagementTable isSuperAdmin />
     </div>
   );

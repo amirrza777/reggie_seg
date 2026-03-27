@@ -3,12 +3,15 @@ import { apiFetch } from "@/shared/api/http";
 import {
   listMeetings,
   getMeeting,
+  listTeamMembers,
   createMeeting,
+  updateMeeting,
   deleteMeeting,
   markAttendance,
   saveMinutes,
   addComment,
   deleteComment,
+  getMeetingSettings,
 } from "./client";
 
 vi.mock("@/shared/api/http", () => ({
@@ -64,11 +67,28 @@ describe("meetings api client", () => {
     });
   });
 
+  it("updates a meeting", async () => {
+    const data = {
+      title: "Retrospective",
+      participantIds: [1, 2, 3],
+    };
+    await updateMeeting(12, 7, data);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/12", {
+      method: "PATCH",
+      body: JSON.stringify({ userId: 7, ...data }),
+    });
+  });
+
   it("deletes a meeting", async () => {
     await deleteMeeting(12);
     expect(apiFetchMock).toHaveBeenCalledWith("/meetings/12", {
       method: "DELETE",
     });
+  });
+
+  it("lists team members", async () => {
+    await listTeamMembers(5);
+    expect(apiFetchMock).toHaveBeenCalledWith("/team-allocation/teams/5/members");
   });
 
   it("marks attendance", async () => {
@@ -99,6 +119,14 @@ describe("meetings api client", () => {
     });
   });
 
+  it("adds a comment with team context", async () => {
+    await addComment(5, 2, "Looks good", 77);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/5/comments", {
+      method: "POST",
+      body: JSON.stringify({ userId: 2, content: "Looks good", teamId: 77 }),
+    });
+  });
+
   it("deletes a comment", async () => {
     await deleteComment(99);
     expect(apiFetchMock).toHaveBeenCalledWith("/meetings/comments/99", {
@@ -110,5 +138,10 @@ describe("meetings api client", () => {
     apiFetchMock.mockResolvedValueOnce([{ id: 1 }] as any);
     const result = await listMeetings(5);
     expect(result).toEqual([{ id: 1 }]);
+  });
+
+  it("gets meeting settings", async () => {
+    await getMeetingSettings(55);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/55/settings");
   });
 });

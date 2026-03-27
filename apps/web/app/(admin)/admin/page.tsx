@@ -3,7 +3,7 @@ import { UserManagementTable } from "@/features/admin/components/UserManagementT
 
 export default function AdminPage() {
   return (
-    <div className="stack">
+    <div className="ui-page">
       <AdminWorkspaceSummary />
       <UserManagementTable />
     </div>

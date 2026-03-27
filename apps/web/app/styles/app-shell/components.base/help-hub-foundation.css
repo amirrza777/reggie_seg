@@ -141,8 +141,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 12px 12px clamp(20px, 2.4vw, 28px);
-  margin-bottom: clamp(16px, 2.2vw, 26px);
+  padding: 12px;
+  margin-bottom: 0;
   border-radius: var(--radius-md);
   border: 1px solid rgba(148, 163, 184, 0.24);
   background: rgba(10, 10, 10, 0.52);
@@ -174,6 +174,7 @@
   background: var(--accent-soft);
   border-color: var(--accent-border);
   color: var(--ink-strong);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 34%, transparent);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

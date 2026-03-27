@@ -15,7 +15,7 @@ export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) 
       };
     }
 
-    const data = buildModuleLeadSeedData(staff, modules);
+    const data = planModuleLeadSeedData(staff, modules);
 
     const created = await prisma.moduleLead.createMany({ data, skipDuplicates: true });
     return {
@@ -37,7 +37,7 @@ export async function seedStudentEnrollments(enterpriseId: string, users: SeedUs
       };
     }
 
-    const data = buildStudentEnrollmentSeedData(enterpriseId, students, modules);
+    const data = planStudentEnrollmentSeedData(enterpriseId, students, modules);
 
     const created = await prisma.userModule.createMany({ data, skipDuplicates: true });
     return {
@@ -59,7 +59,7 @@ export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) 
       };
     }
 
-    const data = buildTeamAllocationSeedData(students, teams);
+    const data = planTeamAllocationSeedData(students, teams);
 
     const created = await prisma.teamAllocation.createMany({ data, skipDuplicates: true });
     return {
@@ -79,7 +79,7 @@ export function buildUsersByRole(users: SeedUser[]): SeedUsersByRole {
   };
 }
 
-function buildModuleLeadSeedData(staff: SeedUser[], modules: SeedModule[]) {
+export function planModuleLeadSeedData(staff: SeedUser[], modules: SeedModule[]) {
   const data: { moduleId: number; userId: number }[] = [];
   for (let index = 0; index < modules.length; index += 1) {
     const module = modules[index];
@@ -90,7 +90,7 @@ function buildModuleLeadSeedData(staff: SeedUser[], modules: SeedModule[]) {
   return data;
 }
 
-function buildStudentEnrollmentSeedData(enterpriseId: string, students: SeedUser[], modules: SeedModule[]) {
+export function planStudentEnrollmentSeedData(enterpriseId: string, students: SeedUser[], modules: SeedModule[]) {
   return students.flatMap((student) =>
     modules.map((module) => ({
       enterpriseId,
@@ -100,7 +100,7 @@ function buildStudentEnrollmentSeedData(enterpriseId: string, students: SeedUser
   );
 }
 
-function buildTeamAllocationSeedData(students: SeedUser[], teams: SeedTeam[]) {
+export function planTeamAllocationSeedData(students: SeedUser[], teams: SeedTeam[]) {
   const data: { userId: number; teamId: number }[] = [];
   const sortedTeams = [...teams].sort((left, right) => left.id - right.id);
   for (let index = 0; index < students.length; index += 1) {

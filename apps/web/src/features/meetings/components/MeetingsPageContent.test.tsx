@@ -4,6 +4,7 @@ import { MeetingsPageContent } from "./MeetingsPageContent";
 
 vi.mock("../api/client", () => ({
   listMeetings: vi.fn(),
+  getTeamMeetingSettings: vi.fn().mockResolvedValue({ minutesEditWindowDays: 7, attendanceEditWindowDays: 7, allowAnyoneToEditMeetings: false, allowAnyoneToRecordAttendance: false, allowAnyoneToWriteMinutes: false }),
 }));
 
 vi.mock("@/features/auth/context", () => ({
@@ -35,6 +36,9 @@ const futureMeeting = {
   location: "Bush House 3.01",
   minutes: null,
   videoCallLink: null,
+  team: { allocations: [] },
+  participants: [],
+  attendances: [],
 };
 
 const pastMeeting = {
@@ -45,6 +49,9 @@ const pastMeeting = {
   location: null,
   minutes: null,
   videoCallLink: null,
+  team: { allocations: [] },
+  participants: [],
+  attendances: [],
 };
 
 describe("MeetingsPageContent", () => {
@@ -140,5 +147,12 @@ describe("MeetingsPageContent", () => {
     render(<MeetingsPageContent teamId={10} projectId={1} />);
     await waitFor(() => screen.getByText("Team Meeting"));
     expect(screen.getByText("Bush House 3.01")).toBeInTheDocument();
+  });
+
+  it("locks new meeting tab when project is completed", async () => {
+    render(<MeetingsPageContent teamId={10} projectId={1} projectCompleted />);
+    await waitFor(() => screen.getByText("Team Meeting"));
+    expect(screen.queryByRole("button", { name: /new meeting/i })).not.toBeInTheDocument();
+    expect(screen.getByText("Project is completed. Meeting creation is closed.")).toBeInTheDocument();
   });
 });

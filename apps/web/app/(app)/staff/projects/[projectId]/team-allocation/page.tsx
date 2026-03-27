@@ -40,7 +40,7 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
 
   return (
     <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} />
+      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
 
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Team allocation</p>
@@ -73,7 +73,10 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
                   {team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}
                 </span>
               </div>
-              <Link href={`/staff/projects/${data.project.id}/teams/${team.id}`} className="pill-nav__link staff-projects__team-action">
+              <Link
+                href={`/staff/modules/${encodeURIComponent(String(data.project.moduleId))}/projects/${data.project.id}/teams/${team.id}`}
+                className="pill-nav__link staff-projects__team-action"
+              >
                 Open team workspace
               </Link>
             </article>

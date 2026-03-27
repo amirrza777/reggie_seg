@@ -86,7 +86,7 @@ export function StudentModulesOverviewClient({
       setJoinResult(response);
       setJoinStatus("success");
       setBannerMessage(
-        response.alreadyEnrolled
+        response.result === "already_joined"
           ? `${response.moduleName} is already on your workspace.`
           : `${response.moduleName} has been added to your modules.`,
       );
@@ -157,10 +157,10 @@ function JoinModuleDialog(props: {
           {props.status === "success" && props.result ? (
             <div className="module-join-modal__success">
               <p className="module-join-modal__headline">
-                {props.result.alreadyEnrolled ? "Module already linked" : "Module joined"}
+                {props.result.result === "already_joined" ? "Module already linked" : "Module joined"}
               </p>
               <p className="muted">
-                {props.result.alreadyEnrolled
+                {props.result.result === "already_joined"
                   ? `${props.result.moduleName} is already available in your workspace.`
                   : `${props.result.moduleName} is now available in your workspace.`}
               </p>

@@ -1,4 +1,5 @@
 import { useCallback, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { parsePageInput } from "@/shared/lib/pagination";
 import { updateEnterpriseUser } from "../api/client";
 import type { AdminUser, EnterpriseRecord, UserRole } from "../types";
 import {
@@ -73,8 +74,8 @@ function useEnterpriseUserPagingActions(options: {
   } = options;
 
   const applyEnterpriseUserPageInput = useCallback((value: string) => {
-    const parsedPage = Number(value);
-    if (!Number.isInteger(parsedPage) || parsedPage < 1 || parsedPage > effectiveEnterpriseUserTotalPages) {
+    const parsedPage = parsePageInput(value, effectiveEnterpriseUserTotalPages);
+    if (parsedPage === null) {
       setEnterpriseUserPageInput(String(enterpriseUserPage));
       return;
     }

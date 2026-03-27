@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { ProgressCardGrid } from "@/shared/ui/ProgressCardGrid";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -52,20 +51,6 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
 
   return (
     <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Peer Assessment</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Review submission progress for each student in this team.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">Project {projectData.project.id}</span>
-          <span className="staff-projects__badge">Team {team.id}</span>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
       <section className="staff-projects__team-card">
         <h3 style={{ margin: 0 }}>Assessment progress by student</h3>
         <p className="muted" style={{ margin: 0 }}>
@@ -83,7 +68,7 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
             getHref={(item) =>
               item.id == null
                 ? undefined
-                : `/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${item.id}`
+                : `/staff/modules/${encodeURIComponent(String(projectData.project.moduleId))}/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${item.id}`
             }
           />
         ) : null}

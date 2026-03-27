@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { isStaffNavLinkActive } from "./navLinkActive";
+import { resolveStaffTeamBasePath } from "./navBasePath";
 
 type StaffTeamSectionNavProps = {
   projectId: string;
   teamId: string;
+  moduleId?: string | number | null;
 };
 
 const teamTabs = [
@@ -18,12 +20,12 @@ const teamTabs = [
   { key: "peer-feedback", label: "Peer feedback", hrefSuffix: "/peer-feedback" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
   { key: "trello", label: "Trello", hrefSuffix: "/trello" },
-  { key: "grading", label: "Grading", hrefSuffix: "/grading" },
+  { key: "grading", label: "Marking", hrefSuffix: "/grading" },
 ];
 
-export function StaffTeamSectionNav({ projectId, teamId }: StaffTeamSectionNavProps) {
+export function StaffTeamSectionNav({ projectId, teamId, moduleId }: StaffTeamSectionNavProps) {
   const pathname = usePathname();
-  const base = `/staff/projects/${projectId}/teams/${teamId}`;
+  const base = resolveStaffTeamBasePath({ projectId, teamId, moduleId, pathname });
 
   return (
     <nav className="pill-nav" aria-label="Team sections">

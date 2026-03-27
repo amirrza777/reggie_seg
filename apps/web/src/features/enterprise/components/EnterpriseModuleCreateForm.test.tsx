@@ -148,10 +148,18 @@ describe("EnterpriseModuleCreateForm", () => {
     getModuleMeetingSettingsMock.mockResolvedValue({
       absenceThreshold: 2,
       minutesEditWindowDays: 7,
+      attendanceEditWindowDays: 7,
+      allowAnyoneToEditMeetings: false,
+      allowAnyoneToRecordAttendance: false,
+      allowAnyoneToWriteMinutes: false,
     });
     updateModuleMeetingSettingsMock.mockResolvedValue({
       absenceThreshold: 2,
       minutesEditWindowDays: 7,
+      attendanceEditWindowDays: 7,
+      allowAnyoneToEditMeetings: false,
+      allowAnyoneToRecordAttendance: false,
+      allowAnyoneToWriteMinutes: false,
     });
     updateEnterpriseModuleMock.mockResolvedValue({
       id: 77,
@@ -223,8 +231,8 @@ describe("EnterpriseModuleCreateForm", () => {
     render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} createdJoinCode="ZXCV6789" />);
 
     expect(await screen.findByText(/students can now join with this code/i)).toBeInTheDocument();
-    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
-    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(77);
+    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ZXCV6789");
+    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

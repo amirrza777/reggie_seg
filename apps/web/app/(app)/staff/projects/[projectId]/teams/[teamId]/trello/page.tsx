@@ -3,7 +3,6 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -39,12 +38,11 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
 
   return (
     <div className="staff-projects">
-      <StaffTrelloHero projectData={projectResult.projectData} teamId={context.teamId} teamName={team.teamName} />
-      <StaffTeamSectionNav projectId={context.projectId} teamId={context.teamId} />
       <section className="staff-projects__team-card" aria-label="Team Trello activity">
         <StaffProjectTrelloContent
           projectId={context.projectId}
           teamId={team.id}
+          moduleId={projectResult.projectData.project.moduleId}
           teamName={team.teamName}
           deadline={deadline ?? undefined}
           viewComponent={StaffTrelloSummaryView}
@@ -88,29 +86,5 @@ function MissingTeamView({ message }: { message: string | null }) {
         Back to project teams
       </Link>
     </div>
-  );
-}
-
-function StaffTrelloHero({
-  teamId,
-  teamName,
-  projectData,
-}: {
-  teamId: string;
-  teamName: string;
-  projectData: Awaited<ReturnType<typeof getStaffProjectTeams>>;
-}) {
-  return (
-    <section className="staff-projects__hero">
-      <p className="staff-projects__eyebrow">Trello</p>
-      <h1 className="staff-projects__title">{teamName}</h1>
-      <p className="staff-projects__desc">
-        Project: {projectData.project.name}. Track board activity for this team without leaving the team workspace.
-      </p>
-      <div className="staff-projects__meta">
-        <span className="staff-projects__badge">Project {projectData.project.id}</span>
-        <span className="staff-projects__badge">Team {teamId}</span>
-      </div>
-    </section>
   );
 }

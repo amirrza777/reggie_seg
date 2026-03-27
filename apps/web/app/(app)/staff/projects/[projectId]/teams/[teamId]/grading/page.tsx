@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffMarkingCard } from "@/features/staff/peerAssessments/components/StaffMarkingCard";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
+import { MarkingStudentList } from "./MarkingStudentList";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -73,20 +72,6 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
 
   return (
     <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Grading</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Team-level grading and links to student-level grading details.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">Project {projectData.project.id}</span>
-          <span className="staff-projects__badge">Team {team.id}</span>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
       {gradingError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{gradingError}</p>
@@ -117,31 +102,12 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
             initialMarking={teamMarking}
           />
 
-          <section className="staff-projects__team-list" aria-label="Student grading drill down">
-            <article className="staff-projects__team-card">
-              <h3 className="staff-projects__team-title" style={{ margin: 0 }}>Student grading detail</h3>
-              <p className="staff-projects__team-count">
-                Open any student to set or update individual marks and formative feedback.
-              </p>
-            </article>
-            {students.map((student) => (
-              <article key={student.id ?? student.title} className="staff-projects__team-card">
-                <div className="staff-projects__team-top">
-                  <h3 className="staff-projects__team-title">{student.title}</h3>
-                </div>
-                {student.id == null ? (
-                  <p className="muted" style={{ margin: 0 }}>Student identifier unavailable.</p>
-                ) : (
-                  <Link
-                    href={`/staff/projects/${projectData.project.id}/teams/${team.id}/peer-assessment/${student.id}`}
-                    className="pill-nav__link staff-projects__team-action"
-                  >
-                    Open student grading
-                  </Link>
-                )}
-              </article>
-            ))}
-          </section>
+          <MarkingStudentList
+            students={students}
+            moduleId={projectData.project.moduleId}
+            projectId={projectData.project.id}
+            teamId={team.id}
+          />
         </>
       )}
     </div>

@@ -3,6 +3,10 @@ import { prisma } from "../../shared/db.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
+export * from "./warnings/repo.js";
+export * from "./nav-flags/repo.js";
+export * from "./team-health-review/repo.js";
+
 export type ProjectDeadlineInput = {
   taskOpenDate: Date;
   taskDueDate: Date;
@@ -23,12 +27,6 @@ export type StudentDeadlineOverrideInput = {
   feedbackOpenDate?: Date | null;
   feedbackDueDate?: Date | null;
   reason?: string | null;
-};
-
-export type ModuleJoinActor = {
-  id: number;
-  enterpriseId: string;
-  role: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 };
 
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
@@ -769,58 +767,6 @@ export async function getModulesForUser(
   });
 }
 
-export async function getModuleJoinActor(userId: number): Promise<ModuleJoinActor | null> {
-  return prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      enterpriseId: true,
-      role: true,
-    },
-  });
-}
-
-export async function joinModuleByCode(input: {
-  enterpriseId: string;
-  userId: number;
-  joinCode: string;
-}): Promise<{ moduleId: number; moduleName: string; alreadyEnrolled: boolean } | null> {
-  return prisma.$transaction(async (tx) => {
-    const module = await tx.module.findFirst({
-      where: {
-        enterpriseId: input.enterpriseId,
-        joinCode: input.joinCode,
-        archivedAt: null,
-      },
-      select: {
-        id: true,
-        name: true,
-      },
-    });
-
-    if (!module) {
-      return null;
-    }
-
-    const inserted = await tx.userModule.createMany({
-      data: [
-        {
-          enterpriseId: input.enterpriseId,
-          userId: input.userId,
-          moduleId: module.id,
-        },
-      ],
-      skipDuplicates: true,
-    });
-
-    return {
-      moduleId: module.id,
-      moduleName: module.name,
-      alreadyEnrolled: inserted.count === 0,
-    };
-  });
-}
-
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -829,13 +775,14 @@ async function getScopedStaffUser(userId: number) {
 }
 
 /** Returns the staff projects. */
-export async function getStaffProjects(userId: number, options?: { query?: string | null }) {
+export async function getStaffProjects(userId: number, options?: { query?: string | null; moduleId?: number }) {
   const user = await getScopedStaffUser(userId);
   if (!user) return [];
 
   const baseWhere: Prisma.ProjectWhereInput = {
     module: {
       enterpriseId: user.enterpriseId,
+      ...(options?.moduleId != null ? { id: options.moduleId } : {}),
     },
   };
 
@@ -962,6 +909,101 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
   return project;
 }
 
+const MARKING_PROJECT_SELECT = {
+  id: true,
+  name: true,
+  moduleId: true,
+  module: { select: { name: true } },
+  teams: {
+    where: { archivedAt: null, allocationLifecycle: "ACTIVE" as const },
+    orderBy: { id: "asc" as const },
+    select: {
+      id: true,
+      teamName: true,
+      projectId: true,
+      inactivityFlag: true,
+      _count: { select: { allocations: true } },
+    },
+  },
+} satisfies Prisma.ProjectSelect;
+
+type MarkingProject = Prisma.ProjectGetPayload<{ select: typeof MARKING_PROJECT_SELECT }>;
+
+function matchesMarkingProjectSearchQuery(project: MarkingProject, query: string): boolean {
+  const teamSources = project.teams.map((t) => t.teamName);
+  return matchesFuzzySearchCandidate({
+    query,
+    candidateId: project.id,
+    sources: [project.name, project.module?.name ?? "", ...teamSources],
+  });
+}
+
+/** Returns all staff projects with teams for the marking overview (single query). */
+export async function getStaffProjectsForMarking(userId: number, options?: { query?: string | null }) {
+  const user = await getScopedStaffUser(userId);
+  if (!user) return [];
+
+  const baseWhere: Prisma.ProjectWhereInput = {
+    archivedAt: null,
+    module: { enterpriseId: user.enterpriseId },
+  };
+
+  const roleCanAccessAll = user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN";
+  const accessWhere: Prisma.ProjectWhereInput = roleCanAccessAll
+    ? baseWhere
+    : {
+        AND: [
+          baseWhere,
+          {
+            OR: [
+              { module: { moduleLeads: { some: { userId } } } },
+              { module: { moduleTeachingAssistants: { some: { userId } } } },
+            ],
+          },
+        ],
+      };
+
+  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
+  const hasQuery = normalizedQuery.length > 0;
+  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+
+  const scopedWhere: Prisma.ProjectWhereInput = hasQuery
+    ? {
+        AND: [
+          accessWhere,
+          {
+            OR: [
+              { name: { contains: normalizedQuery } },
+              { module: { name: { contains: normalizedQuery } } },
+              { teams: { some: { teamName: { contains: normalizedQuery }, archivedAt: null, allocationLifecycle: "ACTIVE" } } },
+              ...(numericQuery !== null ? [{ id: numericQuery }] : []),
+            ],
+          },
+        ],
+      }
+    : accessWhere;
+
+  let projects = await prisma.project.findMany({
+    where: scopedWhere,
+    orderBy: [{ moduleId: "asc" }, { id: "asc" }],
+    select: MARKING_PROJECT_SELECT,
+  });
+
+  projects = await applyFuzzyFallback(projects, {
+    query: normalizedQuery,
+    fetchFallbackCandidates: (limit) =>
+      prisma.project.findMany({
+        where: accessWhere,
+        orderBy: [{ moduleId: "asc" }, { id: "asc" }],
+        select: MARKING_PROJECT_SELECT,
+        take: limit,
+      }),
+    matches: (project, query) => matchesMarkingProjectSearchQuery(project, query),
+  });
+
+  return projects;
+}
+
 /** Returns the project by ID. */
 export async function getProjectById(projectId: number) {
   return prisma.project.findUnique({
@@ -969,8 +1011,11 @@ export async function getProjectById(projectId: number) {
     select: {
       id: true,
       name: true,
+      informationText: true,
+      archivedAt: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      projectNavFlags: true,
     },
   });
 }
@@ -981,6 +1026,7 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  informationText: string | null,
   deadline: ProjectDeadlineInput,
 ) {
   const actor = await getScopedStaffUser(actorUserId);
@@ -1025,6 +1071,7 @@ export async function createProject(
   const project = await prisma.project.create({
     data: {
       name,
+      informationText,
       moduleId,
       questionnaireTemplateId,
       deadline: {
@@ -1044,6 +1091,7 @@ export async function createProject(
     select: {
       id: true,
       name: true,
+      informationText: true,
       moduleId: true,
       questionnaireTemplateId: true,
       deadline: {

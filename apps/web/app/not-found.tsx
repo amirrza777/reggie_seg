@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
+import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 export default async function NotFound() {
   const user = await getCurrentUser();
-  const destination = user ? "/dashboard" : "/";
-  const ctaLabel = user ? "Go to dashboard" : "Go to home";
+  const destination = user ? getDefaultSpaceOverviewPath(user) : "/";
 
   return (
     <main style={{ display: "grid", placeItems: "center", minHeight: "100vh", padding: 24 }}>
@@ -14,7 +14,7 @@ export default async function NotFound() {
         <p className="lede">The page you’re looking for doesn’t exist or has moved.</p>
         <div style={{ display: "flex", justifyContent: "center" }}>
           <Link href={destination} className="btn btn--primary">
-            {ctaLabel}
+            Return home
           </Link>
         </div>
       </section>

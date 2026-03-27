@@ -89,5 +89,22 @@ export async function deleteComment(commentId: number) {
 }
 
 export async function getMeetingSettings(meetingId: number) {
-  return apiFetch<{ absenceThreshold: number; minutesEditWindowDays: number }>(`/meetings/${meetingId}/settings`);
+  return apiFetch<{
+    absenceThreshold: number;
+    minutesEditWindowDays: number;
+    attendanceEditWindowDays: number;
+    allowAnyoneToEditMeetings: boolean;
+    allowAnyoneToRecordAttendance: boolean;
+    allowAnyoneToWriteMinutes: boolean;
+  }>(`/meetings/${meetingId}/settings`);
+}
+
+export async function getTeamMeetingSettings(teamId: number) {
+  return apiFetch<{
+    minutesEditWindowDays: number;
+    attendanceEditWindowDays: number;
+    allowAnyoneToEditMeetings: boolean;
+    allowAnyoneToRecordAttendance: boolean;
+    allowAnyoneToWriteMinutes: boolean;
+  }>(`/meetings/team/${teamId}/settings`);
 }

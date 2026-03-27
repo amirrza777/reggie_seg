@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
 import { AGREEMENT_OPTIONS } from "../types";
 import { submitPeerFeedback } from "../api/client";
@@ -20,6 +21,7 @@ type FeedbackReviewFormProps = {
   feedbackDeadline?: string | null;
   feedbackOpenAt?: string | null;
   feedbackDueAt?: string | null;
+  readOnly?: boolean;
 };
 
 const radioInputStyle: CSSProperties = {
@@ -31,7 +33,6 @@ const radioInputStyle: CSSProperties = {
   background: "transparent",
   flex: "0 0 auto",
 };
-
 const countdownBoxStyle: CSSProperties = {
   border: "1px solid var(--border)",
   borderRadius: 8,
@@ -63,6 +64,16 @@ function toDate(value?: string | null): Date | null {
 
 function formatDateLabel(value: Date | null): string {
   return value ? value.toLocaleString() : "Not set";
+}
+
+function formatRemainingDuration(totalSeconds: number) {
+  const safeSeconds = Math.max(0, totalSeconds);
+  const days = Math.floor(safeSeconds / 86400);
+  const hours = Math.floor((safeSeconds % 86400) / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const seconds = safeSeconds % 60;
+  const two = (value: number) => String(value).padStart(2, "0");
+  return `${two(days)}d : ${two(hours)}h : ${two(minutes)}m : ${two(seconds)}s`;
 }
 
 function renderAnswerPreview(answer: Answer) {
@@ -149,16 +160,6 @@ function renderAnswerPreview(answer: Answer) {
   );
 }
 
-function formatRemainingDuration(totalSeconds: number) {
-  const safeSeconds = Math.max(0, totalSeconds);
-  const days = Math.floor(safeSeconds / 86400);
-  const hours = Math.floor((safeSeconds % 86400) / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
-  const two = (value: number) => String(value).padStart(2, "0");
-  return `${two(days)}d : ${two(hours)}h : ${two(minutes)}m : ${two(seconds)}s`;
-}
-
 export function FeedbackReviewForm({
   feedback,
   onSubmit,
@@ -169,34 +170,40 @@ export function FeedbackReviewForm({
   feedbackDeadline = null,
   feedbackOpenAt = null,
   feedbackDueAt = null,
+  readOnly = false,
 }: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
+  const [reviewEmpty, setReviewEmpty] = useState(!initialReview);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isEditing, setIsEditing] = useState(!initialReview);
+  const [isEditing, setIsEditing] = useState(!initialReview && !readOnly);
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => Date.now());
   const editingMode = !!initialReview;
 
   const openAt = toDate(feedbackOpenAt);
   const dueAt = toDate(feedbackDueAt ?? feedbackDeadline);
-  const now = new Date();
+  const now = new Date(currentTimestamp);
   const isBeforeOpen = Boolean(openAt && now < openAt);
   const isAfterDue = Boolean(dueAt && now > dueAt);
-  const canSubmit = !isBeforeOpen;
+  const isReadOnly = readOnly || isAfterDue;
+  const canSubmit = !isBeforeOpen && !isReadOnly;
+  const countdownTargetTimestamp = isAfterDue
+    ? null
+    : isBeforeOpen && openAt
+      ? openAt.getTime()
+      : dueAt
+        ? dueAt.getTime()
+        : null;
+  const remainingSeconds =
+    countdownTargetTimestamp == null
+      ? null
+      : Math.max(0, Math.ceil((countdownTargetTimestamp - currentTimestamp) / 1000));
   const deadlineStatusMessage = isBeforeOpen
     ? `Peer feedback is locked until ${formatDateLabel(openAt)}.`
-    : isAfterDue
-      ? `Peer feedback deadline passed on ${formatDateLabel(dueAt)}. Submissions are still accepted and will be marked late.`
-      : dueAt
+    : dueAt && !isAfterDue
         ? `Peer feedback is open. Deadline: ${formatDateLabel(dueAt)}.`
         : null;
-
-  const deadlineTimestamp = useMemo(() => dueAt?.getTime() ?? null, [dueAt]);
-  const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
-  const remainingSeconds = useMemo(() => {
-    if (deadlineTimestamp == null || currentTimestamp == null) return null;
-    return Math.max(0, Math.ceil((deadlineTimestamp - currentTimestamp) / 1000));
-  }, [deadlineTimestamp, currentTimestamp]);
 
   const [agreements, setAgreements] = useState<AgreementsMap>(() => {
     return Object.fromEntries(
@@ -209,16 +216,19 @@ export function FeedbackReviewForm({
       ])
     );
   });
+  useEffect(() => {
+    if (countdownTargetTimestamp == null) return;
+    const interval = window.setInterval(() => {
+      setCurrentTimestamp(Date.now());
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [countdownTargetTimestamp]);
 
   useEffect(() => {
-    if (deadlineTimestamp == null) return;
-    const tick = () => {
-      setCurrentTimestamp(Date.now());
-    };
-    tick();
-    const interval = window.setInterval(tick, 1000);
-    return () => window.clearInterval(interval);
-  }, [deadlineTimestamp]);
+    if (isReadOnly && isEditing) {
+      setIsEditing(false);
+    }
+  }, [isReadOnly, isEditing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -226,7 +236,11 @@ export function FeedbackReviewForm({
       setMessage(deadlineStatusMessage ?? "Peer feedback is outside the allowed deadline window.");
       return;
     }
-    if (!review.trim()) {
+    if (isReadOnly) {
+      setMessage("This feedback is read-only after the deadline.");
+      return;
+    }
+    if (reviewEmpty) {
       setMessage("Please provide a review before submitting.");
       return;
     }
@@ -277,7 +291,7 @@ export function FeedbackReviewForm({
   }
 
   return (
-    <div className="stack">
+    <div className="stack feedbackReviewForm">
       <div className="headerContainer">
         <div style={{ display: "grid", gap: 4 }}>
           <h3 style={{ margin: 0 }}>{editingMode && !isEditing ? "View Review" : "Respond to Feedback"}</h3>
@@ -291,8 +305,12 @@ export function FeedbackReviewForm({
           ) : null}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {remainingSeconds != null ? <div style={countdownBoxStyle}>{formatRemainingDuration(remainingSeconds)}</div> : null}
-          {editingMode && !isEditing ? (
+          {remainingSeconds != null ? (
+            <div data-testid="deadline-countdown" style={countdownBoxStyle}>
+              {formatRemainingDuration(remainingSeconds)}
+            </div>
+          ) : null}
+          {editingMode && !isEditing && !isReadOnly ? (
             <Button onClick={() => setIsEditing(true)} disabled={isLoading || !canSubmit}>
               Edit
             </Button>
@@ -300,23 +318,21 @@ export function FeedbackReviewForm({
         </div>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
-        <label className="stack reviewLabel">
+        <div className="stack reviewLabel">
           <span>Your Review</span>
           {isEditing ? (
-            <AutoGrowTextarea
-              rows={4}
+            <RichTextEditor
+              initialContent={review}
+              onChange={setReview}
+              onEmptyChange={setReviewEmpty}
               placeholder="Type your response here..."
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              disabled={isLoading}
-              className="textarea"
             />
           ) : (
             <div className="reviewBox">
-              <p className="reviewText">{review || "(No review provided)"}</p>
+              {review ? <RichTextViewer content={review} /> : <p className="reviewText">(No review provided)</p>}
             </div>
           )}
-        </label>
+        </div>
 
         <div className="agreementSection">
           <h4 className="agreementTitle">Agree with each answer?</h4>
@@ -336,7 +352,7 @@ export function FeedbackReviewForm({
                         setAgreements((prev) => ({ ...prev, [getAnswerKey(a)]: { selected, score } }));
                       }}
                       disabled={isLoading}
-                      className="select"
+                      className="select agreementSelect"
                     >
                       {AGREEMENT_OPTIONS.map((option) => (
                         <option key={option.label} value={option.label}>
@@ -345,7 +361,7 @@ export function FeedbackReviewForm({
                       ))}
                     </select>
                   ) : (
-                    <span className="agreementSpan">
+                    <span className="agreementBadge">
                       {agreements[getAnswerKey(a)]?.score} — {agreements[getAnswerKey(a)]?.selected ?? "Not selected"}
                     </span>
                   )}
@@ -364,8 +380,9 @@ export function FeedbackReviewForm({
               Back
             </Button>
           </div>
-        ) : null}
-        {editingMode && !isEditing ? <Button onClick={handleBack}>Back</Button> : null}
+        ) : (
+          <Button onClick={handleBack}>Back</Button>
+        )}
         {message ? <p className={message.includes("success") ? "" : "muted"}>{message}</p> : null}
       </form>
     </div>

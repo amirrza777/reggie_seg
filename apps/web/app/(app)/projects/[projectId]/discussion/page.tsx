@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
 
 export const metadata = { title: "Discussion Forum" };

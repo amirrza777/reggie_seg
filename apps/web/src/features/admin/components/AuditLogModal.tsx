@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
+import { ModalPortal } from "@/shared/ui/ModalPortal";
 import { listAuditLogs } from "../api/client";
 import type { AuditLogEntry } from "../types";
 
@@ -112,6 +113,7 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   if (!open) return null;
 
   return (
+    <ModalPortal>
     <div className="modal" role="dialog" aria-modal="true" aria-labelledby="audit-log-title" onClick={onClose}>
       <div className="modal__dialog admin-modal ui-content-width" onClick={(event) => event.stopPropagation()}>
         <div className="modal__header ui-modal-header audit-modal__header">
@@ -218,5 +220,6 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
 
       </div>
     </div>
+    </ModalPortal>
   );
 }

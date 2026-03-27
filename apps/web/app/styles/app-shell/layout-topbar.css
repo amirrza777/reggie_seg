@@ -48,9 +48,27 @@
 }
 
 .topbar__title-link {
+  display: inline-flex;
+  align-items: center;
   color: inherit;
   text-decoration: none;
 }
+
+.topbar__title-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar__title-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  border-radius: 4px;
+  flex-shrink: 0;
+  filter: var(--brand-icon-filter, none);
+}
+
 .topbar__actions {
   display: flex;
   gap: 8px;

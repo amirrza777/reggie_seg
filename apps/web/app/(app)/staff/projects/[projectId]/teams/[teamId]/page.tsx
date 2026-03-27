@@ -4,7 +4,6 @@ import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 
 type StaffProjectTeamTabsPageProps = {
@@ -77,24 +76,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   }
 
   return (
-    <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Team</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">Project: {data.project.name}</p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">{team.allocations.length} member{team.allocations.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">
-            Profile: {team.deadlineProfile === "MCF" ? "MCF" : "Standard"}
-          </span>
-          <span className="staff-projects__badge">
-            {team.hasDeadlineOverride ? "Team override active" : "No team override"}
-          </span>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
+    <>
       <section className="staff-projects__grid" aria-label="Team health summary">
         <Link
           href={`/staff/projects/${projectId}/teams/${teamId}/team`}
@@ -124,21 +106,21 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
         </p>
         {team.allocations.length === 0 ? <p className="muted" style={{ margin: 0 }}>No students assigned yet.</p> : null}
         <div className="staff-projects__members">
-        {team.allocations.map((allocation) => (
-          <div key={allocation.userId} className="staff-projects__member">
-            <div className="staff-projects__avatar">
-              {getInitials(allocation.user.firstName, allocation.user.lastName)}
+          {team.allocations.map((allocation) => (
+            <div key={allocation.userId} className="staff-projects__member">
+              <div className="staff-projects__avatar">
+                {getInitials(allocation.user.firstName, allocation.user.lastName)}
+              </div>
+              <div>
+                <p className="staff-projects__member-name">
+                  {allocation.user.firstName} {allocation.user.lastName}
+                </p>
+                <p className="staff-projects__member-email">{allocation.user.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="staff-projects__member-name">
-                {allocation.user.firstName} {allocation.user.lastName}
-              </p>
-              <p className="staff-projects__member-email">{allocation.user.email}</p>
-            </div>
-          </div>
-        ))}
+          ))}
         </div>
       </section>
-    </div>
+    </>
   );
 }

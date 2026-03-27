@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffTeamCard } from "@/features/staff/projects/components/StaffTeamCard";
+import { StaffProjectWarningsConfigPanel } from "@/features/staff/projects/components/StaffProjectWarningsConfigPanel";
 import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -33,7 +35,7 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
 
   return (
     <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} />
+      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
 
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Project</p>
@@ -44,6 +46,23 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
         <div className="staff-projects__meta">
           <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
           <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
+        </div>
+        <div className="staff-projects__hero-actions">
+          <div className="staff-projects__hero-actions-links">
+            <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
+              Team allocation
+            </Link>
+            <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
+              Forum
+            </Link>
+            <Link href={`/staff/projects/${data.project.id}/feature-flags`} className="staff-projects__quick-link">
+              Feature flags
+            </Link>
+          </div>
+          <StaffProjectWarningsConfigPanel
+            projectId={data.project.id}
+            projectName={data.project.name}
+          />
         </div>
       </section>
 

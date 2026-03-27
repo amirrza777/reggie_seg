@@ -12,9 +12,22 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
+  joinModuleHandler,
   getUserModulesHandler,
   getModuleStaffListHandler,
   getUserProjectsHandler,
+  createTeamHealthMessageHandler,
+  getMyTeamHealthMessagesHandler,
+  getStaffTeamHealthMessagesHandler,
+  createStaffTeamWarningHandler,
+  getStaffTeamWarningsHandler,
+  resolveStaffTeamWarningHandler,
+  getMyTeamWarningsHandler,
+  getProjectWarningsConfigHandler,
+  getProjectNavFlagsConfigHandler,
+  updateProjectNavFlagsConfigHandler,
+  updateProjectWarningsConfigHandler,
+  evaluateProjectWarningsHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
@@ -25,6 +38,7 @@ vi.mock("./service.js", () => ({
   fetchProjectsForUser: vi.fn(),
   fetchProjectsForStaff: vi.fn(),
   fetchModulesForUser: vi.fn(),
+  joinModuleByCode: vi.fn(),
   fetchModuleStaffList: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
@@ -34,6 +48,15 @@ vi.mock("./service.js", () => ({
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
+  createTeamWarningForStaff: vi.fn(),
+  fetchTeamWarningsForStaff: vi.fn(),
+  resolveTeamWarningForStaff: vi.fn(),
+  fetchMyTeamWarnings: vi.fn(),
+  fetchProjectWarningsConfigForStaff: vi.fn(),
+  fetchProjectNavFlagsConfigForStaff: vi.fn(),
+  updateProjectNavFlagsConfigForStaff: vi.fn(),
+  updateProjectWarningsConfigForStaff: vi.fn(),
+  evaluateProjectWarningsForStaff: vi.fn(),
   updateTeamDeadlineProfileForStaff: vi.fn(),
   fetchStaffStudentDeadlineOverrides: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
@@ -91,6 +114,7 @@ describe("projects controller core handlers", () => {
       "P1",
       2,
       3,
+      null,
       expect.objectContaining({
         taskOpenDate: expect.any(Date),
         taskDueDate: expect.any(Date),
@@ -196,6 +220,30 @@ describe("projects controller core handlers", () => {
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
+  it("joinModuleHandler enforces auth and forwards join requests", async () => {
+    const unauthorizedRes = mockResponse();
+    await joinModuleHandler({ body: { code: "ABCD1234" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const invalidBodyRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: {} } as any, invalidBodyRes);
+    expect(invalidBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.joinModuleByCode as any).mockResolvedValue({
+      ok: true,
+      value: { moduleId: 3, moduleName: "SEGP", result: "joined" },
+    });
+    const okRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, okRes);
+
+    expect(service.joinModuleByCode).toHaveBeenCalledWith(7, "segp-1234");
+    expect(okRes.json).toHaveBeenCalledWith({
+      moduleId: 3,
+      moduleName: "SEGP",
+      result: "joined",
+    });
+  });
+
   it("getModuleStaffListHandler returns members or 403", async () => {
     const unauthorizedRes = mockResponse();
     await getModuleStaffListHandler({ params: { moduleId: "2" } } as any, unauthorizedRes);
@@ -295,8 +343,16 @@ describe("projects controller core handlers", () => {
     const staffProjectsRes = mockResponse();
     (service.fetchProjectsForStaff as any).mockResolvedValue([{ id: 1, name: "P1" }]);
     await getStaffProjectsHandler({ user: { sub: 12 }, query: { userId: "12" } } as any, staffProjectsRes);
-    expect(service.fetchProjectsForStaff).toHaveBeenCalledWith(12);
+    expect(service.fetchProjectsForStaff).toHaveBeenCalledWith(12, {
+      query: undefined,
+      moduleId: undefined,
+    });
     expect(staffProjectsRes.json).toHaveBeenCalledWith([{ id: 1, name: "P1" }]);
+
+    const badModuleIdRes = mockResponse();
+    await getStaffProjectsHandler({ user: { sub: 12 }, query: { userId: "12", moduleId: "abc" } } as any, badModuleIdRes);
+    expect(badModuleIdRes.status).toHaveBeenCalledWith(400);
+    expect(service.fetchProjectsForStaff).toHaveBeenCalledTimes(1);
 
     const staffTeamsRes = mockResponse();
     (service.fetchProjectTeamsForStaff as any).mockResolvedValue({
@@ -349,5 +405,468 @@ describe("projects controller core handlers", () => {
     const okRes = mockResponse();
     await getQuestionsForProjectHandler({ params: { projectId: "10" } } as any, okRes);
     expect(okRes.json).toHaveBeenCalledWith({ id: 5, questions: [{ id: 1 }] });
+  });
+
+  it("createTeamHealthMessageHandler validates payload and creates request", async () => {
+    const badRes = mockResponse();
+    await createTeamHealthMessageHandler({ params: { projectId: "x" }, body: { userId: 1 } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    const badBodyRes = mockResponse();
+    await createTeamHealthMessageHandler(
+      { params: { projectId: "2" }, body: { userId: 7, subject: " ", details: "detail" } } as any,
+      badBodyRes
+    );
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.submitTeamHealthMessage as any).mockResolvedValue({
+      id: 11,
+      projectId: 2,
+      teamId: 3,
+      requesterUserId: 7,
+      subject: "Need support",
+      details: "Please review team dynamics",
+      resolved: false,
+    });
+    const okRes = mockResponse();
+    await createTeamHealthMessageHandler(
+      {
+        params: { projectId: "2" },
+        body: { userId: 7, subject: " Need support ", details: " Please review team dynamics " },
+      } as any,
+      okRes
+    );
+    expect(service.submitTeamHealthMessage).toHaveBeenCalledWith(7, 2, "Need support", "Please review team dynamics");
+    expect(okRes.status).toHaveBeenCalledWith(201);
+    expect(okRes.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        request: expect.objectContaining({ id: 11, resolved: false }),
+      })
+    );
+
+    (service.submitTeamHealthMessage as any).mockResolvedValue(null);
+    const missingRes = mockResponse();
+    await createTeamHealthMessageHandler(
+      { params: { projectId: "2" }, body: { userId: 7, subject: "Need", details: "Help" } } as any,
+      missingRes
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getMyTeamHealthMessagesHandler validates ids and returns requester list", async () => {
+    const badRes = mockResponse();
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "x" }, query: { userId: "7" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchMyTeamHealthMessages as any).mockResolvedValue([
+      { id: 1, subject: "Need support", resolved: false },
+    ]);
+    const okRes = mockResponse();
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, okRes);
+    expect(service.fetchMyTeamHealthMessages).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({
+      requests: [{ id: 1, subject: "Need support", resolved: false }],
+    });
+
+    (service.fetchMyTeamHealthMessages as any).mockResolvedValue(null);
+    const missingRes = mockResponse();
+    await getMyTeamHealthMessagesHandler({ params: { projectId: "3" }, query: { userId: "7" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getStaffTeamHealthMessagesHandler validates ids and returns staff list", async () => {
+    const badRes = mockResponse();
+    await getStaffTeamHealthMessagesHandler(
+      { params: { projectId: "x", teamId: "2" }, query: { userId: "7" } } as any,
+      badRes
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue([
+      { id: 4, subject: "Urgent", resolved: false },
+    ]);
+    const okRes = mockResponse();
+    await getStaffTeamHealthMessagesHandler(
+      { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
+      okRes
+    );
+    expect(service.fetchTeamHealthMessagesForStaff).toHaveBeenCalledWith(7, 3, 2);
+    expect(okRes.json).toHaveBeenCalledWith({
+      requests: [{ id: 4, subject: "Urgent", resolved: false }],
+    });
+
+    (service.fetchTeamHealthMessagesForStaff as any).mockResolvedValue(null);
+    const missingRes = mockResponse();
+    await getStaffTeamHealthMessagesHandler(
+      { params: { projectId: "3", teamId: "2" }, query: { userId: "7" } } as any,
+      missingRes
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getProjectWarningsConfigHandler validates id and returns config", async () => {
+    const unauthorizedRes = mockResponse();
+    await getProjectWarningsConfigHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      warningsConfig: { version: 1, rules: [] },
+    });
+    const okRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, okRes);
+    expect(service.fetchProjectWarningsConfigForStaff).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      warningsConfig: { version: 1, rules: [] },
+    });
+
+    (service.fetchProjectWarningsConfigForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getProjectWarningsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getProjectNavFlagsConfigHandler validates id and returns config", async () => {
+    const unauthorizedRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+    const okRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, okRes);
+    expect(service.fetchProjectNavFlagsConfigForStaff).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+
+    (service.fetchProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getProjectNavFlagsConfigHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("updateProjectNavFlagsConfigHandler validates payload and updates config", async () => {
+    const unauthorizedRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { params: { projectId: "3" }, body: { projectNavFlags: { version: 1, active: {}, completed: {} } } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badIdRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, body: { projectNavFlags: { version: 1, active: {}, completed: {} } } } as any,
+      badIdRes,
+    );
+    expect(badIdRes.status).toHaveBeenCalledWith(400);
+
+    const missingBodyRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: {} } as any,
+      missingBodyRes,
+    );
+    expect(missingBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateProjectNavFlagsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+    const okRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { projectNavFlags: { version: 1, active: {}, completed: {} } },
+      } as any,
+      okRes,
+    );
+    expect(service.updateProjectNavFlagsConfigForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      { version: 1, active: {}, completed: {} },
+    );
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      name: "Project A",
+      hasPersistedProjectNavFlags: true,
+      projectNavFlags: { version: 1, active: {}, completed: {} },
+    });
+
+    (service.updateProjectNavFlagsConfigForStaff as any).mockRejectedValueOnce({ code: "INVALID_PROJECT_NAV_FLAGS_CONFIG" });
+    const invalidRes = mockResponse();
+    await updateProjectNavFlagsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: { projectNavFlags: { bad: true } } } as any,
+      invalidRes,
+    );
+    expect(invalidRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("updateProjectWarningsConfigHandler validates payload and updates config", async () => {
+    const unauthorizedRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { params: { projectId: "3" }, body: { warningsConfig: { version: 1, rules: [] } } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badProjectRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, body: { warningsConfig: { version: 1, rules: [] } } } as any,
+      badProjectRes,
+    );
+    expect(badProjectRes.status).toHaveBeenCalledWith(400);
+
+    const missingConfigRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, body: {} } as any,
+      missingConfigRes,
+    );
+    expect(missingConfigRes.status).toHaveBeenCalledWith(400);
+
+    (service.updateProjectWarningsConfigForStaff as any).mockResolvedValueOnce({
+      id: 3,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+    const okRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] } },
+      } as any,
+      okRes,
+    );
+    expect(service.updateProjectWarningsConfigForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    );
+    expect(okRes.json).toHaveBeenCalledWith({
+      id: 3,
+      warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
+    });
+
+    (service.updateProjectWarningsConfigForStaff as any).mockRejectedValueOnce({ code: "INVALID_WARNINGS_CONFIG" });
+    const invalidRes = mockResponse();
+    await updateProjectWarningsConfigHandler(
+      {
+        user: { sub: 7 },
+        params: { projectId: "3" },
+        body: { warningsConfig: { bad: true } },
+      } as any,
+      invalidRes,
+    );
+    expect(invalidRes.status).toHaveBeenCalledWith(400);
+  });
+
+  it("evaluateProjectWarningsHandler validates, delegates, and maps errors", async () => {
+    const unauthorizedRes = mockResponse();
+    await evaluateProjectWarningsHandler({ params: { projectId: "3" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRes = mockResponse();
+    await evaluateProjectWarningsHandler({ user: { sub: 7 }, params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.evaluateProjectWarningsForStaff as any).mockResolvedValueOnce({
+      projectId: 3,
+      evaluatedTeams: 2,
+      createdWarnings: 1,
+      resolvedWarnings: 0,
+      activeAutoWarnings: 1,
+      skippedRuleKeys: [],
+    });
+    const okRes = mockResponse();
+    await evaluateProjectWarningsHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, okRes);
+    expect(service.evaluateProjectWarningsForStaff).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 3,
+      }),
+    );
+
+    (service.evaluateProjectWarningsForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await evaluateProjectWarningsHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.evaluateProjectWarningsForStaff as any).mockRejectedValueOnce({ code: "FORBIDDEN", message: "Forbidden" });
+    const forbiddenRes = mockResponse();
+    await evaluateProjectWarningsHandler({ user: { sub: 7 }, params: { projectId: "3" } } as any, forbiddenRes);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+  });
+
+  it("createStaffTeamWarningHandler validates payload and delegates create", async () => {
+    const unauthorizedRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        query: {},
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW", severity: "HIGH", title: "T", details: "D" },
+      } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badBodyRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      { user: { sub: 7 }, query: {}, params: { projectId: "3", teamId: "2" }, body: { type: "", severity: "BAD" } } as any,
+      badBodyRes,
+    );
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.createTeamWarningForStaff as any).mockResolvedValueOnce({ id: 101, active: true });
+    const okRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      okRes,
+    );
+    expect(service.createTeamWarningForStaff).toHaveBeenCalledWith(
+      7,
+      3,
+      2,
+      expect.objectContaining({ type: "LOW_ATTENDANCE", severity: "HIGH" }),
+    );
+    expect(okRes.status).toHaveBeenCalledWith(201);
+
+    (service.createTeamWarningForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.createTeamWarningForStaff as any).mockRejectedValueOnce({ code: "WARNINGS_DISABLED" });
+    const disabledRes = mockResponse();
+    await createStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2" },
+        body: { type: "LOW_ATTENDANCE", severity: "HIGH", title: "Attendance low", details: "70% below threshold" },
+      } as any,
+      disabledRes,
+    );
+    expect(disabledRes.status).toHaveBeenCalledWith(409);
+  });
+
+  it("getStaffTeamWarningsHandler validates ids and returns warnings", async () => {
+    const badRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: {}, params: { projectId: "x", teamId: "2" } } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchTeamWarningsForStaff as any).mockResolvedValueOnce([{ id: 7 }]);
+    const okRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: { userId: "7" }, params: { projectId: "3", teamId: "2" } } as any,
+      okRes,
+    );
+    expect(service.fetchTeamWarningsForStaff).toHaveBeenCalledWith(7, 3, 2);
+    expect(okRes.json).toHaveBeenCalledWith({ warnings: [{ id: 7 }] });
+
+    (service.fetchTeamWarningsForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getStaffTeamWarningsHandler(
+      { user: { sub: 7 }, query: { userId: "7" }, params: { projectId: "3", teamId: "2" } } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("resolveStaffTeamWarningHandler validates ids and resolves warning", async () => {
+    const badRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "x", teamId: "2", warningId: "3" },
+      } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.resolveTeamWarningForStaff as any).mockResolvedValueOnce({ id: 3, active: false });
+    const okRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2", warningId: "3" },
+      } as any,
+      okRes,
+    );
+    expect(service.resolveTeamWarningForStaff).toHaveBeenCalledWith(7, 3, 2, 3);
+    expect(okRes.json).toHaveBeenCalledWith({ warning: { id: 3, active: false } });
+
+    (service.resolveTeamWarningForStaff as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await resolveStaffTeamWarningHandler(
+      {
+        user: { sub: 7 },
+        query: { userId: "7" },
+        params: { projectId: "3", teamId: "2", warningId: "3" },
+      } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+  });
+
+  it("getMyTeamWarningsHandler validates project id and returns warnings", async () => {
+    const badRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "x" }, query: { userId: "7" } } as any,
+      badRes,
+    );
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchMyTeamWarnings as any).mockResolvedValueOnce([{ id: 5, active: true }]);
+    const okRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, query: { userId: "7" } } as any,
+      okRes,
+    );
+    expect(service.fetchMyTeamWarnings).toHaveBeenCalledWith(7, 3);
+    expect(okRes.json).toHaveBeenCalledWith({ warnings: [{ id: 5, active: true }] });
+
+    (service.fetchMyTeamWarnings as any).mockResolvedValueOnce(null);
+    const missingRes = mockResponse();
+    await getMyTeamWarningsHandler(
+      { user: { sub: 7 }, params: { projectId: "3" }, query: { userId: "7" } } as any,
+      missingRes,
+    );
+    expect(missingRes.status).toHaveBeenCalledWith(404);
   });
 });
