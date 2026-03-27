@@ -15,6 +15,8 @@ export type Module = {
   projectWindowEnd?: string | null;
   teamCount?: number;
   projectCount?: number;
+  /** Distinct staff with module access (leads + TAs); staff module list only, when not compact. */
+  staffWithAccessCount?: number;
   accountRole?: "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 };
 

@@ -20,7 +20,7 @@ export function StaffModuleWorkspaceHero({
 }) {
   const { moduleCode, projectCount } = buildModuleDashboardData(ctx.module);
   const roleLabel = roleBadgeLabel(ctx);
-  const staffCount = ctx.module.staffWithAccessCount;
+  const staffCount = ctx.module.staffWithAccessCount ?? 0;
   const rootClassName = ["staff-projects__hero", className].filter(Boolean).join(" ");
 
   return (
