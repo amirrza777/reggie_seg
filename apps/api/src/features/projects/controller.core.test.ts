@@ -12,6 +12,7 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
+  joinModuleHandler,
   getUserModulesHandler,
   getModuleStaffListHandler,
   getUserProjectsHandler,
@@ -37,6 +38,7 @@ vi.mock("./service.js", () => ({
   fetchProjectsForUser: vi.fn(),
   fetchProjectsForStaff: vi.fn(),
   fetchModulesForUser: vi.fn(),
+  joinModuleByCode: vi.fn(),
   fetchModuleStaffList: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
@@ -216,6 +218,31 @@ describe("projects controller core handlers", () => {
       compactRes,
     );
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
+  });
+
+  it("joinModuleHandler enforces auth and forwards join requests", async () => {
+    const unauthorizedRes = mockResponse();
+    await joinModuleHandler({ body: { code: "ABCD1234" } } as any, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const invalidBodyRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: {} } as any, invalidBodyRes);
+    expect(invalidBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.joinModuleByCode as any).mockResolvedValue({
+      ok: true,
+      value: { moduleId: 3, moduleName: "SEGP", enrolled: true, alreadyEnrolled: false },
+    });
+    const okRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, okRes);
+
+    expect(service.joinModuleByCode).toHaveBeenCalledWith(7, "segp-1234");
+    expect(okRes.json).toHaveBeenCalledWith({
+      moduleId: 3,
+      moduleName: "SEGP",
+      enrolled: true,
+      alreadyEnrolled: false,
+    });
   });
 
   it("getModuleStaffListHandler returns members or 403", async () => {

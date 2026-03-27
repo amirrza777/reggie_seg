@@ -3,6 +3,7 @@ export {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
+  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,

@@ -25,7 +25,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
-    featureFlag: { findMany: vi.fn(), update: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn(), createMany: vi.fn() },
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
@@ -98,6 +98,7 @@ beforeEach(() => {
   (prisma.userModule.findMany as any).mockResolvedValue([]);
   (prisma.featureFlag.findMany as any).mockResolvedValue([]);
   (prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
+  (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
 
   (prisma.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);
