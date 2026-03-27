@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { SEED_DATABASE_PROVIDER } from "./config";
+import { SEED_TABLES } from "./schema";
 
 const prisma = new PrismaClient();
 
@@ -8,40 +9,9 @@ async function main() {
   if (cleanupStrategy.beforeAll) {
     await prisma.$executeRawUnsafe(cleanupStrategy.beforeAll);
   }
-  const tables = [
-    "MeetingAttendance",
-    "MeetingComment",
-    "MeetingMinutes",
-    "Meeting",
-    "PeerFeedback",
-    "PeerAssessment",
-    "ProjectDeadline",
-    "ProjectGithubRepository",
-    "GithubRepoSnapshotUserStat",
-    "GithubRepoSnapshotRepoStat",
-    "GithubRepoSnapshot",
-    "GithubRepository",
-    "GithubAccount",
-    "FeatureFlag",
-    "RefreshToken",
-    "EmailChangeToken",
-    "PasswordResetToken",
-    "TeamAllocation",
-    "TeamInvite",
-    "TeamDeadlineOverride",
-    "UserModule",
-    "ModuleLead",
-    "Project",
-    "Question",
-    "QuestionnaireTemplate",
-    "Team",
-    "Module",
-    "User",
-    "Enterprise",
-  ];
 
   try {
-    for (const table of tables) {
+    for (const table of SEED_TABLES) {
       try {
         await prisma.$executeRawUnsafe(cleanupStrategy.truncate(table));
       } catch (error: any) {
