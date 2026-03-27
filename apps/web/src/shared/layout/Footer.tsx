@@ -10,28 +10,28 @@ const columns: { title: string; links: FooterLink[] }[] = [
   {
     title: "Product",
     links: [
-      { href: "/?section=product", label: "Peer assessment" },
-      { href: "/?section=toolkit", label: "Questionnaires" },
-      { href: "/?section=health", label: "Meetings" },
-      { href: "/?section=integrations", label: "Integrations" },
-      { href: "/?section=about", label: "Roles and permissions" },
-      { href: "/?section=showcase", label: "Analytics" },
+      { href: "/product/peer-assessment", label: "Peer assessment" },
+      { href: "/product/questionnaires", label: "Questionnaires" },
+      { href: "/product/meetings", label: "Meetings" },
+      { href: "/product/integrations", label: "Integrations" },
+      { href: "/product/roles-and-permissions", label: "Roles and permissions" },
+      { href: "/product/analytics", label: "Analytics" },
     ],
   },
   {
     title: "Resources",
     links: [
-      { href: "/?section=resources", label: "Guides" },
-      { href: "/?section=resources", label: "Templates" },
-      { href: "/?section=faq", label: "FAQ" },
+      { href: "/resources/guides", label: "Guides" },
+      { href: "/resources/templates", label: "Templates" },
+      { href: "/resources/faq", label: "FAQ" },
     ],
   },
   {
     title: "Integrations",
     links: [
-      { href: "/?section=sync", label: "GitHub" },
-      { href: "/?section=sync", label: "Trello" },
-      { href: "/?section=integrations", label: "VLE (placeholder)" },
+      { href: "/integrations/github", label: "GitHub" },
+      { href: "/integrations/trello", label: "Trello" },
+      { href: "/integrations/vle", label: "VLE (placeholder)" },
     ],
   },
   {
