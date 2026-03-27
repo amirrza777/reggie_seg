@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { reviewStaffTeamHealthMessage } from "@/features/projects/api/client";
 import type { TeamHealthMessage } from "@/features/projects/types";
 
@@ -37,6 +38,7 @@ export function StaffTeamHealthMessageReviewPanel({
   const [requestLoadError] = useState<string | null>(initialError);
   const [activeRespondRequestId, setActiveRespondRequestId] = useState<number | null>(null);
   const [responseDraft, setResponseDraft] = useState("");
+  const [responseDraftEmpty, setResponseDraftEmpty] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export function StaffTeamHealthMessageReviewPanel({
     }
     setActiveRespondRequestId(request.id);
     setResponseDraft(request.responseText ?? "");
+    setResponseDraftEmpty(!request.responseText);
     setPanelError(null);
     setPanelMessage(null);
   };
@@ -93,8 +96,7 @@ export function StaffTeamHealthMessageReviewPanel({
   };
 
   const handleSubmitResponse = async (requestId: number) => {
-    const trimmed = responseDraft.trim();
-    if (!trimmed) {
+    if (responseDraftEmpty) {
       setPanelError("Response cannot be empty.");
       return;
     }
@@ -103,7 +105,7 @@ export function StaffTeamHealthMessageReviewPanel({
     setPanelError(null);
     setPanelMessage(null);
     try {
-      const updated = await reviewStaffTeamHealthMessage(projectId, teamId, requestId, userId, true, trimmed);
+      const updated = await reviewStaffTeamHealthMessage(projectId, teamId, requestId, userId, true, responseDraft);
       updateRequest(updated);
       setActiveRespondRequestId(null);
       setResponseDraft("");
@@ -161,15 +163,18 @@ export function StaffTeamHealthMessageReviewPanel({
                     <h3 className="staff-projects__team-title" style={compactTitleStyle}>{request.subject}</h3>
                     <span style={statusBadgeStyle}>{isResolved ? "Resolved" : "Open"}</span>
                   </div>
-                  <p style={compactDetailStyle}>{request.details}</p>
+                  <div style={{ margin: 0 }}>
+                    <RichTextViewer content={request.details} />
+                  </div>
                   <p className="staff-projects__team-count" style={compactMutedStyle}>
                     Submitted by {request.requester.firstName} {request.requester.lastName} on{" "}
                     {formatDate(request.createdAt)}
                   </p>
                   {request.responseText ? (
-                    <p className="staff-projects__team-count" style={compactMutedStyle}>
-                      <strong>Staff response:</strong> {request.responseText}
-                    </p>
+                    <div className="staff-projects__team-count" style={compactMutedStyle}>
+                      <strong>Staff response:</strong>
+                      <RichTextViewer content={request.responseText!} />
+                    </div>
                   ) : null}
                   {request.reviewedBy ? (
                     <p className="muted" style={compactMutedStyle}>
@@ -205,16 +210,15 @@ export function StaffTeamHealthMessageReviewPanel({
 
                   {isRespondOpen ? (
                     <div className="staff-projects__team-health-review-box">
-                      <label className="staff-projects__team-health-deadline-field">
+                      <div className="staff-projects__team-health-deadline-field">
                         <span>Staff response</span>
-                        <AutoGrowTextarea
-                          value={responseDraft}
-                          onChange={(event) => setResponseDraft(event.target.value)}
+                        <RichTextEditor
+                          initialContent={responseDraft}
+                          onChange={setResponseDraft}
+                          onEmptyChange={setResponseDraftEmpty}
                           placeholder="Write your response to this query or complaint..."
-                          rows={4}
-                          style={{ resize: "vertical" }}
                         />
-                      </label>
+                      </div>
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                         <Button
                           type="button"

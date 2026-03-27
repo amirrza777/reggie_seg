@@ -8,9 +8,10 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
+import { TabIndentationPlugin } from "@lexical/react/LexicalTabIndentationPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
-import { FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND, $getSelection, $isRangeSelection, type EditorState } from "lexical";
+import { FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, INDENT_CONTENT_COMMAND, OUTDENT_CONTENT_COMMAND, $getSelection, $isRangeSelection, $getRoot, type EditorState } from "lexical";
 import { ListNode, ListItemNode, INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from "@lexical/list";
 import { HeadingNode, $createHeadingNode, QuoteNode, $createQuoteNode } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
@@ -118,10 +119,11 @@ function InitialContentPlugin({ content }: { content: string }) {
 type RichTextEditorProps = {
   initialContent: string;
   onChange: (json: string) => void;
+  onEmptyChange?: (isEmpty: boolean) => void;
   placeholder?: string;
 };
 
-export function RichTextEditor({ initialContent, onChange, placeholder = "Start typing..." }: RichTextEditorProps) {
+export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing..." }: RichTextEditorProps) {
   const initialConfig = {
     namespace: "RichTextEditor",
     nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
@@ -146,6 +148,7 @@ export function RichTextEditor({ initialContent, onChange, placeholder = "Start 
         ul: "rich-editor__ul",
         ol: "rich-editor__ol",
         listitem: "rich-editor__listitem",
+        nested: { listitem: "rich-editor__nested-listitem" },
       },
     },
   };
@@ -172,8 +175,16 @@ export function RichTextEditor({ initialContent, onChange, placeholder = "Start 
         </div>
         <HistoryPlugin />
         <ListPlugin />
-        <OnChangePlugin onChange={(state: EditorState) => onChange(JSON.stringify(state.toJSON()))} />
+        <OnChangePlugin onChange={(state: EditorState) => {
+          onChange(JSON.stringify(state.toJSON()));
+          if (onEmptyChange) {
+            state.read(() => {
+              onEmptyChange($getRoot().getTextContent().trim().length === 0);
+            });
+          }
+        }} />
         <InitialContentPlugin content={initialContent} />
+        <TabIndentationPlugin />
       </div>
     </LexicalComposer>
   );

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
-import { AutoGrowTextarea } from "@/shared/ui/AutoGrowTextarea";
+import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import type { PeerFeedback, Answer, AgreementOption, AgreementsMap, PeerAssessmentReviewPayload } from "../types";
 import { AGREEMENT_OPTIONS } from "../types";
 import { submitPeerFeedback } from "../api/client";
@@ -173,6 +174,7 @@ export function FeedbackReviewForm({
 }: FeedbackReviewFormProps) {
   const router = useRouter();
   const [review, setReview] = useState<string>(initialReview ?? "");
+  const [reviewEmpty, setReviewEmpty] = useState(!initialReview);
   const [message, setMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(!initialReview && !readOnly);
@@ -214,8 +216,6 @@ export function FeedbackReviewForm({
       ])
     );
   });
-  const reviewWordCount = review.trim().length === 0 ? 0 : review.trim().split(/\s+/).length;
-
   useEffect(() => {
     if (countdownTargetTimestamp == null) return;
     const interval = window.setInterval(() => {
@@ -240,7 +240,7 @@ export function FeedbackReviewForm({
       setMessage("This feedback is read-only after the deadline.");
       return;
     }
-    if (!review.trim()) {
+    if (reviewEmpty) {
       setMessage("Please provide a review before submitting.");
       return;
     }
@@ -318,26 +318,21 @@ export function FeedbackReviewForm({
         </div>
       </div>
       <form className="stack" onSubmit={handleSubmit}>
-        <label className="stack reviewLabel">
+        <div className="stack reviewLabel">
           <span>Your Review</span>
           {isEditing ? (
-            <>
-              <textarea
-                rows={4}
-                placeholder="Type your response here..."
-                value={review}
-                onChange={(e) => setReview(e.target.value)}
-                disabled={isLoading}
-                className="textarea"
-              />
-              <p className="muted reviewWordCount">{reviewWordCount} words</p>
-            </>
+            <RichTextEditor
+              initialContent={review}
+              onChange={setReview}
+              onEmptyChange={setReviewEmpty}
+              placeholder="Type your response here..."
+            />
           ) : (
             <div className="reviewBox">
-              <p className="reviewText">{review || "(No review provided)"}</p>
+              {review ? <RichTextViewer content={review} /> : <p className="reviewText">(No review provided)</p>}
             </div>
           )}
-        </label>
+        </div>
 
         <div className="agreementSection">
           <h4 className="agreementTitle">Agree with each answer?</h4>

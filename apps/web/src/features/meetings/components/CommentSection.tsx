@@ -21,6 +21,13 @@ type CommentSectionProps = {
   initialComments?: MeetingCommentRecord[];
 };
 
+function renderCommentContent(content: string) {
+  const parts = content.split(/(@\p{L}+(?:\s+\p{L}+)?)/gu);
+  return parts.map((part, i) =>
+    part.startsWith("@") ? <span key={i} className="mention-node">{part}</span> : part
+  );
+}
+
 export function CommentSection({ meetingId, teamId, members = [], initialComments = [] }: CommentSectionProps) {
   const { user } = useUser();
   const [comments, setComments] = useState(initialComments);
@@ -78,7 +85,7 @@ export function CommentSection({ meetingId, teamId, members = [], initialComment
                 </Button>
               )}
             </div>
-            <div className="comment__body">{comment.content}</div>
+            <div className="comment__body">{renderCommentContent(comment.content)}</div>
           </div>
         ))}
         {user && <CommentInput members={members} onPost={handlePost} />}

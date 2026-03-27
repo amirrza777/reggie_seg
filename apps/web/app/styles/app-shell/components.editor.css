@@ -1,8 +1,12 @@
 .rich-editor {
     border: 1px solid var(--border);
-    border-radius: var(--radius-md);
+    border-radius: 10px;
     overflow: hidden;
     background: var(--surface);
+}
+
+.rich-editor:focus-within {
+    outline: auto;
 }
 
 .rich-editor__toolbar {
@@ -58,6 +62,7 @@
     font-family: inherit;
     color: var(--ink);
     line-height: 1.6;
+    cursor: text;
 }
 
 .rich-editor__editable p {
@@ -145,6 +150,10 @@
 
 .rich-editor__listitem {
     margin: 2px 0;
+}
+
+.rich-editor__nested-listitem {
+    list-style-type: none;
 }
 
 .comment {

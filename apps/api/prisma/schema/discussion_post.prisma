@@ -4,7 +4,7 @@ model DiscussionPost {
   authorId  Int
   parentPostId Int?
   title     String
-  body      String
+  body      String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

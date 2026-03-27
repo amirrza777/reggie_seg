@@ -4,6 +4,22 @@ import { useUser } from "@/features/auth/useUser";
 import { createDiscussionPost, getDiscussionPosts, reactToDiscussionPost } from "@/features/forum/api/client";
 import { DiscussionForumClient } from "./DiscussionForumClient";
 
+vi.mock("@/shared/ui/RichTextEditor", () => ({
+  RichTextEditor: ({ onChange, onEmptyChange, placeholder }: { onChange: (v: string) => void; onEmptyChange?: (e: boolean) => void; placeholder?: string }) => (
+    <textarea
+      placeholder={placeholder}
+      onChange={(e) => {
+        onChange(e.target.value);
+        onEmptyChange?.(e.target.value.trim().length === 0);
+      }}
+    />
+  ),
+}));
+
+vi.mock("@/shared/ui/RichTextViewer", () => ({
+  RichTextViewer: ({ content }: { content: string }) => <p>{content}</p>,
+}));
+
 vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
@@ -274,7 +290,7 @@ describe("DiscussionForumClient", () => {
 
     fireEvent.click(within(rootCardElement).getByRole("button", { name: "Post actions" }));
     fireEvent.click(within(rootCardElement).getByRole("button", { name: "Reply" }));
-    fireEvent.change(within(rootCardElement).getByLabelText("Reply"), { target: { value: "Newest reply" } });
+    fireEvent.change(within(rootCardElement).getByPlaceholderText("Write a reply"), { target: { value: "Newest reply" } });
     fireEvent.click(within(rootCardElement).getByRole("button", { name: "Post reply" }));
 
     await waitFor(() => {
