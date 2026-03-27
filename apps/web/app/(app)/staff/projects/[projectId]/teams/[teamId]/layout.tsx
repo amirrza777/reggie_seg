@@ -3,7 +3,6 @@ import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamCont
 import { StaffTeamPageHeader } from "@/features/staff/projects/components/StaffTeamPageHeader";
 import { TeamSectionSubtitle } from "@/features/staff/projects/components/TeamSectionSubtitle";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
-
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type LayoutProps = {
@@ -42,7 +41,7 @@ export default async function StaffTeamLayout({ params, children }: LayoutProps)
         subtitle={<TeamSectionSubtitle />}
       />
       <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-      {children}
+      <div className="staff-team-layout-content">{children}</div>
     </div>
   );
 }
