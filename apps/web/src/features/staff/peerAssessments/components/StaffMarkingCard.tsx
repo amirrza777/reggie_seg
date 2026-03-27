@@ -138,6 +138,7 @@ export function StaffMarkingCard({
         <div className="stack" style={{ gap: 6 }}>
           <span>Formative feedback</span>
           <RichTextEditor
+            key={marking?.updatedAt ?? "new"}
             initialContent={feedback}
             onChange={setFeedback}
             onEmptyChange={setFeedbackEmpty}
