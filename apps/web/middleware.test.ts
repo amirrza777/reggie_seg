@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { middleware } from "./middleware";
 
 const makeReq = (path: string) => new NextRequest(`http://localhost${path}`);
-const mockFetch = (value: Response) => vi.spyOn(global, "fetch").mockResolvedValue(value as any);
+const mockFetch = (value: Response) => vi.spyOn(global, "fetch").mockResolvedValue(value);
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -11,6 +11,13 @@ describe("middleware", () => {
   it("lets non-admin routes pass through", async () => {
     const fetchSpy = vi.spyOn(global, "fetch");
     const res = await middleware(makeReq("/about"));
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("does not guard lookalike prefixes that are not workspace/admin routes", async () => {
+    const fetchSpy = vi.spyOn(global, "fetch");
+    const res = await middleware(makeReq("/administer"));
     expect(fetchSpy).not.toHaveBeenCalled();
     expect(res.headers.get("location")).toBeNull();
   });

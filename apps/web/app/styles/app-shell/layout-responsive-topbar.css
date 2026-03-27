@@ -21,3 +21,32 @@
     gap: 0;
   }
 }
+
+@media (max-width: 640px) {
+  .topbar {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  .topbar__main {
+    order: 1;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .topbar__actions {
+    order: 2;
+  }
+
+  .topbar__leading {
+    order: 3;
+  }
+
+  .topbar__title-brand {
+    gap: 0;
+  }
+
+  .topbar__title-text {
+    display: none;
+  }
+}

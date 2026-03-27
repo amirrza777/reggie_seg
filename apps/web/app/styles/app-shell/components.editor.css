@@ -191,10 +191,12 @@
     list-style: none;
     margin: 0 0 4px 0;
     padding: 4px 0;
-    background: var(--glass-ui-bg);
-    border: 1px solid var(--glass-ui-border);
+    background: var(--popup-glass-bg-fallback);
+    background: var(--popup-glass-bg);
+    border: 1px solid var(--popup-glass-border-fallback);
+    border-color: var(--popup-glass-border);
     border-radius: var(--radius-md);
-    box-shadow: var(--elevation-popup);
+    box-shadow: var(--popup-glass-shadow);
     z-index: 20;
 }
 

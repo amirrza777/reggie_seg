@@ -2,10 +2,15 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const isDevCommand = process.argv.includes("dev");
+const usesTurbopack = process.argv.includes("--turbopack") || process.argv.includes("--turbo");
+const devDistDir = usesTurbopack ? ".next-dev-turbo" : ".next-dev-webpack";
 
 /** @type {import('next').NextConfig} */
 const createConfig = () => {
   return {
+    // Keep webpack/turbopack dev caches isolated to avoid stale manifest/file mismatches.
+    ...(isDevCommand ? { distDir: devDistDir } : {}),
     reactStrictMode: true,
     eslint: {
       ignoreDuringBuilds: true,

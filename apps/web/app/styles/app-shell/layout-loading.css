@@ -2,19 +2,18 @@
   min-height: clamp(220px, 40vh, 360px);
   width: 100%;
   display: grid;
-  place-items: center;
-  padding: 12px;
+  align-content: start;
+  padding: 20px;
 }
 
 .ui-page-loading--skeleton {
-  place-items: stretch;
   min-height: clamp(320px, 56vh, 560px);
-  padding: clamp(12px, 2vw, 20px);
+  padding: 0;
 }
 
 .ui-page-loading__skeleton {
-  width: min(1040px, 100%);
-  margin-inline: auto;
+  width: 100%;
+  margin-inline: 0;
   display: grid;
   gap: 14px;
 }
@@ -162,16 +161,19 @@
 
 .ui-skeleton::after {
   content: "";
+  display: block;
   position: absolute;
-  inset: 0;
-  transform: translateX(-100%);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    var(--skeleton-highlight) 44%,
+    var(--skeleton-highlight) 50%,
     transparent 100%
   );
-  animation: ui-skeleton-shimmer 1.25s ease-in-out infinite;
+  animation: ui-skeleton-shimmer 1.4s linear infinite;
 }
 
 .ui-skeleton--block {
@@ -241,6 +243,18 @@
   white-space: nowrap;
 }
 
+@media (max-width: 1024px) {
+  .ui-page-loading {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ui-page-loading {
+    padding: 12px;
+  }
+}
+
 @keyframes ui-minimal-loader-pulse {
   0%,
   80%,
@@ -255,21 +269,8 @@
 }
 
 @keyframes ui-skeleton-shimmer {
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ui-skeleton::after {
-    animation: none;
-  }
-
-  .ui-minimal-loader__dot {
-    animation: none;
-    opacity: 0.52;
-    transform: none;
-  }
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
 }
 
 @media (max-width: 860px) {

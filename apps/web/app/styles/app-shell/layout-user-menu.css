@@ -8,7 +8,7 @@
   gap: 8px;
   background: var(--glass-ui-bg-soft);
   border: 1px solid var(--glass-ui-border);
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   padding: 4px 12px 4px 4px;
   color: var(--ink);
   cursor: pointer;
@@ -16,6 +16,8 @@
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   box-shadow: var(--elevation-none);
+  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
 }
 
 .user-menu__trigger:hover,
@@ -74,15 +76,19 @@
   right: 0;
   top: calc(100% + 12px);
   min-width: min(320px, 92vw);
-  background: var(--glass-ui-bg);
-  border: 1px solid var(--glass-ui-border);
-  border-radius: 18px;
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
+  border: 1px solid var(--popup-glass-border-fallback);
+  border-color: var(--popup-glass-border);
+  border-radius: var(--radius-md);
   padding: 0;
   display: grid;
   gap: 0;
   z-index: 20;
   font-size: var(--fs-body);
   overflow: hidden;
+  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
 }
 
 .user-menu__meta {
@@ -91,7 +97,8 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: color-mix(in srgb, var(--glass-ui-bg) 92%, transparent);
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -118,7 +125,8 @@
 .user-menu__links {
   display: grid;
   gap: 0;
-  background: color-mix(in srgb, var(--glass-ui-bg) 94%, transparent);
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
 }
 
 .user-menu__links + .user-menu__links {

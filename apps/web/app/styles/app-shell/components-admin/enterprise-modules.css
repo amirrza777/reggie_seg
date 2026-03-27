@@ -18,6 +18,10 @@
   padding-bottom: 8px;
 }
 
+.ui-page.enterprise-module-create-page--embedded {
+  padding: 0;
+}
+
 .enterprise-module-create-page .ui-page__header {
   gap: var(--space-panel-heading-gap);
 }
@@ -47,6 +51,10 @@
   .enterprise-module-create__form.enterprise-module-create__form--staff-access,
   .enterprise-module-create__form.enterprise-module-create__form--staff-student-access {
     display: block;
+  }
+
+  .enterprise-module-create__form.enterprise-module-create__form--guidance-only {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .enterprise-module-create__field--name,

@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import "../globals.css";
+import { BrandWordmark } from "@/shared/layout/BrandWordmark";
+import "../styles/global-marketing.css";
 import "../styles/auth.css";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -8,7 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     <main className="auth-container marketing-shell">
       {/* Logo Link - Top Left */}
       <Link href="/" className="auth-logo-link">
-        Team Feedback
+        <BrandWordmark />
       </Link>
       
       {children}

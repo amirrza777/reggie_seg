@@ -9,12 +9,14 @@
   position: relative;
   background: var(--glass-ui-bg-soft);
   border: 1px solid var(--glass-ui-border);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   padding: 8px;
   color: var(--ink);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
   box-shadow: var(--elevation-none);
+  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
 }
 
 .notification-bell__trigger:hover,
@@ -46,11 +48,20 @@
   right: 0;
   top: calc(100% + 12px);
   min-width: min(340px, 92vw);
-  background: var(--glass-ui-bg);
-  border: 1px solid var(--glass-ui-border);
-  border-radius: 18px;
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
+  border: 1px solid var(--popup-glass-border-fallback);
+  border-color: var(--popup-glass-border);
+  border-radius: var(--radius-md);
   z-index: 20;
   overflow: hidden;
+  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+}
+
+.notification-bell__header {
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-bg);
 }
 
 .notification-bell__header {
