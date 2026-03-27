@@ -17,7 +17,7 @@ export function StaffModuleWorkspaceHero({ ctx }: { ctx: StaffModuleWorkspaceCon
   const access = resolveStaffModuleWorkspaceAccess(ctx);
   const { moduleCode, projectCount } = buildModuleDashboardData(ctx.module);
   const roleLabel = roleBadgeLabel(ctx);
-  const staffCount = ctx.module.staffWithAccessCount;
+  const staffCount = ctx.module.staffWithAccessCount ?? 0;
 
   return (
     <section className="staff-projects__hero">
