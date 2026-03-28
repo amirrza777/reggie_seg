@@ -12,7 +12,20 @@ type RichTextViewerProps = {
   content: string;
 };
 
+function isLexicalJson(value: string): boolean {
+  try {
+    const parsed = JSON.parse(value);
+    return parsed !== null && typeof parsed === "object" && "root" in parsed;
+  } catch {
+    return false;
+  }
+}
+
 export function RichTextViewer({ content }: RichTextViewerProps) {
+  if (!content || !isLexicalJson(content)) {
+    return <p>{content}</p>;
+  }
+
   const initialConfig = {
     namespace: "RichTextViewer",
     nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],

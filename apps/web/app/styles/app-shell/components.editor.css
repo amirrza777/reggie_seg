@@ -214,6 +214,14 @@
     background: var(--glass-hover);
 }
 
+.rich-editor__word-count {
+    padding: 4px 12px 6px;
+    font-size: var(--fs-body-sm);
+    color: var(--muted);
+    text-align: right;
+    border-top: 1px solid var(--border);
+}
+
 .mention-node {
     background: var(--accent-soft);
     color: var(--accent);
