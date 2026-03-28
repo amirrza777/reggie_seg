@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback } from "react";
+import Link from "next/link";
+import { useCallback, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
+import { ModuleJoinCodeBanner } from "@/features/modules/components/ModuleJoinCodeBanner";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
 import { CharacterCount, EnterpriseModuleEditFields } from "./EnterpriseModuleFormFields";
-import { ModuleJoinCodeCard } from "./ModuleJoinCodeCard";
 import { useEnterpriseModuleCreateFormState } from "./useEnterpriseModuleCreateFormState";
 import { MeetingSettingsSection } from "./MeetingSettingsSection";
 
@@ -18,7 +19,7 @@ type EnterpriseModuleCreateFormProps = {
   mode?: "create" | "edit";
   moduleId?: number;
   workspace?: "enterprise" | "staff";
-  createdJoinCode?: string | null;
+  joinCode?: string | null;
 };
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
@@ -27,7 +28,7 @@ export function EnterpriseModuleCreateForm({
   mode = "create",
   moduleId,
   workspace = "enterprise",
-  createdJoinCode = null,
+  joinCode = null,
 }: EnterpriseModuleCreateFormProps) {
   const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
 
@@ -40,45 +41,87 @@ export function EnterpriseModuleCreateForm({
   }
 
   return (
-    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} createdJoinCode={createdJoinCode} />
+    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} joinCode={joinCode} />
   );
 }
 
 function EnterpriseModuleCreateFormBody({
   state,
   moduleId,
-  createdJoinCode,
+  joinCode,
 }: {
   state: ModuleCreateFormState;
   moduleId?: number;
-  createdJoinCode?: string | null;
+  joinCode?: string | null;
 }) {
   const { user } = useUser();
   const currentUserId = user?.id ?? null;
 
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
-      <ModuleNameField state={state} />
-      <ModuleCodeField state={state} />
+      <ModuleFormCollapsible title="Module details" defaultOpen>
+        <ModuleNameField state={state} />
+        <ModuleCodeField state={state} />
+        {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} /> : null}
+      </ModuleFormCollapsible>
+
+      <ModuleFormCollapsible title="User access">
+        <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
+        {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
+      </ModuleFormCollapsible>
+
       {state.isEditMode && moduleId ? (
-        <ModuleJoinCodeCard
-          moduleId={moduleId}
-          initialJoinCode={createdJoinCode}
-          showCreatedBanner={Boolean(createdJoinCode)}
-        />
+        <ModuleFormCollapsible title="Meeting & attendance settings">
+          <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
+            <MeetingSettingsSection moduleId={moduleId} />
+          </div>
+        </ModuleFormCollapsible>
       ) : null}
-      <ModuleEditFieldsSection state={state} />
-      <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
-      {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
-      {state.isEditMode && moduleId ? (
-        <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
-          <MeetingSettingsSection moduleId={moduleId} />
-        </div>
+
+      <ModuleFormCollapsible title={state.isEditMode ? "Module content" : "After you create"} defaultOpen={!state.isEditMode}>
+        <ModuleEditFieldsSection state={state} />
+      </ModuleFormCollapsible>
+
+      {state.isEditMode ? (
+        <ModuleFormCollapsible title="Delete module">
+          <ModuleDeleteSection state={state} />
+        </ModuleFormCollapsible>
       ) : null}
-      {state.isEditMode ? <ModuleDeleteSection state={state} /> : null}
+
       <ModuleErrorMessage errorMessage={state.errorMessage} />
       <ModuleFormActions state={state} />
     </form>
+  );
+}
+
+function ModuleFormCollapsible({
+  title,
+  summaryHint,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  summaryHint?: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details
+      className="enterprise-module-create__collapsible"
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="enterprise-module-create__collapsible-summary">
+        <span className="enterprise-module-create__collapsible-summary-text">
+          <span className="enterprise-module-create__collapsible-title">{title}</span>
+          {summaryHint ? (
+            <span className="enterprise-module-create__collapsible-hint muted">{summaryHint}</span>
+          ) : null}
+        </span>
+      </summary>
+      <div className="enterprise-module-create__collapsible-body">{children}</div>
+    </details>
   );
 }
 
@@ -123,6 +166,9 @@ function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
       <label htmlFor="module-code-input" className="enterprise-modules__create-field-label">
         Module code
       </label>
+      <p className="ui-note ui-note--muted">
+        Optional reference (e.g. timetable ID or acronym)
+      </p>
       <FormField
         id="module-code-input"
         value={state.moduleCode}
@@ -135,13 +181,36 @@ function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
   );
 }
 
+
+function ModuleJoinCodeField({ joinCode }: { joinCode: string | null }) {
+  const code = joinCode?.trim() || null;
+
+  return (
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--name">
+      <span id="module-join-code-label" className="enterprise-modules__create-field-label">
+        Module joining code
+      </span>
+      <p className="ui-note ui-note--muted">
+        Students can self-enroll using the join code via{" "}
+        <Link href="/dashboard" className="ui-link ">
+          <strong>join a module</strong>
+        </Link>{" "}
+        on their dashboard.
+      </p>
+      {code ? <ModuleJoinCodeBanner joinCode={code} /> : <p className="muted">The join code could not be loaded.</p>}
+    </div>
+  );
+}
+
 function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
   if (!state.isEditMode) {
     return (
-      <p className="ui-note ui-note--muted">
-        You can define module brief, timeline, expectations, teaching assistants, manual student assignments, and share
-        the join code after creating the module. You can also set the university-facing module code here.
-      </p>
+      <div className="enterprise-module-create__edit-preface">
+        <p className="ui-note ui-note--muted">
+          Full module details, such as module brief, timelines, expectations, teaching assistants, and student access,
+          can be defined once the module has been created. This can be done by you, or any module leader you add above.
+        </p>
+      </div>
     );
   }
 
@@ -206,7 +275,7 @@ function ModuleLeaderAccessSection({
         pageJumpAriaLabel="Go to staff page"
         onPageInputChange={state.setStaffPageInput}
         onPageInputBlur={() => state.applyPageInput("staff", state.staffPageInput)}
-        onPageJump={() => state.handlePageJump("staff", state.staffPageInput)}
+        onPageJump={() => state.applyPageInput("staff", state.staffPageInput)}
         onPreviousPage={() => state.setStaffPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setStaffPage((prev) => Math.min(Math.max(1, state.staffTotalPages), prev + 1))}
         loadingLabel="Loading staff..."
@@ -250,7 +319,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         pageJumpAriaLabel="Go to teaching assistant page"
         onPageInputChange={state.setTaPageInput}
         onPageInputBlur={() => state.applyPageInput("ta", state.taPageInput)}
-        onPageJump={() => state.handlePageJump("ta", state.taPageInput)}
+        onPageJump={() => state.applyPageInput("ta", state.taPageInput)}
         onPreviousPage={() => state.setTaPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setTaPage((prev) => Math.min(Math.max(1, state.taTotalPages), prev + 1))}
         loadingLabel="Loading accounts..."
@@ -285,7 +354,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         pageJumpAriaLabel="Go to student page"
         onPageInputChange={state.setStudentPageInput}
         onPageInputBlur={() => state.applyPageInput("students", state.studentPageInput)}
-        onPageJump={() => state.handlePageJump("students", state.studentPageInput)}
+        onPageJump={() => state.applyPageInput("students", state.studentPageInput)}
         onPreviousPage={() => state.setStudentPage((prev) => Math.max(1, prev - 1))}
         onNextPage={() => state.setStudentPage((prev) => Math.min(Math.max(1, state.studentTotalPages), prev + 1))}
         loadingLabel="Loading students..."

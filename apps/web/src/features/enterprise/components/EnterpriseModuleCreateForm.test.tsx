@@ -22,7 +22,6 @@ vi.mock("../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
-  getEnterpriseModuleJoinCode: vi.fn(),
   getModuleMeetingSettings: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),
   updateModuleMeetingSettings: vi.fn(),
@@ -33,7 +32,6 @@ import {
   createEnterpriseModule,
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
-  getEnterpriseModuleJoinCode,
   getModuleMeetingSettings,
   searchEnterpriseModuleAccessUsers,
   updateModuleMeetingSettings,
@@ -64,7 +62,6 @@ const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<type
 const getEnterpriseModuleAccessSelectionMock = getEnterpriseModuleAccessSelection as MockedFunction<
   typeof getEnterpriseModuleAccessSelection
 >;
-const getEnterpriseModuleJoinCodeMock = getEnterpriseModuleJoinCode as MockedFunction<typeof getEnterpriseModuleJoinCode>;
 const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers as MockedFunction<
   typeof searchEnterpriseModuleAccessUsers
 >;
@@ -157,10 +154,6 @@ describe("EnterpriseModuleCreateForm", () => {
       taIds: [12],
       studentIds: [31],
     });
-    getEnterpriseModuleJoinCodeMock.mockResolvedValue({
-      moduleId: 77,
-      joinCode: "ABCD2345",
-    });
     getModuleMeetingSettingsMock.mockResolvedValue({
       absenceThreshold: 2,
       minutesEditWindowDays: 7,
@@ -243,12 +236,12 @@ describe("EnterpriseModuleCreateForm", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("shows the join code card in edit mode", async () => {
-    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} createdJoinCode="ZXCV6789" />);
+  it("shows the module joining code field in edit mode", async () => {
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} joinCode="ZXCV6789" />);
 
-    expect(await screen.findByText(/students can now join with this code/i)).toBeInTheDocument();
-    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ZXCV6789");
-    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/module joining code/i)).toBeInTheDocument();
+    expect(screen.getByText(/students can self-enroll using the join code/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /copy join code zxcv6789/i })).toHaveTextContent("ZXCV6789");
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

@@ -17,7 +17,13 @@ const MODULES_PER_PAGE = 10;
 
 type EnterpriseModuleManagerProps = {
   canCreateModule?: boolean;
+  enterpriseName?: string | null;
 };
+
+function modulesCardHeading(enterpriseName: string | null | undefined): string {
+  const trimmed = enterpriseName?.trim();
+  return trimmed ? `All ${trimmed} modules` : "All modules";
+}
 
 function ModulesSummaryLabel({
   modulesStatus,
@@ -57,7 +63,10 @@ function buildModuleRows(modules: EnterpriseModuleRecord[]) {
   ]);
 }
 
-export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseModuleManagerProps) {
+export function EnterpriseModuleManager({
+  canCreateModule = true,
+  enterpriseName = null,
+}: EnterpriseModuleManagerProps) {
   const [modules, setModules] = useState<EnterpriseModuleRecord[]>([]);
   const [modulesStatus, setModulesStatus] = useState<RequestState>("idle");
   const [modulesMessage, setModulesMessage] = useState<string | null>(null);
@@ -135,10 +144,11 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
 
   const moduleRows = buildModuleRows(modules);
   const showSkeletonTable = modulesStatus === "loading" && moduleRows.length === 0;
+  const cardHeading = modulesCardHeading(enterpriseName);
 
   return (
     <Card
-      title={<span className="overview-title">Enterprise modules</span>}
+      title={<span className="overview-title">{cardHeading}</span>}
       action={canCreateModule ? (
         <Link href="/enterprise/modules/create" className="btn btn--primary enterprise-modules__create-trigger">
           Create module
@@ -185,7 +195,6 @@ export function EnterpriseModuleManager({ canCreateModule = true }: EnterpriseMo
           />
           {totalPages > 1 && !showSkeletonTable ? (
             <PaginationControls
-              ariaLabel="Enterprise modules pagination"
               page={currentPage}
               totalPages={totalPages}
               onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}

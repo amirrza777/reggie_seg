@@ -1,66 +1,83 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import { notFound, redirect } from "next/navigation";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
+import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
+import { listModules } from "@/features/modules/api/client";
+import type { Module } from "@/features/modules/types";
+import { ApiError } from "@/shared/api/errors";
+import { getCurrentUser } from "@/shared/auth/session";
 import { Card } from "@/shared/ui/Card";
 
-type PageProps = {
+type StaffModuleManagePageProps = {
   params: Promise<{ moduleId: string }>;
+  searchParams?: Promise<{ created?: string; joinCode?: string }>;
 };
 
-export default async function StaffModuleSettingsPage({ params }: PageProps) {
-  const { moduleId } = await params;
-  const ctx = await loadStaffModuleWorkspaceContext(moduleId);
-  if (!ctx) redirect("/staff/modules");
+export default async function StaffModuleManagePage({ params, searchParams }: StaffModuleManagePageProps) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (!user.isStaff && user.role !== "ADMIN") redirect("/dashboard");
 
-  const enc = encodeURIComponent(moduleId);
-  const access = resolveStaffModuleWorkspaceAccess(ctx);
+  const { moduleId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const parsedModuleId = Number.parseInt(moduleId, 10);
+  if (!Number.isInteger(parsedModuleId) || parsedModuleId <= 0) notFound();
+
+  let staffModules: Module[] = [];
+  try {
+    staffModules = await listModules(user.id, { scope: "staff" });
+  } catch {
+    redirect("/staff/modules");
+  }
+  const moduleRecord = staffModules.find((module) => Number(module.id) === parsedModuleId);
+  if (!moduleRecord) redirect("/staff/modules");
+
+  const canManageModule = moduleRecord.accountRole === "OWNER";
+  if (!canManageModule) redirect(`/modules/${moduleRecord.id}`);
+
+  const urlJoinCode =
+    resolvedSearchParams.created === "1" ? (resolvedSearchParams.joinCode?.trim() || null) : null;
+
+  let joinCode: string | null = urlJoinCode;
+  if (joinCode == null) {
+    try {
+      joinCode = (await getEnterpriseModuleJoinCode(parsedModuleId)).joinCode;
+    } catch (e) {
+      if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
+        throw e;
+      }
+    }
+  }
 
   return (
-    <div className="stack module-dashboard">
-      <header className="module-workspace__section-header">
-        <h2 className="overview-title">Settings</h2>
-        <p className="muted">
-          Module setup, enterprise configuration, and shortcuts to projects &amp; teams.
+    <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
+      <header className="ui-page__header">
+        <h1 className="overview-title ui-page__title">Manage module</h1>
+        <p className="ui-page__description">
+          Update module guidance, leads, TAs, manual student assignments, and share the module join code from the staff
+          workspace.
         </p>
       </header>
 
-      {access.staffModuleSetup ? (
-        <Card title="Module setup" className="module-workspace__card">
-          <p className="muted">Module text and expectations. Student enrollment is under Student members.</p>
-          <div>
-            <Link href={`/staff/modules/${enc}/manage`} className="btn btn--primary">
-              Manage module
+      <Card
+        title={<span className="overview-title">Module setup</span>}
+        action={
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Link
+              href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
+              className="btn btn--primary"
+            >
+              Create project
+            </Link>
+            <Link href="/staff/modules" className="btn btn--ghost">
+              Back to my modules
             </Link>
           </div>
-        </Card>
-      ) : null}
-
-      {access.enterpriseModuleEditor ? (
-        <Card title="Enterprise console" className="module-workspace__card">
-          <p className="muted">Organisation-wide module configuration.</p>
-          <div>
-            <Link href={`/enterprise/modules/${enc}/edit`} className="btn btn--ghost">
-              Open enterprise module editor
-            </Link>
-          </div>
-        </Card>
-      ) : null}
-
-      <Card title="Projects & teams" className="module-workspace__card">
-        <p className="muted">All projects in this module with expandable teams.</p>
-        <div>
-          <Link href={`/staff/modules/${enc}/projects`} className="btn btn--ghost">
-            Open projects &amp; teams
-          </Link>
-        </div>
+        }
+        className="enterprise-module-create__card"
+      >
+        <EnterpriseModuleCreateForm mode="edit" moduleId={parsedModuleId} workspace="staff" joinCode={joinCode} />
       </Card>
-
-      {!access.staffModuleSetup && !access.enterpriseModuleEditor ? (
-        <Card title="Settings" className="module-workspace__card">
-          <p className="muted">Only module leads and administrators can change settings.</p>
-        </Card>
-      ) : null}
     </div>
   );
 }
