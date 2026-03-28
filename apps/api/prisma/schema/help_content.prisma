@@ -1,0 +1,64 @@
+model HelpTopic {
+  id          Int          @id @default(autoincrement())
+  slug        String       @unique @db.VarChar(64)
+  title       String       @db.VarChar(120)
+  description String?      @db.VarChar(255)
+  sortOrder   Int          @default(0)
+  published   Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  articles    HelpArticle[]
+  faqGroups   HelpFaqGroup[]
+
+  @@index([sortOrder])
+}
+
+model HelpArticle {
+  id        Int       @id @default(autoincrement())
+  topicId    Int
+  slug      String    @unique @db.VarChar(80)
+  title     String    @db.VarChar(160)
+  summary   String?   @db.VarChar(255)
+  body      String    @db.Text
+  audience  String?   @db.VarChar(32)
+  sortOrder Int       @default(0)
+  published Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  topic     HelpTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId, sortOrder])
+}
+
+model HelpFaqGroup {
+  id          Int       @id @default(autoincrement())
+  topicId      Int
+  slug        String    @unique @db.VarChar(80)
+  title       String    @db.VarChar(160)
+  description String?   @db.VarChar(255)
+  audience    String?   @db.VarChar(32)
+  sortOrder   Int       @default(0)
+  published   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  topic       HelpTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  faqs        HelpFaq[]
+
+  @@index([topicId, sortOrder])
+}
+
+model HelpFaq {
+  id        Int          @id @default(autoincrement())
+  groupId    Int
+  slug      String       @unique @db.VarChar(120)
+  question  String       @db.VarChar(255)
+  answer    String       @db.Text
+  links     Json?
+  sortOrder Int          @default(0)
+  published Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  group     HelpFaqGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, sortOrder])
+}
