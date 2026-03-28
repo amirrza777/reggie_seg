@@ -1,85 +1,95 @@
 import Link from "next/link";
+import { ProgressPie } from "@/shared/ui/ProgressPie";
+import type { StaffProject } from "@/features/projects/types";
+import { formatDate } from "@/shared/lib/formatDate";
 import { highlightSearchText } from "@/shared/lib/highlightSearchText";
 
-export type StaffProjectSummary = {
-  id: number;
-  name: string;
-  teamCount: number;
-  hasGithubRepo: boolean;
-  membersTotal: number;
-  membersConnected: number;
-};
+export type { StaffProject };
 
 export type ModuleGroup = {
   moduleId: number;
   moduleName: string;
-  projects: StaffProjectSummary[];
+  projects: StaffProject[];
 };
 
-
-function GithubHealthPills({
-  hasGithubRepo,
-  membersTotal,
-  membersConnected,
-}: {
-  hasGithubRepo: boolean;
-  membersTotal: number;
-  membersConnected: number;
-}) {
-  const hasMembers = membersTotal > 0;
-  const connectionTone = getConnectionTone({
-    hasMembers,
-    membersTotal,
-    membersConnected,
-  });
-
-  return (
-    <div className="staff-projects__gh-health">
-      <span className={`staff-projects__gh-pill ${hasGithubRepo ? "staff-projects__gh-pill--ok" : "staff-projects__gh-pill--warn"}`}>
-        {hasGithubRepo ? "✓ Repo linked" : "⚠ No repo"}
-      </span>
-      {hasMembers ? (
-        <span className={`staff-projects__gh-pill ${connectionTone}`}>
-          {membersConnected}/{membersTotal} GitHub
-        </span>
-      ) : null}
-    </div>
-  );
+function githubPieTooltip(project: StaffProject): string {
+  const base =
+    "Share of students on active teams who have linked their GitHub account.";
+  if (project.membersTotal === 0) return `${base} No students on active teams yet.`;
+  return `${base} ${project.membersConnected}/${project.membersTotal} students linked.`;
 }
 
-function getConnectionTone({
-  hasMembers,
-  membersTotal,
-  membersConnected,
-}: {
-  hasMembers: boolean;
-  membersTotal: number;
-  membersConnected: number;
-}): string {
-  if (!hasMembers) return "";
-  if (membersConnected === membersTotal) return "staff-projects__gh-pill--ok";
-  if (membersConnected > 0) return "staff-projects__gh-pill--partial";
-  return "staff-projects__gh-pill--warn";
+function trelloPieTooltip(project: StaffProject): string {
+  const base =
+    "Share of active teams that have a Trello board linked.";
+  if (project.teamCount === 0) return `${base} No active teams yet.`;
+  return `${base} ${project.trelloBoardsLinkedCount}/${project.teamCount} teams with a board linked.`;
+}
+
+function peerPieTooltip(project: StaffProject): string {
+  const base =
+    "Share of expected peer assessments submitted.";
+  if (project.peerAssessmentsExpectedCount === 0) {
+    return `${base} No assessments expected yet (teams need at least two members).`;
+  }
+  return `${base} ${project.peerAssessmentsSubmittedCount}/${project.peerAssessmentsExpectedCount} submitted.`;
+}
+
+function formatProjectDeadlineRange(startIso: string | null, endIso: string | null): string {
+  if (!startIso || !endIso) return "No deadlines scheduled";
+  const startLabel = formatDate(startIso);
+  const endLabel = formatDate(endIso);
+  if (!startLabel || !endLabel) return "No deadlines scheduled";
+  const start = new Date(startIso);
+  const end = new Date(endIso);
+  if (start.toDateString() === end.toDateString()) return startLabel;
+  return `${startLabel} – ${endLabel}`;
 }
 
 export function ProjectCard({
   project,
   rawQuery,
 }: {
-  project: StaffProjectSummary;
+  project: StaffProject;
   rawQuery: string | undefined;
 }) {
   return (
     <article className="staff-projects__module-project-card">
       <Link href={`/staff/projects/${project.id}`} className="staff-projects__module-project-link">
-        <div className="staff-projects__module-project-head">
+        <div className="staff-projects__module-project-head staff-projects__module-project-head--rich">
           <div className="staff-projects__module-project-copy">
             <h3 className="staff-projects__module-project-title">{highlightSearchText(project.name, rawQuery)}</h3>
             <p className="staff-projects__module-project-sub">
-              {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
+              {formatProjectDeadlineRange(project.dateRangeStart, project.dateRangeEnd)}
             </p>
           </div>
-     
+          <div className="staff-projects__module-project-metrics">
+            <div className="staff-projects__integration-pies">
+              <ProgressPie
+                value={project.githubIntegrationPercent}
+                title="GitHub"
+                tooltip={githubPieTooltip(project)}
+              />
+              <ProgressPie
+                value={project.trelloBoardsLinkedPercent}
+                title="Trello"
+                tooltip={trelloPieTooltip(project)}
+              />
+              <ProgressPie
+                value={project.peerAssessmentsSubmittedPercent}
+                title="Assessments"
+                tooltip={peerPieTooltip(project)}
+              />
+            </div>
+            <div className="staff-projects__project-stat-pills">
+              <span className="staff-projects__stat-pill">
+                {project.teamCount} team{project.teamCount === 1 ? "" : "s"}
+              </span>
+              <span className="staff-projects__stat-pill">
+                {project.membersTotal} student{project.membersTotal === 1 ? "" : "s"}
+              </span>
+            </div>
+          </div>
         </div>
         <span className="staff-projects__project-toggle" aria-hidden="true">
           →
