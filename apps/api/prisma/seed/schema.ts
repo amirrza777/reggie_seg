@@ -1,4 +1,8 @@
 export const SEED_TABLES = [
+  "HelpFaq",
+  "HelpFaqGroup",
+  "HelpArticle",
+  "HelpTopic",
   "MeetingAttendance",
   "MeetingComment",
   "MeetingMinutes",
