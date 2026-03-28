@@ -18,6 +18,7 @@ import {
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedMarkerUserData } from "./data";
 import { seedForumPosts } from "./forum";
+import { seedHelpContent } from "./help";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
@@ -28,6 +29,7 @@ async function main() {
   assertPrismaClientModels();
 
   const seedPasswordHash = await argon2.hash(SEED_USER_PASSWORD);
+  await seedHelpContent();
   const enterprises = await getSeedEnterprises();
 
   for (const enterprise of enterprises) {
