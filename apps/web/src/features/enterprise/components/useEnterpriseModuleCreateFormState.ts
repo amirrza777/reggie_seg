@@ -14,6 +14,7 @@ type UseEnterpriseModuleCreateFormStateParams = {
   mode: "create" | "edit";
   moduleId?: number;
   workspace: "enterprise" | "staff";
+  successRedirectAfterUpdateHref?: string;
 };
 
 type ModuleSelectionResponse = Awaited<ReturnType<typeof getEnterpriseModuleAccessSelection>>;
@@ -30,14 +31,18 @@ type ModuleUpdatePayload = {
   studentIds: number[];
 };
 
+export type ModuleSetupFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
+
 export function useEnterpriseModuleCreateFormState({
   mode,
   moduleId,
   workspace,
+  successRedirectAfterUpdateHref,
 }: UseEnterpriseModuleCreateFormStateParams) {
   const router = useRouter();
   const isEditMode = mode === "edit";
   const modulesHomeHref = workspace === "staff" ? "/staff/modules" : "/enterprise/modules";
+  const postUpdateHref = successRedirectAfterUpdateHref ?? modulesHomeHref;
 
   const [moduleName, setModuleName] = useState("");
   const [moduleNameError, setModuleNameError] = useState<string | null>(null);
@@ -58,11 +63,19 @@ export function useEnterpriseModuleCreateFormState({
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteModule, setConfirmDeleteModule] = useState(false);
 
+  const [accessSearchPinLeaderIds, setAccessSearchPinLeaderIds] = useState<number[]>([]);
+  const [accessSearchPinTaIds, setAccessSearchPinTaIds] = useState<number[]>([]);
+  const [accessSearchPinStudentIds, setAccessSearchPinStudentIds] = useState<number[]>([]);
+
   const accessBuckets = useEnterpriseModuleAccessBuckets({
     mode,
     isEditMode,
     isLoadingAccess,
     canEditModule,
+    moduleIdForAccessSearchExclude: isEditMode && moduleId != null ? moduleId : undefined,
+    staffPrioritiseUserIds: accessSearchPinLeaderIds,
+    taPrioritiseUserIds: accessSearchPinTaIds,
+    studentPrioritiseUserIds: accessSearchPinStudentIds,
   });
 
   useEffect(() => {
@@ -74,6 +87,9 @@ export function useEnterpriseModuleCreateFormState({
       setConfirmDeleteModule(false);
       setIsDeleting(false);
       setCanEditModule(mode !== "edit");
+      setAccessSearchPinLeaderIds([]);
+      setAccessSearchPinTaIds([]);
+      setAccessSearchPinStudentIds([]);
 
       if (mode !== "edit") {
         if (!isActive) return;
@@ -105,6 +121,9 @@ export function useEnterpriseModuleCreateFormState({
           setTaIds,
           setStudentIds,
         });
+        setAccessSearchPinLeaderIds([...response.leaderIds]);
+        setAccessSearchPinTaIds([...response.taIds]);
+        setAccessSearchPinStudentIds([...response.studentIds]);
       } catch (err) {
         if (!isActive) return;
         setCanEditModule(false);
@@ -134,10 +153,9 @@ export function useEnterpriseModuleCreateFormState({
     }
   };
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitEditModule = async () => {
     const name = moduleName.trim();
-    const validation = validateModuleSubmit({ isEditMode, name, leaderIds });
+    const validation = validateModuleSubmit({ isEditMode: true, name, leaderIds });
     if (validation.moduleNameError) {
       setModuleNameError(validation.moduleNameError);
       return;
@@ -152,37 +170,65 @@ export function useEnterpriseModuleCreateFormState({
     setErrorMessage(null);
 
     try {
-      if (isEditMode) {
-        if (!moduleId) throw new Error("Module id is required for edit mode.");
-        const payload = buildModuleUpdatePayload({
-          name,
-          code: moduleCode,
-          briefText,
-          timelineText,
-          expectationsText,
-          readinessNotesText,
-          leaderIds,
-          taIds,
-          studentIds,
-        });
-        await updateEnterpriseModule(moduleId, payload);
-        router.push(modulesHomeHref);
-      } else {
-        const createdModule = await createEnterpriseModule({
-          name,
-          code: normalizeOptionalModuleCode(moduleCode),
-          leaderIds,
-        });
-        const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
-        router.push(nextHref);
-      }
-
+      if (!moduleId) throw new Error("Module id is required for edit mode.");
+      const payload = buildModuleUpdatePayload({
+        name,
+        code: moduleCode,
+        briefText,
+        timelineText,
+        expectationsText,
+        readinessNotesText,
+        leaderIds,
+        taIds,
+        studentIds,
+      });
+      await updateEnterpriseModule(moduleId, payload);
+      router.push(postUpdateHref);
       router.refresh();
     } catch (err) {
-      setErrorMessage(resolveModuleActionError(err, isEditMode ? "update" : "create"));
+      setErrorMessage(resolveModuleActionError(err, "update"));
       setIsSubmitting(false);
     }
   };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isEditMode) {
+      await submitEditModule();
+      return;
+    }
+
+    const name = moduleName.trim();
+    const validation = validateModuleSubmit({ isEditMode: false, name, leaderIds });
+    if (validation.moduleNameError) {
+      setModuleNameError(validation.moduleNameError);
+      return;
+    }
+    if (validation.formError) {
+      setErrorMessage(validation.formError);
+      return;
+    }
+
+    setModuleNameError(null);
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const createdModule = await createEnterpriseModule({
+        name,
+        code: normalizeOptionalModuleCode(moduleCode),
+        leaderIds,
+      });
+      const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
+      router.push(nextHref);
+      router.refresh();
+    } catch (err) {
+      setErrorMessage(resolveModuleActionError(err, "create"));
+      setIsSubmitting(false);
+    }
+  };
+
+  const performSubmit = () => submitEditModule();
 
   const handleDeleteModule = async () => {
     if (mode !== "edit") return;
@@ -207,9 +253,6 @@ export function useEnterpriseModuleCreateFormState({
 
   const toggleLeader = (userId: number, checked: boolean) => {
     setLeaderIds((prev) => (checked ? includeId(prev, userId) : prev.filter((id) => id !== userId)));
-    if (checked) {
-      setTaIds((prev) => prev.filter((id) => id !== userId));
-    }
   };
 
   const toggleTeachingAssistant = (userId: number, checked: boolean) => {
@@ -226,6 +269,7 @@ export function useEnterpriseModuleCreateFormState({
 
   return {
     isEditMode,
+    moduleId,
     moduleName,
     moduleNameError,
     moduleCode,
@@ -253,6 +297,7 @@ export function useEnterpriseModuleCreateFormState({
     setConfirmDeleteModule,
     handleModuleNameChange,
     handleSubmit,
+    performSubmit,
     handleDeleteModule,
     toggleLeader,
     toggleTeachingAssistant,

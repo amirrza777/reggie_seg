@@ -79,11 +79,7 @@ export function ProjectCard({
               {project.teamCount} team{project.teamCount === 1 ? "" : "s"} available for staff review.
             </p>
           </div>
-          <GithubHealthPills
-            hasGithubRepo={project.hasGithubRepo}
-            membersTotal={project.membersTotal}
-            membersConnected={project.membersConnected}
-          />
+     
         </div>
         <span className="staff-projects__project-toggle" aria-hidden="true">
           →

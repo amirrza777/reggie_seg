@@ -1,28 +1,40 @@
 "use client";
 
+import { useCallback } from "react";
 import type { ModuleSetupFormState } from "@/features/enterprise/components/useEnterpriseModuleCreateFormState";
 import { ModuleAccessSearchSection } from "../ModuleAccessSearchSection";
-
 export type StaffModuleAccessTwoColumnSectionProps = {
   state: ModuleSetupFormState;
   baselineLeaderSet: Set<number>;
   baselineTaSet: Set<number>;
+  /** Signed-in editor; cannot remove their own module lead checkbox (TA column unchanged). */
+  currentUserId: number;
 };
-
 
 export function StaffModuleAccessTwoColumnSection({
   state,
   baselineLeaderSet,
   baselineTaSet,
+  currentUserId,
 }: StaffModuleAccessTwoColumnSectionProps) {
-  const scopeDisabled = state.isSubmitting || state.isDeleting || state.moduleId == null;
+  const interactionDisabled = state.isSubmitting || state.isDeleting;
+  const hideOnModuleToggleDisabled =
+    interactionDisabled || state.moduleId == null;
+
+  const onToggleLeader = useCallback(
+    (userId: number, checked: boolean) => {
+      if (userId === currentUserId && !checked) return;
+      state.toggleLeader(userId, checked);
+    },
+    [currentUserId, state.toggleLeader],
+  );
 
   return (
     <section className="module-setup-section module-setup-section--staff" aria-labelledby="module-setup-staff-title">
       <div className="staff-module-access__columns">
         <ModuleAccessSearchSection
           label="Module owners/leaders"
-          helperText="Owners can edit this module and manage role assignments."
+          helperText="Owners can edit this module and manage role assignments. Only staff-level users can be assigned as module leads."
           groupLabel="Module leaders"
           searchId="module-staff-search"
           searchAriaLabel="Search staff"
@@ -35,8 +47,11 @@ export function StaffModuleAccessTwoColumnSection({
           end={state.staffEnd}
           users={state.staffUsers}
           selectedSet={state.leaderSet}
-          onToggle={state.toggleLeader}
-          isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+          onToggle={onToggleLeader}
+          isCheckedDisabled={(user) =>
+            interactionDisabled ||
+            (user.id === currentUserId && state.leaderSet.has(user.id))
+          }
           message={state.staffMessage}
           page={state.staffPage}
           pageInput={state.staffPageInput}
@@ -54,13 +69,13 @@ export function StaffModuleAccessTwoColumnSection({
           emptyLabel="No staff accounts found."
           selectedCountLabel={`${state.leaderIds.length} selected`}
           baselineSelectedSet={baselineLeaderSet}
-          sortSelectedFirst
           onlyWithoutModuleAccess={state.staffSearchOnlyWithoutModuleAccess}
           onToggleOnlyWithoutModuleAccess={() =>
             state.setStaffSearchOnlyWithoutModuleAccess((prev) => !prev)
           }
-          onlyWithoutModuleAccessDisabled={scopeDisabled}
+          onlyWithoutModuleAccessDisabled={hideOnModuleToggleDisabled}
         />
+
 
         <ModuleAccessSearchSection
           label="Teaching assistants"
@@ -78,7 +93,7 @@ export function StaffModuleAccessTwoColumnSection({
           users={state.taUsers}
           selectedSet={state.taSet}
           onToggle={state.toggleTeachingAssistant}
-          isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting || state.leaderSet.has(user.id)}
+          isCheckedDisabled={(user) => interactionDisabled}
           message={state.taMessage}
           page={state.taPage}
           pageInput={state.taPageInput}
@@ -96,12 +111,11 @@ export function StaffModuleAccessTwoColumnSection({
           emptyLabel="No assignable accounts found."
           selectedCountLabel={`${state.taIds.length} selected`}
           baselineSelectedSet={baselineTaSet}
-          sortSelectedFirst
           onlyWithoutModuleAccess={state.taSearchOnlyWithoutModuleAccess}
           onToggleOnlyWithoutModuleAccess={() =>
             state.setTaSearchOnlyWithoutModuleAccess((prev) => !prev)
           }
-          onlyWithoutModuleAccessDisabled={scopeDisabled}
+          onlyWithoutModuleAccessDisabled={hideOnModuleToggleDisabled}
         />
       </div>
     </section>

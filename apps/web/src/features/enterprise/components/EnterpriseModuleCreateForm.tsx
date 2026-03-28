@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback } from "react";
+import { useUser } from "@/features/auth/useUser";
 import { Button } from "@/shared/ui/Button";
 import { FormField } from "@/shared/ui/FormField";
 import { EnterpriseModuleAccessSection } from "./EnterpriseModuleAccessSection";
@@ -37,7 +39,9 @@ export function EnterpriseModuleCreateForm({
     return <ModuleEditBlockedNotice state={state} />;
   }
 
-  return <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} createdJoinCode={createdJoinCode} />;
+  return (
+    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} createdJoinCode={createdJoinCode} />
+  );
 }
 
 function EnterpriseModuleCreateFormBody({
@@ -49,6 +53,9 @@ function EnterpriseModuleCreateFormBody({
   moduleId?: number;
   createdJoinCode?: string | null;
 }) {
+  const { user } = useUser();
+  const currentUserId = user?.id ?? null;
+
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
       <ModuleNameField state={state} />
@@ -61,7 +68,7 @@ function EnterpriseModuleCreateFormBody({
         />
       ) : null}
       <ModuleEditFieldsSection state={state} />
-      <ModuleLeaderAccessSection state={state} />
+      <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
       {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
       {state.isEditMode && moduleId ? (
         <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
@@ -153,7 +160,22 @@ function ModuleEditFieldsSection({ state }: { state: ModuleCreateFormState }) {
   );
 }
 
-function ModuleLeaderAccessSection({ state }: { state: ModuleCreateFormState }) {
+function ModuleLeaderAccessSection({
+  state,
+  currentUserId,
+}: {
+  state: ModuleCreateFormState;
+  currentUserId: number | null;
+}) {
+  const scopeDisabled = state.isSubmitting || state.isDeleting;
+  const onToggleLeader = useCallback(
+    (userId: number, checked: boolean) => {
+      if (currentUserId != null && userId === currentUserId && !checked) return;
+      state.toggleLeader(userId, checked);
+    },
+    [currentUserId, state.toggleLeader],
+  );
+
   return (
     <>
       <EnterpriseModuleAccessSection
@@ -171,8 +193,11 @@ function ModuleLeaderAccessSection({ state }: { state: ModuleCreateFormState }) 
         end={state.staffEnd}
         users={state.staffUsers}
         selectedSet={state.leaderSet}
-        onToggle={state.toggleLeader}
-        isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+        onToggle={onToggleLeader}
+        isCheckedDisabled={(user) =>
+          scopeDisabled ||
+          (currentUserId != null && user.id === currentUserId && state.leaderSet.has(user.id))
+        }
         message={state.staffMessage}
         page={state.staffPage}
         pageInput={state.staffPageInput}
@@ -216,7 +241,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         users={state.taUsers}
         selectedSet={state.taSet}
         onToggle={state.toggleTeachingAssistant}
-        isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting || state.leaderSet.has(user.id)}
+        isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting}
         message={state.taMessage}
         page={state.taPage}
         pageInput={state.taPageInput}

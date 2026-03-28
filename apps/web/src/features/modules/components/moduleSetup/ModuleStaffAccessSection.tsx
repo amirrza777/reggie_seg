@@ -1,14 +1,26 @@
 "use client";
 
+import { useCallback } from "react";
 import type { ModuleSetupFormState } from "@/features/enterprise/components/useEnterpriseModuleCreateFormState";
 import { ModuleAccessSearchSection } from "../ModuleAccessSearchSection";
 
 export type ModuleStaffAccessSectionProps = {
   state: ModuleSetupFormState;
+  /** When set, the editor cannot uncheck their own module lead row. */
+  currentUserId?: number | null;
 };
 
-export function ModuleStaffAccessSection({ state }: ModuleStaffAccessSectionProps) {
-  const scopeDisabled = state.isSubmitting || state.isDeleting || state.moduleId == null;
+export function ModuleStaffAccessSection({ state, currentUserId = null }: ModuleStaffAccessSectionProps) {
+  const interactionDisabled = state.isSubmitting || state.isDeleting;
+  const hideOnModuleToggleDisabled = interactionDisabled || state.moduleId == null;
+
+  const onToggleLeader = useCallback(
+    (userId: number, checked: boolean) => {
+      if (currentUserId != null && userId === currentUserId && !checked) return;
+      state.toggleLeader(userId, checked);
+    },
+    [currentUserId, state.toggleLeader],
+  );
 
   return (
     <section className="module-setup-section module-setup-section--staff" aria-labelledby="module-setup-staff-title">
@@ -34,8 +46,11 @@ export function ModuleStaffAccessSection({ state }: ModuleStaffAccessSectionProp
         end={state.staffEnd}
         users={state.staffUsers}
         selectedSet={state.leaderSet}
-        onToggle={state.toggleLeader}
-        isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+        onToggle={onToggleLeader}
+        isCheckedDisabled={(user) =>
+          interactionDisabled ||
+          (currentUserId != null && user.id === currentUserId && state.leaderSet.has(user.id))
+        }
         message={state.staffMessage}
         page={state.staffPage}
         pageInput={state.staffPageInput}
@@ -56,7 +71,7 @@ export function ModuleStaffAccessSection({ state }: ModuleStaffAccessSectionProp
         onToggleOnlyWithoutModuleAccess={() =>
           state.setStaffSearchOnlyWithoutModuleAccess((prev) => !prev)
         }
-        onlyWithoutModuleAccessDisabled={scopeDisabled}
+        onlyWithoutModuleAccessDisabled={hideOnModuleToggleDisabled}
       />
       {!state.isEditMode && state.leaderIds.length === 0 ? (
         <span className="enterprise-module-create__field-error">Select at least one module leader to continue.</span>
@@ -79,7 +94,7 @@ export function ModuleStaffAccessSection({ state }: ModuleStaffAccessSectionProp
           users={state.taUsers}
           selectedSet={state.taSet}
           onToggle={state.toggleTeachingAssistant}
-          isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting || state.leaderSet.has(user.id)}
+          isCheckedDisabled={(user) => interactionDisabled}
           message={state.taMessage}
           page={state.taPage}
           pageInput={state.taPageInput}
@@ -100,7 +115,7 @@ export function ModuleStaffAccessSection({ state }: ModuleStaffAccessSectionProp
           onToggleOnlyWithoutModuleAccess={() =>
             state.setTaSearchOnlyWithoutModuleAccess((prev) => !prev)
           }
-          onlyWithoutModuleAccessDisabled={scopeDisabled}
+          onlyWithoutModuleAccessDisabled={hideOnModuleToggleDisabled}
         />
       ) : null}
     </section>

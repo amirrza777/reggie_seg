@@ -29,3 +29,22 @@ export type JoinModuleResponse = {
   moduleName: string;
   result: "joined" | "already_joined";
 };
+
+export type ModuleStaffListMember = {
+  userId: number;
+  email: string;
+  displayName: string;
+  roles: Array<"LEAD" | "TA">;
+};
+
+export type ModuleStudentProjectMatrixProject = {
+  id: number;
+  name: string;
+};
+
+export type ModuleStudentProjectMatrixStudent = {
+  userId: number;
+  email: string;
+  displayName: string;
+  teamCells: Array<{ teamId: number; teamName: string } | null>;
+};

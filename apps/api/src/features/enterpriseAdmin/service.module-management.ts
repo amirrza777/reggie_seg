@@ -3,6 +3,7 @@ import { prisma } from "../../shared/db.js";
 import { getModuleJoinCode as getManagedModuleJoinCode, withGeneratedModuleJoinCode } from "../moduleJoin/service.js";
 import {
   ensureCreatorLeader,
+  isEnterpriseAdminRole,
   replaceModuleAssignments,
   validateAssignmentUsers,
 } from "./service.helpers.js";
@@ -21,7 +22,7 @@ const MODULE_WITH_JOIN_CODE_SELECT = {
 /** Creates a module. */
 export async function createModule(enterpriseUser: EnterpriseUser, payload: ParsedModulePayload) {
   const leaderIds = ensureCreatorLeader(payload.leaderIds, enterpriseUser);
-  const taIds = payload.taIds.filter((id) => !leaderIds.includes(id));
+  const taIds = uniqueUserIds(payload.taIds);
 
   const existing = await prisma.module.findFirst({
     where: { enterpriseId: enterpriseUser.enterpriseId, name: payload.name },
@@ -153,7 +154,22 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
     return { ok: false as const, status: 400, error: "At least one module leader is required" };
   }
 
-  const taIds = removeLeaderIds(payload.taIds, payload.leaderIds);
+  const taIds = uniqueUserIds(payload.taIds);
+
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {
+    const selfId = enterpriseUser.id;
+    const existingLead = await prisma.moduleLead.findFirst({
+      where: { moduleId, userId: selfId },
+      select: { moduleId: true },
+    });
+    if (existingLead && !payload.leaderIds.includes(selfId)) {
+      return {
+        ok: false as const,
+        status: 400,
+        error: "You cannot remove your own module lead role from this module",
+      };
+    }
+  }
 
   const nameExists = await moduleNameExists(enterpriseUser.enterpriseId, payload.name, moduleId);
   if (nameExists) return { ok: false as const, status: 409, error: "Module name already exists" };
@@ -192,7 +208,7 @@ async function loadModuleAccessUsers(enterpriseId: string, moduleId: number) {
     prisma.user.findMany({
       where: {
         enterpriseId,
-        role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] },
+        role: { in: ["STAFF", "ENTERPRISE_ADMIN"] },
       },
       select: {
         id: true,
@@ -263,8 +279,8 @@ function mapStudentAccessUser(student: {
   };
 }
 
-function removeLeaderIds(taIds: number[], leaderIds: number[]) {
-  return taIds.filter((id) => !leaderIds.includes(id));
+function uniqueUserIds(ids: number[]): number[] {
+  return [...new Set(ids)];
 }
 
 async function moduleNameExists(enterpriseId: string, moduleName: string, excludeModuleId: number) {

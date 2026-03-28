@@ -44,6 +44,7 @@ describe("enterpriseAdmin service.helpers", () => {
       ok: true,
       value: {
         name: "Module A",
+        code: null,
         briefText: "Brief",
         timelineText: null,
         expectationsText: null,
@@ -121,13 +122,13 @@ describe("enterpriseAdmin service.helpers", () => {
     expect(normalizeFeatureFlagLabel(unchanged)).toBe(unchanged);
   });
 
-  it("sanitises student ids by removing leaders/tas and non-students", async () => {
+  it("sanitises enrolled user ids by removing leaders/tas and unknown users", async () => {
     dbMocks.prisma.user.findMany.mockResolvedValueOnce([{ id: 31 }, { id: 32 }]);
 
     const result = await sanitiseModuleStudentIdsForUpdate("ent-1", [31, 32, 33, 11, 12, 31], [11], [12]);
 
     expect(dbMocks.prisma.user.findMany).toHaveBeenCalledWith({
-      where: { enterpriseId: "ent-1", id: { in: [31, 32, 33] }, role: "STUDENT" },
+      where: { enterpriseId: "ent-1", id: { in: [31, 32, 33] } },
       select: { id: true },
     });
     expect(result).toEqual([31, 32]);
@@ -165,7 +166,7 @@ describe("enterpriseAdmin service.helpers", () => {
     ]);
     expect(
       await validateAssignmentUsers({ enterpriseId: "ent-1", leaderIds: [11], taIds: [], studentIds: [31] }),
-    ).toEqual({ ok: false, error: "Student assignments can only include student accounts" });
+    ).toEqual({ ok: true });
 
     dbMocks.prisma.user.findMany.mockResolvedValueOnce([
       { id: 11, role: "STAFF" },

@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { getModuleStudentProjectMatrix } from "@/features/modules/api/client";
 import { ModuleJoinCodeBanner } from "@/features/modules/components/ModuleJoinCodeBanner";
+import { StaffModuleStudentProjectMatrix } from "@/features/modules/components/StaffModuleStudentProjectMatrix";
 import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
 import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
-import { Table } from "@/shared/ui/Table";
 
 type PageProps = {
   params: Promise<{ moduleId: string }>;
@@ -19,7 +20,17 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
 
   const enc = encodeURIComponent(moduleId);
   const access = resolveStaffModuleWorkspaceAccess(ctx);
-  const moduleJoinCode = `MOD-${ctx.parsedModuleId}`;
+
+  let joinCodeFromApi: string | null = null;
+  try {
+    const joinRes = await getEnterpriseModuleJoinCode(ctx.parsedModuleId);
+    joinCodeFromApi = joinRes.joinCode;
+  } catch (e) {
+    if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
+      throw e;
+    }
+  }
+
   const manageStudentAccessHref = access.staffModuleSetup
     ? `/staff/modules/${enc}/students/access`
     : access.enterpriseModuleEditor
@@ -40,53 +51,6 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
     }
   }
 
-  const matrixColumnTemplate = studentMatrix
-    ? [
-        "minmax(10rem, 1.1fr)",
-        "minmax(11rem, 1.25fr)",
-        ...studentMatrix.projects.map(() => "minmax(8.5rem, 1fr)"),
-      ].join(" ")
-    : undefined;
-
-  const matrixHeaders = studentMatrix
-    ? [
-        "Student",
-        "Email",
-        ...studentMatrix.projects.map((p) => (
-          <Link
-            key={`head-project-${p.id}`}
-            href={`/staff/modules/${enc}/projects/${p.id}`}
-            className="staff-module-students-matrix__project-head-link"
-          >
-            {p.name} ⤴︎
-          </Link>
-        )),
-      ]
-    : [];
-
-  const matrixRows = studentMatrix
-    ? studentMatrix.students.map((s) => {
-        const cells = [
-          s.displayName,
-          s.email,
-          ...s.teamCells.map((cell, idx) => {
-            if (!cell) return <span className="muted">—</span>;
-            const projectId = studentMatrix!.projects[idx]!.id;
-            return (
-              <Link
-                key={`${s.userId}-${projectId}-${cell.teamId}`}
-                href={`/staff/modules/${enc}/projects/${projectId}/teams/${cell.teamId}`}
-                className="ui-link staff-module-students-matrix__team-link"
-              >
-                {cell.teamName}
-              </Link>
-            );
-          }),
-        ];
-        return cells;
-      })
-    : [];
-
   return (
     <div className="stack module-dashboard">
       <header className="module-workspace__section-header">
@@ -96,41 +60,63 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         </p>
       </header>
 
-      <ModuleJoinCodeBanner moduleCode={moduleJoinCode} />
+      <div className="staff-module-students__enrollment-grid">
+        <Card title="Joining code" className="module-workspace__card">
+          {joinCodeFromApi ? (
+            <p className="muted">
+              Students can self-enroll using the join code via{" "}
+              <Link href="/dashboard" className="ui-link ">
+                <strong>join a module</strong>
+              </Link>{" "}
+              on their dashboard.
+            </p>
+          ) : (
+            <p className="muted">
+              The <strong>join code</strong> could not be loaded here. Open the{" "}
+              {access.enterpriseModuleEditor ? (
+                <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
+                  enterprise module editor
+                </Link>
+              ) : manageStudentAccessHref ? (
+                <Link href={manageStudentAccessHref} className="ui-link">
+                  access settings
+                </Link>
+              ) : (
+                "module settings"
+              )}{" "}
+              to copy the join code if you have access.
+            </p>
+          )}
+          {joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
+        </Card>
 
-      <Card title="Enrollment" className="module-workspace__card">
-        {manageStudentAccessHref ? (
-          <div>
-            <Link href={manageStudentAccessHref} className="btn btn--primary">
-              Manage access manually
-            </Link>
-          </div>
-        ) : null}
+        <Card title="Manage access" className="module-workspace__card">
+          <p className="muted">Add or remove students manually.</p>
+          {manageStudentAccessHref ? (
+            <div>
+              <Link href={manageStudentAccessHref} className="btn btn--primary">
+                Manage access manually
+              </Link>
+            </div>
+          ) : null}
 
-        {access.enterpriseModuleEditor ? (
-          <p className="muted">
-            Manage student enrollment in the{" "}
-            <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
-              enterprise module editor
-            </Link>
-            .
-          </p>
-        ) : null}
+          {access.enterpriseModuleEditor ? (
+            <p className="muted">
+              Full enrollment controls are in the{" "}
+              <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
+                enterprise module editor
+              </Link>
+              .
+            </p>
+          ) : null}
 
-        {access.staffModuleSetup ? (
-          <p className="muted">
-            Update module text and expectations from{" "}
-            <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
-              Manage module
-            </Link>
-            .
-          </p>
-        ) : null}
+          
 
-        {!access.staffModuleSetup && !access.enterpriseModuleEditor ? (
-          <p className="muted">Only module leads and administrators can change student enrollment.</p>
-        ) : null}
-      </Card>
+          {!access.staffModuleSetup && !access.enterpriseModuleEditor ? (
+            <p className="muted">Only module leads and administrators can change student enrollment.</p>
+          ) : null}
+        </Card>
+      </div>
 
       {studentMatrixDenied ? (
         <Card title="Students & project teams" className="module-workspace__card">
@@ -179,10 +165,12 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         </Card>
       ) : studentMatrix ? (
         <Card title="Enrolled students by project" className="module-workspace__card">
-          <p className="muted">Each column is a project in this module. Cells link to that team&apos;s staff page.</p>
-          <div style={{ overflowX: "auto", marginTop: 8 }}>
-            <Table headers={matrixHeaders} rows={matrixRows} columnTemplate={matrixColumnTemplate} />
-          </div>
+          <p className="muted">Each column is a project in this module. Cells link to that team&apos;s page.</p>
+          <StaffModuleStudentProjectMatrix
+            moduleRouteParam={moduleId}
+            projects={studentMatrix.projects}
+            students={studentMatrix.students}
+          />
         </Card>
       ) : null}
     </div>

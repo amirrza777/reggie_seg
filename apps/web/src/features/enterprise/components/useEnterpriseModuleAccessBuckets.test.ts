@@ -81,7 +81,7 @@ describe("useEnterpriseModuleAccessBuckets", () => {
 
     await waitFor(() =>
       expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
-        scope: "all",
+        scope: "staff_and_students",
         q: undefined,
         page: 1,
         pageSize: 20,

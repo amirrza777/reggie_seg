@@ -39,7 +39,11 @@ export default async function StaffModuleStaffAccessPage({ params }: PageProps) 
           ← Back to current staff members
         </Link>
       <Card>
-        <StaffModuleAccessForm moduleId={parsed} initialAccessSelection={initialAccessSelection} />
+        <StaffModuleAccessForm
+          moduleId={parsed}
+          currentUserId={ctx.user.id}
+          initialAccessSelection={initialAccessSelection}
+        />
       </Card>
     </div>
   );

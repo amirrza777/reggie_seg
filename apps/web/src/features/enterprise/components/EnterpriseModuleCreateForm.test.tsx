@@ -9,6 +9,15 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
+vi.mock("@/features/auth/useUser", () => ({
+  useUser: () => ({
+    user: { id: 999, email: "editor@x.com", firstName: "Ed", lastName: "Itor", role: "ENTERPRISE_ADMIN" as const },
+    setUser: vi.fn(),
+    refresh: vi.fn(),
+    loading: false,
+  }),
+}));
+
 vi.mock("../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
@@ -67,7 +76,12 @@ const staffOwner = { id: 11, email: "lead@x.com", firstName: "Staff", lastName: 
 const taStudent = { id: 12, email: "ta@student.com", firstName: "TA", lastName: "Student", active: true };
 const enrolledStudent = { id: 31, email: "student@x.com", firstName: "Enrolled", lastName: "Student", active: true };
 
-function makeSearchResponse(scope: "staff" | "all" | "students", items: Array<typeof staffOwner>, page = 1, pageSize = 20) {
+function makeSearchResponse(
+  scope: "staff" | "all" | "students" | "staff_and_students",
+  items: Array<typeof staffOwner>,
+  page = 1,
+  pageSize = 20,
+) {
   const total = items.length;
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   return {
@@ -95,7 +109,9 @@ const installSearchMock = () => {
         ? [staffOwner]
         : scope === "students"
           ? [enrolledStudent]
-          : [staffOwner, taStudent, enrolledStudent];
+          : scope === "staff_and_students"
+            ? [staffOwner, taStudent, enrolledStudent]
+            : [staffOwner, taStudent, enrolledStudent];
 
     const filtered = q
       ? dataset.filter((user) => `${user.firstName} ${user.lastName} ${user.email} ${user.id}`.toLowerCase().includes(q))

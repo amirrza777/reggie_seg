@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 
 type ModuleJoinCodeBannerProps = {
-  moduleCode: string;
+  joinCode: string;
 };
 
-export function ModuleJoinCodeBanner({ moduleCode }: ModuleJoinCodeBannerProps) {
+export function ModuleJoinCodeBanner({ joinCode }: ModuleJoinCodeBannerProps) {
   const [copied, setCopied] = useState(false);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -20,7 +20,7 @@ export function ModuleJoinCodeBanner({ moduleCode }: ModuleJoinCodeBannerProps) 
 
   const copyCode = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(moduleCode);
+      await navigator.clipboard.writeText(joinCode);
       setCopied(true);
       if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       resetTimerRef.current = setTimeout(() => {
@@ -30,7 +30,7 @@ export function ModuleJoinCodeBanner({ moduleCode }: ModuleJoinCodeBannerProps) 
     } catch {
       setCopied(false);
     }
-  }, [moduleCode]);
+  }, [joinCode]);
 
   const updateTooltipFromCursor = useCallback((event: MouseEvent<HTMLButtonElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -48,7 +48,6 @@ export function ModuleJoinCodeBanner({ moduleCode }: ModuleJoinCodeBannerProps) 
   return (
     <div className="module-join-code-banner">
       <p>
-        Students can join this module using code:{" "}
         <button
           type="button"
           className="module-join-code-banner__code"
@@ -61,10 +60,10 @@ export function ModuleJoinCodeBanner({ moduleCode }: ModuleJoinCodeBannerProps) 
           onMouseLeave={() => setTooltipVisible(false)}
           onFocus={(event) => showTooltipCentered(event.currentTarget)}
           onBlur={() => setTooltipVisible(false)}
-          aria-label={copied ? `Copied module code ${moduleCode}` : `Copy module code ${moduleCode}`}
-          title={copied ? "Copied" : "Copy code"}
+          aria-label={copied ? `Copied join code ${joinCode}` : `Copy join code ${joinCode}`}
+          title={copied ? "Copied" : "Copy join code"}
         >
-          <code className="module-join-code-banner__code-value">{moduleCode}</code>
+          <code className="module-join-code-banner__code-value">{joinCode}</code>
           <span
             className={`module-join-code-banner__tooltip${tooltipVisible ? " module-join-code-banner__tooltip--visible" : ""}`}
             style={{ left: tooltipPosition.x, top: tooltipPosition.y }}

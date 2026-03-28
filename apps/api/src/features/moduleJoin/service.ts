@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { canManageModuleAccess } from "../enterpriseAdmin/service.core.js";
-import { createModuleJoinCodeCandidate, MODULE_JOIN_CODE_MAX_ATTEMPTS, normalizeModuleJoinCode } from "./code.js";
+import {
+  createModuleJoinCodeCandidate,
+  MODULE_JOIN_CODE_LENGTH,
+  MODULE_JOIN_CODE_MAX_ATTEMPTS,
+} from "./code.js";
 import { findJoinActor, findJoinableModuleByCode, getManagedModuleJoinCode, insertModuleEnrollment } from "./repo.js";
 
 export type JoinModuleByCodeResponse = {
@@ -18,12 +22,12 @@ export async function joinModuleByCode(actorUserId: number, rawCode: string) {
     return { ok: false as const, status: 403, error: "Forbidden" };
   }
 
-  const normalizedCode = normalizeModuleJoinCode(rawCode);
-  if (!normalizedCode) {
+  const joinCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (joinCode.length !== MODULE_JOIN_CODE_LENGTH) {
     return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
   }
 
-  const module = await findJoinableModuleByCode(actor.enterpriseId, normalizedCode);
+  const module = await findJoinableModuleByCode(actor.enterpriseId, joinCode);
   if (!module) {
     return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
   }

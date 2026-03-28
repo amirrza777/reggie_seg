@@ -41,6 +41,23 @@
   padding-bottom: 12px;
 }
 
+.staff-module-students__enrollment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .staff-module-students__enrollment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staff-module-students__enrollment-grid .module-workspace__card {
+  min-width: 0;
+}
+
 .module-join-code-banner {
   display: grid;
   gap: 8px;

@@ -83,7 +83,12 @@ export function toEnterpriseModuleSearchResponse(
 
 export function toEnterpriseAccessUserSearchResponse(
   items: AssignableUser[],
-  filters: { scope: "staff" | "students" | "all"; query: string | null; page: number; pageSize: number },
+  filters: {
+    scope: "staff" | "students" | "staff_and_students" | "all";
+    query: string | null;
+    page: number;
+    pageSize: number;
+  },
   total: number,
 ) {
   const totalPages = total === 0 ? 0 : Math.ceil(total / filters.pageSize);
