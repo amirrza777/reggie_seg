@@ -2,6 +2,8 @@ enum NotificationType {
   MENTION
   TEAM_INVITE
   LOW_ATTENDANCE
+  MEETING_CREATED
+  MEETING_DELETED
 }
 
 model Notification {
