@@ -326,6 +326,7 @@ export function FeedbackReviewForm({
               onChange={setReview}
               onEmptyChange={setReviewEmpty}
               placeholder="Type your response here..."
+              showWordCount
             />
           ) : (
             <div className="reviewBox">

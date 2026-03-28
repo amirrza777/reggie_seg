@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { $rootTextContent } from "@lexical/text";
 import { Undo2, Redo2, Heading1, Heading2, Heading3, Bold, Italic, Underline, Strikethrough, Superscript, Subscript, Code, List, ListOrdered, Quote, AlignLeft, AlignCenter, AlignRight, AlignJustify, Outdent, Indent } from "lucide-react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -100,6 +101,21 @@ function Toolbar() {
   );
 }
 
+function WordCountPlugin({ onWordCountChange }: { onWordCountChange: (count: number) => void }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    return editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        const text = $rootTextContent().trim();
+        onWordCountChange(text ? text.split(/\s+/).length : 0);
+      });
+    });
+  }, [editor, onWordCountChange]);
+
+  return null;
+}
+
 function InitialContentPlugin({ content }: { content: string }) {
   const [editor] = useLexicalComposerContext();
   const initialContent = useRef(content);
@@ -121,9 +137,11 @@ type RichTextEditorProps = {
   onChange: (json: string) => void;
   onEmptyChange?: (isEmpty: boolean) => void;
   placeholder?: string;
+  showWordCount?: boolean;
 };
 
-export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing..." }: RichTextEditorProps) {
+export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing...", showWordCount }: RichTextEditorProps) {
+  const [wordCount, setWordCount] = useState(0);
   const initialConfig = {
     namespace: "RichTextEditor",
     nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
@@ -173,6 +191,7 @@ export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeh
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
+        {showWordCount && <WordCountPlugin onWordCountChange={setWordCount} />}
         <HistoryPlugin />
         <ListPlugin />
         <OnChangePlugin onChange={(state: EditorState) => {
@@ -186,6 +205,7 @@ export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeh
         <InitialContentPlugin content={initialContent} />
         <TabIndentationPlugin />
       </div>
+      {showWordCount && <div className="rich-editor__word-count">{wordCount} words</div>}
     </LexicalComposer>
   );
 }
