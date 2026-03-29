@@ -17,6 +17,7 @@ import {
   reactToDiscussionPost,
   updateDiscussionPost,
 } from "@/features/forum/api/client";
+import { ApiError } from "@/shared/api/errors";
 import type { DiscussionPost } from "@/features/forum/types";
 import "../styles/discussion-forum.css";
 
@@ -353,6 +354,9 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
       setPostsWithRef((prev) => updatePostInTree(prev, updated));
     } catch (err) {
       logDevError(err);
+      if (err instanceof ApiError && err.status === 403) {
+        return;
+      }
       setError("Failed to update reaction.");
     } finally {
       setReactingPostId(null);
@@ -470,6 +474,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     const immediateReplies = showAllImmediate ? post.replies : post.replies.slice(0, 3);
     const canShowMoreButton = showMore && depth === 0;
     const canReply = Boolean(user) && !userLoading;
+    const canReact = Boolean(user) && !userLoading && !isAuthor;
     const canManageOwnPost = isAuthor && !isEditing;
     const canReportAsStaff = !isStudent && isStaff && post.author.role === "STUDENT";
     const canReportAsStudent = isStudent && !isAuthor && post.myStudentReportStatus !== "PENDING";
@@ -707,8 +712,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 className={`discussion-post__vote-btn discussion-post__vote-btn--like${
                   post.myReaction === "LIKE" ? " is-active" : ""
                 }`}
-                onClick={() => handleReaction(post.id, "LIKE")}
-                disabled={reactingPostId === post.id}
+                onClick={() => {
+                  if (!canReact || reactingPostId === post.id) return;
+                  void handleReaction(post.id, "LIKE");
+                }}
+                disabled={!canReact || reactingPostId === post.id}
                 aria-label={post.myReaction === "LIKE" ? "Remove like" : "Like post"}
                 title={post.myReaction === "LIKE" ? "Liked" : "Like"}
               >
@@ -719,8 +727,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 className={`discussion-post__vote-btn discussion-post__vote-btn--dislike${
                   post.myReaction === "DISLIKE" ? " is-active" : ""
                 }`}
-                onClick={() => handleReaction(post.id, "DISLIKE")}
-                disabled={reactingPostId === post.id}
+                onClick={() => {
+                  if (!canReact || reactingPostId === post.id) return;
+                  void handleReaction(post.id, "DISLIKE");
+                }}
+                disabled={!canReact || reactingPostId === post.id}
                 aria-label={post.myReaction === "DISLIKE" ? "Remove dislike" : "Dislike post"}
                 title={post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
               >
