@@ -65,6 +65,10 @@ type PrismaMock = {
   };
   projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   featureFlag: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  helpTopic: { upsert: ReturnType<typeof vi.fn> };
+  helpArticle: { upsert: ReturnType<typeof vi.fn> };
+  helpFaqGroup: { upsert: ReturnType<typeof vi.fn> };
+  helpFaq: { upsert: ReturnType<typeof vi.fn> };
   discussionPost: {
     deleteMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -206,6 +210,18 @@ function buildPrismaMock(): PrismaMock {
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    helpTopic: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpArticle: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpFaqGroup: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpFaq: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
     discussionPost: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockResolvedValue({ id: 1, projectId: 1 }),
@@ -264,6 +280,10 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
@@ -298,6 +318,21 @@ describe("prisma seed script", () => {
       }),
     );
     expect(prismaMock.module.createMany).toHaveBeenCalled();
+    expect(prismaMock.module.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: "Software Engineering Group Project",
+            code: "MOD-1",
+            joinCode: expect.any(String),
+            briefText: expect.stringContaining("Software Engineering Group Project"),
+            timelineText: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.* \| .* \| .+/),
+            expectationsText: expect.stringMatching(/^.+ \| .+ \| .+/),
+            readinessNotesText: expect.stringContaining("Software Engineering Group Project"),
+          }),
+        ]),
+      }),
+    );
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
@@ -329,6 +364,10 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
@@ -387,6 +426,10 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
@@ -416,6 +459,18 @@ describe("prisma seed script", () => {
     expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
     expect(prismaMock.user.createMany).toHaveBeenCalled();
     expect(prismaMock.module.createMany).toHaveBeenCalled();
+    expect(prismaMock.module.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            briefText: expect.any(String),
+            timelineText: expect.any(String),
+            expectationsText: expect.any(String),
+            readinessNotesText: expect.any(String),
+          }),
+        ]),
+      }),
+    );
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
     expect(logSpy.mock.calls.some(([message]) => String(message).includes("Seed users ready across 2 enterprise(s). Default password"))).toBe(true);
   });
