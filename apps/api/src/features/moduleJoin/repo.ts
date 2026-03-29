@@ -40,9 +40,20 @@ export async function insertModuleEnrollment(enterpriseId: string, userId: numbe
   return inserted.count > 0;
 }
 
-export async function getManagedModuleJoinCode(enterpriseId: string, moduleId: number) {
+export async function getAuthorizedModuleJoinCode(input: {
+  enterpriseId: string;
+  moduleId: number;
+  userId: number;
+  role: string;
+}) {
+  const roleCanManageAll = input.role === "ADMIN" || input.role === "ENTERPRISE_ADMIN";
+
   return prisma.module.findFirst({
-    where: { id: moduleId, enterpriseId },
+    where: {
+      id: input.moduleId,
+      enterpriseId: input.enterpriseId,
+      ...(roleCanManageAll ? {} : { moduleLeads: { some: { userId: input.userId } } }),
+    },
     select: { id: true, joinCode: true },
   });
 }
