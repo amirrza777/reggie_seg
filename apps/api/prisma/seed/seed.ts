@@ -22,6 +22,7 @@ import { seedHelpContent } from "./help";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
+import { seedNotifications } from "./notifications";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
 
@@ -89,6 +90,7 @@ function buildSeedStepPlan(context: SeedContext) {
     () => seedPeerAssessmentProgressScenarios(context),
     () => seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students),
     () => seedMeetings(context),
+    () => seedNotifications(context),
   ];
 
   if (SEED_ENABLE_ADMIN_TEAM_ALLOCATION) {
