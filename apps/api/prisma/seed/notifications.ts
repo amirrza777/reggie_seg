@@ -1,3 +1,4 @@
+import type { NotificationType } from "@prisma/client";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedContext } from "./types";
@@ -28,12 +29,12 @@ export async function seedNotifications(context: SeedContext) {
     const studentNotifications = [
       ...(pastMeeting
         ? [
-            {
-              userId: student.id,
-              type: "MEETING_CREATED" as const,
-              message: `A new meeting has been scheduled: ${pastMeeting.title}`,
-              link: `/projects/${projectId}/meetings/${pastMeeting.id}`,
-              read: true,
+          {
+            userId: student.id,
+            type: "MEETING_CREATED" as const,
+            message: `A new meeting has been scheduled: ${pastMeeting.title}`,
+            link: `/projects/${projectId}/meetings/${pastMeeting.id}`,
+            read: true,
             },
           ]
         : []),
@@ -69,9 +70,8 @@ export async function seedNotifications(context: SeedContext) {
         ]
       : [];
 
-    const result = await prisma.notification.createMany({
-      data: [...studentNotifications, ...staffNotifications],
-    });
+    const notifications = [...studentNotifications, ...staffNotifications];
+    const result = await createSeedNotifications(notifications);
 
     return {
       value: undefined,
@@ -79,4 +79,44 @@ export async function seedNotifications(context: SeedContext) {
       details: `student=${student.id}, staff=${staff?.id ?? "none"}, project=${projectId}`,
     };
   });
+}
+
+type SeedNotificationRow = {
+  userId: number;
+  type: NotificationType;
+  message: string;
+  link: string;
+  read: boolean;
+};
+
+async function createSeedNotifications(data: SeedNotificationRow[]) {
+  try {
+    return await prisma.notification.createMany({ data });
+  } catch (error) {
+    if (!isLegacyNotificationTypeError(error)) {
+      throw error;
+    }
+
+    const fallbackData = data.map((notification) => ({
+      ...notification,
+      type: mapLegacyNotificationType(notification.type),
+    }));
+
+    return prisma.notification.createMany({ data: fallbackData });
+  }
+}
+
+function mapLegacyNotificationType(type: NotificationType): NotificationType {
+  switch (type) {
+    case "MEETING_CREATED":
+    case "MEETING_DELETED":
+      return "MENTION";
+    default:
+      return type;
+  }
+}
+
+function isLegacyNotificationTypeError(error: unknown) {
+  const message = (error as { message?: string })?.message ?? "";
+  return message.includes("Data truncated for column 'type'");
 }
