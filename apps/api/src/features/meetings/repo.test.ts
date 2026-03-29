@@ -211,7 +211,19 @@ describe("meetings repo", () => {
 
     expect(prisma.team.findUnique).toHaveBeenCalledWith({
       where: { id: 1 },
-      select: { archivedAt: true, inactivityFlag: true },
+      select: {
+        archivedAt: true,
+        inactivityFlag: true,
+        deadlineProfile: true,
+        projectId: true,
+        deadlineOverride: { select: { feedbackDueDate: true } },
+        project: {
+          select: {
+            archivedAt: true,
+            deadline: { select: { feedbackDueDate: true, feedbackDueDateMcf: true } },
+          },
+        },
+      },
     });
   });
 
@@ -262,7 +274,7 @@ describe("meetings repo", () => {
 
     const result = await getModuleMeetingSettingsForTeam(1);
 
-    expect(result).toEqual({ absenceThreshold: 4, minutesEditWindowDays: 14 });
+    expect(result).toEqual(expect.objectContaining({ absenceThreshold: 4, minutesEditWindowDays: 14 }));
   });
 
   it("returns default meeting settings when no project found", async () => {
@@ -270,6 +282,13 @@ describe("meetings repo", () => {
 
     const result = await getModuleMeetingSettingsForTeam(1);
 
-    expect(result).toEqual({ absenceThreshold: 3, minutesEditWindowDays: 7 });
+    expect(result).toEqual({
+      absenceThreshold: 3,
+      minutesEditWindowDays: 7,
+      attendanceEditWindowDays: 7,
+      allowAnyoneToEditMeetings: false,
+      allowAnyoneToRecordAttendance: false,
+      allowAnyoneToWriteMinutes: false,
+    });
   });
 });

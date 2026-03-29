@@ -82,7 +82,7 @@ describe("meetings service", () => {
       { id: 1, email: "a@test.com" },
       { id: 2, email: "b@test.com" },
     ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE" });
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
     (repo.createMeeting as any).mockResolvedValue({ id: 3 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
     (repo.createParticipants as any).mockResolvedValue(undefined);
@@ -126,7 +126,7 @@ describe("meetings service", () => {
       { id: 2, email: "b@test.com" },
       { id: 3, email: "c@test.com" },
     ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE" });
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
     (repo.createMeeting as any).mockResolvedValue({ id: 5 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
     (repo.createParticipants as any).mockResolvedValue(undefined);
@@ -139,13 +139,13 @@ describe("meetings service", () => {
 
   it("sends invite email with ics attachment to each participant", async () => {
     const members = [{ id: 1, email: "a@test.com" }];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE" });
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
     (repo.createMeeting as any).mockResolvedValue({ id: 1 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
     (repo.createParticipants as any).mockResolvedValue(undefined);
     (email.sendEmail as any).mockResolvedValue(undefined);
 
-    await addMeeting({ teamId: 1, organiserId: 1, title: "Sprint Review", date: new Date("2026-05-01T14:00:00Z") });
+    await addMeeting({ teamId: 1, organiserId: 1, title: "Design Review", date: new Date("2026-05-01T14:00:00Z") });
 
     expect(email.sendEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -162,7 +162,7 @@ describe("meetings service", () => {
       { id: 1, email: "a@test.com" },
       { id: 2, email: "b@test.com" },
     ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE" });
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
     (repo.createMeeting as any).mockResolvedValue({ id: 2 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
     (repo.createParticipants as any).mockResolvedValue(undefined);
@@ -176,7 +176,7 @@ describe("meetings service", () => {
 
   it("clears inactivity flag when team has YELLOW flag", async () => {
     const members = [{ id: 1, email: "a@test.com" }];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "YELLOW" });
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "YELLOW", projectId: 10 });
     (repo.createMeeting as any).mockResolvedValue({ id: 1 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
     (repo.createParticipants as any).mockResolvedValue(undefined);
@@ -185,6 +185,31 @@ describe("meetings service", () => {
     await addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-05-01") });
 
     expect(repo.clearTeamInactivityFlag).toHaveBeenCalledWith(1);
+  });
+
+  it("sends MEETING_CREATED notification to participants except the organiser", async () => {
+    const members = [
+      { id: 1, email: "a@test.com" },
+      { id: 2, email: "b@test.com" },
+      { id: 3, email: "c@test.com" },
+    ];
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
+    (repo.createMeeting as any).mockResolvedValue({ id: 5 });
+    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
+    (repo.createParticipants as any).mockResolvedValue(undefined);
+    (email.sendEmail as any).mockResolvedValue(undefined);
+
+    await addMeeting({ teamId: 1, organiserId: 1, title: "Design Review", date: new Date("2026-05-01") });
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 2, type: "MEETING_CREATED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 3, type: "MEETING_CREATED" })
+    );
+    expect(notificationsService.addNotification).not.toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 1, type: "MEETING_CREATED" })
+    );
   });
 
   it("throws TEAM_ARCHIVED when team is archived", async () => {
@@ -280,9 +305,42 @@ describe("meetings service", () => {
   });
 
   it("forwards removeMeeting to repo", async () => {
+    (repo.getMeetingById as any).mockResolvedValue(null);
+
     await removeMeeting(7);
 
     expect(repo.deleteMeeting).toHaveBeenCalledWith(7);
+  });
+
+  it("sends MEETING_DELETED notification to all participants when meeting exists", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 7,
+      title: "Sprint Review",
+      teamId: 1,
+      team: { projectId: 10 },
+      participants: [{ userId: 1 }, { userId: 2 }],
+    });
+    (repo.deleteMeeting as any).mockResolvedValue(undefined);
+
+    await removeMeeting(7);
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 1, type: "MEETING_DELETED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 2, type: "MEETING_DELETED" })
+    );
+    expect(repo.deleteMeeting).toHaveBeenCalledWith(7);
+  });
+
+  it("does not send MEETING_DELETED notification when meeting is not found", async () => {
+    (repo.getMeetingById as any).mockResolvedValue(null);
+    (repo.deleteMeeting as any).mockResolvedValue(undefined);
+
+    await removeMeeting(99);
+
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+    expect(repo.deleteMeeting).toHaveBeenCalledWith(99);
   });
 
   it("forwards markAttendance to repo", async () => {
