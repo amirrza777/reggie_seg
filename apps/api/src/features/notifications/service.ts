@@ -36,7 +36,7 @@ export async function addNotification(data: {
 
   const email = await getUserEmail(data.userId);
   if (email) {
-    const subject = NOTIFICATION_SUBJECTS[data.type] ?? "New notification";
+    const subject = NOTIFICATION_SUBJECTS[data.type];
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
     const lines = [data.message];
     if (data.link) lines.push(`\nView it here: ${baseUrl}${data.link}`);
