@@ -329,13 +329,7 @@ describe("enterpriseAdmin service.overview-search", () => {
         { id: 12, email: "bob@x.com", firstName: "Bob", lastName: "Stone", active: true },
       ]);
     mockState.fuzzy.shouldUseFuzzyFallback.mockReturnValueOnce(true);
-    mockState.fuzzy.fuzzyFilterAndPaginate.mockReturnValueOnce({
-      items: [{ id: 11, email: "nora@x.com", firstName: "Nora", lastName: "Patel", active: true }],
-      total: 1,
-      page: 1,
-      pageSize: 20,
-      totalPages: 1,
-    });
+    mockState.accessSearch.matchesEnterpriseAccessUserSearchCandidate.mockImplementation((candidate: { id: number }) => candidate.id === 11);
 
     const result = await searchAssignableUsers(adminUser as any, {
       scope: "all",

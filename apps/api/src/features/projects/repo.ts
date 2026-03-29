@@ -31,6 +31,20 @@ export type StudentDeadlineOverrideInput = {
 
 type ModuleAccessRole = "OWNER" | "TEACHING_ASSISTANT" | "ENROLLED" | "ADMIN_ACCESS";
 
+const MODULE_LIST_PROJECT_DEADLINE_SELECT = {
+  taskOpenDate: true,
+  taskDueDate: true,
+  taskDueDateMcf: true,
+  assessmentOpenDate: true,
+  assessmentDueDate: true,
+  assessmentDueDateMcf: true,
+  feedbackOpenDate: true,
+  feedbackDueDate: true,
+  feedbackDueDateMcf: true,
+} as const;
+
+type ModuleListProjectDeadline = Prisma.ProjectDeadlineGetPayload<{ select: typeof MODULE_LIST_PROJECT_DEADLINE_SELECT }>;
+
 const STAFF_PROJECT_LIST_SELECT = {
   id: true,
   name: true,
@@ -42,6 +56,7 @@ const STAFF_PROJECT_LIST_SELECT = {
     },
   },
   createdAt: true,
+  deadline: { select: MODULE_LIST_PROJECT_DEADLINE_SELECT },
   _count: {
     select: {
       teams: true,
@@ -51,6 +66,12 @@ const STAFF_PROJECT_LIST_SELECT = {
   teams: {
     where: { archivedAt: null, allocationLifecycle: "ACTIVE" },
     select: {
+      trelloBoardId: true,
+      _count: {
+        select: {
+          peerAssessments: true,
+        },
+      },
       allocations: {
         select: {
           user: {
@@ -73,21 +94,6 @@ const MODULE_LEAD_NAME_SELECT = {
     },
   },
 } as const;
-
-/** Date columns only — window min/max uses every selected `Date` (excludes `createdAt` / `updatedAt` on the full row). */
-const MODULE_LIST_PROJECT_DEADLINE_SELECT = {
-  taskOpenDate: true,
-  taskDueDate: true,
-  taskDueDateMcf: true,
-  assessmentOpenDate: true,
-  assessmentDueDate: true,
-  assessmentDueDateMcf: true,
-  feedbackOpenDate: true,
-  feedbackDueDate: true,
-  feedbackDueDateMcf: true,
-} as const;
-
-type ModuleListProjectDeadline = Prisma.ProjectDeadlineGetPayload<{ select: typeof MODULE_LIST_PROJECT_DEADLINE_SELECT }>;
 
 function deadlineInstantsMs(deadline: ModuleListProjectDeadline): number[] {
   return Object.values(deadline)

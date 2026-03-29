@@ -6,7 +6,7 @@ vi.mock("@/shared/api/http", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
 }));
 
-import { joinModuleByCode, listModules } from "./client";
+import { getModuleStaffList, getModuleStudentProjectMatrix, joinModuleByCode, listModules } from "./client";
 
 describe("modules api client", () => {
   beforeEach(() => {
@@ -44,5 +44,27 @@ describe("modules api client", () => {
       method: "POST",
       body: JSON.stringify({ code: "ABCD2345" }),
     });
+  });
+
+  it("fetches module staff list", async () => {
+    const payload = { members: [] };
+    apiFetchMock.mockResolvedValue(payload);
+    const result = await getModuleStaffList(12);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/12/staff");
+    expect(result).toEqual(payload);
+  });
+
+  it("encodes module id in staff list path", async () => {
+    apiFetchMock.mockResolvedValue({ members: [] });
+    await getModuleStaffList("99");
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/99/staff");
+  });
+
+  it("fetches student project matrix", async () => {
+    const payload = { projects: [], students: [] };
+    apiFetchMock.mockResolvedValue(payload);
+    const result = await getModuleStudentProjectMatrix(5);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/5/student-project-matrix");
+    expect(result).toEqual(payload);
   });
 });

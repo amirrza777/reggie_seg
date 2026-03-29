@@ -13,6 +13,7 @@ const mockState = vi.hoisted(() => ({
       findMany: vi.fn(),
     },
     moduleLead: {
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -45,6 +46,7 @@ vi.mock("./service.helpers.js", () => ({
   replaceModuleAssignments: mockState.helpers.replaceModuleAssignments,
   sanitiseModuleStudentIdsForUpdate: mockState.helpers.sanitiseModuleStudentIdsForUpdate,
   validateAssignmentUsers: mockState.helpers.validateAssignmentUsers,
+  isEnterpriseAdminRole: (role: string) => role === "ENTERPRISE_ADMIN" || role === "ADMIN",
 }));
 vi.mock("./service.core.js", () => ({
   canManageModuleAccess: mockState.core.canManageModuleAccess,
@@ -80,6 +82,7 @@ beforeEach(() => {
   mockState.prisma.module.update.mockResolvedValue({ id: 7 });
 
   mockState.prisma.user.findMany.mockResolvedValue([]);
+  mockState.prisma.moduleLead.findFirst.mockResolvedValue(null);
   mockState.prisma.moduleLead.findMany.mockResolvedValue([]);
   mockState.prisma.moduleTeachingAssistant.findMany.mockResolvedValue([]);
   mockState.prisma.userModule.deleteMany.mockResolvedValue({ count: 0 });
@@ -135,6 +138,29 @@ describe("enterpriseAdmin service.module-management", () => {
     });
 
     expect(result).toEqual({ ok: false, status: 400, error: "At least one module leader is required" });
+  });
+
+  it("returns 400 when a module lead removes their own module lead role", async () => {
+    mockState.prisma.moduleLead.findFirst.mockResolvedValueOnce({ moduleId: 7 });
+
+    const staffLead = { id: 42, enterpriseId: "ent-1", role: "STAFF" } as const;
+    const result = await updateModule(staffLead as any, 7, {
+      name: "X",
+      code: null,
+      briefText: null,
+      timelineText: null,
+      expectationsText: null,
+      readinessNotesText: null,
+      leaderIds: [11],
+      taIds: [],
+      studentIds: [],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 400,
+      error: "You cannot remove your own module lead role from this module",
+    });
   });
 
   it("returns 404 when module students are requested for a missing module", async () => {

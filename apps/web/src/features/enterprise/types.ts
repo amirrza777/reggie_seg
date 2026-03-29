@@ -46,7 +46,7 @@ export type EnterpriseModuleSearchResponse = {
   query: string | null;
 };
 
-export type EnterpriseAccessUserSearchScope = "staff" | "students" | "all";
+export type EnterpriseAccessUserSearchScope = "staff" | "students" | "staff_and_students" | "all";
 
 export type EnterpriseAccessUserSearchParams = {
   scope?: EnterpriseAccessUserSearchScope;
@@ -54,6 +54,8 @@ export type EnterpriseAccessUserSearchParams = {
   page?: number;
   pageSize?: number;
   excludeEnrolledInModule?: number;
+  excludeOnModule?: "full" | "lead_ta";
+  prioritiseUserIds?: number[];
 };
 
 export type EnterpriseAccessUserSearchResponse = {

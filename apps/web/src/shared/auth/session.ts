@@ -9,6 +9,7 @@ export type SessionUser = {
   email: string;
   firstName: string;
   lastName: string;
+  enterpriseName?: string;
   isStaff: boolean;
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;

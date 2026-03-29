@@ -22,6 +22,7 @@ export type UserProfile = {
   email: string;
   firstName: string;
   lastName: string;
+  enterpriseName?: string;
   role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
   isStaff?: boolean;
   isAdmin?: boolean;

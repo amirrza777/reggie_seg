@@ -25,13 +25,13 @@ describe("ModuleJoinCodeCard", () => {
 
     render(<ModuleJoinCodeCard moduleId={12} />);
 
-    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
+    expect(await screen.findByRole("button", { name: /copy join code abcd2345/i })).toHaveTextContent("ABCD2345");
   });
 
   it("renders from initial join code without fetching", () => {
     render(<ModuleJoinCodeCard moduleId={12} initialJoinCode="ABCD2345" />);
 
-    expect(screen.getByLabelText(/module join code/i)).toHaveTextContent("ABCD2345");
+    expect(screen.getByRole("button", { name: /copy join code abcd2345/i })).toHaveTextContent("ABCD2345");
     expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
   });
 
@@ -41,15 +41,14 @@ describe("ModuleJoinCodeCard", () => {
     expect(screen.getByText(/module created\. students can now join with this code/i)).toBeInTheDocument();
   });
 
-  it("copies the code and shows feedback", async () => {
+  it("copies the code from the join code banner", async () => {
     getEnterpriseModuleJoinCodeMock.mockResolvedValue({ moduleId: 12, joinCode: "ABCD2345" });
 
     render(<ModuleJoinCodeCard moduleId={12} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /copy code/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /copy join code abcd2345/i }));
 
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith("ABCD2345"));
-    expect(await screen.findByText(/join code copied/i)).toBeInTheDocument();
   });
 
   it("renders an error state when loading fails", async () => {

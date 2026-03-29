@@ -29,6 +29,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
 
   let members: ModuleStaffListMember[] | null = null;
   let denied = false;
+  let loadFailed = false;
 
   try {
     const res = await getModuleStaffList(moduleId);
@@ -37,7 +38,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
     if (e instanceof ApiError && e.status === 403) {
       denied = true;
     } else {
-      members = [];
+      loadFailed = true;
     }
   }
 
@@ -50,7 +51,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
         </p>
       </header>
 
-      {(access.staffModuleSetup || access.enterpriseModuleEditor) ? (
+      {access.staffModuleSetup || access.enterpriseModuleEditor ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {access.staffModuleSetup ? (
             <Link href={`/staff/modules/${enc}/staff/access`} className="btn btn--primary btn--sm">
@@ -69,6 +70,10 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
         <Card title="Staff list">
           <p className="muted">You don&apos;t have permission to view this list.</p>
         </Card>
+      ) : loadFailed ? (
+        <Card title="Staff list">
+          <p className="muted">Could not load the staff list. Please try again later.</p>
+        </Card>
       ) : members && members.length === 0 ? (
         <Card title="Staff list">
           <p className="muted">No module leads or teaching assistants are assigned yet.</p>
@@ -82,7 +87,8 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>
-                      {" "}or the{" "}
+                      {" "}
+                      or the{" "}
                       <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
                         enterprise module editor
                       </Link>

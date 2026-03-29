@@ -175,6 +175,14 @@ export type StaffProject = {
   daysOld: number;
   membersTotal: number;
   membersConnected: number;
+  dateRangeStart: string | null;
+  dateRangeEnd: string | null;
+  githubIntegrationPercent: number;
+  trelloBoardsLinkedPercent: number;
+  trelloBoardsLinkedCount: number;
+  peerAssessmentsSubmittedPercent: number;
+  peerAssessmentsSubmittedCount: number;
+  peerAssessmentsExpectedCount: number;
 };
 
 export type StaffProjectTeamsResponse = {

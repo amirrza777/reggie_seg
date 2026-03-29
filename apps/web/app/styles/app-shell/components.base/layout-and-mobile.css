@@ -120,6 +120,54 @@
   color: var(--ink-strong);
 }
 
+.circular-progress-pie {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  max-width: 64px;
+  cursor: help;
+}
+
+.circular-progress-pie__ring {
+  --circular-progress-p: 0;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--circular-progress-fill, var(--accent-strong)) calc(var(--circular-progress-p) * 1%),
+    var(--circular-progress-track, var(--border)) 0
+  );
+}
+
+.circular-progress-pie__inner {
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.circular-progress-pie__pct {
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.circular-progress-pie__title {
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
 .modal {
   position: fixed;
   inset: 0;

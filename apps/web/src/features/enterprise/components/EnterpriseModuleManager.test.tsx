@@ -59,8 +59,17 @@ describe("EnterpriseModuleManager", () => {
     await waitFor(() =>
       expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
     );
+    expect(screen.getByRole("heading", { level: 3, name: "Modules" })).toBeInTheDocument();
     expect(screen.getByText("Software Engineering")).toBeInTheDocument();
     expect(screen.getByText("Module code 4CCS2DBS")).toBeInTheDocument();
+  });
+
+  it("uses enterprise name in the card title when provided", async () => {
+    render(<EnterpriseModuleManager enterpriseName=" Acme University " />);
+    await waitFor(() =>
+      expect(searchEnterpriseModulesMock).toHaveBeenCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+    expect(screen.getByRole("heading", { level: 3, name: "Acme University modules" })).toBeInTheDocument();
   });
 
   it("supports backend pagination", async () => {

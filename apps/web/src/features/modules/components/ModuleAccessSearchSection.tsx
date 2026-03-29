@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId } from "react";
 import type { EnterpriseAssignableUser } from "@/features/enterprise/types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
@@ -43,11 +43,6 @@ export type ModuleAccessSearchSectionProps = {
   selectedCountLabel: string;
   /** When set, rows that were selected on load but are now unchecked show a removal highlight. */
   baselineSelectedSet?: Set<number>;
-  /**
-   * Within this page of results, users who were in {@link baselineSelectedSet} on load are listed first
-   * (then by name). Order does not change when the user checks or unchecks boxes.
-   */
-  sortSelectedFirst?: boolean;
   /** Limit search to users not yet on this module (header switch). */
   onlyWithoutModuleAccess: boolean;
   onToggleOnlyWithoutModuleAccess: () => void;
@@ -167,19 +162,6 @@ function AccessPagination({
  */
 export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps) {
   const enrollmentScopeLabelId = useId();
-  const displayUsers = useMemo(() => {
-    if (!props.sortSelectedFirst) return props.users;
-    const orderSet = props.baselineSelectedSet;
-    if (!orderSet || orderSet.size === 0) return props.users;
-    return [...props.users].sort((a, b) => {
-      const aTop = orderSet.has(a.id) ? 0 : 1;
-      const bTop = orderSet.has(b.id) ? 0 : 1;
-      if (aTop !== bTop) return aTop - bTop;
-      const an = `${a.firstName} ${a.lastName}`.trim().toLocaleLowerCase();
-      const bn = `${b.firstName} ${b.lastName}`.trim().toLocaleLowerCase();
-      return an.localeCompare(bn);
-    });
-  }, [props.users, props.baselineSelectedSet, props.sortSelectedFirst]);
 
   return (
     <div className="enterprise-modules__create-field enterprise-module-create__field">
@@ -195,11 +177,13 @@ export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps)
         <div className="module-access-search__head-actions">
           <div className="enterprise-module-create__filter-toggle enterprise-module-create__filter-toggle--header-inline">
             <span id={enrollmentScopeLabelId} className="enterprise-module-create__filter-toggle-label">
-              Only show users without access to this module
+              Hide users already on this module
             </span>
             <button
               type="button"
               role="switch"
+              aria-checked={props.onlyWithoutModuleAccess}
+              aria-labelledby={enrollmentScopeLabelId}
               disabled={props.onlyWithoutModuleAccessDisabled}
               className="enterprise-module-create__filter-switch"
               onClick={props.onToggleOnlyWithoutModuleAccess}
@@ -228,7 +212,7 @@ export function ModuleAccessSearchSection(props: ModuleAccessSearchSectionProps)
       </span>
 
       <div className="enterprise-module-create__access-list" role="group" aria-label={props.groupLabel}>
-        {displayUsers.map((user) => {
+        {props.users.map((user) => {
           const isSelected = props.selectedSet.has(user.id);
           const isPendingRemoval = Boolean(
             props.baselineSelectedSet?.has(user.id) && !isSelected,

@@ -139,7 +139,12 @@ describe("auth controller profile/me", () => {
 
   it("meHandler revokes refresh tokens for suspended users", async () => {
     const res = mockResponse();
-    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 9, role: "STUDENT", active: false });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 9,
+      role: "STUDENT",
+      active: false,
+      enterprise: { name: "KCL" },
+    });
 
     await meHandler({ user: { sub: 9 } } as any, res as any);
 
@@ -149,7 +154,13 @@ describe("auth controller profile/me", () => {
 
   it("meHandler returns profile flags for role and active default", async () => {
     const res = mockResponse();
-    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 7, role: "ENTERPRISE_ADMIN", active: undefined });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 7,
+      role: "ENTERPRISE_ADMIN",
+      active: undefined,
+      enterprise: { name: "KCL University" },
+      _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
+    });
     (service.getProfile as any).mockResolvedValueOnce({ id: 7, email: "a@b.com", firstName: "A", lastName: "B" });
 
     await meHandler({ user: { sub: 7 } } as any, res as any);
@@ -159,6 +170,7 @@ describe("auth controller profile/me", () => {
       email: "a@b.com",
       firstName: "A",
       lastName: "B",
+      enterpriseName: "KCL University",
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: true,
@@ -173,6 +185,7 @@ describe("auth controller profile/me", () => {
       id: 21,
       role: "STUDENT",
       active: true,
+      enterprise: { name: "KCL University" },
       _count: { moduleLeads: 0, moduleTeachingAssistants: 1 },
     });
     (service.getProfile as any).mockResolvedValueOnce({ id: 21, email: "ta@student.com", firstName: "TA", lastName: "Student" });
@@ -184,6 +197,7 @@ describe("auth controller profile/me", () => {
       email: "ta@student.com",
       firstName: "TA",
       lastName: "Student",
+      enterpriseName: "KCL University",
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: false,
@@ -206,7 +220,13 @@ describe("auth controller profile/me", () => {
 
   it("meHandler catches downstream profile errors", async () => {
     const res = mockResponse();
-    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 8, role: "ADMIN", active: true });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 8,
+      role: "ADMIN",
+      active: true,
+      enterprise: { name: "KCL Universtity" },
+      _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
+    });
     (service.getProfile as any).mockRejectedValueOnce(new Error("boom"));
 
     await meHandler({ user: { sub: 8 } } as any, res as any);

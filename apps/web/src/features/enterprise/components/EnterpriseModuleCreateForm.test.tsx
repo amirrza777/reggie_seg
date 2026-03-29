@@ -9,11 +9,19 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
+vi.mock("@/features/auth/useUser", () => ({
+  useUser: () => ({
+    user: { id: 999, email: "editor@x.com", firstName: "Ed", lastName: "Itor", role: "ENTERPRISE_ADMIN" as const },
+    setUser: vi.fn(),
+    refresh: vi.fn(),
+    loading: false,
+  }),
+}));
+
 vi.mock("../api/client", () => ({
   createEnterpriseModule: vi.fn(),
   deleteEnterpriseModule: vi.fn(),
   getEnterpriseModuleAccessSelection: vi.fn(),
-  getEnterpriseModuleJoinCode: vi.fn(),
   getModuleMeetingSettings: vi.fn(),
   searchEnterpriseModuleAccessUsers: vi.fn(),
   updateModuleMeetingSettings: vi.fn(),
@@ -24,7 +32,6 @@ import {
   createEnterpriseModule,
   deleteEnterpriseModule,
   getEnterpriseModuleAccessSelection,
-  getEnterpriseModuleJoinCode,
   getModuleMeetingSettings,
   searchEnterpriseModuleAccessUsers,
   updateModuleMeetingSettings,
@@ -55,7 +62,6 @@ const deleteEnterpriseModuleMock = deleteEnterpriseModule as MockedFunction<type
 const getEnterpriseModuleAccessSelectionMock = getEnterpriseModuleAccessSelection as MockedFunction<
   typeof getEnterpriseModuleAccessSelection
 >;
-const getEnterpriseModuleJoinCodeMock = getEnterpriseModuleJoinCode as MockedFunction<typeof getEnterpriseModuleJoinCode>;
 const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers as MockedFunction<
   typeof searchEnterpriseModuleAccessUsers
 >;
@@ -67,7 +73,12 @@ const staffOwner = { id: 11, email: "lead@x.com", firstName: "Staff", lastName: 
 const taStudent = { id: 12, email: "ta@student.com", firstName: "TA", lastName: "Student", active: true };
 const enrolledStudent = { id: 31, email: "student@x.com", firstName: "Enrolled", lastName: "Student", active: true };
 
-function makeSearchResponse(scope: "staff" | "all" | "students", items: Array<typeof staffOwner>, page = 1, pageSize = 20) {
+function makeSearchResponse(
+  scope: "staff" | "all" | "students" | "staff_and_students",
+  items: Array<typeof staffOwner>,
+  page = 1,
+  pageSize = 20,
+) {
   const total = items.length;
   const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize);
   return {
@@ -95,7 +106,9 @@ const installSearchMock = () => {
         ? [staffOwner]
         : scope === "students"
           ? [enrolledStudent]
-          : [staffOwner, taStudent, enrolledStudent];
+          : scope === "staff_and_students"
+            ? [staffOwner, taStudent, enrolledStudent]
+            : [staffOwner, taStudent, enrolledStudent];
 
     const filtered = q
       ? dataset.filter((user) => `${user.firstName} ${user.lastName} ${user.email} ${user.id}`.toLowerCase().includes(q))
@@ -140,10 +153,6 @@ describe("EnterpriseModuleCreateForm", () => {
       leaderIds: [11],
       taIds: [12],
       studentIds: [31],
-    });
-    getEnterpriseModuleJoinCodeMock.mockResolvedValue({
-      moduleId: 77,
-      joinCode: "ABCD2345",
     });
     getModuleMeetingSettingsMock.mockResolvedValue({
       absenceThreshold: 2,
@@ -227,12 +236,12 @@ describe("EnterpriseModuleCreateForm", () => {
     expect(refresh).toHaveBeenCalled();
   });
 
-  it("shows the join code card in edit mode", async () => {
-    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} createdJoinCode="ZXCV6789" />);
+  it("shows the module joining code field in edit mode", async () => {
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} joinCode="ZXCV6789" />);
 
-    expect(await screen.findByText(/students can now join with this code/i)).toBeInTheDocument();
-    expect(await screen.findByLabelText(/module join code/i)).toHaveTextContent("ZXCV6789");
-    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+    expect(await screen.findByText(/module joining code/i)).toBeInTheDocument();
+    expect(screen.getByText(/students can self-enroll using the join code/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /copy join code zxcv6789/i })).toHaveTextContent("ZXCV6789");
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

@@ -12,7 +12,7 @@ export default async function EnterpriseModulesPage() {
         <p className="ui-page__description">Create and manage modules for this enterprise.</p>
       </header>
 
-      <EnterpriseModuleManager canCreateModule={canCreateModule} />
+      <EnterpriseModuleManager canCreateModule={canCreateModule} enterpriseName={user?.enterpriseName ?? null} />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import type { KeyboardEvent } from "react";
 import type { EnterpriseAssignableUser } from "../types";
 import { normalizeSearchQuery } from "@/shared/lib/search";
 import { Button } from "@/shared/ui/Button";
@@ -33,7 +33,7 @@ type EnterpriseModuleAccessSectionProps = {
   pageJumpAriaLabel: string;
   onPageInputChange: (value: string) => void;
   onPageInputBlur: () => void;
-  onPageJump: (event: FormEvent<HTMLFormElement>) => void;
+  onPageJump: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
   loadingLabel: string;
@@ -113,19 +113,26 @@ function AccessPagination({
   pageJumpAriaLabel: string;
   onPageInputChange: (value: string) => void;
   onPageInputBlur: () => void;
-  onPageJump: (event: FormEvent<HTMLFormElement>) => void;
+  onPageJump: () => void;
   onPreviousPage: () => void;
   onNextPage: () => void;
 }) {
   if (totalPages <= 1) return null;
 
   const effectiveTotalPages = Math.max(1, totalPages);
+
+  const handlePageInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    onPageJump();
+  };
+
   return (
     <div className="user-management__pagination" aria-label={`${label} search pagination`}>
       <Button type="button" variant="ghost" size="sm" onClick={onPreviousPage} disabled={page === 1}>
         Previous
       </Button>
-      <form className="user-management__page-jump" onSubmit={onPageJump}>
+      <div className="user-management__page-jump">
         <label htmlFor={pageInputId} className="user-management__page-jump-label">
           Page
         </label>
@@ -139,11 +146,12 @@ function AccessPagination({
           value={pageInput}
           onChange={(event) => onPageInputChange(event.target.value)}
           onBlur={onPageInputBlur}
+          onKeyDown={handlePageInputKeyDown}
           className="user-management__page-jump-input"
           aria-label={pageJumpAriaLabel}
         />
         <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
-      </form>
+      </div>
       <Button type="button" variant="ghost" size="sm" onClick={onNextPage} disabled={page === effectiveTotalPages}>
         Next
       </Button>
@@ -188,7 +196,7 @@ export function EnterpriseModuleAccessSection({
   const showSkeletonList = status === "loading" && users.length === 0;
 
   return (
-    <div className="enterprise-modules__create-field enterprise-module-create__field">
+    <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--access">
       <label htmlFor={searchId} className="enterprise-modules__create-field-label">
         {label}
       </label>

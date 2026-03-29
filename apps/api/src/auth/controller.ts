@@ -228,6 +228,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
         id: true,
         role: true,
         active: true,
+        enterprise: { select: { name: true } },
         _count: {
           select: {
             moduleLeads: true,
@@ -253,6 +254,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
 
     return res.json({
       ...profile,
+      enterpriseName: user.enterprise.name,
       isStaff,
       isAdmin,
       isEnterpriseAdmin,

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useEnterpriseModuleCreateFormState } from "@/features/enterprise/components/useEnterpriseModuleCreateFormState";
 import type { EnterpriseModuleAccessSelectionResponse } from "@/features/enterprise/types";
@@ -37,6 +38,8 @@ export function StaffModuleStudentAccessForm({
   initialAccessSelection,
   variant = "embedded",
 }: StaffModuleStudentAccessFormProps) {
+  const router = useRouter();
+  const staffMembersHref = `/staff/modules/${moduleId}/students`;
   const [step, setStep] = useState<Step>("edit");
   const [baseline] = useState(() => ({
     studentIds: [...initialAccessSelection.studentIds],
@@ -46,8 +49,7 @@ export function StaffModuleStudentAccessForm({
     mode: "edit",
     moduleId,
     workspace: "staff",
-    initialAccessSelection,
-    successRedirectHref: `/staff/modules/${moduleId}/students`,
+    successRedirectAfterUpdateHref: `/staff/modules/${moduleId}/students`,
   });
 
   const baselineStudentSet = useMemo(() => new Set(baseline.studentIds), [baseline.studentIds]);
@@ -153,7 +155,6 @@ export function StaffModuleStudentAccessForm({
               emptyLabel="No students found."
               selectedCountLabel={`${state.studentIds.length} selected`}
               baselineSelectedSet={baselineStudentSet}
-              sortSelectedFirst
               onlyWithoutModuleAccess={state.studentSearchOnlyWithoutModuleAccess}
               onToggleOnlyWithoutModuleAccess={() =>
                 state.setStudentSearchOnlyWithoutModuleAccess((prev) => !prev)
@@ -167,7 +168,12 @@ export function StaffModuleStudentAccessForm({
             </div>
           ) : null}
           <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions" style={{ marginTop: 16 }}>
-            <Button type="button" variant="ghost" onClick={state.navigateHome} disabled={state.isSubmitting}>
+          <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push(staffMembersHref)}
+              disabled={state.isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="button" disabled={state.isSubmitting || !hasChanges} onClick={() => setStep("review")}>
