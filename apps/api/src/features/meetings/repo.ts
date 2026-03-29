@@ -147,6 +147,7 @@ export function getTeamMeetingState(teamId: number) {
       archivedAt: true,
       inactivityFlag: true,
       deadlineProfile: true,
+      projectId: true,
       deadlineOverride: {
         select: {
           feedbackDueDate: true,
@@ -228,7 +229,7 @@ export function upsertMinutes(meetingId: number, writerId: number, content: stri
 }
 
 /** Creates a comment. */
-export function createComment(meetingId: number, userId: number, content: string, _teamId?: number) {
+export function createComment(meetingId: number, userId: number, content: string) {
   return prisma.meetingComment.create({
     data: { meetingId, userId, content },
   });

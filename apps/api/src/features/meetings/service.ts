@@ -126,6 +126,18 @@ export async function addMeeting(data: {
   const members = await getTeamMembers(data.teamId);
   const recipients = participantIds ? members.filter((m) => participantIds.includes(m.id)) : members;
   await createParticipants(meeting.id, recipients.map((m) => m.id));
+  await Promise.all(
+    recipients
+      .filter((m) => m.id !== data.organiserId)
+      .map((m) =>
+        addNotification({
+          userId: m.id,
+          type: "MEETING_CREATED",
+          message: `A new meeting has been scheduled: ${data.title}`,
+          link: `/projects/${team?.projectId}/meetings/${meeting.id}`,
+        })
+      )
+  );
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
   const body = [
     `A new meeting has been scheduled: ${data.title}`,
@@ -174,7 +186,20 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 }
 
 /** Removes the meeting. */
-export function removeMeeting(meetingId: number) {
+export async function removeMeeting(meetingId: number) {
+  const meeting = await getMeetingById(meetingId);
+  if (meeting) {
+    await Promise.all(
+      meeting.participants.map((p) =>
+        addNotification({
+          userId: p.userId,
+          type: "MEETING_DELETED",
+          message: `The meeting "${meeting.title}" has been removed`,
+          link: `/projects/${meeting.team.projectId}/meetings`,
+        })
+      )
+    );
+  }
   return deleteMeeting(meetingId);
 }
 
