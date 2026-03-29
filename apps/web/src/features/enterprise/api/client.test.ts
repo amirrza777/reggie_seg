@@ -104,6 +104,24 @@ describe("enterprise module api client", () => {
     );
   });
 
+  it("searches assignable users with excludeOnModule lead_ta", async () => {
+    await searchEnterpriseModuleAccessUsers({
+      scope: "staff_and_students",
+      excludeEnrolledInModule: 3,
+      excludeOnModule: "lead_ta",
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/enterprise-admin/modules/access-users/search?scope=staff_and_students&excludeEnrolledInModule=3&excludeOnModule=lead_ta",
+    );
+  });
+
+  it("searches assignable users with prioritiseUserIds", async () => {
+    await searchEnterpriseModuleAccessUsers({ scope: "staff", prioritiseUserIds: [9, 1, 9] });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/enterprise-admin/modules/access-users/search?scope=staff&prioritiseUserIds=9%2C1%2C9",
+    );
+  });
+
   it("loads module access details", async () => {
     await getEnterpriseModuleAccess(22);
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/22/access");

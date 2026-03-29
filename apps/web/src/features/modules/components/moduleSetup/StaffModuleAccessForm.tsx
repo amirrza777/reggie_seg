@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useEnterpriseModuleCreateFormState } from "@/features/enterprise/components/useEnterpriseModuleCreateFormState";
 import type { EnterpriseModuleAccessSelectionResponse } from "@/features/enterprise/types";
@@ -9,6 +10,7 @@ import { StaffModuleAccessTwoColumnSection } from "./StaffModuleAccessTwoColumnS
 
 export type StaffModuleAccessFormProps = {
   moduleId: number;
+  currentUserId: number;
   initialAccessSelection: EnterpriseModuleAccessSelectionResponse;
 };
 
@@ -26,7 +28,9 @@ function diffIds(baseline: number[], current: number[]) {
  * Staff workspace: module leads edit leaders + TAs
  * review step before persisting; unsaved removals show a red row state in the lists.
  */
-export function StaffModuleAccessForm({ moduleId, initialAccessSelection }: StaffModuleAccessFormProps) {
+export function StaffModuleAccessForm({ moduleId, currentUserId, initialAccessSelection }: StaffModuleAccessFormProps) {
+  const router = useRouter();
+  const staffMembersHref = `/staff/modules/${moduleId}/staff`;
   const [step, setStep] = useState<Step>("edit");
   const [baseline] = useState(() => ({
     leaderIds: [...initialAccessSelection.leaderIds],
@@ -37,8 +41,7 @@ export function StaffModuleAccessForm({ moduleId, initialAccessSelection }: Staf
     mode: "edit",
     moduleId,
     workspace: "staff",
-    initialAccessSelection,
-    successRedirectHref: `/staff/modules/${moduleId}/staff`,
+    successRedirectAfterUpdateHref: staffMembersHref,
   });
 
   const baselineLeaderSet = useMemo(() => new Set(baseline.leaderIds), [baseline.leaderIds]);
@@ -100,6 +103,7 @@ export function StaffModuleAccessForm({ moduleId, initialAccessSelection }: Staf
             state={state}
             baselineLeaderSet={baselineLeaderSet}
             baselineTaSet={baselineTaSet}
+            currentUserId={currentUserId}
           />
           {state.errorMessage ? (
             <div className="status-alert status-alert--error enterprise-module-create__error" style={{ marginTop: 16 }}>
@@ -107,7 +111,12 @@ export function StaffModuleAccessForm({ moduleId, initialAccessSelection }: Staf
             </div>
           ) : null}
           <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions" style={{ marginTop: 16 }}>
-            <Button type="button" variant="ghost" onClick={state.navigateHome} disabled={state.isSubmitting}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push(staffMembersHref)}
+              disabled={state.isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="button" disabled={state.isSubmitting || !hasChanges} onClick={() => setStep("review")}>

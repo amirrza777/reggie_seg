@@ -70,6 +70,7 @@ describe("moduleJoin service", () => {
       status: 400,
       error: "Invalid or unavailable module code",
     });
+    expect(mockState.repo.findJoinableModuleByCode).not.toHaveBeenCalled();
   });
 
   it("returns managed join codes only when access is allowed", async () => {

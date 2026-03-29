@@ -4,7 +4,7 @@ import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "..
 import { parseSearchQuery } from "../../shared/search.js";
 import { parsePaginationQueryParams, readSingleQueryString, type ParseResult } from "../../shared/searchParams.js";
 
-export type EnterpriseAccessUserSearchScope = "staff" | "students" | "all";
+export type EnterpriseAccessUserSearchScope = "staff" | "students" | "staff_and_students" | "all";
 
 export type EnterpriseAccessUserSearchFilters = {
   scope: EnterpriseAccessUserSearchScope;
@@ -12,6 +12,8 @@ export type EnterpriseAccessUserSearchFilters = {
   page: number;
   pageSize: number;
   excludeEnrolledInModuleId?: number;
+  excludeOnModuleParticipation?: "all" | "lead_and_ta";
+  prioritiseUserIds?: number[];
 };
 
 export type EnterpriseAccessUserSearchCandidate = {
@@ -26,12 +28,13 @@ const DEFAULT_SCOPE: EnterpriseAccessUserSearchScope = "all";
 const DEFAULT_PAGE = 1;
 const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
+export const MAX_PRIORITISE_USER_IDS = 200;
 
 /** Parses the enterprise access user search filters. */
 export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseResult<EnterpriseAccessUserSearchFilters> {
   const rawScope = readSingleQueryString(query.scope)?.trim().toLowerCase();
   const scope = parseScope(rawScope);
-  if (!scope) return { ok: false, error: "scope must be one of: staff, students, all" };
+  if (!scope) return { ok: false, error: "scope must be one of: staff, students, staff_and_students, all" };
 
   const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
   if (!parsedQuery.ok) return parsedQuery;
@@ -43,6 +46,9 @@ export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseRe
   if (!parsedPagination.ok) return parsedPagination;
 
   const excludeEnrolledInModuleId = parseOptionalPositiveIntQuery(query.excludeEnrolledInModule);
+  const excludeOnModuleParticipation =
+    excludeEnrolledInModuleId != null ? parseExcludeOnModuleParticipation(query.excludeOnModule) : undefined;
+  const prioritiseUserIds = parsePrioritiseUserIdsQuery(query.prioritiseUserIds);
 
   return {
     ok: true,
@@ -51,9 +57,36 @@ export function parseEnterpriseAccessUserSearchFilters(query: ParsedQs): ParseRe
       query: parsedQuery.value,
       page: parsedPagination.value.page,
       pageSize: parsedPagination.value.pageSize,
-      ...(excludeEnrolledInModuleId != null ? { excludeEnrolledInModuleId } : {}),
+      ...(excludeEnrolledInModuleId != null
+        ? { excludeEnrolledInModuleId, excludeOnModuleParticipation: excludeOnModuleParticipation ?? "all" }
+        : {}),
+      ...(prioritiseUserIds != null && prioritiseUserIds.length > 0 ? { prioritiseUserIds } : {}),
     },
   };
+}
+
+function parseExcludeOnModuleParticipation(value: unknown): "all" | "lead_and_ta" | undefined {
+  const s = readSingleQueryString(value)?.trim().toLowerCase();
+  if (!s || s === "full" || s === "all") return "all";
+  if (s === "lead_ta" || s === "lead-ta") return "lead_and_ta";
+  return undefined;
+}
+
+function parsePrioritiseUserIdsQuery(value: unknown): number[] | undefined {
+  const raw = readSingleQueryString(value)?.trim();
+  if (!raw) return undefined;
+
+  const seen = new Set<number>();
+  const out: number[] = [];
+  for (const part of raw.split(",")) {
+    const n = Number(part.trim());
+    if (!Number.isInteger(n) || n <= 0) continue;
+    if (seen.has(n)) continue;
+    seen.add(n);
+    if (out.length >= MAX_PRIORITISE_USER_IDS) break;
+    out.push(n);
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 function parseOptionalPositiveIntQuery(value: unknown): number | undefined {
@@ -70,29 +103,37 @@ function parseOptionalPositiveIntQuery(value: unknown): number | undefined {
   return n;
 }
 
-/** Builds the enterprise access user search where. */
+/** Builds the enterprise access user search. */
 export function buildEnterpriseAccessUserSearchWhere(
   enterpriseId: string,
   filters: Pick<EnterpriseAccessUserSearchFilters, "scope" | "query">,
-  options?: { excludeEnrolledInModuleId?: number },
+  options?: { excludeEnrolledInModuleId?: number; excludeOnModuleParticipation?: "all" | "lead_and_ta" },
 ): Prisma.UserWhereInput {
   const clauses: Prisma.UserWhereInput[] = [{ enterpriseId }];
 
   if (filters.scope === "staff") {
-    clauses.push({ role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] } });
+    clauses.push({ role: { in: ["STAFF", "ENTERPRISE_ADMIN"] } });
   } else if (filters.scope === "students") {
     clauses.push({ role: "STUDENT" });
+  } else if (filters.scope === "staff_and_students") {
+    clauses.push({ role: { in: ["STUDENT", "STAFF", "ENTERPRISE_ADMIN"] } });
+  } else if (filters.scope === "all") {
+    clauses.push({ NOT: { role: "ADMIN" } });
   }
 
   const excludeModuleId = options?.excludeEnrolledInModuleId;
+  const excludeParticipation = options?.excludeOnModuleParticipation ?? "all";
   if (excludeModuleId != null) {
-    clauses.push({
-      NOT: {
-        userModules: {
-          some: { moduleId: excludeModuleId, enterpriseId },
-        },
-      },
-    });
+    const orClauses: Prisma.UserWhereInput[] = [
+      { moduleLeads: { some: { moduleId: excludeModuleId } } },
+      { moduleTeachingAssistants: { some: { moduleId: excludeModuleId } } },
+    ];
+    if (excludeParticipation === "all") {
+      orClauses.unshift({
+        userModules: { some: { moduleId: excludeModuleId, enterpriseId } },
+      });
+    }
+    clauses.push({ NOT: { OR: orClauses } });
   }
 
   if (filters.query) {
@@ -133,6 +174,6 @@ export function matchesEnterpriseAccessUserSearchCandidate(
 
 function parseScope(value: string | undefined): EnterpriseAccessUserSearchScope | null {
   if (!value) return DEFAULT_SCOPE;
-  if (value === "staff" || value === "students" || value === "all") return value;
+  if (value === "staff" || value === "students" || value === "staff_and_students" || value === "all") return value;
   return null;
 }

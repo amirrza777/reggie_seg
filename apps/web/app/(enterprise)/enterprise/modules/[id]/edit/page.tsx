@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
-import { Card } from "@/shared/ui/Card";
+import { ApiError } from "@/shared/api/errors";
 import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
+import { Card } from "@/shared/ui/Card";
 
 type EnterpriseModuleEditPageProps = {
   params: Promise<{ id: string }>;
@@ -16,6 +18,20 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
 
   if (!Number.isInteger(moduleId) || moduleId <= 0) {
     notFound();
+  }
+
+  const urlJoinCode =
+    resolvedSearchParams.created === "1" ? (resolvedSearchParams.joinCode?.trim() || null) : null;
+
+  let joinCode: string | null = urlJoinCode;
+  if (joinCode == null) {
+    try {
+      joinCode = (await getEnterpriseModuleJoinCode(moduleId)).joinCode;
+    } catch (e) {
+      if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
+        throw e;
+      }
+    }
   }
 
   return (
@@ -38,11 +54,7 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm
-          mode="edit"
-          moduleId={moduleId}
-          createdJoinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
-        />
+        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} joinCode={joinCode} />
       </Card>
     </div>
   );

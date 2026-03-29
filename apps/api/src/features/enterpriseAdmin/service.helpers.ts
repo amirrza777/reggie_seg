@@ -102,9 +102,6 @@ export function normalizeFeatureFlagLabel<T extends { key: string; label: string
   return flag;
 }
 
-/**
- * students with role STUDENT and excludes module leads/TAs from the student list.
- */
 export async function sanitiseModuleStudentIdsForUpdate(
   enterpriseId: string,
   studentIds: number[],
@@ -116,7 +113,7 @@ export async function sanitiseModuleStudentIdsForUpdate(
   if (unique.length === 0) return [];
 
   const users = await prisma.user.findMany({
-    where: { enterpriseId, id: { in: unique }, role: "STUDENT" },
+    where: { enterpriseId, id: { in: unique } },
     select: { id: true },
   });
   const allowed = new Set(users.map((u) => u.id));
@@ -162,12 +159,7 @@ export async function validateAssignmentUsers(input: {
     }
   }
 
-  for (const id of input.studentIds) {
-    const role = roleById.get(id);
-    if (role !== "STUDENT") {
-      return { ok: false, error: "Student assignments can only include student accounts" };
-    }
-  }
+  // Module enrollment - any user in enterprise may be included. Role is not restricted to STUDENT.
 
   return { ok: true };
 }

@@ -25,14 +25,54 @@ describe("parseEnterpriseAccessUserSearchFilters", () => {
       parseEnterpriseAccessUserSearchFilters({ scope: "students", excludeEnrolledInModule: "42" }),
     ).toEqual({
       ok: true,
-      value: { scope: "students", query: null, page: 1, pageSize: 20, excludeEnrolledInModuleId: 42 },
+      value: {
+        scope: "students",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 42,
+        excludeOnModuleParticipation: "all",
+      },
+    });
+  });
+
+  it("parses excludeOnModule lead_ta with excludeEnrolledInModule", () => {
+    expect(
+      parseEnterpriseAccessUserSearchFilters({
+        scope: "staff_and_students",
+        excludeEnrolledInModule: "7",
+        excludeOnModule: "lead_ta",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        scope: "staff_and_students",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 7,
+        excludeOnModuleParticipation: "lead_and_ta",
+      },
+    });
+  });
+
+  it("parses prioritiseUserIds from a comma-separated list", () => {
+    expect(parseEnterpriseAccessUserSearchFilters({ prioritiseUserIds: "3,3,5,0,-1,bad,6" })).toEqual({
+      ok: true,
+      value: {
+        scope: "all",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        prioritiseUserIds: [3, 5, 6],
+      },
     });
   });
 
   it("rejects invalid scope and pagination", () => {
     expect(parseEnterpriseAccessUserSearchFilters({ scope: "teachers" })).toEqual({
       ok: false,
-      error: "scope must be one of: staff, students, all",
+      error: "scope must be one of: staff, students, staff_and_students, all",
     });
     expect(parseEnterpriseAccessUserSearchFilters({ page: "0" })).toEqual({
       ok: false,
@@ -60,11 +100,18 @@ describe("parseEnterpriseAccessUserSearchFilters", () => {
 describe("buildEnterpriseAccessUserSearchWhere", () => {
   it("builds scope-only filters", () => {
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "staff", query: null })).toEqual({
-      AND: [{ enterpriseId: "ent_1" }, { role: { in: ["STAFF", "ENTERPRISE_ADMIN", "ADMIN"] } }],
+      AND: [{ enterpriseId: "ent_1" }, { role: { in: ["STAFF", "ENTERPRISE_ADMIN"] } }],
     });
 
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "students", query: null })).toEqual({
       AND: [{ enterpriseId: "ent_1" }, { role: "STUDENT" }],
+    });
+
+    expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "staff_and_students", query: null })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        { role: { in: ["STUDENT", "STAFF", "ENTERPRISE_ADMIN"] } },
+      ],
     });
   });
 
@@ -72,6 +119,7 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "all", query: "12" })).toEqual({
       AND: [
         { enterpriseId: "ent_1" },
+        { NOT: { role: "ADMIN" } },
         {
           OR: [
             { email: { contains: "12" } },
@@ -84,13 +132,13 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
     });
   });
 
-  it("returns enterprise-only filter when scope is all and query is empty", () => {
+  it("returns enterprise tenant filter for scope all (excludes platform ADMIN role)", () => {
     expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "all", query: null })).toEqual({
-      enterpriseId: "ent_1",
+      AND: [{ enterpriseId: "ent_1" }, { NOT: { role: "ADMIN" } }],
     });
   });
 
-  it("excludes users enrolled in a module when requested", () => {
+  it("excludes users already on a module (enrolled, lead, or TA) when requested", () => {
     expect(
       buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "students", query: null }, { excludeEnrolledInModuleId: 7 }),
     ).toEqual({
@@ -99,7 +147,37 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
         { role: "STUDENT" },
         {
           NOT: {
-            userModules: { some: { moduleId: 7, enterpriseId: "ent_1" } },
+            OR: [
+              {
+                userModules: { some: { moduleId: 7, enterpriseId: "ent_1" } },
+              },
+              {
+                moduleLeads: { some: { moduleId: 7 } },
+              },
+              {
+                moduleTeachingAssistants: { some: { moduleId: 7 } },
+              },
+            ],
+          },
+        },
+      ],
+    });
+  });
+
+  it("excludes only module leads and TAs when excludeOnModuleParticipation is lead_and_ta", () => {
+    expect(
+      buildEnterpriseAccessUserSearchWhere(
+        "ent_1",
+        { scope: "staff_and_students", query: null },
+        { excludeEnrolledInModuleId: 7, excludeOnModuleParticipation: "lead_and_ta" },
+      ),
+    ).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        { role: { in: ["STUDENT", "STAFF", "ENTERPRISE_ADMIN"] } },
+        {
+          NOT: {
+            OR: [{ moduleLeads: { some: { moduleId: 7 } } }, { moduleTeachingAssistants: { some: { moduleId: 7 } } }],
           },
         },
       ],

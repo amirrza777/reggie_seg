@@ -7,6 +7,7 @@ import { getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/l
 import { normalizeSearchQuery } from "@/shared/lib/search";
 
 const ACCESS_USERS_PAGE_SIZE = 20;
+const EMPTY_PRIORITISE_IDS: number[] = [];
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
@@ -19,6 +20,10 @@ type UseEnterpriseModuleAccessBucketsParams = {
   canEditModule: boolean;
   /** When set, access-user search can omit users already on this module (per-bucket toggles). */
   moduleIdForAccessSearchExclude?: number;
+  /** Listed first in search results (stable baseline when editing module access). */
+  staffPrioritiseUserIds?: number[];
+  taPrioritiseUserIds?: number[];
+  studentPrioritiseUserIds?: number[];
 };
 
 type AccessUsersResponse = Awaited<ReturnType<typeof searchEnterpriseModuleAccessUsers>>;
@@ -39,6 +44,9 @@ export function useEnterpriseModuleAccessBuckets({
   isLoadingAccess,
   canEditModule,
   moduleIdForAccessSearchExclude,
+  staffPrioritiseUserIds = EMPTY_PRIORITISE_IDS,
+  taPrioritiseUserIds = EMPTY_PRIORITISE_IDS,
+  studentPrioritiseUserIds = EMPTY_PRIORITISE_IDS,
 }: UseEnterpriseModuleAccessBucketsParams) {
   const [staffSearchOnlyWithoutModuleAccess, setStaffSearchOnlyWithoutModuleAccess] = useState(false);
   const [taSearchOnlyWithoutModuleAccess, setTaSearchOnlyWithoutModuleAccess] = useState(false);
@@ -124,12 +132,24 @@ export function useEnterpriseModuleAccessBuckets({
       const excludeEnrolledInModule =
         wantExclude && moduleIdForAccessSearchExclude != null ? moduleIdForAccessSearchExclude : undefined;
 
+      const prioritiseUserIds = resolveBucketValue(bucket, {
+        staff: staffPrioritiseUserIds,
+        ta: taPrioritiseUserIds,
+        students: studentPrioritiseUserIds,
+      });
+
       const response = await searchEnterpriseModuleAccessUsers({
         scope: resolveScopeForBucket(bucket),
         q: query.trim() || undefined,
         page,
         pageSize: ACCESS_USERS_PAGE_SIZE,
-        ...(excludeEnrolledInModule != null ? { excludeEnrolledInModule } : {}),
+        ...(excludeEnrolledInModule != null
+          ? {
+              excludeEnrolledInModule,
+              ...(bucket === "ta" ? { excludeOnModule: "lead_ta" as const } : {}),
+            }
+          : {}),
+        ...(prioritiseUserIds.length > 0 ? { prioritiseUserIds } : {}),
       });
 
       applyIfCurrent(() => {
@@ -150,6 +170,9 @@ export function useEnterpriseModuleAccessBuckets({
     taSearchOnlyWithoutModuleAccess,
     studentSearchOnlyWithoutModuleAccess,
     moduleIdForAccessSearchExclude,
+    staffPrioritiseUserIds,
+    taPrioritiseUserIds,
+    studentPrioritiseUserIds,
   ]);
 
   useEffect(() => {
@@ -293,6 +316,7 @@ export function useEnterpriseModuleAccessBuckets({
 function resolveScopeForBucket(bucket: AccessBucket): EnterpriseAccessUserSearchScope {
   if (bucket === "staff") return "staff";
   if (bucket === "students") return "students";
+  if (bucket === "ta") return "staff_and_students";
   return "all";
 }
 

@@ -41,6 +41,23 @@
   padding-bottom: 12px;
 }
 
+.staff-module-students__enrollment-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 720px) {
+  .staff-module-students__enrollment-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.staff-module-students__enrollment-grid .module-workspace__card {
+  min-width: 0;
+}
+
 .module-join-code-banner {
   display: grid;
   gap: 8px;
@@ -483,6 +500,48 @@
   gap: 10px;
 }
 
+.staff-projects__module-project-head--rich {
+  align-items: flex-start;
+  flex: 1;
+  min-width: 0;
+}
+
+.staff-projects__module-project-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px 16px;
+}
+
+.staff-projects__integration-pies {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.staff-projects__project-stat-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.staff-projects__stat-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: var(--fs-body-sm);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
 .staff-projects__module-project-copy {
   display: grid;
   gap: 4px;
@@ -532,6 +591,14 @@
 @media (max-width: 920px) {
   .staff-projects__module-project-head {
     display: grid;
+  }
+
+  .staff-projects__module-project-metrics {
+    justify-content: flex-start;
+  }
+
+  .staff-projects__project-stat-pills {
+    justify-content: flex-start;
   }
 
   .staff-projects__marking-project-head {

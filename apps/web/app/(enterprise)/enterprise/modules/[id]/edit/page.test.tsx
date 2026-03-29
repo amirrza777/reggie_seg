@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notFound } from "next/navigation";
-import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
+import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import EnterpriseModuleEditPage from "./page";
 
 class NotFoundSentinel extends Error {}
@@ -17,22 +17,36 @@ vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-vi.mock("@/features/modules/lib/moduleSetupInitialSelection", () => ({
-  loadModuleSetupInitialSelection: vi.fn(),
+vi.mock("@/features/enterprise/api/client", () => ({
+  getEnterpriseModuleJoinCode: vi.fn(),
 }));
 
 vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
-  EnterpriseModuleCreateForm: ({ mode, moduleId }: { mode: string; moduleId: number }) => (
-    <div data-testid="enterprise-module-form" data-mode={mode} data-module-id={moduleId} />
+  EnterpriseModuleCreateForm: ({
+    mode,
+    moduleId,
+    joinCode,
+  }: {
+    mode: string;
+    moduleId: number;
+    joinCode?: string | null;
+  }) => (
+    <div
+      data-testid="enterprise-module-form"
+      data-mode={mode}
+      data-module-id={moduleId}
+      data-join-code={joinCode ?? ""}
+    />
   ),
 }));
 
 const notFoundMock = vi.mocked(notFound);
-const loadModuleSetupInitialSelectionMock = vi.mocked(loadModuleSetupInitialSelection);
+const getEnterpriseModuleJoinCodeMock = vi.mocked(getEnterpriseModuleJoinCode);
 
 describe("EnterpriseModuleEditPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getEnterpriseModuleJoinCodeMock.mockResolvedValue({ moduleId: 21, joinCode: "ABCD1234" });
   });
 
   it("calls notFound for invalid module ids", async () => {
@@ -45,26 +59,7 @@ describe("EnterpriseModuleEditPage", () => {
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
-  it("calls notFound when module setup cannot be loaded", async () => {
-    loadModuleSetupInitialSelectionMock.mockResolvedValue(null);
-
-    await expect(
-      EnterpriseModuleEditPage({
-        params: Promise.resolve({ id: "42" }),
-      }),
-    ).rejects.toBeInstanceOf(NotFoundSentinel);
-
-    expect(loadModuleSetupInitialSelectionMock).toHaveBeenCalledWith(42);
-    expect(notFoundMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("renders module edit form when setup is available", async () => {
-    loadModuleSetupInitialSelectionMock.mockResolvedValue({
-      ownerLeaderIds: [1],
-      teachingAssistantIds: [2],
-      studentIds: [3],
-    });
-
+  it("loads join code from the API and passes it to the form", async () => {
     const page = await EnterpriseModuleEditPage({
       params: Promise.resolve({ id: "21" }),
     });
@@ -73,9 +68,25 @@ describe("EnterpriseModuleEditPage", () => {
 
     expect(screen.getByRole("heading", { level: 1, name: "Edit module" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Module management" })).toHaveAttribute("href", "/enterprise/modules");
+    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(21);
 
     const form = screen.getByTestId("enterprise-module-form");
     expect(form).toHaveAttribute("data-mode", "edit");
     expect(form).toHaveAttribute("data-module-id", "21");
+    expect(form).toHaveAttribute("data-join-code", "ABCD1234");
+  });
+
+  it("uses join code from search params when present instead of fetching", async () => {
+    const page = await EnterpriseModuleEditPage({
+      params: Promise.resolve({ id: "21" }),
+      searchParams: Promise.resolve({ created: "1", joinCode: "FROMURL01" }),
+    });
+
+    render(page);
+
+    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+
+    const form = screen.getByTestId("enterprise-module-form");
+    expect(form).toHaveAttribute("data-join-code", "FROMURL01");
   });
 });

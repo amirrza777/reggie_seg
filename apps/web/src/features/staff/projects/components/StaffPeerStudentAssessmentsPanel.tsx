@@ -27,6 +27,7 @@ type TabKey = "given" | "received";
 type StaffPeerStudentAssessmentsPanelProps = {
   studentTitle: string;
   questionLabels: Record<string, string>;
+  expectedPeerReviews: number;
   givenGroups: StaffPeerAssessmentGroup[];
   receivedGroups: StaffPeerAssessmentGroup[];
 };
@@ -34,6 +35,7 @@ type StaffPeerStudentAssessmentsPanelProps = {
 export function StaffPeerStudentAssessmentsPanel({
   studentTitle,
   questionLabels,
+  expectedPeerReviews,
   givenGroups,
   receivedGroups,
 }: StaffPeerStudentAssessmentsPanelProps) {
@@ -53,17 +55,11 @@ export function StaffPeerStudentAssessmentsPanel({
     [groups]
   );
 
+  const tabCountLabel = (done: number) =>
+    expectedPeerReviews > 0 ? `${done}/${expectedPeerReviews}` : String(done);
+
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <div>
-        <h2 className="staff-projects__team-policy-title" style={{ margin: 0 }}>
-          {studentTitle}
-        </h2>
-        <p className="muted" style={{ margin: "8px 0 0" }}>
-          View assessments this student wrote about others, or assessments teammates wrote about them. Each card groups
-          entries by the other team member.
-        </p>
-      </div>
 
       <div className="pill-nav" role="tablist">
         <button
@@ -72,7 +68,7 @@ export function StaffPeerStudentAssessmentsPanel({
           className={toggleClass(tab === "given")}
           onClick={() => setTab("given")}
         >
-          Assessments given
+          Assessments given ({tabCountLabel(givenGroups.length)})
         </button>
         <button
           type="button"
@@ -80,7 +76,7 @@ export function StaffPeerStudentAssessmentsPanel({
           className={toggleClass(tab === "received")}
           onClick={() => setTab("received")}
         >
-          Assessments received
+          Assessments received ({tabCountLabel(receivedGroups.length)})
         </button>
       </div>
 
