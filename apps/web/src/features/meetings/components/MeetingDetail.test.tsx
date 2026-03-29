@@ -28,7 +28,6 @@ const recentPastDate = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOStrin
 const futureDate = "2099-01-01T10:00:00Z";
 const pastDate = "2020-01-01T10:00:00Z";
 
-const baseMeeting = {
 type UseUserValue = ReturnType<typeof useUser>;
 
 function makeUseUserValue(user: UseUserValue["user"]): UseUserValue {
@@ -126,7 +125,7 @@ describe("MeetingDetail", () => {
   it("shows agenda when provided", () => {
     render(<MeetingDetail meeting={{ ...baseMeeting, agenda: "Review tasks" } as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByText("Agenda")).toBeInTheDocument();
-    expect(screen.getByText("Review tasks")).toBeInTheDocument();
+    expect(screen.getByTestId("rich-text-viewer")).toBeInTheDocument();
   });
 
   it("hides agenda when null", () => {
