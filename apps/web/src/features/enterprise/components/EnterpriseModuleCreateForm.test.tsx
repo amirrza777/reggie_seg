@@ -232,15 +232,16 @@ describe("EnterpriseModuleCreateForm", () => {
         leaderIds: [11],
       }),
     );
-    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit?created=1&joinCode=ABCD2345");
+    expect(push).toHaveBeenCalledWith("/enterprise/modules/99/edit?created=1");
     expect(refresh).toHaveBeenCalled();
   });
 
   it("shows the module joining code field in edit mode", async () => {
-    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} joinCode="ZXCV6789" />);
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} joinCode="ZXCV6789" created />);
 
     expect(await screen.findByText(/module joining code/i)).toBeInTheDocument();
     expect(screen.getByText(/students can self-enroll using the join code/i)).toBeInTheDocument();
+    expect(screen.getByText(/module created\. students can now join with this code/i)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /copy join code zxcv6789/i })).toHaveTextContent("ZXCV6789");
   });
 

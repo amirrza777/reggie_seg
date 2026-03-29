@@ -35,6 +35,7 @@ type PrismaMock = {
     findUnique: ReturnType<typeof vi.fn>;
   };
   moduleLead: { createMany: ReturnType<typeof vi.fn> };
+  moduleTeachingAssistant: { createMany: ReturnType<typeof vi.fn> };
   userModule: { createMany: ReturnType<typeof vi.fn> };
   teamAllocation: {
     createMany: ReturnType<typeof vi.fn>;
@@ -44,6 +45,7 @@ type PrismaMock = {
   };
   meeting: {
     findFirst: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
   meetingAttendance: { createMany: ReturnType<typeof vi.fn> };
@@ -65,16 +67,32 @@ type PrismaMock = {
   };
   projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   featureFlag: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  helpTopic: { upsert: ReturnType<typeof vi.fn> };
+  helpArticle: { upsert: ReturnType<typeof vi.fn> };
+  helpFaqGroup: { upsert: ReturnType<typeof vi.fn> };
+  helpFaq: { upsert: ReturnType<typeof vi.fn> };
   discussionPost: {
     deleteMany: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
     createMany: ReturnType<typeof vi.fn>;
   };
+  forumReaction: { createMany: ReturnType<typeof vi.fn> };
+  forumStudentReport: { createMany: ReturnType<typeof vi.fn> };
+  teamInvite: { findUnique: ReturnType<typeof vi.fn>; upsert: ReturnType<typeof vi.fn> };
+  githubAccount: { upsert: ReturnType<typeof vi.fn> };
+  githubRepository: { upsert: ReturnType<typeof vi.fn> };
+  projectGithubRepository: { upsert: ReturnType<typeof vi.fn> };
+  githubRepoSnapshot: { create: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  githubRepoSnapshotRepoStat: { create: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  githubRepoSnapshotUserStat: { createMany: ReturnType<typeof vi.fn>; deleteMany: ReturnType<typeof vi.fn> };
+  notification: { findFirst: ReturnType<typeof vi.fn>; createMany: ReturnType<typeof vi.fn> };
   $transaction: ReturnType<typeof vi.fn>;
   $disconnect: ReturnType<typeof vi.fn>;
 };
 
 function buildPrismaMock(): PrismaMock {
+  const userLookupCounts = new Map<string, number>();
+  let meetingIdCounter = 200;
   const prismaMock = {
     enterprise: {
       findUnique: vi.fn().mockResolvedValue({ id: "ent-1" }),
@@ -83,15 +101,26 @@ function buildPrismaMock(): PrismaMock {
     user: {
       findUnique: vi.fn().mockImplementation((args: any) => {
         const email = args?.where?.enterpriseId_email?.email;
-        if (email === "admin@kcl.ac.uk" || email === "github.staff@example.com" || email === "github.student@example.com") {
+        if (email === "admin@kcl.ac.uk") {
           return Promise.resolve(null);
+        }
+        if (email === "github.staff@example.com" || email === "github.student@example.com") {
+          const seen = userLookupCounts.get(email) ?? 0;
+          userLookupCounts.set(email, seen + 1);
+          return Promise.resolve(seen === 0 ? null : { id: email === "github.staff@example.com" ? 101 : 102 });
         }
         return Promise.resolve({ id: 999 });
       }),
       create: vi.fn().mockResolvedValue({ id: 999 }),
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      findMany: vi.fn().mockResolvedValue([{ id: 1, role: "STAFF", email: "staff1@example.com" }, { id: 2, role: "STUDENT", email: "student1@example.com" }]),
+      findMany: vi.fn().mockResolvedValue([
+        { id: 1, role: "STAFF", email: "staff1@example.com" },
+        { id: 2, role: "STUDENT", email: "student1@example.com" },
+        { id: 3, role: "STUDENT", email: "student2@example.com" },
+        { id: 4, role: "STUDENT", email: "student3@example.com" },
+        { id: 5, role: "ADMIN", email: "admin1@example.com" },
+      ]),
       findFirst: vi.fn().mockResolvedValue({ id: 1, role: "STAFF" }),
       upsert: vi.fn().mockResolvedValue({ id: 1 }),
     },
@@ -150,6 +179,9 @@ function buildPrismaMock(): PrismaMock {
     moduleLead: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    moduleTeachingAssistant: {
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     userModule: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
@@ -157,23 +189,22 @@ function buildPrismaMock(): PrismaMock {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([
-        { userId: 1, user: { id: 1 } },
-        { userId: 2, user: { id: 2 } },
-        { userId: 3, user: { id: 3 } },
-        { userId: 4, user: { id: 4 } },
+        { teamId: 10, userId: 2, user: { id: 2 } },
+        { teamId: 10, userId: 5, user: { id: 5 } },
+        { teamId: 11, userId: 3, user: { id: 3 } },
       ]),
       findUnique: vi.fn().mockResolvedValue(null),
     },
     meeting: {
       findFirst: vi.fn().mockResolvedValue(null),
-      create: vi
-        .fn()
-        .mockResolvedValueOnce({ id: 201 })
-        .mockResolvedValueOnce({ id: 202 })
-        .mockResolvedValueOnce({ id: 203 })
-        .mockResolvedValueOnce({ id: 204 })
-        .mockResolvedValueOnce({ id: 205 })
-        .mockResolvedValueOnce({ id: 206 }),
+      findMany: vi.fn().mockResolvedValue([
+        { id: 201, title: "Retro", date: new Date(Date.now() - 60_000) },
+        { id: 202, title: "Planning", date: new Date(Date.now() + 60_000) },
+      ]),
+      create: vi.fn().mockImplementation(async () => {
+        meetingIdCounter += 1;
+        return { id: meetingIdCounter };
+      }),
     },
     meetingAttendance: {
       createMany: vi.fn().mockResolvedValue({ count: 12 }),
@@ -206,10 +237,57 @@ function buildPrismaMock(): PrismaMock {
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([]),
     },
+    helpTopic: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpArticle: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpFaqGroup: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    helpFaq: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
     discussionPost: {
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       create: vi.fn().mockResolvedValue({ id: 1, projectId: 1 }),
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
+    forumReaction: {
+      createMany: vi.fn().mockResolvedValue({ count: 3 }),
+    },
+    forumStudentReport: {
+      createMany: vi.fn().mockResolvedValue({ count: 2 }),
+    },
+    teamInvite: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn().mockResolvedValue({ id: "invite-1" }),
+    },
+    githubAccount: {
+      upsert: vi.fn().mockResolvedValue({ id: 1, login: "github-demo-staff" }),
+    },
+    githubRepository: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    projectGithubRepository: {
+      upsert: vi.fn().mockResolvedValue({ id: 1 }),
+    },
+    githubRepoSnapshot: {
+      create: vi.fn().mockResolvedValue({ id: 1 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    githubRepoSnapshotRepoStat: {
+      create: vi.fn().mockResolvedValue({ id: 1 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    githubRepoSnapshotUserStat: {
+      createMany: vi.fn().mockResolvedValue({ count: 3 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
+    notification: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      createMany: vi.fn().mockResolvedValue({ count: 3 }),
     },
     $transaction: vi.fn().mockImplementation(async (arg: any) => {
       if (Array.isArray(arg)) return Promise.all(arg);
@@ -254,6 +332,7 @@ describe("prisma seed script", () => {
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
+        moduleTeachingAssistant: prismaMock.moduleTeachingAssistant,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
         meeting: prismaMock.meeting,
@@ -264,7 +343,21 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
+        forumReaction: prismaMock.forumReaction,
+        forumStudentReport: prismaMock.forumStudentReport,
+        teamInvite: prismaMock.teamInvite,
+        githubAccount: prismaMock.githubAccount,
+        githubRepository: prismaMock.githubRepository,
+        projectGithubRepository: prismaMock.projectGithubRepository,
+        githubRepoSnapshot: prismaMock.githubRepoSnapshot,
+        githubRepoSnapshotRepoStat: prismaMock.githubRepoSnapshotRepoStat,
+        githubRepoSnapshotUserStat: prismaMock.githubRepoSnapshotUserStat,
+        notification: prismaMock.notification,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
@@ -298,6 +391,28 @@ describe("prisma seed script", () => {
       }),
     );
     expect(prismaMock.module.createMany).toHaveBeenCalled();
+    expect(prismaMock.moduleTeachingAssistant.createMany).toHaveBeenCalled();
+    expect(prismaMock.teamInvite.upsert).toHaveBeenCalled();
+    expect(prismaMock.githubAccount.upsert).toHaveBeenCalled();
+    expect(prismaMock.projectGithubRepository.upsert).toHaveBeenCalled();
+    expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
+    expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
+    expect(prismaMock.notification.createMany).toHaveBeenCalled();
+    expect(prismaMock.module.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: "Software Engineering Group Project",
+            code: "MOD-1",
+            joinCode: expect.any(String),
+            briefText: expect.stringContaining("Software Engineering Group Project"),
+            timelineText: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T.* \| .* \| .+/),
+            expectationsText: expect.stringMatching(/^.+ \| .+ \| .+/),
+            readinessNotesText: expect.stringContaining("Software Engineering Group Project"),
+          }),
+        ]),
+      }),
+    );
     expect(prismaMock.projectDeadline.upsert).toHaveBeenCalled();
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(3);
     expect(prismaMock.$disconnect).toHaveBeenCalled();
@@ -319,6 +434,7 @@ describe("prisma seed script", () => {
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
+        moduleTeachingAssistant: prismaMock.moduleTeachingAssistant,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
         meeting: prismaMock.meeting,
@@ -329,7 +445,21 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
+        forumReaction: prismaMock.forumReaction,
+        forumStudentReport: prismaMock.forumStudentReport,
+        teamInvite: prismaMock.teamInvite,
+        githubAccount: prismaMock.githubAccount,
+        githubRepository: prismaMock.githubRepository,
+        projectGithubRepository: prismaMock.projectGithubRepository,
+        githubRepoSnapshot: prismaMock.githubRepoSnapshot,
+        githubRepoSnapshotRepoStat: prismaMock.githubRepoSnapshotRepoStat,
+        githubRepoSnapshotUserStat: prismaMock.githubRepoSnapshotUserStat,
+        notification: prismaMock.notification,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
@@ -377,6 +507,7 @@ describe("prisma seed script", () => {
         project: prismaMock.project,
         team: prismaMock.team,
         moduleLead: prismaMock.moduleLead,
+        moduleTeachingAssistant: prismaMock.moduleTeachingAssistant,
         userModule: prismaMock.userModule,
         teamAllocation: prismaMock.teamAllocation,
         meeting: prismaMock.meeting,
@@ -387,7 +518,21 @@ describe("prisma seed script", () => {
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
+        helpTopic: prismaMock.helpTopic,
+        helpArticle: prismaMock.helpArticle,
+        helpFaqGroup: prismaMock.helpFaqGroup,
+        helpFaq: prismaMock.helpFaq,
         discussionPost: prismaMock.discussionPost,
+        forumReaction: prismaMock.forumReaction,
+        forumStudentReport: prismaMock.forumStudentReport,
+        teamInvite: prismaMock.teamInvite,
+        githubAccount: prismaMock.githubAccount,
+        githubRepository: prismaMock.githubRepository,
+        projectGithubRepository: prismaMock.projectGithubRepository,
+        githubRepoSnapshot: prismaMock.githubRepoSnapshot,
+        githubRepoSnapshotRepoStat: prismaMock.githubRepoSnapshotRepoStat,
+        githubRepoSnapshotUserStat: prismaMock.githubRepoSnapshotUserStat,
+        notification: prismaMock.notification,
         $transaction: prismaMock.$transaction,
         $disconnect: prismaMock.$disconnect,
       })),
@@ -416,6 +561,18 @@ describe("prisma seed script", () => {
     expect(prismaMock.enterprise.create).toHaveBeenCalledTimes(2);
     expect(prismaMock.user.createMany).toHaveBeenCalled();
     expect(prismaMock.module.createMany).toHaveBeenCalled();
+    expect(prismaMock.module.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            briefText: expect.any(String),
+            timelineText: expect.any(String),
+            expectationsText: expect.any(String),
+            readinessNotesText: expect.any(String),
+          }),
+        ]),
+      }),
+    );
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);
     expect(logSpy.mock.calls.some(([message]) => String(message).includes("Seed users ready across 2 enterprise(s). Default password"))).toBe(true);
   });

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { FormField } from "@/shared/ui/FormField";
@@ -24,7 +23,6 @@ export function StudentModulesOverviewClient({
   userId,
   canJoin,
 }: StudentModulesOverviewClientProps) {
-  const router = useRouter();
   const [modules, setModules] = useState(initialModules);
   const [loadError, setLoadError] = useState(initialLoadError);
   const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
@@ -90,7 +88,6 @@ export function StudentModulesOverviewClient({
           ? `${response.moduleName} is already on your workspace.`
           : `${response.moduleName} has been added to your modules.`,
       );
-      router.refresh();
     } catch (error) {
       setJoinStatus("error");
       setJoinError(error instanceof Error ? error.message : "Could not join that module right now.");

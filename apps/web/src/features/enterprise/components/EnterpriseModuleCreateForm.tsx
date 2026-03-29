@@ -20,6 +20,7 @@ type EnterpriseModuleCreateFormProps = {
   moduleId?: number;
   workspace?: "enterprise" | "staff";
   joinCode?: string | null;
+  created?: boolean;
 };
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
@@ -29,6 +30,7 @@ export function EnterpriseModuleCreateForm({
   moduleId,
   workspace = "enterprise",
   joinCode = null,
+  created = false,
 }: EnterpriseModuleCreateFormProps) {
   const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
 
@@ -41,7 +43,7 @@ export function EnterpriseModuleCreateForm({
   }
 
   return (
-    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} joinCode={joinCode} />
+    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} joinCode={joinCode} created={created} />
   );
 }
 
@@ -49,10 +51,12 @@ function EnterpriseModuleCreateFormBody({
   state,
   moduleId,
   joinCode,
+  created,
 }: {
   state: ModuleCreateFormState;
   moduleId?: number;
   joinCode?: string | null;
+  created: boolean;
 }) {
   const { user } = useUser();
   const currentUserId = user?.id ?? null;
@@ -62,7 +66,7 @@ function EnterpriseModuleCreateFormBody({
       <ModuleFormCollapsible title="Module details" defaultOpen>
         <ModuleNameField state={state} />
         <ModuleCodeField state={state} />
-        {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} /> : null}
+        {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} created={created} /> : null}
       </ModuleFormCollapsible>
 
       <ModuleFormCollapsible title="User access">
@@ -182,7 +186,7 @@ function ModuleCodeField({ state }: { state: ModuleCreateFormState }) {
 }
 
 
-function ModuleJoinCodeField({ joinCode }: { joinCode: string | null }) {
+function ModuleJoinCodeField({ joinCode, created }: { joinCode: string | null; created: boolean }) {
   const code = joinCode?.trim() || null;
 
   return (
@@ -197,6 +201,11 @@ function ModuleJoinCodeField({ joinCode }: { joinCode: string | null }) {
         </Link>{" "}
         on their dashboard.
       </p>
+      {created ? (
+        <div className="status-alert status-alert--success enterprise-module-create__created-banner">
+          Module created. Students can now join with this code.
+        </div>
+      ) : null}
       {code ? <ModuleJoinCodeBanner joinCode={code} /> : <p className="muted">The join code could not be loaded.</p>}
     </div>
   );

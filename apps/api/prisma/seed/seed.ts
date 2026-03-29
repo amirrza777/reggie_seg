@@ -3,6 +3,7 @@ import {
   buildUsersByRole,
   seedAdminTeamAllocation,
   seedGithubE2EUsers,
+  seedModuleTeachingAssistants,
   seedModuleLeads,
   seedStudentEnrollments,
   seedTeamAllocations,
@@ -18,12 +19,14 @@ import {
 import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
 import { seedMarkerUserData } from "./data";
 import { seedForumPosts } from "./forum";
+import { seedGithubDemoPath } from "./githubDemo";
 import { seedHelpContent } from "./help";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
 import { seedNotifications } from "./notifications";
 import { prisma } from "./prismaClient";
+import { seedTeamInvites } from "./teamInvites";
 import type { SeedContext, SeedEnterprise } from "./types";
 
 async function main() {
@@ -81,9 +84,12 @@ async function runSeedSteps(context: SeedContext) {
 function buildSeedStepPlan(context: SeedContext) {
   const steps = [
     () => seedModuleLeads(context.usersByRole.adminOrStaff, context.modules),
+    () => seedModuleTeachingAssistants(context.usersByRole.adminOrStaff, context.modules),
     () => seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules),
     () => seedTeamAllocations(context.usersByRole.students, context.teams),
+    () => seedTeamInvites(context),
     () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams),
+    () => seedGithubDemoPath(context),
     () => seedProjectDeadlines(context.projects),
     () => seedPeerAssessments(context.projects, context.teams, context.templates),
     () => seedFeatureFlags(context.enterprise.id),
