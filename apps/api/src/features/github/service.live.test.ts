@@ -74,6 +74,19 @@ describe("service.live", () => {
     expect(repoMocks.findGithubAccountByUserId).toHaveBeenCalledWith(9);
   });
 
+  it("surfaces an explicit reconnect error when all available GitHub tokens are invalid", async () => {
+    repoMocks.findGithubAccountByUserId.mockImplementation(async (candidateUserId: number) =>
+      candidateUserId === 7 || candidateUserId === 9 ? { userId: candidateUserId, login: `user-${candidateUserId}` } : null
+    );
+    repoMocks.listProjectGithubIdentityCandidates.mockResolvedValue([{ userId: 11 }]);
+    oauthMocks.getValidGithubAccessToken.mockRejectedValue(new GithubServiceError(401, "expired"));
+
+    await expect(listLiveProjectGithubRepositoryBranches(7, 4)).rejects.toMatchObject({
+      status: 401,
+      message: "No valid GitHub access token is available for this project. Ask a team member to reconnect GitHub.",
+    });
+  });
+
   it("lists branches, compares to default branch, and sorts default first", async () => {
     fetchMocks.listRepositoryBranchesLive.mockResolvedValue([
       { name: "feature-b", protected: false, headSha: "sha-b" },

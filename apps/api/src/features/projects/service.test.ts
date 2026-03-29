@@ -257,6 +257,33 @@ describe("projects service", () => {
     ]);
   });
 
+  it("keeps only matching teams when a staff marking query matches team names but not the project/module", async () => {
+    getStaffProjectsForMarkingMock.mockResolvedValue([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        module: { name: "SEGP" },
+        teams: [
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", _count: { allocations: 4 } },
+        ],
+      },
+    ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
+
+    await expect(fetchProjectsWithTeamsForStaffMarking(9, { query: "delta" })).resolves.toEqual([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        moduleName: "SEGP",
+        teams: [
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4 },
+        ],
+      },
+    ]);
+  });
+
   it("submitTeamHealthMessage validates membership and creates request", async () => {
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toBeNull();
