@@ -177,5 +177,35 @@ describe("github snapshot controllers", () => {
       error: "You are not a member of this project",
     });
   });
-});
 
+  it("covers unauthorized, invalid link ids, and generic snapshot failures", async () => {
+    const unauthorizedRes = createMockResponse();
+    await listProjectGithubRepoSnapshotsHandler({ params: { linkId: "7" } } as unknown as AuthRequest, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const invalidLinkRes = createMockResponse();
+    await getLatestProjectGithubRepoSnapshotHandler(
+      { user: { sub: 4 }, params: { linkId: "bad" } } as unknown as AuthRequest,
+      invalidLinkRes,
+    );
+    expect(invalidLinkRes.status).toHaveBeenCalledWith(400);
+
+    const snapshotReq = {
+      user: { sub: 10 },
+      params: { snapshotId: "9" },
+    } as unknown as AuthRequest;
+    const snapshotRes = createMockResponse();
+    serviceMocks.getProjectGithubRepositorySnapshot.mockResolvedValueOnce({ id: 9, repoLinkId: 7 });
+
+    await getGithubSnapshotHandler(snapshotReq, snapshotRes);
+    expect(snapshotRes.json).toHaveBeenCalledWith({ snapshot: { id: 9, repoLinkId: 7 } });
+
+    const failingCoverageRes = createMockResponse();
+    serviceMocks.getProjectGithubMappingCoverage.mockRejectedValueOnce(new Error("boom"));
+    await getProjectGithubMappingCoverageHandler(
+      { user: { sub: 3 }, params: { linkId: "5" } } as unknown as AuthRequest,
+      failingCoverageRes,
+    );
+    expect(failingCoverageRes.status).toHaveBeenCalledWith(500);
+  });
+});

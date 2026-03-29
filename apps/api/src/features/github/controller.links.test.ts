@@ -4,17 +4,18 @@ import type { AuthRequest } from "../../auth/middleware.js";
 import { GithubServiceError } from "./errors.js";
 
 const serviceMocks = vi.hoisted(() => ({
+  analyseProjectGithubRepository: vi.fn(),
   linkGithubRepositoryToProject: vi.fn(),
   removeProjectGithubRepositoryLink: vi.fn(),
   listProjectGithubRepositories: vi.fn(),
 }));
 
 vi.mock("./service.js", async () => ({
+  analyseProjectGithubRepository: serviceMocks.analyseProjectGithubRepository,
   linkGithubRepositoryToProject: serviceMocks.linkGithubRepositoryToProject,
   removeProjectGithubRepositoryLink: serviceMocks.removeProjectGithubRepositoryLink,
   listProjectGithubRepositories: serviceMocks.listProjectGithubRepositories,
   GithubServiceError,
-  analyseProjectGithubRepository: vi.fn(),
   buildGithubConnectUrl: vi.fn(),
   connectGithubAccount: vi.fn(),
   disconnectGithubAccount: vi.fn(),
@@ -31,6 +32,7 @@ vi.mock("./service.js", async () => ({
 }));
 
 import {
+  analyseProjectGithubRepoHandler,
   linkGithubProjectRepoHandler,
   listProjectGithubReposHandler,
   removeGithubProjectRepoHandler,
@@ -171,5 +173,43 @@ describe("github link controllers", () => {
     expect(listRes.status).toHaveBeenCalledWith(403);
     expect(listRes.json).toHaveBeenCalledWith({ error: "You are not a member of this project" });
   });
-});
 
+  it("covers unauthorized/invalid requests and analyse handler branches", async () => {
+    const unauthorizedRes = createMockResponse();
+    await linkGithubProjectRepoHandler({ body: {} } as unknown as AuthRequest, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badRemoveRes = createMockResponse();
+    await removeGithubProjectRepoHandler(
+      { user: { sub: 8 }, params: { linkId: "bad" } } as unknown as AuthRequest,
+      badRemoveRes,
+    );
+    expect(badRemoveRes.status).toHaveBeenCalledWith(400);
+
+    const badListRes = createMockResponse();
+    await listProjectGithubReposHandler(
+      { user: { sub: 8 }, query: { projectId: "bad" } } as unknown as AuthRequest,
+      badListRes,
+    );
+    expect(badListRes.status).toHaveBeenCalledWith(400);
+
+    const analyseReq = {
+      user: { sub: 8 },
+      params: { linkId: "14" },
+    } as unknown as AuthRequest;
+    const analyseRes = createMockResponse();
+    serviceMocks.analyseProjectGithubRepository.mockResolvedValue({ id: 22, repoLinkId: 14 });
+
+    await analyseProjectGithubRepoHandler(analyseReq, analyseRes);
+    expect(serviceMocks.analyseProjectGithubRepository).toHaveBeenCalledWith(8, 14);
+    expect(analyseRes.status).toHaveBeenCalledWith(201);
+    expect(analyseRes.json).toHaveBeenCalledWith({ snapshot: { id: 22, repoLinkId: 14 } });
+
+    const badAnalyseRes = createMockResponse();
+    await analyseProjectGithubRepoHandler(
+      { user: { sub: 8 }, params: { linkId: "bad" } } as unknown as AuthRequest,
+      badAnalyseRes,
+    );
+    expect(badAnalyseRes.status).toHaveBeenCalledWith(400);
+  });
+});
