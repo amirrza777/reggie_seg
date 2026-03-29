@@ -189,4 +189,31 @@ describe("github service.analysis.fetch", () => {
     expect(result.get("two")).toEqual({ additions: 2, deletions: 1 });
     expect(global.fetch).toHaveBeenCalledTimes(2);
   });
+
+  it("respects a zero detailed-commit limit and skips network fetches", async () => {
+    cacheMocks.getCachedCommitStats.mockReturnValue(null);
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchCommitStatsForRepository("token", "org/repo", ["one", "two"], 0);
+
+    expect(result.size).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stops fetching additional commit stats after a rate-limit style response", async () => {
+    cacheMocks.getCachedCommitStats.mockReturnValue(null);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(response(403, {}))
+        .mockResolvedValueOnce(response(200, { sha: "two", stats: { additions: 2, deletions: 1 } }))
+    );
+
+    const result = await fetchCommitStatsForRepository("token", "org/repo", ["one", "two"], 2);
+
+    expect(result.size).toBeLessThanOrEqual(1);
+    expect(result.has("one")).toBe(false);
+  });
 });
