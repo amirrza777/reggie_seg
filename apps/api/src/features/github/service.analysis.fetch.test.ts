@@ -16,9 +16,11 @@ import {
   fetchBranchCommitCount,
   fetchCommitsForLinkedRepository,
   fetchCommitStatsForRepository,
+  fetchUserCommitsForRepositoryPage,
   fetchRecentCommitsForBranch,
   getBranchAheadBehind,
   listRepositoryBranches,
+  listRepositoryBranchesLive,
   toUtcDayKey,
 } from "./service.analysis.fetch.js";
 
@@ -122,6 +124,18 @@ describe("github service.analysis.fetch", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(404, {})));
     await expect(fetchRecentCommitsForBranch("token", "org/repo", "main", 10)).rejects.toEqual(
       new GithubServiceError(404, "Linked GitHub repository or branch was not found")
+    );
+  });
+
+  it("throws typed errors for live branch listing and user commit paging", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(401, {})));
+    await expect(listRepositoryBranchesLive("token", "org/repo")).rejects.toEqual(
+      new GithubServiceError(401, "GitHub access token is invalid or expired")
+    );
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response(404, {})));
+    await expect(fetchUserCommitsForRepositoryPage("token", "org/repo", "alice", 1, 10)).rejects.toEqual(
+      new GithubServiceError(404, "Linked GitHub repository was not found")
     );
   });
 
