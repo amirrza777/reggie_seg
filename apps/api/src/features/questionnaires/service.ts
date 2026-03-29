@@ -10,7 +10,7 @@ import {
   updateQuestionnaireTemplate,
   deleteQuestionnaireTemplate
 } from "./repo.js"
-import type { IncomingQuestion, Question } from "./types.js";
+import type { IncomingQuestion, QuestionnairePurpose } from "./types.js";
 
 async function ensureTemplateOwnership(requesterUserId: number, templateId: number) {
   if (!requesterUserId) {
@@ -25,11 +25,15 @@ async function ensureTemplateOwnership(requesterUserId: number, templateId: numb
 /** Creates a template. */
 export function createTemplate(
   templateName: string,
-  questions: Question[],
+  questions: IncomingQuestion[],
   userId: number,
-  isPublic: boolean
+  isPublic: boolean,
+  purpose?: QuestionnairePurpose,
 ) {
-  return createQuestionnaireTemplate(templateName, questions, userId, isPublic)
+  if (purpose === undefined) {
+    return createQuestionnaireTemplate(templateName, questions, userId, isPublic);
+  }
+  return createQuestionnaireTemplate(templateName, questions, userId, isPublic, purpose)
 }
 
 /** Returns the template. */
@@ -43,16 +47,25 @@ export function getAllTemplates(requesterUserId?: number | null) {
 }
 
 /** Returns the my templates. */
-export function getMyTemplates(userId: number, options?: { query?: string | null }) {
-  if (options?.query) {
+export function getMyTemplates(
+  userId: number,
+  options?: { query?: string | null; purpose?: QuestionnairePurpose },
+) {
+  if (options?.query || options?.purpose) {
     return getMyQuestionnaireTemplates(userId, options);
   }
   return getMyQuestionnaireTemplates(userId);
 }
 
 /** Returns the public templates from other users. */
-export function getPublicTemplatesFromOtherUsers(userId: number) {
-  return getPublicQuestionnaireTemplatesByOtherUsers(userId);
+export function getPublicTemplatesFromOtherUsers(
+  userId: number,
+  options?: { purpose?: QuestionnairePurpose },
+) {
+  if (options?.purpose === undefined) {
+    return getPublicQuestionnaireTemplatesByOtherUsers(userId);
+  }
+  return getPublicQuestionnaireTemplatesByOtherUsers(userId, options);
 }
 
 /** Updates the template. */
@@ -61,11 +74,15 @@ export function updateTemplate(
   templateId: number,
   templateName: string,
   questions: IncomingQuestion[],
-  isPublic?: boolean
+  isPublic?: boolean,
+  purpose?: QuestionnairePurpose,
 ) {
-  return ensureTemplateOwnership(requesterUserId, templateId).then(() =>
-    updateQuestionnaireTemplate(templateId, templateName, questions, isPublic)
-  );
+  return ensureTemplateOwnership(requesterUserId, templateId).then(() => {
+    if (purpose === undefined) {
+      return updateQuestionnaireTemplate(templateId, templateName, questions, isPublic);
+    }
+    return updateQuestionnaireTemplate(templateId, templateName, questions, isPublic, purpose)
+  });
 }
 
 /** Deletes the template. */

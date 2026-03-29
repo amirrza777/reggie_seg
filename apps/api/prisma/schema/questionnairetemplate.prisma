@@ -1,6 +1,13 @@
+enum QuestionnairePurpose {
+  PEER_ASSESSMENT
+  CUSTOMISED_ALLOCATION
+  GENERAL_PURPOSE
+}
+
 model QuestionnaireTemplate {
   id           Int              @id @default(autoincrement())
   templateName String
+  purpose      QuestionnairePurpose @default(GENERAL_PURPOSE)
   isPublic     Boolean          @default(true)
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

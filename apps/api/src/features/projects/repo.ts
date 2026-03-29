@@ -1068,10 +1068,13 @@ export async function createProject(
 
   const template = await prisma.questionnaireTemplate.findUnique({
     where: { id: questionnaireTemplateId },
-    select: { id: true },
+    select: { id: true, purpose: true },
   });
   if (!template) {
     throw { code: "TEMPLATE_NOT_FOUND" };
+  }
+  if (template.purpose !== "PEER_ASSESSMENT") {
+    throw { code: "TEMPLATE_INVALID_PURPOSE" };
   }
 
   const project = await prisma.project.create({

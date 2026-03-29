@@ -97,6 +97,11 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     if (errorCode === "TEMPLATE_NOT_FOUND") {
       return res.status(404).json({ error: "Questionnaire template not found" });
     }
+    if (errorCode === "TEMPLATE_INVALID_PURPOSE") {
+      return res.status(400).json({
+        error: "Questionnaire template must have PEER_ASSESSMENT purpose for project setup",
+      });
+    }
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });
   }

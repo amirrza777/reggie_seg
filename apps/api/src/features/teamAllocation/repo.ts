@@ -1108,6 +1108,7 @@ export async function findCustomAllocationQuestionnairesForStaff(
 ): Promise<CustomAllocationTemplate[]> {
   return prisma.questionnaireTemplate.findMany({
     where: {
+      purpose: "CUSTOMISED_ALLOCATION",
       OR: [{ ownerId: staffId }, { isPublic: true }],
     },
     select: {
@@ -1140,6 +1141,7 @@ export async function findCustomAllocationTemplateForStaff(
   return prisma.questionnaireTemplate.findFirst({
     where: {
       id: templateId,
+      purpose: "CUSTOMISED_ALLOCATION",
       OR: [{ ownerId: staffId }, { isPublic: true }],
     },
     select: {

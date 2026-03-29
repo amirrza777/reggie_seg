@@ -187,7 +187,10 @@ export function StaffProjectCreatePanel({
       setIsLoadingTemplates(true);
       setTemplatesError(null);
 
-      getMyQuestionnaires({ query: normalizedQuery || undefined })
+      getMyQuestionnaires({
+        query: normalizedQuery || undefined,
+        purpose: "PEER_ASSESSMENT",
+      })
         .then((result) => {
           if (!isMounted) return;
           const sorted = [...result].sort((a, b) => a.templateName.localeCompare(b.templateName));
@@ -427,7 +430,7 @@ export function StaffProjectCreatePanel({
           <h2 className="staff-projects__create-title">Create New Project</h2>
           <p className="staff-projects__desc">
             Create projects inside modules you lead. Enterprise admins can also create projects as an override.
-            Questionnaire templates define the assessment form used by students.
+            Peer-assessment questionnaires define the assessment form used by students.
           </p>
         </div>
         <span className="staff-projects__badge">
@@ -730,7 +733,7 @@ export function StaffProjectCreatePanel({
           <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>
             {isSubmitting ? "Creating..." : "Create project"}
           </button>
-          <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+          <Link href="/staff/questionnaires/new?purpose=PEER_ASSESSMENT" className="staff-projects__create-link">
             Create questionnaire
           </Link>
         </div>
@@ -746,7 +749,7 @@ export function StaffProjectCreatePanel({
       ) : null}
       {!isLoadingTemplates && !hasTemplates && !templatesError ? (
         <p className="staff-projects__hint">
-          You do not have any questionnaire templates yet. Create one first.
+          You do not have any peer-assessment questionnaires yet. Create one first.
         </p>
       ) : null}
       {submitError ? <p className="staff-projects__error">{submitError}</p> : null}
