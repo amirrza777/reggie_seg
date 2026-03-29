@@ -3,6 +3,7 @@ import { SEED_GITHUB_STAFF_EMAIL, SEED_GITHUB_STAFF_PASSWORD, SEED_GITHUB_STUDEN
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedUser, SeedUsersByRole } from "./types";
+import { SEED_TAS_PER_MODULE } from "./volumes";
 
 export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   return withSeedLogging("seedModuleLeads", async () => {
@@ -44,6 +45,36 @@ export async function seedStudentEnrollments(enterpriseId: string, users: SeedUs
       value: undefined,
       rows: created.count,
       details: `enrollments attempted=${data.length}`,
+    };
+  });
+}
+
+export async function seedModuleTeachingAssistants(users: SeedUser[], modules: SeedModule[]) {
+  return withSeedLogging("seedModuleTeachingAssistants", async () => {
+    const staff = buildUsersByRole(users).adminOrStaff;
+    if (staff.length === 0 || modules.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (no staff/modules)",
+      };
+    }
+
+    const leadAssignments = planModuleLeadSeedData(staff, modules);
+    const data = planModuleTeachingAssistantSeedData(staff, modules, leadAssignments);
+    if (data.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (no TA assignments planned)",
+      };
+    }
+
+    const created = await prisma.moduleTeachingAssistant.createMany({ data, skipDuplicates: true });
+    return {
+      value: undefined,
+      rows: created.count,
+      details: `assignments attempted=${data.length}`,
     };
   });
 }
@@ -109,6 +140,32 @@ export function planTeamAllocationSeedData(students: SeedUser[], teams: SeedTeam
     if (!student || !team) continue;
     data.push({ userId: student.id, teamId: team.id });
   }
+  return data;
+}
+
+export function planModuleTeachingAssistantSeedData(
+  staff: SeedUser[],
+  modules: SeedModule[],
+  leadAssignments: { moduleId: number; userId: number }[],
+) {
+  const leadByModuleId = new Map(leadAssignments.map((assignment) => [assignment.moduleId, assignment.userId]));
+  const data: { moduleId: number; userId: number }[] = [];
+
+  for (let moduleIndex = 0; moduleIndex < modules.length; moduleIndex += 1) {
+    const module = modules[moduleIndex];
+    if (!module) continue;
+
+    const leadUserId = leadByModuleId.get(module.id);
+    const preferredStaff = staff.filter((candidate) => candidate.id !== leadUserId);
+    const candidatePool = preferredStaff.length > 0 ? preferredStaff : staff;
+
+    for (let taIndex = 0; taIndex < SEED_TAS_PER_MODULE; taIndex += 1) {
+      const assignee = candidatePool[(moduleIndex + taIndex) % candidatePool.length];
+      if (!assignee) continue;
+      data.push({ moduleId: module.id, userId: assignee.id });
+    }
+  }
+
   return data;
 }
 
