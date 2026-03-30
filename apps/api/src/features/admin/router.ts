@@ -15,6 +15,9 @@ import {
   updateUserRoleHandler,
 } from "./controller.js";
 import { ensureAdmin, ensureSuperAdmin } from "./middleware.js";
+import { rateLimit } from "../../shared/rateLimit.js";
+
+const auditLogLimiter = rateLimit({ windowMs: 60 * 1000, max: 30, prefix: "admin:audit-logs" });
 
 const router = Router();
 
@@ -33,6 +36,6 @@ router.get("/enterprises/:enterpriseId/users", listEnterpriseUsersHandler);
 router.get("/enterprises/:enterpriseId/users/search", searchEnterpriseUsersHandler);
 router.patch("/enterprises/:enterpriseId/users/:id", updateEnterpriseUserHandler);
 router.delete("/enterprises/:enterpriseId", deleteEnterpriseHandler);
-router.get("/audit-logs", listAuditLogsHandler);
+router.get("/audit-logs", auditLogLimiter, listAuditLogsHandler);
 
 export default router;
