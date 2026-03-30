@@ -56,6 +56,7 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number;
   deadline: ParsedProjectDeadline;
   studentIds?: number[];
 }> {
@@ -75,6 +76,14 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
   const deadline = parseProjectDeadline(raw.deadline);
   if (!deadline.ok) return deadline;
 
+  const teamAllocationTemplateId = parseOptionalPositiveInt(
+    raw.teamAllocationQuestionnaireTemplateId,
+    "teamAllocationQuestionnaireTemplateId",
+  );
+  if (!teamAllocationTemplateId.ok) {
+    return { ok: false, error: teamAllocationTemplateId.error };
+  }
+
   let studentIds: number[] | undefined;
   if (raw.studentIds !== undefined) {
     const parsedStudentIds = parsePositiveIntArray(raw.studentIds, "studentIds");
@@ -91,6 +100,9 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
       moduleId: moduleId.value,
       questionnaireTemplateId: questionnaireTemplateId.value,
       deadline: deadline.value,
+      ...(teamAllocationTemplateId.value !== undefined
+        ? { teamAllocationQuestionnaireTemplateId: teamAllocationTemplateId.value }
+        : {}),
       ...(studentIds !== undefined ? { studentIds } : {}),
     },
   };

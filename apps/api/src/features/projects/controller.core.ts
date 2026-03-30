@@ -35,10 +35,19 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { name, moduleId, questionnaireTemplateId, informationText, deadline, studentIds } = req.body as {
+  const {
+    name,
+    moduleId,
+    questionnaireTemplateId,
+    teamAllocationQuestionnaireTemplateId,
+    informationText,
+    deadline,
+    studentIds,
+  } = req.body as {
     name?: unknown;
     moduleId?: unknown;
     questionnaireTemplateId?: unknown;
+    teamAllocationQuestionnaireTemplateId?: unknown;
     informationText?: unknown;
     deadline?: unknown;
     studentIds?: unknown;
@@ -57,6 +66,16 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
   const parsedTemplateId = parsePositiveInt(questionnaireTemplateId);
   if (!parsedModuleId || !parsedTemplateId) {
     return res.status(400).json({ error: "moduleId and questionnaireTemplateId must be positive integers" });
+  }
+
+  let parsedTeamAllocationTemplateId: number | null = null;
+  if (teamAllocationQuestionnaireTemplateId !== undefined && teamAllocationQuestionnaireTemplateId !== null) {
+    parsedTeamAllocationTemplateId = parsePositiveInt(teamAllocationQuestionnaireTemplateId);
+    if (!parsedTeamAllocationTemplateId) {
+      return res.status(400).json({
+        error: "teamAllocationQuestionnaireTemplateId must be a positive integer when provided",
+      });
+    }
   }
 
   let normalizedInformationText: string | null = null;
@@ -87,6 +106,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       normalizedName,
       parsedModuleId,
       parsedTemplateId,
+      parsedTeamAllocationTemplateId ?? undefined,
       normalizedInformationText,
       parsedDeadline.value,
       normalizedStudentIds,
@@ -112,6 +132,14 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     if (errorCode === "TEMPLATE_INVALID_PURPOSE") {
       return res.status(400).json({
         error: "Questionnaire template must have PEER_ASSESSMENT purpose for project setup",
+      });
+    }
+    if (errorCode === "TEAM_ALLOCATION_TEMPLATE_NOT_FOUND") {
+      return res.status(404).json({ error: "Team allocation questionnaire template not found" });
+    }
+    if (errorCode === "TEAM_ALLOCATION_TEMPLATE_INVALID_PURPOSE") {
+      return res.status(400).json({
+        error: "Team allocation questionnaire template must have CUSTOMISED_ALLOCATION purpose",
       });
     }
     if (errorCode === "INVALID_STUDENT_IDS") {

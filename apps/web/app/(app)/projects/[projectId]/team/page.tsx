@@ -10,6 +10,15 @@ type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
+function resolveTeamFormationMode(
+  project: Awaited<ReturnType<typeof getProject>> | null,
+): "self" | "custom" | "staff" {
+  if (!project) return "self";
+  if (project.archivedAt) return "staff";
+  if (project.teamAllocationQuestionnaireTemplateId) return "custom";
+  return "self";
+}
+
 async function getTeamInvites(teamId: number): Promise<TeamInvite[]> {
   try {
     return await apiFetch<TeamInvite[]>(`/team-allocation/teams/${teamId}/invites`);
@@ -33,18 +42,20 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   }
 
   let projectCompleted = false;
+  let project: Awaited<ReturnType<typeof getProject>> | null = null;
   if (user && !Number.isNaN(numericProjectId)) {
     try {
-      const [project, deadline] = await Promise.all([
+      const [projectRecord, deadline] = await Promise.all([
         getProject(projectId),
         getProjectDeadline(user.id, numericProjectId),
       ]);
+      project = projectRecord;
       const feedbackDueDate = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
       const now = new Date();
       const feedbackDueDatePassed = feedbackDueDate
         ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
         : false;
-      projectCompleted = Boolean(project.archivedAt) || feedbackDueDatePassed;
+      projectCompleted = Boolean(projectRecord.archivedAt) || feedbackDueDatePassed;
     } catch {
       projectCompleted = false;
     }
@@ -53,6 +64,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   const initialInvites = team && !projectCompleted ? await getTeamInvites(team.id) : [];
 
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
+  const teamFormationMode = resolveTeamFormationMode(project);
 
   return (
     <PageSection
@@ -67,6 +79,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             projectId={numericProjectId}
             initialInvites={initialInvites}
             projectCompleted={projectCompleted}
+            teamFormationMode={teamFormationMode}
           />
         ) : (
           <p>Please sign in to manage your team.</p>

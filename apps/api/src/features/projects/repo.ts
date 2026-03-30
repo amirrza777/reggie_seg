@@ -1033,6 +1033,7 @@ export async function getProjectById(projectId: number) {
       archivedAt: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      teamAllocationQuestionnaireTemplateId: true,
       projectNavFlags: true,
     },
   });
@@ -1044,6 +1045,7 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  teamAllocationQuestionnaireTemplateId: number | undefined,
   informationText: string | null,
   deadline: ProjectDeadlineInput,
   studentIds?: number[],
@@ -1090,6 +1092,21 @@ export async function createProject(
     throw { code: "TEMPLATE_INVALID_PURPOSE" };
   }
 
+  let validatedTeamAllocationTemplateId: number | null = null;
+  if (teamAllocationQuestionnaireTemplateId !== undefined) {
+    const allocationTemplate = await prisma.questionnaireTemplate.findUnique({
+      where: { id: teamAllocationQuestionnaireTemplateId },
+      select: { id: true, purpose: true },
+    });
+    if (!allocationTemplate) {
+      throw { code: "TEAM_ALLOCATION_TEMPLATE_NOT_FOUND" };
+    }
+    if (allocationTemplate.purpose !== "CUSTOMISED_ALLOCATION") {
+      throw { code: "TEAM_ALLOCATION_TEMPLATE_INVALID_PURPOSE" };
+    }
+    validatedTeamAllocationTemplateId = allocationTemplate.id;
+  }
+
   let normalizedStudentIds: number[] = [];
   if (Array.isArray(studentIds)) {
     normalizedStudentIds = Array.from(new Set(studentIds));
@@ -1125,6 +1142,7 @@ export async function createProject(
         informationText,
         moduleId,
         questionnaireTemplateId,
+        teamAllocationQuestionnaireTemplateId: validatedTeamAllocationTemplateId,
         deadline: {
           create: {
             taskOpenDate: deadline.taskOpenDate,
@@ -1145,6 +1163,7 @@ export async function createProject(
         informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        teamAllocationQuestionnaireTemplateId: true,
         deadline: {
           select: {
             taskOpenDate: true,

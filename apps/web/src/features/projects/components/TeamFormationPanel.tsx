@@ -22,6 +22,7 @@ type Props = {
   userId?: number;
   initialInvites: TeamInvite[];
   projectCompleted?: boolean;
+  teamFormationMode?: "self" | "custom" | "staff";
 };
 
 function formatDate(iso: string) {
@@ -38,6 +39,7 @@ export function TeamFormationPanel({
   userId,
   initialInvites,
   projectCompleted = false,
+  teamFormationMode = "self",
 }: Props) {
   const router = useRouter();
 
@@ -59,11 +61,11 @@ export function TeamFormationPanel({
   const [respondingId, setRespondingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (team) return;
+    if (team || teamFormationMode !== "self") return;
     getReceivedInvites()
       .then((data) => setReceivedInvites(data.filter((inv) => inv.team?.projectId === projectId)))
       .catch(() => {});
-  }, [team, projectId]);
+  }, [team, projectId, teamFormationMode]);
 
   const handleAccept = async (inviteId: string) => {
     setRespondingId(inviteId);
@@ -151,6 +153,22 @@ export function TeamFormationPanel({
 
   // ── No team yet ──
   if (!team) {
+    if (teamFormationMode !== "self") {
+      return (
+        <div className="team-formation">
+          <div className="team-formation__empty">
+            <span className="team-formation__empty-icon">👥</span>
+            <h3>Team allocation is managed by staff</h3>
+            <p>
+              {teamFormationMode === "custom"
+                ? "Complete the allocation questionnaire to be assigned to a team. You'll be notified once your team is created."
+                : "Please wait for staff to add you to a team for this project."}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="team-formation">
         <div className="team-formation__empty">
@@ -294,3 +312,4 @@ export function TeamFormationPanel({
     </div>
   );
 }
+

@@ -116,6 +116,9 @@ export function StaffProjectCreatePanel({
   const [templates, setTemplates] = useState<Questionnaire[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [allocationTemplates, setAllocationTemplates] = useState<Questionnaire[]>([]);
+  const [isLoadingAllocationTemplates, setIsLoadingAllocationTemplates] = useState(true);
+  const [allocationTemplatesError, setAllocationTemplatesError] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState("");
   const [informationText, setInformationText] = useState("");
@@ -123,6 +126,8 @@ export function StaffProjectCreatePanel({
   const [moduleSearchQuery, setModuleSearchQuery] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
+  const [allocationTemplateId, setAllocationTemplateId] = useState("");
+  const [allocationTemplateSearchQuery, setAllocationTemplateSearchQuery] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
   const [deadlinePresetStatus, setDeadlinePresetStatus] = useState<string | null>(null);
   const [deadlinePresetError, setDeadlinePresetError] = useState<string | null>(null);
@@ -132,6 +137,7 @@ export function StaffProjectCreatePanel({
   const [moduleSearchError, setModuleSearchError] = useState<string | null>(null);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
+  const [selectedAllocationTemplateOption, setSelectedAllocationTemplateOption] = useState<Questionnaire | null>(null);
   const [moduleStudents, setModuleStudents] = useState<ModuleStudent[]>([]);
   const [isLoadingModuleStudents, setIsLoadingModuleStudents] = useState(false);
   const [moduleStudentsError, setModuleStudentsError] = useState<string | null>(null);
@@ -200,11 +206,12 @@ export function StaffProjectCreatePanel({
 
       getMyQuestionnaires({
         query: normalizedQuery || undefined,
-        purpose: "PEER_ASSESSMENT",
       })
         .then((result) => {
           if (!isMounted) return;
-          const sorted = [...result].sort((a, b) => a.templateName.localeCompare(b.templateName));
+          const sorted = [...result]
+            .filter((template) => template.purpose === "PEER_ASSESSMENT" || template.purpose === "GENERAL_PURPOSE")
+            .sort((a, b) => a.templateName.localeCompare(b.templateName));
           setTemplates(sorted);
           if (templateId.trim().length > 0) {
             const selected = sorted.find((template) => String(template.id) === templateId) ?? null;
@@ -229,6 +236,48 @@ export function StaffProjectCreatePanel({
       window.clearTimeout(timer);
     };
   }, [templateId, templateSearchQuery]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const normalizedQuery = allocationTemplateSearchQuery.trim();
+    const timer = window.setTimeout(() => {
+      setIsLoadingAllocationTemplates(true);
+      setAllocationTemplatesError(null);
+
+      getMyQuestionnaires({
+        query: normalizedQuery || undefined,
+      })
+        .then((result) => {
+          if (!isMounted) return;
+          const sorted = [...result]
+            .filter((template) => template.purpose === "CUSTOMISED_ALLOCATION" || template.purpose === "GENERAL_PURPOSE")
+            .sort((a, b) => a.templateName.localeCompare(b.templateName));
+          setAllocationTemplates(sorted);
+          if (allocationTemplateId.trim().length > 0) {
+            const selected = sorted.find((template) => String(template.id) === allocationTemplateId) ?? null;
+            if (selected) {
+              setSelectedAllocationTemplateOption(selected);
+            }
+          }
+        })
+        .catch((error) => {
+          if (!isMounted) return;
+          setAllocationTemplatesError(
+            error instanceof Error ? error.message : "Failed to load allocation questionnaires.",
+          );
+          setAllocationTemplates([]);
+        })
+        .finally(() => {
+          if (!isMounted) return;
+          setIsLoadingAllocationTemplates(false);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [allocationTemplateId, allocationTemplateSearchQuery]);
 
   function loadModuleStudents(
     nextModuleId: number,
@@ -289,6 +338,7 @@ export function StaffProjectCreatePanel({
 
   const hasCreatableModule = creatableModulesFromProps.length > 0;
   const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
+  const hasAllocationTemplates = allocationTemplates.length > 0 || allocationTemplateId.trim().length > 0;
 
   const visibleModules = useMemo(() => {
     const selectedModule =
@@ -305,6 +355,15 @@ export function StaffProjectCreatePanel({
     if (templates.some((template) => template.id === selectedTemplate.id)) return templates;
     return [selectedTemplate, ...templates];
   }, [selectedTemplateOption, templateId, templates]);
+
+  const visibleAllocationTemplates = useMemo(() => {
+    const selectedTemplate =
+      allocationTemplates.find((template) => String(template.id) === allocationTemplateId) ??
+      selectedAllocationTemplateOption;
+    if (!selectedTemplate) return allocationTemplates;
+    if (allocationTemplates.some((template) => template.id === selectedTemplate.id)) return allocationTemplates;
+    return [selectedTemplate, ...allocationTemplates];
+  }, [allocationTemplateId, allocationTemplates, selectedAllocationTemplateOption]);
 
   const enrolledModuleStudents = useMemo(
     () => moduleStudents.filter((student) => student.enrolled && student.active),
@@ -442,6 +501,16 @@ export function StaffProjectCreatePanel({
       return;
     }
 
+    let parsedAllocationTemplateId: number | null = null;
+    if (allocationTemplateId.trim().length > 0) {
+      const parsed = Number(allocationTemplateId);
+      if (!Number.isInteger(parsed)) {
+        setSubmitError("Team allocation questionnaire must be a valid template.");
+        return;
+      }
+      parsedAllocationTemplateId = parsed;
+    }
+
     const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
     const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
     const taskDueDateMcf = parseLocalDateTime(deadline.taskDueDateMcf);
@@ -509,6 +578,7 @@ export function StaffProjectCreatePanel({
         name: projectName.trim(),
         moduleId: parsedModuleId,
         questionnaireTemplateId: parsedTemplateId,
+        teamAllocationQuestionnaireTemplateId: parsedAllocationTemplateId ?? undefined,
         informationText: informationText.trim().length > 0 ? informationText.trim() : null,
         studentIds: selectedStudentIds.length > 0 ? selectedStudentIds : undefined,
         deadline: {
@@ -525,12 +595,19 @@ export function StaffProjectCreatePanel({
       });
       setProjectName("");
       setInformationText("");
+      setAllocationTemplateId("");
+      setAllocationTemplateSearchQuery("");
+      setSelectedAllocationTemplateOption(null);
       setDeadline(buildDefaultDeadlineState());
       setStudentSearchInput("");
       setSelectedStudentIds([]);
       setModuleStudents([]);
       setSubmitSuccess(`Project "${created.name}" created.`);
-      router.push(`/staff/modules/${created.moduleId}`);
+      if (parsedAllocationTemplateId != null) {
+        router.push(`/staff/projects/${created.id}/team-allocation`);
+      } else {
+        router.push(`/staff/modules/${created.moduleId}`);
+      }
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create project.");
@@ -548,6 +625,7 @@ export function StaffProjectCreatePanel({
           <p className="staff-projects__desc">
             Create projects inside modules you lead. Enterprise admins can also create projects as an override.
             Peer-assessment questionnaires define the assessment form used by students.
+            Optional team allocation questionnaires let staff run questionnaire-based team allocations.
           </p>
         </div>
         <span className="staff-projects__badge">
@@ -560,7 +638,9 @@ export function StaffProjectCreatePanel({
           <div className="staff-projects__section-head">
             <p className="staff-projects__eyebrow">Step 1</p>
             <h3 className="staff-projects__section-title">Project details</h3>
-            <p className="staff-projects__hint">Pick where this project lives and which questionnaire it uses.</p>
+            <p className="staff-projects__hint">
+              Pick where this project lives, the peer-assessment questionnaire, and any team allocation questionnaire.
+            </p>
           </div>
           <div className="staff-projects__create-basics-grid">
             <label className="staff-projects__field">
@@ -636,6 +716,51 @@ export function StaffProjectCreatePanel({
               </select>
               {templateSearchQuery.trim().length > 0 && !isLoadingTemplates && visibleTemplates.length === 0 ? (
                 <span className="staff-projects__field-label">No templates match "{templateSearchQuery.trim()}".</span>
+              ) : null}
+            </label>
+
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">Team allocation questionnaire (optional)</span>
+              <SearchField
+                className="staff-projects__input"
+                value={allocationTemplateSearchQuery}
+                onChange={(event) => setAllocationTemplateSearchQuery(event.target.value)}
+                placeholder="Search allocation templates by name or ID"
+                disabled={isLoadingAllocationTemplates || !hasAllocationTemplates}
+                aria-label="Search team allocation questionnaire options"
+              />
+              <select
+                className="staff-projects__select"
+                value={allocationTemplateId}
+                onChange={(event) => {
+                  const nextTemplateId = event.target.value;
+                  setAllocationTemplateId(nextTemplateId);
+                  const nextTemplate =
+                    allocationTemplates.find((template) => String(template.id) === nextTemplateId) ?? null;
+                  if (nextTemplate) {
+                    setSelectedAllocationTemplateOption(nextTemplate);
+                  }
+                }}
+                disabled={isLoadingAllocationTemplates || !hasAllocationTemplates}
+              >
+                <option value="">
+                  {isLoadingAllocationTemplates ? "Loading templates..." : "No team allocation questionnaire"}
+                </option>
+                {visibleAllocationTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.templateName}
+                  </option>
+                ))}
+              </select>
+              <p className="staff-projects__hint">
+                If selected, students cannot create their own teams and staff can run questionnaire-based allocations.
+              </p>
+              {allocationTemplateSearchQuery.trim().length > 0 &&
+              !isLoadingAllocationTemplates &&
+              visibleAllocationTemplates.length === 0 ? (
+                <span className="staff-projects__field-label">
+                  No templates match "{allocationTemplateSearchQuery.trim()}".
+                </span>
               ) : null}
             </label>
           </div>
@@ -957,7 +1082,7 @@ export function StaffProjectCreatePanel({
           <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>
             {isSubmitting ? "Creating..." : "Create project"}
           </button>
-          <Link href="/staff/questionnaires/new?purpose=PEER_ASSESSMENT" className="staff-projects__create-link">
+          <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
             Create questionnaire
           </Link>
         </div>
@@ -966,6 +1091,7 @@ export function StaffProjectCreatePanel({
       {modulesError ? <p className="staff-projects__error">{modulesError}</p> : null}
       {moduleSearchError ? <p className="staff-projects__error">{moduleSearchError}</p> : null}
       {templatesError ? <p className="staff-projects__error">{templatesError}</p> : null}
+      {allocationTemplatesError ? <p className="staff-projects__error">{allocationTemplatesError}</p> : null}
       {!hasCreatableModule && !modulesError ? (
         <p className="staff-projects__hint">
           You need module-lead access to create projects in this enterprise. Enterprise admins can override this.
@@ -974,6 +1100,11 @@ export function StaffProjectCreatePanel({
       {!isLoadingTemplates && !hasTemplates && !templatesError ? (
         <p className="staff-projects__hint">
           You do not have any peer-assessment questionnaires yet. Create one first.
+        </p>
+      ) : null}
+      {!isLoadingAllocationTemplates && !hasAllocationTemplates && !allocationTemplatesError ? (
+        <p className="staff-projects__hint">
+          No team allocation questionnaires found yet. This step is optional.
         </p>
       ) : null}
       {submitError ? <p className="staff-projects__error">{submitError}</p> : null}

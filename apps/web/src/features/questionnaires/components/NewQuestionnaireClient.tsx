@@ -37,6 +37,7 @@ export default function NewQuestionnairePage() {
   );
   const [purpose, setPurpose] = useState<QuestionnairePurpose>(DEFAULT_QUESTIONNAIRE_PURPOSE);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
+  const disallowTextQuestions = purpose === "CUSTOMISED_ALLOCATION";
 
   useEffect(() => {
     const parsedPurpose = normalizeQuestionnairePurpose(
@@ -47,6 +48,10 @@ export default function NewQuestionnairePage() {
   }, []);
 
   const addQuestion = (type: QuestionType) => {
+    if (disallowTextQuestions && type === "text") {
+      return;
+    }
+
     const q: EditableQuestion = {
       uiId: Date.now() + Math.random(),
       label: "",
@@ -81,6 +86,10 @@ export default function NewQuestionnairePage() {
     questions.forEach((q, idx) => {
       if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
 
+      if (disallowTextQuestions && q.type === "text") {
+        errors.push(`Question ${idx + 1} cannot be text for customised allocation questionnaires.`);
+      }
+
       if (q.type === "multiple-choice") {
         const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
         if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
@@ -104,7 +113,7 @@ export default function NewQuestionnairePage() {
     });
 
     return errors;
-  }, [templateName, questions]);
+  }, [disallowTextQuestions, templateName, questions]);
 
   const isValid = validationErrors.length === 0;
   const hasUnsavedChanges =
@@ -422,9 +431,11 @@ export default function NewQuestionnairePage() {
 
       {!preview && (
         <div className="questionnaire-editor__add-row">
-          <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
-            Add text
-          </Button>
+          {!disallowTextQuestions ? (
+            <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
+              Add text
+            </Button>
+          ) : null}
           <Button type="button" variant="quiet" onClick={() => addQuestion("multiple-choice")}>
             Add multiple choice
           </Button>

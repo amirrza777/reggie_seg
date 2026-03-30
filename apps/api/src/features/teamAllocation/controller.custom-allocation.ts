@@ -35,6 +35,9 @@ export async function listCustomAllocationQuestionnairesHandler(req: AuthRequest
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
+    if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(403).json({ error: "Questionnaire template is not accessible" });
+    }
     if (error?.code === "PROJECT_ARCHIVED") {
       return res.status(409).json({ error: "Project is archived" });
     }
@@ -76,6 +79,9 @@ export async function getCustomAllocationCoverageHandler(req: AuthRequest, res: 
     }
     if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(403).json({ error: "Questionnaire template is not accessible" });
+    }
+    if (error?.code === "TEMPLATE_NOT_ALLOWED") {
+      return res.status(403).json({ error: "Questionnaire template is not available for this project" });
     }
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
@@ -149,6 +155,9 @@ export async function previewCustomAllocationHandler(req: AuthRequest, res: Resp
     }
     if (error?.code === "TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(403).json({ error: "Questionnaire template is not accessible" });
+    }
+    if (error?.code === "TEMPLATE_NOT_ALLOWED") {
+      return res.status(403).json({ error: "Questionnaire template is not available for this project" });
     }
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });

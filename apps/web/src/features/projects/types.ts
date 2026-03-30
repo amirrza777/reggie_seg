@@ -6,6 +6,7 @@ export type Project = {
   moduleId?: number;
   teamCount?: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number | null;
   archivedAt?: string | null;
   projectNavFlags?: ProjectNavFlagsConfig | null;
 };
@@ -222,6 +223,7 @@ export type CreateStaffProjectPayload = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number;
   informationText?: string | null;
   studentIds?: number[];
   deadline: {
@@ -242,6 +244,7 @@ export type CreatedStaffProject = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number | null;
   informationText?: string | null;
   deadline?: {
     taskOpenDate: string;

@@ -13,6 +13,7 @@ export type StaffScopedProject = {
   moduleName: string;
   archivedAt: Date | null;
   enterpriseId: string;
+  teamAllocationQuestionnaireTemplateId: number | null;
 };
 
 export type StaffScopedProjectAccess = StaffScopedProject & {
@@ -308,6 +309,7 @@ export async function findStaffScopedProject(
       name: true,
       moduleId: true,
       archivedAt: true,
+      teamAllocationQuestionnaireTemplateId: true,
       module: {
         select: { name: true },
       },
@@ -325,6 +327,7 @@ export async function findStaffScopedProject(
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
     enterpriseId: user.enterpriseId,
+    teamAllocationQuestionnaireTemplateId: project.teamAllocationQuestionnaireTemplateId ?? null,
   };
 }
 

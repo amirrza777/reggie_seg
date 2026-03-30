@@ -12,6 +12,21 @@ import {
 } from "./repo.js"
 import type { IncomingQuestion, QuestionnairePurpose } from "./types.js";
 
+function assertAllowedQuestionTypesForPurpose(
+  questions: IncomingQuestion[],
+  purpose?: QuestionnairePurpose,
+) {
+  if (purpose !== "CUSTOMISED_ALLOCATION") {
+    return;
+  }
+  if (questions.some((question) => question.type === "text")) {
+    throw Object.assign(
+      new Error("Customised allocation questionnaires cannot include text questions."),
+      { statusCode: 400 },
+    );
+  }
+}
+
 async function ensureTemplateOwnership(requesterUserId: number, templateId: number) {
   if (!requesterUserId) {
     throw Object.assign(new Error("Unauthorized"), { statusCode: 401 });
@@ -30,6 +45,7 @@ export function createTemplate(
   isPublic: boolean,
   purpose?: QuestionnairePurpose,
 ) {
+  assertAllowedQuestionTypesForPurpose(questions, purpose);
   if (purpose === undefined) {
     return createQuestionnaireTemplate(templateName, questions, userId, isPublic);
   }
@@ -77,6 +93,7 @@ export function updateTemplate(
   isPublic?: boolean,
   purpose?: QuestionnairePurpose,
 ) {
+  assertAllowedQuestionTypesForPurpose(questions, purpose);
   return ensureTemplateOwnership(requesterUserId, templateId).then(() => {
     if (purpose === undefined) {
       return updateQuestionnaireTemplate(templateId, templateName, questions, isPublic);

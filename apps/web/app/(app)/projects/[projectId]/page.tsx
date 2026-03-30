@@ -21,6 +21,7 @@ function resolveTeamFormationMode(
   project: Awaited<ReturnType<typeof getProject>>,
 ): ProjectOverviewDashboardProps["teamFormationMode"] {
   if (project?.archivedAt) return "staff";
+  if (project?.teamAllocationQuestionnaireTemplateId) return "custom";
   const raw = project?.projectNavFlags as {
     active?: { team?: boolean };
     completed?: { team?: boolean };

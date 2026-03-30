@@ -85,6 +85,9 @@ export async function createTemplateHandler(req: AuthRequest, res: Response) {
           );
     res.json({ ok: true, templateID: template.id, userId, isPublic: visibility })
   } catch (error) {
+    if ((error as any).statusCode === 400) {
+      return res.status(400).json({ error: (error as any).message ?? "Invalid request body" });
+    }
     console.error("Error creating questionnaire template:", error)
     res.status(500).json({ error: "Internal server error" })
   }
@@ -204,6 +207,9 @@ export async function updateTemplateHandler(req: Request, res: Response) {
     }
     res.json({ ok: true });
   } catch (error: any) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message ?? "Invalid request body" });
+    }
     if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
     if (error.statusCode === 403) return res.status(403).json({ error: "Forbidden" });
     if (error.code === "P2025") {

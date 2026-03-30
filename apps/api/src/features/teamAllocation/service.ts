@@ -792,7 +792,17 @@ export async function listCustomAllocationQuestionnairesForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
-  const templates = await findCustomAllocationQuestionnairesForStaff(staffId);
+  let templates = await findCustomAllocationQuestionnairesForStaff(staffId);
+  if (project.teamAllocationQuestionnaireTemplateId) {
+    const lockedTemplate = await findCustomAllocationTemplateForStaff(
+      staffId,
+      project.teamAllocationQuestionnaireTemplateId,
+    );
+    if (!lockedTemplate) {
+      throw { code: "TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+    }
+    templates = [lockedTemplate];
+  }
   const questionnaires = templates
     .map((template) => {
       const eligibleQuestions = template.questions
@@ -850,6 +860,12 @@ export async function getCustomAllocationCoverageForProject(
   }
   if (project.archivedAt) {
     throw { code: "PROJECT_ARCHIVED" };
+  }
+  if (
+    project.teamAllocationQuestionnaireTemplateId &&
+    project.teamAllocationQuestionnaireTemplateId !== questionnaireTemplateId
+  ) {
+    throw { code: "TEMPLATE_NOT_ALLOWED" };
   }
 
   const template = await findCustomAllocationTemplateForStaff(staffId, questionnaireTemplateId);
@@ -941,6 +957,12 @@ export async function previewCustomAllocationForProject(
   }
   if (project.archivedAt) {
     throw { code: "PROJECT_ARCHIVED" };
+  }
+  if (
+    project.teamAllocationQuestionnaireTemplateId &&
+    project.teamAllocationQuestionnaireTemplateId !== input.questionnaireTemplateId
+  ) {
+    throw { code: "TEMPLATE_NOT_ALLOWED" };
   }
 
   const template = await findCustomAllocationTemplateForStaff(staffId, input.questionnaireTemplateId);
@@ -2261,10 +2283,17 @@ async function resolveStudentTeamCreationScope(
         },
       },
     },
-    select: { id: true, module: { select: { enterpriseId: true } } },
+    select: {
+      id: true,
+      teamAllocationQuestionnaireTemplateId: true,
+      module: { select: { enterpriseId: true } },
+    },
   });
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.teamAllocationQuestionnaireTemplateId) {
+    throw { code: "TEAM_CREATION_FORBIDDEN" };
   }
 
   const existingAllocation = await prisma.teamAllocation.findFirst({
