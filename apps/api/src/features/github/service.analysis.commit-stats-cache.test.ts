@@ -26,5 +26,20 @@ describe("commit stats cache", () => {
     vi.setSystemTime(new Date("2026-02-28T00:00:01Z"));
     expect(getCachedCommitStats("team/repo", "ttl-test")).toBeNull();
   });
-});
 
+  it("evicts the oldest entry when the cache reaches its maximum size", () => {
+    for (let index = 0; index < 10_000; index += 1) {
+      setCachedCommitStats("team/repo", `sha-${index}`, { additions: index, deletions: index });
+    }
+
+    expect(getCachedCommitStats("team/repo", "sha-0")).not.toBeNull();
+
+    setCachedCommitStats("team/repo", "sha-overflow", { additions: 1, deletions: 1 });
+
+    expect(getCachedCommitStats("team/repo", "sha-0")).toBeNull();
+    expect(getCachedCommitStats("team/repo", "sha-overflow")).toMatchObject({
+      additions: 1,
+      deletions: 1,
+    });
+  });
+});
