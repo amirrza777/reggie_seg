@@ -1,6 +1,10 @@
 enum AuditAction {
   LOGIN
   LOGOUT
+  USER_ROLE_CHANGED
+  USER_UPDATED
+  ENTERPRISE_CREATED
+  ENTERPRISE_DELETED
 }
 
 model AuditLog {

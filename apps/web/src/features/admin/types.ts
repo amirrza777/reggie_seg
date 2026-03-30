@@ -58,7 +58,13 @@ export type AdminEnterpriseSearchResponse = {
   query: string | null;
 };
 
-export type AuditAction = "LOGIN" | "LOGOUT";
+export type AuditAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "USER_ROLE_CHANGED"
+  | "USER_UPDATED"
+  | "ENTERPRISE_CREATED"
+  | "ENTERPRISE_DELETED";
 
 export type AuditLogEntry = {
   id: number;

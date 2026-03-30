@@ -1,24 +1,38 @@
 import { prisma } from "../../shared/db.js";
-import type { AuditAction } from "@prisma/client";
+
+export type AuditEventAction =
+  | "LOGIN"
+  | "LOGOUT"
+  | "USER_ROLE_CHANGED"
+  | "USER_UPDATED"
+  | "ENTERPRISE_CREATED"
+  | "ENTERPRISE_DELETED";
 
 type AuditMeta = {
   ip?: string | null;
   userAgent?: string | null;
 };
 
-/** Records the audit log. */
-export async function recordAuditLog(params: { userId: number; action: AuditAction } & AuditMeta) {
-  const user = await prisma.user.findUnique({
-    where: { id: params.userId },
-    select: { enterpriseId: true },
-  });
-  if (!user) return;
+/** Records the audit log. Accepts an optional enterpriseId to skip the user lookup query. */
+export async function recordAuditLog(
+  params: { userId: number; action: AuditEventAction; enterpriseId?: string } & AuditMeta
+) {
+  let { enterpriseId } = params;
+
+  if (!enterpriseId) {
+    const user = await prisma.user.findUnique({
+      where: { id: params.userId },
+      select: { enterpriseId: true },
+    });
+    if (!user) return;
+    enterpriseId = user.enterpriseId;
+  }
 
   await prisma.auditLog.create({
     data: {
       userId: params.userId,
-      enterpriseId: user.enterpriseId,
-      action: params.action,
+      enterpriseId,
+      action: params.action as any,
       ip: params.ip?.slice(0, 64) ?? null,
       userAgent: params.userAgent?.slice(0, 500) ?? null,
     },

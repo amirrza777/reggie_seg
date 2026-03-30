@@ -1,4 +1,4 @@
-import { listAuditLogs } from "../audit/service.js";
+import { listAuditLogs, recordAuditLog } from "../audit/service.js";
 import { EnterpriseCodeGeneratorService } from "../services/enterprise/enterpriseCodeGeneratorService.js";
 import {
   buildAdminEnterpriseSearchWhere,
@@ -81,7 +81,7 @@ export async function searchUsers(enterpriseId: string, filters: AdminUserSearch
   return toAdminUserSearchResponse(fuzzyPage.items, filters, fuzzyPage.total);
 }
 
-export async function updateOwnEnterpriseUserRole(enterpriseId: string, id: number, role: UserRole) {
+export async function updateOwnEnterpriseUserRole(enterpriseId: string, id: number, role: UserRole, actorId?: number) {
   if (role === "ENTERPRISE_ADMIN") {
     return { ok: false as const, status: 400, error: "Role not assignable" };
   }
@@ -91,6 +91,7 @@ export async function updateOwnEnterpriseUserRole(enterpriseId: string, id: numb
     return { ok: false as const, status: 400, error: "Cannot change role for super admin" };
   }
   const updated = await repo.updateUser(id, { role });
+  if (actorId) await recordAuditLog({ userId: actorId, enterpriseId, action: "USER_ROLE_CHANGED" });
   return { ok: true as const, value: { ...updated, isStaff: updated.role !== "STUDENT" } };
 }
 
@@ -98,6 +99,7 @@ export async function updateOwnEnterpriseUser(
   enterpriseId: string,
   id: number,
   data: { active?: boolean; role?: UserRole },
+  actorId?: number,
 ) {
   const user = await repo.findUserInEnterprise(id, enterpriseId);
   if (!user) return { ok: false as const, status: 404, error: "User not found" };
@@ -111,6 +113,7 @@ export async function updateOwnEnterpriseUser(
   if (updateData.active === false) {
     await repo.revokeActiveRefreshTokens(id);
   }
+  if (actorId) await recordAuditLog({ userId: actorId, enterpriseId, action: "USER_UPDATED" });
   return { ok: true as const, value: { ...updated, isStaff: updated.role !== "STUDENT" } };
 }
 
@@ -157,7 +160,7 @@ export async function searchEnterprises(filters: AdminEnterpriseSearchFilters) {
   return toAdminEnterpriseSearchResponse(orderedItems, filters, fuzzyPage.total);
 }
 
-export async function createEnterprise(input: { name: string; code?: string | null }) {
+export async function createEnterprise(input: { name: string; code?: string | null }, actorId?: number) {
   const nameRaw = input.name.trim();
   if (!nameRaw) return { ok: false as const, status: 400, error: "Enterprise name is required" };
   if (nameRaw.length > 120) return { ok: false as const, status: 400, error: "Enterprise name is too long" };
@@ -173,6 +176,7 @@ export async function createEnterprise(input: { name: string; code?: string | nu
   if (exists) return { ok: false as const, status: 409, error: "Enterprise code already exists" };
   try {
     const created = await repo.createEnterpriseWithFlags(nameRaw, code, defaultEnterpriseFeatureFlags);
+    if (actorId) await recordAuditLog({ userId: actorId, action: "ENTERPRISE_CREATED" });
     return {
       ok: true as const,
       value: {
@@ -209,6 +213,7 @@ export async function updateEnterpriseUser(
   enterpriseId: string,
   id: number,
   data: { active?: boolean; role?: UserRole },
+  actorId?: number,
 ) {
   const user = await repo.findUserInEnterprise(id, enterpriseId);
   if (!user) return { ok: false as const, status: 404, error: "User not found" };
@@ -222,10 +227,15 @@ export async function updateEnterpriseUser(
   if (updateData.active === false) {
     await repo.revokeActiveRefreshTokens(id);
   }
+  if (actorId) await recordAuditLog({ userId: actorId, action: "USER_UPDATED" });
   return { ok: true as const, value: toAdminUserPayload(updated) };
 }
 
-export async function deleteEnterprise(targetEnterpriseId: string, actingEnterpriseId: string | undefined) {
+export async function deleteEnterprise(
+  targetEnterpriseId: string,
+  actingEnterpriseId: string | undefined,
+  actorId?: number,
+) {
   if (actingEnterpriseId === targetEnterpriseId) {
     return { ok: false as const, status: 400, error: "Cannot delete your own enterprise" };
   }
@@ -239,6 +249,7 @@ export async function deleteEnterprise(targetEnterpriseId: string, actingEnterpr
     };
   }
   await repo.deleteEnterpriseWithDependencies(targetEnterpriseId, enterprise._count.auditLogs);
+  if (actorId) await recordAuditLog({ userId: actorId, action: "ENTERPRISE_DELETED" });
   return { ok: true as const, value: { success: true } };
 }
 

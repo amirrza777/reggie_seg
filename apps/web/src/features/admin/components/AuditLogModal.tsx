@@ -9,6 +9,15 @@ import type { AuditLogEntry } from "../types";
 type RequestState = "idle" | "loading" | "success" | "error";
 type RangeKey = "today" | "week" | "month" | "quarter" | "year" | "all";
 
+const ACTION_LABELS: Record<string, string> = {
+  LOGIN: "Signed in",
+  LOGOUT: "Signed out",
+  USER_ROLE_CHANGED: "Role changed",
+  USER_UPDATED: "Account updated",
+  ENTERPRISE_CREATED: "Enterprise created",
+  ENTERPRISE_DELETED: "Enterprise deleted",
+};
+
 const ranges: { key: RangeKey; label: string; days?: number }[] = [
   { key: "today", label: "Today", days: 1 },
   { key: "week", label: "Last 7 days", days: 7 },
@@ -208,7 +217,7 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                         </span>
                       </div>
                       <div className="ui-stack-xs">
-                        <span className="muted">Login/logout record</span>
+                        <span className="muted">{ACTION_LABELS[entry.action] ?? entry.action}</span>
                       </div>
                     </div>
                   );
