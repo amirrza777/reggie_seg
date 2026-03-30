@@ -1476,6 +1476,33 @@ export async function getQuestionsForProject(projectId: number) {
   });
 }
 
+/** Returns the team-allocation questionnaire for project. */
+export async function getTeamAllocationQuestionnaireForProject(projectId: number) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      teamAllocationQuestionnaireTemplate: {
+        select: {
+          id: true,
+          templateName: true,
+          purpose: true,
+          createdAt: true,
+          questions: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              label: true,
+              type: true,
+              order: true,
+              configs: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
 type RawStaffMarking = {
   mark: number | null;
   formativeFeedback: string | null;

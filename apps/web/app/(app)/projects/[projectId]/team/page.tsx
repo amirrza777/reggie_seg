@@ -1,10 +1,17 @@
-import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getTeamAllocationQuestionnaireForProject,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 import { PageSection } from "@/shared/ui/PageSection";
+import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
+import type { Questionnaire } from "@/features/questionnaires/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -65,6 +72,15 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
 
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
   const teamFormationMode = resolveTeamFormationMode(project);
+  let teamAllocationQuestionnaire: Questionnaire | null = null;
+
+  if (user && !team && teamFormationMode === "custom" && project?.teamAllocationQuestionnaireTemplateId) {
+    try {
+      teamAllocationQuestionnaire = await getTeamAllocationQuestionnaireForProject(numericProjectId);
+    } catch {
+      teamAllocationQuestionnaire = null;
+    }
+  }
 
   return (
     <PageSection
@@ -72,6 +88,19 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
       description="Manage teammates and invitations for this project."
       className="ui-page--project"
     >
+      {teamFormationMode === "custom" && !team ? (
+        <Card title="Team allocation questionnaire">
+          <p className="muted">
+            Complete this questionnaire so staff can place you into a team.
+          </p>
+          {teamAllocationQuestionnaire ? (
+            <QuestionnaireView questionnaire={teamAllocationQuestionnaire} />
+          ) : (
+            <p>Allocation questionnaire is not available right now. Please try again shortly.</p>
+          )}
+        </Card>
+      ) : null}
+
       <Card>
         {user ? (
           <TeamFormationPanel

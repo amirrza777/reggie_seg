@@ -17,6 +17,7 @@ import {
   reviewStaffTeamHealthMessage,
   getStaffTeamHealthMessages,
   createStaffProject,
+  getTeamAllocationQuestionnaireForProject,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -40,6 +41,13 @@ describe("projects api client", () => {
   it("gets one project", async () => {
     await getProject("42");
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42");
+  });
+
+  it("gets team allocation questionnaire for a project without cache", async () => {
+    await getTeamAllocationQuestionnaireForProject(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-allocation-questionnaire", {
+      cache: "no-store",
+    });
   });
 
   it("gets user projects", async () => {

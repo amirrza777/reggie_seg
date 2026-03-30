@@ -14,6 +14,7 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
+  getTeamAllocationQuestionnaireForProjectHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffMarkingProjectsHandler,
@@ -92,5 +93,6 @@ router.get("/:projectId/marking", requireAuth, getProjectMarkingHandler);
 router.get("/:projectId/team", requireAuth, getTeamByUserAndProjectHandler);
 router.get("/teams/:teamId", requireAuth, getTeamByIdHandler);
 router.get("/:projectId/questions", requireAuth, getQuestionsForProjectHandler);
+router.get("/:projectId/team-allocation-questionnaire", requireAuth, getTeamAllocationQuestionnaireForProjectHandler);
 
 export default router;

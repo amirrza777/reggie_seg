@@ -16,6 +16,7 @@ import {
   fetchModuleStaffList,
   fetchModuleStudentProjectMatrix,
   fetchQuestionsForProject,
+  fetchTeamAllocationQuestionnaireForProject,
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
@@ -500,5 +501,24 @@ export async function getStaffMarkingProjectsHandler(req: AuthRequest, res: Resp
   } catch (error) {
     console.error("Error fetching staff marking projects:", error);
     res.status(500).json({ error: "Failed to fetch marking projects" });
+  }
+}
+
+export async function getTeamAllocationQuestionnaireForProjectHandler(req: Request, res: Response) {
+  const projectId = Number(req.params.projectId);
+
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const project = await fetchTeamAllocationQuestionnaireForProject(projectId);
+    if (!project || !project.teamAllocationQuestionnaireTemplate) {
+      return res.status(404).json({ error: "Team allocation questionnaire template not found for this project" });
+    }
+    res.json(project.teamAllocationQuestionnaireTemplate);
+  } catch (error) {
+    console.error("Error fetching team allocation questionnaire for project:", error);
+    res.status(500).json({ error: "Failed to fetch team allocation questionnaire" });
   }
 }

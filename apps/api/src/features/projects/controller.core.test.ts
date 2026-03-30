@@ -7,6 +7,7 @@ import {
   getProjectDeadlineHandler,
   getProjectMarkingHandler,
   getQuestionsForProjectHandler,
+  getTeamAllocationQuestionnaireForProjectHandler,
   getStaffProjectTeamsHandler,
   getStaffProjectsHandler,
   getTeamByIdHandler,
@@ -45,6 +46,7 @@ vi.mock("./service.js", () => ({
   fetchTeamById: vi.fn(),
   fetchTeamByUserAndProject: vi.fn(),
   fetchQuestionsForProject: vi.fn(),
+  fetchTeamAllocationQuestionnaireForProject: vi.fn(),
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
@@ -407,6 +409,26 @@ describe("projects controller core handlers", () => {
     const okRes = mockResponse();
     await getQuestionsForProjectHandler({ params: { projectId: "10" } } as any, okRes);
     expect(okRes.json).toHaveBeenCalledWith({ id: 5, questions: [{ id: 1 }] });
+  });
+
+  it("getTeamAllocationQuestionnaireForProjectHandler validates id and maps missing template", async () => {
+    const badRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: null,
+    });
+    const missingRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "10" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.fetchTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: { id: 8, templateName: "Allocation", questions: [] },
+    });
+    const okRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "10" } } as any, okRes);
+    expect(okRes.json).toHaveBeenCalledWith({ id: 8, templateName: "Allocation", questions: [] });
   });
 
   it("createTeamHealthMessageHandler validates payload and creates request", async () => {

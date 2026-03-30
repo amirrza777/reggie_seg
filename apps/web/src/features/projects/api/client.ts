@@ -1,4 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
+import type { Questionnaire } from "@/features/questionnaires/types";
 import type {
   CreateStaffProjectPayload,
   CreatedStaffProject,
@@ -23,6 +24,14 @@ import type {
 
 export async function getProject(projectId: string): Promise<Project> {
   return apiFetch<Project>(`/projects/${projectId}`);
+}
+
+export async function getTeamAllocationQuestionnaireForProject(
+  projectId: string | number,
+): Promise<Questionnaire> {
+  return apiFetch<Questionnaire>(`/projects/${projectId}/team-allocation-questionnaire`, {
+    cache: "no-store",
+  });
 }
 
 export async function getUserProjects(userId: number): Promise<Project[]> {

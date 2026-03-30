@@ -11,6 +11,7 @@ import {
   getTeamById,
   getTeamByUserAndProject,
   getQuestionsForProject,
+  getTeamAllocationQuestionnaireForProject,
   getStaffProjects,
   getStaffProjectTeams,
   getStaffProjectsForMarking,
@@ -197,6 +198,11 @@ export async function fetchTeamByUserAndProject(userId: number, projectId: numbe
 /** Returns the questions for project. */
 export async function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
+}
+
+/** Returns the team-allocation questionnaire for project. */
+export async function fetchTeamAllocationQuestionnaireForProject(projectId: number) {
+  return getTeamAllocationQuestionnaireForProject(projectId);
 }
 
 /** Returns all projects with teams for the staff marking overview. */
