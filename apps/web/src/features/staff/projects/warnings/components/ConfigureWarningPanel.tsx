@@ -117,7 +117,9 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
         setIsEditing(false);
     };
 
-    const formDisabled =  isSaving || loading;
+    const inputsDisabled = !isEditing || isSaving || loading;
+    const actionDisabled = isSaving || loading;
+
     
     return (
         <div className = "stack">
@@ -159,7 +161,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
                     onLookbackDaysChange={(next) =>
                     setDraftConfig((p) => ({ ...p, attendance: { ...p.attendance, lookbackDays: next } }))
                     }
-                    disabled={formDisabled}
+                    disabled={inputsDisabled}
                 />
 
                 <WarningRuleCard
@@ -185,7 +187,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
                     onLookbackDaysChange={(next) =>
                     setDraftConfig((p) => ({ ...p, meetingFrequency: { ...p.meetingFrequency, lookbackDays: next } }))
                     }
-                    disabled={formDisabled}
+                    disabled={inputsDisabled}
                 />
 
                 <WarningRuleCard
@@ -214,22 +216,22 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
                         contributionActivity: { ...p.contributionActivity, lookbackDays: next },
                     }))
                     }
-                    disabled={formDisabled}
+                    disabled={inputsDisabled}
                 />
             </div>
 
 
             <div className= "staff-projects__warnings-configs-modal-header">
             {!isEditing ? (
-                <Button onClick={() => setIsEditing(true)} disabled={formDisabled}>
+                <Button onClick={() => setIsEditing(true)} disabled={actionDisabled}>
                     Edit configuration
                 </Button>
             ) : (
                 <div style={{ display: "flex", gap: "8px" }}>
-                    <Button onClick={handleSave} disabled={formDisabled} variant="primary">
+                    <Button onClick={handleSave} disabled={actionDisabled} variant="primary">
                         {isSaving ? "Saving..." : "Save changes"}
                     </Button>
-                    <Button onClick={handleCancel} disabled={formDisabled} variant="secondary">
+                    <Button onClick={handleCancel} disabled={actionDisabled} variant="secondary">
                         Cancel
                     </Button>
                 </div>
