@@ -253,7 +253,7 @@ export async function deleteEnterprise(
   return { ok: true as const, value: { success: true } };
 }
 
-export async function getAuditLogs(enterpriseId: string, filters: { from?: Date; to?: Date; limit?: number }) {
+export async function getAuditLogs(enterpriseId: string, filters: { from?: Date; to?: Date; limit?: number; cursor?: number }) {
   const logs = await listAuditLogs({ enterpriseId, ...filters });
   return logs.map((entry) => ({
     id: entry.id,

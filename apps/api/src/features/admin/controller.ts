@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { subscribeToAuditStream, unsubscribeFromAuditStream } from "../audit/sse.js";
 import { parseAdminEnterpriseSearchFilters } from "./enterpriseSearch.js";
 import { parseAdminUserSearchFilters } from "./userSearch.js";
 import {
@@ -127,4 +128,27 @@ export async function listAuditLogsHandler(req: AdminRequest, res: Response) {
   const parsedQuery = parseAuditLogsQuery(req.query);
   if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
   return res.json(await getAuditLogs(enterpriseId, parsedQuery.value));
+}
+
+export function auditLogsStreamHandler(req: AdminRequest, res: Response) {
+  const enterpriseId = req.adminUser?.enterpriseId;
+  if (!enterpriseId) {
+    res.status(500).end();
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 30_000);
+
+  subscribeToAuditStream(enterpriseId, res);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unsubscribeFromAuditStream(enterpriseId, res);
+  });
 }
