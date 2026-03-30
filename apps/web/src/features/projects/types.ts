@@ -223,6 +223,7 @@ export type CreateStaffProjectPayload = {
   moduleId: number;
   questionnaireTemplateId: number;
   informationText?: string | null;
+  studentIds?: number[];
   deadline: {
     taskOpenDate: string;
     taskDueDate: string;
@@ -276,9 +277,10 @@ export type ProjectMarkingSummary = {
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;
-  team: Team;
+  team: Team | null;
   marking: ProjectMarkingSummary | null;
   view?: "overview" | "deadlines";
+  teamFormationMode?: "self" | "custom" | "staff";
 };
 
 export type DeadlineItem = {

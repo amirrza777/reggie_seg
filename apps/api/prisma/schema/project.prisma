@@ -14,6 +14,7 @@ model Project {
   module                Module                    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   questionnaireTemplate QuestionnaireTemplate     @relation("ProjectTemplate", fields: [questionnaireTemplateId], references: [id])
   teams                 Team[]
+  projectStudents       ProjectStudent[]
   peerAssessments       PeerAssessment[]
   teamHealthMessages    TeamHealthMessage[]
   teamWarnings          TeamWarning[]

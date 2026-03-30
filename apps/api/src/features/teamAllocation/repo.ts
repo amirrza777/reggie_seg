@@ -116,6 +116,21 @@ export type CustomAllocationLatestResponse = {
   answersJson: unknown;
 };
 
+async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
+  const hasProjectStudents = await prisma.projectStudent.findFirst({
+    where: { projectId },
+    select: { userId: true },
+  });
+  if (!hasProjectStudents) return {};
+  return {
+    projectStudents: {
+      some: {
+        projectId,
+      },
+    },
+  };
+}
+
 type ManualAllocationStudentCandidate = {
   id: number;
   firstName: string;
@@ -393,6 +408,7 @@ export async function findVacantModuleStudentsForProject(
   moduleId: number,
   projectId: number,
 ): Promise<ModuleStudent[]> {
+  const projectStudentScope = await buildProjectStudentScope(projectId);
   return prisma.user.findMany({
     where: {
       enterpriseId,
@@ -412,6 +428,7 @@ export async function findVacantModuleStudentsForProject(
           },
         },
       },
+      ...projectStudentScope,
     },
     select: {
       id: true,
@@ -432,6 +449,7 @@ export async function findModuleStudentsForManualAllocation(
   const normalizedQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
   const hasQuery = normalizedQuery.length > 0;
   const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+  const projectStudentScope = await buildProjectStudentScope(projectId);
 
   let students: ManualAllocationStudentCandidate[] = await prisma.user.findMany({
     where: {
@@ -465,6 +483,7 @@ export async function findModuleStudentsForManualAllocation(
             ],
           }
         : {}),
+      ...projectStudentScope,
     },
     select: {
       id: true,

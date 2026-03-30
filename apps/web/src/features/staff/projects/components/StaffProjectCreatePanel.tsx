@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createStaffProject } from "@/features/projects/api/client";
-import { listModules } from "@/features/modules/api/client";
+import { getModuleStudents, listModules } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
-import type { Module } from "@/features/modules/types";
+import type { Module, ModuleStudent } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
 import { SearchField } from "@/shared/ui/SearchField";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
@@ -77,6 +77,11 @@ function formatDateTime(date: Date | null): string {
   }).format(date);
 }
 
+function toStudentName(student: ModuleStudent) {
+  const fullName = `${student.firstName} ${student.lastName}`.trim();
+  return fullName.length > 0 ? fullName : student.email;
+}
+
 function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
   const taskOpen = new Date();
   taskOpen.setMinutes(0, 0, 0);
@@ -127,6 +132,12 @@ export function StaffProjectCreatePanel({
   const [moduleSearchError, setModuleSearchError] = useState<string | null>(null);
   const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
+  const [moduleStudents, setModuleStudents] = useState<ModuleStudent[]>([]);
+  const [isLoadingModuleStudents, setIsLoadingModuleStudents] = useState(false);
+  const [moduleStudentsError, setModuleStudentsError] = useState<string | null>(null);
+  const [studentSearchInput, setStudentSearchInput] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+  const latestModuleStudentsRequestRef = useRef(0);
 
   const creatableModulesFromProps = useMemo(
     () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
@@ -219,6 +230,63 @@ export function StaffProjectCreatePanel({
     };
   }, [templateId, templateSearchQuery]);
 
+  function loadModuleStudents(
+    nextModuleId: number,
+    options: { preserveSelection?: boolean; autoSelectAll?: boolean } = {},
+  ) {
+    const requestId = latestModuleStudentsRequestRef.current + 1;
+    latestModuleStudentsRequestRef.current = requestId;
+    setIsLoadingModuleStudents(true);
+    setModuleStudentsError(null);
+
+    getModuleStudents(nextModuleId)
+      .then((result) => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        const enrolledStudents = result.students.filter((student) => student.enrolled && student.active);
+        setModuleStudents(result.students);
+
+        if (options.preserveSelection) {
+          const availableIds = new Set(enrolledStudents.map((student) => student.id));
+          setSelectedStudentIds((current) => current.filter((id) => availableIds.has(id)));
+          return;
+        }
+
+        if (options.autoSelectAll) {
+          setSelectedStudentIds(enrolledStudents.map((student) => student.id));
+          return;
+        }
+
+        setSelectedStudentIds([]);
+      })
+      .catch((error) => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        setModuleStudentsError(error instanceof Error ? error.message : "Failed to load module students.");
+        setModuleStudents([]);
+      })
+      .finally(() => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        setIsLoadingModuleStudents(false);
+      });
+  }
+
+  useEffect(() => {
+    setModuleStudents([]);
+    setStudentSearchInput("");
+    setModuleStudentsError(null);
+    if (!moduleId.trim()) {
+      setSelectedStudentIds([]);
+      return;
+    }
+
+    const parsed = Number(moduleId);
+    if (!Number.isInteger(parsed)) {
+      setSelectedStudentIds([]);
+      return;
+    }
+
+    loadModuleStudents(parsed, { autoSelectAll: true });
+  }, [moduleId]);
+
   const hasCreatableModule = creatableModulesFromProps.length > 0;
   const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
 
@@ -237,6 +305,24 @@ export function StaffProjectCreatePanel({
     if (templates.some((template) => template.id === selectedTemplate.id)) return templates;
     return [selectedTemplate, ...templates];
   }, [selectedTemplateOption, templateId, templates]);
+
+  const enrolledModuleStudents = useMemo(
+    () => moduleStudents.filter((student) => student.enrolled && student.active),
+    [moduleStudents],
+  );
+
+  const filteredModuleStudents = useMemo(() => {
+    const query = studentSearchInput.trim().toLowerCase();
+    if (!query) return enrolledModuleStudents;
+    return enrolledModuleStudents.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.trim().toLowerCase();
+      return (
+        fullName.includes(query) ||
+        student.email.toLowerCase().includes(query) ||
+        String(student.id).includes(query)
+      );
+    });
+  }, [enrolledModuleStudents, studentSearchInput]);
 
   const canSubmit =
     !isSubmitting &&
@@ -318,6 +404,33 @@ export function StaffProjectCreatePanel({
     setDeadlinePresetStatus("Reset to default project schedule.");
   }
 
+  const hasModuleSelection = moduleId.trim().length > 0 && Number.isInteger(Number(moduleId));
+
+  function selectAllModuleStudents() {
+    setSelectedStudentIds(enrolledModuleStudents.map((student) => student.id));
+  }
+
+  function clearSelectedModuleStudents() {
+    setSelectedStudentIds([]);
+  }
+
+  function toggleStudentSelection(studentId: number) {
+    setSelectedStudentIds((current) =>
+      current.includes(studentId) ? current.filter((id) => id !== studentId) : [...current, studentId],
+    );
+  }
+
+  function handleStudentSearchChange(nextValue: string) {
+    setStudentSearchInput(nextValue);
+  }
+
+  function refreshModuleStudents() {
+    if (!hasModuleSelection) return;
+    const parsed = Number(moduleId);
+    if (!Number.isInteger(parsed)) return;
+    loadModuleStudents(parsed, { preserveSelection: true });
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -397,6 +510,7 @@ export function StaffProjectCreatePanel({
         moduleId: parsedModuleId,
         questionnaireTemplateId: parsedTemplateId,
         informationText: informationText.trim().length > 0 ? informationText.trim() : null,
+        studentIds: selectedStudentIds.length > 0 ? selectedStudentIds : undefined,
         deadline: {
           taskOpenDate: taskOpenDate.toISOString(),
           taskDueDate: taskDueDate.toISOString(),
@@ -412,6 +526,9 @@ export function StaffProjectCreatePanel({
       setProjectName("");
       setInformationText("");
       setDeadline(buildDefaultDeadlineState());
+      setStudentSearchInput("");
+      setSelectedStudentIds([]);
+      setModuleStudents([]);
       setSubmitSuccess(`Project "${created.name}" created.`);
       router.push(`/staff/modules/${created.moduleId}`);
       router.refresh();
@@ -708,9 +825,116 @@ export function StaffProjectCreatePanel({
           </div>
         </fieldset>
 
-        <section className="staff-projects__create-basics" aria-label="Information board setup">
+        <section className="staff-projects__create-basics" aria-label="Project students">
           <div className="staff-projects__section-head">
             <p className="staff-projects__eyebrow">Step 3</p>
+            <h3 className="staff-projects__section-title">Project students</h3>
+            <p className="staff-projects__hint">
+              Choose which enrolled students should be available for team allocation in this project.
+            </p>
+          </div>
+
+          {!hasModuleSelection ? (
+            <p className="staff-projects__hint">Select a module above to load its enrolled students.</p>
+          ) : (
+            <section className="staff-projects__manual-panel" aria-label="Project student selection">
+              <div className="staff-projects__manual-toolbar">
+                <div className="staff-projects__manual-toolbar-actions">
+                  <button
+                    type="button"
+                    className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
+                    onClick={refreshModuleStudents}
+                    disabled={isLoadingModuleStudents}
+                  >
+                    {isLoadingModuleStudents ? "Loading..." : "Refresh list"}
+                  </button>
+                </div>
+                <div className="staff-projects__meta">
+                  <span className="staff-projects__badge">{enrolledModuleStudents.length} enrolled</span>
+                  <span className="staff-projects__badge">{selectedStudentIds.length} selected</span>
+                </div>
+              </div>
+
+              {moduleStudentsError ? (
+                <p className="staff-projects__allocation-error">{moduleStudentsError}</p>
+              ) : null}
+
+              <div className="staff-projects__manual-workspace-card" aria-label="Project student selection list">
+                <h4 className="staff-projects__manual-workspace-title">Project student selection</h4>
+                <div className="staff-projects__manual-selection-toolbar">
+                  <span className="staff-projects__badge">{selectedStudentIds.length} selected</span>
+                  <div className="staff-projects__manual-selection-actions">
+                    <button
+                      type="button"
+                      className="staff-projects__allocation-btn"
+                      onClick={selectAllModuleStudents}
+                      disabled={isLoadingModuleStudents || enrolledModuleStudents.length === 0}
+                    >
+                      Select all students in module
+                    </button>
+                    <button
+                      type="button"
+                      className="staff-projects__allocation-btn"
+                      onClick={clearSelectedModuleStudents}
+                      disabled={isLoadingModuleStudents || selectedStudentIds.length === 0}
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
+
+                <label className="staff-projects__manual-create-field">
+                  Search students
+                  <SearchField
+                    value={studentSearchInput}
+                    onChange={(event) => handleStudentSearchChange(event.target.value)}
+                    disabled={isLoadingModuleStudents}
+                    placeholder="Search by name, email, or ID"
+                    aria-label="Search module students"
+                  />
+                </label>
+
+                {filteredModuleStudents.length === 0 ? (
+                  <p className="staff-projects__card-sub">
+                    {studentSearchInput.trim().length > 0
+                      ? `No students match "${studentSearchInput.trim()}".`
+                      : "No enrolled students found for this module."}
+                  </p>
+                ) : (
+                  <div className="staff-projects__manual-student-list" role="list" aria-label="Module student list">
+                    {filteredModuleStudents.map((student) => (
+                      <article key={student.id} className="staff-projects__manual-student-row" role="listitem">
+                        <div className="staff-projects__manual-student-main">
+                          <p className="staff-projects__manual-student-name">{toStudentName(student)}</p>
+                          <p className="staff-projects__manual-student-email">{student.email}</p>
+                        </div>
+                        <div className="staff-projects__manual-student-side">
+                          <button
+                            type="button"
+                            className={
+                              selectedStudentIds.includes(student.id)
+                                ? "staff-projects__manual-select-btn staff-projects__manual-select-btn--active"
+                                : "staff-projects__manual-select-btn"
+                            }
+                            onClick={() => toggleStudentSelection(student.id)}
+                            disabled={isLoadingModuleStudents}
+                            aria-pressed={selectedStudentIds.includes(student.id)}
+                          >
+                            {selectedStudentIds.includes(student.id) ? "Selected" : "Select"}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </section>
+
+        <section className="staff-projects__create-basics" aria-label="Information board setup">
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 4</p>
             <h3 className="staff-projects__section-title">Information board</h3>
             <p className="staff-projects__hint">
               Add project-specific guidance students will see on the project overview information board.

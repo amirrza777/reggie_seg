@@ -27,6 +27,7 @@ import {
   TEAM_LIFECYCLE_MIGRATION_ERROR,
 } from "./controller.shared.js";
 import { parseProjectDeadline } from "./controller.deadline-parsers.js";
+import { parsePositiveIntArray } from "../../shared/parse.js";
 
 export async function createProjectHandler(req: AuthRequest, res: Response) {
   const actorUserId = req.user?.sub;
@@ -34,12 +35,13 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { name, moduleId, questionnaireTemplateId, informationText, deadline } = req.body as {
+  const { name, moduleId, questionnaireTemplateId, informationText, deadline, studentIds } = req.body as {
     name?: unknown;
     moduleId?: unknown;
     questionnaireTemplateId?: unknown;
     informationText?: unknown;
     deadline?: unknown;
+    studentIds?: unknown;
   };
 
   const normalizedName = typeof name === "string" ? name.trim() : "";
@@ -70,6 +72,15 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     return res.status(400).json({ error: parsedDeadline.error });
   }
 
+  let normalizedStudentIds: number[] | undefined;
+  if (studentIds !== undefined) {
+    const parsedStudentIds = parsePositiveIntArray(studentIds, "studentIds");
+    if (!parsedStudentIds.ok) {
+      return res.status(400).json({ error: parsedStudentIds.error });
+    }
+    normalizedStudentIds = parsedStudentIds.value;
+  }
+
   try {
     const project = await createProject(
       actorUserId,
@@ -78,6 +89,7 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       parsedTemplateId,
       normalizedInformationText,
       parsedDeadline.value,
+      normalizedStudentIds,
     );
     res.status(201).json(project);
   } catch (error: unknown) {
@@ -101,6 +113,12 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
       return res.status(400).json({
         error: "Questionnaire template must have PEER_ASSESSMENT purpose for project setup",
       });
+    }
+    if (errorCode === "INVALID_STUDENT_IDS") {
+      return res.status(400).json({ error: "studentIds must be a list of unique student ids" });
+    }
+    if (errorCode === "STUDENTS_NOT_IN_MODULE") {
+      return res.status(400).json({ error: "One or more selected students are not enrolled in this module" });
     }
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Failed to create project" });

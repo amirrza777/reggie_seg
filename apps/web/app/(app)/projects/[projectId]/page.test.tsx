@@ -27,19 +27,22 @@ vi.mock("@/features/projects/components/ProjectOverviewDashboard", () => ({
     deadline,
     team,
     marking,
+    teamFormationMode,
   }: {
     project: { title?: string };
     deadline: { taskDueDate?: string | null; isOverridden?: boolean };
-    team: { id: number };
+    team: { id: number } | null;
     marking: { grade?: string } | null;
+    teamFormationMode?: "self" | "custom" | "staff";
   }) => (
     <div
       data-testid="project-overview-dashboard"
       data-project-title={project.title ?? ""}
-      data-team-id={team.id}
+      data-team-id={team?.id ?? ""}
       data-marking={marking?.grade ?? ""}
       data-deadline={deadline.taskDueDate ?? ""}
       data-overridden={String(Boolean(deadline.isOverridden))}
+      data-team-mode={teamFormationMode ?? ""}
     />
   ),
 }));
@@ -69,14 +72,21 @@ describe("ProjectPage", () => {
     expect(screen.getByRole("link", { name: "Go to login" })).toHaveAttribute("href", "/login");
   });
 
-  it("shows no-team state when team lookup fails", async () => {
+  it("renders overview dashboard even when team lookup fails", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 10 } as Awaited<ReturnType<typeof getCurrentUser>>);
     getTeamByUserAndProjectMock.mockRejectedValue(new Error("team lookup failed"));
+    getProjectMock.mockResolvedValue({ title: "Project Atlas" } as Awaited<ReturnType<typeof getProject>>);
+    getProjectDeadlineMock.mockResolvedValue({
+      taskDueDate: null,
+      isOverridden: false,
+    } as Awaited<ReturnType<typeof getProjectDeadline>>);
 
     const page = await ProjectPage({ params: Promise.resolve({ projectId: "22" }) });
     render(page);
 
-    expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
+    const dashboard = screen.getByTestId("project-overview-dashboard");
+    expect(dashboard).toHaveAttribute("data-project-title", "Project Atlas");
+    expect(dashboard).toHaveAttribute("data-team-id", "");
   });
 
   it("renders overview dashboard with fallback deadline and nullable marking", async () => {

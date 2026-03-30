@@ -71,6 +71,7 @@ export async function createProject(
   questionnaireTemplateId: number,
   informationText: string | null,
   deadline: ProjectDeadlineInput,
+  studentIds?: number[],
 ) {
   return createProjectInDb(
     actorUserId,
@@ -79,6 +80,7 @@ export async function createProject(
     questionnaireTemplateId,
     informationText,
     deadline,
+    studentIds,
   );
 }
 
@@ -278,7 +280,8 @@ export async function fetchProjectsForStaff(userId: number, options?: { query?: 
   const now = Date.now();
   return projects.map((project) => {
     const allAllocations = project.teams.flatMap((t) => t.allocations);
-    const membersTotal = allAllocations.length;
+    const hasProjectStudents = project._count.projectStudents > 0;
+    const membersTotal = hasProjectStudents ? project._count.projectStudents : allAllocations.length;
     const membersConnected = allAllocations.filter((a) => a.user.githubAccount).length;
     const { start, end } = deadlineRangeBounds(project.deadline as Record<string, unknown> | null | undefined);
     const trelloStats = trelloTeamsLinkedStats(project.teams);

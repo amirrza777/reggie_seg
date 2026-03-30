@@ -126,6 +126,7 @@ describe("projects controller core handlers", () => {
         feedbackDueDate: expect.any(Date),
         feedbackDueDateMcf: expect.any(Date),
       }),
+      undefined,
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ id: 1, name: "P1" });

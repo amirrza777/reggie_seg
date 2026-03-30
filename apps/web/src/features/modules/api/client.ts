@@ -6,6 +6,7 @@ import type {
   ModuleStaffListMember,
   ModuleStudentProjectMatrixProject,
   ModuleStudentProjectMatrixStudent,
+  ModuleStudent,
 } from "../types";
 
 type ListModulesOptions = {
@@ -51,4 +52,9 @@ export async function getModuleStudentProjectMatrix(moduleId: number): Promise<{
     projects: ModuleStudentProjectMatrixProject[];
     students: ModuleStudentProjectMatrixStudent[];
   }>(`/projects/modules/${moduleId}/student-project-matrix`);
+}
+
+export async function getModuleStudents(moduleId: number): Promise<{ students: ModuleStudent[] }> {
+  const id = encodeURIComponent(String(moduleId));
+  return apiFetch<{ students: ModuleStudent[] }>(`/enterprise/modules/${id}/students`);
 }

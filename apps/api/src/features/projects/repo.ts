@@ -61,6 +61,7 @@ const STAFF_PROJECT_LIST_SELECT = {
     select: {
       teams: true,
       githubRepositories: true,
+      projectStudents: true,
     },
   },
   teams: {
@@ -495,17 +496,28 @@ export async function getModuleStudentProjectMatrixForUser(
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
-      teams: {
-        some: {
-          archivedAt: null,
-          allocationLifecycle: "ACTIVE",
-          allocations: {
+      OR: [
+        {
+          teams: {
+            some: {
+              archivedAt: null,
+              allocationLifecycle: "ACTIVE",
+              allocations: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          },
+        },
+        {
+          projectStudents: {
             some: {
               userId,
             },
           },
         },
-      },
+      ],
     },
     select: {
       id: true,
@@ -1034,6 +1046,7 @@ export async function createProject(
   questionnaireTemplateId: number,
   informationText: string | null,
   deadline: ProjectDeadlineInput,
+  studentIds?: number[],
 ) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
@@ -1077,46 +1090,88 @@ export async function createProject(
     throw { code: "TEMPLATE_INVALID_PURPOSE" };
   }
 
-  const project = await prisma.project.create({
-    data: {
-      name,
-      informationText,
-      moduleId,
-      questionnaireTemplateId,
-      deadline: {
-        create: {
-          taskOpenDate: deadline.taskOpenDate,
-          taskDueDate: deadline.taskDueDate,
-          taskDueDateMcf: deadline.taskDueDateMcf,
-          assessmentOpenDate: deadline.assessmentOpenDate,
-          assessmentDueDate: deadline.assessmentDueDate,
-          assessmentDueDateMcf: deadline.assessmentDueDateMcf,
-          feedbackOpenDate: deadline.feedbackOpenDate,
-          feedbackDueDate: deadline.feedbackDueDate,
-          feedbackDueDateMcf: deadline.feedbackDueDateMcf,
+  let normalizedStudentIds: number[] = [];
+  if (Array.isArray(studentIds)) {
+    normalizedStudentIds = Array.from(new Set(studentIds));
+    if (normalizedStudentIds.length !== studentIds.length) {
+      throw { code: "INVALID_STUDENT_IDS" };
+    }
+  }
+
+  if (normalizedStudentIds.length > 0) {
+    const moduleStudents = await prisma.user.findMany({
+      where: {
+        id: { in: normalizedStudentIds },
+        enterpriseId: actor.enterpriseId,
+        role: "STUDENT",
+        userModules: {
+          some: {
+            enterpriseId: actor.enterpriseId,
+            moduleId,
+          },
         },
       },
-    },
-    select: {
-      id: true,
-      name: true,
-      informationText: true,
-      moduleId: true,
-      questionnaireTemplateId: true,
-      deadline: {
-        select: {
-          taskOpenDate: true,
-          taskDueDate: true,
-          taskDueDateMcf: true,
-          assessmentOpenDate: true,
-          assessmentDueDate: true,
-          assessmentDueDateMcf: true,
-          feedbackOpenDate: true,
-          feedbackDueDate: true,
-          feedbackDueDateMcf: true,
+      select: { id: true },
+    });
+    if (moduleStudents.length !== normalizedStudentIds.length) {
+      throw { code: "STUDENTS_NOT_IN_MODULE" };
+    }
+  }
+
+  const project = await prisma.$transaction(async (tx) => {
+    const createdProject = await tx.project.create({
+      data: {
+        name,
+        informationText,
+        moduleId,
+        questionnaireTemplateId,
+        deadline: {
+          create: {
+            taskOpenDate: deadline.taskOpenDate,
+            taskDueDate: deadline.taskDueDate,
+            taskDueDateMcf: deadline.taskDueDateMcf,
+            assessmentOpenDate: deadline.assessmentOpenDate,
+            assessmentDueDate: deadline.assessmentDueDate,
+            assessmentDueDateMcf: deadline.assessmentDueDateMcf,
+            feedbackOpenDate: deadline.feedbackOpenDate,
+            feedbackDueDate: deadline.feedbackDueDate,
+            feedbackDueDateMcf: deadline.feedbackDueDateMcf,
+          },
         },
       },
-    },
+      select: {
+        id: true,
+        name: true,
+        informationText: true,
+        moduleId: true,
+        questionnaireTemplateId: true,
+        deadline: {
+          select: {
+            taskOpenDate: true,
+            taskDueDate: true,
+            taskDueDateMcf: true,
+            assessmentOpenDate: true,
+            assessmentDueDate: true,
+            assessmentDueDateMcf: true,
+            feedbackOpenDate: true,
+            feedbackDueDate: true,
+            feedbackDueDateMcf: true,
+          },
+        },
+      },
+    });
+
+    if (normalizedStudentIds.length > 0) {
+      await tx.projectStudent.createMany({
+        data: normalizedStudentIds.map((userId) => ({
+          projectId: createdProject.id,
+          userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return createdProject;
   });
 
   return project;
