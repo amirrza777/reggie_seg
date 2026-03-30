@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createStaffProject } from "@/features/projects/api/client";
-import { getModuleStudents, listModules } from "@/features/modules/api/client";
+import { getModuleStudents } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module, ModuleStudent } from "@/features/modules/types";
@@ -13,7 +13,6 @@ import { SearchField } from "@/shared/ui/SearchField";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 
 type StaffProjectCreatePanelProps = {
-  currentUserId: number;
   modules: Module[];
   modulesError: string | null;
   initialModuleId?: string | null;
@@ -107,7 +106,6 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
 }
 
 export function StaffProjectCreatePanel({
-  currentUserId,
   modules,
   modulesError,
   initialModuleId = null,
@@ -123,7 +121,6 @@ export function StaffProjectCreatePanel({
   const [projectName, setProjectName] = useState("");
   const [informationText, setInformationText] = useState("");
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
-  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [allocationTemplateId, setAllocationTemplateId] = useState("");
@@ -134,8 +131,6 @@ export function StaffProjectCreatePanel({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [moduleSearchError, setModuleSearchError] = useState<string | null>(null);
-  const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
   const [selectedAllocationTemplateOption, setSelectedAllocationTemplateOption] = useState<Questionnaire | null>(null);
   const [moduleStudents, setModuleStudents] = useState<ModuleStudent[]>([]);
@@ -149,53 +144,18 @@ export function StaffProjectCreatePanel({
     () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
     [modules]
   );
-  const [moduleOptions, setModuleOptions] = useState<Module[]>(creatableModulesFromProps);
 
   useEffect(() => {
-    if (moduleSearchQuery.trim().length > 0) return;
-    setModuleOptions(creatableModulesFromProps);
-  }, [creatableModulesFromProps, moduleSearchQuery]);
-
-  useEffect(() => {
-    if (!initialModuleId) return;
-    if (moduleId.trim().length > 0) return;
-    if (!creatableModulesFromProps.some((module) => module.id === initialModuleId)) return;
-    setModuleId(initialModuleId);
-  }, [creatableModulesFromProps, initialModuleId, moduleId]);
-
-  useEffect(() => {
-    const normalizedQuery = moduleSearchQuery.trim();
-    if (!normalizedQuery) {
-      setModuleSearchError(null);
-      setIsLoadingModules(false);
-      return;
+    const preferredModuleId =
+      initialModuleId && creatableModulesFromProps.some((module) => module.id === initialModuleId)
+        ? initialModuleId
+        : (creatableModulesFromProps[0]?.id ?? "");
+    if (!preferredModuleId) return;
+    const moduleIdIsValid = creatableModulesFromProps.some((module) => module.id === moduleId);
+    if (!moduleIdIsValid) {
+      setModuleId(preferredModuleId);
     }
-
-    let isMounted = true;
-    const timer = window.setTimeout(() => {
-      setIsLoadingModules(true);
-      setModuleSearchError(null);
-      listModules(currentUserId, { scope: "staff", compact: true, query: normalizedQuery })
-        .then((result) => {
-          if (!isMounted) return;
-          setModuleOptions(result.filter((module) => CREATABLE_ROLES.has(module.accountRole)));
-        })
-        .catch((error) => {
-          if (!isMounted) return;
-          setModuleSearchError(error instanceof Error ? error.message : "Failed to search modules.");
-          setModuleOptions([]);
-        })
-        .finally(() => {
-          if (!isMounted) return;
-          setIsLoadingModules(false);
-        });
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => {
-      isMounted = false;
-      window.clearTimeout(timer);
-    };
-  }, [currentUserId, moduleSearchQuery]);
+  }, [creatableModulesFromProps, initialModuleId, moduleId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -340,14 +300,10 @@ export function StaffProjectCreatePanel({
   const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
   const hasAllocationTemplates = allocationTemplates.length > 0 || allocationTemplateId.trim().length > 0;
 
-  const visibleModules = useMemo(() => {
-    const selectedModule =
-      creatableModulesFromProps.find((module) => module.id === moduleId) ??
-      moduleOptions.find((module) => module.id === moduleId);
-    if (!selectedModule) return moduleOptions;
-    if (moduleOptions.some((module) => module.id === selectedModule.id)) return moduleOptions;
-    return [selectedModule, ...moduleOptions];
-  }, [creatableModulesFromProps, moduleId, moduleOptions]);
+  const selectedModule = useMemo(
+    () => creatableModulesFromProps.find((module) => module.id === moduleId) ?? null,
+    [creatableModulesFromProps, moduleId],
+  );
 
   const visibleTemplates = useMemo(() => {
     const selectedTemplate = templates.find((template) => String(template.id) === templateId) ?? selectedTemplateOption;
@@ -463,7 +419,7 @@ export function StaffProjectCreatePanel({
     setDeadlinePresetStatus("Reset to default project schedule.");
   }
 
-  const hasModuleSelection = moduleId.trim().length > 0 && Number.isInteger(Number(moduleId));
+  const hasModuleSelection = selectedModule !== null;
 
   function selectAllModuleStudents() {
     setSelectedStudentIds(enrolledModuleStudents.map((student) => student.id));
@@ -639,7 +595,8 @@ export function StaffProjectCreatePanel({
             <p className="staff-projects__eyebrow">Step 1</p>
             <h3 className="staff-projects__section-title">Project details</h3>
             <p className="staff-projects__hint">
-              Pick where this project lives, the peer-assessment questionnaire, and any team allocation questionnaire.
+              This project will be created in the current module. Select a peer-assessment questionnaire and optional
+              team allocation questionnaire.
             </p>
           </div>
           <div className="staff-projects__create-basics-grid">
@@ -656,30 +613,15 @@ export function StaffProjectCreatePanel({
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Module</span>
-              <SearchField
+              <input
                 className="staff-projects__input"
-                value={moduleSearchQuery}
-                onChange={(event) => setModuleSearchQuery(event.target.value)}
-                placeholder="Search modules by name or ID"
-                disabled={!hasCreatableModule}
-                aria-label="Search module options"
+                value={selectedModule ? selectedModule.title : "No module available"}
+                disabled
+                aria-label="Selected module"
               />
-              <select
-                className="staff-projects__select"
-                value={moduleId}
-                onChange={(event) => setModuleId(event.target.value)}
-                disabled={!hasCreatableModule || isLoadingModules}
-              >
-                <option value="">Select module</option>
-                {visibleModules.map((module) => (
-                  <option key={module.id} value={module.id}>
-                    {module.title}
-                  </option>
-                ))}
-              </select>
-              {moduleSearchQuery.trim().length > 0 && !isLoadingModules && visibleModules.length === 0 ? (
-                <span className="staff-projects__field-label">No modules match "{moduleSearchQuery.trim()}".</span>
-              ) : null}
+              <p className="staff-projects__hint">
+                Module is set automatically from your current workspace.
+              </p>
             </label>
 
             <label className="staff-projects__field">
@@ -960,7 +902,9 @@ export function StaffProjectCreatePanel({
           </div>
 
           {!hasModuleSelection ? (
-            <p className="staff-projects__hint">Select a module above to load its enrolled students.</p>
+            <p className="staff-projects__hint">
+              No valid module context is available for project creation right now.
+            </p>
           ) : (
             <section className="staff-projects__manual-panel" aria-label="Project student selection">
               <div className="staff-projects__manual-toolbar">
@@ -1089,7 +1033,6 @@ export function StaffProjectCreatePanel({
       </form>
 
       {modulesError ? <p className="staff-projects__error">{modulesError}</p> : null}
-      {moduleSearchError ? <p className="staff-projects__error">{moduleSearchError}</p> : null}
       {templatesError ? <p className="staff-projects__error">{templatesError}</p> : null}
       {allocationTemplatesError ? <p className="staff-projects__error">{allocationTemplatesError}</p> : null}
       {!hasCreatableModule && !modulesError ? (

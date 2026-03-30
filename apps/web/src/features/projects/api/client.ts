@@ -34,6 +34,20 @@ export async function getTeamAllocationQuestionnaireForProject(
   });
 }
 
+export async function submitTeamAllocationQuestionnaireResponse(
+  projectId: string | number,
+  answersJson: Record<number, string | number | boolean>,
+): Promise<{ id: number; updatedAt: string }> {
+  const response = await apiFetch<{ response: { id: number; updatedAt: string } }>(
+    `/projects/${projectId}/team-allocation-questionnaire/response`,
+    {
+      method: "POST",
+      body: JSON.stringify({ answersJson }),
+    },
+  );
+  return response.response;
+}
+
 export async function getUserProjects(userId: number): Promise<Project[]> {
   return apiFetch<Project[]>(`/projects?userId=${userId}`);
 }

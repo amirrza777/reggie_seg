@@ -117,6 +117,8 @@ export type CustomAllocationLatestResponse = {
   answersJson: unknown;
 };
 
+const SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_project_";
+
 async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
   const hasProjectStudents = await prisma.projectStudent.findFirst({
     where: { projectId },
@@ -652,6 +654,11 @@ export async function findProjectDraftTeams(projectId: number): Promise<ProjectD
       projectId,
       archivedAt: null,
       allocationLifecycle: "DRAFT",
+      teamName: {
+        not: {
+          startsWith: SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
     },
     select: {
       id: true,
@@ -698,6 +705,11 @@ export async function findDraftTeamInProject(projectId: number, teamId: number) 
       projectId,
       archivedAt: null,
       allocationLifecycle: "DRAFT",
+      teamName: {
+        not: {
+          startsWith: SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
     },
     select: {
       id: true,
@@ -748,6 +760,9 @@ export async function findDraftTeamById(teamId: number): Promise<ProjectDraftTea
   });
 
   if (!team || team.archivedAt !== null || team.allocationLifecycle !== "DRAFT") {
+    return null;
+  }
+  if (team.teamName.startsWith(SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX)) {
     return null;
   }
 

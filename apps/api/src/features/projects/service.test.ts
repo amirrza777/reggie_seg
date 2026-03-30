@@ -8,6 +8,7 @@ import {
   fetchProjectsWithTeamsForStaffMarking,
   fetchQuestionsForProject,
   fetchTeamAllocationQuestionnaireForProject,
+  submitTeamAllocationQuestionnaireResponse,
   joinModuleByCode,
   fetchTeamById,
   fetchTeamByUserAndProject,
@@ -43,6 +44,9 @@ vi.mock("./repo.js", () => ({
   getTeamByUserAndProject: vi.fn(),
   getQuestionsForProject: vi.fn(),
   getTeamAllocationQuestionnaireForProject: vi.fn(),
+  getTeamAllocationQuestionnaireSubmissionContext: vi.fn(),
+  hasActiveTeamForUserInProject: vi.fn(),
+  upsertTeamAllocationQuestionnaireResponse: vi.fn(),
   getStaffProjectsForMarking: vi.fn(),
   createTeamHealthMessage: vi.fn(),
   getTeamHealthMessagesForUserInProject: vi.fn(),
@@ -237,6 +241,39 @@ describe("projects service", () => {
     await expect(fetchTeamAllocationQuestionnaireForProject(2)).resolves.toEqual({
       teamAllocationQuestionnaireTemplate: { id: 11 },
     });
+  });
+
+  it("submitTeamAllocationQuestionnaireResponse validates context and saves normalized answers", async () => {
+    (repo.getTeamAllocationQuestionnaireSubmissionContext as any).mockResolvedValue({
+      projectId: 3,
+      enterpriseId: "ent-1",
+      template: {
+        id: 91,
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [{ id: 1, type: "multiple-choice", configs: { options: ["A", "B"] } }],
+      },
+    });
+    (repo.hasActiveTeamForUserInProject as any).mockResolvedValue(false);
+    (repo.upsertTeamAllocationQuestionnaireResponse as any).mockResolvedValue({
+      id: 700,
+      updatedAt: new Date("2026-03-30T22:05:00.000Z"),
+    });
+
+    await expect(
+      submitTeamAllocationQuestionnaireResponse(11, 3, { 1: "A" }),
+    ).resolves.toEqual({
+      id: 700,
+      updatedAt: "2026-03-30T22:05:00.000Z",
+    });
+
+    expect(repo.upsertTeamAllocationQuestionnaireResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 3,
+        enterpriseId: "ent-1",
+        templateId: 91,
+        reviewerUserId: 11,
+      }),
+    );
   });
 
   it("retains numeric project-id matches for staff marking queries", async () => {

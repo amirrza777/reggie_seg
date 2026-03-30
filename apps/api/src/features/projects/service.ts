@@ -12,6 +12,9 @@ import {
   getTeamByUserAndProject,
   getQuestionsForProject,
   getTeamAllocationQuestionnaireForProject,
+  getTeamAllocationQuestionnaireSubmissionContext,
+  hasActiveTeamForUserInProject,
+  upsertTeamAllocationQuestionnaireResponse,
   getStaffProjects,
   getStaffProjectTeams,
   getStaffProjectsForMarking,
@@ -29,6 +32,7 @@ import {
 } from "./repo.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
+import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
 
 export {
   createTeamWarningForStaff,
@@ -203,6 +207,49 @@ export async function fetchQuestionsForProject(projectId: number) {
 /** Returns the team-allocation questionnaire for project. */
 export async function fetchTeamAllocationQuestionnaireForProject(projectId: number) {
   return getTeamAllocationQuestionnaireForProject(projectId);
+}
+
+/** Saves a student's response to the project team-allocation questionnaire. */
+export async function submitTeamAllocationQuestionnaireResponse(
+  userId: number,
+  projectId: number,
+  answersJson: unknown,
+) {
+  const context = await getTeamAllocationQuestionnaireSubmissionContext(userId, projectId);
+  if (!context) {
+    throw { code: "PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  if (context.template.purpose !== "CUSTOMISED_ALLOCATION") {
+    throw { code: "TEMPLATE_INVALID_PURPOSE" };
+  }
+
+  const hasUnsupportedTextQuestions = context.template.questions.some((question) => {
+    const normalized = String(question.type ?? "").trim().toLowerCase();
+    return !(normalized === "multiple-choice" || normalized === "multiple_choice" || normalized === "rating" || normalized === "slider");
+  });
+  if (hasUnsupportedTextQuestions) {
+    throw { code: "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES" };
+  }
+
+  const userAlreadyAssigned = await hasActiveTeamForUserInProject(userId, projectId);
+  if (userAlreadyAssigned) {
+    throw { code: "USER_ALREADY_IN_TEAM" };
+  }
+
+  const normalizedAnswers = normalizeAndValidateAssessmentAnswers(answersJson, context.template.questions);
+  const saved = await upsertTeamAllocationQuestionnaireResponse({
+    projectId: context.projectId,
+    enterpriseId: context.enterpriseId,
+    templateId: context.template.id,
+    reviewerUserId: userId,
+    answersJson: normalizedAnswers,
+  });
+
+  return {
+    id: saved.id,
+    updatedAt: saved.updatedAt.toISOString(),
+  };
 }
 
 /** Returns all projects with teams for the staff marking overview. */

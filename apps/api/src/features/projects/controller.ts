@@ -12,6 +12,7 @@ export {
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
   getTeamAllocationQuestionnaireForProjectHandler,
+  submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffMarkingProjectsHandler,

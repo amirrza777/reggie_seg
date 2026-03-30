@@ -5,12 +5,12 @@ import {
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
+import { TeamAllocationQuestionnaireCard } from "@/features/projects/components/TeamAllocationQuestionnaireCard";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 import { PageSection } from "@/shared/ui/PageSection";
-import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import type { Questionnaire } from "@/features/questionnaires/types";
 
 type ProjectPageProps = {
@@ -72,6 +72,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
 
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
   const teamFormationMode = resolveTeamFormationMode(project);
+  const shouldRenderTeamPanel = !user || Boolean(team) || teamFormationMode === "self";
   let teamAllocationQuestionnaire: Questionnaire | null = null;
 
   if (user && !team && teamFormationMode === "custom" && project?.teamAllocationQuestionnaireTemplateId) {
@@ -89,31 +90,33 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
       className="ui-page--project"
     >
       {teamFormationMode === "custom" && !team ? (
-        <Card title="Team allocation questionnaire">
-          <p className="muted">
-            Complete this questionnaire so staff can place you into a team.
-          </p>
-          {teamAllocationQuestionnaire ? (
-            <QuestionnaireView questionnaire={teamAllocationQuestionnaire} />
-          ) : (
+        teamAllocationQuestionnaire ? (
+          <TeamAllocationQuestionnaireCard
+            projectId={numericProjectId}
+            questionnaire={teamAllocationQuestionnaire}
+          />
+        ) : (
+          <Card title="Team allocation questionnaire">
             <p>Allocation questionnaire is not available right now. Please try again shortly.</p>
+          </Card>
+        )
+      ) : null}
+
+      {shouldRenderTeamPanel ? (
+        <Card>
+          {user ? (
+            <TeamFormationPanel
+              team={team}
+              projectId={numericProjectId}
+              initialInvites={initialInvites}
+              projectCompleted={projectCompleted}
+              teamFormationMode={teamFormationMode}
+            />
+          ) : (
+            <p>Please sign in to manage your team.</p>
           )}
         </Card>
       ) : null}
-
-      <Card>
-        {user ? (
-          <TeamFormationPanel
-            team={team}
-            projectId={numericProjectId}
-            initialInvites={initialInvites}
-            projectCompleted={projectCompleted}
-            teamFormationMode={teamFormationMode}
-          />
-        ) : (
-          <p>Please sign in to manage your team.</p>
-        )}
-      </Card>
     </PageSection>
   );
 }

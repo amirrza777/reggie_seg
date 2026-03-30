@@ -17,6 +17,7 @@ import {
   fetchModuleStudentProjectMatrix,
   fetchQuestionsForProject,
   fetchTeamAllocationQuestionnaireForProject,
+  submitTeamAllocationQuestionnaireResponse,
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
@@ -29,6 +30,7 @@ import {
 } from "./controller.shared.js";
 import { parseProjectDeadline } from "./controller.deadline-parsers.js";
 import { parsePositiveIntArray } from "../../shared/parse.js";
+import { AssessmentAnswerValidationError } from "../peerAssessment/answers.js";
 
 export async function createProjectHandler(req: AuthRequest, res: Response) {
   const actorUserId = req.user?.sub;
@@ -520,5 +522,51 @@ export async function getTeamAllocationQuestionnaireForProjectHandler(req: Reque
   } catch (error) {
     console.error("Error fetching team allocation questionnaire for project:", error);
     res.status(500).json({ error: "Failed to fetch team allocation questionnaire" });
+  }
+}
+
+export async function submitTeamAllocationQuestionnaireResponseHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  const answersJson = req.body?.answersJson;
+  if (answersJson == null) {
+    return res.status(400).json({ error: "answersJson is required" });
+  }
+
+  try {
+    const result = await submitTeamAllocationQuestionnaireResponse(userId, projectId, answersJson);
+    return res.status(201).json({ response: result });
+  } catch (error: unknown) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error ? (error as { code?: unknown }).code : undefined;
+
+    if (code === "PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN") {
+      return res.status(404).json({ error: "Team allocation questionnaire template not found for this project" });
+    }
+    if (code === "TEMPLATE_INVALID_PURPOSE") {
+      return res.status(400).json({ error: "Questionnaire template must have CUSTOMISED_ALLOCATION purpose" });
+    }
+    if (code === "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES") {
+      return res.status(400).json({
+        error: "Custom allocation questionnaires can only include multiple-choice, rating, or slider questions",
+      });
+    }
+    if (code === "USER_ALREADY_IN_TEAM") {
+      return res.status(409).json({ error: "You are already assigned to a team in this project" });
+    }
+    if (error instanceof AssessmentAnswerValidationError) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    console.error("Error saving team allocation questionnaire response:", error);
+    return res.status(500).json({ error: "Failed to submit team allocation questionnaire response" });
   }
 }

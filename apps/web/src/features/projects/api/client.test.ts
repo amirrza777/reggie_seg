@@ -18,6 +18,7 @@ import {
   getStaffTeamHealthMessages,
   createStaffProject,
   getTeamAllocationQuestionnaireForProject,
+  submitTeamAllocationQuestionnaireResponse,
   getProject,
   getProjectDeadline,
   getProjectMarking,
@@ -47,6 +48,26 @@ describe("projects api client", () => {
     await getTeamAllocationQuestionnaireForProject(42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-allocation-questionnaire", {
       cache: "no-store",
+    });
+  });
+
+  it("submits team allocation questionnaire response and unwraps payload", async () => {
+    apiFetchMock.mockResolvedValue({
+      response: {
+        id: 88,
+        updatedAt: "2026-03-30T22:00:00.000Z",
+      },
+    });
+
+    const result = await submitTeamAllocationQuestionnaireResponse(42, { 1: "A", 2: 5 });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/42/team-allocation-questionnaire/response", {
+      method: "POST",
+      body: JSON.stringify({ answersJson: { 1: "A", 2: 5 } }),
+    });
+    expect(result).toEqual({
+      id: 88,
+      updatedAt: "2026-03-30T22:00:00.000Z",
     });
   });
 

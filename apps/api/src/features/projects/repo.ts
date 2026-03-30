@@ -1503,6 +1503,188 @@ export async function getTeamAllocationQuestionnaireForProject(projectId: number
   });
 }
 
+const TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_project_";
+
+type TeamAllocationQuestionnaireSubmissionContext = {
+  projectId: number;
+  enterpriseId: string;
+  template: {
+    id: number;
+    purpose: string;
+    questions: Array<{
+      id: number;
+      type: string;
+      configs: unknown;
+    }>;
+  };
+};
+
+/** Returns the student submission context for a project's team-allocation questionnaire. */
+export async function getTeamAllocationQuestionnaireSubmissionContext(
+  userId: number,
+  projectId: number,
+): Promise<TeamAllocationQuestionnaireSubmissionContext | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      active: true,
+      enterpriseId: true,
+    },
+  });
+
+  if (!user || user.active === false || user.role !== "STUDENT") {
+    return null;
+  }
+
+  const scopedProjectMembershipExists = await prisma.projectStudent.findFirst({
+    where: { projectId },
+    select: { userId: true },
+  });
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      archivedAt: null,
+      module: {
+        enterpriseId: user.enterpriseId,
+        userModules: {
+          some: {
+            userId,
+            enterpriseId: user.enterpriseId,
+          },
+        },
+      },
+      ...(scopedProjectMembershipExists
+        ? {
+            projectStudents: {
+              some: {
+                userId,
+              },
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      module: {
+        select: {
+          enterpriseId: true,
+        },
+      },
+      teamAllocationQuestionnaireTemplate: {
+        select: {
+          id: true,
+          purpose: true,
+          questions: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              type: true,
+              configs: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project || !project.teamAllocationQuestionnaireTemplate) {
+    return null;
+  }
+
+  return {
+    projectId: project.id,
+    enterpriseId: project.module.enterpriseId,
+    template: project.teamAllocationQuestionnaireTemplate,
+  };
+}
+
+/** Returns whether the user already belongs to an active team in the project. */
+export async function hasActiveTeamForUserInProject(userId: number, projectId: number): Promise<boolean> {
+  const existingTeam = await prisma.teamAllocation.findFirst({
+    where: {
+      userId,
+      team: {
+        projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    },
+    select: { teamId: true },
+  });
+  return Boolean(existingTeam);
+}
+
+async function findOrCreateSystemAllocationResponseTeam(projectId: number, enterpriseId: string): Promise<number> {
+  const systemTeamName = `${TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX}${projectId}`;
+
+  const existingTeam = await prisma.team.findFirst({
+    where: {
+      projectId,
+      teamName: systemTeamName,
+    },
+    select: { id: true },
+  });
+  if (existingTeam) {
+    return existingTeam.id;
+  }
+
+  const createdTeam = await prisma.team.create({
+    data: {
+      teamName: systemTeamName,
+      projectId,
+      enterpriseId,
+      allocationLifecycle: "DRAFT",
+    },
+    select: { id: true },
+  });
+
+  return createdTeam.id;
+}
+
+/** Upserts a student's team-allocation questionnaire response. */
+export async function upsertTeamAllocationQuestionnaireResponse(input: {
+  projectId: number;
+  enterpriseId: string;
+  templateId: number;
+  reviewerUserId: number;
+  answersJson: unknown;
+}) {
+  const responseTeamId = await findOrCreateSystemAllocationResponseTeam(input.projectId, input.enterpriseId);
+
+  return prisma.peerAssessment.upsert({
+    where: {
+      projectId_teamId_reviewerUserId_revieweeUserId: {
+        projectId: input.projectId,
+        teamId: responseTeamId,
+        reviewerUserId: input.reviewerUserId,
+        revieweeUserId: input.reviewerUserId,
+      },
+    },
+    update: {
+      templateId: input.templateId,
+      answersJson: input.answersJson as Prisma.InputJsonValue,
+      updatedAt: new Date(),
+    },
+    create: {
+      projectId: input.projectId,
+      teamId: responseTeamId,
+      reviewerUserId: input.reviewerUserId,
+      revieweeUserId: input.reviewerUserId,
+      templateId: input.templateId,
+      answersJson: input.answersJson as Prisma.InputJsonValue,
+      submittedLate: false,
+      effectiveDueDate: null,
+    },
+    select: {
+      id: true,
+      updatedAt: true,
+    },
+  });
+}
+
 type RawStaffMarking = {
   mark: number | null;
   formativeFeedback: string | null;

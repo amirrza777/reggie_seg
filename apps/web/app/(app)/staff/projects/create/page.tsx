@@ -100,7 +100,6 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
 
       <section className="staff-projects__create-layout">
         <StaffProjectCreatePanel
-          currentUserId={user.id}
           modules={modules}
           modulesError={modulesError}
           initialModuleId={initialModuleId}

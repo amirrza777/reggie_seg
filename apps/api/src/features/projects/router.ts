@@ -15,6 +15,7 @@ import {
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
   getTeamAllocationQuestionnaireForProjectHandler,
+  submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffMarkingProjectsHandler,
@@ -94,5 +95,10 @@ router.get("/:projectId/team", requireAuth, getTeamByUserAndProjectHandler);
 router.get("/teams/:teamId", requireAuth, getTeamByIdHandler);
 router.get("/:projectId/questions", requireAuth, getQuestionsForProjectHandler);
 router.get("/:projectId/team-allocation-questionnaire", requireAuth, getTeamAllocationQuestionnaireForProjectHandler);
+router.post(
+  "/:projectId/team-allocation-questionnaire/response",
+  requireAuth,
+  submitTeamAllocationQuestionnaireResponseHandler,
+);
 
 export default router;

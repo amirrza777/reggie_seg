@@ -53,8 +53,8 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
   ),
 }));
 
-vi.mock("@/features/questionnaires/components/QuestionnaireView", () => ({
-  QuestionnaireView: ({ questionnaire }: { questionnaire: { id: number; templateName: string } }) => (
+vi.mock("@/features/projects/components/TeamAllocationQuestionnaireCard", () => ({
+  TeamAllocationQuestionnaireCard: ({ questionnaire }: { questionnaire: { id: number; templateName: string } }) => (
     <div
       data-testid="allocation-questionnaire"
       data-template-id={questionnaire.id}
