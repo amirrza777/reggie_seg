@@ -122,9 +122,7 @@ export function StaffProjectCreatePanel({
   const [informationText, setInformationText] = useState("");
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
   const [templateId, setTemplateId] = useState("");
-  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
   const [allocationTemplateId, setAllocationTemplateId] = useState("");
-  const [allocationTemplateSearchQuery, setAllocationTemplateSearchQuery] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
   const [deadlinePresetStatus, setDeadlinePresetStatus] = useState<string | null>(null);
   const [deadlinePresetError, setDeadlinePresetError] = useState<string | null>(null);
@@ -159,13 +157,12 @@ export function StaffProjectCreatePanel({
 
   useEffect(() => {
     let isMounted = true;
-    const normalizedQuery = templateSearchQuery.trim();
     const timer = window.setTimeout(() => {
       setIsLoadingTemplates(true);
       setTemplatesError(null);
 
       getMyQuestionnaires({
-        query: normalizedQuery || undefined,
+        query: undefined,
       })
         .then((result) => {
           if (!isMounted) return;
@@ -195,17 +192,16 @@ export function StaffProjectCreatePanel({
       isMounted = false;
       window.clearTimeout(timer);
     };
-  }, [templateId, templateSearchQuery]);
+  }, [templateId]);
 
   useEffect(() => {
     let isMounted = true;
-    const normalizedQuery = allocationTemplateSearchQuery.trim();
     const timer = window.setTimeout(() => {
       setIsLoadingAllocationTemplates(true);
       setAllocationTemplatesError(null);
 
       getMyQuestionnaires({
-        query: normalizedQuery || undefined,
+        query: undefined,
       })
         .then((result) => {
           if (!isMounted) return;
@@ -237,7 +233,7 @@ export function StaffProjectCreatePanel({
       isMounted = false;
       window.clearTimeout(timer);
     };
-  }, [allocationTemplateId, allocationTemplateSearchQuery]);
+  }, [allocationTemplateId]);
 
   function loadModuleStudents(
     nextModuleId: number,
@@ -552,7 +548,6 @@ export function StaffProjectCreatePanel({
       setProjectName("");
       setInformationText("");
       setAllocationTemplateId("");
-      setAllocationTemplateSearchQuery("");
       setSelectedAllocationTemplateOption(null);
       setDeadline(buildDefaultDeadlineState());
       setStudentSearchInput("");
@@ -626,7 +621,6 @@ export function StaffProjectCreatePanel({
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Peer assessment questionnaire template</span>
-        
               <select
                 className="staff-projects__select"
                 value={templateId}
@@ -649,9 +643,6 @@ export function StaffProjectCreatePanel({
                   </option>
                 ))}
               </select>
-              {templateSearchQuery.trim().length > 0 && !isLoadingTemplates && visibleTemplates.length === 0 ? (
-                <span className="staff-projects__field-label">No templates match "{templateSearchQuery.trim()}".</span>
-              ) : null}
               {!isLoadingTemplates && !hasTemplates ? (
                 <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
                   Create questionnaire
@@ -661,7 +652,6 @@ export function StaffProjectCreatePanel({
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Team allocation questionnaire (optional)</span>
-              
               <select
                 className="staff-projects__select"
                 value={allocationTemplateId}
@@ -688,13 +678,6 @@ export function StaffProjectCreatePanel({
               <p className="staff-projects__hint">
                 If selected, students cannot create their own teams and staff can run questionnaire-based allocations.
               </p>
-              {allocationTemplateSearchQuery.trim().length > 0 &&
-              !isLoadingAllocationTemplates &&
-              visibleAllocationTemplates.length === 0 ? (
-                <span className="staff-projects__field-label">
-                  No templates match "{allocationTemplateSearchQuery.trim()}".
-                </span>
-              ) : null}
               {!isLoadingAllocationTemplates && !hasAllocationTemplates ? (
                 <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
                   Create questionnaire
