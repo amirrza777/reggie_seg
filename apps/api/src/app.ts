@@ -25,6 +25,9 @@ import helpRouter from "./features/help/router.js";
 
 const app = express();
 
+// Trust the first hop reverse proxy so req.ip reflects the real client address.
+app.set("trust proxy", 1);
+
 // Normalize quoted charset to avoid body-parser charset errors (e.g. charset="UTF-8").
 app.use((req, _res, next) => {
   const ct = req.headers["content-type"];

@@ -16,7 +16,7 @@ import {
 } from "../../shared/fuzzyFallback.js";
 import { ENTERPRISE_FEATURE_FLAG_DEFAULTS } from "../featureFlags/defaults.js";
 
-const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
+const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL ?? "admin@kcl.ac.uk").toLowerCase();
 const ENTERPRISE_CODE_REGEX = /^[A-Z0-9]{3,16}$/;
 const enterpriseCodeGenerator = new EnterpriseCodeGeneratorService();
 const defaultEnterpriseFeatureFlags: EnterpriseFlagSeed[] = [...ENTERPRISE_FEATURE_FLAG_DEFAULTS];
