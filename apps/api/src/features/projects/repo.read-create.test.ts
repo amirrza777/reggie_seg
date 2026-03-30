@@ -296,7 +296,7 @@ describe("projects repo read and create flows", () => {
         projectStudent: { createMany: vi.fn() },
       }),
     );
-    const result = await createProject(99, "P1", 2, 3, "Info board copy", deadlineInput, undefined);
+    const result = await createProject(99, "P1", 2, 3, undefined, "Info board copy", deadlineInput, undefined);
 
     expect(txProjectCreate).toHaveBeenCalledWith({
       data: {
@@ -360,7 +360,7 @@ describe("projects repo read and create flows", () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce(null);
     (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
 
-    await expect(createProject(44, "Blocked", 7, 3, null, deadlineInput, undefined)).rejects.toMatchObject({
+    await expect(createProject(44, "Blocked", 7, 3, undefined, null, deadlineInput, undefined)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     expect(prisma.project.create).not.toHaveBeenCalled();
@@ -385,7 +385,7 @@ describe("projects repo read and create flows", () => {
       },
     });
 
-    await expect(createProject(45, "Admin Project", 7, 3, null, deadlineInput, undefined)).resolves.toMatchObject({
+    await expect(createProject(45, "Admin Project", 7, 3, undefined, null, deadlineInput, undefined)).resolves.toMatchObject({
       id: 17,
       moduleId: 7,
     });

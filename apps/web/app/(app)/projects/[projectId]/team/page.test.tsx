@@ -29,10 +29,12 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
     team,
     projectId,
     initialInvites,
+    teamFormationMode,
   }: {
     team: { id: number; teamName?: string } | null;
     projectId: number;
     initialInvites: unknown[];
+    teamFormationMode?: "self" | "custom" | "staff";
   }) => (
     <div
       data-testid="team-formation-panel"
@@ -40,6 +42,7 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
       data-team-id={team?.id ?? ""}
       data-team-name={team?.teamName ?? ""}
       data-invite-count={initialInvites.length}
+      data-team-mode={teamFormationMode ?? ""}
     />
   ),
 }));

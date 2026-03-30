@@ -99,7 +99,7 @@ describe("projects service", () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
     (repo.getProjectById as any).mockResolvedValue({ id: 9, projectNavFlags: null });
 
-    await expect(createProject(7, "P1", 2, 3, null, deadlineInput)).resolves.toEqual({ id: 9 });
+    await expect(createProject(7, "P1", 2, 3, undefined, null, deadlineInput)).resolves.toEqual({ id: 9 });
     expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, null, deadlineInput, undefined);
 
     await expect(fetchProjectById(9)).resolves.toEqual({

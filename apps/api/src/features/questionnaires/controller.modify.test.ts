@@ -95,6 +95,31 @@ describe("updateTemplateHandler", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  it("returns 400 for invalid question type and purpose combination", async () => {
+    (service.updateTemplate as any).mockRejectedValue({
+      statusCode: 400,
+      message: "Customised allocation questionnaires cannot include text questions.",
+    });
+
+    const req: any = {
+      params: { id: "1" },
+      body: {
+        templateName: "Name",
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [{ id: 1, label: "Explain", type: "text" }],
+      },
+      user: { sub: 99 },
+    };
+    const res = mockResponse();
+
+    await updateTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Customised allocation questionnaires cannot include text questions.",
+    });
+  });
+
   it("returns 500 for non-P2025 error", async () => {
     (service.updateTemplate as any).mockRejectedValue(new Error("random"));
 
