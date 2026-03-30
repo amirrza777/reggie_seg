@@ -625,15 +625,8 @@ export function StaffProjectCreatePanel({
             </label>
 
             <label className="staff-projects__field">
-              <span className="staff-projects__field-label">Questionnaire template</span>
-              <SearchField
-                className="staff-projects__input"
-                value={templateSearchQuery}
-                onChange={(event) => setTemplateSearchQuery(event.target.value)}
-                placeholder="Search templates by name or ID"
-                disabled={isLoadingTemplates || !hasTemplates}
-                aria-label="Search questionnaire template options"
-              />
+              <span className="staff-projects__field-label">Peer assessment questionnaire template</span>
+        
               <select
                 className="staff-projects__select"
                 value={templateId}
@@ -659,18 +652,16 @@ export function StaffProjectCreatePanel({
               {templateSearchQuery.trim().length > 0 && !isLoadingTemplates && visibleTemplates.length === 0 ? (
                 <span className="staff-projects__field-label">No templates match "{templateSearchQuery.trim()}".</span>
               ) : null}
+              {!isLoadingTemplates && !hasTemplates ? (
+                <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+                  Create questionnaire
+                </Link>
+              ) : null}
             </label>
 
             <label className="staff-projects__field">
               <span className="staff-projects__field-label">Team allocation questionnaire (optional)</span>
-              <SearchField
-                className="staff-projects__input"
-                value={allocationTemplateSearchQuery}
-                onChange={(event) => setAllocationTemplateSearchQuery(event.target.value)}
-                placeholder="Search allocation templates by name or ID"
-                disabled={isLoadingAllocationTemplates || !hasAllocationTemplates}
-                aria-label="Search team allocation questionnaire options"
-              />
+              
               <select
                 className="staff-projects__select"
                 value={allocationTemplateId}
@@ -703,6 +694,11 @@ export function StaffProjectCreatePanel({
                 <span className="staff-projects__field-label">
                   No templates match "{allocationTemplateSearchQuery.trim()}".
                 </span>
+              ) : null}
+              {!isLoadingAllocationTemplates && !hasAllocationTemplates ? (
+                <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+                  Create questionnaire
+                </Link>
               ) : null}
             </label>
           </div>
@@ -1026,9 +1022,6 @@ export function StaffProjectCreatePanel({
           <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>
             {isSubmitting ? "Creating..." : "Create project"}
           </button>
-          <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
-            Create questionnaire
-          </Link>
         </div>
       </form>
 

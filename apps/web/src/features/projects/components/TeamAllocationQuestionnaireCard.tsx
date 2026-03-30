@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
+import { Button } from "@/shared/ui/Button";
 import { submitTeamAllocationQuestionnaireResponse } from "@/features/projects/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
 
@@ -9,6 +10,7 @@ type AnswerValue = string | number | boolean;
 
 type TeamAllocationQuestionnaireCardProps = {
   projectId: number;
+  currentUserId: number;
   questionnaire: Questionnaire;
 };
 
@@ -22,6 +24,7 @@ function normalizeQuestionType(type: unknown): "text" | "multiple-choice" | "rat
 
 export function TeamAllocationQuestionnaireCard({
   projectId,
+  currentUserId,
   questionnaire,
 }: TeamAllocationQuestionnaireCardProps) {
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
@@ -29,7 +32,7 @@ export function TeamAllocationQuestionnaireCard({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const storageKey = `team-allocation-questionnaire-submitted:${projectId}:${questionnaire.id}`;
+  const storageKey = `team-allocation-questionnaire-submitted:${currentUserId}:${projectId}:${questionnaire.id}`;
 
   const hasUnsupportedQuestions = useMemo(
     () => questionnaire.questions.some((question) => normalizeQuestionType(question.type) === "text"),
@@ -184,13 +187,9 @@ export function TeamAllocationQuestionnaireCard({
         })}
 
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            type="submit"
-            className="ui-btn ui-btn--primary"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isSubmitting ? "Submitting..." : "Submit questionnaire"}
-          </button>
+          </Button>
         </div>
         {submitError ? <p className="ui-note ui-note--warn">{submitError}</p> : null}
       </form>

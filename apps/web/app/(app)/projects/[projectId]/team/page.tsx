@@ -93,6 +93,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
         teamAllocationQuestionnaire ? (
           <TeamAllocationQuestionnaireCard
             projectId={numericProjectId}
+            currentUserId={user.id}
             questionnaire={teamAllocationQuestionnaire}
           />
         ) : (
