@@ -1,0 +1,61 @@
+.staff-projects__warnings-config-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.staff-projects__warnings-rule-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.staff-projects__warning-rule-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  display: grid;
+  gap: 12px;
+}
+
+.staff-projects__warning-rule-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.staff-projects__warning-rule-title {
+  margin: 0;
+  font-size: var(--fs-body-lg);
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__warning-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-body-sm);
+  color: var(--muted);
+}
+
+.staff-projects__warning-rule-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.staff-projects__warning-field {
+  display: grid;
+  gap: 6px;
+  font-size: var(--fs-caption);
+  color: var(--muted);
+}
+
+.staff-projects__warnings-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
