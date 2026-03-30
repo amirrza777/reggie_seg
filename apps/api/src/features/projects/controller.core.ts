@@ -17,6 +17,7 @@ import {
   fetchModuleStudentProjectMatrix,
   fetchQuestionsForProject,
   fetchTeamAllocationQuestionnaireForProject,
+  fetchTeamAllocationQuestionnaireStatusForUser,
   submitTeamAllocationQuestionnaireResponse,
   fetchTeamById,
   fetchTeamByUserAndProject,
@@ -525,6 +526,29 @@ export async function getTeamAllocationQuestionnaireForProjectHandler(req: Reque
   }
 }
 
+export async function getTeamAllocationQuestionnaireStatusForProjectHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req, res);
+  const projectId = Number(req.params.projectId);
+
+  if (userId === null) {
+    return;
+  }
+  if (isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project ID" });
+  }
+
+  try {
+    const status = await fetchTeamAllocationQuestionnaireStatusForUser(userId, projectId);
+    if (!status) {
+      return res.status(404).json({ error: "Team allocation questionnaire template not found for this project" });
+    }
+    return res.json(status);
+  } catch (error) {
+    console.error("Error fetching team allocation questionnaire status:", error);
+    return res.status(500).json({ error: "Failed to fetch team allocation questionnaire status" });
+  }
+}
+
 export async function submitTeamAllocationQuestionnaireResponseHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
   const projectId = Number(req.params.projectId);
@@ -558,6 +582,12 @@ export async function submitTeamAllocationQuestionnaireResponseHandler(req: Auth
       return res.status(400).json({
         error: "Custom allocation questionnaires can only include multiple-choice, rating, or slider questions",
       });
+    }
+    if (code === "QUESTIONNAIRE_WINDOW_NOT_OPEN") {
+      return res.status(409).json({ error: "The team allocation questionnaire is not open yet" });
+    }
+    if (code === "QUESTIONNAIRE_WINDOW_CLOSED") {
+      return res.status(409).json({ error: "The team allocation questionnaire deadline has passed" });
     }
     if (code === "USER_ALREADY_IN_TEAM") {
       return res.status(409).json({ error: "You are already assigned to a team in this project" });

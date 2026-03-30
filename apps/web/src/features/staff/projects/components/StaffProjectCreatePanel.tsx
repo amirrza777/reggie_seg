@@ -30,6 +30,8 @@ type DeadlineState = {
   feedbackOpenDate: string;
   feedbackDueDate: string;
   feedbackDueDateMcf: string;
+  teamAllocationQuestionnaireOpenDate: string;
+  teamAllocationQuestionnaireDueDate: string;
 };
 
 function toLocalDateTimeInputValue(date: Date): string {
@@ -47,6 +49,8 @@ function buildDefaultDeadlineState(): DeadlineState {
   const assessmentDue = new Date(assessmentOpen.getTime() + 4 * 24 * 60 * 60 * 1000);
   const feedbackOpen = new Date(assessmentDue.getTime() + 24 * 60 * 60 * 1000);
   const feedbackDue = new Date(feedbackOpen.getTime() + 4 * 24 * 60 * 60 * 1000);
+  const questionnaireDue = new Date(taskOpen.getTime() - 24 * 60 * 60 * 1000);
+  const questionnaireOpen = new Date(taskOpen.getTime() - 8 * 24 * 60 * 60 * 1000);
 
   return {
     taskOpenDate: toLocalDateTimeInputValue(taskOpen),
@@ -58,6 +62,8 @@ function buildDefaultDeadlineState(): DeadlineState {
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
+    teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
   };
 }
 
@@ -91,6 +97,8 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
   const assessmentDue = new Date(assessmentOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
   const feedbackOpen = new Date(assessmentDue.getTime() + 24 * 60 * 60 * 1000);
   const feedbackDue = new Date(feedbackOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
+  const questionnaireDue = new Date(taskOpen.getTime() - 24 * 60 * 60 * 1000);
+  const questionnaireOpen = new Date(taskOpen.getTime() - 8 * 24 * 60 * 60 * 1000);
 
   return {
     taskOpenDate: toLocalDateTimeInputValue(taskOpen),
@@ -102,6 +110,8 @@ function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
     feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
     feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
     feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
+    teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
   };
 }
 
@@ -295,6 +305,7 @@ export function StaffProjectCreatePanel({
   const hasCreatableModule = creatableModulesFromProps.length > 0;
   const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
   const hasAllocationTemplates = allocationTemplates.length > 0 || allocationTemplateId.trim().length > 0;
+  const hasSelectedAllocationTemplate = allocationTemplateId.trim().length > 0;
 
   const selectedModule = useMemo(
     () => creatableModulesFromProps.find((module) => module.id === moduleId) ?? null,
@@ -350,7 +361,10 @@ export function StaffProjectCreatePanel({
     deadline.assessmentDueDateMcf.trim().length > 0 &&
     deadline.feedbackOpenDate.trim().length > 0 &&
     deadline.feedbackDueDate.trim().length > 0 &&
-    deadline.feedbackDueDateMcf.trim().length > 0;
+    deadline.feedbackDueDateMcf.trim().length > 0 &&
+    (!hasSelectedAllocationTemplate ||
+      (deadline.teamAllocationQuestionnaireOpenDate.trim().length > 0 &&
+        deadline.teamAllocationQuestionnaireDueDate.trim().length > 0));
 
   const deadlinePreview = useMemo(() => {
     const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
@@ -472,6 +486,8 @@ export function StaffProjectCreatePanel({
     const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
     const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
     const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
+    const teamAllocationQuestionnaireOpenDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireOpenDate);
+    const teamAllocationQuestionnaireDueDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireDueDate);
 
     if (
       !taskOpenDate ||
@@ -520,6 +536,20 @@ export function StaffProjectCreatePanel({
       setSubmitError("MCF feedback due must be on or after standard feedback due.");
       return;
     }
+    if (parsedAllocationTemplateId !== null) {
+      if (!teamAllocationQuestionnaireOpenDate || !teamAllocationQuestionnaireDueDate) {
+        setSubmitError("Set both open and due dates for the team allocation questionnaire.");
+        return;
+      }
+      if (teamAllocationQuestionnaireOpenDate >= teamAllocationQuestionnaireDueDate) {
+        setSubmitError("Team allocation questionnaire open date must be before the due date.");
+        return;
+      }
+      if (teamAllocationQuestionnaireDueDate >= taskOpenDate) {
+        setSubmitError("Team allocation questionnaire due date must be before project start (task open date).");
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     setSubmitError(null);
@@ -543,6 +573,14 @@ export function StaffProjectCreatePanel({
           feedbackOpenDate: feedbackOpenDate.toISOString(),
           feedbackDueDate: feedbackDueDate.toISOString(),
           feedbackDueDateMcf: feedbackDueDateMcf.toISOString(),
+          teamAllocationQuestionnaireOpenDate:
+            parsedAllocationTemplateId !== null && teamAllocationQuestionnaireOpenDate
+              ? teamAllocationQuestionnaireOpenDate.toISOString()
+              : null,
+          teamAllocationQuestionnaireDueDate:
+            parsedAllocationTemplateId !== null && teamAllocationQuestionnaireDueDate
+              ? teamAllocationQuestionnaireDueDate.toISOString()
+              : null,
         },
       });
       setProjectName("");
@@ -738,6 +776,38 @@ export function StaffProjectCreatePanel({
                 Standard timeline
               </p>
               <div className="staff-projects__deadline-grid">
+                {hasSelectedAllocationTemplate ? (
+                  <label className="staff-projects__field">
+                    <span className="staff-projects__field-label">Allocation questionnaire opens</span>
+                    <input
+                      className="staff-projects__input"
+                      type="datetime-local"
+                      value={deadline.teamAllocationQuestionnaireOpenDate}
+                      onChange={(event) =>
+                        setDeadline((prev) => ({
+                          ...prev,
+                          teamAllocationQuestionnaireOpenDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
+                {hasSelectedAllocationTemplate ? (
+                  <label className="staff-projects__field">
+                    <span className="staff-projects__field-label">Allocation questionnaire due</span>
+                    <input
+                      className="staff-projects__input"
+                      type="datetime-local"
+                      value={deadline.teamAllocationQuestionnaireDueDate}
+                      onChange={(event) =>
+                        setDeadline((prev) => ({
+                          ...prev,
+                          teamAllocationQuestionnaireDueDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
                 <label className="staff-projects__field">
                   <span className="staff-projects__field-label">Task opens</span>
                   <input
@@ -793,6 +863,11 @@ export function StaffProjectCreatePanel({
                   />
                 </label>
               </div>
+              {hasSelectedAllocationTemplate ? (
+                <p className="staff-projects__hint">
+                  Allocation questionnaire window is required and must be: open before due, and due before task opens.
+                </p>
+              ) : null}
             </section>
 
             <section className="staff-projects__deadline-block" aria-label="MCF extension timeline">

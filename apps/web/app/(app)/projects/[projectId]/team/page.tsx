@@ -1,7 +1,7 @@
 import {
   getProject,
   getProjectDeadline,
-  getTeamAllocationQuestionnaireForProject,
+  getTeamAllocationQuestionnaireStatusForProject,
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
@@ -11,7 +11,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 import { PageSection } from "@/shared/ui/PageSection";
-import type { Questionnaire } from "@/features/questionnaires/types";
+import type { TeamAllocationQuestionnaireStatus } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -72,14 +72,18 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
 
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
   const teamFormationMode = resolveTeamFormationMode(project);
-  const shouldRenderTeamPanel = !user || Boolean(team) || teamFormationMode === "self";
-  let teamAllocationQuestionnaire: Questionnaire | null = null;
+  const shouldRenderTeamPanel =
+    !user ||
+    Boolean(team) ||
+    teamFormationMode === "self" ||
+    teamFormationMode === "staff";
+  let teamAllocationQuestionnaireStatus: TeamAllocationQuestionnaireStatus | null = null;
 
   if (user && !team && teamFormationMode === "custom" && project?.teamAllocationQuestionnaireTemplateId) {
     try {
-      teamAllocationQuestionnaire = await getTeamAllocationQuestionnaireForProject(numericProjectId);
+      teamAllocationQuestionnaireStatus = await getTeamAllocationQuestionnaireStatusForProject(numericProjectId);
     } catch {
-      teamAllocationQuestionnaire = null;
+      teamAllocationQuestionnaireStatus = null;
     }
   }
 
@@ -89,13 +93,20 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
       description="Manage teammates and invitations for this project."
       className="ui-page--project"
     >
-      {teamFormationMode === "custom" && !team ? (
-        teamAllocationQuestionnaire ? (
+      {teamFormationMode === "custom" && !team && user ? (
+        teamAllocationQuestionnaireStatus ? (
+          teamAllocationQuestionnaireStatus.hasSubmitted || teamAllocationQuestionnaireStatus.windowIsOpen ? (
           <TeamAllocationQuestionnaireCard
             projectId={numericProjectId}
             currentUserId={user.id}
-            questionnaire={teamAllocationQuestionnaire}
+            questionnaire={teamAllocationQuestionnaireStatus.questionnaireTemplate}
+            initialSubmitted={teamAllocationQuestionnaireStatus.hasSubmitted}
           />
+          ) : (
+            <Card title="Team allocation">
+              <p>Please wait for staff to add you to a team for this project.</p>
+            </Card>
+          )
         ) : (
           <Card title="Team allocation questionnaire">
             <p>Allocation questionnaire is not available right now. Please try again shortly.</p>

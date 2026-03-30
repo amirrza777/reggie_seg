@@ -58,6 +58,8 @@ export type ProjectDeadline = {
   feedbackOpenDate: string | null;
   feedbackDueDate: string | null;
   feedbackDueDateMcf?: string | null;
+  teamAllocationQuestionnaireOpenDate?: string | null;
+  teamAllocationQuestionnaireDueDate?: string | null;
   isOverridden: boolean;
   overrideScope?: "NONE" | "TEAM" | "STUDENT";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -236,6 +238,8 @@ export type CreateStaffProjectPayload = {
     feedbackOpenDate: string;
     feedbackDueDate: string;
     feedbackDueDateMcf: string;
+    teamAllocationQuestionnaireOpenDate?: string | null;
+    teamAllocationQuestionnaireDueDate?: string | null;
   };
 };
 
@@ -256,7 +260,27 @@ export type CreatedStaffProject = {
     feedbackOpenDate: string;
     feedbackDueDate: string;
     feedbackDueDateMcf: string;
+    teamAllocationQuestionnaireOpenDate?: string | null;
+    teamAllocationQuestionnaireDueDate?: string | null;
   } | null;
+};
+
+export type TeamAllocationQuestionnaireStatus = {
+  questionnaireTemplate: {
+    id: number;
+    purpose: string;
+    questions: Array<{
+      id: number;
+      label: string;
+      type: string;
+      order: number;
+      configs: unknown;
+    }>;
+  };
+  hasSubmitted: boolean;
+  teamAllocationQuestionnaireOpenDate: string | null;
+  teamAllocationQuestionnaireDueDate: string | null;
+  windowIsOpen: boolean;
 };
 
 export type StaffMarkingSummary = {

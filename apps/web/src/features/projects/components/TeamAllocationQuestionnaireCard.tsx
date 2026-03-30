@@ -4,14 +4,24 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
 import { submitTeamAllocationQuestionnaireResponse } from "@/features/projects/api/client";
-import type { Questionnaire } from "@/features/questionnaires/types";
 
 type AnswerValue = string | number | boolean;
+
+type TeamAllocationQuestionnaire = {
+  id: number;
+  questions: Array<{
+    id: number;
+    label: string;
+    type: string;
+    configs?: unknown;
+  }>;
+};
 
 type TeamAllocationQuestionnaireCardProps = {
   projectId: number;
   currentUserId: number;
-  questionnaire: Questionnaire;
+  questionnaire: TeamAllocationQuestionnaire;
+  initialSubmitted?: boolean;
 };
 
 function normalizeQuestionType(type: unknown): "text" | "multiple-choice" | "rating" | "slider" {
@@ -26,10 +36,11 @@ export function TeamAllocationQuestionnaireCard({
   projectId,
   currentUserId,
   questionnaire,
+  initialSubmitted = false,
 }: TeamAllocationQuestionnaireCardProps) {
   const [answers, setAnswers] = useState<Record<number, AnswerValue>>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(initialSubmitted);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const storageKey = `team-allocation-questionnaire-submitted:${currentUserId}:${projectId}:${questionnaire.id}`;
@@ -41,11 +52,12 @@ export function TeamAllocationQuestionnaireCard({
 
   useEffect(() => {
     try {
-      setIsSubmitted(window.sessionStorage.getItem(storageKey) === "1");
+      const sessionSubmitted = window.sessionStorage.getItem(storageKey) === "1";
+      setIsSubmitted(initialSubmitted || sessionSubmitted);
     } catch {
-      setIsSubmitted(false);
+      setIsSubmitted(initialSubmitted);
     }
-  }, [storageKey]);
+  }, [initialSubmitted, storageKey]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

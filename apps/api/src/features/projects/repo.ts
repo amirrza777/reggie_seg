@@ -17,6 +17,8 @@ export type ProjectDeadlineInput = {
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
   feedbackDueDateMcf: Date;
+  teamAllocationQuestionnaireOpenDate?: Date | null;
+  teamAllocationQuestionnaireDueDate?: Date | null;
 };
 
 export type StudentDeadlineOverrideInput = {
@@ -41,6 +43,8 @@ const MODULE_LIST_PROJECT_DEADLINE_SELECT = {
   feedbackOpenDate: true,
   feedbackDueDate: true,
   feedbackDueDateMcf: true,
+  teamAllocationQuestionnaireOpenDate: true,
+  teamAllocationQuestionnaireDueDate: true,
 } as const;
 
 type ModuleListProjectDeadline = Prisma.ProjectDeadlineGetPayload<{ select: typeof MODULE_LIST_PROJECT_DEADLINE_SELECT }>;
@@ -1154,6 +1158,8 @@ export async function createProject(
             feedbackOpenDate: deadline.feedbackOpenDate,
             feedbackDueDate: deadline.feedbackDueDate,
             feedbackDueDateMcf: deadline.feedbackDueDateMcf,
+            teamAllocationQuestionnaireOpenDate: deadline.teamAllocationQuestionnaireOpenDate ?? null,
+            teamAllocationQuestionnaireDueDate: deadline.teamAllocationQuestionnaireDueDate ?? null,
           },
         },
       },
@@ -1175,6 +1181,8 @@ export async function createProject(
             feedbackOpenDate: true,
             feedbackDueDate: true,
             feedbackDueDateMcf: true,
+            teamAllocationQuestionnaireOpenDate: true,
+            teamAllocationQuestionnaireDueDate: true,
           },
         },
       },
@@ -1319,6 +1327,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
                   feedbackOpenDate: true,
                   feedbackDueDate: true,
                   feedbackDueDateMcf: true,
+                  teamAllocationQuestionnaireOpenDate: true,
+                  teamAllocationQuestionnaireDueDate: true,
                   studentOverrides: {
                     where: { userId },
                     take: 1,
@@ -1385,6 +1395,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
     assessmentDueDate,
     feedbackOpenDate: studentOverride?.feedbackOpenDate ?? teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
     feedbackDueDate,
+    teamAllocationQuestionnaireOpenDate: projectDeadline?.teamAllocationQuestionnaireOpenDate ?? null,
+    teamAllocationQuestionnaireDueDate: projectDeadline?.teamAllocationQuestionnaireDueDate ?? null,
     isOverridden: hasStudentOverride || hasTeamOverride,
     overrideScope: hasStudentOverride ? "STUDENT" : hasTeamOverride ? "TEAM" : "NONE",
     deadlineProfile: userTeam.team.deadlineProfile,
@@ -1508,12 +1520,16 @@ const TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_proj
 type TeamAllocationQuestionnaireSubmissionContext = {
   projectId: number;
   enterpriseId: string;
+  teamAllocationQuestionnaireOpenDate: Date | null;
+  teamAllocationQuestionnaireDueDate: Date | null;
   template: {
     id: number;
     purpose: string;
     questions: Array<{
       id: number;
+      label: string;
       type: string;
+      order: number;
       configs: unknown;
     }>;
   };
@@ -1573,6 +1589,12 @@ export async function getTeamAllocationQuestionnaireSubmissionContext(
           enterpriseId: true,
         },
       },
+      deadline: {
+        select: {
+          teamAllocationQuestionnaireOpenDate: true,
+          teamAllocationQuestionnaireDueDate: true,
+        },
+      },
       teamAllocationQuestionnaireTemplate: {
         select: {
           id: true,
@@ -1581,7 +1603,9 @@ export async function getTeamAllocationQuestionnaireSubmissionContext(
             orderBy: { order: "asc" },
             select: {
               id: true,
+              label: true,
               type: true,
+              order: true,
               configs: true,
             },
           },
@@ -1597,6 +1621,8 @@ export async function getTeamAllocationQuestionnaireSubmissionContext(
   return {
     projectId: project.id,
     enterpriseId: project.module.enterpriseId,
+    teamAllocationQuestionnaireOpenDate: project.deadline?.teamAllocationQuestionnaireOpenDate ?? null,
+    teamAllocationQuestionnaireDueDate: project.deadline?.teamAllocationQuestionnaireDueDate ?? null,
     template: project.teamAllocationQuestionnaireTemplate,
   };
 }
@@ -1683,6 +1709,31 @@ export async function upsertTeamAllocationQuestionnaireResponse(input: {
       updatedAt: true,
     },
   });
+}
+
+/** Returns whether the student has submitted a team-allocation questionnaire response for the project/template. */
+export async function hasTeamAllocationQuestionnaireResponse(input: {
+  projectId: number;
+  templateId: number;
+  userId: number;
+}): Promise<boolean> {
+  const response = await prisma.peerAssessment.findFirst({
+    where: {
+      projectId: input.projectId,
+      templateId: input.templateId,
+      reviewerUserId: input.userId,
+      revieweeUserId: input.userId,
+      team: {
+        projectId: input.projectId,
+        allocationLifecycle: "DRAFT",
+        teamName: {
+          startsWith: TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
+    },
+    select: { id: true },
+  });
+  return Boolean(response);
 }
 
 type RawStaffMarking = {

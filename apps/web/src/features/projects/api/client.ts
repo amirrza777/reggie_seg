@@ -16,6 +16,7 @@ import type {
   StaffStudentDeadlineOverride,
   StaffStudentDeadlineOverridePayload,
   ProjectWarningsConfig,
+  TeamAllocationQuestionnaireStatus,
   StaffProjectWarningsConfigResponse,
   ProjectNavFlagsConfig,
   StaffProjectNavFlagsConfigResponse,
@@ -30,6 +31,14 @@ export async function getTeamAllocationQuestionnaireForProject(
   projectId: string | number,
 ): Promise<Questionnaire> {
   return apiFetch<Questionnaire>(`/projects/${projectId}/team-allocation-questionnaire`, {
+    cache: "no-store",
+  });
+}
+
+export async function getTeamAllocationQuestionnaireStatusForProject(
+  projectId: string | number,
+): Promise<TeamAllocationQuestionnaireStatus> {
+  return apiFetch<TeamAllocationQuestionnaireStatus>(`/projects/${projectId}/team-allocation-questionnaire-status`, {
     cache: "no-store",
   });
 }

@@ -13,6 +13,7 @@ import {
   getQuestionsForProject,
   getTeamAllocationQuestionnaireForProject,
   getTeamAllocationQuestionnaireSubmissionContext,
+  hasTeamAllocationQuestionnaireResponse,
   hasActiveTeamForUserInProject,
   upsertTeamAllocationQuestionnaireResponse,
   getStaffProjects,
@@ -209,6 +210,40 @@ export async function fetchTeamAllocationQuestionnaireForProject(projectId: numb
   return getTeamAllocationQuestionnaireForProject(projectId);
 }
 
+/** Returns team-allocation questionnaire status for the authenticated student in this project. */
+export async function fetchTeamAllocationQuestionnaireStatusForUser(userId: number, projectId: number) {
+  const context = await getTeamAllocationQuestionnaireSubmissionContext(userId, projectId);
+  if (!context) {
+    return null;
+  }
+
+  const hasSubmitted = await hasTeamAllocationQuestionnaireResponse({
+    projectId: context.projectId,
+    templateId: context.template.id,
+    userId,
+  });
+  const now = Date.now();
+  const opensAtMs = context.teamAllocationQuestionnaireOpenDate?.getTime() ?? null;
+  const closesAtMs = context.teamAllocationQuestionnaireDueDate?.getTime() ?? null;
+  const windowIsOpen =
+    (opensAtMs === null || now >= opensAtMs) &&
+    (closesAtMs === null || now <= closesAtMs);
+
+  return {
+    questionnaireTemplate: {
+      id: context.template.id,
+      purpose: context.template.purpose,
+      questions: context.template.questions,
+    },
+    hasSubmitted,
+    teamAllocationQuestionnaireOpenDate:
+      context.teamAllocationQuestionnaireOpenDate?.toISOString() ?? null,
+    teamAllocationQuestionnaireDueDate:
+      context.teamAllocationQuestionnaireDueDate?.toISOString() ?? null,
+    windowIsOpen,
+  };
+}
+
 /** Saves a student's response to the project team-allocation questionnaire. */
 export async function submitTeamAllocationQuestionnaireResponse(
   userId: number,
@@ -222,6 +257,16 @@ export async function submitTeamAllocationQuestionnaireResponse(
 
   if (context.template.purpose !== "CUSTOMISED_ALLOCATION") {
     throw { code: "TEMPLATE_INVALID_PURPOSE" };
+  }
+
+  const now = Date.now();
+  const opensAtMs = context.teamAllocationQuestionnaireOpenDate?.getTime() ?? null;
+  const closesAtMs = context.teamAllocationQuestionnaireDueDate?.getTime() ?? null;
+  if (opensAtMs !== null && now < opensAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_NOT_OPEN" };
+  }
+  if (closesAtMs !== null && now > closesAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_CLOSED" };
   }
 
   const hasUnsupportedTextQuestions = context.template.questions.some((question) => {
