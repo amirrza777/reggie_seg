@@ -20,6 +20,15 @@ const ACTION_LABELS: Record<string, string> = {
   ENTERPRISE_DELETED: "Enterprise deleted",
 };
 
+const ACTION_BADGE_LABELS: Record<AuditLogEntry["action"], string> = {
+  LOGIN: "LOGIN",
+  LOGOUT: "LOGOUT",
+  USER_ROLE_CHANGED: "ROLE\nCHANGED",
+  USER_UPDATED: "USER\nUPDATED",
+  ENTERPRISE_CREATED: "ENTERPRISE\nCREATED",
+  ENTERPRISE_DELETED: "ENTERPRISE\nDELETED",
+};
+
 const ranges: { key: RangeKey; label: string; days?: number }[] = [
   { key: "today", label: "Today", days: 1 },
   { key: "week", label: "Last 7 days", days: 7 },
@@ -230,6 +239,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
               ) : (
                 logs.map((entry) => {
                   const createdAt = new Date(entry.createdAt);
+                  const actionBadgeLabel = ACTION_BADGE_LABELS[entry.action] ?? entry.action;
+                  const actionBadgeClass = actionBadgeLabel.includes("\n") ? " audit-badge--compact" : "";
                   return (
                     <div key={entry.id} className="table__row audit-modal__row">
                       <div className="ui-stack-xs">
@@ -244,8 +255,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                         </span>
                       </div>
                       <div className="ui-stack-sm">
-                        <span className={`audit-badge audit-badge--${entry.action.toLowerCase()}`}>
-                          {entry.action}
+                        <span className={`audit-badge audit-badge--${entry.action.toLowerCase()}${actionBadgeClass}`}>
+                          {actionBadgeLabel}
                         </span>
                       </div>
                       <div className="ui-stack-sm">
