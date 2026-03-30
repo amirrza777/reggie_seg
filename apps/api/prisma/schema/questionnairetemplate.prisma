@@ -14,6 +14,7 @@ model QuestionnaireTemplate {
   assessments  PeerAssessment[] @relation("TemplateAssessments")
   questions    Question[]
   projects     Project[]        @relation("ProjectTemplate")
+  teamAllocationProjects Project[] @relation("ProjectTeamAllocationTemplate")
 
   ownerId Int
   owner   User @relation(fields: [ownerId], references: [id])
