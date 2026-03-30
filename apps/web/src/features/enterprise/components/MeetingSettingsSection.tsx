@@ -134,7 +134,7 @@ export function MeetingSettingsSection({ moduleId }: MeetingSettingsSectionProps
           />
         </div>
         <div className="enterprise-modules__create-field">
-          <span className="enterprise-modules__create-field-label">Allow any participant to write minutes</span>
+          <span className="enterprise-modules__create-field-label">Allow any team member to write or edit minutes</span>
           <label className={`enterprise-module-create__access-item${settings.allowAnyoneToWriteMinutes ? " is-selected" : ""}`}>
             <input
               type="checkbox"
