@@ -26,16 +26,19 @@ vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
     mode,
     moduleId,
     joinCode,
+    created,
   }: {
     mode: string;
     moduleId: number;
     joinCode?: string | null;
+    created?: boolean;
   }) => (
     <div
       data-testid="enterprise-module-form"
       data-mode={mode}
       data-module-id={moduleId}
       data-join-code={joinCode ?? ""}
+      data-created={created ? "1" : "0"}
     />
   ),
 }));
@@ -76,17 +79,18 @@ describe("EnterpriseModuleEditPage", () => {
     expect(form).toHaveAttribute("data-join-code", "ABCD1234");
   });
 
-  it("uses join code from search params when present instead of fetching", async () => {
+  it("passes created state without exposing the join code through search params", async () => {
     const page = await EnterpriseModuleEditPage({
       params: Promise.resolve({ id: "21" }),
-      searchParams: Promise.resolve({ created: "1", joinCode: "FROMURL01" }),
+      searchParams: Promise.resolve({ created: "1" }),
     });
 
     render(page);
 
-    expect(getEnterpriseModuleJoinCodeMock).not.toHaveBeenCalled();
+    expect(getEnterpriseModuleJoinCodeMock).toHaveBeenCalledWith(21);
 
     const form = screen.getByTestId("enterprise-module-form");
-    expect(form).toHaveAttribute("data-join-code", "FROMURL01");
+    expect(form).toHaveAttribute("data-join-code", "ABCD1234");
+    expect(form).toHaveAttribute("data-created", "1");
   });
 });

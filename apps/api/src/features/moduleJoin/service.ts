@@ -1,11 +1,10 @@
 import type { Prisma } from "@prisma/client";
-import { canManageModuleAccess } from "../enterpriseAdmin/service.core.js";
 import {
   createModuleJoinCodeCandidate,
-  MODULE_JOIN_CODE_LENGTH,
   MODULE_JOIN_CODE_MAX_ATTEMPTS,
+  normalizeModuleJoinCode,
 } from "./code.js";
-import { findJoinActor, findJoinableModuleByCode, getManagedModuleJoinCode, insertModuleEnrollment } from "./repo.js";
+import { findJoinActor, findJoinableModuleByCode, getAuthorizedModuleJoinCode, insertModuleEnrollment } from "./repo.js";
 
 export type JoinModuleByCodeResponse = {
   moduleId: number;
@@ -22,8 +21,8 @@ export async function joinModuleByCode(actorUserId: number, rawCode: string) {
     return { ok: false as const, status: 403, error: "Forbidden" };
   }
 
-  const joinCode = rawCode.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (joinCode.length !== MODULE_JOIN_CODE_LENGTH) {
+  const joinCode = normalizeModuleJoinCode(rawCode);
+  if (!joinCode) {
     return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
   }
 
@@ -44,11 +43,13 @@ export async function joinModuleByCode(actorUserId: number, rawCode: string) {
 }
 
 export async function getModuleJoinCode(viewerUser: { enterpriseId: string; role: string; id: number }, moduleId: number) {
-  const module = await getManagedModuleJoinCode(viewerUser.enterpriseId, moduleId);
+  const module = await getAuthorizedModuleJoinCode({
+    enterpriseId: viewerUser.enterpriseId,
+    moduleId,
+    userId: viewerUser.id,
+    role: viewerUser.role,
+  });
   if (!module) return { ok: false as const, status: 404, error: "Module not found" };
-
-  const canManage = await canManageModuleAccess(viewerUser, moduleId);
-  if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
 
   return {
     ok: true as const,

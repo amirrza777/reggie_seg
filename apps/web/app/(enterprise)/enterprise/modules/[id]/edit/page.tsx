@@ -8,7 +8,7 @@ import { Card } from "@/shared/ui/Card";
 
 type EnterpriseModuleEditPageProps = {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ created?: string; joinCode?: string }>;
+  searchParams?: Promise<{ created?: string }>;
 };
 
 export default async function EnterpriseModuleEditPage({ params, searchParams }: EnterpriseModuleEditPageProps) {
@@ -20,17 +20,12 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
     notFound();
   }
 
-  const urlJoinCode =
-    resolvedSearchParams.created === "1" ? (resolvedSearchParams.joinCode?.trim() || null) : null;
-
-  let joinCode: string | null = urlJoinCode;
-  if (joinCode == null) {
-    try {
-      joinCode = (await getEnterpriseModuleJoinCode(moduleId)).joinCode;
-    } catch (e) {
-      if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
-        throw e;
-      }
+  let joinCode: string | null = null;
+  try {
+    joinCode = (await getEnterpriseModuleJoinCode(moduleId)).joinCode;
+  } catch (e) {
+    if (!(e instanceof ApiError && (e.status === 403 || e.status === 404))) {
+      throw e;
     }
   }
 
@@ -54,7 +49,12 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
         }
         className="enterprise-module-create__card"
       >
-        <EnterpriseModuleCreateForm mode="edit" moduleId={moduleId} joinCode={joinCode} />
+        <EnterpriseModuleCreateForm
+          mode="edit"
+          moduleId={moduleId}
+          joinCode={joinCode}
+          created={resolvedSearchParams.created === "1"}
+        />
       </Card>
     </div>
   );

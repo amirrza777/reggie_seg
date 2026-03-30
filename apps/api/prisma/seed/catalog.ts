@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { moduleData, projectData, questionnaireTemplateData, teamData, userData } from "./data";
 import { planSeedModuleJoinCode } from "./joinCodes";
 import { withSeedLogging } from "./logging";
+import { buildSeedModuleContent } from "./moduleContent";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "./types";
 
@@ -234,6 +235,7 @@ export function planModuleSeedData(enterpriseId: string) {
     enterpriseId,
     code: buildSeedModuleCode(index),
     joinCode: planSeedModuleJoinCode(index),
+    ...buildSeedModuleContent(module.name, index),
   }));
 }
 

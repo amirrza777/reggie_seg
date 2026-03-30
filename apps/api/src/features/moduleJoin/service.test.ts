@@ -5,17 +5,11 @@ const mockState = vi.hoisted(() => ({
     findJoinActor: vi.fn(),
     findJoinableModuleByCode: vi.fn(),
     insertModuleEnrollment: vi.fn(),
-    getManagedModuleJoinCode: vi.fn(),
-  },
-  enterpriseCore: {
-    canManageModuleAccess: vi.fn(),
+    getAuthorizedModuleJoinCode: vi.fn(),
   },
 }));
 
 vi.mock("./repo.js", () => mockState.repo);
-vi.mock("../enterpriseAdmin/service.core.js", () => ({
-  canManageModuleAccess: mockState.enterpriseCore.canManageModuleAccess,
-}));
 
 import { getModuleJoinCode, joinModuleByCode, withGeneratedModuleJoinCode } from "./service.js";
 
@@ -70,25 +64,30 @@ describe("moduleJoin service", () => {
       status: 400,
       error: "Invalid or unavailable module code",
     });
+
+    mockState.repo.findJoinActor.mockResolvedValueOnce({ id: 7, enterpriseId: "ent-1", role: "STUDENT" });
+    await expect(joinModuleByCode(7, "ABCD1I45")).resolves.toEqual({
+      ok: false,
+      status: 400,
+      error: "Invalid or unavailable module code",
+    });
     expect(mockState.repo.findJoinableModuleByCode).not.toHaveBeenCalled();
   });
 
-  it("returns managed join codes only when access is allowed", async () => {
-    mockState.repo.getManagedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
-    mockState.enterpriseCore.canManageModuleAccess.mockResolvedValueOnce(true);
+  it("returns managed join codes only when the auth-scoped lookup succeeds", async () => {
+    mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
 
     await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
       ok: true,
       value: { moduleId: 12, joinCode: "ABCD2345" },
     });
 
-    mockState.repo.getManagedModuleJoinCode.mockResolvedValueOnce({ id: 12, joinCode: "ABCD2345" });
-    mockState.enterpriseCore.canManageModuleAccess.mockResolvedValueOnce(false);
+    mockState.repo.getAuthorizedModuleJoinCode.mockResolvedValueOnce(null);
 
     await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
       ok: false,
-      status: 403,
-      error: "Forbidden",
+      status: 404,
+      error: "Module not found",
     });
   });
 

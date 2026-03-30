@@ -1,10 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 
-const refresh = vi.fn();
-
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh }),
+  useRouter: () => ({ push: vi.fn(), refresh: vi.fn(), replace: vi.fn(), prefetch: vi.fn() }),
 }));
 
 vi.mock("../api/client", () => ({
@@ -48,7 +46,7 @@ describe("StudentModulesOverviewClient", () => {
     expect(screen.getByText(/no modules assigned yet/i)).toBeInTheDocument();
   });
 
-  it("opens, closes, submits, and refreshes the module list after joining", async () => {
+  it("opens, closes, submits, and refetches the module list after joining", async () => {
     joinModuleByCodeMock.mockResolvedValue({
       moduleId: 12,
       moduleName: "Software Engineering",
@@ -67,7 +65,6 @@ describe("StudentModulesOverviewClient", () => {
     await waitFor(() => expect(listModulesMock).toHaveBeenCalledWith(7));
     expect(await screen.findByText(/module joined/i)).toBeInTheDocument();
     expect(await screen.findByText(/software engineering has been added/i)).toBeInTheDocument();
-    expect(refresh).toHaveBeenCalled();
 
     fireEvent.click(screen.getAllByRole("button", { name: /close/i })[1]);
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

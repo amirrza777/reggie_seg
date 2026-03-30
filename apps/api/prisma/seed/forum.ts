@@ -2,6 +2,7 @@ import { randParagraph, randSentence } from "@ngneat/falso";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedProject, SeedUser } from "./types";
+import { SEED_FORUM_REACTIONS_PER_PROJECT, SEED_FORUM_STUDENT_REPORTS_PER_PROJECT } from "./volumes";
 
 const ROOT_POSTS_PER_PROJECT = 3;
 
@@ -57,13 +58,105 @@ export async function seedForumPosts(projects: SeedProject[], staffUsers: SeedUs
       };
     });
 
-    await prisma.discussionPost.createMany({ data: replies });
+    const createdReplies = await prisma.$transaction(
+      replies.map((reply) =>
+        prisma.discussionPost.create({
+          data: reply,
+          select: { id: true, projectId: true, authorId: true },
+        }),
+      ),
+    );
+
+    const allPosts = [
+      ...createdRoots.map((post, index) => ({
+        id: post.id,
+        projectId: post.projectId,
+        authorId: rootPosts[index]?.authorId ?? 0,
+      })),
+      ...createdReplies,
+    ];
+
+    const forumReactionRows = planForumReactionSeedData(allPosts, staffUsers, students);
+    if (forumReactionRows.length > 0) {
+      await prisma.forumReaction.createMany({
+        data: forumReactionRows,
+        skipDuplicates: true,
+      });
+    }
+
+    const forumStudentReportRows = planForumStudentReportSeedData(allPosts, staffUsers, students);
+    if (forumStudentReportRows.length > 0) {
+      await prisma.forumStudentReport.createMany({
+        data: forumStudentReportRows,
+        skipDuplicates: true,
+      });
+    }
 
     return {
       value: undefined,
-      rows: rootPosts.length + replies.length,
-      details: `projects seeded=${projects.length}; staff/student discussion threads generated`,
+      rows: rootPosts.length + replies.length + forumReactionRows.length + forumStudentReportRows.length,
+      details: `projects seeded=${projects.length}; reactions=${forumReactionRows.length}; reports=${forumStudentReportRows.length}`,
     };
+  });
+}
+
+export function planForumReactionSeedData(
+  posts: { id: number; projectId: number; authorId: number }[],
+  staffUsers: SeedUser[],
+  students: SeedUser[],
+) {
+  const projectIds = Array.from(new Set(posts.map((post) => post.projectId)));
+  const seen = new Set<string>();
+
+  return projectIds.flatMap((projectId, projectIndex) => {
+    const projectPosts = posts.filter((post) => post.projectId === projectId);
+    return Array.from({ length: Math.min(SEED_FORUM_REACTIONS_PER_PROJECT, projectPosts.length) }, (_, reactionIndex) => {
+      const post = projectPosts[reactionIndex % projectPosts.length];
+      const preferredUsers =
+        reactionIndex % 3 === 0 ? staffUsers : students;
+      const candidatePool = preferredUsers.concat(reactionIndex % 3 === 0 ? students : staffUsers);
+      const reactor = candidatePool.find((user) => user.id !== post?.authorId);
+      if (!post || !reactor) return null;
+
+      const key = `${post.id}:${reactor.id}`;
+      if (seen.has(key)) return null;
+      seen.add(key);
+
+      return {
+        postId: post.id,
+        userId: reactor.id,
+        type: reactionIndex === SEED_FORUM_REACTIONS_PER_PROJECT - 1 && projectIndex % 2 === 1 ? "DISLIKE" as const : "LIKE" as const,
+      };
+    }).filter((row): row is NonNullable<typeof row> => row !== null);
+  });
+}
+
+export function planForumStudentReportSeedData(
+  posts: { id: number; projectId: number; authorId: number }[],
+  staffUsers: SeedUser[],
+  students: SeedUser[],
+) {
+  const projectIds = Array.from(new Set(posts.map((post) => post.projectId)));
+  const studentIdSet = new Set(students.map((student) => student.id));
+
+  return projectIds.flatMap((projectId, projectIndex) => {
+    const projectPosts = posts.filter((post) => post.projectId === projectId && studentIdSet.has(post.authorId));
+    return Array.from({ length: Math.min(SEED_FORUM_STUDENT_REPORTS_PER_PROJECT, projectPosts.length) }, (_, reportIndex) => {
+      const post = projectPosts[reportIndex % projectPosts.length];
+      const reporter = students.find((student) => student.id !== post?.authorId);
+      if (!post || !reporter) return null;
+
+      const reviewed = reportIndex === 1 && staffUsers.length > 0;
+      return {
+        projectId,
+        postId: post.id,
+        reporterId: reporter.id,
+        status: reviewed ? ("APPROVED" as const) : ("PENDING" as const),
+        reason: normalizeSentence(randSentence({ length: { min: 6, max: 12 } })),
+        reviewedAt: reviewed ? new Date(Date.now() - (projectIndex + 1) * 60 * 60 * 1000) : null,
+        reviewedById: reviewed ? staffUsers[projectIndex % staffUsers.length]?.id ?? null : null,
+      };
+    }).filter((row): row is NonNullable<typeof row> => row !== null);
   });
 }
 
