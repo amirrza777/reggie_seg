@@ -56,5 +56,5 @@ export async function getModuleStudentProjectMatrix(moduleId: number): Promise<{
 
 export async function getModuleStudents(moduleId: number): Promise<{ students: ModuleStudent[] }> {
   const id = encodeURIComponent(String(moduleId));
-  return apiFetch<{ students: ModuleStudent[] }>(`/enterprise/modules/${id}/students`);
+  return apiFetch<{ students: ModuleStudent[] }>(`/enterprise-admin/modules/${id}/students`);
 }
