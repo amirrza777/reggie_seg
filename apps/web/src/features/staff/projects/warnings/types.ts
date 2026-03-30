@@ -1,10 +1,5 @@
 import type { WarningRuleSeverity } from "@/features/projects/types";
 
-export type StaffProjectWarningsConfigPanelProps = {
-  projectId: number;
-  projectName?: string;
-};
-
 export type WarningConfigState = {
   attendance: {
     enabled: boolean;

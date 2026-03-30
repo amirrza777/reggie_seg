@@ -1,23 +1,23 @@
 'use client'
 import { useEffect, useMemo, useState,  type FocusEvent } from "react";
 import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
 import {
   ProjectWarningRuleConfig,
   ProjectWarningsConfig,
   WarningRuleSeverity,
 } from "@/features/projects/types";
-import {type WarningConfigState } from "../types";
-import { getProjectWarningsConfig,
-         updateProjectWarningsConfig 
-} from "../api/client";
+import type { WarningConfigState } from "../types";
+import { updateProjectWarningsConfig } from "../api/client";
 import { mapApiConfigToState , cloneDefaultWarningConfig , cloneWarningConfig} from "../api/mapper";
+import { WarningRuleCard } from "./WarningRuleCard";
+
 
 export type ConfigureWarningPanelProps = {
   projectId: number;
   projectName?: string;
   warningsConfig: ProjectWarningsConfig;
 };
-
 export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig } : ConfigureWarningPanelProps) => {
     
     const mappedConfig = useMemo(() => {
@@ -40,6 +40,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
     // UI state
     const [isEditing, setIsEditing] = useState<boolean>(false);
     const [isSaving, setIsSaving ] = useState<boolean>(false);
+    const [loading, setLoading] = useState<boolean>(false);
     const [panelError, setPanelError] = useState<string | null>(null);
     const [panelMessage, setPanelMessage] = useState<string | null>(null);
 
@@ -115,11 +116,129 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
         setPanelMessage(null);
         setIsEditing(false);
     };
+
+    const formDisabled =  isSaving || loading;
     
     return (
-        <div className="configure-warning-panel">
-            <h3>{projectName ? `Configure Warnings for ${projectName}` : "Configure Project Warnings"}</h3>  
-    </div>       
+        <div className = "stack">
+            {loading ? <p className="muted">Loading project feature flags...</p> : null}
+                {panelMessage ? (
+                <div className="status-alert status-alert--success" style={{ padding: "10px 12px" }}>
+                    <span>{panelMessage}</span>
+                </div>
+                ) : null}
+                {panelError ? (
+                <div className="status-alert status-alert--error" style={{ padding: "10px 12px" }}>
+                    <span>{panelError}</span>
+                </div>
+                ) : null}
+                
+        <Card title = "Project Warning Configuration">
+            <div className = "staff-projects__warnings-rule-grid">
+                <WarningRuleCard
+                    title="Attendance"
+                    enabled={draftConfig.attendance.enabled}
+                    onEnabledChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, attendance: { ...p.attendance, enabled: next } }))
+                    }
+                    severity={draftConfig.attendance.severity}
+                    onSeverityChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, attendance: { ...p.attendance, severity: next } }))
+                    }
+                    thresholdLabel="Minimum attendance (%)"
+                    thresholdValue={draftConfig.attendance.minPercent}
+                    onThresholdChange={(next) =>
+                    setDraftConfig((p) => ({
+                        ...p,
+                        attendance: { ...p.attendance, minPercent: Math.max(1, Math.min(100, next)) },
+                    }))
+                    }
+                    thresholdMin={1}
+                    thresholdMax={100}
+                    lookbackDays={draftConfig.attendance.lookbackDays}
+                    onLookbackDaysChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, attendance: { ...p.attendance, lookbackDays: next } }))
+                    }
+                    disabled={formDisabled}
+                />
+
+                <WarningRuleCard
+                    title="Meeting frequency"
+                    enabled={draftConfig.meetingFrequency.enabled}
+                    onEnabledChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, meetingFrequency: { ...p.meetingFrequency, enabled: next } }))
+                    }
+                    severity={draftConfig.meetingFrequency.severity}
+                    onSeverityChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, meetingFrequency: { ...p.meetingFrequency, severity: next } }))
+                    }
+                    thresholdLabel="Minimum meetings per week"
+                    thresholdValue={draftConfig.meetingFrequency.minPerWeek}
+                    onThresholdChange={(next) =>
+                    setDraftConfig((p) => ({
+                        ...p,
+                        meetingFrequency: { ...p.meetingFrequency, minPerWeek: Math.max(0, next) },
+                    }))
+                    }
+                    thresholdMin={0}
+                    lookbackDays={draftConfig.meetingFrequency.lookbackDays}
+                    onLookbackDaysChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, meetingFrequency: { ...p.meetingFrequency, lookbackDays: next } }))
+                    }
+                    disabled={formDisabled}
+                />
+
+                <WarningRuleCard
+                    title="Contribution activity"
+                    enabled={draftConfig.contributionActivity.enabled}
+                    onEnabledChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, contributionActivity: { ...p.contributionActivity, enabled: next } }))
+                    }
+                    severity={draftConfig.contributionActivity.severity}
+                    onSeverityChange={(next) =>
+                    setDraftConfig((p) => ({ ...p, contributionActivity: { ...p.contributionActivity, severity: next } }))
+                    }
+                    thresholdLabel="Minimum commits"
+                    thresholdValue={draftConfig.contributionActivity.minCommits}
+                    onThresholdChange={(next) =>
+                    setDraftConfig((p) => ({
+                        ...p,
+                        contributionActivity: { ...p.contributionActivity, minCommits: Math.max(0, next) },
+                    }))
+                    }
+                    thresholdMin={0}
+                    lookbackDays={draftConfig.contributionActivity.lookbackDays}
+                    onLookbackDaysChange={(next) =>
+                    setDraftConfig((p) => ({
+                        ...p,
+                        contributionActivity: { ...p.contributionActivity, lookbackDays: next },
+                    }))
+                    }
+                    disabled={formDisabled}
+                />
+            </div>
+
+
+            <div className= "staff-projects__warnings-configs-modal-header">
+            {!isEditing ? (
+                <Button onClick={() => setIsEditing(true)} disabled={formDisabled}>
+                    Edit configuration
+                </Button>
+            ) : (
+                <div style={{ display: "flex", gap: "8px" }}>
+                    <Button onClick={handleSave} disabled={formDisabled} variant="primary">
+                        {isSaving ? "Saving..." : "Save changes"}
+                    </Button>
+                    <Button onClick={handleCancel} disabled={formDisabled} variant="secondary">
+                        Cancel
+                    </Button>
+                </div>
+            )}
+             </div>
+             <div className="staff-projects__warnings-configs-panel">
+           </div>
+        </Card>   
+    </div>  
     );
 }
     
