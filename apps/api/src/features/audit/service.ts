@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/db.js";
+import { broadcastAuditEvent } from "./sse.js";
 
 export type AuditEventAction =
   | "LOGIN"
@@ -28,7 +29,7 @@ export async function recordAuditLog(
     enterpriseId = user.enterpriseId;
   }
 
-  await prisma.auditLog.create({
+  const entry = await prisma.auditLog.create({
     data: {
       userId: params.userId,
       enterpriseId,
@@ -36,22 +37,38 @@ export async function recordAuditLog(
       ip: params.ip?.slice(0, 64) ?? null,
       userAgent: params.userAgent?.slice(0, 500) ?? null,
     },
+    include: {
+      user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
+    },
+  });
+
+  broadcastAuditEvent(enterpriseId, {
+    id: entry.id,
+    action: entry.action,
+    createdAt: entry.createdAt,
+    ip: entry.ip,
+    userAgent: entry.userAgent,
+    user: entry.user,
   });
 }
 
-/** Returns the audit logs. */
+/** Returns the audit logs with optional cursor for pagination. */
 export async function listAuditLogs(options: {
   enterpriseId: string;
   from?: Date;
   to?: Date;
   limit?: number;
+  cursor?: number;
 }) {
-  const { enterpriseId, from, to, limit = 200 } = options;
+  const { enterpriseId, from, to, limit = 200, cursor } = options;
   const where: any = { enterpriseId };
   if (from || to) {
     where.createdAt = {};
     if (from) where.createdAt.gte = from;
     if (to) where.createdAt.lte = to;
+  }
+  if (cursor) {
+    where.id = { lt: cursor };
   }
 
   return prisma.auditLog.findMany({
@@ -59,7 +76,7 @@ export async function listAuditLogs(options: {
     include: {
       user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { id: "desc" },
     take: Math.min(limit, 500),
   });
 }

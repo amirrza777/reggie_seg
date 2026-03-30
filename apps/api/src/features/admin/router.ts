@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  auditLogsStreamHandler,
   createEnterpriseHandler,
   deleteEnterpriseHandler,
   getSummaryHandler,
@@ -36,6 +37,7 @@ router.get("/enterprises/:enterpriseId/users", listEnterpriseUsersHandler);
 router.get("/enterprises/:enterpriseId/users/search", searchEnterpriseUsersHandler);
 router.patch("/enterprises/:enterpriseId/users/:id", updateEnterpriseUserHandler);
 router.delete("/enterprises/:enterpriseId", deleteEnterpriseHandler);
+router.get("/audit-logs/stream", auditLogsStreamHandler);
 router.get("/audit-logs", auditLogLimiter, listAuditLogsHandler);
 
 export default router;
