@@ -68,6 +68,26 @@ export async function getScopedStaffUser(userId: number) {
   });
 }
 
+export async function getDiscussionPostAuthorId(postId: number, projectId: number) {
+  const post = await prisma.discussionPost.findFirst({
+    where: { id: postId, projectId },
+    select: { authorId: true },
+  });
+  return post?.authorId ?? null;
+}
+
+export async function getModuleLeadsForProject(projectId: number) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { moduleId: true },
+  });
+  if (!project) return [];
+  return prisma.moduleLead.findMany({
+    where: { moduleId: project.moduleId },
+    select: { userId: true },
+  });
+}
+
 export async function canManageForumSettings(userId: number, projectId: number) {
   const user = await getScopedStaffUser(userId);
   if (!user) return false;
