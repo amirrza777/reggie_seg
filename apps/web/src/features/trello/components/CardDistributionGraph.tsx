@@ -4,17 +4,18 @@ import React, { useMemo } from "react";
 import {
   LineChart,
   Line,
-  XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 import type { TrelloBoardAction, TrelloCard } from "../types";
 import { formatDate } from "@/shared/lib/formatDate";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { ProjectBoundaryReferenceLine } from "./ProjectBoundaryReferenceLine";
+import { formatTrelloTimeTick, TrelloTimeXAxis } from "./TrelloTimeXAxis";
 
 const BACKLOG_NAME = "backlog";
 const COMPLETED_NAME = "completed";
@@ -163,6 +164,7 @@ export function CardDistributionGraph({
   projectStartDate,
   projectEndDate,
 }: CardDistributionGraphProps) {
+  const { containerHandlers, chartHandlers, tooltipProps } = useChartCursorTooltip();
   const data = useMemo<DataPoint[]>(() => {
     const filteredCardsByList = memberIdFilter
       ? filterCardsByMember(cardsByList, memberIdFilter)
@@ -236,71 +238,39 @@ export function CardDistributionGraph({
   return (
     <section className="stack trello-chart">
       <h2 className="trello-chart__title">{title}</h2>
-      <div className="trello-chart__surface">
+      <div
+        className="trello-chart__surface ui-no-select"
+        {...containerHandlers}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 40, right: 24, left: 8, bottom: 24 }}>
+          <LineChart data={data} margin={{ top: 40, right: 24, left: 8, bottom: 24 }} accessibilityLayer={false} {...chartHandlers}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              type="number"
-              dataKey="time"
-              domain={xAxisDomain}
-              tickFormatter={(t: number) => formatDate(new Date(t).toISOString().slice(0, 10))}
-              padding={{ left: 24, right: 24 }}
-            />
+            <TrelloTimeXAxis domain={xAxisDomain} />
             <YAxis allowDecimals={false} />
             <Tooltip
-              isAnimationActive
+              {...tooltipProps}
               content={<ChartTooltipContent />}
-              labelFormatter={(t) => formatDate(new Date(t as number).toISOString().slice(0, 10))}
-              cursor={{
-                stroke: "color-mix(in srgb, var(--muted) 40%, transparent)",
-                strokeWidth: 1,
-              }}
+              labelFormatter={(t) => formatTrelloTimeTick(t as number)}
             />
             <Legend />
             {projectStartTime != null ? (
-              <ReferenceLine
+              <ProjectBoundaryReferenceLine
                 x={projectStartTime}
-                stroke="#0079bf"
-                strokeDasharray="4 4"
-                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
-                  const x = viewBox?.x ?? 0;
-                  const y = (viewBox?.y ?? 0) - 8;
-                  return (
-                    <text x={x} y={y} textAnchor="middle" fill="#0079bf" fontSize={11}>
-                      <tspan x={x} dy="0">
-                        Project starts
-                      </tspan>
-                      <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
-                        {projectStartDate ? formatDate(projectStartDate) : ""}
-                      </tspan>
-                    </text>
-                  );
-                }}
+                color="#0079bf"
+                title="Project starts"
+                dateLabel={projectStartDate ? formatDate(projectStartDate) : ""}
               />
             ) : null}
             {projectEndTime != null && projectEndTime !== projectStartTime ? (
-              <ReferenceLine
+              <ProjectBoundaryReferenceLine
                 x={projectEndTime}
-                stroke="#61bd4f"
-                strokeDasharray="4 4"
-                label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
-                  const x = viewBox?.x ?? 0;
-                  const y = (viewBox?.y ?? 0) - 8;
-                  const endDateLabel = projectEndDate
+                color="#61bd4f"
+                title="Project ends"
+                dateLabel={
+                  projectEndDate
                     ? formatDate(projectEndDate)
-                    : formatDate(new Date(projectEndTime).toISOString().slice(0, 10));
-                  return (
-                    <text x={x} y={y} textAnchor="middle" fill="#61bd4f" fontSize={11}>
-                      <tspan x={x} dy="0">
-                        Project ends
-                      </tspan>
-                      <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
-                        {endDateLabel}
-                      </tspan>
-                    </text>
-                  );
-                }}
+                    : formatDate(new Date(projectEndTime).toISOString().slice(0, 10))
+                }
               />
             ) : null}
             <Line type="monotone" dataKey="backlog" stroke="#0079bf" name="Backlog" strokeWidth={2} dot={{ r: 3 }} isAnimationActive />

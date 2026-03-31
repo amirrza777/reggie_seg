@@ -3,6 +3,7 @@
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { GithubChartTitleWithInfo, type GithubChartInfoContent } from "./GithubChartInfo";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { usePieCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 
 type DonutDatum = {
   name: string;
@@ -18,6 +19,9 @@ type GithubDonutChartCardProps = {
 };
 
 export function GithubDonutChartCard({ title, data, info, className }: GithubDonutChartCardProps) {
+  const { containerHandlers, pieHandlers, tooltipProps, pieTooltipContentProps } =
+    usePieCursorTooltip({ offsetY: -18 });
+
   if (!data.length) {
     return null;
   }
@@ -27,9 +31,12 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
   return (
     <div className={className}>
       {info ? <GithubChartTitleWithInfo title={title} info={info} /> : <p className="muted github-chart-section__label">{title}</p>}
-      <div className="github-chart-section__canvas github-chart-section__canvas--md">
+      <div
+        className="github-chart-section__canvas github-chart-section__canvas--md ui-no-select"
+        {...containerHandlers}
+      >
         <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
+          <PieChart accessibilityLayer={false}>
             <Pie
               data={data}
               dataKey="value"
@@ -40,8 +47,10 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
               outerRadius={90}
               paddingAngle={2}
               isAnimationActive
+              rootTabIndex={-1}
               label={({ percent }) => `${(Number(percent || 0) * 100).toFixed(1)}%`}
               labelLine={false}
+              {...pieHandlers}
             >
               {data.map((entry) => (
                 <Cell key={entry.name} fill={entry.fill} />
@@ -57,8 +66,8 @@ export function GithubDonutChartCard({ title, data, info, className }: GithubDon
               />
             </Pie>
             <Tooltip
-              isAnimationActive
-              content={<ChartTooltipContent />}
+              content={<ChartTooltipContent {...pieTooltipContentProps} />}
+              {...tooltipProps}
               formatter={(value, name) => {
                 const numericValue = Number(value || 0);
                 const percentage = total > 0 ? ((numericValue / total) * 100).toFixed(1) : "0.0";

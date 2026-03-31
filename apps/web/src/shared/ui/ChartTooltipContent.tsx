@@ -9,6 +9,8 @@ type RawChartTooltipProps = TooltipContentProps<ChartTooltipValue, ChartTooltipN
 type ChartTooltipProps = Partial<RawChartTooltipProps>;
 type ChartTooltipExtraProps = {
   className?: string;
+  maxItems?: number;
+  preferredEntryName?: string | number | null;
 };
 type TooltipEntry = NonNullable<RawChartTooltipProps["payload"]>[number];
 
@@ -23,6 +25,25 @@ const SWATCH_STYLE = (color: string) =>
 
 function resolveEntryColor(entry: TooltipEntry) {
   return entry.color ?? entry.stroke ?? entry.fill ?? "var(--ink-strong)";
+}
+
+function resolvePayloadName(entry: TooltipEntry): unknown {
+  if (!entry.payload || typeof entry.payload !== "object") return undefined;
+  if (!("name" in entry.payload)) return undefined;
+  return (entry.payload as { name?: unknown }).name;
+}
+
+function scopeTooltipEntries(
+  entries: ReadonlyArray<TooltipEntry>,
+  preferredEntryName?: string | number | null,
+): ReadonlyArray<TooltipEntry> {
+  if (preferredEntryName == null) return entries;
+
+  const matches = entries.filter((entry) => {
+    return entry.name === preferredEntryName || resolvePayloadName(entry) === preferredEntryName;
+  });
+
+  return matches.length > 0 ? matches : entries;
 }
 
 function normalizeEntryName(name: ReactNode) {
@@ -70,6 +91,8 @@ export function ChartTooltipContent({
   labelFormatter,
   filterNull = true,
   className,
+  maxItems,
+  preferredEntryName,
 }: ChartTooltipProps & ChartTooltipExtraProps) {
   if (!active || !payload || payload.length === 0) return null;
 
@@ -81,9 +104,18 @@ export function ChartTooltipContent({
 
   if (visibleEntries.length === 0) return null;
 
+  const scopedEntries = scopeTooltipEntries(visibleEntries, preferredEntryName);
+
+  const renderedEntries =
+    typeof maxItems === "number" && maxItems > 0
+      ? scopedEntries.slice(0, maxItems)
+      : scopedEntries;
+
+  if (renderedEntries.length === 0) return null;
+
   const formattedLabel =
     typeof labelFormatter === "function"
-      ? labelFormatter(label, visibleEntries)
+      ? labelFormatter(label, renderedEntries)
       : label;
   const tooltipClassName = className ? `ui-chart-tooltip ${className}` : "ui-chart-tooltip";
 
@@ -93,8 +125,8 @@ export function ChartTooltipContent({
         <p className="ui-chart-tooltip__label">{formattedLabel}</p>
       ) : null}
       <ul className="ui-chart-tooltip__list">
-        {visibleEntries.map((entry, index) => {
-          const row = formatEntry(entry, index, visibleEntries, formatter);
+        {renderedEntries.map((entry, index) => {
+          const row = formatEntry(entry, index, renderedEntries, formatter);
           return (
             <li key={`${entry.dataKey ?? "item"}-${index}`} className="ui-chart-tooltip__item">
               <span className="ui-chart-tooltip__swatch" style={SWATCH_STYLE(row.color)} aria-hidden="true" />
