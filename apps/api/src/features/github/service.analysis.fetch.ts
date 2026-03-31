@@ -43,6 +43,7 @@ export function toUtcDayKey(date: Date) {
 
 /** Executes the contributor key from commit. */
 export function contributorKeyFromCommit(commit: GithubCommitListItem) {
+  // Prefer the stable GitHub login, then fall back to commit email for authors that are not mapped to a GitHub user.
   const login = commit.author?.login?.trim().toLowerCase();
   if (login) {
     return `login:${login}`;
@@ -228,6 +229,7 @@ export async function listRepositoryBranches(accessToken: string, fullName: stri
     if (pageData.length < 100) {
       break;
     }
+    // Cap pagination defensively so a bad API response cannot trap analysis in an unbounded loop.
     page += 1;
   }
 
@@ -314,7 +316,7 @@ export async function getBranchAheadBehind(
   );
 
   if (!response.ok) {
-    // Some branches may be deleted/race conditions/or compare unavailable. Return partial data instead of failing the whole list.
+    // Compare failures should not blank the whole branch view; degrade gracefully for deleted branches or transient API races.
     return {
       aheadBy: null,
       behindBy: null,
@@ -343,4 +345,3 @@ export async function fetchBranchCommitCount(accessToken: string, fullName: stri
   if (!response.ok) return 0;
   return parseLastPageFromLinkHeader(response.headers.get("link")) ?? 1;
 }
-

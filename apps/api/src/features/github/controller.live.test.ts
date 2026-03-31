@@ -186,5 +186,39 @@ describe("github live controllers", () => {
     expect(res.status).toHaveBeenCalledWith(403);
     expect(res.json).toHaveBeenCalledWith({ error: "You are not a member of this project" });
   });
-});
 
+  it("covers validation and generic failure branches across live handlers", async () => {
+    const unauthorizedRes = createMockResponse();
+    await listLiveProjectGithubRepoBranchesHandler({ params: { linkId: "12" } } as unknown as AuthRequest, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const invalidBranchListRes = createMockResponse();
+    await listLiveProjectGithubRepoBranchesHandler(
+      { user: { sub: 2 }, params: { linkId: "bad" } } as unknown as AuthRequest,
+      invalidBranchListRes,
+    );
+    expect(invalidBranchListRes.status).toHaveBeenCalledWith(400);
+
+    const invalidMyCommitsRes = createMockResponse();
+    await listLiveProjectGithubRepoMyCommitsHandler(
+      { user: { sub: 9 }, params: { linkId: "3" }, query: { page: "bad" } } as unknown as AuthRequest,
+      invalidMyCommitsRes,
+    );
+    expect(invalidMyCommitsRes.status).toHaveBeenCalledWith(400);
+
+    const invalidSyncRes = createMockResponse();
+    await updateProjectGithubSyncSettingsHandler(
+      { user: { sub: 6 }, params: { linkId: "4" }, body: { autoSyncEnabled: "yes", syncIntervalMinutes: 60 } } as unknown as AuthRequest,
+      invalidSyncRes,
+    );
+    expect(invalidSyncRes.status).toHaveBeenCalledWith(400);
+
+    const failingBranchCommitsRes = createMockResponse();
+    serviceMocks.listLiveProjectGithubRepositoryBranchCommits.mockRejectedValueOnce(new Error("boom"));
+    await listLiveProjectGithubRepoBranchCommitsHandler(
+      { user: { sub: 5 }, params: { linkId: "8" }, query: { branch: "main" } } as unknown as AuthRequest,
+      failingBranchCommitsRes,
+    );
+    expect(failingBranchCommitsRes.status).toHaveBeenCalledWith(500);
+  });
+});
