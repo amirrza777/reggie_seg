@@ -376,6 +376,7 @@ export async function connectGithubAccount(code: string, state: string) {
 export async function getValidGithubAccessToken(account: GithubAccountTokenState) {
   const now = Date.now();
   const expiresAtMs = account.accessTokenExpiresAt ? account.accessTokenExpiresAt.getTime() : null;
+  // Refresh slightly before expiry so concurrent GitHub calls do not race on a nearly-dead token.
   const refreshWindowMs = 2 * 60 * 1000;
   const accessTokenStillValid = !expiresAtMs || expiresAtMs - now > refreshWindowMs;
 

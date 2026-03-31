@@ -34,6 +34,7 @@ type StaffProjectCreatePanelProps = {
 const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER", "ADMIN_ACCESS"]);
 
 function findVisibleOption<T extends { id: string | number }>(selectedId: string, primary: T[], secondary: T[]) {
+  // Keep the currently selected option visible even if the latest search result set no longer contains it.
   const selected = primary.find((item) => String(item.id) === selectedId) ?? secondary.find((item) => String(item.id) === selectedId);
   if (!selected || secondary.some((item) => item.id === selected.id)) {
     return secondary;
