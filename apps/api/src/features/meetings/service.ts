@@ -182,6 +182,18 @@ export async function editMeeting(meetingId: number, userId: number, data: {
   if (participantIds !== undefined) {
     await replaceParticipants(meetingId, participantIds);
   }
+  await Promise.all(
+    meeting.participants
+      .filter((p) => p.userId !== userId)
+      .map((p) =>
+        addNotification({
+          userId: p.userId,
+          type: "MEETING_UPDATED",
+          message: `The meeting "${data.title ?? meeting.title}" has been updated`,
+          link: `/projects/${meeting.team.projectId}/meetings/${meetingId}`,
+        })
+      )
+  );
   return updated;
 }
 

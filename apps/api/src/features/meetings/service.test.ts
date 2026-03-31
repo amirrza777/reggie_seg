@@ -237,7 +237,7 @@ describe("meetings service", () => {
 
   it("allows non-organiser to edit when toggle is on and user is a team member", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1, teamId: 1, organiserId: 2, date: tomorrow, team: { allocations: [{ userId: 1 }] },
+      id: 1, teamId: 1, organiserId: 2, date: tomorrow, participants: [], team: { projectId: 5, allocations: [{ userId: 1 }] },
     });
     (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: true });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
@@ -266,9 +266,7 @@ describe("meetings service", () => {
 
   it("returns updated meeting from editMeeting on success", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Sprint Review", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -280,9 +278,7 @@ describe("meetings service", () => {
 
   it("replaces participants when participantIds provided in editMeeting", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Sprint Review", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -293,9 +289,7 @@ describe("meetings service", () => {
 
   it("does not replace participants when participantIds not provided in editMeeting", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Sprint Review", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -528,6 +522,62 @@ describe("meetings service", () => {
 
     it("deduplicates repeated mentions", () => {
       expect(parseMentions("@Alice Smith and @Alice Smith")).toEqual(["Alice Smith"]);
+    });
+  });
+
+  describe("editMeeting MEETING_UPDATED notifications", () => {
+    const meetingWithParticipants = {
+      id: 1, organiserId: 1, date: tomorrow, title: "Project Review",
+      participants: [{ userId: 2 }, { userId: 3 }],
+      team: { projectId: 5, allocations: [{ userId: 1 }] },
+    };
+
+    beforeEach(() => {
+      (repo.getMeetingById as any).mockResolvedValue(meetingWithParticipants);
+      (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Project Review" });
+    });
+
+    it("notifies all participants except the editor", async () => {
+      await editMeeting(1, 1, { title: "Updated" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 2, type: "MEETING_UPDATED" })
+      );
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 3, type: "MEETING_UPDATED" })
+      );
+    });
+
+    it("does not notify the editor", async () => {
+      await editMeeting(1, 1, { title: "Updated" });
+
+      const notifiedIds = (notificationsService.addNotification as any).mock.calls.map((c: any) => c[0].userId);
+      expect(notifiedIds).not.toContain(1);
+    });
+
+    it("uses the new title in the notification message", async () => {
+      await editMeeting(1, 1, { title: "New Title" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: `The meeting "New Title" has been updated` })
+      );
+    });
+
+    it("falls back to existing title when title is not changed", async () => {
+      await editMeeting(1, 1, { location: "Room 1" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: `The meeting "Project Review" has been updated` })
+      );
+    });
+
+    it("sends no notifications when meeting has no participants", async () => {
+      (repo.getMeetingById as any).mockResolvedValue({ ...meetingWithParticipants, participants: [] });
+
+      await editMeeting(1, 1, { title: "Updated" });
+
+      expect(notificationsService.addNotification).not.toHaveBeenCalled();
     });
   });
 });
