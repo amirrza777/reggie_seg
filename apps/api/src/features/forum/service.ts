@@ -13,7 +13,11 @@ import {
   approveStudentReport,
   ignoreStudentReport,
   getStaffConversationForPost,
+  getDiscussionPostAuthorId,
+  getModuleLeadsForProject,
+  getUserRole,
 } from "./repo.js";
+import { addNotification } from "../notifications/service.js";
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
   return getDiscussionPostsForProject(userId, projectId);
@@ -26,7 +30,22 @@ export async function createDiscussionPost(
   body: string,
   parentPostId?: number | null
 ) {
-  return createDiscussionPostForProject(userId, projectId, title, body, parentPostId);
+  const parentAuthorId = parentPostId ? await getDiscussionPostAuthorId(parentPostId, projectId) : null;
+  const post = await createDiscussionPostForProject(userId, projectId, title, body, parentPostId);
+  if (post && parentAuthorId && parentAuthorId !== userId) {
+    const parentAuthorRole = await getUserRole(parentAuthorId);
+    const isStaff = parentAuthorRole === "STAFF" || parentAuthorRole === "ADMIN" || parentAuthorRole === "ENTERPRISE_ADMIN";
+    const link = isStaff
+      ? `/staff/projects/${projectId}/discussion`
+      : `/projects/${projectId}/discussion`;
+    await addNotification({
+      userId: parentAuthorId,
+      type: "FORUM_REPLY",
+      message: "Someone replied to your forum post",
+      link,
+    });
+  }
+  return post;
 }
 
 export async function fetchDiscussionPost(userId: number, projectId: number, postId: number) {
@@ -79,7 +98,21 @@ export async function createStudentForumReport(
   postId: number,
   reason?: string | null
 ) {
-  return createStudentReport(userId, projectId, postId, reason);
+  const result = await createStudentReport(userId, projectId, postId, reason);
+  if (result.status === "ok") {
+    const leads = await getModuleLeadsForProject(projectId);
+    await Promise.all(
+      leads.map((lead) =>
+        addNotification({
+          userId: lead.userId,
+          type: "FORUM_REPORTED",
+          message: "A forum post has been reported",
+          link: `/staff/projects/${projectId}/discussion`,
+        })
+      )
+    );
+  }
+  return result;
 }
 
 export async function fetchStudentForumReports(userId: number, projectId: number) {

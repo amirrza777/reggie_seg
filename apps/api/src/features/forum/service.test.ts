@@ -32,7 +32,16 @@ vi.mock("./repo.js", () => ({
   approveStudentReport: vi.fn(),
   ignoreStudentReport: vi.fn(),
   getStaffConversationForPost: vi.fn(),
+  getDiscussionPostAuthorId: vi.fn(),
+  getModuleLeadsForProject: vi.fn(),
+  getUserRole: vi.fn(),
 }));
+
+vi.mock("../notifications/service.js", () => ({
+  addNotification: vi.fn(),
+}));
+
+import * as notificationsService from "../notifications/service.js";
 
 describe("forum service", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -91,6 +100,7 @@ describe("forum service", () => {
 
   it("student report proxies to repo", async () => {
     (repo.createStudentReport as any).mockResolvedValue({ status: "ok" });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([]);
     await createStudentForumReport(1, 2, 3, "reason");
     expect(repo.createStudentReport).toHaveBeenCalledWith(1, 2, 3, "reason");
   });
@@ -114,5 +124,70 @@ describe("forum service", () => {
       thread: null,
       missingPost: true,
     });
+  });
+
+  it("sends student link when parent post author is a student", async () => {
+    (repo.getDiscussionPostAuthorId as any).mockResolvedValue(7);
+    (repo.getUserRole as any).mockResolvedValue("STUDENT");
+    (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 10 });
+
+    await createDiscussionPost(5, 2, "Re: topic", "body", 3);
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 7, type: "FORUM_REPLY", link: "/projects/2/discussion" })
+    );
+  });
+
+  it("sends staff link when parent post author is staff", async () => {
+    (repo.getDiscussionPostAuthorId as any).mockResolvedValue(7);
+    (repo.getUserRole as any).mockResolvedValue("STAFF");
+    (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 10 });
+
+    await createDiscussionPost(5, 2, "Re: topic", "body", 3);
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 7, type: "FORUM_REPLY", link: "/staff/projects/2/discussion" })
+    );
+  });
+
+  it("does not notify when replier is the parent post author", async () => {
+    (repo.getDiscussionPostAuthorId as any).mockResolvedValue(5);
+    (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 10 });
+
+    await createDiscussionPost(5, 2, "Re: topic", "body", 3);
+
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("does not notify on a top-level post", async () => {
+    (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 11 });
+
+    await createDiscussionPost(5, 2, "New topic", "body", null);
+
+    expect(repo.getDiscussionPostAuthorId).not.toHaveBeenCalled();
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("notifies module leads when a post is reported", async () => {
+    (repo.createStudentReport as any).mockResolvedValue({ status: "ok" });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([{ userId: 10 }, { userId: 11 }]);
+
+    await createStudentForumReport(1, 2, 3);
+
+    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 10, type: "FORUM_REPORTED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 11, type: "FORUM_REPORTED" })
+    );
+  });
+
+  it("does not notify module leads when report is not created successfully", async () => {
+    (repo.createStudentReport as any).mockResolvedValue({ status: "duplicate" });
+
+    await createStudentForumReport(1, 2, 3);
+
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
   });
 });
