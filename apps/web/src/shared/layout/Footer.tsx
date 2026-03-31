@@ -95,7 +95,7 @@ export function Footer() {
             <BrandWordmark />
           </div>
           <p className="footer__brand-tagline">
-            Run peer assessment cycles, meetings, and monitoring from one place.
+            A platform built for group work.
           </p>
         </div>
       </div>

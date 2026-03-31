@@ -21,23 +21,47 @@ const useIsHydrated = () => useSyncExternalStore(subscribe, () => true, () => fa
 const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const hiddenRef = useRef(false);
+  const frameIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
+    const updateVisibility = () => {
       const current = window.scrollY;
       const delta = current - lastScrollY.current;
       const isScrollingDown = delta > 6;
       const isScrollingUp = delta < -6;
+      let nextHidden = hiddenRef.current;
+
       if (current < 40 || isScrollingUp) {
-        setHidden(false);
+        nextHidden = false;
       } else if (isScrollingDown) {
-        setHidden(true);
+        nextHidden = true;
       }
+
+      if (nextHidden !== hiddenRef.current) {
+        hiddenRef.current = nextHidden;
+        setHidden(nextHidden);
+      }
+
       lastScrollY.current = current;
     };
 
+    const handleScroll = () => {
+      if (frameIdRef.current !== null) return;
+      frameIdRef.current = window.requestAnimationFrame(() => {
+        frameIdRef.current = null;
+        updateVisibility();
+      });
+    };
+
+    lastScrollY.current = window.scrollY;
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frameIdRef.current !== null) {
+        window.cancelAnimationFrame(frameIdRef.current);
+      }
+    };
   }, []);
 
   return hidden;
