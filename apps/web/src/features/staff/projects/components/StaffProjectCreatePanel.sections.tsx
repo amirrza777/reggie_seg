@@ -1,34 +1,47 @@
+import Link from "next/link";
 import type { Dispatch, SetStateAction } from "react";
 import type { Questionnaire } from "@/features/questionnaires/types";
 import type { Module } from "@/features/modules/types";
+import { SearchField } from "@/shared/ui/SearchField";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 import type { DeadlinePreview, DeadlineState } from "./StaffProjectCreatePanel.deadlines";
 
 type BasicsSectionProps = {
   projectName: string;
-  setProjectName: (value: string) => void;
+  onProjectNameChange: (value: string) => void;
   moduleId: string;
-  setModuleId: (value: string) => void;
+  onModuleIdChange: (value: string) => void;
+  moduleSearchQuery: string;
+  onModuleSearchQueryChange: (value: string) => void;
   templateId: string;
-  setTemplateId: (value: string) => void;
+  onTemplateIdChange: (value: string) => void;
+  templateSearchQuery: string;
+  onTemplateSearchQueryChange: (value: string) => void;
   hasCreatableModule: boolean;
-  creatableModules: Module[];
-  templates: Questionnaire[];
-  isLoadingTemplates: boolean;
+  visibleModules: Module[];
   hasTemplates: boolean;
+  visibleTemplates: Questionnaire[];
+  isLoadingModules: boolean;
+  isLoadingTemplates: boolean;
 };
 
 export function StaffProjectCreateBasicsSection({
   projectName,
-  setProjectName,
+  onProjectNameChange,
   moduleId,
-  setModuleId,
+  onModuleIdChange,
+  moduleSearchQuery,
+  onModuleSearchQueryChange,
   templateId,
-  setTemplateId,
+  onTemplateIdChange,
+  templateSearchQuery,
+  onTemplateSearchQueryChange,
   hasCreatableModule,
-  creatableModules,
-  templates,
-  isLoadingTemplates,
+  visibleModules,
   hasTemplates,
+  visibleTemplates,
+  isLoadingModules,
+  isLoadingTemplates,
 }: BasicsSectionProps) {
   return (
     <section className="staff-projects__create-basics" aria-label="Project basics">
@@ -43,7 +56,7 @@ export function StaffProjectCreateBasicsSection({
           <input
             className="staff-projects__input"
             value={projectName}
-            onChange={(event) => setProjectName(event.target.value)}
+            onChange={(event) => onProjectNameChange(event.target.value)}
             placeholder="e.g. Software Engineering Group Project"
             maxLength={160}
           />
@@ -51,38 +64,58 @@ export function StaffProjectCreateBasicsSection({
 
         <label className="staff-projects__field">
           <span className="staff-projects__field-label">Module</span>
+          <SearchField
+            className="staff-projects__input"
+            value={moduleSearchQuery}
+            onChange={(event) => onModuleSearchQueryChange(event.target.value)}
+            placeholder="Search modules by name or ID"
+            disabled={!hasCreatableModule}
+            aria-label="Search module options"
+          />
           <select
             className="staff-projects__select"
             value={moduleId}
-            onChange={(event) => setModuleId(event.target.value)}
-            disabled={!hasCreatableModule}
+            onChange={(event) => onModuleIdChange(event.target.value)}
+            disabled={!hasCreatableModule || isLoadingModules}
           >
             <option value="">Select module</option>
-            {creatableModules.map((module) => (
+            {visibleModules.map((module) => (
               <option key={module.id} value={module.id}>
                 {module.title}
               </option>
             ))}
           </select>
+          {moduleSearchQuery.trim().length > 0 && !isLoadingModules && visibleModules.length === 0 ? (
+            <span className="staff-projects__field-label">No modules match "{moduleSearchQuery.trim()}".</span>
+          ) : null}
         </label>
 
         <label className="staff-projects__field">
           <span className="staff-projects__field-label">Questionnaire template</span>
+          <SearchField
+            className="staff-projects__input"
+            value={templateSearchQuery}
+            onChange={(event) => onTemplateSearchQueryChange(event.target.value)}
+            placeholder="Search templates by name or ID"
+            disabled={isLoadingTemplates || !hasTemplates}
+            aria-label="Search questionnaire template options"
+          />
           <select
             className="staff-projects__select"
             value={templateId}
-            onChange={(event) => setTemplateId(event.target.value)}
+            onChange={(event) => onTemplateIdChange(event.target.value)}
             disabled={isLoadingTemplates || !hasTemplates}
           >
-            <option value="">
-              {isLoadingTemplates ? "Loading templates..." : "Select template"}
-            </option>
-            {templates.map((template) => (
+            <option value="">{isLoadingTemplates ? "Loading templates..." : "Select template"}</option>
+            {visibleTemplates.map((template) => (
               <option key={template.id} value={template.id}>
                 {template.templateName}
               </option>
             ))}
           </select>
+          {templateSearchQuery.trim().length > 0 && !isLoadingTemplates && visibleTemplates.length === 0 ? (
+            <span className="staff-projects__field-label">No templates match "{templateSearchQuery.trim()}".</span>
+          ) : null}
         </label>
       </div>
     </section>
@@ -268,20 +301,19 @@ export function StaffProjectCreateDeadlinesSection({
             <div>
               <p className="staff-projects__field-label">Task phase</p>
               <p className="staff-projects__card-sub">
-                {formatDateTime(deadlinePreview.taskOpenDate)} → {formatDateTime(deadlinePreview.taskDueDate)}
+                {formatDateTime(deadlinePreview.taskOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.taskDueDate)}
               </p>
             </div>
             <div>
               <p className="staff-projects__field-label">Assessment phase</p>
               <p className="staff-projects__card-sub">
-                {formatDateTime(deadlinePreview.assessmentOpenDate)} →{" "}
-                {formatDateTime(deadlinePreview.assessmentDueDate)}
+                {formatDateTime(deadlinePreview.assessmentOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.assessmentDueDate)}
               </p>
             </div>
             <div>
               <p className="staff-projects__field-label">Feedback phase</p>
               <p className="staff-projects__card-sub">
-                {formatDateTime(deadlinePreview.feedbackOpenDate)} → {formatDateTime(deadlinePreview.feedbackDueDate)}
+                {formatDateTime(deadlinePreview.feedbackOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.feedbackDueDate)}
               </p>
             </div>
             <div>
@@ -300,5 +332,56 @@ export function StaffProjectCreateDeadlinesSection({
         </section>
       </div>
     </fieldset>
+  );
+}
+
+type InformationSectionProps = {
+  informationText: string;
+  onInformationTextChange: (value: string) => void;
+};
+
+export function StaffProjectCreateInformationSection({
+  informationText,
+  onInformationTextChange,
+}: InformationSectionProps) {
+  return (
+    <section className="staff-projects__create-basics" aria-label="Information board setup">
+      <div className="staff-projects__section-head">
+        <p className="staff-projects__eyebrow">Step 3</p>
+        <h3 className="staff-projects__section-title">Information board</h3>
+        <p className="staff-projects__hint">
+          Add project-specific guidance students will see on the project overview information board.
+        </p>
+      </div>
+      <label className="staff-projects__field">
+        <span className="staff-projects__field-label">Information board text</span>
+        <textarea
+          className="staff-projects__input staff-projects__textarea"
+          value={informationText}
+          onChange={(event) => onInformationTextChange(event.target.value)}
+          placeholder="Add project expectations, process notes, and any key instructions for this cohort."
+          rows={6}
+          maxLength={8000}
+        />
+      </label>
+    </section>
+  );
+}
+
+type ActionsSectionProps = {
+  canSubmit: boolean;
+  isSubmitting: boolean;
+};
+
+export function StaffProjectCreateActionsSection({ canSubmit, isSubmitting }: ActionsSectionProps) {
+  return (
+    <div className="staff-projects__create-actions">
+      <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>
+        {isSubmitting ? "Creating..." : "Create project"}
+      </button>
+      <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+        Create questionnaire
+      </Link>
+    </div>
   );
 }

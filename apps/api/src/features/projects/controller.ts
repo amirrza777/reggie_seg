@@ -2,10 +2,6 @@ export {
   createProjectHandler,
   getProjectByIdHandler,
   getUserProjectsHandler,
-  getUserModulesHandler,
-  joinModuleHandler,
-  getModuleStaffListHandler,
-  getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
   getTeammatesForProjectHandler,
   getTeamByIdHandler,
@@ -16,6 +12,13 @@ export {
   getStaffMarkingProjectsHandler,
   getProjectMarkingHandler,
 } from "./controller.core.js";
+
+export {
+  getUserModulesHandler,
+  joinModuleHandler,
+  getModuleStaffListHandler,
+  getModuleStudentProjectMatrixHandler,
+} from "./controller.modules.js";
 
 export {
   createTeamHealthMessageHandler,

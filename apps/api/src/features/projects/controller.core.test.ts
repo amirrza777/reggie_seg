@@ -158,6 +158,61 @@ describe("projects controller core handlers", () => {
     expect(resOrder.status).toHaveBeenCalledWith(400);
   });
 
+  it("createProjectHandler normalizes optional information text and maps service errors", async () => {
+    (service.createProject as any)
+      .mockRejectedValueOnce({ code: "FORBIDDEN", message: "Forbidden" })
+      .mockRejectedValueOnce({ code: "MODULE_NOT_FOUND" })
+      .mockRejectedValueOnce({ code: "TEMPLATE_NOT_FOUND" })
+      .mockRejectedValueOnce(new Error("boom"));
+
+    const forbiddenRes = mockResponse();
+    await createProjectHandler(
+      {
+        user: { sub: 1 },
+        body: {
+          name: "  P1  ",
+          moduleId: 2,
+          questionnaireTemplateId: 3,
+          informationText: "  hello world  ",
+          deadline: deadlinePayload,
+        },
+      } as any,
+      forbiddenRes,
+    );
+    expect(service.createProject).toHaveBeenCalledWith(
+      1,
+      "P1",
+      2,
+      3,
+      "hello world",
+      expect.any(Object),
+    );
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+
+    const missingModuleRes = mockResponse();
+    await createProjectHandler(
+      { user: { sub: 1 }, body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, deadline: deadlinePayload } } as any,
+      missingModuleRes,
+    );
+    expect(missingModuleRes.status).toHaveBeenCalledWith(404);
+    expect(missingModuleRes.json).toHaveBeenCalledWith({ error: "Module not found" });
+
+    const missingTemplateRes = mockResponse();
+    await createProjectHandler(
+      { user: { sub: 1 }, body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, deadline: deadlinePayload } } as any,
+      missingTemplateRes,
+    );
+    expect(missingTemplateRes.status).toHaveBeenCalledWith(404);
+    expect(missingTemplateRes.json).toHaveBeenCalledWith({ error: "Questionnaire template not found" });
+
+    const genericRes = mockResponse();
+    await createProjectHandler(
+      { user: { sub: 1 }, body: { name: "P1", moduleId: 2, questionnaireTemplateId: 3, deadline: deadlinePayload } } as any,
+      genericRes,
+    );
+    expect(genericRes.status).toHaveBeenCalledWith(500);
+  });
+
   it("getProjectByIdHandler validates id, maps not found, returns project", async () => {
     const badRes = mockResponse();
     await getProjectByIdHandler({ params: { projectId: "abc" } } as any, badRes);
@@ -242,6 +297,21 @@ describe("projects controller core handlers", () => {
       moduleName: "SEGP",
       result: "joined",
     });
+  });
+
+  it("joinModuleHandler maps domain and unexpected errors", async () => {
+    (service.joinModuleByCode as any)
+      .mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" })
+      .mockRejectedValueOnce(new Error("boom"));
+
+    const forbiddenRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, forbiddenRes);
+    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
+    expect(forbiddenRes.json).toHaveBeenCalledWith({ error: "Forbidden" });
+
+    const genericRes = mockResponse();
+    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, genericRes);
+    expect(genericRes.status).toHaveBeenCalledWith(500);
   });
 
   it("getModuleStaffListHandler returns members or 403", async () => {

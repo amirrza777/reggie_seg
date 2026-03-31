@@ -33,6 +33,8 @@ vi.mock("./service.js", async () => ({
 }));
 
 import {
+  disconnectGithubAccountHandler,
+  getGithubConnectionStatusHandler,
   getGithubConnectUrlHandler,
   githubCallbackHandler,
   listGithubReposHandler,
@@ -87,6 +89,26 @@ describe("github connect controllers", () => {
     });
   });
 
+  it("rejects unauthenticated connect-url requests and maps service failures", async () => {
+    const unauthorizedReq = { query: {} } as unknown as AuthRequest;
+    const unauthorizedRes = createMockResponse();
+
+    await getGithubConnectUrlHandler(unauthorizedReq, unauthorizedRes);
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+    expect(serviceMocks.buildGithubConnectUrl).not.toHaveBeenCalled();
+
+    const failingReq = {
+      user: { sub: 42 },
+      query: {},
+    } as unknown as AuthRequest;
+    const failingRes = createMockResponse();
+    serviceMocks.buildGithubConnectUrl.mockRejectedValue(new GithubServiceError(403, "Forbidden"));
+
+    await getGithubConnectUrlHandler(failingReq, failingRes);
+    expect(failingRes.status).toHaveBeenCalledWith(403);
+    expect(failingRes.json).toHaveBeenCalledWith({ error: "Forbidden" });
+  });
+
   it("redirects callback to the absolute returnTo URL and appends github=connected", async () => {
     const req = {
       query: { code: "abc", state: "signed-state" },
@@ -103,6 +125,29 @@ describe("github connect controllers", () => {
     expect(serviceMocks.connectGithubAccount).toHaveBeenCalledWith("abc", "signed-state");
     expect(res.redirectedTo).toBe(
       "http://127.0.0.1:3001/projects/1/repos?tab=repositories&github=connected"
+    );
+  });
+
+  it("rejects callback requests with missing code/state and maps unexpected callback failures", async () => {
+    const missingReq = {
+      query: { code: "abc" },
+    } as unknown as AuthRequest;
+    const missingRes = createMockResponse();
+
+    await githubCallbackHandler(missingReq, missingRes);
+    expect(missingRes.redirectedTo).toBe(
+      "http://127.0.0.1:3001/modules?github=error&reason=missing-code-or-state"
+    );
+
+    const failingReq = {
+      query: { code: "abc", state: "signed-state" },
+    } as unknown as AuthRequest;
+    const failingRes = createMockResponse();
+    serviceMocks.connectGithubAccount.mockRejectedValue(new Error("boom"));
+
+    await githubCallbackHandler(failingReq, failingRes);
+    expect(failingRes.redirectedTo).toBe(
+      "http://127.0.0.1:3001/modules?github=error&reason=callback-failed"
     );
   });
 
@@ -163,5 +208,30 @@ describe("github connect controllers", () => {
       error:
         "GitHub App is connected but not installed on any account or organization. Install the app, then try again.",
     });
+  });
+
+  it("covers status/disconnect handlers and invalid repo search queries", async () => {
+    const statusReq = { user: { sub: 4 } } as unknown as AuthRequest;
+    const statusRes = createMockResponse();
+    serviceMocks.getGithubConnectionStatus.mockResolvedValue({ connected: true, account: { login: "adxmir" } });
+
+    await getGithubConnectionStatusHandler(statusReq, statusRes);
+    expect(statusRes.json).toHaveBeenCalledWith({ connected: true, account: { login: "adxmir" } });
+
+    const disconnectReq = { user: { sub: 4 } } as unknown as AuthRequest;
+    const disconnectRes = createMockResponse();
+    serviceMocks.disconnectGithubAccount.mockResolvedValue({ disconnected: true });
+
+    await disconnectGithubAccountHandler(disconnectReq, disconnectRes);
+    expect(disconnectRes.json).toHaveBeenCalledWith({ disconnected: true });
+
+    const badSearchReq = {
+      user: { sub: 7 },
+      query: { q: ["bad"] },
+    } as unknown as AuthRequest;
+    const badSearchRes = createMockResponse();
+
+    await listGithubReposHandler(badSearchReq, badSearchRes);
+    expect(badSearchRes.status).toHaveBeenCalledWith(400);
   });
 });
