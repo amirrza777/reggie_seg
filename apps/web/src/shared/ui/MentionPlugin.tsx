@@ -11,7 +11,7 @@ import {
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 import { $createMentionNode } from "./MentionNode";
 
-type Member = {
+export type Member = {
   id: number;
   firstName: string;
   lastName: string;

@@ -16,6 +16,32 @@ import { FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND
 import { ListNode, ListItemNode, INSERT_UNORDERED_LIST_COMMAND, INSERT_ORDERED_LIST_COMMAND } from "@lexical/list";
 import { HeadingNode, $createHeadingNode, QuoteNode, $createQuoteNode } from "@lexical/rich-text";
 import { $setBlocksType } from "@lexical/selection";
+import { MentionNode } from "./MentionNode";
+import { MentionPlugin, type Member } from "./MentionPlugin";
+
+export const RICH_EDITOR_THEME = {
+  text: {
+    bold: "rich-editor__bold",
+    italic: "rich-editor__italic",
+    underline: "rich-editor__underline",
+    strikethrough: "rich-editor__strikethrough",
+    superscript: "rich-editor__superscript",
+    subscript: "rich-editor__subscript",
+    code: "rich-editor__code",
+  },
+  heading: {
+    h1: "rich-editor__h1",
+    h2: "rich-editor__h2",
+    h3: "rich-editor__h3",
+  },
+  quote: "rich-editor__quote",
+  list: {
+    ul: "rich-editor__ul",
+    ol: "rich-editor__ol",
+    listitem: "rich-editor__listitem",
+    nested: { listitem: "rich-editor__nested-listitem" },
+  },
+};
 
 type ToolbarButton = {
   key: string;
@@ -138,37 +164,16 @@ type RichTextEditorProps = {
   onEmptyChange?: (isEmpty: boolean) => void;
   placeholder?: string;
   showWordCount?: boolean;
+  members?: Member[];
 };
 
-export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing...", showWordCount }: RichTextEditorProps) {
+export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing...", showWordCount, members }: RichTextEditorProps) {
   const [wordCount, setWordCount] = useState(0);
   const initialConfig = {
     namespace: "RichTextEditor",
-    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode],
+    nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode, MentionNode],
     onError: console.error,
-    theme: {
-      text: {
-        bold: "rich-editor__bold",
-        italic: "rich-editor__italic",
-        underline: "rich-editor__underline",
-        strikethrough: "rich-editor__strikethrough",
-        superscript: "rich-editor__superscript",
-        subscript: "rich-editor__subscript",
-        code: "rich-editor__code",
-      },
-      heading: {
-        h1: "rich-editor__h1",
-        h2: "rich-editor__h2",
-        h3: "rich-editor__h3",
-      },
-      quote: "rich-editor__quote",
-      list: {
-        ul: "rich-editor__ul",
-        ol: "rich-editor__ol",
-        listitem: "rich-editor__listitem",
-        nested: { listitem: "rich-editor__nested-listitem" },
-      },
-    },
+    theme: RICH_EDITOR_THEME,
   };
 
   return (
@@ -204,6 +209,7 @@ export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeh
         }} />
         <InitialContentPlugin content={initialContent} />
         <TabIndentationPlugin />
+        {members && <MentionPlugin members={members} />}
       </div>
       {showWordCount && <div className="rich-editor__word-count">{wordCount} words</div>}
     </LexicalComposer>

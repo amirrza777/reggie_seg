@@ -71,7 +71,11 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
         <p className="staff-projects__card-sub">
           View and participate in the forum as staff.
         </p>
-        <DiscussionForumClient projectId={projectId} showHeader={false} />
+        <DiscussionForumClient
+          projectId={projectId}
+          showHeader={false}
+          members={data.teams.flatMap((t) => t.allocations.map((a) => a.user))}
+        />
       </section>
     </div>
   );
