@@ -3,11 +3,31 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { ModalPortal } from "@/shared/ui/ModalPortal";
-import { listAuditLogs } from "../api/client";
+import { getAuditStreamUrl, listAuditLogs } from "../api/client";
 import type { AuditLogEntry } from "../types";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 type RangeKey = "today" | "week" | "month" | "quarter" | "year" | "all";
+
+const PAGE_SIZE = 300;
+
+const ACTION_LABELS: Record<string, string> = {
+  LOGIN: "Signed in",
+  LOGOUT: "Signed out",
+  USER_ROLE_CHANGED: "Role changed",
+  USER_UPDATED: "Account updated",
+  ENTERPRISE_CREATED: "Enterprise created",
+  ENTERPRISE_DELETED: "Enterprise deleted",
+};
+
+const ACTION_BADGE_LABELS: Record<AuditLogEntry["action"], string> = {
+  LOGIN: "LOGIN",
+  LOGOUT: "LOGOUT",
+  USER_ROLE_CHANGED: "ROLE\nCHANGED",
+  USER_UPDATED: "USER\nUPDATED",
+  ENTERPRISE_CREATED: "ENTERPRISE\nCREATED",
+  ENTERPRISE_DELETED: "ENTERPRISE\nDELETED",
+};
 
 const ranges: { key: RangeKey; label: string; days?: number }[] = [
   { key: "today", label: "Today", days: 1 },
@@ -69,6 +89,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
   const [logs, setLogs] = useState<AuditLogEntry[]>([]);
   const [status, setStatus] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const activeRange = useMemo(() => rangeToDates(range), [range]);
 
@@ -76,19 +98,39 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
     if (!open) return;
     setStatus("loading");
     setMessage(null);
+    setHasMore(false);
     try {
       const entries = await listAuditLogs({
         from: activeRange.from,
         to: activeRange.to,
-        limit: 300,
+        limit: PAGE_SIZE,
       });
       setLogs(entries);
+      setHasMore(entries.length === PAGE_SIZE);
       setStatus("success");
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Could not load audit logs.");
     }
   }, [open, activeRange.from, activeRange.to]);
+
+  const loadMore = async () => {
+    if (!logs.length || loadingMore) return;
+    const cursor = logs[logs.length - 1].id;
+    setLoadingMore(true);
+    try {
+      const entries = await listAuditLogs({
+        from: activeRange.from,
+        to: activeRange.to,
+        limit: PAGE_SIZE,
+        cursor,
+      });
+      setLogs((prev) => [...prev, ...entries]);
+      setHasMore(entries.length === PAGE_SIZE);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -98,6 +140,20 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
       window.clearTimeout(timeoutId);
     };
   }, [fetchLogs]);
+
+  useEffect(() => {
+    if (!open) return;
+    const source = new EventSource(getAuditStreamUrl(), { withCredentials: true });
+    source.onmessage = (e: MessageEvent) => {
+      try {
+        const entry = JSON.parse(e.data) as AuditLogEntry;
+        setLogs((prev) => [entry, ...prev]);
+      } catch {
+        // ignore malformed events
+      }
+    };
+    return () => source.close();
+  }, [open]);
 
   const downloadCsv = () => {
     const csv = toCsv(logs);
@@ -183,6 +239,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
               ) : (
                 logs.map((entry) => {
                   const createdAt = new Date(entry.createdAt);
+                  const actionBadgeLabel = ACTION_BADGE_LABELS[entry.action] ?? entry.action;
+                  const actionBadgeClass = actionBadgeLabel.includes("\n") ? " audit-badge--compact" : "";
                   return (
                     <div key={entry.id} className="table__row audit-modal__row">
                       <div className="ui-stack-xs">
@@ -197,8 +255,8 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                         </span>
                       </div>
                       <div className="ui-stack-sm">
-                        <span className={`audit-badge audit-badge--${entry.action.toLowerCase()}`}>
-                          {entry.action}
+                        <span className={`audit-badge audit-badge--${entry.action.toLowerCase()}${actionBadgeClass}`}>
+                          {actionBadgeLabel}
                         </span>
                       </div>
                       <div className="ui-stack-sm">
@@ -208,7 +266,7 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
                         </span>
                       </div>
                       <div className="ui-stack-xs">
-                        <span className="muted">Login/logout record</span>
+                        <span className="muted">{ACTION_LABELS[entry.action] ?? entry.action}</span>
                       </div>
                     </div>
                   );
@@ -216,6 +274,14 @@ export function AuditLogModal({ open, onClose }: { open: boolean; onClose: () =>
               )}
             </div>
           </div>
+
+          {hasMore && (
+            <div className="audit-modal__load-more">
+              <Button type="button" variant="ghost" onClick={() => void loadMore()} disabled={loadingMore}>
+                {loadingMore ? "Loading…" : "Load more"}
+              </Button>
+            </div>
+          )}
         </div>
 
       </div>

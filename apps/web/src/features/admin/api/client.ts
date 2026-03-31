@@ -1,4 +1,5 @@
 import { apiFetch } from "@/shared/api/http";
+import { API_BASE_URL } from "@/shared/api/env";
 import type {
   AdminUser,
   AdminEnterpriseSearchParams,
@@ -44,14 +45,19 @@ export async function updateUser(userId: number, payload: AdminUserUpdate) {
   });
 }
 
-export async function listAuditLogs(params: { from?: string; to?: string; limit?: number } = {}) {
+export async function listAuditLogs(params: { from?: string; to?: string; limit?: number; cursor?: number } = {}) {
   const search = new URLSearchParams();
   if (params.from) search.set("from", params.from);
   if (params.to) search.set("to", params.to);
   if (params.limit) search.set("limit", String(params.limit));
+  if (params.cursor) search.set("cursor", String(params.cursor));
   const qs = search.toString();
   const path = qs ? `/admin/audit-logs?${qs}` : "/admin/audit-logs";
   return apiFetch<AuditLogEntry[]>(path);
+}
+
+export function getAuditStreamUrl() {
+  return `${API_BASE_URL}/admin/audit-logs/stream`;
 }
 
 export async function getAdminSummary() {

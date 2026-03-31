@@ -70,11 +70,12 @@ export function parseCreateEnterpriseBody(body: unknown): ParseResult<{ name: st
   };
 }
 
-export function parseAuditLogsQuery(query: unknown): ParseResult<{ from?: Date; to?: Date; limit?: number }> {
+export function parseAuditLogsQuery(query: unknown): ParseResult<{ from?: Date; to?: Date; limit?: number; cursor?: number }> {
   const raw = typeof query === "object" && query !== null ? (query as Record<string, unknown>) : {};
   const from = parseOptionalIsoDate(raw.from, "from");
   const to = parseOptionalIsoDate(raw.to, "to");
   const limit = parseOptionalPositiveInt(raw.limit, "limit");
+  const cursor = parseOptionalPositiveInt(raw.cursor, "cursor");
 
   return {
     ok: true,
@@ -82,6 +83,7 @@ export function parseAuditLogsQuery(query: unknown): ParseResult<{ from?: Date; 
       ...(from.ok && from.value instanceof Date ? { from: from.value } : {}),
       ...(to.ok && to.value instanceof Date ? { to: to.value } : {}),
       ...(limit.ok && limit.value !== undefined ? { limit: limit.value } : {}),
+      ...(cursor.ok && cursor.value !== undefined ? { cursor: cursor.value } : {}),
     },
   };
 }
