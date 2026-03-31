@@ -61,6 +61,13 @@ export async function getUserRole(userId: number) {
   return user?.role ?? null;
 }
 
+export async function getUserById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, firstName: true, lastName: true, role: true },
+  });
+}
+
 export async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -86,6 +93,24 @@ export async function getModuleLeadsForProject(projectId: number) {
     where: { moduleId: project.moduleId },
     select: { userId: true },
   });
+}
+
+export async function getProjectMembers(projectId: number) {
+  const allocations = await prisma.teamAllocation.findMany({
+    where: {
+      team: {
+        projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    },
+    select: {
+      user: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+  });
+  return allocations.map((a) => a.user);
 }
 
 export async function canManageForumSettings(userId: number, projectId: number) {

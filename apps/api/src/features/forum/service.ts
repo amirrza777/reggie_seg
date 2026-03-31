@@ -16,8 +16,51 @@ import {
   getDiscussionPostAuthorId,
   getModuleLeadsForProject,
   getUserRole,
+  getUserById,
+  getProjectMembers,
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
+import { extractMentionsFromLexicalJSON } from "../../shared/lexical.js";
+
+function normalizeName(name: string) {
+  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+}
+
+async function processMentions(authorId: number, projectId: number, body: string) {
+  const mentionedNames = extractMentionsFromLexicalJSON(body);
+  if (mentionedNames.length === 0) return;
+
+  const members = await getProjectMembers(projectId);
+  const membersByName = new Map<string, number[]>();
+  for (const member of members) {
+    const key = normalizeName(`${member.firstName} ${member.lastName}`);
+    const ids = membersByName.get(key) ?? [];
+    ids.push(member.id);
+    membersByName.set(key, ids);
+  }
+
+  const mentionedIds = new Set<number>();
+  for (const name of mentionedNames) {
+    const matchedIds = (membersByName.get(normalizeName(name)) ?? []).filter((id) => id !== authorId);
+    // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
+    if (matchedIds.length === 1) mentionedIds.add(matchedIds[0]);
+  }
+
+  if (mentionedIds.size === 0) return;
+
+  const author = await getUserById(authorId);
+  const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
+  const link = `/projects/${projectId}/discussion`;
+
+  for (const mentionedId of mentionedIds) {
+    await addNotification({
+      userId: mentionedId,
+      type: "MENTION",
+      message: `${authorName} mentioned you in a discussion post`,
+      link,
+    });
+  }
+}
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
   return getDiscussionPostsForProject(userId, projectId);
@@ -32,6 +75,13 @@ export async function createDiscussionPost(
 ) {
   const parentAuthorId = parentPostId ? await getDiscussionPostAuthorId(parentPostId, projectId) : null;
   const post = await createDiscussionPostForProject(userId, projectId, title, body, parentPostId);
+  if (post) {
+    try {
+      await processMentions(userId, projectId, body);
+    } catch (error) {
+      console.error("Failed to process forum mentions:", error);
+    }
+  }
   if (post && parentAuthorId && parentAuthorId !== userId) {
     const parentAuthorRole = await getUserRole(parentAuthorId);
     const isStaff = parentAuthorRole === "STAFF" || parentAuthorRole === "ADMIN" || parentAuthorRole === "ENTERPRISE_ADMIN";
