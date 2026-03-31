@@ -312,6 +312,7 @@ async function fetchGithubUser(accessToken: string) {
 
   let primaryEmail = profile.email;
   if (!primaryEmail) {
+    // Some profiles hide the primary email on /user, so fall back to the dedicated email endpoint when available.
     const emailsResponse = await fetch("https://api.github.com/user/emails", {
       headers: {
         Accept: "application/vnd.github+json",

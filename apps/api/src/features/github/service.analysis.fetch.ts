@@ -316,7 +316,7 @@ export async function getBranchAheadBehind(
   );
 
   if (!response.ok) {
-    // Some branches may be deleted/race conditions/or compare unavailable. Return partial data instead of failing the whole list.
+    // Compare failures should not blank the whole branch view; degrade gracefully for deleted branches or transient API races.
     return {
       aheadBy: null,
       behindBy: null,
