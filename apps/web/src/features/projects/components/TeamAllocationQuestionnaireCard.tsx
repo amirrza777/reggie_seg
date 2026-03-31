@@ -110,68 +110,145 @@ export function TeamAllocationQuestionnaireCard({
       <p className="muted">
         Complete this questionnaire so staff can place you into a team.
       </p>
-      <form onSubmit={handleSubmit} style={{ marginTop: 12, display: "grid", gap: 16 }}>
+      <form
+        onSubmit={handleSubmit}
+        className="team-allocation-questionnaire__form"
+        style={{ marginTop: 16, display: "grid", rowGap: 24 }}
+      >
         {questionnaire.questions.map((question, index) => {
           const questionType = normalizeQuestionType(question.type);
+          const choiceOptions = Array.isArray((question.configs as { options?: string[] } | undefined)?.options)
+            ? ((question.configs as { options?: string[] }).options ?? [])
+            : [];
+          const ratingMin = (question.configs as { min?: number } | undefined)?.min ?? 1;
+          const ratingMax = (question.configs as { max?: number } | undefined)?.max ?? 5;
+          const ratingValues = Array.from(
+            { length: Math.max(0, ratingMax - ratingMin + 1) },
+            (_unused, idx) => ratingMin + idx,
+          );
+          const sliderMin = (question.configs as { min?: number } | undefined)?.min ?? 0;
+          const sliderMax = (question.configs as { max?: number } | undefined)?.max ?? 100;
+          const sliderStep = (question.configs as { step?: number } | undefined)?.step ?? 1;
+          const sliderValue = Number(answers[question.id] ?? sliderMin);
           return (
-            <div key={question.id} style={{ display: "grid", gap: 8 }}>
-              <label style={{ fontWeight: 600 }}>
+            <div
+              key={question.id}
+              className="team-allocation-questionnaire__question"
+              style={{ display: "grid", gap: 10 }}
+            >
+              <label className="team-allocation-questionnaire__question-title" style={{ fontWeight: 600 }}>
                 {index + 1}. {question.label}
               </label>
               {questionType === "multiple-choice" ? (
-                <div style={{ display: "grid", gap: 6 }}>
-                  {Array.isArray((question.configs as { options?: string[] } | undefined)?.options)
-                    ? ((question.configs as { options?: string[] }).options ?? []).map((option) => (
-                        <label key={option} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <input
-                            type="radio"
-                            name={`question-${question.id}`}
-                            value={option}
-                            checked={answers[question.id] === option}
-                            onChange={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
-                          />
-                          <span>{option}</span>
-                        </label>
-                      ))
-                    : null}
+                <div className="team-allocation-questionnaire__choice-list" style={{ display: "grid", gap: 8 }}>
+                  {choiceOptions.map((option) => (
+                    <label
+                      key={option}
+                      className="team-allocation-questionnaire__choice-option"
+                      style={{ display: "flex", alignItems: "flex-start", gap: 10 }}
+                    >
+                      <input
+                        type="radio"
+                        className="team-allocation-questionnaire__radio-input"
+                        style={{
+                          width: 16,
+                          minWidth: 16,
+                          height: 16,
+                          margin: "2px 0 0",
+                          padding: 0,
+                          border: 0,
+                          borderRadius: "50%",
+                          background: "transparent",
+                          accentColor: "var(--accent)",
+                          flexShrink: 0,
+                        }}
+                        name={`question-${question.id}`}
+                        value={option}
+                        checked={answers[question.id] === option}
+                        onChange={() => setAnswers((current) => ({ ...current, [question.id]: option }))}
+                      />
+                      <span className="team-allocation-questionnaire__choice-text" style={{ lineHeight: 1.35 }}>
+                        {option}
+                      </span>
+                    </label>
+                  ))}
                 </div>
               ) : null}
               {questionType === "rating" ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-                  {Array.from(
-                    {
-                      length:
-                        ((question.configs as { max?: number } | undefined)?.max ?? 5) -
-                        ((question.configs as { min?: number } | undefined)?.min ?? 1) +
-                        1,
-                    },
-                    (_unused, idx) => ((question.configs as { min?: number } | undefined)?.min ?? 1) + idx,
-                  ).map((value) => (
-                    <label key={value} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div
+                  className="team-allocation-questionnaire__rating-grid"
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 18,
+                    flexWrap: "nowrap",
+                    overflowX: "auto",
+                    paddingBottom: 4,
+                    maxWidth: "100%",
+                  }}
+                >
+                  {ratingValues.map((value) => (
+                    <label
+                      key={value}
+                      className="team-allocation-questionnaire__rating-option"
+                      style={{
+                        display: "inline-flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 6,
+                        minWidth: 24,
+                        flexShrink: 0,
+                      }}
+                    >
                       <input
                         type="radio"
+                        className="team-allocation-questionnaire__radio-input"
+                        style={{
+                          width: 16,
+                          minWidth: 16,
+                          height: 16,
+                          margin: 0,
+                          padding: 0,
+                          border: 0,
+                          borderRadius: "50%",
+                          background: "transparent",
+                          accentColor: "var(--accent)",
+                          flexShrink: 0,
+                        }}
                         name={`question-${question.id}`}
                         value={value}
                         checked={answers[question.id] === value}
                         onChange={() => setAnswers((current) => ({ ...current, [question.id]: value }))}
                       />
-                      <span>{value}</span>
+                      <span
+                        className="team-allocation-questionnaire__rating-value"
+                        style={{ fontSize: 12, lineHeight: 1, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}
+                      >
+                        {value}
+                      </span>
                     </label>
                   ))}
                 </div>
               ) : null}
               {questionType === "slider" ? (
-                <div style={{ display: "grid", gap: 6 }}>
+                <div className="team-allocation-questionnaire__slider-field" style={{ display: "grid", gap: 8 }}>
                   <input
                     type="range"
-                    min={(question.configs as { min?: number } | undefined)?.min ?? 0}
-                    max={(question.configs as { max?: number } | undefined)?.max ?? 100}
-                    step={(question.configs as { step?: number } | undefined)?.step ?? 1}
-                    value={Number(
-                      answers[question.id] ??
-                        (question.configs as { min?: number } | undefined)?.min ??
-                        0,
-                    )}
+                    className="team-allocation-questionnaire__slider-input"
+                    style={{
+                      width: "100%",
+                      minHeight: 20,
+                      margin: 0,
+                      padding: 0,
+                      border: 0,
+                      borderRadius: 0,
+                      background: "transparent",
+                      accentColor: "var(--status-success-text)",
+                    }}
+                    min={sliderMin}
+                    max={sliderMax}
+                    step={sliderStep}
+                    value={sliderValue}
                     onChange={(event) =>
                       setAnswers((current) => ({
                         ...current,
@@ -179,14 +256,20 @@ export function TeamAllocationQuestionnaireCard({
                       }))
                     }
                   />
-                  <span className="muted" style={{ fontSize: 12 }}>
-                    Selected:{" "}
-                    {String(
-                      answers[question.id] ??
-                        (question.configs as { min?: number } | undefined)?.min ??
-                        0,
-                    )}
-                  </span>
+                  <div
+                    className="team-allocation-questionnaire__slider-meta"
+                    style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
+                  >
+                    <span className="muted" style={{ fontSize: 12, minWidth: 22 }}>
+                      {sliderMin}
+                    </span>
+                    <span className="team-allocation-questionnaire__slider-selected" style={{ color: "var(--text)", fontWeight: 600 }}>
+                      Selected: {sliderValue}
+                    </span>
+                    <span className="muted" style={{ fontSize: 12, minWidth: 22, textAlign: "right" }}>
+                      {sliderMax}
+                    </span>
+                  </div>
                 </div>
               ) : null}
               {questionType === "text" ? (
@@ -198,7 +281,7 @@ export function TeamAllocationQuestionnaireCard({
           );
         })}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="team-allocation-questionnaire__actions">
           <Button type="submit" variant="primary" disabled={isSubmitting}>
             {isSubmitting ? "Submitting..." : "Submit questionnaire"}
           </Button>
