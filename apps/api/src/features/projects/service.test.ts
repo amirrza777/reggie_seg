@@ -14,6 +14,7 @@ import {
   submitTeamHealthMessage,
   fetchMyTeamHealthMessages,
   fetchTeamHealthMessagesForStaff,
+  upsertStaffStudentDeadlineOverride,
   createTeamWarningForStaff,
   fetchTeamWarningsForStaff,
   resolveTeamWarningForStaff,
@@ -30,6 +31,7 @@ import {
 } from "./service.js";
 import * as repo from "./repo.js";
 import * as moduleJoinService from "../moduleJoin/service.js";
+import * as notificationsService from "../notifications/service.js";
 
 vi.mock("./repo.js", () => ({
   getProjectById: vi.fn(),
@@ -57,9 +59,15 @@ vi.mock("./repo.js", () => ({
   getActiveAutoTeamWarningsForProject: vi.fn(),
   resolveTeamWarningById: vi.fn(),
   updateAutoTeamWarningById: vi.fn(),
+  getModuleLeadsForProject: vi.fn(),
+  upsertStaffStudentDeadlineOverride: vi.fn(),
+  clearStaffStudentDeadlineOverride: vi.fn(),
 }));
 vi.mock("../moduleJoin/service.js", () => ({
   joinModuleByCode: vi.fn(),
+}));
+vi.mock("../notifications/service.js", () => ({
+  addNotification: vi.fn(),
 }));
 
 type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
@@ -264,6 +272,7 @@ describe("projects service", () => {
 
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
     (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101, resolved: false });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([]);
     await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toEqual({
       id: 101,
       resolved: false,
@@ -688,5 +697,39 @@ describe("projects service", () => {
     );
     expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(81);
     expect(repo.createTeamWarning).not.toHaveBeenCalled();
+  });
+
+  it("notifies module leads when a team health message is submitted", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValue({ id: 22 });
+    (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101 });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([{ userId: 10 }, { userId: 11 }]);
+
+    await submitTeamHealthMessage(7, 3, "Need support", "Details");
+
+    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 10, type: "TEAM_HEALTH_SUBMITTED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 11, type: "TEAM_HEALTH_SUBMITTED" })
+    );
+  });
+
+  it("does not notify when user is not in a team", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValue(null);
+
+    await submitTeamHealthMessage(7, 3, "Need support", "Details");
+
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("notifies the student when a deadline override is granted", async () => {
+    (repo.upsertStaffStudentDeadlineOverride as any).mockResolvedValue({ id: 55 });
+
+    await upsertStaffStudentDeadlineOverride(1, 3, 9, { taskDueDate: new Date() });
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 9, type: "DEADLINE_OVERRIDE_GRANTED" })
+    );
   });
 });

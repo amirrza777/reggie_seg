@@ -23,9 +23,11 @@ import {
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
+  getModuleLeadsForProject,
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
 
@@ -346,7 +348,19 @@ export async function submitTeamHealthMessage(
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;
 
-  return createTeamHealthMessage(projectId, team.id, userId, subject, details);
+  const message = await createTeamHealthMessage(projectId, team.id, userId, subject, details);
+  const leads = await getModuleLeadsForProject(projectId);
+  await Promise.all(
+    leads.map((lead) =>
+      addNotification({
+        userId: lead.userId,
+        type: "TEAM_HEALTH_SUBMITTED",
+        message: "A team health message has been submitted",
+        link: `/staff/projects/${projectId}/teams/${team.id}/teamhealth`,
+      })
+    )
+  );
+  return message;
 }
 
 export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
@@ -381,7 +395,14 @@ export async function upsertStaffStudentDeadlineOverride(
   studentId: number,
   payload: StudentDeadlineOverrideInput,
 ) {
-  return upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
+  const override = await upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
+  await addNotification({
+    userId: studentId,
+    type: "DEADLINE_OVERRIDE_GRANTED",
+    message: "Your deadline has been updated by a staff member",
+    link: `/projects/${projectId}/deadlines`,
+  });
+  return override;
 }
 
 export async function clearStaffStudentDeadlineOverride(
