@@ -34,6 +34,23 @@ describe("service.snapshots", () => {
     expect(repoMocks.listGithubSnapshotsByProjectLinkId).toHaveBeenCalledWith(5);
   });
 
+  it("rejects listing snapshots for missing links or non-members", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce(null);
+
+    await expect(listProjectGithubRepositorySnapshots(7, 5)).rejects.toMatchObject({
+      status: 404,
+      message: "Project GitHub repository link not found",
+    });
+
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce({ id: 5, projectId: 99 });
+    repoMocks.isUserInProject.mockResolvedValueOnce(false);
+
+    await expect(listProjectGithubRepositorySnapshots(7, 5)).rejects.toMatchObject({
+      status: 403,
+      message: "You are not a member of this project",
+    });
+  });
+
   it("returns a snapshot when found and user is a member", async () => {
     repoMocks.findGithubSnapshotById.mockResolvedValue({
       id: 10,
@@ -44,6 +61,26 @@ describe("service.snapshots", () => {
     await expect(getProjectGithubRepositorySnapshot(3, 10)).resolves.toEqual({
       id: 10,
       repoLink: { projectId: 77 },
+    });
+  });
+
+  it("rejects snapshot reads for missing snapshots or non-members", async () => {
+    repoMocks.findGithubSnapshotById.mockResolvedValueOnce(null);
+
+    await expect(getProjectGithubRepositorySnapshot(3, 10)).rejects.toMatchObject({
+      status: 404,
+      message: "GitHub snapshot not found",
+    });
+
+    repoMocks.findGithubSnapshotById.mockResolvedValueOnce({
+      id: 10,
+      repoLink: { projectId: 77 },
+    });
+    repoMocks.isUserInProject.mockResolvedValueOnce(false);
+
+    await expect(getProjectGithubRepositorySnapshot(3, 10)).rejects.toMatchObject({
+      status: 403,
+      message: "You are not a member of this project",
     });
   });
 
@@ -58,6 +95,23 @@ describe("service.snapshots", () => {
     await expect(getLatestProjectGithubRepositorySnapshot(4, 9)).rejects.toMatchObject({
       status: 404,
       message: "No snapshots found for this project repository link",
+    });
+  });
+
+  it("rejects latest snapshot reads for missing links or non-members", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce(null);
+
+    await expect(getLatestProjectGithubRepositorySnapshot(4, 9)).rejects.toMatchObject({
+      status: 404,
+      message: "Project GitHub repository link not found",
+    });
+
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce({ id: 9, projectId: 12 });
+    repoMocks.isUserInProject.mockResolvedValueOnce(false);
+
+    await expect(getLatestProjectGithubRepositorySnapshot(4, 9)).rejects.toMatchObject({
+      status: 403,
+      message: "You are not a member of this project",
     });
   });
 
@@ -104,6 +158,49 @@ describe("service.snapshots", () => {
     });
   });
 
+  it("supports repoStats stored as an array and rejects missing links or non-members", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce({ id: 11, projectId: 22 });
+    repoMocks.isUserInProject.mockResolvedValueOnce(true);
+    repoMocks.findLatestGithubSnapshotCoverageByProjectLinkId.mockResolvedValueOnce({
+      id: 88,
+      analysedAt: new Date("2026-02-26T10:00:00.000Z"),
+      repoStats: [
+        {
+          totalContributors: 4,
+          matchedContributors: 3,
+          unmatchedContributors: 1,
+          totalCommits: 40,
+          unmatchedCommits: 5,
+        },
+      ],
+    });
+
+    await expect(getProjectGithubMappingCoverage(2, 11)).resolves.toMatchObject({
+      linkId: 11,
+      snapshotId: 88,
+      coverage: {
+        totalContributors: 4,
+        matchedContributors: 3,
+        unmatchedContributors: 1,
+        totalCommits: 40,
+        unmatchedCommits: 5,
+      },
+    });
+
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce(null);
+    await expect(getProjectGithubMappingCoverage(2, 11)).rejects.toMatchObject({
+      status: 404,
+      message: "Project GitHub repository link not found",
+    });
+
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce({ id: 11, projectId: 22 });
+    repoMocks.isUserInProject.mockResolvedValueOnce(false);
+    await expect(getProjectGithubMappingCoverage(2, 11)).rejects.toMatchObject({
+      status: 403,
+      message: "You are not a member of this project",
+    });
+  });
+
   it("clamps sync interval and forwards the settings update", async () => {
     repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValue({ id: 44, projectId: 9 });
     repoMocks.isUserInProject.mockResolvedValue(true);
@@ -131,6 +228,33 @@ describe("service.snapshots", () => {
       linkId: 44,
       autoSyncEnabled: false,
       syncIntervalMinutes: 1440,
+    });
+  });
+
+  it("rejects sync-settings updates for missing links or non-members", async () => {
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce(null);
+
+    await expect(
+      updateProjectGithubSyncSettings(1, 44, {
+        autoSyncEnabled: true,
+        syncIntervalMinutes: 15,
+      }),
+    ).rejects.toMatchObject({
+      status: 404,
+      message: "Project GitHub repository link not found",
+    });
+
+    repoMocks.findProjectGithubRepositoryLinkById.mockResolvedValueOnce({ id: 44, projectId: 9 });
+    repoMocks.isUserInProject.mockResolvedValueOnce(false);
+
+    await expect(
+      updateProjectGithubSyncSettings(1, 44, {
+        autoSyncEnabled: true,
+        syncIntervalMinutes: 15,
+      }),
+    ).rejects.toMatchObject({
+      status: 403,
+      message: "You are not a member of this project",
     });
   });
 });
