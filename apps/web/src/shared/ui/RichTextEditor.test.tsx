@@ -33,6 +33,7 @@ vi.mock("lexical", () => ({
   $getSelection: () => null,
   $isRangeSelection: () => false,
   $getRoot: () => ({ getTextContent: () => "" }),
+  TextNode: class {},
 }));
 vi.mock("@lexical/list", () => ({
   ListNode: class {},
