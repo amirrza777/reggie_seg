@@ -114,13 +114,13 @@ describe("projects service", () => {
 
   it("maps user projects to API shape with fallback module name", async () => {
     (repo.getUserProjects as any).mockResolvedValue([
-      { id: 1, name: "A", module: { name: "SEGP" } },
-      { id: 2, name: "B", module: null },
+      { id: 1, name: "A", moduleId: 10, module: { name: "SEGP" } },
+      { id: 2, name: "B", moduleId: 11, module: null },
     ]);
 
     await expect(fetchProjectsForUser(7)).resolves.toEqual([
-      { id: 1, name: "A", moduleName: "SEGP", archivedAt: null },
-      { id: 2, name: "B", moduleName: "", archivedAt: null },
+      { id: 1, name: "A", moduleId: 10, moduleName: "SEGP", archivedAt: null },
+      { id: 2, name: "B", moduleId: 11, moduleName: "", archivedAt: null },
     ]);
   });
 
@@ -171,6 +171,36 @@ describe("projects service", () => {
     (repo.getModulesForUser as any).mockResolvedValue([]);
     await fetchModulesForUser(7, { staffOnly: true, compact: true });
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
+  });
+
+  it("scopes enrolled module project counts to projects assigned to the user", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([
+      {
+        id: 5,
+        code: "MOD-5",
+        name: "Elementary Logic with Applications",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        leaderCount: 2,
+        teachingAssistantCount: 1,
+        teamCount: 6,
+        projectCount: 3,
+        accessRole: "ENROLLED",
+      },
+    ]);
+    (repo.getUserProjects as any).mockResolvedValue([
+      { id: 11, moduleId: 5, name: "Project A", module: { name: "Elementary Logic with Applications" } },
+    ]);
+
+    await expect(fetchModulesForUser(7)).resolves.toEqual([
+      expect.objectContaining({
+        id: "5",
+        accountRole: "ENROLLED",
+        projectCount: 1,
+      }),
+    ]);
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {

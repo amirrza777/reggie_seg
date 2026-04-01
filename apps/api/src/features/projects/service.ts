@@ -100,6 +100,7 @@ export async function fetchProjectsForUser(userId: number) {
   return projects.map((project) => ({
     id: project.id,
     name: project.name,
+    moduleId: project.moduleId,
     moduleName: project.module?.name ?? "",
     archivedAt: project.archivedAt ?? null,
   }));
@@ -111,6 +112,21 @@ export async function fetchModulesForUser(
   options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
 ) {
   const modules = await getModulesForUser(userId, options);
+  const shouldApplyStudentProjectScope = options?.staffOnly !== true && options?.compact !== true;
+  const moduleProjectCounts = shouldApplyStudentProjectScope
+    ? new Map<number, number>(
+        (
+          await getUserProjects(userId)
+        ).reduce((accumulator, project) => {
+          const moduleId = Number((project as { moduleId?: unknown }).moduleId);
+          if (!Number.isInteger(moduleId) || moduleId <= 0) return accumulator;
+          const current = accumulator.get(moduleId) ?? 0;
+          accumulator.set(moduleId, current + 1);
+          return accumulator;
+        }, new Map<number, number>()),
+      )
+    : null;
+
   const staffFullList = options?.staffOnly === true && options?.compact !== true;
   return modules.map((module) => {
     const rawCount =
@@ -136,6 +152,14 @@ export async function fetchModulesForUser(
             : undefined
         : undefined;
 
+    const moduleIdNumeric = Number(module.id);
+    const userProjectCountForModule =
+      moduleProjectCounts && Number.isInteger(moduleIdNumeric) ? moduleProjectCounts.get(moduleIdNumeric) ?? 0 : null;
+    const projectCount =
+      module.accessRole === "ENROLLED" && userProjectCountForModule !== null
+        ? userProjectCountForModule
+        : ("projectCount" in module ? module.projectCount : 0);
+
     return {
       id: String(module.id),
       code: "code" in module ? module.code ?? undefined : undefined,
@@ -150,7 +174,7 @@ export async function fetchModulesForUser(
       ...(projectWindowStart !== undefined ? { projectWindowStart } : {}),
       ...(projectWindowEnd !== undefined ? { projectWindowEnd } : {}),
       teamCount: "teamCount" in module ? module.teamCount : 0,
-      projectCount: "projectCount" in module ? module.projectCount : 0,
+      projectCount,
       accountRole: module.accessRole,
       ...(typeof staffWithAccessCount === "number" ? { staffWithAccessCount } : {}),
     };

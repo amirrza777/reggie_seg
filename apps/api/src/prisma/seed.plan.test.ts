@@ -36,6 +36,7 @@ describe("seed plan", () => {
       "seedModuleTeachingAssistants",
       "seedStudentEnrollments",
       "seedTeamAllocations",
+      "seedAssessmentStudentModuleCoverage",
       "seedStaffStudentMarks",
       "seedTeamInvites",
       "seedGithubE2EUsers",
