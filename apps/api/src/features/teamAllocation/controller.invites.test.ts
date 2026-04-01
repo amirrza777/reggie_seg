@@ -4,6 +4,7 @@ import * as moduleUnderTest from "./controller.invites.js";
 const expectedFunctionExports = [
   "createTeamInviteHandler",
   "listTeamInvitesHandler",
+  "listInviteEligibleStudentsHandler",
   "listReceivedInvitesHandler",
   "acceptTeamInviteHandler",
   "declineTeamInviteHandler",
