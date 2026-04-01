@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockState = vi.hoisted(() => ({
   prisma: {
-    featureFlag: { findMany: vi.fn(), update: vi.fn() },
+    featureFlag: { findMany: vi.fn(), update: vi.fn(), createMany: vi.fn() },
     module: { findMany: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
     user: { findMany: vi.fn(), count: vi.fn() },
     team: { count: vi.fn() },
@@ -126,6 +126,7 @@ beforeEach(() => {
 
   mockState.prisma.featureFlag.findMany.mockResolvedValue([]);
   mockState.prisma.featureFlag.update.mockResolvedValue({ key: "repos", label: "Repos", enabled: true });
+  mockState.prisma.featureFlag.createMany.mockResolvedValue({ count: 0 });
 
   mockState.prisma.module.count.mockResolvedValue(0);
   mockState.prisma.module.findMany.mockResolvedValue([]);

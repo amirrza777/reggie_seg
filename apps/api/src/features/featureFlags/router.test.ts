@@ -9,6 +9,7 @@ vi.mock("../../shared/db.js", () => ({
     },
     featureFlag: {
       findMany: vi.fn(),
+      createMany: vi.fn(),
     },
   },
 }));
@@ -16,6 +17,7 @@ vi.mock("../../shared/db.js", () => ({
 describe("featureFlags router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
   });
 
   it("registers GET / route", () => {

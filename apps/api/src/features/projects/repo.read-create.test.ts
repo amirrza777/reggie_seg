@@ -82,6 +82,7 @@ describe("projects repo read and create flows", () => {
       select: {
         id: true,
         name: true,
+        moduleId: true,
         archivedAt: true,
         module: { select: { name: true } },
       },
@@ -243,6 +244,8 @@ describe("projects repo read and create flows", () => {
         informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        archivedAt: true,
+        projectNavFlags: true,
       },
     });
   });
