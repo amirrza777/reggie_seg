@@ -21,6 +21,9 @@ export default async function StaffModuleStaffAccessPage({ params }: PageProps) 
   if (!access.staffModuleSetup) {
     redirect(`/staff/modules/${modId}/staff`);
   }
+  if (!access.canEdit) {
+    redirect(`/staff/modules/${modId}/staff`);
+  }
 
   const parsed = ctx.parsedModuleId;
   const { moduleRecord } = ctx;

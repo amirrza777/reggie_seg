@@ -21,6 +21,12 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
   const enc = encodeURIComponent(moduleId);
   const access = resolveStaffModuleWorkspaceAccess(ctx);
 
+  const manageStudentAccessHref = !access.canEdit
+    ? null
+    : access.staffModuleSetup
+      ? `/staff/modules/${enc}/students/access`
+      : `/enterprise/modules/${enc}/edit#module-student-access`;
+
   let joinCodeFromApi: string | null = null;
   try {
     const joinRes = await getEnterpriseModuleJoinCode(ctx.parsedModuleId);
@@ -30,12 +36,6 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       throw e;
     }
   }
-
-  const manageStudentAccessHref = access.staffModuleSetup
-    ? `/staff/modules/${enc}/students/access`
-    : access.enterpriseModuleEditor
-      ? `/enterprise/modules/${enc}/edit#module-student-access`
-      : null;
 
   let studentMatrix: Awaited<ReturnType<typeof getModuleStudentProjectMatrix>> | null = null;
   let studentMatrixDenied = false;
@@ -60,9 +60,23 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
         </p>
       </header>
 
+      {access.moduleArchived ? (
+        <div className="status-alert status-alert--warning module-workspace__read-only-banner" role="status">
+          <span>
+            This module is <strong>archived</strong> and read-only. Unarchive it from{" "}
+            <Link href="/staff/archive" className="ui-link">
+              Staff → Archive
+            </Link>{" "}
+            to change enrollment or join settings.
+          </span>
+        </div>
+      ) : null}
+
       <div className="staff-module-students__enrollment-grid">
         <Card title="Joining code" className="module-workspace__card">
-          {joinCodeFromApi ? (
+          {access.moduleArchived ? (
+            <p className="muted">Self-enrollment is disabled while this module is archived.</p>
+          ) : joinCodeFromApi ? (
             <p className="muted">
               Students can self-enroll using the join code via{" "}
               <Link href="/dashboard" className="ui-link ">
@@ -87,34 +101,38 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
               to copy the join code if you have access.
             </p>
           )}
-          {joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
+          {!access.moduleArchived && joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
         </Card>
 
         <Card title="Manage access" className="module-workspace__card">
-          <p className="muted">Add or remove students manually.</p>
-          {manageStudentAccessHref ? (
-            <div>
-              <Link href={manageStudentAccessHref} className="btn btn--primary">
-                Manage access manually
-              </Link>
-            </div>
-          ) : null}
+          {!access.canEdit ? (
+            access.moduleArchived ? (
+              <p className="muted">Manual enrollment changes are not available while the module is archived.</p>
+            ) : (
+              <p className="muted">Only module leads and administrators can change student enrollment.</p>
+            )
+          ) : (
+            <>
+              <p className="muted">Add or remove students manually.</p>
+              {manageStudentAccessHref ? (
+                <div>
+                  <Link href={manageStudentAccessHref} className="btn btn--primary">
+                    Manage access manually
+                  </Link>
+                </div>
+              ) : null}
 
-          {access.enterpriseModuleEditor ? (
-            <p className="muted">
-              Full enrollment controls are in the{" "}
-              <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
-                enterprise module editor
-              </Link>
-              .
-            </p>
-          ) : null}
-
-          
-
-          {!access.staffModuleSetup && !access.enterpriseModuleEditor ? (
-            <p className="muted">Only module leads and administrators can change student enrollment.</p>
-          ) : null}
+              {access.enterpriseModuleEditor ? (
+                <p className="muted">
+                  Full enrollment controls are in the{" "}
+                  <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
+                    enterprise module editor
+                  </Link>
+                  .
+                </p>
+              ) : null}
+            </>
+          )}
         </Card>
       </div>
 
@@ -133,7 +151,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       ) : studentMatrix && studentMatrix.students.length === 0 ? (
         <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">No students are enrolled in this module yet.</p>
-          {access.staffModuleSetup || access.enterpriseModuleEditor ? (
+          {access.canEdit ? (
             <p className="muted">
               {access.staffModuleSetup ? (
                 <>

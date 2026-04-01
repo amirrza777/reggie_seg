@@ -33,7 +33,7 @@ export default async function StaffModuleProjectsPage({ params, searchParams }: 
     errorMessage = error instanceof Error ? error.message : "Failed to load projects.";
   }
 
-  const createHref = access.createProjectInModule
+  const createHref = access.canCreateProject
     ? `/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`
     : null;
   const projectsBase = `/staff/modules/${encodeURIComponent(moduleId)}/projects`;

@@ -125,6 +125,45 @@ describe("enterpriseAdmin service.module-management", () => {
     expect(result).toEqual({ ok: false, status: 400, error: "bad users" });
   });
 
+  it("returns 409 when updating an archived module", async () => {
+    mockState.prisma.module.findFirst.mockResolvedValueOnce({
+      id: 7,
+      archivedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const result = await updateModule(enterpriseUser as any, 7, {
+      name: "X",
+      briefText: null,
+      timelineText: null,
+      expectationsText: null,
+      readinessNotesText: null,
+      leaderIds: [11],
+      taIds: [],
+      studentIds: [],
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      status: 409,
+      error: "This module is archived and cannot be edited",
+    });
+  });
+
+  it("returns 409 when updating students on an archived module", async () => {
+    mockState.prisma.module.findFirst.mockResolvedValueOnce({
+      id: 7,
+      archivedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+
+    const result = await updateModuleStudents(enterpriseUser as any, 7, [31]);
+
+    expect(result).toEqual({
+      ok: false,
+      status: 409,
+      error: "This module is archived and cannot be edited",
+    });
+  });
+
   it("returns 400 when updating module with no leaders", async () => {
     const result = await updateModule(enterpriseUser as any, 7, {
       name: "X",

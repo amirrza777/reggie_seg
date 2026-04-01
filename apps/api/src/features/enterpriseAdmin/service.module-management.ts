@@ -150,6 +150,15 @@ export async function updateModule(enterpriseUser: EnterpriseUser, moduleId: num
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
   if (!canManage) return { ok: false as const, status: 403, error: "Forbidden" };
 
+  const moduleRow = await prisma.module.findFirst({
+    where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
+    select: { id: true, archivedAt: true },
+  });
+  if (!moduleRow) return { ok: false as const, status: 404, error: "Module not found" };
+  if (moduleRow.archivedAt != null) {
+    return { ok: false as const, status: 409, error: "This module is archived and cannot be edited" };
+  }
+
   if (payload.leaderIds.length === 0) {
     return { ok: false as const, status: 400, error: "At least one module leader is required" };
   }
@@ -420,9 +429,12 @@ export async function updateModuleStudents(enterpriseUser: EnterpriseUser, modul
 
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
-    select: { id: true },
+    select: { id: true, archivedAt: true },
   });
   if (!module) return { ok: false as const, status: 404, error: "Module not found" };
+  if (module.archivedAt != null) {
+    return { ok: false as const, status: 409, error: "This module is archived and cannot be edited" };
+  }
 
   const validation = await validateAssignmentUsers({
     enterpriseId: enterpriseUser.enterpriseId,

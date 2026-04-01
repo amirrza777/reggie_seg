@@ -51,7 +51,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
         </p>
       </header>
 
-      {access.staffModuleSetup || access.enterpriseModuleEditor ? (
+      {access.canEdit ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {access.staffModuleSetup ? (
             <Link href={`/staff/modules/${enc}/staff/access`} className="btn btn--primary btn--sm">
@@ -77,7 +77,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
       ) : members && members.length === 0 ? (
         <Card title="Staff list">
           <p className="muted">No module leads or teaching assistants are assigned yet.</p>
-          {(access.staffModuleSetup || access.enterpriseModuleEditor) ? (
+          {access.canEdit ? (
             <p className="muted">
               {access.staffModuleSetup ? (
                 <>

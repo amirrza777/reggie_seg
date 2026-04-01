@@ -137,6 +137,15 @@ export async function fetchModulesForUser(
             : undefined
         : undefined;
 
+    const archivedAt =
+      "archivedAt" in module
+        ? module.archivedAt === null
+          ? null
+          : module.archivedAt instanceof Date
+            ? module.archivedAt.toISOString()
+            : null
+        : undefined;
+
     return {
       id: String(module.id),
       code: "code" in module ? module.code ?? undefined : undefined,
@@ -154,6 +163,7 @@ export async function fetchModulesForUser(
       projectCount: "projectCount" in module ? module.projectCount : 0,
       accountRole: module.accessRole,
       ...(typeof staffWithAccessCount === "number" ? { staffWithAccessCount } : {}),
+      ...(archivedAt !== undefined ? { archivedAt } : {}),
     };
   });
 }

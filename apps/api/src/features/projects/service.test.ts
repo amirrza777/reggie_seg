@@ -148,6 +148,7 @@ describe("projects service", () => {
         teamCount: 5,
         projectCount: 2,
         accessRole: "OWNER",
+        archivedAt: null,
       },
     ]);
 
@@ -168,6 +169,7 @@ describe("projects service", () => {
         projectCount: 2,
         accountRole: "OWNER",
         moduleLeadNames: [],
+        archivedAt: null,
       },
     ]);
   });
