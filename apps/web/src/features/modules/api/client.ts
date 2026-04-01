@@ -30,7 +30,7 @@ export async function listModules(userId: number, options?: ListModulesOptions):
 }
 
 export async function joinModuleByCode(payload: JoinModulePayload): Promise<JoinModuleResponse> {
-  return apiFetch<JoinModuleResponse>("/projects/modules/join", {
+  return apiFetch<JoinModuleResponse>("/module-join/join", {
     method: "POST",
     body: JSON.stringify(payload),
   });

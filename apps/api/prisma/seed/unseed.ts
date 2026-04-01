@@ -1,19 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 import { SEED_DATABASE_PROVIDER } from "./config";
-import { SEED_TABLES } from "./schema";
+import { assertSeedCleanupCoverage, getSeedCleanupManifest } from "./schema";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  assertSeedCleanupCoverage(prisma as unknown as Record<string, unknown>);
+  const cleanupManifest = getSeedCleanupManifest();
   const cleanupStrategy = getCleanupStrategy(SEED_DATABASE_PROVIDER);
   if (cleanupStrategy.beforeAll) {
     await prisma.$executeRawUnsafe(cleanupStrategy.beforeAll);
   }
 
   try {
-    for (const table of SEED_TABLES) {
+    for (const entry of cleanupManifest) {
       try {
-        await prisma.$executeRawUnsafe(cleanupStrategy.truncate(table));
+        await prisma.$executeRawUnsafe(cleanupStrategy.truncate(entry.tableName));
       } catch (error: any) {
         // Ignore missing tables to support older migration states.
         if (isMissingTableError(error, cleanupStrategy.provider)) continue;

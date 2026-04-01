@@ -67,7 +67,7 @@ const dashboardData = {
   teamCount: 3,
   projectCount: 2,
   hasLinkedProjects: true,
-  marksRows: [{ student: "A" }],
+  marksRows: [["Project A", "78", "Published"]],
   projectPlans: [],
   timelineRows: [],
   expectationRows: [],

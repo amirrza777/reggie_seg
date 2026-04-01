@@ -21,6 +21,7 @@ import {
   searchEnterpriseModuleAccessUsers,
   searchEnterpriseModules,
   updateModuleMeetingSettings,
+  rotateEnterpriseModuleJoinCode,
   updateEnterpriseFeatureFlag,
   updateEnterpriseModule,
   updateEnterpriseModuleStudents,
@@ -134,7 +135,14 @@ describe("enterprise module api client", () => {
 
   it("loads module join code details", async () => {
     await getEnterpriseModuleJoinCode(22);
-    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/modules/22/join-code");
+    expect(apiFetchMock).toHaveBeenCalledWith("/module-join/modules/22/code");
+  });
+
+  it("rotates module join code", async () => {
+    await rotateEnterpriseModuleJoinCode(22);
+    expect(apiFetchMock).toHaveBeenCalledWith("/module-join/modules/22/code/rotate", {
+      method: "POST",
+    });
   });
 
   it("updates an enterprise module", async () => {

@@ -18,6 +18,7 @@ import {
   getUserRole,
   getUserById,
   getProjectMembers,
+  isUserInProject,
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
 import { extractMentionsFromLexicalJSON } from "../../shared/lexical.js";
@@ -31,30 +32,31 @@ async function processMentions(authorId: number, projectId: number, body: string
   if (mentionedNames.length === 0) return;
 
   const members = await getProjectMembers(projectId);
-  const membersByName = new Map<string, number[]>();
+  const membersByName = new Map<string, typeof members>();
   for (const member of members) {
     const key = normalizeName(`${member.firstName} ${member.lastName}`);
-    const ids = membersByName.get(key) ?? [];
-    ids.push(member.id);
-    membersByName.set(key, ids);
+    const group = membersByName.get(key) ?? [];
+    group.push(member);
+    membersByName.set(key, group);
   }
 
-  const mentionedIds = new Set<number>();
+  const mentionedMembers = new Map<number, (typeof members)[number]>();
   for (const name of mentionedNames) {
-    const matchedIds = (membersByName.get(normalizeName(name)) ?? []).filter((id) => id !== authorId);
+    const matched = (membersByName.get(normalizeName(name)) ?? []).filter((m) => m.id !== authorId);
     // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
-    if (matchedIds.length === 1) mentionedIds.add(matchedIds[0]);
+    if (matched.length === 1) mentionedMembers.set(matched[0].id, matched[0]);
   }
 
-  if (mentionedIds.size === 0) return;
+  if (mentionedMembers.size === 0) return;
 
   const author = await getUserById(authorId);
   const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
-  const link = `/projects/${projectId}/discussion`;
 
-  for (const mentionedId of mentionedIds) {
+  for (const member of mentionedMembers.values()) {
+    const isStaff = member.role === "STAFF" || member.role === "ADMIN" || member.role === "ENTERPRISE_ADMIN";
+    const link = isStaff ? `/staff/projects/${projectId}/discussion` : `/projects/${projectId}/discussion`;
     await addNotification({
-      userId: mentionedId,
+      userId: member.id,
       type: "MENTION",
       message: `${authorName} mentioned you in a discussion post`,
       link,
@@ -179,4 +181,10 @@ export async function ignoreStudentForumReport(userId: number, projectId: number
 
 export async function fetchStaffConversation(userId: number, projectId: number, postId: number) {
   return getStaffConversationForPost(userId, projectId, postId);
+}
+
+export async function fetchForumMembers(userId: number, projectId: number) {
+  const inProject = await isUserInProject(userId, projectId);
+  if (!inProject) return null;
+  return getProjectMembers(projectId);
 }

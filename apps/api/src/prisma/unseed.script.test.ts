@@ -13,6 +13,31 @@ function createUnseedMock() {
   return mock;
 }
 
+const prismaDmmfMock = {
+  datamodel: {
+    models: [
+      { name: "Enterprise", fields: [] },
+      { name: "User", fields: [{ kind: "object", type: "Enterprise", relationFromFields: ["enterpriseId"] }] },
+      { name: "Project", fields: [{ kind: "object", type: "User", relationFromFields: ["ownerId"] }] },
+      { name: "QuestionnaireTemplate", fields: [] },
+      { name: "FeatureFlag", fields: [] },
+      { name: "RefreshToken", fields: [{ kind: "object", type: "User", relationFromFields: ["userId"] }] },
+      { name: "StaffStudentMarking", fields: [{ kind: "object", type: "User", relationFromFields: ["studentUserId"] }] },
+    ],
+  },
+  mappings: {
+    modelOperations: [
+      { model: "Enterprise" },
+      { model: "User" },
+      { model: "Project" },
+      { model: "QuestionnaireTemplate" },
+      { model: "FeatureFlag" },
+      { model: "RefreshToken" },
+      { model: "StaffStudentMarking" },
+    ],
+  },
+};
+
 async function flushAsyncWork() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -32,6 +57,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts");
@@ -40,6 +66,7 @@ describe("prisma unseed script", () => {
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `RefreshToken`;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `StaffStudentMarking`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `FeatureFlag`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `Project`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `User`;");
@@ -60,6 +87,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts");
@@ -82,6 +110,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts").catch(() => undefined);
