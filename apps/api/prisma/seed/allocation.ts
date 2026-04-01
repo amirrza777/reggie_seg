@@ -1,8 +1,10 @@
 import argon2 from "argon2";
 import { SEED_GITHUB_STAFF_EMAIL, SEED_GITHUB_STAFF_PASSWORD, SEED_GITHUB_STUDENT_EMAIL, SEED_GITHUB_STUDENT_PASSWORD } from "./config";
+import { seedAssessmentStudentEmail } from "./data";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedUser, SeedUsersByRole } from "./types";
+import { SEED_TAS_PER_MODULE } from "./volumes";
 
 export async function seedModuleLeads(users: SeedUser[], modules: SeedModule[]) {
   return withSeedLogging("seedModuleLeads", async () => {
@@ -48,6 +50,36 @@ export async function seedStudentEnrollments(enterpriseId: string, users: SeedUs
   });
 }
 
+export async function seedModuleTeachingAssistants(users: SeedUser[], modules: SeedModule[]) {
+  return withSeedLogging("seedModuleTeachingAssistants", async () => {
+    const staff = buildUsersByRole(users).adminOrStaff;
+    if (staff.length === 0 || modules.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (no staff/modules)",
+      };
+    }
+
+    const leadAssignments = planModuleLeadSeedData(staff, modules);
+    const data = planModuleTeachingAssistantSeedData(staff, modules, leadAssignments);
+    if (data.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (no TA assignments planned)",
+      };
+    }
+
+    const created = await prisma.moduleTeachingAssistant.createMany({ data, skipDuplicates: true });
+    return {
+      value: undefined,
+      rows: created.count,
+      details: `assignments attempted=${data.length}`,
+    };
+  });
+}
+
 export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) {
   return withSeedLogging("seedTeamAllocations", async () => {
     const students = buildUsersByRole(users).students;
@@ -66,6 +98,93 @@ export async function seedTeamAllocations(users: SeedUser[], teams: SeedTeam[]) 
       value: undefined,
       rows: created.count,
       details: `allocations attempted=${data.length}`,
+    };
+  });
+}
+
+export async function seedAssessmentStudentModuleCoverage(
+  enterpriseId: string,
+  modules: SeedModule[],
+  projects: SeedProject[],
+  teams: SeedTeam[],
+) {
+  return withSeedLogging("seedAssessmentStudentModuleCoverage", async () => {
+    if (modules.length === 0 || projects.length === 0 || teams.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (missing modules/projects/teams)",
+      };
+    }
+
+    const assessmentStudent = await prisma.user.findUnique({
+      where: {
+        enterpriseId_email: {
+          enterpriseId,
+          email: seedAssessmentStudentEmail,
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!assessmentStudent) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (assessment student account not found)",
+      };
+    }
+
+    const projectByModuleId = new Map<number, SeedProject>();
+    for (const project of [...projects].sort((left, right) => left.id - right.id)) {
+      if (!projectByModuleId.has(project.moduleId)) {
+        projectByModuleId.set(project.moduleId, project);
+      }
+    }
+
+    const targetTeamIds = modules
+      .map((module) => projectByModuleId.get(module.id))
+      .filter((project): project is SeedProject => Boolean(project))
+      .map((project) => {
+        const team = teams.find((candidate) => candidate.projectId === project.id);
+        return team?.id ?? null;
+      })
+      .filter((teamId): teamId is number => typeof teamId === "number");
+
+    if (targetTeamIds.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: "skipped (no team targets found for module coverage)",
+      };
+    }
+
+    const existing = await prisma.teamAllocation.findMany({
+      where: { userId: assessmentStudent.id, teamId: { in: targetTeamIds } },
+      select: { teamId: true },
+    });
+    const existingTeamIds = new Set(existing.map((allocation) => allocation.teamId));
+    const data = targetTeamIds
+      .filter((teamId) => !existingTeamIds.has(teamId))
+      .map((teamId) => ({ teamId, userId: assessmentStudent.id }));
+
+    if (data.length === 0) {
+      return {
+        value: undefined,
+        rows: 0,
+        details: `coverage already satisfied for ${targetTeamIds.length} module(s)`,
+      };
+    }
+
+    const created = await prisma.teamAllocation.createMany({
+      data,
+      skipDuplicates: true,
+    });
+
+    return {
+      value: undefined,
+      rows: created.count,
+      details: `coverage teams=${targetTeamIds.length}`,
     };
   });
 }
@@ -109,6 +228,32 @@ export function planTeamAllocationSeedData(students: SeedUser[], teams: SeedTeam
     if (!student || !team) continue;
     data.push({ userId: student.id, teamId: team.id });
   }
+  return data;
+}
+
+export function planModuleTeachingAssistantSeedData(
+  staff: SeedUser[],
+  modules: SeedModule[],
+  leadAssignments: { moduleId: number; userId: number }[],
+) {
+  const leadByModuleId = new Map(leadAssignments.map((assignment) => [assignment.moduleId, assignment.userId]));
+  const data: { moduleId: number; userId: number }[] = [];
+
+  for (let moduleIndex = 0; moduleIndex < modules.length; moduleIndex += 1) {
+    const module = modules[moduleIndex];
+    if (!module) continue;
+
+    const leadUserId = leadByModuleId.get(module.id);
+    const preferredStaff = staff.filter((candidate) => candidate.id !== leadUserId);
+    const candidatePool = preferredStaff.length > 0 ? preferredStaff : staff;
+
+    for (let taIndex = 0; taIndex < SEED_TAS_PER_MODULE; taIndex += 1) {
+      const assignee = candidatePool[(moduleIndex + taIndex) % candidatePool.length];
+      if (!assignee) continue;
+      data.push({ moduleId: module.id, userId: assignee.id });
+    }
+  }
+
   return data;
 }
 

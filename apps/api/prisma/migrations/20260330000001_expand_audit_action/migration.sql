@@ -1,0 +1,2 @@
+-- Expand AuditAction enum with admin action types
+ALTER TABLE `AuditLog` MODIFY COLUMN `action` ENUM('LOGIN', 'LOGOUT', 'USER_ROLE_CHANGED', 'USER_UPDATED', 'ENTERPRISE_CREATED', 'ENTERPRISE_DELETED') NOT NULL;

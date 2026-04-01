@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import type { Member } from "@/shared/ui/MentionPlugin";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
@@ -17,12 +18,14 @@ import {
   reactToDiscussionPost,
   updateDiscussionPost,
 } from "@/features/forum/api/client";
+import { ApiError } from "@/shared/api/errors";
 import type { DiscussionPost } from "@/features/forum/types";
 import "../styles/discussion-forum.css";
 
 type DiscussionForumClientProps = {
   projectId: string;
   showHeader?: boolean;
+  members?: Member[];
 };
 type ReportConfirmationState = { postId: number; mode: "staff" | "student" } | null;
 
@@ -79,7 +82,7 @@ function DiscussionVoteIcon({ direction = "up" }: { direction?: "up" | "down" })
   );
 }
 
-export function DiscussionForumClient({ projectId, showHeader = true }: DiscussionForumClientProps) {
+export function DiscussionForumClient({ projectId, showHeader = true, members }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -353,6 +356,9 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
       setPostsWithRef((prev) => updatePostInTree(prev, updated));
     } catch (err) {
       logDevError(err);
+      if (err instanceof ApiError && err.status === 403) {
+        return;
+      }
       setError("Failed to update reaction.");
     } finally {
       setReactingPostId(null);
@@ -470,6 +476,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
     const immediateReplies = showAllImmediate ? post.replies : post.replies.slice(0, 3);
     const canShowMoreButton = showMore && depth === 0;
     const canReply = Boolean(user) && !userLoading;
+    const canReact = Boolean(user) && !userLoading && !isAuthor;
     const canManageOwnPost = isAuthor && !isEditing;
     const canReportAsStaff = !isStudent && isStaff && post.author.role === "STUDENT";
     const canReportAsStudent = isStudent && !isAuthor && post.myStudentReportStatus !== "PENDING";
@@ -589,6 +596,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   initialContent={editingBody}
                   onChange={setEditingBody}
                   onEmptyChange={setEditingBodyEmpty}
+                  members={members}
                 />
               </div>
               <div className="discussion-post__action-row">
@@ -707,8 +715,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 className={`discussion-post__vote-btn discussion-post__vote-btn--like${
                   post.myReaction === "LIKE" ? " is-active" : ""
                 }`}
-                onClick={() => handleReaction(post.id, "LIKE")}
-                disabled={reactingPostId === post.id}
+                onClick={() => {
+                  if (!canReact || reactingPostId === post.id) return;
+                  void handleReaction(post.id, "LIKE");
+                }}
+                disabled={!canReact || reactingPostId === post.id}
                 aria-label={post.myReaction === "LIKE" ? "Remove like" : "Like post"}
                 title={post.myReaction === "LIKE" ? "Liked" : "Like"}
               >
@@ -719,8 +730,11 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 className={`discussion-post__vote-btn discussion-post__vote-btn--dislike${
                   post.myReaction === "DISLIKE" ? " is-active" : ""
                 }`}
-                onClick={() => handleReaction(post.id, "DISLIKE")}
-                disabled={reactingPostId === post.id}
+                onClick={() => {
+                  if (!canReact || reactingPostId === post.id) return;
+                  void handleReaction(post.id, "DISLIKE");
+                }}
+                disabled={!canReact || reactingPostId === post.id}
                 aria-label={post.myReaction === "DISLIKE" ? "Remove dislike" : "Dislike post"}
                 title={post.myReaction === "DISLIKE" ? "Disliked" : "Dislike"}
               >
@@ -743,6 +757,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 onChange={(value) => handleReplyChange(post.id, value)}
                 onEmptyChange={(empty) => setReplyEmptyByPostId((prev) => ({ ...prev, [post.id]: empty }))}
                 placeholder="Write a reply"
+                members={members}
               />
             </div>
             <div className="discussion-post__reply-editor-actions">
@@ -803,6 +818,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
               onChange={setBody}
               onEmptyChange={setBodyEmpty}
               placeholder="Write your update or question"
+              members={members}
             />
           </div>
 

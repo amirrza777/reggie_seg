@@ -38,7 +38,7 @@ type SeedHelpFaq = {
 };
 
 const helpTopics: SeedHelpTopic[] = [
-  { slug: "overview", title: "Overview", description: "Find guidance by topic or jump straight to common tasks.", sortOrder: 1 },
+  { slug: "overview", title: "Overview", sortOrder: 1 },
   {
     slug: "getting-started",
     title: "Getting Started",
@@ -108,7 +108,6 @@ const helpArticles: SeedHelpArticle[] = [
     slug: "account-access-guide",
     topicSlug: "account-access",
     title: "Account & Access",
-    summary: "Access is based on enrollment and role assignment.",
     sortOrder: 1,
     body: [
       "Access issues",
@@ -143,6 +142,7 @@ const helpArticles: SeedHelpArticle[] = [
     topicSlug: "faqs",
     title: "Frequently Asked Questions",
     summary: "Search and browse the full knowledge base by audience and workflow.",
+    audience: "GENERAL",
     sortOrder: 1,
     body: [
       "The FAQ library is grouped into general, student, staff, and enterprise admin questions.",
@@ -173,7 +173,6 @@ const helpFaqGroups: SeedHelpFaqGroup[] = [
     slug: "faq-general",
     topicSlug: "faqs",
     title: "General FAQs",
-    description: "Account access, support, and troubleshooting.",
     audience: "GENERAL",
     sortOrder: 1,
   },
@@ -190,7 +189,6 @@ const helpFaqGroups: SeedHelpFaqGroup[] = [
     topicSlug: "faqs",
     title: "Staff FAQs",
     description: "Teaching workflows, questionnaires, and analytics visibility.",
-    audience: "STAFF",
     sortOrder: 3,
   },
   {
@@ -509,7 +507,6 @@ export async function seedHelpContent() {
 
     for (const group of helpFaqGroups) {
       const topicId = topicIds.get(group.topicSlug);
-      if (!topicId) throw new Error(`Missing help topic for FAQ group ${group.slug}`);
       const record = await prisma.helpFaqGroup.upsert({
         where: { slug: group.slug },
         update: {

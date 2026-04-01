@@ -9,7 +9,7 @@ export const IntegrationsSection = () => (
           <p className="muted">Show GitHub/Trello connections or sync diagram here.</p>
         </div>
       </div>
-      <div className="split__content split__content--stack" id="sync" data-reveal data-reveal-offset="-25%">
+      <div className="split__content split__content--stack" id="sync" data-reveal>
         <p className="eyebrow">Sync</p>
         <h2>One platform, synced with the tools you already use</h2>
         <p className="lede">

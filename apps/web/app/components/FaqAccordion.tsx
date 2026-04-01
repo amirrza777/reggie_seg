@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 type FaqItem = {
@@ -30,12 +31,16 @@ export function FaqAccordion({ items, reveal = true, initialOpenQuestion }: FaqA
     <div className="faq">
       {items.map((item, index) => {
         const isOpen = openIndex === index;
+        const revealStyle = reveal
+          ? ({ "--reveal-delay": `${120 + index * 70}ms` } as CSSProperties)
+          : undefined;
         return (
           <details
             key={item.question}
             className="faq__item"
-            data-reveal={reveal ? "" : undefined}
             open={isOpen}
+            data-reveal={reveal ? "" : undefined}
+            style={revealStyle}
           >
             <summary
               onClick={(event) => {

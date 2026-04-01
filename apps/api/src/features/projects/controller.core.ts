@@ -11,10 +11,6 @@ import {
   fetchProjectsForStaff,
   fetchProjectsWithTeamsForStaffMarking,
   fetchProjectsForUser,
-  fetchModulesForUser,
-  joinModuleByCode,
-  fetchModuleStaffList,
-  fetchModuleStudentProjectMatrix,
   fetchQuestionsForProject,
   fetchTeamAllocationQuestionnaireForProject,
   fetchTeamAllocationQuestionnaireStatusForUser,
@@ -187,106 +183,6 @@ export async function getUserProjectsHandler(req: AuthRequest, res: Response) {
   } catch (error) {
     console.error("Error fetching user projects:", error);
     res.status(500).json({ error: "Failed to fetch projects" });
-  }
-}
-
-export async function getUserModulesHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
-  }
-
-  const scope = req.query.scope === "staff" ? "staff" : "workspace";
-  const compact = req.query.compact === "1";
-  const parsedSearchQuery = parseSearchQuery(req.query.q);
-  if (!parsedSearchQuery.ok) {
-    return res.status(400).json({ error: parsedSearchQuery.error });
-  }
-
-  try {
-    const options: { staffOnly: boolean; compact: boolean; query?: string | null } = {
-      staffOnly: scope === "staff",
-      compact,
-    };
-    if (parsedSearchQuery.value) {
-      options.query = parsedSearchQuery.value;
-    }
-    const modules = await fetchModulesForUser(userId, options);
-    res.json(modules);
-  } catch (error) {
-    console.error("Error fetching user modules:", error);
-    res.status(500).json({ error: "Failed to fetch modules" });
-  }
-}
-
-export async function joinModuleHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const rawCode = typeof req.body?.code === "string" ? req.body.code.trim() : "";
-  if (!rawCode) {
-    return res.status(400).json({ error: "code is required" });
-  }
-
-  try {
-    const result = await joinModuleByCode(actorUserId, rawCode);
-    if (!result.ok) {
-      return res.status(result.status).json({ error: result.error });
-    }
-    return res.json(result.value);
-  } catch (error) {
-    console.error("Error joining module by code:", error);
-    return res.status(500).json({ error: "Failed to join module" });
-  }
-}
-
-/** Module leads + TAs (for staff module pages). */
-export async function getModuleStaffListHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
-  }
-
-  const moduleId = parsePositiveInt(req.params.moduleId);
-  if (moduleId === null) {
-    return res.status(400).json({ error: "Invalid module id" });
-  }
-
-  try {
-    const result = await fetchModuleStaffList(userId, moduleId);
-    if (!result.ok) {
-      return res.status(result.status).json({ error: "Forbidden" });
-    }
-    return res.json({ members: result.members });
-  } catch (error) {
-    console.error("Error fetching module staff list:", error);
-    return res.status(500).json({ error: "Failed to fetch module staff" });
-  }
-}
-
-/** Enrolled students × project team matrix for a module (staff workspace). */
-export async function getModuleStudentProjectMatrixHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req, res);
-  if (userId === null) {
-    return;
-  }
-
-  const moduleId = parsePositiveInt(req.params.moduleId);
-  if (moduleId === null) {
-    return res.status(400).json({ error: "Invalid module id" });
-  }
-
-  try {
-    const result = await fetchModuleStudentProjectMatrix(userId, moduleId);
-    if (!result.ok) {
-      return res.status(result.status).json({ error: "Forbidden" });
-    }
-    return res.json({ projects: result.projects, students: result.students });
-  } catch (error) {
-    console.error("Error fetching module student project matrix:", error);
-    return res.status(500).json({ error: "Failed to fetch student project matrix" });
   }
 }
 

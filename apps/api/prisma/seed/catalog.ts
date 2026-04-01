@@ -2,6 +2,7 @@ import { Role } from "@prisma/client";
 import { moduleData, projectData, questionnaireTemplateData, teamData, userData } from "./data";
 import { planSeedModuleJoinCode } from "./joinCodes";
 import { withSeedLogging } from "./logging";
+import { buildSeedModuleContent } from "./moduleContent";
 import { prisma } from "./prismaClient";
 import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "./types";
 
@@ -21,7 +22,7 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
     });
 
     const allUsers = await prisma.user.findMany({
-      select: { id: true, role: true, email: true },
+      select: { id: true, role: true, email: true, firstName: true, lastName: true },
       where: {
         enterpriseId,
         email: {
@@ -31,9 +32,11 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
     });
 
     return {
-      value: allUsers.map((u: { id: number; role: Role }) => ({
+      value: allUsers.map((u: { id: number; role: Role; firstName: string | null; lastName: string | null }) => ({
         id: u.id,
         role: u.role,
+        firstName: u.firstName,
+        lastName: u.lastName,
       })),
       rows: created.count,
       details: `password hashes updated=${updated.count}`,
@@ -162,7 +165,7 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
     });
 
     const projects = await prisma.project.findMany({
-      select: { id: true, questionnaireTemplateId: true },
+      select: { id: true, moduleId: true, questionnaireTemplateId: true },
       where: {
         moduleId: { in: modules.map((module) => module.id) },
         name: { in: projectData.map((p) => p.name) },
@@ -170,8 +173,9 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
     });
 
     return {
-      value: projects.map((p: { id: number; questionnaireTemplateId: number }) => ({
+      value: projects.map((p: { id: number; moduleId: number; questionnaireTemplateId: number }) => ({
         id: p.id,
+        moduleId: p.moduleId,
         templateId: p.questionnaireTemplateId,
       })),
       rows: created.count,
@@ -234,6 +238,7 @@ export function planModuleSeedData(enterpriseId: string) {
     enterpriseId,
     code: buildSeedModuleCode(index),
     joinCode: planSeedModuleJoinCode(index),
+    ...buildSeedModuleContent(module.name, index),
   }));
 }
 

@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { subscribeToAuditStream, unsubscribeFromAuditStream } from "../audit/sse.js";
 import { parseAdminEnterpriseSearchFilters } from "./enterpriseSearch.js";
 import { parseAdminUserSearchFilters } from "./userSearch.js";
 import {
@@ -45,7 +46,7 @@ export async function updateUserRoleHandler(req: AdminRequest, res: Response) {
   if (!id.ok) return res.status(400).json({ error: id.error });
   const role = parseUpdateUserRoleBody(req.body);
   if (!role.ok) return res.status(400).json({ error: role.error });
-  const result = await updateOwnEnterpriseUserRole(req.adminUser?.enterpriseId as string, id.value, role.value);
+  const result = await updateOwnEnterpriseUserRole(req.adminUser?.enterpriseId as string, id.value, role.value, req.adminUser?.id);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -55,7 +56,7 @@ export async function updateUserHandler(req: AdminRequest, res: Response) {
   if (!id.ok) return res.status(400).json({ error: id.error });
   const updates = parseUpdateUserBody(req.body);
   if (!updates.ok) return res.status(400).json({ error: updates.error });
-  const result = await updateOwnEnterpriseUser(req.adminUser?.enterpriseId as string, id.value, updates.value);
+  const result = await updateOwnEnterpriseUser(req.adminUser?.enterpriseId as string, id.value, updates.value, req.adminUser?.id);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -74,7 +75,7 @@ export async function createEnterpriseHandler(req: AdminRequest, res: Response) 
   try {
     const parsedBody = parseCreateEnterpriseBody(req.body);
     if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
-    const result = await createEnterprise(parsedBody.value);
+    const result = await createEnterprise(parsedBody.value, req.adminUser?.id);
     if (!result.ok) return res.status(result.status).json({ error: result.error });
     return res.status(201).json(result.value);
   } catch (err) {
@@ -108,7 +109,7 @@ export async function updateEnterpriseUserHandler(req: AdminRequest, res: Respon
   if (!id.ok) return res.status(400).json({ error: id.error });
   const updates = parseUpdateUserBody(req.body);
   if (!updates.ok) return res.status(400).json({ error: updates.error });
-  const result = await updateEnterpriseUser(enterpriseId.value, id.value, updates.value);
+  const result = await updateEnterpriseUser(enterpriseId.value, id.value, updates.value, req.adminUser?.id);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -116,7 +117,7 @@ export async function updateEnterpriseUserHandler(req: AdminRequest, res: Respon
 export async function deleteEnterpriseHandler(req: AdminRequest, res: Response) {
   const enterpriseId = parseAdminEnterpriseIdParam(req.params.enterpriseId);
   if (!enterpriseId.ok) return res.status(400).json({ error: enterpriseId.error });
-  const result = await deleteEnterprise(enterpriseId.value, req.adminUser?.enterpriseId);
+  const result = await deleteEnterprise(enterpriseId.value, req.adminUser?.enterpriseId, req.adminUser?.id);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -127,4 +128,27 @@ export async function listAuditLogsHandler(req: AdminRequest, res: Response) {
   const parsedQuery = parseAuditLogsQuery(req.query);
   if (!parsedQuery.ok) return res.status(400).json({ error: parsedQuery.error });
   return res.json(await getAuditLogs(enterpriseId, parsedQuery.value));
+}
+
+export function auditLogsStreamHandler(req: AdminRequest, res: Response) {
+  const enterpriseId = req.adminUser?.enterpriseId;
+  if (!enterpriseId) {
+    res.status(500).end();
+    return;
+  }
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const heartbeat = setInterval(() => res.write(": heartbeat\n\n"), 30_000);
+
+  subscribeToAuditStream(enterpriseId, res);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unsubscribeFromAuditStream(enterpriseId, res);
+  });
 }

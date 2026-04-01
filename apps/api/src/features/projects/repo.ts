@@ -526,6 +526,7 @@ export async function getUserProjects(userId: number) {
     select: {
       id: true,
       name: true,
+      moduleId: true,
       archivedAt: true,
       module: {
         select: {
@@ -2465,6 +2466,18 @@ export async function upsertStaffStudentDeadlineOverride(
     feedbackDueDate: override.feedbackDueDate?.toISOString() ?? null,
     updatedAt: override.updatedAt.toISOString(),
   };
+}
+
+export async function getModuleLeadsForProject(projectId: number) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { moduleId: true },
+  });
+  if (!project) return [];
+  return prisma.moduleLead.findMany({
+    where: { moduleId: project.moduleId },
+    select: { userId: true },
+  });
 }
 
 export async function clearStaffStudentDeadlineOverride(

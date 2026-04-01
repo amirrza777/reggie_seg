@@ -2,6 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 
 type ProjectBar = {
   name: string;
@@ -13,6 +14,8 @@ type StaffStudentsBarChartProps = {
 };
 
 export function StaffStudentsBarChart({ projects }: StaffStudentsBarChartProps) {
+  const { containerHandlers, chartHandlers, tooltipProps } = useChartCursorTooltip();
+
   if (projects.length === 0) {
     return <p className="muted">No project data available.</p>;
   }
@@ -25,9 +28,15 @@ export function StaffStudentsBarChart({ projects }: StaffStudentsBarChartProps) 
   const chartHeight = Math.max(160, data.length * 38 + 40);
 
   return (
-    <div style={{ height: chartHeight }}>
+    <div className="ui-no-select" style={{ height: chartHeight }} {...containerHandlers}>
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 0, right: 16, left: 0, bottom: 0 }}
+          accessibilityLayer={false}
+          {...chartHandlers}
+        >
           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" />
           <XAxis
             type="number"
@@ -45,11 +54,10 @@ export function StaffStudentsBarChart({ projects }: StaffStudentsBarChartProps) 
             tickLine={false}
           />
           <Tooltip
-            isAnimationActive
             content={<ChartTooltipContent className="ui-chart-tooltip--project-names" />}
             formatter={(value, _name, entry) => [value, entry.payload?.name ?? "Students"]}
             labelFormatter={() => ""}
-            cursor={{ fill: "var(--accent-soft, rgba(100,100,255,0.06))" }}
+            {...tooltipProps}
           />
           <Bar dataKey="students" radius={[0, 4, 4, 0]} maxBarSize={22} name="Students" fill="#6366f1" isAnimationActive />
         </BarChart>

@@ -10,7 +10,7 @@ import "../styles/global-app-shell.css";
 
 export const dynamic = "force-dynamic";
 
-const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
+const SUPER_ADMIN_EMAIL = (process.env.SUPER_ADMIN_EMAIL ?? "admin@kcl.ac.uk").toLowerCase();
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const user = await getCurrentUser();

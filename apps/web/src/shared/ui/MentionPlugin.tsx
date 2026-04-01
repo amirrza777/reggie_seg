@@ -11,18 +11,23 @@ import {
 } from "@lexical/react/LexicalTypeaheadMenuPlugin";
 import { $createMentionNode } from "./MentionNode";
 
-type Member = {
+export type Member = {
   id: number;
   firstName: string;
   lastName: string;
+  projectRole?: string;
 };
 
 class MentionOption extends MenuOption {
+  memberId: number;
   name: string;
+  projectRole?: string;
 
-  constructor(name: string) {
+  constructor(memberId: number, name: string, projectRole?: string) {
     super(name);
+    this.memberId = memberId;
     this.name = name;
+    this.projectRole = projectRole;
   }
 }
 
@@ -42,7 +47,7 @@ export function MentionPlugin({ members }: MentionPluginProps) {
     const query = queryString?.toLowerCase() ?? "";
     const availableMembers = Array.isArray(members) ? members : [];
     return availableMembers
-      .map((m) => new MentionOption(`${m.firstName} ${m.lastName}`))
+      .map((m) => new MentionOption(m.id, `${m.firstName} ${m.lastName}`, m.projectRole))
       .filter((option) => option.name.toLowerCase().includes(query));
   }, [members, queryString]);
 
@@ -81,7 +86,7 @@ export function MentionPlugin({ members }: MentionPluginProps) {
               const isSelected = selectedIndex === index;
               return (
                 <li
-                  key={option.key}
+                  key={option.memberId}
                   ref={option.setRefElement}
                   className={
                     isSelected
@@ -94,6 +99,9 @@ export function MentionPlugin({ members }: MentionPluginProps) {
                   aria-selected={isSelected}
                 >
                   {option.name}
+                  {option.projectRole && (
+                    <span className="mention-dropdown__role">{option.projectRole}</span>
+                  )}
                 </li>
               );
             })}

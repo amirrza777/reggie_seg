@@ -1,11 +1,11 @@
 import { randomBytes } from "node:crypto";
-import { SEED_FIXTURE_JOIN_CODES } from "./config";
+import { SEED_CONFIG } from "./config";
 
 const SEED_JOIN_CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTVWXYZ";
 const SEED_JOIN_CODE_LENGTH = 8;
 
 export function planSeedModuleJoinCode(index: number) {
-  if (SEED_FIXTURE_JOIN_CODES) {
+  if (SEED_CONFIG.fixtureJoinCodes) {
     return `SM${String(index + 1).padStart(6, "0")}`;
   }
 

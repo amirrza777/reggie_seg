@@ -14,6 +14,7 @@ import {
   approveStudentForumReport,
   ignoreStudentForumReport,
   fetchStaffConversation,
+  fetchForumMembers,
 } from "./service.js";
 import {
   parseCreateDiscussionPostBody,
@@ -264,5 +265,19 @@ export async function getStaffConversationHandler(req: Request, res: Response) {
   } catch (error) {
     console.error("Error fetching staff forum conversation:", error);
     res.status(500).json({ error: "Failed to fetch conversation" });
+  }
+}
+
+export async function getForumMembersHandler(req: Request, res: Response) {
+  const parsed = parseProjectUserQuery(req as any);
+  if (!parsed.ok) return res.status(400).json({ error: parsed.error });
+
+  try {
+    const members = await fetchForumMembers(parsed.value.userId, parsed.value.projectId);
+    if (!members) return res.status(403).json({ error: "Forbidden" });
+    res.json(members);
+  } catch (error) {
+    console.error("Error fetching forum members:", error);
+    res.status(500).json({ error: "Failed to fetch forum members" });
   }
 }

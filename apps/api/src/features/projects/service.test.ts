@@ -16,6 +16,7 @@ import {
   submitTeamHealthMessage,
   fetchMyTeamHealthMessages,
   fetchTeamHealthMessagesForStaff,
+  upsertStaffStudentDeadlineOverride,
   createTeamWarningForStaff,
   fetchTeamWarningsForStaff,
   resolveTeamWarningForStaff,
@@ -31,7 +32,7 @@ import {
   parseProjectWarningsConfig,
 } from "./service.js";
 import * as repo from "./repo.js";
-import * as moduleJoinService from "../moduleJoin/service.js";
+import * as notificationsService from "../notifications/service.js";
 
 vi.mock("./repo.js", () => ({
   getProjectById: vi.fn(),
@@ -63,9 +64,12 @@ vi.mock("./repo.js", () => ({
   getActiveAutoTeamWarningsForProject: vi.fn(),
   resolveTeamWarningById: vi.fn(),
   updateAutoTeamWarningById: vi.fn(),
+  getModuleLeadsForProject: vi.fn(),
+  upsertStaffStudentDeadlineOverride: vi.fn(),
+  clearStaffStudentDeadlineOverride: vi.fn(),
 }));
-vi.mock("../moduleJoin/service.js", () => ({
-  joinModuleByCode: vi.fn(),
+vi.mock("../notifications/service.js", () => ({
+  addNotification: vi.fn(),
 }));
 
 type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
@@ -117,13 +121,13 @@ describe("projects service", () => {
 
   it("maps user projects to API shape with fallback module name", async () => {
     (repo.getUserProjects as any).mockResolvedValue([
-      { id: 1, name: "A", module: { name: "SEGP" } },
-      { id: 2, name: "B", module: null },
+      { id: 1, name: "A", moduleId: 10, module: { name: "SEGP" } },
+      { id: 2, name: "B", moduleId: 11, module: null },
     ]);
 
     await expect(fetchProjectsForUser(7)).resolves.toEqual([
-      { id: 1, name: "A", moduleName: "SEGP", archivedAt: null },
-      { id: 2, name: "B", moduleName: "", archivedAt: null },
+      { id: 1, name: "A", moduleId: 10, moduleName: "SEGP", archivedAt: null },
+      { id: 2, name: "B", moduleId: 11, moduleName: "", archivedAt: null },
     ]);
   });
 
@@ -176,51 +180,34 @@ describe("projects service", () => {
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
-  it("joinModuleByCode restricts joins to students and maps idempotent enrollments", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
-    await expect(joinModuleByCode(7, "ABCD-2345")).resolves.toEqual({
-      ok: false,
-      status: 403,
-      error: "Forbidden",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: true,
-      value: { moduleId: 9, moduleName: "SEGP", result: "already_joined" },
-    });
-    await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
-      ok: true,
-      value: {
-        moduleId: 9,
-        moduleName: "SEGP",
-        result: "already_joined",
+  it("scopes enrolled module project counts to projects assigned to the user", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([
+      {
+        id: 5,
+        code: "MOD-5",
+        name: "Elementary Logic with Applications",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        leaderCount: 2,
+        teachingAssistantCount: 1,
+        teamCount: 6,
+        projectCount: 3,
+        accessRole: "ENROLLED",
       },
-    });
-    expect(moduleJoinService.joinModuleByCode).toHaveBeenCalledWith(7, "abcd-2345");
-  });
+    ]);
+    (repo.getUserProjects as any).mockResolvedValue([
+      { id: 11, moduleId: 5, name: "Project A", module: { name: "Elementary Logic with Applications" } },
+    ]);
 
-  it("joinModuleByCode rejects invalid or unavailable codes with the generic error", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
+    await expect(fetchModulesForUser(7)).resolves.toEqual([
+      expect.objectContaining({
+        id: "5",
+        accountRole: "ENROLLED",
+        projectCount: 1,
+      }),
+    ]);
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {
@@ -302,6 +289,33 @@ describe("projects service", () => {
     ]);
   });
 
+  it("keeps only matching teams when a staff marking query matches team names but not the project/module", async () => {
+    getStaffProjectsForMarkingMock.mockResolvedValue([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        module: { name: "SEGP" },
+        teams: [
+          { id: 3, teamName: "Team Alpha", projectId: 42, inactivityFlag: "NONE", _count: { allocations: 5 } },
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", _count: { allocations: 4 } },
+        ],
+      },
+    ] as unknown as RepoAsyncResult<typeof repo.getStaffProjectsForMarking>);
+
+    await expect(fetchProjectsWithTeamsForStaffMarking(9, { query: "delta" })).resolves.toEqual([
+      {
+        id: 42,
+        name: "Capstone",
+        moduleId: 8,
+        moduleName: "SEGP",
+        teams: [
+          { id: 4, teamName: "Delta Builders", projectId: 42, inactivityFlag: "YELLOW", studentCount: 4 },
+        ],
+      },
+    ]);
+  });
+
   it("submitTeamHealthMessage validates membership and creates request", async () => {
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toBeNull();
@@ -309,6 +323,7 @@ describe("projects service", () => {
 
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
     (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101, resolved: false });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([]);
     await expect(submitTeamHealthMessage(7, 3, "Need support", "Please review")).resolves.toEqual({
       id: 101,
       resolved: false,
@@ -733,5 +748,39 @@ describe("projects service", () => {
     );
     expect(repo.resolveTeamWarningById).toHaveBeenCalledWith(81);
     expect(repo.createTeamWarning).not.toHaveBeenCalled();
+  });
+
+  it("notifies module leads when a team health message is submitted", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValue({ id: 22 });
+    (repo.createTeamHealthMessage as any).mockResolvedValue({ id: 101 });
+    (repo.getModuleLeadsForProject as any).mockResolvedValue([{ userId: 10 }, { userId: 11 }]);
+
+    await submitTeamHealthMessage(7, 3, "Need support", "Details");
+
+    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 10, type: "TEAM_HEALTH_SUBMITTED" })
+    );
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 11, type: "TEAM_HEALTH_SUBMITTED" })
+    );
+  });
+
+  it("does not notify when user is not in a team", async () => {
+    (repo.getTeamByUserAndProject as any).mockResolvedValue(null);
+
+    await submitTeamHealthMessage(7, 3, "Need support", "Details");
+
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("notifies the student when a deadline override is granted", async () => {
+    (repo.upsertStaffStudentDeadlineOverride as any).mockResolvedValue({ id: 55 });
+
+    await upsertStaffStudentDeadlineOverride(1, 3, 9, { taskDueDate: new Date() });
+
+    expect(notificationsService.addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 9, type: "DEADLINE_OVERRIDE_GRANTED" })
+    );
   });
 });

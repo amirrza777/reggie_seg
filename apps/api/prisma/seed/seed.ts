@@ -1,23 +1,7 @@
 import argon2 from "argon2";
-import {
-  buildUsersByRole,
-  seedAdminTeamAllocation,
-  seedGithubE2EUsers,
-  seedModuleLeads,
-  seedStudentEnrollments,
-  seedTeamAllocations,
-} from "./allocation";
-import { seedCompletedProjectScenario } from "./completed-project";
-import { seedModules, seedProjects, seedQuestionnaireTemplates, seedTeams, seedUsers } from "./catalog";
-import {
-  SEED_COMPLETED_PROJECT_SCENARIO,
-  SEED_ENABLE_ADMIN_TEAM_ALLOCATION,
-  SEED_PROFILE,
-  SEED_USER_PASSWORD,
-} from "./config";
-import { assertPrismaClientModels, getSeedEnterprises, seedAdminUser } from "./core";
+import { SEED_CONFIG, SEED_PROFILE, SEED_USER_PASSWORD } from "./config";
+import { assertPrismaClientModels, getSeedEnterprises } from "./core";
 import { seedMarkerUserData } from "./data";
-import { seedForumPosts } from "./forum";
 import { seedHelpContent } from "./help";
 import { planSeedModuleJoinCode } from "./joinCodes";
 import { withSeedLogging } from "./logging";
@@ -28,6 +12,7 @@ import { seedNotifications } from "./notifications";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedEnterprise } from "./types";
 import { SEED_MODULE_COUNT } from "./volumes";
+import { buildSeedContext, buildSeedStepPlan } from "./plan";
 
 async function main() {
   assertPrismaClientModels();
@@ -43,41 +28,26 @@ async function main() {
 
   console.log(`Seed users ready across ${enterprises.length} enterprise(s). Default password: ${seedPassword}`);
   console.log(`Seed profile: ${SEED_PROFILE}`);
+  console.log("------------------------------------------------------------------------------------------------------");
   console.log("Assessment accounts seeded for project assessment workflows:");
   for (const account of seedMarkerUserData) {
     console.log(`- ${account.email} (${account.role})`);
   }
-  console.log("Seeded projects also include generated discussion-forum threads from both staff and student accounts.");
   console.log(`These accounts are intended for project assessment/testing flows. Shared password: ${seedPassword}`);
-}
-
-async function buildSeedContext(enterprise: SeedEnterprise, passwordHash: string): Promise<SeedContext> {
-  await seedAdminUser(enterprise.id);
-  const users = await seedUsers(enterprise.id, passwordHash);
-  const usersByRole = buildUsersByRole(users);
-  const modules = await seedModules(enterprise.id);
-  const templateOwner = usersByRole.adminOrStaff[0];
-  const templates = await seedQuestionnaireTemplates(templateOwner?.id);
-  const projects = await seedProjects(modules, templates);
-  const teams = await seedTeams(enterprise.id, projects);
-
-  return {
-    enterprise,
-    passwordHash,
-    users,
-    usersByRole,
-    modules,
-    templates,
-    projects,
-    teams,
-  };
+  console.log("Seeded projects also include generated discussion-forum threads from both staff and student accounts.");
+  console.log("------------------------------------------------------------------------------------------------------");
+  console.log(
+    `Seed config: fixtureJoinCodes=${SEED_CONFIG.fixtureJoinCodes}; deterministicFixtures=${SEED_CONFIG.deterministicFixtures}; scenarios=${Array.from(SEED_CONFIG.scenarios).join(", ") || "none"}`,
+  );
+  console.log("To change seed profiles, rerun with SEED_PROFILE set, e.g. `SEED_PROFILE=demo npm run db:seed`.");
+  console.log("Available profiles in code: dev, demo, e2e, trello-e2e.");
 }
 
 const seedPassword = SEED_USER_PASSWORD;
 
-async function runSeedSteps(context: SeedContext) {
-  for (const step of buildSeedStepPlan(context)) {
-    await step();
+async function runSeedSteps(context: Awaited<ReturnType<typeof buildSeedContext>>) {
+  for (const step of buildSeedStepPlan(context, SEED_CONFIG)) {
+    await step.run();
   }
 }
 

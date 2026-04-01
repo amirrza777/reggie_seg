@@ -2,8 +2,9 @@
 import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
 import { getProject, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
-import { getCurrentUser } from "@/shared/auth/session";
 import { PageSection } from "@/shared/ui/PageSection";
+import { getForumMembers } from "@/features/forum/api/client";
+import { getCurrentUser } from "@/shared/auth/session";
 
 export const metadata = { title: "Discussion Forum" };
 
@@ -46,6 +47,6 @@ export default async function ProjectDiscussionPage({ params }: ProjectDiscussio
   }
 
   return (
-    <DiscussionForumClient projectId={projectId} />
+    <DiscussionForumClient projectId={projectId} members={members} />
   );
 }

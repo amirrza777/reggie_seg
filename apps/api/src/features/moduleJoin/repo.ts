@@ -40,9 +40,55 @@ export async function insertModuleEnrollment(enterpriseId: string, userId: numbe
   return inserted.count > 0;
 }
 
-export async function getManagedModuleJoinCode(enterpriseId: string, moduleId: number) {
+export async function getAuthorizedModuleJoinCode(input: {
+  enterpriseId: string;
+  moduleId: number;
+  userId: number;
+  role: string;
+}) {
+  const roleCanManageAll = input.role === "ADMIN" || input.role === "ENTERPRISE_ADMIN";
+
+  return prisma.module.findFirst({
+    where: {
+      id: input.moduleId,
+      enterpriseId: input.enterpriseId,
+      ...(roleCanManageAll ? {} : { moduleLeads: { some: { userId: input.userId } } }),
+    },
+    select: { id: true, joinCode: true },
+  });
+}
+
+export async function getAuthorizedModuleForJoinCodeMutation(input: {
+  enterpriseId: string;
+  moduleId: number;
+  userId: number;
+  role: string;
+}) {
+  const roleCanManageAll = input.role === "ADMIN" || input.role === "ENTERPRISE_ADMIN";
+
+  return prisma.module.findFirst({
+    where: {
+      id: input.moduleId,
+      enterpriseId: input.enterpriseId,
+      ...(roleCanManageAll ? {} : { moduleLeads: { some: { userId: input.userId } } }),
+    },
+    select: { id: true, name: true, enterpriseId: true, joinCode: true },
+  });
+}
+
+export async function updateModuleJoinCode(moduleId: number, enterpriseId: string, joinCode: string) {
+  await prisma.module.update({
+    where: { id_enterpriseId: { id: moduleId, enterpriseId } },
+    data: { joinCode },
+  });
+
   return prisma.module.findFirst({
     where: { id: moduleId, enterpriseId },
-    select: { id: true, joinCode: true },
+    select: {
+      id: true,
+      name: true,
+      enterpriseId: true,
+      joinCode: true,
+    },
   });
 }

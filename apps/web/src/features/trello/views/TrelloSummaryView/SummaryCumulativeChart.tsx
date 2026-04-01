@@ -3,17 +3,18 @@
 import {
   BarChart,
   Bar,
-  XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 import { formatDate } from "@/shared/lib/formatDate";
 import type { SummaryChartPoint } from "@/features/trello/lib/summaryChartData";
 import { getWeekStartKeyUTC } from "@/features/trello/lib/weekUtils";
+import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
+import { ProjectBoundaryReferenceLine } from "../../components/ProjectBoundaryReferenceLine";
+import { TrelloTimeXAxis } from "../../components/TrelloTimeXAxis";
 
 type Props = {
   chartData: SummaryChartPoint[];
@@ -34,6 +35,7 @@ export function SummaryCumulativeChart({
   projectStartTime,
   projectEndTime,
 }: Props) {
+  const { containerHandlers, chartHandlers, tooltipProps } = useChartCursorTooltip();
   const [xAxisMin, xAxisMax] = xAxisDomain;
   const weekMs = 7 * 24 * 60 * 60 * 1000;
   const startWeekMs =
@@ -60,25 +62,24 @@ export function SummaryCumulativeChart({
       ) : null}
 
       {chartData.length > 0 ? (
-        <div style={{ width: "100%", height: 320 }}>
+        <div
+          className="ui-no-select"
+          style={{ width: "100%", height: 320 }}
+          {...containerHandlers}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={chartData}
               margin={{ top: 40, right: 24, left: 8, bottom: 24 }}
               barCategoryGap="20%"
+              accessibilityLayer={false}
+              {...chartHandlers}
             >
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis
-                type="number"
-                dataKey="time"
-                domain={xAxisDomain}
-                scale="linear"
-                tickFormatter={(t: number) => formatDate(new Date(t).toISOString().slice(0, 10))}
-                padding={{ left: 24, right: 24 }}
-              />
+              <TrelloTimeXAxis domain={xAxisDomain} scale="linear" />
               <YAxis allowDecimals={false} domain={[0, (max: number) => Math.max(max ?? 0, 1)]} />
               <Tooltip
-                isAnimationActive
+                {...tooltipProps}
                 content={({ active, payload }) => {
                   if (!active || !payload?.length) return null;
                   const p = payload[0].payload as SummaryChartPoint;
@@ -111,45 +112,19 @@ export function SummaryCumulativeChart({
               />
               <Legend />
               {showStartLine && (
-                <ReferenceLine
+                <ProjectBoundaryReferenceLine
                   x={projectStartTime!}
-                  stroke="#0079bf"
-                  strokeDasharray="4 4"
-                  label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
-                    const x = viewBox?.x ?? 0;
-                    const y = (viewBox?.y ?? 0) - 8;
-                    return (
-                      <text x={x} y={y} textAnchor="middle" fill="#0079bf" fontSize={11}>
-                        <tspan x={x} dy="0">
-                          Project starts
-                        </tspan>
-                        <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
-                          {formatDate(deadlineStart!)}
-                        </tspan>
-                      </text>
-                    );
-                  }}
+                  color="#0079bf"
+                  title="Project starts"
+                  dateLabel={formatDate(deadlineStart!)}
                 />
               )}
               {showEndLine && (
-                <ReferenceLine
+                <ProjectBoundaryReferenceLine
                   x={projectEndTime!}
-                  stroke="#61bd4f"
-                  strokeDasharray="4 4"
-                  label={({ viewBox }: { viewBox?: { x?: number; y?: number } }) => {
-                    const x = viewBox?.x ?? 0;
-                    const y = (viewBox?.y ?? 0) - 8;
-                    return (
-                      <text x={x} y={y} textAnchor="middle" fill="#61bd4f" fontSize={11}>
-                        <tspan x={x} dy="0">
-                          Project ends
-                        </tspan>
-                        <tspan x={x} dy="14" fontSize={10} opacity={0.9}>
-                          {formatDate(deadlineEnd!)}
-                        </tspan>
-                      </text>
-                    );
-                  }}
+                  color="#61bd4f"
+                  title="Project ends"
+                  dateLabel={formatDate(deadlineEnd!)}
                 />
               )}
               <Bar

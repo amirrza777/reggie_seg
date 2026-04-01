@@ -219,7 +219,7 @@ export function useEnterpriseModuleCreateFormState({
         code: normalizeOptionalModuleCode(moduleCode),
         leaderIds,
       });
-      const nextHref = resolveCreatedModuleHref(workspace, createdModule.id, createdModule.joinCode);
+      const nextHref = resolveCreatedModuleHref(workspace, createdModule.id);
       router.push(nextHref);
       router.refresh();
     } catch (err) {
@@ -385,9 +385,9 @@ function normalizeOptionalModuleCode(value: string): string | undefined {
   return normalized ? normalized : undefined;
 }
 
-function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number, joinCode: string): string {
+function resolveCreatedModuleHref(workspace: "enterprise" | "staff", moduleId: number): string {
   const basePath = workspace === "staff" ? `/staff/modules/${moduleId}/manage` : `/enterprise/modules/${moduleId}/edit`;
-  const searchParams = new URLSearchParams({ created: "1", joinCode });
+  const searchParams = new URLSearchParams({ created: "1" });
   return `${basePath}?${searchParams.toString()}`;
 }
 

@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { app } from "./app.js";
 import { startNotificationJob } from "./shared/notificationJob.js";
 import { prisma } from "./shared/db.js";
+import { startAuditRetentionJob } from "./features/audit/retentionJob.js";
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ bootstrap()
     app.listen(port, host, () => {
       console.log(`API listening on http://${host}:${port}`);
       startNotificationJob();
+      startAuditRetentionJob();
     });
   })
   .catch((err) => {
