@@ -84,7 +84,13 @@ export function assertSeedCleanupCoverage(prismaLike: Record<string, unknown>) {
   const coveredDelegates = new Set(manifest.map((entry) => entry.delegateName));
 
   const missingDelegates = Object.entries(prismaLike)
-    .filter(([key, value]) => !key.startsWith("$") && value && typeof value === "object")
+    .filter(
+      ([key, value]) =>
+        !key.startsWith("$") &&
+        !key.startsWith("_") &&
+        value &&
+        typeof value === "object",
+    )
     .map(([key]) => key)
     .filter((key) => !coveredDelegates.has(key));
 
