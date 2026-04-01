@@ -22,7 +22,7 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
     });
 
     const allUsers = await prisma.user.findMany({
-      select: { id: true, role: true, email: true },
+      select: { id: true, role: true, email: true, firstName: true, lastName: true },
       where: {
         enterpriseId,
         email: {
@@ -32,9 +32,11 @@ export async function seedUsers(enterpriseId: string, seedPasswordHash: string):
     });
 
     return {
-      value: allUsers.map((u: { id: number; role: Role }) => ({
+      value: allUsers.map((u: { id: number; role: Role; firstName: string | null; lastName: string | null }) => ({
         id: u.id,
         role: u.role,
+        firstName: u.firstName,
+        lastName: u.lastName,
       })),
       rows: created.count,
       details: `password hashes updated=${updated.count}`,
