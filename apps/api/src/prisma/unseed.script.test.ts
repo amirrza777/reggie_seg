@@ -13,6 +13,29 @@ function createUnseedMock() {
   return mock;
 }
 
+const prismaDmmfMock = {
+  datamodel: {
+    models: [
+      { name: "Enterprise", fields: [] },
+      { name: "User", fields: [{ kind: "object", type: "Enterprise", relationFromFields: ["enterpriseId"] }] },
+      { name: "Project", fields: [{ kind: "object", type: "User", relationFromFields: ["ownerId"] }] },
+      { name: "QuestionnaireTemplate", fields: [] },
+      { name: "FeatureFlag", fields: [] },
+      { name: "RefreshToken", fields: [{ kind: "object", type: "User", relationFromFields: ["userId"] }] },
+    ],
+  },
+  mappings: {
+    modelOperations: [
+      { model: "Enterprise" },
+      { model: "User" },
+      { model: "Project" },
+      { model: "QuestionnaireTemplate" },
+      { model: "FeatureFlag" },
+      { model: "RefreshToken" },
+    ],
+  },
+};
+
 async function flushAsyncWork() {
   await new Promise((resolve) => setTimeout(resolve, 0));
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -32,6 +55,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts");
@@ -60,6 +84,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts");
@@ -82,6 +107,7 @@ describe("prisma unseed script", () => {
 
     vi.doMock("@prisma/client", () => ({
       PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
     }));
 
     await import("../../prisma/seed/unseed.ts").catch(() => undefined);
