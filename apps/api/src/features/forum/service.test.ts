@@ -15,6 +15,7 @@ import {
   approveStudentForumReport,
   ignoreStudentForumReport,
   fetchStaffConversation,
+  fetchForumMembers,
 } from "./service.js";
 
 vi.mock("./repo.js", () => ({
@@ -37,6 +38,7 @@ vi.mock("./repo.js", () => ({
   getUserRole: vi.fn(),
   getUserById: vi.fn(),
   getProjectMembers: vi.fn(),
+  isUserInProject: vi.fn(),
 }));
 
 vi.mock("../notifications/service.js", () => ({
@@ -206,7 +208,7 @@ describe("forum service", () => {
     it("sends MENTION notification to mentioned member", async () => {
       (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
       (repo.getProjectMembers as any).mockResolvedValue([
-        { id: 10, firstName: "Reggie", lastName: "King" },
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STUDENT" },
       ]);
 
       await createDiscussionPost(5, 2, "title", mentionBody, null);
@@ -219,7 +221,7 @@ describe("forum service", () => {
     it("does not notify the author if they mention themselves", async () => {
       (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
       (repo.getProjectMembers as any).mockResolvedValue([
-        { id: 5, firstName: "Reggie", lastName: "King" },
+        { id: 5, firstName: "Reggie", lastName: "King", role: "STUDENT" },
       ]);
 
       await createDiscussionPost(5, 2, "title", mentionBody, null);
@@ -229,11 +231,11 @@ describe("forum service", () => {
       );
     });
 
-    it("always uses student link regardless of author role", async () => {
+    it("uses student link when mentioned member is a student", async () => {
       (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
       (repo.getUserById as any).mockResolvedValue({ id: 5, firstName: "Test", lastName: "User", role: "STAFF" });
       (repo.getProjectMembers as any).mockResolvedValue([
-        { id: 10, firstName: "Reggie", lastName: "King" },
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STUDENT" },
       ]);
 
       await createDiscussionPost(5, 2, "title", mentionBody, null);
@@ -243,11 +245,25 @@ describe("forum service", () => {
       );
     });
 
+    it("uses staff link when mentioned member is staff", async () => {
+      (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
+      (repo.getUserById as any).mockResolvedValue({ id: 5, firstName: "Test", lastName: "User", role: "STUDENT" });
+      (repo.getProjectMembers as any).mockResolvedValue([
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STAFF" },
+      ]);
+
+      await createDiscussionPost(5, 2, "title", mentionBody, null);
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ link: "/staff/projects/2/discussion" })
+      );
+    });
+
     it("includes the author name in the notification message", async () => {
       (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
       (repo.getUserById as any).mockResolvedValue({ id: 5, firstName: "Alice", lastName: "Smith", role: "STAFF" });
       (repo.getProjectMembers as any).mockResolvedValue([
-        { id: 10, firstName: "Reggie", lastName: "King" },
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STUDENT" },
       ]);
 
       await createDiscussionPost(5, 2, "title", mentionBody, null);
@@ -263,6 +279,31 @@ describe("forum service", () => {
       await createDiscussionPost(5, 2, "title", "plain text body", null);
 
       expect(repo.getProjectMembers).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("fetchForumMembers", () => {
+    it("returns null when user is not in project", async () => {
+      (repo.isUserInProject as any).mockResolvedValue(false);
+
+      const result = await fetchForumMembers(1, 2);
+
+      expect(result).toBeNull();
+      expect(repo.getProjectMembers).not.toHaveBeenCalled();
+    });
+
+    it("returns members when user is in project", async () => {
+      const members = [
+        { id: 10, firstName: "Reggie", lastName: "King" },
+        { id: 11, firstName: "Alice", lastName: "Smith" },
+      ];
+      (repo.isUserInProject as any).mockResolvedValue(true);
+      (repo.getProjectMembers as any).mockResolvedValue(members);
+
+      const result = await fetchForumMembers(1, 2);
+
+      expect(result).toEqual(members);
+      expect(repo.getProjectMembers).toHaveBeenCalledWith(2);
     });
   });
 });

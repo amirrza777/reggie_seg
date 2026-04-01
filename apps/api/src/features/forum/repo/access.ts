@@ -96,21 +96,43 @@ export async function getModuleLeadsForProject(projectId: number) {
 }
 
 export async function getProjectMembers(projectId: number) {
-  const allocations = await prisma.teamAllocation.findMany({
-    where: {
-      team: {
-        projectId,
-        archivedAt: null,
-        allocationLifecycle: "ACTIVE",
+  const [allocations, project] = await Promise.all([
+    prisma.teamAllocation.findMany({
+      where: {
+        team: {
+          projectId,
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
+        },
       },
-    },
-    select: {
-      user: {
-        select: { id: true, firstName: true, lastName: true },
+      select: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
       },
-    },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        module: {
+          select: {
+            moduleLeads: { select: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+            moduleTeachingAssistants: { select: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const students = allocations.map((a) => ({ ...a.user, projectRole: undefined as string | undefined }));
+  const leads = project?.module.moduleLeads.map((l) => ({ ...l.user, projectRole: "Module Lead" })) ?? [];
+  const tas = project?.module.moduleTeachingAssistants.map((t) => ({ ...t.user, projectRole: "TA" })) ?? [];
+  const seen = new Set<number>();
+  return [...leads, ...tas, ...students].filter((m) => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
   });
-  return allocations.map((a) => a.user);
 }
 
 export async function canManageForumSettings(userId: number, projectId: number) {
