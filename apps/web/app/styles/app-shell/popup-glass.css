@@ -14,8 +14,8 @@
   border-color: var(--popup-glass-border-fallback);
   border-color: var(--popup-glass-border);
   box-shadow: var(--popup-glass-shadow);
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .ui-toast--success {
@@ -38,7 +38,7 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .modal__dialog,
   .ui-toast,
   .user-menu__dropdown,
@@ -50,8 +50,14 @@
   .discussion-post__menu-panel,
   .module-card__menu-panel,
   .atc-dropdown__list {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
+  }
+
+  .user-menu__meta,
+  .user-menu__links,
+  .notification-bell__header {
+    background: transparent;
   }
 }
 
@@ -61,7 +67,7 @@
   .sidebar__mobile-overlay,
   .mobile-menu__scrim {
     background: var(--modal-backdrop, var(--backdrop-strong));
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 }

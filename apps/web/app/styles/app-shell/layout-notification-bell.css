@@ -15,8 +15,8 @@
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
   box-shadow: var(--elevation-none);
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .notification-bell__trigger:hover,
@@ -55,8 +55,8 @@
   border-radius: var(--radius-md);
   z-index: 20;
   overflow: hidden;
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .notification-bell__header {
@@ -170,10 +170,14 @@
   color: var(--muted-subtle);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .notification-bell__trigger,
   .notification-bell__dropdown {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
+  }
+
+  .notification-bell__header {
+    background: transparent;
   }
 }

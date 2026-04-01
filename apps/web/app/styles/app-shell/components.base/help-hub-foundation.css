@@ -149,8 +149,8 @@
   position: sticky;
   top: 8px;
   z-index: 20;
-  backdrop-filter: blur(18px) saturate(1.28);
-  -webkit-backdrop-filter: blur(18px) saturate(1.28);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
 }
 
 .workspace-shell .help-nav__link {

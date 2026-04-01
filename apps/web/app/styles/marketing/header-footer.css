@@ -6,11 +6,17 @@
   right: 0;
   width: 100%;
   z-index: 20;
-  background: var(--glass-surface);
-  backdrop-filter: blur(7px) saturate(120%);
-  -webkit-backdrop-filter: blur(7px) saturate(120%);
+  background-color: var(--glass-surface);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   transition: transform 0.24s ease, opacity 0.18s ease;
   pointer-events: none;
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .header {
+    background-color: transparent;
+  }
 }
 
 .header--hidden {
@@ -140,10 +146,10 @@
   font-family: inherit;
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .mobile-menu__panel {
-    backdrop-filter: blur(7px) saturate(120%);
-    -webkit-backdrop-filter: blur(7px) saturate(120%);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 }
 
@@ -205,10 +211,8 @@
 
 @media (max-width: 1024px) {
   .header {
-    backdrop-filter: blur(6px) saturate(115%);
-    -webkit-backdrop-filter: blur(6px) saturate(115%);
-    background: color-mix(in srgb, var(--glass-surface) 85%, var(--bg) 15%);
-    background: var(--glass-surface);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .header__inner {
@@ -267,15 +271,11 @@
 .footer {
   margin-top: auto;
   position: relative;
-  padding-top: var(--footer-offset-top);
+  padding-top: var(--footer-offset-top, clamp(88px, 12vw, 176px));
   background: transparent;
   color: inherit;
-  overflow: visible;
 }
 
-.footer::before {
-  content: none;
-}
 
 /* ── Main body: brand + nav ─── */
 

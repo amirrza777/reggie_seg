@@ -16,8 +16,8 @@
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   box-shadow: var(--elevation-none);
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .user-menu__trigger:hover,
@@ -87,8 +87,8 @@
   z-index: 20;
   font-size: var(--fs-body);
   overflow: hidden;
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .user-menu__meta {
@@ -162,10 +162,15 @@
   font-weight: var(--fw-semibold);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .user-menu__trigger,
   .user-menu__dropdown {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
+  }
+
+  .user-menu__meta,
+  .user-menu__links {
+    background: transparent;
   }
 }
