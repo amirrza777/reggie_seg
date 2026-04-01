@@ -165,7 +165,7 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
     });
 
     const projects = await prisma.project.findMany({
-      select: { id: true, questionnaireTemplateId: true },
+      select: { id: true, moduleId: true, questionnaireTemplateId: true },
       where: {
         moduleId: { in: modules.map((module) => module.id) },
         name: { in: projectData.map((p) => p.name) },
@@ -173,8 +173,9 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
     });
 
     return {
-      value: projects.map((p: { id: number; questionnaireTemplateId: number }) => ({
+      value: projects.map((p: { id: number; moduleId: number; questionnaireTemplateId: number }) => ({
         id: p.id,
+        moduleId: p.moduleId,
         templateId: p.questionnaireTemplateId,
       })),
       rows: created.count,

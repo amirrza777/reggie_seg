@@ -4,7 +4,30 @@ import {
   MODULE_JOIN_CODE_MAX_ATTEMPTS,
   normalizeModuleJoinCode,
 } from "./code.js";
-import { findJoinActor, findJoinableModuleByCode, getAuthorizedModuleJoinCode, insertModuleEnrollment } from "./repo.js";
+import {
+  findJoinActor,
+  findJoinableModuleByCode,
+  getAuthorizedModuleForJoinCodeMutation,
+  getAuthorizedModuleJoinCode,
+  insertModuleEnrollment,
+  updateModuleJoinCode,
+} from "./repo.js";
+
+export type ModuleJoinServiceErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
+  | "INVALID_CODE"
+  | "MODULE_NOT_FOUND"
+  | "RATE_LIMITED"
+  | "CONFLICT";
+
+type ModuleJoinServiceError = {
+  status: number;
+  code: ModuleJoinServiceErrorCode;
+  error: string;
+};
+
+type ServiceResult<T> = { ok: true; value: T } | ({ ok: false } & ModuleJoinServiceError);
 
 export type JoinModuleByCodeResponse = {
   moduleId: number;
@@ -12,26 +35,83 @@ export type JoinModuleByCodeResponse = {
   result: "joined" | "already_joined";
 };
 
+export type ModuleJoinCodeResponse = {
+  moduleId: number;
+  joinCode: string;
+};
+
+export type RotateModuleJoinCodeResponse = {
+  moduleId: number;
+  joinCode: string;
+};
+
+function fail(status: number, code: ModuleJoinServiceErrorCode, error: string): ServiceResult<never> {
+  return { ok: false, status, code, error };
+}
+
+function emitModuleJoinAuditEvent(
+  event:
+    | "module_join_success"
+    | "module_join_already_joined"
+    | "module_join_invalid_code"
+    | "module_join_code_viewed"
+    | "module_join_code_rotated",
+  payload: Record<string, unknown>,
+) {
+  console.info(
+    "[moduleJoin:audit]",
+    JSON.stringify({
+      event,
+      occurredAt: new Date().toISOString(),
+      ...payload,
+    }),
+  );
+}
+
+/**
+ * Error mapping table:
+ * UNAUTHORIZED -> 401
+ * FORBIDDEN -> 403
+ * INVALID_CODE -> 400
+ * MODULE_NOT_FOUND -> 404
+ * CONFLICT -> 409
+ */
 export async function joinModuleByCode(actorUserId: number, rawCode: string) {
   const actor = await findJoinActor(actorUserId);
   if (!actor) {
-    return { ok: false as const, status: 401, error: "Unauthorized" };
+    return fail(401, "UNAUTHORIZED", "Unauthorized");
   }
   if (actor.role !== "STUDENT") {
-    return { ok: false as const, status: 403, error: "Forbidden" };
+    return fail(403, "FORBIDDEN", "Forbidden");
   }
 
   const joinCode = normalizeModuleJoinCode(rawCode);
   if (!joinCode) {
-    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+    emitModuleJoinAuditEvent("module_join_invalid_code", {
+      actorUserId: actor.id,
+      enterpriseId: actor.enterpriseId,
+      rawCode: rawCode.slice(0, 16),
+    });
+    return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
   }
 
   const module = await findJoinableModuleByCode(actor.enterpriseId, joinCode);
   if (!module) {
-    return { ok: false as const, status: 400, error: "Invalid or unavailable module code" };
+    emitModuleJoinAuditEvent("module_join_invalid_code", {
+      actorUserId: actor.id,
+      enterpriseId: actor.enterpriseId,
+      joinCode,
+    });
+    return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
   }
 
   const inserted = await insertModuleEnrollment(actor.enterpriseId, actor.id, module.id);
+  emitModuleJoinAuditEvent(inserted ? "module_join_success" : "module_join_already_joined", {
+    actorUserId: actor.id,
+    enterpriseId: actor.enterpriseId,
+    moduleId: module.id,
+  });
+
   return {
     ok: true as const,
     value: {
@@ -49,13 +129,48 @@ export async function getModuleJoinCode(viewerUser: { enterpriseId: string; role
     userId: viewerUser.id,
     role: viewerUser.role,
   });
-  if (!module) return { ok: false as const, status: 404, error: "Module not found" };
+  if (!module) return fail(404, "MODULE_NOT_FOUND", "Module not found");
+
+  emitModuleJoinAuditEvent("module_join_code_viewed", {
+    actorUserId: viewerUser.id,
+    enterpriseId: viewerUser.enterpriseId,
+    moduleId: module.id,
+  });
 
   return {
     ok: true as const,
     value: {
       moduleId: module.id,
       joinCode: module.joinCode,
+    },
+  };
+}
+
+export async function rotateModuleJoinCode(viewerUser: { enterpriseId: string; role: string; id: number }, moduleId: number) {
+  const module = await getAuthorizedModuleForJoinCodeMutation({
+    enterpriseId: viewerUser.enterpriseId,
+    moduleId,
+    userId: viewerUser.id,
+    role: viewerUser.role,
+  });
+  if (!module) return fail(404, "MODULE_NOT_FOUND", "Module not found");
+
+  const updated = await withGeneratedModuleJoinCode(viewerUser.enterpriseId, async (candidate) => {
+    return updateModuleJoinCode(module.id, viewerUser.enterpriseId, candidate);
+  });
+  if (!updated) return fail(404, "MODULE_NOT_FOUND", "Module not found");
+
+  emitModuleJoinAuditEvent("module_join_code_rotated", {
+    actorUserId: viewerUser.id,
+    enterpriseId: viewerUser.enterpriseId,
+    moduleId: updated.id,
+  });
+
+  return {
+    ok: true as const,
+    value: {
+      moduleId: updated.id,
+      joinCode: updated.joinCode,
     },
   };
 }

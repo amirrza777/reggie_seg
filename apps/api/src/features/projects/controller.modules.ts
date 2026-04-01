@@ -5,9 +5,9 @@ import {
   fetchModuleStaffList,
   fetchModuleStudentProjectMatrix,
   fetchModulesForUser,
-  joinModuleByCode,
 } from "./service.js";
 import { parsePositiveInt, resolveAuthenticatedUserId } from "./controller.shared.js";
+import { joinModuleCompatibilityHandler } from "../moduleJoin/controller.js";
 
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
@@ -34,26 +34,7 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 }
 
 export async function joinModuleHandler(req: AuthRequest, res: Response) {
-  const actorUserId = req.user?.sub;
-  if (!actorUserId) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  const rawCode = typeof req.body?.code === "string" ? req.body.code.trim() : "";
-  if (!rawCode) {
-    return res.status(400).json({ error: "code is required" });
-  }
-
-  try {
-    const result = await joinModuleByCode(actorUserId, rawCode);
-    if (!result.ok) {
-      return res.status(result.status).json({ error: result.error });
-    }
-    return res.json(result.value);
-  } catch (error) {
-    console.error("Error joining module by code:", error);
-    return res.status(500).json({ error: "Failed to join module" });
-  }
+  return joinModuleCompatibilityHandler(req, res);
 }
 
 export async function getModuleStaffListHandler(req: AuthRequest, res: Response) {

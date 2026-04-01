@@ -22,6 +22,7 @@ import archiveRouter from "./features/archive/router.js";
 import teamsRouter from "./features/teams/router.js";
 import forumRouter from "./features/forum/router.js";
 import helpRouter from "./features/help/router.js";
+import moduleJoinRouter from "./features/moduleJoin/router.js";
 
 const app = express();
 
@@ -88,5 +89,6 @@ app.use("/archive", archiveRouter);
 app.use("/teams", teamsRouter);
 app.use("/forum", forumRouter);
 app.use("/help", helpRouter);
+app.use("/module-join", moduleJoinRouter);
 
 export { app };

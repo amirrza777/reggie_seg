@@ -7,7 +7,6 @@ import {
   fetchProjectsForUser,
   fetchProjectsWithTeamsForStaffMarking,
   fetchQuestionsForProject,
-  joinModuleByCode,
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
@@ -30,7 +29,6 @@ import {
   parseProjectWarningsConfig,
 } from "./service.js";
 import * as repo from "./repo.js";
-import * as moduleJoinService from "../moduleJoin/service.js";
 import * as notificationsService from "../notifications/service.js";
 
 vi.mock("./repo.js", () => ({
@@ -62,9 +60,6 @@ vi.mock("./repo.js", () => ({
   getModuleLeadsForProject: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
   clearStaffStudentDeadlineOverride: vi.fn(),
-}));
-vi.mock("../moduleJoin/service.js", () => ({
-  joinModuleByCode: vi.fn(),
 }));
 vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
@@ -176,53 +171,6 @@ describe("projects service", () => {
     (repo.getModulesForUser as any).mockResolvedValue([]);
     await fetchModulesForUser(7, { staffOnly: true, compact: true });
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
-  });
-
-  it("joinModuleByCode restricts joins to students and maps idempotent enrollments", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
-    await expect(joinModuleByCode(7, "ABCD-2345")).resolves.toEqual({
-      ok: false,
-      status: 403,
-      error: "Forbidden",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: true,
-      value: { moduleId: 9, moduleName: "SEGP", result: "already_joined" },
-    });
-    await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
-      ok: true,
-      value: {
-        moduleId: 9,
-        moduleName: "SEGP",
-        result: "already_joined",
-      },
-    });
-    expect(moduleJoinService.joinModuleByCode).toHaveBeenCalledWith(7, "abcd-2345");
-  });
-
-  it("joinModuleByCode rejects invalid or unavailable codes with the generic error", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {
