@@ -510,6 +510,7 @@ export async function getUserProjects(userId: number) {
     select: {
       id: true,
       name: true,
+      moduleId: true,
       archivedAt: true,
       module: {
         select: {

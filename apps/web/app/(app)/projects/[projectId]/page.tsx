@@ -58,20 +58,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     getProjectDeadline(user.id, numericProjectId).catch(() => defaultDeadline),
   ]);
 
-  const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
-    .filter((value): value is string => Boolean(value))
-    .map((value) => new Date(value))
-    .filter((value) => !Number.isNaN(value.getTime()));
-  const latestDue = dueCandidates.length > 0
-    ? dueCandidates.reduce((latest, current) => (current.getTime() > latest.getTime() ? current : latest))
-    : null;
-  const now = new Date();
-  const likelyCompleted = Boolean(project.archivedAt) || Boolean(latestDue && latestDue.getTime() < now.getTime());
-
-  let marking: ProjectMarkingSummary | null = null;
-  if (likelyCompleted) {
-    marking = await getProjectMarking(user.id, numericProjectId).catch(() => null as ProjectMarkingSummary | null);
-  }
+  const marking = await getProjectMarking(user.id, numericProjectId).catch(
+    () => null as ProjectMarkingSummary | null,
+  );
 
   return <ProjectOverviewDashboard project={project} deadline={deadline} team={team} marking={marking} view="overview" />;
 }

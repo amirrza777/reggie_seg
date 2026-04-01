@@ -62,6 +62,7 @@ const specialMarkerUsers = [
 
 export const seedMarkerUserData = specialMarkerUsers;
 export const userData = [...specialMarkerUsers, ...randomStaff, ...randomStudents];
+export const seedAssessmentStudentEmail = "student.assessment@example.com";
 
 const baseModuleNames = [
   "Software Engineering Group Project",
@@ -106,10 +107,44 @@ export const questionnaireTemplateData = Array.from({ length: SEED_TEMPLATE_COUN
   };
 });
 
+const usedProjectAliases = new Set<string>();
+
+function randomProjectAlias(index: number) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const generated = randSentence({ length: { min: 2, max: 4 } });
+    const raw = Array.isArray(generated) ? generated[0] : generated;
+    const sentence = typeof raw === "string" ? raw.replace(/[.?!]+$/g, "").trim() : "";
+    const sentenceToken = sentence
+      .split(/\s+/)
+      .map((part) => part.toLowerCase().replace(/[^a-z0-9]/g, ""))
+      .find((part) => part.length >= 4);
+    const nameToken = `${randFirstName()}${randLastName()}`
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+    const token = sentenceToken || nameToken;
+    if (!token || token.length < 4) continue;
+    if (usedProjectAliases.has(token)) continue;
+    usedProjectAliases.add(token);
+    return token;
+  }
+
+  const forcedToken = `${randFirstName()}${randLastName()}${index + 1}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+  if (!usedProjectAliases.has(forcedToken)) {
+    usedProjectAliases.add(forcedToken);
+    return forcedToken;
+  }
+  const numbered = `${forcedToken}_${index + 1}`;
+  usedProjectAliases.add(numbered);
+  return numbered;
+}
+
 export const projectData = Array.from({ length: SEED_PROJECT_COUNT }, (_, index) => {
   const module = moduleData[index % moduleData.length];
   const cycle = Math.floor(index / moduleData.length) + 1;
-  const projectName = `${module.name} Project ${cycle}`;
+  const alias = randomProjectAlias(index);
+  const projectName = cycle === 1 ? `Project "${alias}"` : `Project "${alias}_${cycle}"`;
   const longProjectInformationText = [
     `${projectName} is a collaborative delivery project where your team is expected to plan, implement, review, and improve a complete solution over multiple milestones.`,
     "You should define clear roles early, keep responsibilities transparent, and maintain regular communication so blockers are identified quickly and resolved before they impact delivery.",

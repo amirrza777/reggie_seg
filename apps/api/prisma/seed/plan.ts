@@ -1,6 +1,7 @@
 import {
   buildUsersByRole,
   seedAdminTeamAllocation,
+  seedAssessmentStudentModuleCoverage,
   seedGithubE2EUsers,
   seedModuleTeachingAssistants,
   seedModuleLeads,
@@ -85,6 +86,12 @@ function buildMembershipSeedPlan(context: SeedContext, config: SeedProfileConfig
     name: "seedTeamAllocations",
     layer: "membership",
     run: () => seedTeamAllocations(context.usersByRole.students, context.teams),
+  });
+
+  steps.push({
+    name: "seedAssessmentStudentModuleCoverage",
+    layer: "membership",
+    run: () => seedAssessmentStudentModuleCoverage(context.enterprise.id, context.modules, context.projects, context.teams),
   });
 
   return steps;
