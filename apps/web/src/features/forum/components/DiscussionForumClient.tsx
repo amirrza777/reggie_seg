@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { logDevError } from "@/shared/lib/devLogger";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import type { Member } from "@/shared/ui/MentionPlugin";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { DiscussionPostsSkeleton } from "@/shared/ui/LoadingSkeletonBlocks";
@@ -24,6 +25,7 @@ import "../styles/discussion-forum.css";
 type DiscussionForumClientProps = {
   projectId: string;
   showHeader?: boolean;
+  members?: Member[];
 };
 type ReportConfirmationState = { postId: number; mode: "staff" | "student" } | null;
 
@@ -80,7 +82,7 @@ function DiscussionVoteIcon({ direction = "up" }: { direction?: "up" | "down" })
   );
 }
 
-export function DiscussionForumClient({ projectId, showHeader = true }: DiscussionForumClientProps) {
+export function DiscussionForumClient({ projectId, showHeader = true, members }: DiscussionForumClientProps) {
   const { user, loading: userLoading } = useUser();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -594,6 +596,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                   initialContent={editingBody}
                   onChange={setEditingBody}
                   onEmptyChange={setEditingBodyEmpty}
+                  members={members}
                 />
               </div>
               <div className="discussion-post__action-row">
@@ -754,6 +757,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
                 onChange={(value) => handleReplyChange(post.id, value)}
                 onEmptyChange={(empty) => setReplyEmptyByPostId((prev) => ({ ...prev, [post.id]: empty }))}
                 placeholder="Write a reply"
+                members={members}
               />
             </div>
             <div className="discussion-post__reply-editor-actions">
@@ -814,6 +818,7 @@ export function DiscussionForumClient({ projectId, showHeader = true }: Discussi
               onChange={setBody}
               onEmptyChange={setBodyEmpty}
               placeholder="Write your update or question"
+              members={members}
             />
           </div>
 

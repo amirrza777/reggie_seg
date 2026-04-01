@@ -6,6 +6,7 @@ import { StudentForumReportsCard } from "@/features/forum/components/StudentForu
 import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
+import { getForumMembers } from "@/features/forum/api/client";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 export const metadata = { title: "Discussion Forum (Staff)" };
@@ -34,6 +35,7 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
   }
   const { data, numericProjectId } = loadResult;
 
+  const members = await getForumMembers(user.id, numericProjectId).catch(() => []);
   const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
 
   return (
@@ -71,7 +73,11 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
         <p className="staff-projects__card-sub">
           View and participate in the forum as staff.
         </p>
-        <DiscussionForumClient projectId={projectId} showHeader={false} />
+        <DiscussionForumClient
+          projectId={projectId}
+          showHeader={false}
+          members={members}
+        />
       </section>
     </div>
   );

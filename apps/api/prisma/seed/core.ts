@@ -1,106 +1,90 @@
 import argon2 from "argon2";
 import { ADMIN_BOOTSTRAP_EMAIL, ADMIN_BOOTSTRAP_PASSWORD } from "./config";
-import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedEnterprise } from "./types";
 import { SEED_ENTERPRISE_COUNT } from "./volumes";
 
 export function assertPrismaClientModels() {
-  const client = prisma as unknown as Record<string, unknown>;
-  if (!("project" in client)) {
-    throw new Error(
-      "Prisma Client is out of date (missing `project` delegate). Run `npx prisma generate` and retry."
-    );
+  const requiredDelegates = [
+    "enterprise",
+    "user",
+    "module",
+    "project",
+    "team",
+    "questionnaireTemplate",
+    "teamAllocation",
+    "featureFlag",
+  ] as const;
+
+  for (const delegate of requiredDelegates) {
+    if (!(delegate in prisma)) {
+      throw new Error(`Prisma client is missing delegate: ${delegate}`);
+    }
   }
 }
 
 export async function getSeedEnterprises(): Promise<SeedEnterprise[]> {
-  return withSeedLogging("getSeedEnterprises", async () => {
-    const enterprises: SeedEnterprise[] = [];
-    let createdCount = 0;
+  const total = Math.max(1, SEED_ENTERPRISE_COUNT);
+  const enterprises: SeedEnterprise[] = [];
 
-    for (let index = 0; index < SEED_ENTERPRISE_COUNT; index += 1) {
-      const config = buildSeedEnterprise(index);
-      const enterprise = await prisma.enterprise.findUnique({
-        where: { code: config.code },
-        select: { id: true },
-      });
+  for (let index = 0; index < total; index += 1) {
+    const { code, name } = buildEnterpriseSeedDescriptor(index);
+    const existing = await prisma.enterprise.findUnique({
+      where: { code },
+      select: { id: true },
+    });
 
-      if (enterprise) {
-        enterprises.push({ ...config, id: enterprise.id });
-        continue;
-      }
-
-      const created = await prisma.enterprise.create({
-        data: { code: config.code, name: config.name },
-        select: { id: true },
-      });
-
-      enterprises.push({ ...config, id: created.id });
-      createdCount += 1;
+    if (existing) {
+      enterprises.push({ id: existing.id, code, name });
+      continue;
     }
 
-    return {
-      value: enterprises,
-      rows: createdCount,
-      details: `seed enterprises=${enterprises.length}`,
-    };
-  });
+    const created = await prisma.enterprise.create({
+      data: { code, name },
+      select: { id: true, code: true, name: true },
+    });
+
+    enterprises.push(created);
+  }
+
+  return enterprises;
 }
 
 export async function seedAdminUser(enterpriseId: string) {
-  return withSeedLogging("seedAdminUser", async () => {
-    const email = ADMIN_BOOTSTRAP_EMAIL;
-    const password = ADMIN_BOOTSTRAP_PASSWORD;
-    if (!email || !password) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: "skipped (ADMIN_BOOTSTRAP_EMAIL/PASSWORD not set)",
-      };
-    }
+  if (!ADMIN_BOOTSTRAP_EMAIL || !ADMIN_BOOTSTRAP_PASSWORD) return;
 
-    const existing = await prisma.user.findUnique({
-      where: { enterpriseId_email: { enterpriseId, email } },
-    });
-    if (existing) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: `skipped (admin already exists: ${email})`,
-      };
-    }
-
-    const passwordHash = await argon2.hash(password);
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        firstName: "Admin",
-        lastName: "User",
-        role: "ADMIN",
+  const existing = await prisma.user.findUnique({
+    where: {
+      enterpriseId_email: {
         enterpriseId,
+        email: ADMIN_BOOTSTRAP_EMAIL,
       },
-    });
+    },
+    select: { id: true },
+  });
+  if (existing) return;
 
-    return {
-      value: undefined,
-      rows: 1,
-      details: `created admin=${email}`,
-    };
+  const passwordHash = await argon2.hash(ADMIN_BOOTSTRAP_PASSWORD);
+  await prisma.user.create({
+    data: {
+      email: ADMIN_BOOTSTRAP_EMAIL,
+      passwordHash,
+      firstName: "Admin",
+      lastName: "User",
+      role: "ADMIN",
+      enterpriseId,
+    },
   });
 }
 
-function buildSeedEnterprise(index: number) {
+function buildEnterpriseSeedDescriptor(index: number) {
   if (index === 0) {
-    return {
-      code: "DEFAULT",
-      name: "Default Enterprise",
-    };
+    return { code: "DEFAULT", name: "Default Enterprise" };
   }
 
+  const sequence = index + 1;
   return {
-    code: `ENT${index + 1}`,
-    name: `Seed Enterprise ${index + 1}`,
+    code: `ENT${sequence}`,
+    name: `Enterprise ${sequence}`,
   };
 }

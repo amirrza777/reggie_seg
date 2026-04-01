@@ -61,6 +61,13 @@ export async function getUserRole(userId: number) {
   return user?.role ?? null;
 }
 
+export async function getUserById(userId: number) {
+  return prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, firstName: true, lastName: true, role: true },
+  });
+}
+
 export async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
     where: { id: userId },
@@ -85,6 +92,46 @@ export async function getModuleLeadsForProject(projectId: number) {
   return prisma.moduleLead.findMany({
     where: { moduleId: project.moduleId },
     select: { userId: true },
+  });
+}
+
+export async function getProjectMembers(projectId: number) {
+  const [allocations, project] = await Promise.all([
+    prisma.teamAllocation.findMany({
+      where: {
+        team: {
+          projectId,
+          archivedAt: null,
+          allocationLifecycle: "ACTIVE",
+        },
+      },
+      select: {
+        user: {
+          select: { id: true, firstName: true, lastName: true, role: true },
+        },
+      },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        module: {
+          select: {
+            moduleLeads: { select: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+            moduleTeachingAssistants: { select: { user: { select: { id: true, firstName: true, lastName: true, role: true } } } },
+          },
+        },
+      },
+    }),
+  ]);
+
+  const students = allocations.map((a) => ({ ...a.user, projectRole: undefined as string | undefined }));
+  const leads = project?.module.moduleLeads.map((l) => ({ ...l.user, projectRole: "Module Lead" })) ?? [];
+  const tas = project?.module.moduleTeachingAssistants.map((t) => ({ ...t.user, projectRole: "TA" })) ?? [];
+  const seen = new Set<number>();
+  return [...leads, ...tas, ...students].filter((m) => {
+    if (seen.has(m.id)) return false;
+    seen.add(m.id);
+    return true;
   });
 }
 

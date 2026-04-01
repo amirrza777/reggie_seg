@@ -1,4 +1,4 @@
-export { isUserInProject, getUserRole, getScopedStaffUser, canManageForumSettings, getDiscussionPostAuthorId, getModuleLeadsForProject } from "./repo/access.js";
+export { isUserInProject, getUserRole, getUserById, getScopedStaffUser, canManageForumSettings, getDiscussionPostAuthorId, getModuleLeadsForProject, getProjectMembers } from "./repo/access.js";
 export {
   buildPostTree,
   getFlatPostsForProject,

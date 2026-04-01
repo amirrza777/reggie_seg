@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
 import { SkeletonText } from "@/shared/ui/Skeleton";
+import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 import {
   Bar,
   BarChart,
@@ -84,6 +85,94 @@ function resolveCommitAxisMax(dataMax: number) {
   return Math.max(4, Math.ceil(numeric * 1.12));
 }
 
+function CommitTimelineChart({
+  title,
+  info,
+  data,
+  minChartWidth,
+  tickInterval,
+  barName,
+  barCategoryGap,
+  barGap,
+  maxBarSize,
+  showLegend = false,
+  size = "full",
+}: {
+  title: string;
+  info: GithubChartInfoContent;
+  data: Array<{ date: string; commits: number }>;
+  minChartWidth: number;
+  tickInterval: number;
+  barName: string;
+  barCategoryGap: string;
+  barGap?: number;
+  maxBarSize: number;
+  showLegend?: boolean;
+  size?: "half" | "full";
+}) {
+  const {
+    containerHandlers: timelineContainerHandlers,
+    chartHandlers: timelineChartHandlers,
+    tooltipProps: timelineTooltipProps,
+  } = useChartCursorTooltip();
+
+  return (
+    <GithubChartCard title={title} info={info} size={size} minChartWidth={minChartWidth}>
+      <div
+        className="github-chart-section__canvas github-chart-section__canvas--xl ui-no-select"
+        {...timelineContainerHandlers}
+      >
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={data}
+            margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
+            barCategoryGap={barCategoryGap}
+            barGap={barGap}
+            accessibilityLayer={false}
+            {...timelineChartHandlers}
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+            <XAxis
+              dataKey="date"
+              interval={tickInterval}
+              tickMargin={12}
+              tick={{ fill: "var(--muted)", fontSize: 11 }}
+              tickFormatter={formatShortDate}
+              minTickGap={18}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              allowDecimals={false}
+              tick={{ fill: "var(--muted)" }}
+              width={42}
+              axisLine={false}
+              tickLine={false}
+              label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
+            />
+            <Tooltip
+              {...timelineTooltipProps}
+              content={<ChartTooltipContent />}
+              labelFormatter={(label) => formatShortDate(String(label))}
+              formatter={(value, name) => [formatNumber(Number(value ?? 0)), name]}
+            />
+            {showLegend ? <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} /> : null}
+            <Bar
+              dataKey="commits"
+              name={barName}
+              fill={CHART_COLOR_COMMITS}
+              radius={[4, 4, 0, 0]}
+              maxBarSize={maxBarSize}
+              animationDuration={300}
+              isAnimationActive
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </GithubChartCard>
+  );
+}
+
 function WeeklyCommitTotalsChart({
   title,
   info,
@@ -99,15 +188,26 @@ function WeeklyCommitTotalsChart({
   tickInterval: number;
   size?: "half" | "full";
 }) {
+  const {
+    containerHandlers: weeklyContainerHandlers,
+    chartHandlers: weeklyChartHandlers,
+    tooltipProps: weeklyTooltipProps,
+  } = useChartCursorTooltip();
+
   return (
     <GithubChartCard title={title} info={info} size={size} minChartWidth={minChartWidth}>
-      <div className="github-chart-section__canvas github-chart-section__canvas--weekly">
+      <div
+        className="github-chart-section__canvas github-chart-section__canvas--weekly ui-no-select"
+        {...weeklyContainerHandlers}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
             barCategoryGap="12%"
             barGap={0}
+            accessibilityLayer={false}
+            {...weeklyChartHandlers}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
@@ -129,7 +229,7 @@ function WeeklyCommitTotalsChart({
               label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
-              isAnimationActive
+              {...weeklyTooltipProps}
               content={<ChartTooltipContent />}
               labelFormatter={(_, payload) => {
                 const row = payload?.[0]?.payload as
@@ -172,6 +272,12 @@ function LineChangesTimelineChart({
   tickInterval: number;
   size?: "half" | "full";
 }) {
+  const {
+    containerHandlers: lineChangesContainerHandlers,
+    chartHandlers: lineChangesChartHandlers,
+    tooltipProps: lineChangesTooltipProps,
+  } = useChartCursorTooltip();
+
   return (
     <GithubChartCard
       title={title}
@@ -179,13 +285,18 @@ function LineChangesTimelineChart({
       size={size}
       minChartWidth={minChartWidth}
     >
-      <div className="github-chart-section__canvas github-chart-section__canvas--xl">
+      <div
+        className="github-chart-section__canvas github-chart-section__canvas--xl ui-no-select"
+        {...lineChangesContainerHandlers}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={data}
             margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
             barCategoryGap="24%"
             barGap={0}
+            accessibilityLayer={false}
+            {...lineChangesChartHandlers}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
             <XAxis
@@ -207,7 +318,7 @@ function LineChangesTimelineChart({
               label={{ value: "Lines changed", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
             />
             <Tooltip
-              isAnimationActive
+              {...lineChangesTooltipProps}
               content={<ChartTooltipContent />}
               labelFormatter={(label) => formatShortDate(String(label))}
               formatter={(value, name) => [Math.abs(Number(value ?? 0)).toLocaleString(), name]}
@@ -267,59 +378,19 @@ function RepositoryAnalyticsCharts({
   return (
     <div className="github-chart-section__grid">
       {commitTimelineSeries.length > 0 ? (
-        <GithubChartCard
+        <CommitTimelineChart
           title="Commits over time"
           info={chartInfo.commitsTimeline}
-          size="full"
+          data={commitTimelineSeries}
           minChartWidth={commitsChartMinWidth}
-        >
-          <div className="github-chart-section__canvas github-chart-section__canvas--xl">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={commitTimelineSeries}
-                margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
-                barCategoryGap="26%"
-                barGap={2}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                <XAxis
-                  dataKey="date"
-                  interval={commitTickInterval}
-                  tickMargin={12}
-                  tick={{ fill: "var(--muted)", fontSize: 11 }}
-                  tickFormatter={formatShortDate}
-                  minTickGap={18}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tick={{ fill: "var(--muted)" }}
-                  width={42}
-                  axisLine={false}
-                  tickLine={false}
-                  label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                />
-                <Tooltip
-                  isAnimationActive
-                  content={<ChartTooltipContent />}
-                  labelFormatter={(label) => formatShortDate(String(label))}
-                  formatter={(value, name) => [formatNumber(Number(value ?? 0)), name]}
-                />
-                <Legend align="right" verticalAlign="top" iconType="circle" iconSize={8} />
-                <Bar
-                  dataKey="commits"
-                  name="Team commits"
-                  fill={CHART_COLOR_COMMITS}
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={12}
-                  animationDuration={300}
-                  isAnimationActive
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </GithubChartCard>
+          tickInterval={commitTickInterval}
+          barName="Team commits"
+          barCategoryGap="26%"
+          barGap={2}
+          maxBarSize={12}
+          showLegend
+          size="full"
+        />
       ) : null}
 
       {lineChangesByDaySeries.length > 0 ? (
@@ -603,57 +674,17 @@ function PersonalActivity({
         ) : null}
 
         {personalTimeline.length > 0 ? (
-          <GithubChartCard
+          <CommitTimelineChart
             title="My commits over time"
             info={chartInfo.personalCommitsTimeline}
-            size="full"
+            data={personalTimeline}
             minChartWidth={timelineMinWidth}
-          >
-            <div className="github-chart-section__canvas github-chart-section__canvas--xl">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={personalTimeline}
-                  margin={{ top: 8, right: 8, left: 6, bottom: 6 }}
-                  barCategoryGap="30%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    interval={personalTimelineTickInterval}
-                    tickMargin={12}
-                    tick={{ fill: "var(--muted)", fontSize: 11 }}
-                    tickFormatter={formatShortDate}
-                    minTickGap={18}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    allowDecimals={false}
-                    tick={{ fill: "var(--muted)" }}
-                    width={42}
-                    axisLine={false}
-                    tickLine={false}
-                    label={{ value: "Commits", angle: -90, position: "insideLeft", fill: "var(--muted)" }}
-                  />
-                  <Tooltip
-                    isAnimationActive
-                    content={<ChartTooltipContent />}
-                    labelFormatter={(label) => formatShortDate(String(label))}
-                    formatter={(value) => [formatNumber(Number(value ?? 0)), "Commits"]}
-                  />
-                  <Bar
-                    dataKey="commits"
-                    name="Commits"
-                    fill={CHART_COLOR_COMMITS}
-                    radius={[4, 4, 0, 0]}
-                    maxBarSize={14}
-                    animationDuration={300}
-                    isAnimationActive
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </GithubChartCard>
+            tickInterval={personalTimelineTickInterval}
+            barName="Commits"
+            barCategoryGap="30%"
+            maxBarSize={14}
+            size="full"
+          />
         ) : null}
 
         {personalWeeklySeries.length > 0 ? (

@@ -69,4 +69,32 @@ describe("ChartTooltipContent", () => {
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
+
+  it("can scope tooltip rows to a preferred entry and cap rendered items", () => {
+    render(
+      <ChartTooltipContent
+        active
+        preferredEntryName="Active"
+        maxItems={1}
+        payload={[
+          {
+            dataKey: "value",
+            name: "Active",
+            value: 56,
+            payload: { name: "Active" },
+          },
+          {
+            dataKey: "value",
+            name: "Low activity",
+            value: 1,
+            payload: { name: "Low activity" },
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.queryByText("Low activity")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(1);
+  });
 });

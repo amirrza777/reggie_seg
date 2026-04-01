@@ -13,7 +13,7 @@ export const HealthSection = () => (
           staff can intervene early.
         </p>
       </div>
-      <div className="split__visual split__visual--soft" data-reveal data-reveal-offset="-25%">
+      <div className="split__visual split__visual--soft" data-reveal>
         <div className="visual-placeholder">
           <p className="eyebrow">Analytics</p>
           <p className="muted">Slot in your analytics dashboard or trend lines.</p>

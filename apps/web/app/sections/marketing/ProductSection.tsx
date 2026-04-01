@@ -20,7 +20,7 @@ export const ProductSection = () => (
           </Link>
         </div>
       </div>
-      <div className="split__visual split__visual--frame" data-reveal data-reveal-offset="-25%">
+      <div className="split__visual split__visual--frame" data-reveal>
         <div className="visual-placeholder">
           <p className="eyebrow">Screenshot</p>
           <p className="muted">Drop your feedback cycle visual or dashboard here.</p>

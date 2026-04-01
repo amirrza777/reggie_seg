@@ -14,6 +14,7 @@ import {
   approveStudentForumReportHandler,
   ignoreStudentForumReportHandler,
   getStaffConversationHandler,
+  getForumMembersHandler,
 } from "./controller.js";
 
 const router = Router();
@@ -32,5 +33,6 @@ router.post("/projects/:projectId/student-reports/:reportId/approve", approveStu
 router.post("/projects/:projectId/student-reports/:reportId/ignore", ignoreStudentForumReportHandler);
 router.get("/projects/:projectId/settings", getForumSettingsHandler);
 router.put("/projects/:projectId/settings", updateForumSettingsHandler);
+router.get("/projects/:projectId/members", getForumMembersHandler);
 
 export default router;
