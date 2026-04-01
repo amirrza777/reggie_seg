@@ -86,6 +86,7 @@
 .team-formation__invite-form {
   display: flex;
   gap: 8px;
+  align-items: flex-start;
 }
 
 .team-formation__invite-form input {
@@ -103,6 +104,65 @@
 .team-formation__invite-form input:focus {
   border-color: var(--accent-border);
   box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.team-formation__invite-combobox {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-formation__invite-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  z-index: 5;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
+}
+
+.team-formation__invite-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 9px 12px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.team-formation__invite-option + .team-formation__invite-option {
+  border-top: 1px solid var(--border);
+}
+
+.team-formation__invite-option:hover {
+  background: var(--surface-soft, rgba(15, 23, 42, 0.04));
+}
+
+.team-formation__invite-option-email {
+  font-size: 0.92rem;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.team-formation__invite-option-name {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.team-formation__invite-empty {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  color: var(--muted);
 }
 
 /* ── Pending invites list ── */

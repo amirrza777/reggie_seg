@@ -16,6 +16,13 @@ export type TeamInvite = {
   inviter?: { id: number; firstName: string; lastName: string; email: string };
 };
 
+export type TeamInviteEligibleStudent = {
+  id: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+};
+
 export type RandomAllocationPreview = {
   project: {
     id: number;
@@ -347,6 +354,10 @@ export async function cancelTeamInvite(inviteId: string) {
 
 export async function getTeamInvites(teamId: number) {
   return apiFetch<TeamInvite[]>(`/team-allocation/teams/${teamId}/invites`);
+}
+
+export async function getTeamInviteEligibleStudents(teamId: number) {
+  return apiFetch<TeamInviteEligibleStudent[]>(`/team-allocation/teams/${teamId}/invite-eligible-students`);
 }
 
 export async function getReceivedInvites() {

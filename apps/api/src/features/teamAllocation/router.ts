@@ -6,6 +6,7 @@ import {
   createTeamInviteHandler,
   declineTeamInviteHandler,
   expireTeamInviteHandler,
+  listInviteEligibleStudentsHandler,
   listReceivedInvitesHandler,
   listTeamInvitesHandler,
   rejectTeamInviteHandler,
@@ -48,6 +49,7 @@ router.patch("/invites/:inviteId/cancel", cancelTeamInviteHandler);
 router.patch("/invites/:inviteId/expire", expireTeamInviteHandler);
 router.get("/invites/received", requireAuth, listReceivedInvitesHandler);
 router.get("/teams/:teamId/invites", requireAuth, listTeamInvitesHandler);
+router.get("/teams/:teamId/invite-eligible-students", requireAuth, listInviteEligibleStudentsHandler);
 router.post("/teams", requireAuth, createTeamHandler);
 router.post("/teams/for-project", requireAuth, createTeamForProjectHandler);
 router.post("/projects/:projectId/random-allocate", requireAuth, applyRandomAllocationHandler);

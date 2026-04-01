@@ -30,6 +30,8 @@ export type ModuleStudent = {
   email: string;
 };
 
+export type InviteEligibleStudent = ModuleStudent;
+
 export type ProjectTeamSummary = {
   id: number;
   teamName: string;
@@ -331,6 +333,131 @@ export async function findStaffScopedProject(
     enterpriseId: user.enterpriseId,
     teamAllocationQuestionnaireTemplateId: project.teamAllocationQuestionnaireTemplateId ?? null,
   };
+}
+
+export async function findInviteEligibleStudentsForTeam(
+  teamId: number,
+  requesterId: number,
+): Promise<InviteEligibleStudent[]> {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      id: true,
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    throw { code: "TEAM_NOT_FOUND_OR_INACTIVE" };
+  }
+
+  const requesterAllocation = await prisma.teamAllocation.findUnique({
+    where: {
+      teamId_userId: {
+        teamId,
+        userId: requesterId,
+      },
+    },
+    select: { teamId: true },
+  });
+  if (!requesterAllocation) {
+    throw { code: "TEAM_ACCESS_FORBIDDEN" };
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findMany({
+    where: {
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findInviteEligibleStudentForTeamByEmail(teamId: number, email: string) {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    return null;
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findFirst({
+    where: {
+      email: { equals: email, mode: "insensitive" },
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  });
 }
 
 export async function findStaffScopedProjectAccess(
