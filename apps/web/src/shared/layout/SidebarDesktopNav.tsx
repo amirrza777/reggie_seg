@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import type { SidebarLink } from "./Sidebar.types";
+import { SidebarChevron } from "./SidebarChevron";
 import { getBestMatchingHref, type SearchParamsReader } from "./Sidebar.utils";
 
 type SidebarDesktopNavProps = {
@@ -56,7 +57,7 @@ function DesktopSidebarGroup({
         aria-expanded={groupOpen}
       >
         <span>{link.label}</span>
-        <span className={`sidebar__chevron ${groupOpen ? "is-open" : ""}`}>{groupOpen ? "↑" : "↓"}</span>
+        <SidebarChevron isOpen={groupOpen} />
       </button>
       <div className={`sidebar__group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
         <div className="sidebar__group-collapse-inner">
