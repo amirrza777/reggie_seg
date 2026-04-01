@@ -39,8 +39,12 @@ function getTextSeedAnswer(label: string, reviewerId: number): string {
   return "Constructive feedback provided in this response.";
 }
 
-function normalizeSentence(value: string | string[]) {
-  const sentence = (Array.isArray(value) ? value[0] : value).replace(/\s+/g, " ").trim();
+function normalizeSentence(value: unknown) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (typeof raw !== "string") {
+    return "Steady contribution and reliable collaboration across project work.";
+  }
+  const sentence = raw.replace(/\s+/g, " ").trim();
   return sentence.length > 0 ? sentence : "Steady contribution and reliable collaboration across project work.";
 }
 
