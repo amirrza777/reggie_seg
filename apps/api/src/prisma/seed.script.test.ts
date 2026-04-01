@@ -51,6 +51,8 @@ type PrismaMock = {
   meetingAttendance: { createMany: ReturnType<typeof vi.fn> };
   meetingParticipant: { createMany: ReturnType<typeof vi.fn> };
   meetingMinutes: { createMany: ReturnType<typeof vi.fn> };
+  meetingComment: { create: ReturnType<typeof vi.fn> };
+  mention: { createMany: ReturnType<typeof vi.fn> };
   peerAssessment: {
     create: ReturnType<typeof vi.fn>;
     update: ReturnType<typeof vi.fn>;
@@ -93,6 +95,7 @@ type PrismaMock = {
 function buildPrismaMock(): PrismaMock {
   const userLookupCounts = new Map<string, number>();
   let meetingIdCounter = 200;
+  let meetingCommentIdCounter = 300;
   const prismaMock = {
     enterprise: {
       findUnique: vi.fn().mockResolvedValue({ id: "ent-1" }),
@@ -115,11 +118,11 @@ function buildPrismaMock(): PrismaMock {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       findMany: vi.fn().mockResolvedValue([
-        { id: 1, role: "STAFF", email: "staff1@example.com" },
-        { id: 2, role: "STUDENT", email: "student1@example.com" },
-        { id: 3, role: "STUDENT", email: "student2@example.com" },
-        { id: 4, role: "STUDENT", email: "student3@example.com" },
-        { id: 5, role: "ADMIN", email: "admin1@example.com" },
+        { id: 1, role: "STAFF", email: "staff1@example.com", firstName: "Staff", lastName: "One" },
+        { id: 2, role: "STUDENT", email: "student1@example.com", firstName: "Alice", lastName: "Smith" },
+        { id: 3, role: "STUDENT", email: "student2@example.com", firstName: "Bob", lastName: "Jones" },
+        { id: 4, role: "STUDENT", email: "student3@example.com", firstName: "Cara", lastName: "Ng" },
+        { id: 5, role: "ADMIN", email: "admin1@example.com", firstName: "Admin", lastName: "One" },
       ]),
       findFirst: vi.fn().mockResolvedValue({ id: 1, role: "STAFF" }),
       upsert: vi.fn().mockResolvedValue({ id: 1 }),
@@ -214,6 +217,15 @@ function buildPrismaMock(): PrismaMock {
     },
     meetingMinutes: {
       createMany: vi.fn().mockResolvedValue({ count: 2 }),
+    },
+    meetingComment: {
+      create: vi.fn().mockImplementation(async () => {
+        meetingCommentIdCounter += 1;
+        return { id: meetingCommentIdCounter };
+      }),
+    },
+    mention: {
+      createMany: vi.fn().mockResolvedValue({ count: 4 }),
     },
     peerAssessment: {
       create: vi.fn().mockResolvedValue({ id: 100 }),
@@ -339,6 +351,8 @@ describe("prisma seed script", () => {
         meetingAttendance: prismaMock.meetingAttendance,
         meetingParticipant: prismaMock.meetingParticipant,
         meetingMinutes: prismaMock.meetingMinutes,
+        meetingComment: prismaMock.meetingComment,
+        mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
@@ -398,6 +412,28 @@ describe("prisma seed script", () => {
     expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
     expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
     expect(prismaMock.notification.createMany).toHaveBeenCalled();
+    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(5);
+    expect(prismaMock.meetingComment.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          meetingId: expect.any(Number),
+          userId: expect.any(Number),
+          content: expect.stringContaining("@"),
+          createdAt: expect.any(Date),
+        }),
+      }),
+    );
+    expect(prismaMock.mention.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            sourceType: "COMMENT",
+            sourceId: 302,
+            userId: expect.any(Number),
+          }),
+        ]),
+      }),
+    );
     expect(prismaMock.module.createMany).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.arrayContaining([
@@ -441,6 +477,8 @@ describe("prisma seed script", () => {
         meetingAttendance: prismaMock.meetingAttendance,
         meetingParticipant: prismaMock.meetingParticipant,
         meetingMinutes: prismaMock.meetingMinutes,
+        meetingComment: prismaMock.meetingComment,
+        mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
@@ -514,6 +552,8 @@ describe("prisma seed script", () => {
         meetingAttendance: prismaMock.meetingAttendance,
         meetingParticipant: prismaMock.meetingParticipant,
         meetingMinutes: prismaMock.meetingMinutes,
+        meetingComment: prismaMock.meetingComment,
+        mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
         projectDeadline: prismaMock.projectDeadline,
@@ -571,6 +611,12 @@ describe("prisma seed script", () => {
             readinessNotesText: expect.any(String),
           }),
         ]),
+      }),
+    );
+    expect(prismaMock.meetingComment.create).toHaveBeenCalled();
+    expect(prismaMock.mention.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([expect.objectContaining({ sourceType: "COMMENT" })]),
       }),
     );
     expect(prismaMock.featureFlag.upsert).toHaveBeenCalledTimes(6);

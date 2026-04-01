@@ -6,6 +6,7 @@ export const SEED_TABLES = [
   "ForumStudentReport",
   "ForumReaction",
   "Notification",
+  "Mention",
   "MeetingAttendance",
   "MeetingComment",
   "MeetingMinutes",
