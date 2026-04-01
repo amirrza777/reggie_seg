@@ -29,7 +29,6 @@ import {
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
-import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
 
 export {
   createTeamWarningForStaff,
@@ -166,10 +165,6 @@ export async function fetchModuleStaffList(userId: number, moduleId: number) {
 /** Enrolled students and their team per project (staff module matrix). */
 export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: number) {
   return getModuleStudentProjectMatrixForUser(userId, moduleId);
-}
-
-export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  return joinModuleByCodeInModuleJoin(actorUserId, rawCode);
 }
 
 /** Returns the teammates for project. */

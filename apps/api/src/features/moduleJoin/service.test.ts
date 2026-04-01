@@ -6,12 +6,14 @@ const mockState = vi.hoisted(() => ({
     findJoinableModuleByCode: vi.fn(),
     insertModuleEnrollment: vi.fn(),
     getAuthorizedModuleJoinCode: vi.fn(),
+    getAuthorizedModuleForJoinCodeMutation: vi.fn(),
+    updateModuleJoinCode: vi.fn(),
   },
 }));
 
 vi.mock("./repo.js", () => mockState.repo);
 
-import { getModuleJoinCode, joinModuleByCode, withGeneratedModuleJoinCode } from "./service.js";
+import { getModuleJoinCode, joinModuleByCode, rotateModuleJoinCode, withGeneratedModuleJoinCode } from "./service.js";
 
 describe("moduleJoin service", () => {
   beforeEach(() => {
@@ -55,6 +57,7 @@ describe("moduleJoin service", () => {
     await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
       ok: false,
       status: 403,
+      code: "FORBIDDEN",
       error: "Forbidden",
     });
 
@@ -62,6 +65,7 @@ describe("moduleJoin service", () => {
     await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
       ok: false,
       status: 400,
+      code: "INVALID_CODE",
       error: "Invalid or unavailable module code",
     });
 
@@ -69,6 +73,7 @@ describe("moduleJoin service", () => {
     await expect(joinModuleByCode(7, "ABCD1I45")).resolves.toEqual({
       ok: false,
       status: 400,
+      code: "INVALID_CODE",
       error: "Invalid or unavailable module code",
     });
     expect(mockState.repo.findJoinableModuleByCode).not.toHaveBeenCalled();
@@ -87,7 +92,31 @@ describe("moduleJoin service", () => {
     await expect(getModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
       ok: false,
       status: 404,
+      code: "MODULE_NOT_FOUND",
       error: "Module not found",
+    });
+  });
+
+  it("rotates a module join code for authorized users", async () => {
+    mockState.repo.getAuthorizedModuleForJoinCodeMutation.mockResolvedValueOnce({
+      id: 12,
+      name: "SEGP",
+      enterpriseId: "ent-1",
+      joinCode: "ABCD2345",
+    });
+    mockState.repo.updateModuleJoinCode.mockResolvedValueOnce({
+      id: 12,
+      name: "SEGP",
+      enterpriseId: "ent-1",
+      joinCode: "WXYZ6789",
+    });
+
+    await expect(rotateModuleJoinCode({ id: 1, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, 12)).resolves.toEqual({
+      ok: true,
+      value: {
+        moduleId: 12,
+        joinCode: "WXYZ6789",
+      },
     });
   });
 

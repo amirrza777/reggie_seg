@@ -29,6 +29,7 @@ import {
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
 } from "./controller.js";
+import * as moduleJoinController from "../moduleJoin/controller.js";
 
 vi.mock("./service.js", () => ({
   createProject: vi.fn(),
@@ -61,6 +62,10 @@ vi.mock("./service.js", () => ({
   fetchStaffStudentDeadlineOverrides: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
   clearStaffStudentDeadlineOverride: vi.fn(),
+}));
+
+vi.mock("../moduleJoin/controller.js", () => ({
+  joinModuleCompatibilityHandler: vi.fn(),
 }));
 
 function mockResponse() {
@@ -275,43 +280,13 @@ describe("projects controller core handlers", () => {
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
-  it("joinModuleHandler enforces auth and forwards join requests", async () => {
-    const unauthorizedRes = mockResponse();
-    await joinModuleHandler({ body: { code: "ABCD1234" } } as any, unauthorizedRes);
-    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+  it("joinModuleHandler delegates to moduleJoin compatibility controller", async () => {
+    (moduleJoinController.joinModuleCompatibilityHandler as any).mockResolvedValueOnce(undefined);
+    const res = mockResponse();
+    const req: any = { user: { sub: 7 }, body: { code: "segp-1234" } };
 
-    const invalidBodyRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: {} } as any, invalidBodyRes);
-    expect(invalidBodyRes.status).toHaveBeenCalledWith(400);
-
-    (service.joinModuleByCode as any).mockResolvedValue({
-      ok: true,
-      value: { moduleId: 3, moduleName: "SEGP", result: "joined" },
-    });
-    const okRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, okRes);
-
-    expect(service.joinModuleByCode).toHaveBeenCalledWith(7, "segp-1234");
-    expect(okRes.json).toHaveBeenCalledWith({
-      moduleId: 3,
-      moduleName: "SEGP",
-      result: "joined",
-    });
-  });
-
-  it("joinModuleHandler maps domain and unexpected errors", async () => {
-    (service.joinModuleByCode as any)
-      .mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" })
-      .mockRejectedValueOnce(new Error("boom"));
-
-    const forbiddenRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, forbiddenRes);
-    expect(forbiddenRes.status).toHaveBeenCalledWith(403);
-    expect(forbiddenRes.json).toHaveBeenCalledWith({ error: "Forbidden" });
-
-    const genericRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "segp-1234" } } as any, genericRes);
-    expect(genericRes.status).toHaveBeenCalledWith(500);
+    await joinModuleHandler(req, res);
+    expect(moduleJoinController.joinModuleCompatibilityHandler).toHaveBeenCalledWith(req, res);
   });
 
   it("getModuleStaffListHandler returns members or 403", async () => {
