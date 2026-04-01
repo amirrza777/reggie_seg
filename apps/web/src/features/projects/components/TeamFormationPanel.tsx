@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useTransition, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import type { Team } from "../types";
 import {
@@ -61,6 +62,13 @@ export function TeamFormationPanel({
   const [isLoadingInviteEligibleStudents, setIsLoadingInviteEligibleStudents] = useState(false);
   const [isInviteDropdownOpen, setIsInviteDropdownOpen] = useState(false);
   const invitePickerRef = useRef<HTMLDivElement | null>(null);
+  const inviteDropdownRef = useRef<HTMLDivElement | null>(null);
+  const [inviteDropdownStyle, setInviteDropdownStyle] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    maxHeight: number;
+  } | null>(null);
 
   // Received invite state
   const [receivedInvites, setReceivedInvites] = useState<TeamInvite[]>([]);
@@ -128,7 +136,9 @@ export function TeamFormationPanel({
     function handleOutsideClick(event: MouseEvent) {
       const target = event.target;
       if (!(target instanceof Node)) return;
-      if (invitePickerRef.current && !invitePickerRef.current.contains(target)) {
+      if (invitePickerRef.current?.contains(target)) return;
+      if (inviteDropdownRef.current?.contains(target)) return;
+      if (invitePickerRef.current) {
         setIsInviteDropdownOpen(false);
       }
     }
@@ -136,6 +146,32 @@ export function TeamFormationPanel({
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
+
+  const positionInviteDropdown = useCallback(() => {
+    if (!invitePickerRef.current) return;
+    const rect = invitePickerRef.current.getBoundingClientRect();
+    const top = rect.bottom + 6;
+    const viewportBottomGap = 12;
+    const maxHeight = Math.max(120, Math.min(240, window.innerHeight - top - viewportBottomGap));
+    setInviteDropdownStyle({
+      top,
+      left: rect.left,
+      width: rect.width,
+      maxHeight,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isInviteDropdownOpen) return;
+    positionInviteDropdown();
+    const handleViewportChange = () => positionInviteDropdown();
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [isInviteDropdownOpen, positionInviteDropdown]);
 
   const handleCreateTeam = () => {
     const name = teamName.trim();
@@ -321,12 +357,16 @@ export function TeamFormationPanel({
                   type="text"
                   placeholder="Search module student email"
                   value={inviteEmail}
-                  onFocus={() => setIsInviteDropdownOpen(true)}
+                  onFocus={() => {
+                    setIsInviteDropdownOpen(true);
+                    positionInviteDropdown();
+                  }}
                   onChange={(e) => {
                     setInviteEmail(e.target.value);
                     setInviteError("");
                     setInviteSuccess("");
                     setIsInviteDropdownOpen(true);
+                    positionInviteDropdown();
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") handleInvite();
@@ -335,36 +375,50 @@ export function TeamFormationPanel({
                   autoComplete="off"
                   aria-label="Search module student email"
                 />
-                {isInviteDropdownOpen ? (
-                  <div className="team-formation__invite-dropdown" role="listbox" aria-label="Eligible module students">
-                    {isLoadingInviteEligibleStudents ? (
-                      <p className="team-formation__invite-empty">Loading students...</p>
-                    ) : filteredInviteEligibleStudents.length === 0 ? (
-                      <p className="team-formation__invite-empty">No matching module students found.</p>
-                    ) : (
-                      filteredInviteEligibleStudents.map((student) => (
-                        <button
-                          key={student.id}
-                          type="button"
-                          className="team-formation__invite-option"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => {
-                            setInviteEmail(student.email);
-                            setInviteError("");
-                            setInviteSuccess("");
-                            setIsInviteDropdownOpen(false);
-                          }}
-                        >
-                          <span className="team-formation__invite-option-email">{student.email}</span>
-                          <span className="team-formation__invite-option-name">
-                            {`${student.firstName} ${student.lastName}`.trim() || `Student #${student.id}`}
-                          </span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                ) : null}
               </div>
+              {isInviteDropdownOpen && inviteDropdownStyle
+                ? createPortal(
+                    <div
+                      ref={inviteDropdownRef}
+                      className="team-formation__invite-dropdown team-formation__invite-dropdown--portal"
+                      style={{
+                        top: `${inviteDropdownStyle.top}px`,
+                        left: `${inviteDropdownStyle.left}px`,
+                        width: `${inviteDropdownStyle.width}px`,
+                        maxHeight: `${inviteDropdownStyle.maxHeight}px`,
+                      }}
+                      role="listbox"
+                      aria-label="Eligible module students"
+                    >
+                      {isLoadingInviteEligibleStudents ? (
+                        <p className="team-formation__invite-empty">Loading students...</p>
+                      ) : filteredInviteEligibleStudents.length === 0 ? (
+                        <p className="team-formation__invite-empty">No matching module students found.</p>
+                      ) : (
+                        filteredInviteEligibleStudents.map((student) => (
+                          <button
+                            key={student.id}
+                            type="button"
+                            className="team-formation__invite-option"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setInviteEmail(student.email);
+                              setInviteError("");
+                              setInviteSuccess("");
+                              setIsInviteDropdownOpen(false);
+                            }}
+                          >
+                            <span className="team-formation__invite-option-email">{student.email}</span>
+                            <span className="team-formation__invite-option-name">
+                              {`${student.firstName} ${student.lastName}`.trim() || `Student #${student.id}`}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>,
+                    document.body,
+                  )
+                : null}
               <button
                 type="button"
                 className="btn btn--primary"
