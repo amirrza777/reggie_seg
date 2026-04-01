@@ -22,6 +22,7 @@ const prismaDmmfMock = {
       { name: "QuestionnaireTemplate", fields: [] },
       { name: "FeatureFlag", fields: [] },
       { name: "RefreshToken", fields: [{ kind: "object", type: "User", relationFromFields: ["userId"] }] },
+      { name: "StaffStudentMarking", fields: [{ kind: "object", type: "User", relationFromFields: ["studentUserId"] }] },
     ],
   },
   mappings: {
@@ -32,6 +33,7 @@ const prismaDmmfMock = {
       { model: "QuestionnaireTemplate" },
       { model: "FeatureFlag" },
       { model: "RefreshToken" },
+      { model: "StaffStudentMarking" },
     ],
   },
 };
@@ -64,6 +66,7 @@ describe("prisma unseed script", () => {
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 1;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `RefreshToken`;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `StaffStudentMarking`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `FeatureFlag`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `Project`;");
     expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith("TRUNCATE TABLE `User`;");

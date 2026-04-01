@@ -13,7 +13,7 @@ import type { SeedProfileConfig } from "./config";
 import type { SeedContext, SeedEnterprise } from "./types";
 import { seedForumPosts } from "./forum";
 import { seedGithubDemoPath } from "./githubDemo";
-import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines } from "./outcomes";
+import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
 import { seedNotifications } from "./notifications";
@@ -91,7 +91,17 @@ function buildMembershipSeedPlan(context: SeedContext, config: SeedProfileConfig
 }
 
 function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig): SeedStepDefinition[] {
-  const steps: SeedStepDefinition[] = [
+  const steps: SeedStepDefinition[] = [];
+
+  if (config.scenarios.has("staffStudentMarks")) {
+    steps.push({
+      name: "seedStaffStudentMarks",
+      layer: "scenario",
+      run: () => seedStaffStudentMarks(context),
+    });
+  }
+
+  steps.push(
     {
       name: "seedTeamInvites",
       layer: "scenario",
@@ -102,7 +112,7 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
       layer: "scenario",
       run: () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams),
     },
-  ];
+  );
 
   if (config.scenarios.has("githubDemo")) {
     steps.push({

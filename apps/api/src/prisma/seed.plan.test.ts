@@ -28,7 +28,7 @@ function buildConfig(name: SeedProfileConfig["name"], scenarios: SeedProfileConf
 
 describe("seed plan", () => {
   it("builds a named dev plan without admin team allocation", () => {
-    const config = buildConfig("dev", new Set(["completedProject", "githubDemo"]));
+    const config = buildConfig("dev", new Set(["completedProject", "githubDemo", "staffStudentMarks"]));
     const steps = buildSeedStepPlan(context, config);
 
     expect(steps.map((step) => step.name)).toEqual([
@@ -36,6 +36,7 @@ describe("seed plan", () => {
       "seedModuleTeachingAssistants",
       "seedStudentEnrollments",
       "seedTeamAllocations",
+      "seedStaffStudentMarks",
       "seedTeamInvites",
       "seedGithubE2EUsers",
       "seedGithubDemoPath",
@@ -51,7 +52,7 @@ describe("seed plan", () => {
   });
 
   it("builds a demo plan with admin allocation enabled", () => {
-    const config = buildConfig("demo", new Set(["adminTeamAllocation", "completedProject", "githubDemo"]));
+    const config = buildConfig("demo", new Set(["adminTeamAllocation", "completedProject", "githubDemo", "staffStudentMarks"]));
     const steps = buildSeedStepPlan(context, config);
 
     expect(steps.map((step) => step.name)).toContain("seedAdminTeamAllocation");
@@ -59,10 +60,11 @@ describe("seed plan", () => {
   });
 
   it("builds an e2e plan without completed project scenario by default", () => {
-    const config = buildConfig("e2e", new Set(["githubDemo"]));
+    const config = buildConfig("e2e", new Set(["githubDemo", "staffStudentMarks"]));
     const steps = buildSeedStepPlan(context, config);
 
     expect(steps.map((step) => step.name)).not.toContain("seedCompletedProjectScenario");
     expect(steps.map((step) => step.name)).toContain("seedGithubDemoPath");
+    expect(steps.map((step) => step.name)).toContain("seedStaffStudentMarks");
   });
 });

@@ -1,6 +1,9 @@
+import { randSentence } from "@ngneat/falso";
+import { Role } from "@prisma/client";
+import { SEED_STUDENT_MARK_COVERAGE, SEED_STUDENT_MARK_MAX, SEED_STUDENT_MARK_MIN } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
-import type { SeedProject, SeedTeam, SeedTemplate } from "./types";
+import type { SeedContext, SeedProject, SeedTeam, SeedTemplate } from "./types";
 import { SEED_FEATURE_FLAG_COUNT, SEED_PEER_REVIEWS_PER_MEMBER } from "./volumes";
 
 function getNumberConfig(configs: unknown, key: "min" | "max" | "step", fallback: number): number {
@@ -34,6 +37,11 @@ function getTextSeedAnswer(label: string, reviewerId: number): string {
       : "Worked well with the team and contributed reliably.";
   }
   return "Constructive feedback provided in this response.";
+}
+
+function normalizeSentence(value: string | string[]) {
+  const sentence = (Array.isArray(value) ? value[0] : value).replace(/\s+/g, " ").trim();
+  return sentence.length > 0 ? sentence : "Steady contribution and reliable collaboration across project work.";
 }
 
 export async function seedProjectDeadlines(projects: SeedProject[]) {
@@ -252,6 +260,112 @@ export async function seedFeatureFlags(enterpriseId: string) {
       value: undefined,
       rows: createdCount,
       details: `processed flags=${defaults.length}`,
+    };
+  });
+}
+
+function buildSeedStudentMark(minMark: number, maxMark: number, index: number, studentUserId: number) {
+  const low = Math.min(minMark, maxMark);
+  const high = Math.max(minMark, maxMark);
+  const span = Math.max(1, high - low + 1);
+  return low + ((index + studentUserId) % span);
+}
+
+export async function seedStaffStudentMarks(context: SeedContext) {
+  return withSeedLogging("seedStaffStudentMarks", async () => {
+    const teamIds = context.teams.map((team) => team.id);
+    if (teamIds.length === 0) {
+      return { value: undefined, rows: 0, details: "skipped (no teams)" };
+    }
+
+    const fallbackMarker = context.usersByRole.adminOrStaff[0];
+    if (!fallbackMarker) {
+      return { value: undefined, rows: 0, details: "skipped (no staff/admin marker available)" };
+    }
+
+    const projectModuleMap = new Map(context.projects.map((project) => [project.id, project.moduleId]));
+    const teamProjectMap = new Map(context.teams.map((team) => [team.id, team.projectId]));
+
+    const [teamAllocations, moduleLeads, moduleTeachingAssistants] = await Promise.all([
+      prisma.teamAllocation.findMany({
+        where: { teamId: { in: teamIds } },
+        select: {
+          teamId: true,
+          userId: true,
+          user: { select: { role: true } },
+        },
+      }),
+      prisma.moduleLead.findMany({
+        where: { moduleId: { in: context.modules.map((module) => module.id) } },
+        select: { moduleId: true, userId: true },
+      }),
+      prisma.moduleTeachingAssistant.findMany({
+        where: { moduleId: { in: context.modules.map((module) => module.id) } },
+        select: { moduleId: true, userId: true },
+      }),
+    ]);
+
+    const studentCandidates = teamAllocations.filter((allocation) => allocation.user.role === Role.STUDENT);
+    const uniqueCandidateIds = Array.from(new Set(studentCandidates.map((allocation) => allocation.userId)));
+    const confirmedStudents = await prisma.user.findMany({
+      where: {
+        id: { in: uniqueCandidateIds },
+        role: Role.STUDENT,
+      },
+      select: { id: true },
+    });
+    const confirmedStudentIds = new Set(confirmedStudents.map((user) => user.id));
+    const safeCandidates = studentCandidates.filter((allocation) => confirmedStudentIds.has(allocation.userId));
+
+    if (safeCandidates.length === 0) {
+      return { value: undefined, rows: 0, details: "skipped (no student allocations eligible for marks)" };
+    }
+
+    const coverageCount = Math.floor(safeCandidates.length * SEED_STUDENT_MARK_COVERAGE);
+    const targetCount =
+      SEED_STUDENT_MARK_COVERAGE > 0 ? Math.max(1, coverageCount) : 0;
+    if (targetCount === 0) {
+      return { value: undefined, rows: 0, details: "skipped (student mark coverage set to 0)" };
+    }
+    const scopedCandidates = safeCandidates.slice(0, targetCount);
+
+    const staffPoolByModuleId = new Map<number, number[]>();
+    for (const assignment of moduleLeads) {
+      const pool = staffPoolByModuleId.get(assignment.moduleId) ?? [];
+      if (!pool.includes(assignment.userId)) pool.push(assignment.userId);
+      staffPoolByModuleId.set(assignment.moduleId, pool);
+    }
+    for (const assignment of moduleTeachingAssistants) {
+      const pool = staffPoolByModuleId.get(assignment.moduleId) ?? [];
+      if (!pool.includes(assignment.userId)) pool.push(assignment.userId);
+      staffPoolByModuleId.set(assignment.moduleId, pool);
+    }
+
+    const rows = scopedCandidates.map((candidate, index) => {
+      const projectId = teamProjectMap.get(candidate.teamId);
+      const moduleId = projectId ? projectModuleMap.get(projectId) : undefined;
+      const modulePool = moduleId ? staffPoolByModuleId.get(moduleId) : undefined;
+      const markerUserId = modulePool?.length
+        ? modulePool[(index + candidate.userId) % modulePool.length]
+        : fallbackMarker.id;
+      return {
+        teamId: candidate.teamId,
+        studentUserId: candidate.userId,
+        markerUserId,
+        mark: buildSeedStudentMark(SEED_STUDENT_MARK_MIN, SEED_STUDENT_MARK_MAX, index, candidate.userId),
+        formativeFeedback: normalizeSentence(randSentence({ length: { min: 7, max: 12 } })),
+      };
+    });
+
+    const result = await prisma.staffStudentMarking.createMany({
+      data: rows,
+      skipDuplicates: true,
+    });
+
+    return {
+      value: undefined,
+      rows: result.count,
+      details: `planned=${rows.length}, studentRecipients=${confirmedStudentIds.size}`,
     };
   });
 }
