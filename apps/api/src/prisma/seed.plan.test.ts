@@ -75,6 +75,15 @@ describe("seed plan", () => {
     expect(steps.map((step) => step.name)).toContain("seedStaffStudentMarks");
   });
 
+  it("omits optional scenario steps when flags are absent", () => {
+    const config = buildConfig("dev", new Set());
+    const steps = buildSeedStepPlan(context, config);
+    const names = steps.map((step) => step.name);
+
+    expect(names).not.toContain("seedStaffStudentMarks");
+    expect(names).not.toContain("seedGithubDemoPath");
+  });
+
   it("builds a trello-e2e plan path", () => {
     const config = buildConfig("trello-e2e", new Set(["adminTeamAllocation", "githubDemo", "staffStudentMarks"]));
     const steps = buildSeedStepPlan(context, config);
