@@ -251,16 +251,40 @@ export async function updateInviteStatusFromPending(
   status: TeamInviteStatus,
   now: Date,
 ) {
-  const result = await prisma.teamInvite.updateMany({
-    where: {
-      id: inviteId,
-      status: "PENDING",
-      active: true,
-      team: {
-        archivedAt: null,
-        allocationLifecycle: "ACTIVE",
-      },
+  const transitionWhere: Prisma.TeamInviteWhereInput = {
+    id: inviteId,
+    status: "PENDING",
+    active: true,
+    team: {
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
     },
+  };
+  const targetInvite = await prisma.teamInvite.findFirst({
+    where: transitionWhere,
+    select: {
+      id: true,
+      teamId: true,
+      inviteeEmail: true,
+    },
+  });
+  if (!targetInvite) {
+    return null;
+  }
+
+  // Historical rows may already occupy (teamId, inviteeEmail, active=false).
+  // Remove stale inactive duplicates so the pending invite can transition safely.
+  await prisma.teamInvite.deleteMany({
+    where: {
+      teamId: targetInvite.teamId,
+      inviteeEmail: targetInvite.inviteeEmail,
+      active: false,
+      id: { not: targetInvite.id },
+    },
+  });
+
+  const result = await prisma.teamInvite.updateMany({
+    where: transitionWhere,
     data: {
       status,
       active: false,
@@ -273,7 +297,7 @@ export async function updateInviteStatusFromPending(
   }
 
   return prisma.teamInvite.findUnique({
-    where: { id: inviteId },
+    where: { id: targetInvite.id },
   });
 }
 
@@ -430,7 +454,7 @@ export async function findInviteEligibleStudentForTeamByEmail(teamId: number, em
   const projectStudentScope = await buildProjectStudentScope(team.projectId);
   return prisma.user.findFirst({
     where: {
-      email: { equals: email, mode: "insensitive" },
+      email: { equals: email },
       enterpriseId: team.enterpriseId,
       active: true,
       role: "STUDENT",
@@ -597,16 +621,16 @@ export async function findModuleStudentsForManualAllocation(
       ...(hasQuery
         ? {
             OR: [
-              { firstName: { contains: normalizedQuery, mode: "insensitive" } },
-              { lastName: { contains: normalizedQuery, mode: "insensitive" } },
-              { email: { contains: normalizedQuery, mode: "insensitive" } },
+              { firstName: { contains: normalizedQuery } },
+              { lastName: { contains: normalizedQuery } },
+              { email: { contains: normalizedQuery } },
               {
                 teamAllocations: {
                   some: {
                     team: {
                       projectId,
                       archivedAt: null,
-                      teamName: { contains: normalizedQuery, mode: "insensitive" },
+                      teamName: { contains: normalizedQuery },
                     },
                   },
                 },

@@ -2,7 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   prisma: {
-    teamInvite: { updateMany: vi.fn(), findUnique: vi.fn(), create: vi.fn() },
+    teamInvite: {
+      updateMany: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      deleteMany: vi.fn(),
+      create: vi.fn(),
+    },
     team: { findUnique: vi.fn() },
     user: { findUnique: vi.fn() },
   },
@@ -16,11 +22,17 @@ describe("repo invites", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns null when invite transition updates nothing", async () => {
-    mocks.prisma.teamInvite.updateMany.mockResolvedValue({ count: 0 });
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue(null);
     await expect(updateInviteStatusFromPending("i-1", "DECLINED", new Date())).resolves.toBeNull();
   });
 
   it("returns updated invite when transition succeeds", async () => {
+    mocks.prisma.teamInvite.findFirst.mockResolvedValue({
+      id: "i-1",
+      teamId: 3,
+      inviteeEmail: "u@x.com",
+    });
+    mocks.prisma.teamInvite.deleteMany.mockResolvedValue({ count: 0 });
     mocks.prisma.teamInvite.updateMany.mockResolvedValue({ count: 1 });
     mocks.prisma.teamInvite.findUnique.mockResolvedValue({ id: "i-1", status: "DECLINED" });
     await expect(updateInviteStatusFromPending("i-1", "DECLINED", new Date())).resolves.toEqual({
