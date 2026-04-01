@@ -21,16 +21,22 @@ describe("FaqAccordion", () => {
     expect(screen.getByRole("link", { name: "Learn more" })).toHaveAttribute("href", "/help");
   });
 
-  it("toggles open question on summary clicks", () => {
+  it("opens the first item by default", () => {
     render(<FaqAccordion items={items} reveal={false} />);
-    const summary = screen.getByText("How do I reset my password?");
-    const details = summary.closest("details");
-    expect(details).not.toHaveAttribute("data-reveal");
+    const firstTrigger = screen.getByText("What is Team Feedback?");
+    expect(firstTrigger).toHaveAttribute("aria-expanded", "true");
+  });
 
-    fireEvent.click(summary);
-    expect(details).toHaveAttribute("open");
+  it("toggles open question on trigger clicks", () => {
+    render(<FaqAccordion items={items} reveal={false} />);
+    const trigger = screen.getByText("How do I reset my password?");
+    const wrapper = trigger.closest(".faq__item")?.parentElement;
+    expect(wrapper).not.toHaveAttribute("data-reveal");
 
-    fireEvent.click(summary);
-    expect(details).not.toHaveAttribute("open");
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    fireEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 });
