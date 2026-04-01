@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:modulejoin": "vitest run --config vitest.modulejoin.config.ts",
+    "test:modulejoin:coverage": "vitest run --config vitest.modulejoin.config.ts --coverage",
     "test:seed": "vitest run --config vitest.seed.config.ts",
     "test:seed:coverage": "vitest run --config vitest.seed.config.ts --coverage",
     "dev": "tsx --watch src/index.ts",

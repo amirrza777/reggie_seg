@@ -41,6 +41,12 @@ describe("moduleJoin router", () => {
     expect(mockState.handlers.rotateModuleJoinCodeHandler).toHaveBeenCalled();
   });
 
+  it("rotate endpoint is POST-only", async () => {
+    const app = createApp();
+    await request(app).get("/module-join/modules/1/code/rotate").expect(404);
+    await request(app).post("/module-join/modules/1/code/rotate").expect(200);
+  });
+
   it("rate limits repeated join attempts", async () => {
     const app = createApp();
     let throttled: request.Response | null = null;
@@ -55,5 +61,13 @@ describe("moduleJoin router", () => {
     expect(throttled).not.toBeNull();
     expect(throttled?.headers["retry-after"]).toBeDefined();
     expect(throttled?.body).toEqual({ error: "Too many requests, please try again later." });
+  });
+
+  it("does not rate limit non-join routes", async () => {
+    const app = createApp();
+    for (let i = 0; i < 30; i += 1) {
+      await request(app).get("/module-join/modules/1/code").expect(200);
+      await request(app).post("/module-join/modules/1/code/rotate").expect(200);
+    }
   });
 });
