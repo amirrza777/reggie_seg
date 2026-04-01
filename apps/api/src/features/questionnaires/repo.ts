@@ -1,6 +1,6 @@
 import { prisma } from "../../shared/db.js";
 import { Prisma } from "@prisma/client";
-import type { Question, IncomingQuestion } from "./types.js";
+import type { IncomingQuestion, QuestionnairePurpose } from "./types.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
@@ -24,12 +24,14 @@ export function createQuestionnaireTemplate(
   templateName: string,
   questions: IncomingQuestion[],
   userId: number,
-  isPublic: boolean
+  isPublic: boolean,
+  purpose?: QuestionnairePurpose,
 ) {
   return prisma.questionnaireTemplate.create({
     data: {
       templateName,
       isPublic,
+      ...(purpose !== undefined ? { purpose } : {}),
       questions: {
         create: questions.map((q, index) => ({
           label: q.label,
@@ -64,22 +66,28 @@ export function getAllQuestionnaireTemplates(requesterUserId?: number | null) {
 };
 
 /** Returns the my questionnaire templates. */
-export async function getMyQuestionnaireTemplates(userId: number, options?: { query?: string | null }) {
+export async function getMyQuestionnaireTemplates(
+  userId: number,
+  options?: { query?: string | null; purpose?: QuestionnairePurpose },
+) {
   const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const hasQuery = normalizedQuery.length > 0;
   const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+  const purposeFilter =
+    options?.purpose !== undefined ? { purpose: options.purpose } : {};
 
   const templates = await prisma.questionnaireTemplate.findMany({
     where: hasQuery
       ? {
           ownerId: userId,
+          ...purposeFilter,
           OR: [
             { templateName: { contains: normalizedQuery } },
             { questions: { some: { label: { contains: normalizedQuery } } } },
             ...(numericQuery !== null ? [{ id: numericQuery }] : []),
           ],
         }
-      : { ownerId: userId },
+      : { ownerId: userId, ...purposeFilter },
     include: { questions: { orderBy: { order: "asc" } } },
   });
 
@@ -87,7 +95,7 @@ export async function getMyQuestionnaireTemplates(userId: number, options?: { qu
     query: normalizedQuery,
     fetchFallbackCandidates: async (limit) =>
       prisma.questionnaireTemplate.findMany({
-        where: { ownerId: userId },
+        where: { ownerId: userId, ...purposeFilter },
         include: { questions: { orderBy: { order: "asc" } } },
         take: limit,
       }),
@@ -96,11 +104,15 @@ export async function getMyQuestionnaireTemplates(userId: number, options?: { qu
 }
 
 /** Returns the public questionnaire templates by other users. */
-export function getPublicQuestionnaireTemplatesByOtherUsers(userId: number) {
+export function getPublicQuestionnaireTemplatesByOtherUsers(
+  userId: number,
+  options?: { purpose?: QuestionnairePurpose },
+) {
   return prisma.questionnaireTemplate.findMany({
     where: {
       isPublic: true,
       ownerId: { not: userId },
+      ...(options?.purpose !== undefined ? { purpose: options.purpose } : {}),
     },
     include: { questions: { orderBy: { order: "asc" } } },
   });
@@ -138,13 +150,18 @@ export async function updateQuestionnaireTemplate(
   templateId: number,
   templateName: string,
   questions: IncomingQuestion[],
-  isPublic?: boolean
+  isPublic?: boolean,
+  purpose?: QuestionnairePurpose,
 ) {
   //update in transaction so no data is lost if error occurs
   return prisma.$transaction(async (tx) => {
     await tx.questionnaireTemplate.update({
       where: { id: templateId },
-      data: { templateName, ...(typeof isPublic === "boolean" ? { isPublic } : {}) },
+      data: {
+        templateName,
+        ...(typeof isPublic === "boolean" ? { isPublic } : {}),
+        ...(purpose !== undefined ? { purpose } : {}),
+      },
     });
 
     const existingQuestions = await tx.question.findMany({
@@ -230,6 +247,7 @@ export async function copyPublicQuestionnaireTemplateToUser(templateId: number, 
     data: {
       templateName: `${source.templateName} (Copy)`,
       isPublic: false,
+      purpose: (source as { purpose?: QuestionnairePurpose }).purpose ?? "GENERAL_PURPOSE",
       ownerId: userId,
       questions: {
         create: source.questions.map((q, index) => ({

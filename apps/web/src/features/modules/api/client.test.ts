@@ -40,7 +40,7 @@ describe("modules api client", () => {
 
   it("joins a module by code", async () => {
     await joinModuleByCode({ code: "ABCD2345" });
-    expect(apiFetchMock).toHaveBeenCalledWith("/projects/modules/join", {
+    expect(apiFetchMock).toHaveBeenCalledWith("/module-join/join", {
       method: "POST",
       body: JSON.stringify({ code: "ABCD2345" }),
     });

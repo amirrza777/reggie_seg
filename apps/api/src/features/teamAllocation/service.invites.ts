@@ -6,6 +6,8 @@ import { prisma } from "../../shared/db.js";
 import {
   createTeamInviteRecord,
   findActiveInvite,
+  findInviteEligibleStudentForTeamByEmail,
+  findInviteEligibleStudentsForTeam,
   findInviteContext,
   findPendingInvitesForEmail,
   getInvitesForTeam,
@@ -45,6 +47,11 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   });
   if (!inviterAllocation) throw { code: "TEAM_ACCESS_FORBIDDEN" };
 
+  const eligibleInvitee = await findInviteEligibleStudentForTeamByEmail(params.teamId, normalizedEmail);
+  if (!eligibleInvitee) {
+    throw { code: "INVITEE_NOT_ELIGIBLE_FOR_PROJECT" };
+  }
+
   const existing = await findActiveInvite(params.teamId, normalizedEmail);
   if (existing) {
     throw { code: "INVITE_ALREADY_PENDING" };
@@ -57,7 +64,7 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   const invite = await createTeamInviteRecord({
     teamId: params.teamId,
     inviterId: params.inviterId,
-    inviteeId: params.inviteeId ?? null,
+    inviteeId: eligibleInvitee.id,
     inviteeEmail: normalizedEmail,
     tokenHash,
     expiresAt,
@@ -75,11 +82,15 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
     "Please log in to your account and RSVP to this invite.",
   ].filter(Boolean);
 
-  await sendEmail({
-    to: normalizedEmail,
-    subject: "Team invitation",
-    text: textLines.join("\n"),
-  });
+  try {
+    await sendEmail({
+      to: normalizedEmail,
+      subject: "Team invitation",
+      text: textLines.join("\n"),
+    });
+  } catch (error) {
+    console.error("Failed to send team invitation email; invite was still created.", error);
+  }
 
   const inviteeUserId = params.inviteeId ?? (
     await prisma.user.findFirst({ where: { email: normalizedEmail }, select: { id: true } })
@@ -87,12 +98,16 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
   if (inviteeUserId) {
     const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : "A teammate";
-    await addNotification({
-      userId: inviteeUserId,
-      type: "TEAM_INVITE",
-      message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
-      link: `/projects/${team?.projectId}/team`,
-    });
+    try {
+      await addNotification({
+        userId: inviteeUserId,
+        type: "TEAM_INVITE",
+        message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
+        link: `/projects/${team?.projectId}/team`,
+      });
+    } catch (error) {
+      console.error("Failed to create team invitation notification; invite was still created.", error);
+    }
   }
 
   return { invite, rawToken };
@@ -167,4 +182,8 @@ export async function cancelTeamInvite(inviteId: string) {
 
 export async function expireTeamInvite(inviteId: string) {
   return transitionInviteFromPending(inviteId, "EXPIRED");
+}
+
+export async function listInviteEligibleStudents(teamId: number, requesterId: number) {
+  return findInviteEligibleStudentsForTeam(teamId, requesterId);
 }

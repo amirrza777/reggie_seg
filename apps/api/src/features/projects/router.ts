@@ -14,6 +14,9 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
+  getTeamAllocationQuestionnaireForProjectHandler,
+  getTeamAllocationQuestionnaireStatusForProjectHandler,
+  submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffMarkingProjectsHandler,
@@ -43,6 +46,7 @@ import {
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", requireAuth, getUserModulesHandler);
+// Compatibility route for legacy clients. Remove in MJ-013 after migration to /module-join/join.
 router.post("/modules/join", requireAuth, joinModuleHandler);
 router.get("/modules/:moduleId/staff", requireAuth, getModuleStaffListHandler);
 router.get("/modules/:moduleId/student-project-matrix", requireAuth, getModuleStudentProjectMatrixHandler);
@@ -92,5 +96,16 @@ router.get("/:projectId/marking", requireAuth, getProjectMarkingHandler);
 router.get("/:projectId/team", requireAuth, getTeamByUserAndProjectHandler);
 router.get("/teams/:teamId", requireAuth, getTeamByIdHandler);
 router.get("/:projectId/questions", requireAuth, getQuestionsForProjectHandler);
+router.get("/:projectId/team-allocation-questionnaire", requireAuth, getTeamAllocationQuestionnaireForProjectHandler);
+router.get(
+  "/:projectId/team-allocation-questionnaire-status",
+  requireAuth,
+  getTeamAllocationQuestionnaireStatusForProjectHandler,
+);
+router.post(
+  "/:projectId/team-allocation-questionnaire/response",
+  requireAuth,
+  submitTeamAllocationQuestionnaireResponseHandler,
+);
 
 export default router;

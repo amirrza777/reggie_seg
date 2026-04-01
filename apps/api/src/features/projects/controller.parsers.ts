@@ -7,6 +7,7 @@ import {
   parseEnum,
   parseOptionalPositiveInt,
   parsePositiveInt,
+  parsePositiveIntArray,
   parseTrimmedString,
   type ParseResult,
 } from "../../shared/parse.js";
@@ -55,7 +56,9 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number;
   deadline: ParsedProjectDeadline;
+  studentIds?: number[];
 }> {
   const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
 
@@ -73,6 +76,23 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
   const deadline = parseProjectDeadline(raw.deadline);
   if (!deadline.ok) return deadline;
 
+  const teamAllocationTemplateId = parseOptionalPositiveInt(
+    raw.teamAllocationQuestionnaireTemplateId,
+    "teamAllocationQuestionnaireTemplateId",
+  );
+  if (!teamAllocationTemplateId.ok) {
+    return { ok: false, error: teamAllocationTemplateId.error };
+  }
+
+  let studentIds: number[] | undefined;
+  if (raw.studentIds !== undefined) {
+    const parsedStudentIds = parsePositiveIntArray(raw.studentIds, "studentIds");
+    if (!parsedStudentIds.ok) {
+      return { ok: false, error: parsedStudentIds.error };
+    }
+    studentIds = parsedStudentIds.value;
+  }
+
   return {
     ok: true,
     value: {
@@ -80,6 +100,10 @@ export function parseCreateProjectBody(body: unknown): ParseResult<{
       moduleId: moduleId.value,
       questionnaireTemplateId: questionnaireTemplateId.value,
       deadline: deadline.value,
+      ...(teamAllocationTemplateId.value !== undefined
+        ? { teamAllocationQuestionnaireTemplateId: teamAllocationTemplateId.value }
+        : {}),
+      ...(studentIds !== undefined ? { studentIds } : {}),
     },
   };
 }

@@ -34,8 +34,8 @@ type PrismaMock = {
     findFirst: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
   };
-  moduleLead: { createMany: ReturnType<typeof vi.fn> };
-  moduleTeachingAssistant: { createMany: ReturnType<typeof vi.fn> };
+  moduleLead: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  moduleTeachingAssistant: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
   userModule: { createMany: ReturnType<typeof vi.fn> };
   teamAllocation: {
     createMany: ReturnType<typeof vi.fn>;
@@ -65,6 +65,10 @@ type PrismaMock = {
     upsert: ReturnType<typeof vi.fn>;
     deleteMany: ReturnType<typeof vi.fn>;
     findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  staffStudentMarking: {
+    createMany: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
   };
   projectDeadline: { upsert: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
@@ -160,10 +164,10 @@ function buildPrismaMock(): PrismaMock {
       create: vi.fn().mockResolvedValue({ id: 101, questionnaireTemplateId: 1 }),
       update: vi.fn().mockResolvedValue({ id: 101, questionnaireTemplateId: 1 }),
       findMany: vi.fn().mockResolvedValue([
-        { id: 1, questionnaireTemplateId: 1 },
-        { id: 2, questionnaireTemplateId: 1 },
-        { id: 3, questionnaireTemplateId: 1 },
-        { id: 4, questionnaireTemplateId: 1 },
+        { id: 1, moduleId: 1, questionnaireTemplateId: 1 },
+        { id: 2, moduleId: 2, questionnaireTemplateId: 1 },
+        { id: 3, moduleId: 1, questionnaireTemplateId: 1 },
+        { id: 4, moduleId: 2, questionnaireTemplateId: 1 },
       ]),
       findFirst: vi.fn().mockResolvedValue({ id: 1 }),
       findUnique: vi.fn().mockResolvedValue({ moduleId: 1 }),
@@ -181,9 +185,11 @@ function buildPrismaMock(): PrismaMock {
     },
     moduleLead: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      findMany: vi.fn().mockResolvedValue([{ moduleId: 1, userId: 1 }]),
     },
     moduleTeachingAssistant: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
+      findMany: vi.fn().mockResolvedValue([{ moduleId: 1, userId: 5 }]),
     },
     userModule: {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -192,9 +198,9 @@ function buildPrismaMock(): PrismaMock {
       createMany: vi.fn().mockResolvedValue({ count: 1 }),
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([
-        { teamId: 10, userId: 2, user: { id: 2 } },
-        { teamId: 10, userId: 5, user: { id: 5 } },
-        { teamId: 11, userId: 3, user: { id: 3 } },
+        { teamId: 10, userId: 2, user: { id: 2, role: "STUDENT" } },
+        { teamId: 10, userId: 5, user: { id: 5, role: "ADMIN" } },
+        { teamId: 11, userId: 3, user: { id: 3, role: "STUDENT" } },
       ]),
       findUnique: vi.fn().mockResolvedValue(null),
     },
@@ -239,6 +245,10 @@ function buildPrismaMock(): PrismaMock {
       upsert: vi.fn().mockResolvedValue({}),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
       findUnique: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    staffStudentMarking: {
+      createMany: vi.fn().mockResolvedValue({ count: 2 }),
       findMany: vi.fn().mockResolvedValue([]),
     },
     projectDeadline: {
@@ -355,6 +365,7 @@ describe("prisma seed script", () => {
         mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
+        staffStudentMarking: prismaMock.staffStudentMarking,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
         helpTopic: prismaMock.helpTopic,
@@ -409,10 +420,21 @@ describe("prisma seed script", () => {
     expect(prismaMock.teamInvite.upsert).toHaveBeenCalled();
     expect(prismaMock.githubAccount.upsert).toHaveBeenCalled();
     expect(prismaMock.projectGithubRepository.upsert).toHaveBeenCalled();
+    expect(prismaMock.staffStudentMarking.createMany).toHaveBeenCalled();
+    expect(prismaMock.staffStudentMarking.createMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.arrayContaining([
+          expect.objectContaining({ studentUserId: 2 }),
+          expect.objectContaining({ studentUserId: 3 }),
+        ]),
+      }),
+    );
+    const staffStudentMarkRows = (prismaMock.staffStudentMarking.createMany.mock.calls[0]?.[0] as any)?.data ?? [];
+    expect(staffStudentMarkRows.every((row: any) => [2, 3].includes(row.studentUserId))).toBe(true);
     expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
     expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
     expect(prismaMock.notification.createMany).toHaveBeenCalled();
-    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(5);
+    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(7);
     expect(prismaMock.meetingComment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -481,6 +503,7 @@ describe("prisma seed script", () => {
         mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
+        staffStudentMarking: prismaMock.staffStudentMarking,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
         helpTopic: prismaMock.helpTopic,
@@ -556,6 +579,7 @@ describe("prisma seed script", () => {
         mention: prismaMock.mention,
         peerAssessment: prismaMock.peerAssessment,
         peerFeedback: prismaMock.peerFeedback,
+        staffStudentMarking: prismaMock.staffStudentMarking,
         projectDeadline: prismaMock.projectDeadline,
         featureFlag: prismaMock.featureFlag,
         helpTopic: prismaMock.helpTopic,

@@ -16,6 +16,7 @@ import {
   getManualAllocationWorkspace,
   getRandomAllocationPreview,
   getReceivedInvites,
+  getTeamInviteEligibleStudents,
   getTeamInvites,
   previewCustomAllocation,
   sendTeamInvite,
@@ -60,6 +61,8 @@ describe("team allocation api client", () => {
   it("fetches invite lists and creates a team for a project", async () => {
     await getTeamInvites(77);
     expectFetch("/team-allocation/teams/77/invites");
+    await getTeamInviteEligibleStudents(77);
+    expectFetch("/team-allocation/teams/77/invite-eligible-students");
     await getReceivedInvites();
     expectFetch("/team-allocation/invites/received");
     await createTeamForProject(12, "Team Delta");

@@ -11,6 +11,8 @@ export type CalendarEvent = {
     | "assessment_due"
     | "feedback_open"
     | "feedback_due"
+    | "team_allocation_questionnaire_open"
+    | "team_allocation_questionnaire_due"
     | "meeting";
   projectName?: string;
 };
@@ -95,6 +97,68 @@ export async function getCalendarEventsForUser(userId: number): Promise<Calendar
       events.push({
         id: key,
         title: `${label[type]} – ${projectName}`,
+        date: fmt(date),
+        type,
+        projectName,
+      });
+    }
+  }
+
+  const projectMemberships = await prisma.projectStudent.findMany({
+    where: { userId },
+    select: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          teamAllocationQuestionnaireTemplateId: true,
+          deadline: {
+            select: {
+              teamAllocationQuestionnaireOpenDate: true,
+              teamAllocationQuestionnaireDueDate: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  for (const membership of projectMemberships) {
+    const project = membership.project;
+    if (!project.teamAllocationQuestionnaireTemplateId) continue;
+    const openDate = project.deadline?.teamAllocationQuestionnaireOpenDate ?? null;
+    const dueDate = project.deadline?.teamAllocationQuestionnaireDueDate ?? null;
+    const projectName = project.name;
+    const pid = project.id;
+
+    const pairs: Array<
+      [string, "team_allocation_questionnaire_open" | "team_allocation_questionnaire_due", Date | null]
+    > = [
+      [
+        `${pid}-team_allocation_questionnaire_open`,
+        "team_allocation_questionnaire_open",
+        openDate,
+      ],
+      [
+        `${pid}-team_allocation_questionnaire_due`,
+        "team_allocation_questionnaire_due",
+        dueDate,
+      ],
+    ];
+
+    for (const [key, type, date] of pairs) {
+      if (!date) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const label: Record<typeof type, string> = {
+        team_allocation_questionnaire_open: "Team Allocation Questionnaire Opens",
+        team_allocation_questionnaire_due: "Team Allocation Questionnaire Due",
+      };
+
+      events.push({
+        id: key,
+        title: `${label[type]} - ${projectName}`,
         date: fmt(date),
         type,
         projectName,

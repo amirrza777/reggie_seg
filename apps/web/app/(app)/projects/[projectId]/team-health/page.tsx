@@ -1,8 +1,14 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getMyTeamHealthMessages, getMyTeamWarnings, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getMyTeamHealthMessages,
+  getMyTeamWarnings,
+  getProject,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { ProjectTeamHealthPanels } from "@/features/projects/components/ProjectTeamHealthPanels";
 import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/ProjectTeamHealthTitleWithInfo";
+import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import { PageSection } from "@/shared/ui/PageSection";
 
@@ -38,6 +44,22 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     team = await getTeamByUserAndProject(user.id, numericProjectId);
   } catch {
     team = null;
+  }
+
+  let isCustomAllocation = false;
+  try {
+    const project = await getProject(projectId);
+    isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
+  } catch {
+    isCustomAllocation = false;
+  }
+
+  if (!team && isCustomAllocation) {
+    return (
+      <PageSection title="Team Health" className="ui-page--project">
+        <CustomAllocationWaitingBoard projectId={projectId} />
+      </PageSection>
+    );
   }
 
   if (!team) {

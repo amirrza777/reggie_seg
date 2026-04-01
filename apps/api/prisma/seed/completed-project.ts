@@ -104,7 +104,6 @@ async function ensureScenarioMeetings(teamId: number, organiserId: number, membe
 
   for (let index = 0; index < dates.length; index += 1) {
     const date = dates[index];
-    if (!date) continue;
     const title = `[SEED] Completed Check-in ${index + 1}`;
 
     const existingMeeting = await prisma.meeting.findFirst({
@@ -415,15 +414,18 @@ export async function seedCompletedProjectScenario(context: SeedContext) {
       });
     }
 
+    const studentIdSet = new Set(context.usersByRole.students.map((student) => student.id));
+    const studentMemberIds = memberIds.filter((memberId) => studentIdSet.has(memberId));
+
     const existingStudentMarks = await prisma.staffStudentMarking.findMany({
       where: {
         teamId: team.id,
-        studentUserId: { in: memberIds },
+        studentUserId: { in: studentMemberIds },
       },
       select: { studentUserId: true },
     });
     const markedStudentIds = new Set(existingStudentMarks.map((record) => record.studentUserId));
-    const studentMarksToCreate = memberIds
+    const studentMarksToCreate = studentMemberIds
       .filter((studentUserId) => !markedStudentIds.has(studentUserId))
       .map((studentUserId, index) => ({
         teamId: team.id,

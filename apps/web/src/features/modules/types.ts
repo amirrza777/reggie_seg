@@ -48,3 +48,12 @@ export type ModuleStudentProjectMatrixStudent = {
   displayName: string;
   teamCells: Array<{ teamId: number; teamName: string } | null>;
 };
+
+export type ModuleStudent = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  enrolled: boolean;
+};

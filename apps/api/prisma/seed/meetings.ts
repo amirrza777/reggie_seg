@@ -86,14 +86,19 @@ function buildSeedMeetingComments(meetings: {
   uiReview: SeedMeetingRecord;
   testingSession: SeedMeetingRecord;
 }, teamStudents: NamedSeedUser[]) {
-  if (teamStudents.length < 2) return [];
-
   const commentSpecs = [
     { meeting: meetings.weeklyCheckIn, offsetMinutes: 20, authorIndex: 0, mentionIndexes: [] },
     { meeting: meetings.weeklyCheckIn, offsetMinutes: 65, authorIndex: 1, mentionIndexes: [0] },
     { meeting: meetings.uiReview, offsetMinutes: 25, authorIndex: 0, mentionIndexes: [1] },
-    { meeting: meetings.uiReview, offsetMinutes: 55, authorIndex: 1, mentionIndexes: [0, 2] },
+    { meeting: meetings.uiReview, offsetMinutes: 35, authorIndex: 2, mentionIndexes: [] },
+    { meeting: meetings.uiReview, offsetMinutes: 55, authorIndex: 1, mentionIndexes: [0, 2, 3] },
     { meeting: meetings.testingSession, offsetMinutes: 35, authorIndex: 0, mentionIndexes: [1] },
+    {
+      meeting: { ...meetings.testingSession, title: "Backlog Grooming" },
+      offsetMinutes: 45,
+      authorIndex: 3,
+      mentionIndexes: [0],
+    },
   ] as const;
 
   return commentSpecs.map((spec) => {

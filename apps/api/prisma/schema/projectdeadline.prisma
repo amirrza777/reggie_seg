@@ -10,6 +10,8 @@ model ProjectDeadline {
   feedbackOpenDate     DateTime
   feedbackDueDate      DateTime
   feedbackDueDateMcf   DateTime?
+  teamAllocationQuestionnaireOpenDate DateTime?
+  teamAllocationQuestionnaireDueDate  DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,5 +1,6 @@
 import React, { type ReactNode } from "react";
-import { getProjectDeadline, getTeamByUserAndProject } from "../../projects/api/client";
+import { getProject, getProjectDeadline, getTeamByUserAndProject } from "../../projects/api/client";
+import { CustomAllocationWaitingBoard } from "../../projects/components/CustomAllocationWaitingBoard";
 import { getCurrentUser } from "../../../shared/auth/session";
 
 export type TrelloProjectGateChildProps = {
@@ -50,6 +51,22 @@ export async function TrelloProjectGate({
   }
 
   if (!team) {
+    let isCustomAllocation = false;
+    try {
+      const project = await getProject(projectId);
+      isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
+    } catch {
+      isCustomAllocation = false;
+    }
+
+    if (isCustomAllocation) {
+      return (
+        <div className="stack">
+          <CustomAllocationWaitingBoard projectId={projectId} />
+        </div>
+      );
+    }
+
     return (
       <div className="stack">
         <p>You are not in a team for this project.</p>

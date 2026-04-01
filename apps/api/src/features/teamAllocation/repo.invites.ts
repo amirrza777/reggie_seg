@@ -1,4 +1,4 @@
-import type { TeamInviteStatus } from "@prisma/client";
+import type { Prisma, TeamInviteStatus } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
 
 export async function findActiveInvite(teamId: number, inviteeEmail: string) {
@@ -89,16 +89,40 @@ export async function updateInviteStatusFromPending(
   status: TeamInviteStatus,
   now: Date,
 ) {
-  const result = await prisma.teamInvite.updateMany({
-    where: {
-      id: inviteId,
-      status: "PENDING",
-      active: true,
-      team: {
-        archivedAt: null,
-        allocationLifecycle: "ACTIVE",
-      },
+  const transitionWhere: Prisma.TeamInviteWhereInput = {
+    id: inviteId,
+    status: "PENDING",
+    active: true,
+    team: {
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
     },
+  };
+  const targetInvite = await prisma.teamInvite.findFirst({
+    where: transitionWhere,
+    select: {
+      id: true,
+      teamId: true,
+      inviteeEmail: true,
+    },
+  });
+  if (!targetInvite) {
+    return null;
+  }
+
+  // Historical rows may already occupy (teamId, inviteeEmail, active=false).
+  // Remove stale inactive duplicates so the pending invite can transition safely.
+  await prisma.teamInvite.deleteMany({
+    where: {
+      teamId: targetInvite.teamId,
+      inviteeEmail: targetInvite.inviteeEmail,
+      active: false,
+      id: { not: targetInvite.id },
+    },
+  });
+
+  const result = await prisma.teamInvite.updateMany({
+    where: transitionWhere,
     data: {
       status,
       active: false,
@@ -111,6 +135,6 @@ export async function updateInviteStatusFromPending(
   }
 
   return prisma.teamInvite.findUnique({
-    where: { id: inviteId },
+    where: { id: targetInvite.id },
   });
 }

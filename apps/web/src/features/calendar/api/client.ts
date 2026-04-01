@@ -11,6 +11,8 @@ export type CalendarEvent = {
     | "assessment_due"
     | "feedback_open"
     | "feedback_due"
+    | "team_allocation_questionnaire_open"
+    | "team_allocation_questionnaire_due"
     | "meeting";
   projectName?: string;
 };
