@@ -104,7 +104,6 @@ async function ensureScenarioMeetings(teamId: number, organiserId: number, membe
 
   for (let index = 0; index < dates.length; index += 1) {
     const date = dates[index];
-    if (!date) continue;
     const title = `[SEED] Completed Check-in ${index + 1}`;
 
     const existingMeeting = await prisma.meeting.findFirst({

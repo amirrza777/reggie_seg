@@ -6,39 +6,6 @@ import { prisma } from "./prismaClient";
 import type { SeedContext, SeedProject, SeedTeam, SeedTemplate } from "./types";
 import { SEED_FEATURE_FLAG_COUNT, SEED_PEER_REVIEWS_PER_MEMBER } from "./volumes";
 
-function getNumberConfig(configs: unknown, key: "min" | "max" | "step", fallback: number): number {
-  if (!configs || typeof configs !== "object" || Array.isArray(configs)) return fallback;
-  const value = (configs as Record<string, unknown>)[key];
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function getMultipleChoiceOptions(configs: unknown): string[] {
-  if (!configs || typeof configs !== "object" || Array.isArray(configs)) return [];
-  const options = (configs as Record<string, unknown>).options;
-  if (!Array.isArray(options)) return [];
-  return options.filter((option): option is string => typeof option === "string" && option.trim().length > 0);
-}
-
-function getTextSeedAnswer(label: string, reviewerId: number): string {
-  const normalizedLabel = label.toLowerCase();
-  if (normalizedLabel.includes("technical")) {
-    return reviewerId % 2 === 0
-      ? "Strong technical implementation and problem-solving."
-      : "Good technical foundation with room for deeper testing.";
-  }
-  if (normalizedLabel.includes("communication")) {
-    return reviewerId % 2 === 0
-      ? "Clear communication and regular updates to the team."
-      : "Communication was generally good but could be more proactive.";
-  }
-  if (normalizedLabel.includes("teamwork")) {
-    return reviewerId % 2 === 0
-      ? "Collaborated well and supported teammates consistently."
-      : "Worked well with the team and contributed reliably.";
-  }
-  return "Constructive feedback provided in this response.";
-}
-
 function normalizeSentence(value: unknown) {
   const raw = Array.isArray(value) ? value[0] : value;
   if (typeof raw !== "string") {
@@ -65,7 +32,6 @@ export async function seedProjectDeadlines(projects: SeedProject[]) {
     const now = new Date();
     for (let index = 0; index < projects.length; index += 1) {
       const project = projects[index];
-      if (!project) continue;
       if (!existingProjectIds.has(project.id)) createdCount += 1;
 
       const taskOpen = new Date(now.getTime() + index * 24 * 60 * 60 * 1000);

@@ -104,7 +104,7 @@ export function planTeamInviteSeedData(
     const invitee = pendingInvitees[index % pendingInvitees.length];
     if (!inviterId || !invitee) continue;
 
-    const status = INVITE_STATUS_SEQUENCE[index] ?? "PENDING";
+    const status = INVITE_STATUS_SEQUENCE[index];
     const isResponded = status === "ACCEPTED" || status === "DECLINED";
     const isActive = status === "PENDING";
     const expiresAt = status === "EXPIRED" ? new Date(now - 2 * 24 * 60 * 60 * 1000) : new Date(now + 7 * 24 * 60 * 60 * 1000);
