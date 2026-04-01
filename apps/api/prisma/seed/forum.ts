@@ -154,7 +154,7 @@ export function planForumStudentReportSeedData(
         status: reviewed ? ("APPROVED" as const) : ("PENDING" as const),
         reason: normalizeSentence(randSentence({ length: { min: 6, max: 12 } })),
         reviewedAt: reviewed ? new Date(Date.now() - (projectIndex + 1) * 60 * 60 * 1000) : null,
-        reviewedById: reviewed ? staffUsers[projectIndex % staffUsers.length]?.id ?? null : null,
+        reviewedById: reviewed ? staffUsers[projectIndex % staffUsers.length].id : null,
       };
     }).filter((row): row is NonNullable<typeof row> => row !== null);
   });

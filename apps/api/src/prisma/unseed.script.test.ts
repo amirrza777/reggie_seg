@@ -121,4 +121,49 @@ describe("prisma unseed script", () => {
 
     consoleErrorSpy.mockRestore();
   });
+
+  it("uses postgres cleanup strategy when provider is postgresql", async () => {
+    const prismaMock = createUnseedMock();
+
+    vi.doMock("../../prisma/seed/config", () => ({
+      SEED_DATABASE_PROVIDER: "postgresql",
+    }));
+    vi.doMock("@prisma/client", () => ({
+      PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
+    }));
+
+    await import("../../prisma/seed/unseed.ts");
+    await flushAsyncWork();
+
+    expect(prismaMock.$executeRawUnsafe).not.toHaveBeenCalledWith("SET FOREIGN_KEY_CHECKS = 0;");
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;');
+    expect(prismaMock.$disconnect).toHaveBeenCalled();
+  });
+
+  it("ignores missing-table errors for postgres (42P01)", async () => {
+    const prismaMock = createUnseedMock();
+    prismaMock.$executeRawUnsafe.mockImplementation(async (sql: string) => {
+      if (sql.includes('TRUNCATE TABLE "Project"')) {
+        const err: any = new Error("missing table");
+        err.code = "42P01";
+        throw err;
+      }
+      return undefined;
+    });
+
+    vi.doMock("../../prisma/seed/config", () => ({
+      SEED_DATABASE_PROVIDER: "postgresql",
+    }));
+    vi.doMock("@prisma/client", () => ({
+      PrismaClient: vi.fn(() => prismaMock),
+      Prisma: { dmmf: prismaDmmfMock },
+    }));
+
+    await import("../../prisma/seed/unseed.ts");
+    await flushAsyncWork();
+
+    expect(prismaMock.$executeRawUnsafe).toHaveBeenCalledWith('TRUNCATE TABLE "Project" RESTART IDENTITY CASCADE;');
+    expect(prismaMock.$disconnect).toHaveBeenCalled();
+  });
 });

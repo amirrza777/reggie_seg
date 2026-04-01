@@ -131,13 +131,8 @@ function randomProjectAlias(index: number) {
   const forcedToken = `${randFirstName()}${randLastName()}${index + 1}`
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-  if (!usedProjectAliases.has(forcedToken)) {
-    usedProjectAliases.add(forcedToken);
-    return forcedToken;
-  }
-  const numbered = `${forcedToken}_${index + 1}`;
-  usedProjectAliases.add(numbered);
-  return numbered;
+  usedProjectAliases.add(forcedToken);
+  return forcedToken;
 }
 
 export const projectData = Array.from({ length: SEED_PROJECT_COUNT }, (_, index) => {

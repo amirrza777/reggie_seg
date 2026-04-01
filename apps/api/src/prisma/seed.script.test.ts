@@ -434,7 +434,7 @@ describe("prisma seed script", () => {
     expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
     expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
     expect(prismaMock.notification.createMany).toHaveBeenCalled();
-    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(5);
+    expect(prismaMock.meetingComment.create).toHaveBeenCalledTimes(7);
     expect(prismaMock.meetingComment.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
