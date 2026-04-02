@@ -28,23 +28,12 @@
   display: block;
   background-color: var(--bg);
   background-image:
-    radial-gradient(
-      62% 44% at -6% -10%,
-      rgba(32, 173, 120, 0.48) 0%,
-      rgba(32, 173, 120, 0.32) 26%,
-      rgba(32, 173, 120, 0.16) 46%,
-      rgba(32, 173, 120, 0.07) 58%,
-      transparent 72%
-    ),
-    radial-gradient(48% 30% at 92% -12%, rgba(32, 173, 120, 0.14) 0%, rgba(32, 173, 120, 0.05) 42%, transparent 74%),
-    radial-gradient(
-      60% 28% at 100% 100%,
-      rgba(32, 173, 120, 0.48) 0%,
-      rgba(32, 173, 120, 0.28) 30%,
-      rgba(32, 173, 120, 0.14) 50%,
-      rgba(32, 173, 120, 0.06) 60%,
-      transparent 74%
-    );
+    radial-gradient(ellipse 75% 50% at -5% -3%, rgba(32, 173, 120, 0.72), rgba(32, 173, 120, 0.22) 35%, transparent 60%),
+    linear-gradient(135deg, rgba(32, 173, 120, 0.34) 0%, rgba(32, 173, 120, 0.10) 18%, transparent 34%),
+    radial-gradient(circle farthest-corner at -10% -5%, rgba(32, 173, 120, 0.56), rgba(32, 173, 120, 0.10) 3%, transparent 6%),
+    linear-gradient(0deg, rgba(32, 173, 120, 0.12) 0%, rgba(32, 173, 120, 0.04) 16%, transparent 32%),
+    radial-gradient(ellipse 90% 45% at 90% 105%, rgba(32, 173, 120, 0.48), rgba(32, 173, 120, 0.16) 35%, transparent 65%),
+    radial-gradient(ellipse 40% 25% at 100% 100%, rgba(32, 173, 120, 0.38), transparent 50%);
   mix-blend-mode: darken;
   pointer-events: none;
 }
@@ -71,17 +60,9 @@
 @media (max-width: 479px) {
   .marketing-shell::before {
     background-image:
-      radial-gradient(
-        90% 48% at -18% -14%,
-        rgba(32, 173, 120, 0.44) 0%,
-        rgba(32, 173, 120, 0.26) 28%,
-        rgba(32, 173, 120, 0.13) 48%,
-        rgba(32, 173, 120, 0.06) 58%,
-        transparent 72%
-      ),
-      radial-gradient(66% 36% at 100% -8%, rgba(32, 173, 120, 0.12) 0%, rgba(32, 173, 120, 0.04) 44%, transparent 74%);
-    background-position: 0 0, 0 0;
-    background-size: auto, auto;
+      linear-gradient(180deg, rgba(32, 173, 120, 0.28) 0%, transparent 24%),
+      radial-gradient(ellipse 90% 50% at 0% 0%, rgba(32, 173, 120, 0.50), rgba(32, 173, 120, 0.12) 40%, transparent 65%),
+      radial-gradient(circle farthest-corner at -16% -5%, rgba(32, 173, 120, 0.46), rgba(32, 173, 120, 0.06) 4%, transparent 7%);
   }
 }
 

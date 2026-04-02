@@ -56,8 +56,8 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 35%, rgba(132, 146, 255, 0.2), transparent 55%),
-    radial-gradient(circle at 70% 55%, rgba(116, 154, 255, 0.18), transparent 60%),
+  background: radial-gradient(circle at 30% 35%, rgba(32, 173, 120, 0.2), transparent 55%),
+    radial-gradient(circle at 70% 55%, rgba(32, 173, 120, 0.18), transparent 60%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.2));
   pointer-events: none;
 }
@@ -65,8 +65,8 @@
 .showcase__glow {
   position: absolute;
   inset: -18%;
-  background: radial-gradient(circle at 40% 40%, rgba(132, 146, 255, 0.26), transparent 55%),
-    radial-gradient(circle at 70% 60%, rgba(114, 128, 255, 0.18), transparent 60%);
+  background: radial-gradient(circle at 40% 40%, rgba(32, 173, 120, 0.26), transparent 55%),
+    radial-gradient(circle at 70% 60%, rgba(32, 173, 120, 0.18), transparent 60%);
   filter: none;
   opacity: 0.68;
   z-index: 1;
