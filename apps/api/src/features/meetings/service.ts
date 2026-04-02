@@ -71,6 +71,10 @@ export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
+function escapeIcsText(text: string) {
+  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
+}
+
 function buildIcs(meeting: {
   title: string;
   date: Date;
@@ -94,9 +98,9 @@ function buildIcs(meeting: {
     "BEGIN:VEVENT",
     `DTSTART:${start}`,
     `DTEND:${end}`,
-    `SUMMARY:${meeting.title}`,
-    meeting.location ? `LOCATION:${meeting.location}` : null,
-    description ? `DESCRIPTION:${description}` : null,
+    `SUMMARY:${escapeIcsText(meeting.title)}`,
+    meeting.location ? `LOCATION:${escapeIcsText(meeting.location)}` : null,
+    description ? `DESCRIPTION:${escapeIcsText(description)}` : null,
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");

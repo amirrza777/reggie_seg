@@ -48,6 +48,10 @@ function buildOutlookUrl(meeting: Meeting, baseUrl: string): string {
   return `${baseUrl}?${params}`;
 }
 
+function escapeIcsText(text: string) {
+  return text.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,");
+}
+
 function buildIcs(meeting: Meeting): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmt = (d: Date) =>
@@ -64,9 +68,9 @@ function buildIcs(meeting: Meeting): string {
     "BEGIN:VEVENT",
     `DTSTART:${fmt(date)}`,
     `DTEND:${fmt(end)}`,
-    `SUMMARY:${meeting.title}`,
-    meeting.location ? `LOCATION:${meeting.location}` : null,
-    descParts.length ? `DESCRIPTION:${descParts.join("\\n\\n")}` : null,
+    `SUMMARY:${escapeIcsText(meeting.title)}`,
+    meeting.location ? `LOCATION:${escapeIcsText(meeting.location)}` : null,
+    descParts.length ? `DESCRIPTION:${escapeIcsText(descParts.join("\\n\\n"))}` : null,
     "END:VEVENT",
     "END:VCALENDAR",
   ].filter(Boolean).join("\r\n");

@@ -157,6 +157,28 @@ describe("meetings service", () => {
     );
   });
 
+  it("escapes special characters in ics text fields", async () => {
+    const members = [{ id: 1, email: "a@test.com" }];
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
+    (repo.createMeeting as any).mockResolvedValue({ id: 1 });
+    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
+    (repo.createParticipants as any).mockResolvedValue(undefined);
+    (email.sendEmail as any).mockResolvedValue(undefined);
+
+    await addMeeting({
+      teamId: 1,
+      organiserId: 1,
+      title: "Review; Planning, Notes",
+      date: new Date("2026-05-01T14:00:00Z"),
+      location: "Room 2.01; Floor 2",
+    });
+
+    const call = (email.sendEmail as any).mock.calls[0][0];
+    const icsContent = call.attachments[0].content;
+    expect(icsContent).toContain("SUMMARY:Review\\; Planning\\, Notes");
+    expect(icsContent).toContain("LOCATION:Room 2.01\\; Floor 2");
+  });
+
   it("sends invite email only to selected participants when participantIds provided", async () => {
     const members = [
       { id: 1, email: "a@test.com" },
