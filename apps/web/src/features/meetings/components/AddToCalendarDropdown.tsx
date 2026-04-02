@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, CalendarPlus } from "lucide-react";
-import { buildIcs } from "../../../../../../packages/shared/src/ics/index";
+import { buildIcs } from "../lib/ics";
 import "../styles/meeting-detail.css";
 import { GoogleIcon } from "@/shared/ui/GoogleIcon";
 import { OutlookIcon } from "@/shared/ui/OutlookIcon";
