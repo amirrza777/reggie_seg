@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
@@ -42,7 +41,7 @@ export default async function StaffProjectWarningsPage({ params } : { params : P
     
     return (
         <div className="staff-projects">
-            <StaffProjectSectionNav projectId={Number(projectId)} moduleId={data.project.moduleId} />
+            <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
             <section className="staff-projects__hero">
             <p className="staff-projects__eyebrow">Warnings</p>
             <h1 className="staff-projects__title">{data.project.name}</h1>
@@ -52,9 +51,8 @@ export default async function StaffProjectWarningsPage({ params } : { params : P
 
         </section>
             <ConfigureWarningPanel 
-            projectId={projectId} 
-            projectName={warnings.projectName}
-            warningsConfig={warnings.config}
+            projectId={Number(projectId)} 
+            warningsConfig={warnings.warningsConfig}
             />
         </div>
     );

@@ -1,11 +1,10 @@
 'use client'
-import { useEffect, useMemo, useState,  type FocusEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import {
   ProjectWarningRuleConfig,
   ProjectWarningsConfig,
-  WarningRuleSeverity,
 } from "@/features/projects/types";
 import type { WarningConfigState } from "../types";
 import { updateProjectWarningsConfig } from "../api/client";
@@ -15,10 +14,9 @@ import { WarningRuleCard } from "./WarningRuleCard";
 
 export type ConfigureWarningPanelProps = {
   projectId: number;
-  projectName?: string;
   warningsConfig: ProjectWarningsConfig;
 };
-export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig } : ConfigureWarningPanelProps) => {
+export const ConfigureWarningPanel = ({ projectId, warningsConfig } : ConfigureWarningPanelProps) => {
     
     const mappedConfig = useMemo(() => {
         return warningsConfig ? 
@@ -52,7 +50,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
         }, [mappedConfig]);
 
 
-    const configPreview = useMemo<ProjectWarningRuleConfig>(() => {
+    const configPreview = useMemo<ProjectWarningsConfig>(() => {
         const knownRules : ProjectWarningRuleConfig[] = [
             {
                 key: "LOW_ATTENDANCE",
@@ -82,7 +80,10 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
                 },  
             }
         ];
-        return [...knownRules, ...draftExtraRules];
+        return {
+          version: 1,
+          rules: [...knownRules, ...draftExtraRules],
+        };
     }, [draftConfig, draftExtraRules]);
 
     const handleSave = async () => {
@@ -221,7 +222,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
             </div>
 
 
-            <div className= "staff-projects__warnings-configs-modal-header">
+            <div className= "staff-projects__warnings-actions">
             {!isEditing ? (
                 <Button onClick={() => setIsEditing(true)} disabled={actionDisabled}>
                     Edit configuration
@@ -237,7 +238,7 @@ export const ConfigureWarningPanel = ({ projectId, projectName, warningsConfig }
                 </div>
             )}
              </div>
-             <div className="staff-projects__warnings-configs-panel">
+             <div className="staff-projects__warnings-config-panel">
            </div>
         </Card>   
     </div>  
