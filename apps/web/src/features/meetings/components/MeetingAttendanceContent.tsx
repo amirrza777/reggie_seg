@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { getMeeting, getMeetingSettings } from "../api/client";
+import { isMeetingMember } from "../lib/meetingMember";
+import { daysToMs } from "../lib/meetingTime";
+import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { AttendanceTable } from "./AttendanceTable";
 import "../styles/meeting-detail.css";
-import type { Meeting } from "../types";
 
 type MeetingAttendanceContentProps = {
   meetingId: number;
@@ -16,23 +16,14 @@ type MeetingAttendanceContentProps = {
 
 export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttendanceContentProps) {
   const { user } = useUser();
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [allowAnyoneToRecord, setAllowAnyoneToRecord] = useState(false);
-  const [attendanceEditWindowMs, setAttendanceEditWindowMs] = useState<number | null>(null);
+  const { meeting, settings } = useMeetingWithSettings(meetingId);
 
-  useEffect(() => {
-    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, s]) => {
-      setMeeting(m);
-      setAllowAnyoneToRecord(s.allowAnyoneToRecordAttendance);
-      setAttendanceEditWindowMs(s.attendanceEditWindowDays * 24 * 60 * 60 * 1000);
-    });
-  }, [meetingId]);
-
-  if (!meeting || !user || attendanceEditWindowMs === null) return null;
+  if (!meeting || !user || !settings) return null;
 
   const isOrganiser = meeting.organiserId === user.id;
-  const isMember = meeting.team.allocations.some((a) => a.user.id === user.id);
-  const canRecord = isOrganiser || (allowAnyoneToRecord && isMember);
+  const isMember = isMeetingMember(meeting.team.allocations, user.id);
+  const canRecord = isOrganiser || (settings.allowAnyoneToRecordAttendance && isMember);
+  const attendanceEditWindowMs = daysToMs(settings.attendanceEditWindowDays);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
