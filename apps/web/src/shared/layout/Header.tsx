@@ -22,20 +22,38 @@ const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
   const hiddenRef = useRef(false);
+  const downwardTravelRef = useRef(0);
+  const upwardTravelRef = useRef(0);
   const frameIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const resetTravel = () => {
+      downwardTravelRef.current = 0;
+      upwardTravelRef.current = 0;
+    };
+
     const updateVisibility = () => {
-      const current = window.scrollY;
+      const current = Math.max(window.scrollY, 0);
       const delta = current - lastScrollY.current;
-      const isScrollingDown = delta > 6;
-      const isScrollingUp = delta < -6;
       let nextHidden = hiddenRef.current;
 
-      if (current < 40 || isScrollingUp) {
+      if (delta > 0) {
+        downwardTravelRef.current += delta;
+        upwardTravelRef.current = 0;
+      } else if (delta < 0) {
+        upwardTravelRef.current += -delta;
+        downwardTravelRef.current = 0;
+      }
+
+      if (current < 40) {
         nextHidden = false;
-      } else if (isScrollingDown) {
+        resetTravel();
+      } else if (!hiddenRef.current && downwardTravelRef.current >= 18) {
         nextHidden = true;
+        resetTravel();
+      } else if (hiddenRef.current && upwardTravelRef.current >= 10) {
+        nextHidden = false;
+        resetTravel();
       }
 
       if (nextHidden !== hiddenRef.current) {
