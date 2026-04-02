@@ -381,6 +381,7 @@ export function TeamFormationPanel({
                     <div
                       ref={inviteDropdownRef}
                       className="team-formation__invite-dropdown team-formation__invite-dropdown--portal"
+                      data-elevation="popup"
                       style={{
                         top: `${inviteDropdownStyle.top}px`,
                         left: `${inviteDropdownStyle.left}px`,
@@ -465,4 +466,3 @@ export function TeamFormationPanel({
     </div>
   );
 }
-
