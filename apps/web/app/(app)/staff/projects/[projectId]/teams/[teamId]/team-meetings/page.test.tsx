@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
-import { listTeamMeetings } from "@/features/staff/meetings/api/client";
+import { getTeamMeetingSettings, listTeamMeetings } from "@/features/staff/meetings/api/client";
 import StaffTeamMeetingsSectionPage from "./page";
 
 class RedirectSentinel extends Error {
@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((path: string) => {
     throw new RedirectSentinel(path);
   }),
+  usePathname: vi.fn(() => "/staff/projects/30/teams/40/team-meetings"),
 }));
 
 vi.mock("@/shared/auth/session", () => ({
@@ -28,6 +29,7 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
 
 vi.mock("@/features/staff/meetings/api/client", () => ({
   listTeamMeetings: vi.fn(),
+  getTeamMeetingSettings: vi.fn(),
 }));
 
 vi.mock("@/features/staff/meetings/StaffMeetingsView", () => ({
@@ -38,10 +40,12 @@ const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const listTeamMeetingsMock = vi.mocked(listTeamMeetings);
+const getTeamMeetingSettingsMock = vi.mocked(getTeamMeetingSettings);
 
 describe("StaffTeamMeetingsSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getTeamMeetingSettingsMock.mockResolvedValue({ absenceThreshold: 3 });
   });
 
   it("redirects non-staff users to dashboard", async () => {

@@ -173,4 +173,15 @@ describe("seedForumPosts", () => {
       .filter((title) => typeof title === "string" && title.startsWith("Re: "));
     expect(replyTitles.some((title) => title.includes("Discussion thread"))).toBe(true);
   });
+
+  it("skips reaction/report writes when planners return empty rows", async () => {
+    await seedForumPosts(
+      [{ id: 1, moduleId: 1, templateId: 1 }],
+      [{ id: 11 } as any],
+      [{ id: 11 } as any],
+    );
+
+    expect(prismaMock.forumReaction.createMany).not.toHaveBeenCalled();
+    expect(prismaMock.forumStudentReport.createMany).not.toHaveBeenCalled();
+  });
 });

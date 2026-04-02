@@ -18,6 +18,7 @@ vi.mock("../../shared/db.js", () => ({
     featureFlag: { findMany: vi.fn(), update: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     enterprise: { findMany: vi.fn(), findUnique: vi.fn(), count: vi.fn(), delete: vi.fn(), create: vi.fn() },
     auditLog: { deleteMany: vi.fn() },
+    auditLogIntegrity: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
   },
 }));
@@ -45,7 +46,7 @@ function mockRes() {
 function getRouteHandler(method: "get" | "post" | "patch" | "delete", path: string) {
   const layer = (router as any).stack.find((item: any) => item.route?.path === path && item.route.methods?.[method]);
   if (!layer) throw new Error(`Missing route ${method.toUpperCase()} ${path}`);
-  return layer.route.stack[0].handle;
+  return layer.route.stack[layer.route.stack.length - 1].handle;
 }
 
 beforeEach(() => {
@@ -82,6 +83,7 @@ beforeEach(() => {
   (prisma.enterprise.create as any).mockResolvedValue({ id: "ent-2", code: "ENT2", name: "Enterprise 2", createdAt: new Date() });
 
   (prisma.auditLog.deleteMany as any).mockResolvedValue({ count: 0 });
+  (prisma.auditLogIntegrity.deleteMany as any).mockResolvedValue({ count: 0 });
 
   (parseAdminUserSearchFilters as any).mockReturnValue({
     ok: true,

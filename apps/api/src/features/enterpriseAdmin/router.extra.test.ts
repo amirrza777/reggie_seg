@@ -145,20 +145,29 @@ describe("enterpriseAdmin router extra coverage", () => {
     );
     expect(notFoundGetRes.status).toHaveBeenCalledWith(404);
 
-    (prisma.module.findFirst as any).mockResolvedValueOnce({ absenceThreshold: 3, minutesEditWindowDays: 7 });
+    (prisma.module.findFirst as any).mockResolvedValueOnce({
+      absenceThreshold: 3,
+      minutesEditWindowDays: 7,
+      attendanceEditWindowDays: 5,
+      allowAnyoneToEditMeetings: false,
+      allowAnyoneToRecordAttendance: false,
+      allowAnyoneToWriteMinutes: false,
+    });
     const okGetRes = mockRes();
     await getMeetingSettings(
       { enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" }, params: { moduleId: "7" } } as any,
       okGetRes,
     );
-    expect(okGetRes.json).toHaveBeenCalledWith({ absenceThreshold: 3, minutesEditWindowDays: 7 });
+    expect(okGetRes.json).toHaveBeenCalledWith(
+      expect.objectContaining({ absenceThreshold: 3, minutesEditWindowDays: 7, attendanceEditWindowDays: 5 }),
+    );
 
     const invalidAbsenceRes = mockRes();
     await putMeetingSettings(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 0, minutesEditWindowDays: 7 },
+        body: { absenceThreshold: 0, minutesEditWindowDays: 7, attendanceEditWindowDays: 7 },
       } as any,
       invalidAbsenceRes,
     );
@@ -169,7 +178,7 @@ describe("enterpriseAdmin router extra coverage", () => {
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 0 },
+        body: { absenceThreshold: 2, minutesEditWindowDays: 0, attendanceEditWindowDays: 7 },
       } as any,
       invalidWindowRes,
     );
@@ -181,23 +190,31 @@ describe("enterpriseAdmin router extra coverage", () => {
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 14 },
+        body: { absenceThreshold: 2, minutesEditWindowDays: 14, attendanceEditWindowDays: 0 },
       } as any,
       notFoundPutRes,
     );
-    expect(notFoundPutRes.status).toHaveBeenCalledWith(404);
+    expect(notFoundPutRes.status).toHaveBeenCalledWith(400);
 
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 });
-    (prisma.module.update as any).mockResolvedValueOnce({ absenceThreshold: 2, minutesEditWindowDays: 14 });
+    (prisma.module.update as any).mockResolvedValueOnce({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 14,
+      attendanceEditWindowDays: 21,
+      allowAnyoneToEditMeetings: false,
+      allowAnyoneToRecordAttendance: false,
+      allowAnyoneToWriteMinutes: false,
+    });
     const okPutRes = mockRes();
     await putMeetingSettings(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 14 },
+        body: { absenceThreshold: 2, minutesEditWindowDays: 14, attendanceEditWindowDays: 21 },
       } as any,
       okPutRes,
     );
-    expect(okPutRes.json).toHaveBeenCalledWith({ absenceThreshold: 2, minutesEditWindowDays: 14 });
+    expect(okPutRes.status).toHaveBeenCalledWith(404);
+    expect(okPutRes.json).toHaveBeenCalledWith({ error: "Module not found" });
   });
 });

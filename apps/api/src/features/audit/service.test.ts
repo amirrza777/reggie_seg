@@ -9,14 +9,25 @@ vi.mock("../../shared/db.js", () => ({
     },
     auditLog: {
       create: vi.fn(),
+      count: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
+    auditLogIntegrity: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }));
 
 describe("audit service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.$transaction as any).mockImplementation(async (fn: any) => fn(prisma));
+    (prisma.auditLogIntegrity.findUnique as any).mockResolvedValue(null);
+    (prisma.auditLog.count as any).mockResolvedValue(0);
+    (prisma.auditLog.findFirst as any).mockResolvedValue(null);
   });
 
   it("recordAuditLog skips insert when user does not exist", async () => {
@@ -33,6 +44,10 @@ describe("audit service", () => {
 
   it("recordAuditLog inserts with trimmed ip and userAgent", async () => {
     (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-1" });
+    (prisma.auditLog.create as any).mockResolvedValue({
+      id: 5,
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
 
     await recordAuditLog({
       userId: 5,
@@ -48,6 +63,9 @@ describe("audit service", () => {
         action: "LOGIN_FAILED",
         ip: "1".repeat(64),
         userAgent: "x".repeat(500),
+      },
+      include: {
+        user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
       },
     });
   });
@@ -72,7 +90,7 @@ describe("audit service", () => {
       include: {
         user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { id: "desc" },
       take: 500,
     });
   });
