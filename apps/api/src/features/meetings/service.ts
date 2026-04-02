@@ -20,7 +20,7 @@ import {
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
-import { normalizeName } from "../../shared/normalizeName.js";
+import { resolveMentionedMembers } from "../../shared/mentions.js";
 
 function resolveTeamMeetingFeedbackDueDate(team: {
   deadlineProfile: "STANDARD" | "MCF" | null;
@@ -247,14 +247,16 @@ async function checkAndNotifyConsecutiveAbsences(
       link: `/projects/${meeting.team.projectId}/meetings`,
     });
 
-    for (const lead of moduleLeads) {
-      await addNotification({
-        userId: lead.userId,
-        type: "LOW_ATTENDANCE",
-        message: `${userName} has missed their last ${absenceThreshold} meetings in ${meeting.team.teamName}`,
-        link: `/staff/projects/${meeting.team.projectId}/teams/${meeting.teamId}/team-meetings`,
-      });
-    }
+    await Promise.all(
+      moduleLeads.map((lead) =>
+        addNotification({
+          userId: lead.userId,
+          type: "LOW_ATTENDANCE",
+          message: `${userName} has missed their last ${absenceThreshold} meetings in ${meeting.team.teamName}`,
+          link: `/staff/projects/${meeting.team.projectId}/teams/${meeting.teamId}/team-meetings`,
+        })
+      )
+    );
   }
 }
 
@@ -305,40 +307,26 @@ async function processMentions(
   if (mentionedNames.length === 0) return;
 
   const members = await getTeamMembers(teamId);
-  const membersByName = new Map<string, number[]>();
-  for (const member of members) {
-    const key = normalizeName(`${member.firstName} ${member.lastName}`);
-    const ids = membersByName.get(key) ?? [];
-    ids.push(member.id);
-    membersByName.set(key, ids);
-  }
+  const matched = resolveMentionedMembers(mentionedNames, members, userId);
+  if (matched.length === 0) return;
 
-  const mentionedIds = new Set<number>();
-  for (const mentionedName of mentionedNames) {
-    const matchedIds = (membersByName.get(normalizeName(mentionedName)) ?? []).filter((id) => id !== userId);
-    // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
-    if (matchedIds.length === 1) {
-      mentionedIds.add(matchedIds[0]);
-    }
-  }
-
-  const uniqueMentionedIds = [...mentionedIds];
-  if (uniqueMentionedIds.length === 0) return;
-
-  await createMentions(commentId, uniqueMentionedIds);
+  const matchedIds = matched.map((m) => m.id);
+  await createMentions(commentId, matchedIds);
 
   const team = await getTeamById(teamId);
   const author = members.find((member) => member.id === userId);
   const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
 
-  for (const mentionedId of uniqueMentionedIds) {
-    await addNotification({
-      userId: mentionedId,
-      type: "MENTION",
-      message: `${authorName} mentioned you in a comment`,
-      link: `/projects/${team.projectId}/meetings/${meetingId}`,
-    });
-  }
+  await Promise.all(
+    matchedIds.map((mentionedId) =>
+      addNotification({
+        userId: mentionedId,
+        type: "MENTION",
+        message: `${authorName} mentioned you in a comment`,
+        link: `/projects/${team.projectId}/meetings/${meetingId}`,
+      })
+    )
+  );
 }
 
 export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
