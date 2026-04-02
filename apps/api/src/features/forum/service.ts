@@ -22,10 +22,8 @@ import {
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
 import { extractMentionsFromLexicalJSON } from "../../shared/lexical.js";
-
-function normalizeName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
+import { normalizeName } from "../../shared/normalizeName.js";
+import { isStaffRole } from "../../shared/roles.js";
 
 async function processMentions(authorId: number, projectId: number, body: string) {
   const mentionedNames = extractMentionsFromLexicalJSON(body);
@@ -53,8 +51,7 @@ async function processMentions(authorId: number, projectId: number, body: string
   const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
 
   for (const member of mentionedMembers.values()) {
-    const isStaff = member.role === "STAFF" || member.role === "ADMIN" || member.role === "ENTERPRISE_ADMIN";
-    const link = isStaff ? `/staff/projects/${projectId}/discussion` : `/projects/${projectId}/discussion`;
+    const link = isStaffRole(member.role) ? `/staff/projects/${projectId}/discussion` : `/projects/${projectId}/discussion`;
     await addNotification({
       userId: member.id,
       type: "MENTION",
@@ -86,8 +83,7 @@ export async function createDiscussionPost(
   }
   if (post && parentAuthorId && parentAuthorId !== userId) {
     const parentAuthorRole = await getUserRole(parentAuthorId);
-    const isStaff = parentAuthorRole === "STAFF" || parentAuthorRole === "ADMIN" || parentAuthorRole === "ENTERPRISE_ADMIN";
-    const link = isStaff
+    const link = isStaffRole(parentAuthorRole)
       ? `/staff/projects/${projectId}/discussion`
       : `/projects/${projectId}/discussion`;
     await addNotification({

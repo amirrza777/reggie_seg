@@ -20,6 +20,7 @@ import {
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
+import { normalizeName } from "../../shared/normalizeName.js";
 
 function resolveTeamMeetingFeedbackDueDate(team: {
   deadlineProfile: "STANDARD" | "MCF" | null;
@@ -288,9 +289,6 @@ export function parseMentions(content: string): string[] {
   return mentions;
 }
 
-function normalizeMentionName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
 
 async function processMentions(
   commentId: number,
@@ -305,7 +303,7 @@ async function processMentions(
   const members = await getTeamMembers(teamId);
   const membersByName = new Map<string, number[]>();
   for (const member of members) {
-    const key = normalizeMentionName(`${member.firstName} ${member.lastName}`);
+    const key = normalizeName(`${member.firstName} ${member.lastName}`);
     const ids = membersByName.get(key) ?? [];
     ids.push(member.id);
     membersByName.set(key, ids);
@@ -313,7 +311,7 @@ async function processMentions(
 
   const mentionedIds = new Set<number>();
   for (const mentionedName of mentionedNames) {
-    const matchedIds = (membersByName.get(normalizeMentionName(mentionedName)) ?? []).filter((id) => id !== userId);
+    const matchedIds = (membersByName.get(normalizeName(mentionedName)) ?? []).filter((id) => id !== userId);
     // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
     if (matchedIds.length === 1) {
       mentionedIds.add(matchedIds[0]);
