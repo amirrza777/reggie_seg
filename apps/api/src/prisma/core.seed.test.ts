@@ -57,12 +57,12 @@ describe("seed core", () => {
   it("assertPrismaClientModels throws when project delegate is missing", () => {
     delete prismaState.prisma.module;
     delete prismaState.prisma.project;
-    expect(() => assertPrismaClientModels()).toThrow("Prisma client is missing delegate: module");
+    expect(() => assertPrismaClientModels()).toThrow("Prisma Client is out of date");
   });
 
   it("getSeedEnterprises creates missing enterprise", async () => {
     const result = await getSeedEnterprises();
-    expect(result).toEqual([{ id: "ent-1" }]);
+    expect(result).toEqual([{ id: "ent-1", code: "DEFAULT", name: "Default Enterprise" }]);
     expect(prismaState.prisma.enterprise.create).toHaveBeenCalled();
   });
 
