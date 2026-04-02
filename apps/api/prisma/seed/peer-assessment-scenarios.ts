@@ -228,11 +228,10 @@ async function seedFeedbackPendingScenario(
   let assessmentCount = 0;
   for (let reviewerIndex = 0; reviewerIndex < memberIds.length; reviewerIndex += 1) {
     const reviewerUserId = memberIds[reviewerIndex];
-    if (!reviewerUserId) continue;
 
     for (let revieweeIndex = 0; revieweeIndex < memberIds.length; revieweeIndex += 1) {
       const revieweeUserId = memberIds[revieweeIndex];
-      if (!revieweeUserId || reviewerUserId === revieweeUserId) continue;
+      if (reviewerUserId === revieweeUserId) continue;
 
       const answersJson = buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId);
       await prisma.peerAssessment.upsert({

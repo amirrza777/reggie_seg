@@ -5,6 +5,7 @@ const REQUIRED_ROUTES = [
   "/invites",
   "/invites/:inviteId/accept",
   "/teams/:teamId/invites",
+  "/teams/:teamId/invite-eligible-students",
   "/projects/:projectId/random-preview",
   "/projects/:projectId/custom-preview",
   "/projects/:projectId/allocation-drafts/:teamId",

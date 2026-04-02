@@ -54,6 +54,20 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual({ id: 1 });
   });
 
+  it("rejects text questions for customised allocation templates on create", async () => {
+    expect(() =>
+      createTemplate(
+        "Allocation Template",
+        [{ label: "Explain preference", type: "text" }],
+        10,
+        false,
+        "CUSTOMISED_ALLOCATION",
+      )
+    ).toThrow("Customised allocation questionnaires cannot include text questions.");
+
+    expect(repo.createQuestionnaireTemplate).not.toHaveBeenCalled();
+  });
+
   //Tests getting a template by id
 
   it("forwards getTemplate to repo", async () => {
@@ -117,6 +131,22 @@ describe("QuestionnaireTemplate service", () => {
       questions,
       true
     );
+  });
+
+  it("rejects text questions for customised allocation templates on update", async () => {
+    expect(() =>
+      updateTemplate(
+        99,
+        10,
+        "Updated Template",
+        [{ id: 1, label: "Explain preference", type: "text" }],
+        true,
+        "CUSTOMISED_ALLOCATION",
+      )
+    ).toThrow("Customised allocation questionnaires cannot include text questions.");
+
+    expect(repo.isQuestionnaireTemplateOwnedByUser).not.toHaveBeenCalled();
+    expect(repo.updateQuestionnaireTemplate).not.toHaveBeenCalled();
   });
 
   it("throws unauthorized when updateTemplate requester is missing", async () => {

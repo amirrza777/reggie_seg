@@ -5,6 +5,7 @@ const smtpPort = Number(process.env.SMTP_PORT || 587);
 const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
 const smtpSecure = process.env.SMTP_SECURE === "true";
+const smtpTlsRejectUnauthorized = process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== "false";
 const fromAddress = process.env.SMTP_FROM || "no-reply@localhost";
 
 let cachedTransporter: nodemailer.Transporter | null = null;
@@ -17,6 +18,7 @@ function getTransporter() {
     port: smtpPort,
     secure: smtpSecure,
     auth: smtpUser && smtpPass ? { user: smtpUser, pass: smtpPass } : undefined,
+    tls: { rejectUnauthorized: smtpTlsRejectUnauthorized },
   });
   return cachedTransporter;
 }

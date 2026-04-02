@@ -11,6 +11,8 @@ export type ParsedProjectDeadline = {
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
   feedbackDueDateMcf: Date;
+  teamAllocationQuestionnaireOpenDate?: Date | null;
+  teamAllocationQuestionnaireDueDate?: Date | null;
 };
 
 export type ParsedStudentDeadlineOverride = {
@@ -88,6 +90,16 @@ export function parseProjectDeadline(
   if (!feedbackDueDate.ok) return feedbackDueDate;
   const feedbackDueDateMcf = parseIsoDate((value as any).feedbackDueDateMcf, "deadline.feedbackDueDateMcf");
   if (!feedbackDueDateMcf.ok) return feedbackDueDateMcf;
+  const teamAllocationQuestionnaireOpenDate = parseOptionalIsoDate(
+    (value as any).teamAllocationQuestionnaireOpenDate,
+    "deadline.teamAllocationQuestionnaireOpenDate",
+  );
+  if (!teamAllocationQuestionnaireOpenDate.ok) return teamAllocationQuestionnaireOpenDate;
+  const teamAllocationQuestionnaireDueDate = parseOptionalIsoDate(
+    (value as any).teamAllocationQuestionnaireDueDate,
+    "deadline.teamAllocationQuestionnaireDueDate",
+  );
+  if (!teamAllocationQuestionnaireDueDate.ok) return teamAllocationQuestionnaireDueDate;
 
   if (taskOpenDate.value >= taskDueDate.value) {
     return { ok: false, error: "deadline.taskOpenDate must be before deadline.taskDueDate" };
@@ -113,6 +125,26 @@ export function parseProjectDeadline(
   if (feedbackDueDateMcf.value < feedbackDueDate.value) {
     return { ok: false, error: "deadline.feedbackDueDateMcf must be on or after deadline.feedbackDueDate" };
   }
+  if (
+    teamAllocationQuestionnaireOpenDate.value &&
+    teamAllocationQuestionnaireDueDate.value &&
+    teamAllocationQuestionnaireOpenDate.value >= teamAllocationQuestionnaireDueDate.value
+  ) {
+    return {
+      ok: false,
+      error:
+        "deadline.teamAllocationQuestionnaireOpenDate must be before deadline.teamAllocationQuestionnaireDueDate",
+    };
+  }
+  if (
+    teamAllocationQuestionnaireDueDate.value &&
+    teamAllocationQuestionnaireDueDate.value >= taskOpenDate.value
+  ) {
+    return {
+      ok: false,
+      error: "deadline.teamAllocationQuestionnaireDueDate must be before deadline.taskOpenDate",
+    };
+  }
 
   return {
     ok: true,
@@ -126,6 +158,12 @@ export function parseProjectDeadline(
       feedbackOpenDate: feedbackOpenDate.value,
       feedbackDueDate: feedbackDueDate.value,
       feedbackDueDateMcf: feedbackDueDateMcf.value,
+      ...(teamAllocationQuestionnaireOpenDate.value !== undefined
+        ? { teamAllocationQuestionnaireOpenDate: teamAllocationQuestionnaireOpenDate.value }
+        : {}),
+      ...(teamAllocationQuestionnaireDueDate.value !== undefined
+        ? { teamAllocationQuestionnaireDueDate: teamAllocationQuestionnaireDueDate.value }
+        : {}),
     },
   };
 }

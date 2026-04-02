@@ -7,6 +7,9 @@ import {
   fetchProjectsForUser,
   fetchProjectsWithTeamsForStaffMarking,
   fetchQuestionsForProject,
+  fetchTeamAllocationQuestionnaireForProject,
+  submitTeamAllocationQuestionnaireResponse,
+  joinModuleByCode,
   fetchTeamById,
   fetchTeamByUserAndProject,
   fetchTeammatesForProject,
@@ -41,6 +44,10 @@ vi.mock("./repo.js", () => ({
   getTeamById: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
   getQuestionsForProject: vi.fn(),
+  getTeamAllocationQuestionnaireForProject: vi.fn(),
+  getTeamAllocationQuestionnaireSubmissionContext: vi.fn(),
+  hasActiveTeamForUserInProject: vi.fn(),
+  upsertTeamAllocationQuestionnaireResponse: vi.fn(),
   getStaffProjectsForMarking: vi.fn(),
   createTeamHealthMessage: vi.fn(),
   getTeamHealthMessagesForUserInProject: vi.fn(),
@@ -102,8 +109,8 @@ describe("projects service", () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
     (repo.getProjectById as any).mockResolvedValue({ id: 9, projectNavFlags: null });
 
-    await expect(createProject(7, "P1", 2, 3, null, deadlineInput)).resolves.toEqual({ id: 9 });
-    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, null, deadlineInput);
+    await expect(createProject(7, "P1", 2, 3, undefined, null, deadlineInput)).resolves.toEqual({ id: 9 });
+    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, undefined, null, deadlineInput, undefined);
 
     await expect(fetchProjectById(9)).resolves.toEqual({
       id: 9,
@@ -209,12 +216,51 @@ describe("projects service", () => {
     (repo.getTeamById as any).mockResolvedValue({ id: 3 });
     (repo.getTeamByUserAndProject as any).mockResolvedValue({ id: 3 });
     (repo.getQuestionsForProject as any).mockResolvedValue({ questionnaireTemplate: { id: 8 } });
+    (repo.getTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: { id: 11 },
+    });
 
     await expect(fetchTeammatesForProject(1, 2)).resolves.toEqual([{ userId: 4 }]);
     await expect(fetchProjectDeadline(1, 2)).resolves.toEqual({ taskDueDate: "2026-03-01" });
     await expect(fetchTeamById(3)).resolves.toEqual({ id: 3 });
     await expect(fetchTeamByUserAndProject(1, 2)).resolves.toEqual({ id: 3 });
     await expect(fetchQuestionsForProject(2)).resolves.toEqual({ questionnaireTemplate: { id: 8 } });
+    await expect(fetchTeamAllocationQuestionnaireForProject(2)).resolves.toEqual({
+      teamAllocationQuestionnaireTemplate: { id: 11 },
+    });
+  });
+
+  it("submitTeamAllocationQuestionnaireResponse validates context and saves normalized answers", async () => {
+    (repo.getTeamAllocationQuestionnaireSubmissionContext as any).mockResolvedValue({
+      projectId: 3,
+      enterpriseId: "ent-1",
+      template: {
+        id: 91,
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [{ id: 1, type: "multiple-choice", configs: { options: ["A", "B"] } }],
+      },
+    });
+    (repo.hasActiveTeamForUserInProject as any).mockResolvedValue(false);
+    (repo.upsertTeamAllocationQuestionnaireResponse as any).mockResolvedValue({
+      id: 700,
+      updatedAt: new Date("2026-03-30T22:05:00.000Z"),
+    });
+
+    await expect(
+      submitTeamAllocationQuestionnaireResponse(11, 3, { 1: "A" }),
+    ).resolves.toEqual({
+      id: 700,
+      updatedAt: "2026-03-30T22:05:00.000Z",
+    });
+
+    expect(repo.upsertTeamAllocationQuestionnaireResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 3,
+        enterpriseId: "ent-1",
+        templateId: 91,
+        reviewerUserId: 11,
+      }),
+    );
   });
 
   it("retains numeric project-id matches for staff marking queries", async () => {

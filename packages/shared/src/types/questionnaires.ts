@@ -1,5 +1,13 @@
 export type QuestionType = "text" | "multiple-choice" | "rating" | "slider";
 
+export const QUESTIONNAIRE_PURPOSE_VALUES = [
+  "PEER_ASSESSMENT",
+  "CUSTOMISED_ALLOCATION",
+  "GENERAL_PURPOSE",
+] as const;
+
+export type QuestionnairePurpose = (typeof QUESTIONNAIRE_PURPOSE_VALUES)[number];
+
 export type BaseConfigs = {
   required?: boolean;
   helperText?: string;
@@ -48,6 +56,7 @@ export type IncomingQuestion = Omit<Question, "id"> & {
 export type Questionnaire = {
   id: number;
   templateName: string;
+  purpose: QuestionnairePurpose;
   createdAt: string;
   isPublic?: boolean;
   ownerId?: number;

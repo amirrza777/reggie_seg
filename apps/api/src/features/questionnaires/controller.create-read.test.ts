@@ -165,6 +165,31 @@ describe("createTemplateHandler", () => {
 
     expect(res.status).toHaveBeenCalledWith(500);
   });
+
+  it("returns 400 when service rejects invalid question type for purpose", async () => {
+    (service.createTemplate as any).mockRejectedValue(
+      Object.assign(new Error("Customised allocation questionnaires cannot include text questions."), {
+        statusCode: 400,
+      }),
+    );
+
+    const req: any = {
+      body: {
+        templateName: "Allocation",
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [{ label: "Explain", type: "text" }],
+      },
+      user: { sub: 10 },
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Customised allocation questionnaires cannot include text questions.",
+    });
+  });
 });
 
 describe("getTemplateHandler", () => {

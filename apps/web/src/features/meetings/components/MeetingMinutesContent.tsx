@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { getMeeting, getMeetingSettings } from "../api/client";
+import { isMeetingMember } from "../lib/meetingMember";
+import { daysToMs } from "../lib/meetingTime";
+import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { Card } from "@/shared/ui/Card";
 import "../styles/meeting-detail.css";
-import type { Meeting } from "../types";
 
 type MeetingMinutesContentProps = {
   meetingId: number;
@@ -18,25 +18,16 @@ type MeetingMinutesContentProps = {
 
 export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesContentProps) {
   const { user } = useUser();
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [editWindowMs, setEditWindowMs] = useState<number | null>(null);
-  const [allowAnyoneToWrite, setAllowAnyoneToWrite] = useState(false);
+  const { meeting, settings } = useMeetingWithSettings(meetingId);
 
-  useEffect(() => {
-    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, s]) => {
-      setMeeting(m);
-      setEditWindowMs(s.minutesEditWindowDays * 24 * 60 * 60 * 1000);
-      setAllowAnyoneToWrite(s.allowAnyoneToWriteMinutes);
-    });
-  }, [meetingId]);
+  if (!meeting || !user || !settings) return null;
 
-  if (!meeting || !user || editWindowMs === null) return null;
-
-  const isMember = meeting.team.allocations.some((a) => a.user.id === user.id);
+  const isMember = isMeetingMember(meeting.team.allocations, user.id);
   const isOriginalWriter = meeting.minutes?.writerId === user.id;
   const canWriteMinutes = !meeting.minutes
     || isOriginalWriter
-    || (allowAnyoneToWrite && isMember);
+    || (settings.allowAnyoneToWriteMinutes && isMember);
+  const editWindowMs = daysToMs(settings.minutesEditWindowDays);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">

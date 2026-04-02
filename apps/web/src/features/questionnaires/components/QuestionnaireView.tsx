@@ -34,8 +34,17 @@ export function QuestionnaireView({ questionnaire }: Props) {
           {q.type === "multiple-choice" && (
             <div style={{ marginTop: 8 }}>
               {(q.configs as MultipleChoiceConfigs)?.options.map((opt) => (
-                <label key={opt} style={{ display: "block", marginTop: 6 }}>
-                  <input type="radio" disabled /> {opt}
+                <label
+                  key={opt}
+                  className="team-allocation-questionnaire__choice-option"
+                  style={{ marginTop: 6 }}
+                >
+                  <input
+                    type="radio"
+                    disabled
+                    className="team-allocation-questionnaire__radio-input"
+                  />
+                  <span className="team-allocation-questionnaire__choice-text">{opt}</span>
                 </label>
               ))}
             </div>
@@ -82,7 +91,8 @@ export function QuestionnaireView({ questionnaire }: Props) {
                   min={min}
                   max={max}
                   step={step}
-                  style={{ width: "100%", marginTop: 6 }}
+                  className="team-allocation-questionnaire__slider-input"
+                  style={{ marginTop: 6 }}
                 />
               </>
             );

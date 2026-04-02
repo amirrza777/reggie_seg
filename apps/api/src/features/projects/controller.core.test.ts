@@ -7,6 +7,8 @@ import {
   getProjectDeadlineHandler,
   getProjectMarkingHandler,
   getQuestionsForProjectHandler,
+  getTeamAllocationQuestionnaireForProjectHandler,
+  submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectTeamsHandler,
   getStaffProjectsHandler,
   getTeamByIdHandler,
@@ -46,6 +48,8 @@ vi.mock("./service.js", () => ({
   fetchTeamById: vi.fn(),
   fetchTeamByUserAndProject: vi.fn(),
   fetchQuestionsForProject: vi.fn(),
+  fetchTeamAllocationQuestionnaireForProject: vi.fn(),
+  submitTeamAllocationQuestionnaireResponse: vi.fn(),
   submitTeamHealthMessage: vi.fn(),
   fetchMyTeamHealthMessages: vi.fn(),
   fetchTeamHealthMessagesForStaff: vi.fn(),
@@ -119,6 +123,7 @@ describe("projects controller core handlers", () => {
       "P1",
       2,
       3,
+      undefined,
       null,
       expect.objectContaining({
         taskOpenDate: expect.any(Date),
@@ -131,6 +136,7 @@ describe("projects controller core handlers", () => {
         feedbackDueDate: expect.any(Date),
         feedbackDueDateMcf: expect.any(Date),
       }),
+      undefined,
     );
     expect(res.status).toHaveBeenCalledWith(201);
     expect(res.json).toHaveBeenCalledWith({ id: 1, name: "P1" });
@@ -450,6 +456,64 @@ describe("projects controller core handlers", () => {
     const okRes = mockResponse();
     await getQuestionsForProjectHandler({ params: { projectId: "10" } } as any, okRes);
     expect(okRes.json).toHaveBeenCalledWith({ id: 5, questions: [{ id: 1 }] });
+  });
+
+  it("getTeamAllocationQuestionnaireForProjectHandler validates id and maps missing template", async () => {
+    const badRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "x" } } as any, badRes);
+    expect(badRes.status).toHaveBeenCalledWith(400);
+
+    (service.fetchTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: null,
+    });
+    const missingRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "10" } } as any, missingRes);
+    expect(missingRes.status).toHaveBeenCalledWith(404);
+
+    (service.fetchTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: { id: 8, templateName: "Allocation", questions: [] },
+    });
+    const okRes = mockResponse();
+    await getTeamAllocationQuestionnaireForProjectHandler({ params: { projectId: "10" } } as any, okRes);
+    expect(okRes.json).toHaveBeenCalledWith({ id: 8, templateName: "Allocation", questions: [] });
+  });
+
+  it("submitTeamAllocationQuestionnaireResponseHandler validates payload and saves responses", async () => {
+    const unauthorizedRes = mockResponse();
+    await submitTeamAllocationQuestionnaireResponseHandler(
+      { params: { projectId: "10" }, body: { answersJson: { "1": "A" } } } as any,
+      unauthorizedRes,
+    );
+    expect(unauthorizedRes.status).toHaveBeenCalledWith(401);
+
+    const badIdRes = mockResponse();
+    await submitTeamAllocationQuestionnaireResponseHandler(
+      { user: { sub: 2 }, params: { projectId: "x" }, body: { answersJson: { "1": "A" } } } as any,
+      badIdRes,
+    );
+    expect(badIdRes.status).toHaveBeenCalledWith(400);
+
+    const badBodyRes = mockResponse();
+    await submitTeamAllocationQuestionnaireResponseHandler(
+      { user: { sub: 2 }, params: { projectId: "10" }, body: {} } as any,
+      badBodyRes,
+    );
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    (service.submitTeamAllocationQuestionnaireResponse as any).mockResolvedValue({
+      id: 55,
+      updatedAt: "2026-03-30T22:00:00.000Z",
+    });
+    const okRes = mockResponse();
+    await submitTeamAllocationQuestionnaireResponseHandler(
+      { user: { sub: 2 }, params: { projectId: "10" }, body: { answersJson: { "1": "A" } } } as any,
+      okRes,
+    );
+    expect(service.submitTeamAllocationQuestionnaireResponse).toHaveBeenCalledWith(2, 10, { "1": "A" });
+    expect(okRes.status).toHaveBeenCalledWith(201);
+    expect(okRes.json).toHaveBeenCalledWith({
+      response: { id: 55, updatedAt: "2026-03-30T22:00:00.000Z" },
+    });
   });
 
   it("createTeamHealthMessageHandler validates payload and creates request", async () => {

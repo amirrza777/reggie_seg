@@ -1,4 +1,5 @@
 import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPageContent";
+import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
@@ -25,12 +26,14 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
   }
 
   let projectCompleted = false;
+  let isCustomAllocation = false;
   if (user && !Number.isNaN(numericProjectId)) {
     try {
       const [project, deadline] = await Promise.all([
         getProject(projectId),
         getProjectDeadline(user.id, numericProjectId),
       ]);
+      isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
       const feedbackDueDate = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
       const now = new Date();
       const feedbackDueDatePassed = feedbackDueDate
@@ -40,6 +43,14 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
     } catch {
       projectCompleted = false;
     }
+  }
+
+  if (!team && isCustomAllocation) {
+    return (
+      <PageSection title="Meetings" className="ui-page--project">
+        <CustomAllocationWaitingBoard projectId={projectId} />
+      </PageSection>
+    );
   }
 
   if (team) {

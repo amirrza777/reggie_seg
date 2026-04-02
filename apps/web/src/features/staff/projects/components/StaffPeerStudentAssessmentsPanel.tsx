@@ -25,7 +25,6 @@ export type StaffPeerAssessmentGroup = {
 type TabKey = "given" | "received";
 
 type StaffPeerStudentAssessmentsPanelProps = {
-  studentTitle: string;
   questionLabels: Record<string, string>;
   expectedPeerReviews: number;
   givenGroups: StaffPeerAssessmentGroup[];
@@ -33,7 +32,6 @@ type StaffPeerStudentAssessmentsPanelProps = {
 };
 
 export function StaffPeerStudentAssessmentsPanel({
-  studentTitle,
   questionLabels,
   expectedPeerReviews,
   givenGroups,
@@ -59,7 +57,7 @@ export function StaffPeerStudentAssessmentsPanel({
     expectedPeerReviews > 0 ? `${done}/${expectedPeerReviews}` : String(done);
 
   return (
-    <div className="stack" style={{ gap: 16 }}>
+    <div className="stack" style={{ gap: 16, marginTop: 10 }}>
 
       <div className="pill-nav" role="tablist">
         <button

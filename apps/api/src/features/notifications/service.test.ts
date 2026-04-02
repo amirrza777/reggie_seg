@@ -37,7 +37,7 @@ describe("addNotification email alerts", () => {
     expect(repo.getUserEmail).toHaveBeenCalledWith(5);
     expect(email.sendEmail).toHaveBeenCalledWith({
       to: "reggie@test.com",
-      subject: "You were mentioned in a comment",
+      subject: "You were mentioned",
       text: expect.stringContaining("Reggie mentioned you in a comment"),
     });
   });

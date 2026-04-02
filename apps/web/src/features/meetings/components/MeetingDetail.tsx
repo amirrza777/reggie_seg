@@ -8,6 +8,8 @@ import { useUser } from "@/features/auth/useUser";
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
+import { isMeetingMember } from "../lib/meetingMember";
+import { isWithinEditWindow } from "../lib/meetingTime";
 import "../styles/meeting-detail.css";
 import "../styles/meeting-list.css";
 import type { Meeting, MeetingPermissions } from "../types";
@@ -28,13 +30,12 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
   const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
   const isOrganiser = user?.id === meeting.organiserId;
-  const isMember = meeting.team?.allocations?.some((a) => a.user.id === user?.id) ?? false;
+  const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
   const canEdit = isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember);
   const canRecordAttendance = isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember);
   const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember);
-  const msElapsed = Date.now() - new Date(meeting.date).getTime();
-  const minutesWindowOpen = msElapsed <= permissions.minutesEditWindowDays * 24 * 60 * 60 * 1000;
-  const attendanceWindowOpen = msElapsed <= permissions.attendanceEditWindowDays * 24 * 60 * 60 * 1000;
+  const minutesWindowOpen = isWithinEditWindow(meeting.date, permissions.minutesEditWindowDays);
+  const attendanceWindowOpen = isWithinEditWindow(meeting.date, permissions.attendanceEditWindowDays);
 
   const cardAction = (
     <div className="meeting-list__actions">
