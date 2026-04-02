@@ -6,6 +6,7 @@ import { Card } from "@/shared/ui/Card";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { useUser } from "@/features/auth/useUser";
 import { createMeeting, listTeamMembers } from "../api/client";
+import { useParticipantSelection } from "../hooks/useParticipantSelection";
 import "../styles/meeting-list.css";
 
 type TeamMember = {
@@ -44,27 +45,15 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const [inviteAll, setInviteAll] = useState(true);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const { inviteAll, setInviteAll, selectedIds, toggleParticipant, selectAll } =
+    useParticipantSelection({ initialSelectedIds: [], initialInviteAll: true });
 
   useEffect(() => {
     listTeamMembers(teamId).then((data) => {
       setMembers(data);
-      setSelectedIds(new Set(data.map((member) => member.id)));
+      selectAll(data.map((member) => member.id));
     });
   }, [teamId]);
-
-  function toggleParticipant(id: number) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

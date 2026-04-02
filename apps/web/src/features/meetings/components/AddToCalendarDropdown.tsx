@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, CalendarPlus } from "lucide-react";
+import { buildIcs } from "../lib/ics";
 import "../styles/meeting-detail.css";
 import { GoogleIcon } from "@/shared/ui/GoogleIcon";
 import { OutlookIcon } from "@/shared/ui/OutlookIcon";
@@ -48,32 +49,15 @@ function buildOutlookUrl(meeting: Meeting, baseUrl: string): string {
   return `${baseUrl}?${params}`;
 }
 
-function buildIcs(meeting: Meeting): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const fmt = (d: Date) =>
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
-  const date = new Date(meeting.date);
-  const end = new Date(date.getTime() + 60 * 60 * 1000);
-  const descParts = [];
-  if (meeting.agenda) descParts.push(meeting.agenda);
-  if (meeting.videoCallLink) descParts.push(`Video call: ${meeting.videoCallLink}`);
-  return [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Reggie//Reggie//EN",
-    "BEGIN:VEVENT",
-    `DTSTART:${fmt(date)}`,
-    `DTEND:${fmt(end)}`,
-    `SUMMARY:${meeting.title}`,
-    meeting.location ? `LOCATION:${meeting.location}` : null,
-    descParts.length ? `DESCRIPTION:${descParts.join("\\n\\n")}` : null,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].filter(Boolean).join("\r\n");
-}
-
 function downloadIcs(meeting: Meeting) {
-  const blob = new Blob([buildIcs(meeting)], { type: "text/calendar" });
+  const ics = buildIcs({
+    title: meeting.title,
+    date: new Date(meeting.date),
+    location: meeting.location,
+    videoCallLink: meeting.videoCallLink,
+    agenda: meeting.agenda,
+  });
+  const blob = new Blob([ics], { type: "text/calendar" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
