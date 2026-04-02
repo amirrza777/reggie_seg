@@ -1,7 +1,6 @@
 .modal__dialog,
 .ui-toast,
 .user-menu__dropdown,
-.notification-bell__dropdown,
 .sidebar__mobile-sheet,
 .mobile-menu__panel,
 .github-chart-info__modal,
@@ -14,8 +13,18 @@
   border-color: var(--popup-glass-border-fallback);
   border-color: var(--popup-glass-border);
   box-shadow: var(--popup-glass-shadow);
-  backdrop-filter: blur(var(--glass-ui-blur));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.notification-bell__dropdown {
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-notification-bg);
+  border-color: var(--popup-glass-border-fallback);
+  border-color: var(--popup-glass-border);
+  box-shadow: var(--popup-glass-shadow);
+  -webkit-backdrop-filter: blur(var(--popup-glass-notification-blur));
+  backdrop-filter: blur(var(--popup-glass-notification-blur));
 }
 
 .ui-toast--success {
@@ -30,19 +39,23 @@
   background: var(--popup-glass-bg);
 }
 
+.notification-bell__header {
+  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-notification-bg);
+}
+
 .notification-bell__item--unread {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) var(--popup-glass-notification-unread-strength), transparent);
 }
 
 .notification-bell__item--unread:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--accent) var(--popup-glass-notification-unread-hover-strength), transparent);
 }
 
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .modal__dialog,
   .ui-toast,
   .user-menu__dropdown,
-  .notification-bell__dropdown,
   .sidebar__mobile-sheet,
   .mobile-menu__panel,
   .github-chart-info__modal,
@@ -50,8 +63,13 @@
   .discussion-post__menu-panel,
   .module-card__menu-panel,
   .atc-dropdown__list {
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
-    backdrop-filter: blur(var(--glass-ui-blur));
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
+  }
+
+  .notification-bell__dropdown {
+    -webkit-backdrop-filter: blur(var(--popup-glass-notification-blur));
+    backdrop-filter: blur(var(--popup-glass-notification-blur));
   }
 
   .user-menu__meta,
