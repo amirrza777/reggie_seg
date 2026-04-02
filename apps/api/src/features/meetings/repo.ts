@@ -1,52 +1,24 @@
 import { prisma } from "../../shared/db.js";
 
+const userNameSelect = { id: true, firstName: true, lastName: true } as const;
+
+// CRUD
+
 /** Returns the meetings by team ID. */
 export function getMeetingsByTeamId(teamId: number) {
   return prisma.meeting.findMany({
     where: { teamId },
     orderBy: { date: "desc" },
     include: {
-      organiser: {
-        select: { id: true, firstName: true, lastName: true },
-      },
-      participants: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      attendances: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      minutes: {
-        include: {
-          writer: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      comments: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
+      organiser: { select: userNameSelect },
+      participants: { include: { user: { select: userNameSelect } } },
+      attendances: { include: { user: { select: userNameSelect } } },
+      minutes: { include: { writer: { select: userNameSelect } } },
+      comments: { include: { user: { select: userNameSelect } } },
       team: {
         select: {
           enterpriseId: true,
-          allocations: {
-            include: {
-              user: {
-                select: { id: true, firstName: true, lastName: true },
-              },
-            },
-          },
+          allocations: { include: { user: { select: userNameSelect } } },
         },
       },
     },
@@ -58,57 +30,17 @@ export function getMeetingById(meetingId: number) {
   return prisma.meeting.findUnique({
     where: { id: meetingId },
     include: {
-      organiser: {
-        select: { id: true, firstName: true, lastName: true },
-      },
+      organiser: { select: userNameSelect },
       team: {
         include: {
-          allocations: {
-            include: {
-              user: {
-                select: { id: true, firstName: true, lastName: true },
-              },
-            },
-          },
+          allocations: { include: { user: { select: userNameSelect } } },
         },
       },
-      participants: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      attendances: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      minutes: {
-        include: {
-          writer: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
-      comments: {
-        include: {
-          user: {
-            select: { id: true, firstName: true, lastName: true },
-          },
-        },
-      },
+      participants: { include: { user: { select: userNameSelect } } },
+      attendances: { include: { user: { select: userNameSelect } } },
+      minutes: { include: { writer: { select: userNameSelect } } },
+      comments: { include: { user: { select: userNameSelect } } },
     },
-  });
-}
-
-/** Creates participant records for a meeting. */
-export function createParticipants(meetingId: number, userIds: number[]) {
-  return prisma.meetingParticipant.createMany({
-    data: userIds.map((userId) => ({ meetingId, userId })),
-    skipDuplicates: true,
   });
 }
 
@@ -123,9 +55,7 @@ export function createMeeting(data: {
   videoCallLink?: string;
   agenda?: string;
 }) {
-  return prisma.meeting.create({
-    data,
-  });
+  return prisma.meeting.create({ data });
 }
 
 export function updateMeeting(meetingId: number, data: {
@@ -139,40 +69,18 @@ export function updateMeeting(meetingId: number, data: {
   return prisma.meeting.update({ where: { id: meetingId }, data });
 }
 
-/** Returns team meeting-state fields used by service guards. */
-export function getTeamMeetingState(teamId: number) {
-  return prisma.team.findUnique({
-    where: { id: teamId },
-    select: {
-      archivedAt: true,
-      inactivityFlag: true,
-      deadlineProfile: true,
-      projectId: true,
-      deadlineOverride: {
-        select: {
-          feedbackDueDate: true,
-        },
-      },
-      project: {
-        select: {
-          archivedAt: true,
-          deadline: {
-            select: {
-              feedbackDueDate: true,
-              feedbackDueDateMcf: true,
-            },
-          },
-        },
-      },
-    },
-  });
+/** Deletes the meeting. */
+export function deleteMeeting(meetingId: number) {
+  return prisma.meeting.delete({ where: { id: meetingId } });
 }
 
-/** Clears inactivity flag for a team after a new meeting. */
-export function clearTeamInactivityFlag(teamId: number) {
-  return prisma.team.update({
-    where: { id: teamId },
-    data: { inactivityFlag: "NONE" },
+// Participants
+
+/** Creates participant records for a meeting. */
+export function createParticipants(meetingId: number, userIds: number[]) {
+  return prisma.meetingParticipant.createMany({
+    data: userIds.map((userId) => ({ meetingId, userId })),
+    skipDuplicates: true,
   });
 }
 
@@ -186,12 +94,7 @@ export function replaceParticipants(meetingId: number, participantIds: number[])
   ]);
 }
 
-/** Deletes the meeting. */
-export function deleteMeeting(meetingId: number) {
-  return prisma.meeting.delete({
-    where: { id: meetingId },
-  });
-}
+// Attendance
 
 /** Executes the bulk upsert attendance. */
 export function bulkUpsertAttendance(
@@ -219,6 +122,17 @@ export function bulkUpsertAttendance(
   return prisma.$transaction(upserts);
 }
 
+export function getRecentAttendanceForUser(userId: number, teamId: number, limit: number) {
+  return prisma.meetingAttendance.findMany({
+    where: { userId, meeting: { teamId } },
+    orderBy: { meeting: { date: "desc" } },
+    take: limit,
+    select: { status: true },
+  });
+}
+
+// Minutes
+
 /** Executes the upsert minutes. */
 export function upsertMinutes(meetingId: number, writerId: number, content: string) {
   return prisma.meetingMinutes.upsert({
@@ -227,6 +141,8 @@ export function upsertMinutes(meetingId: number, writerId: number, content: stri
     update: { content },
   });
 }
+
+// Comments and Mentions
 
 /** Creates a comment. */
 export function createComment(meetingId: number, userId: number, content: string) {
@@ -237,9 +153,7 @@ export function createComment(meetingId: number, userId: number, content: string
 
 /** Deletes the comment. */
 export function deleteComment(commentId: number) {
-  return prisma.meetingComment.delete({
-    where: { id: commentId },
-  });
+  return prisma.meetingComment.delete({ where: { id: commentId } });
 }
 
 export function createMentions(sourceId: number, userIds: number[]) {
@@ -253,23 +167,46 @@ export function createMentions(sourceId: number, userIds: number[]) {
   });
 }
 
-export function getRecentAttendanceForUser(userId: number, teamId: number, limit: number) {
-  return prisma.meetingAttendance.findMany({
-    where: { userId, meeting: { teamId } },
-    orderBy: { meeting: { date: "desc" } },
-    take: limit,
-    select: { status: true },
+// Settings and State
+
+/** Returns team meeting-state fields used by service guards. */
+export function getTeamMeetingState(teamId: number) {
+  return prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      archivedAt: true,
+      inactivityFlag: true,
+      deadlineProfile: true,
+      projectId: true,
+      deadlineOverride: { select: { feedbackDueDate: true } },
+      project: {
+        select: {
+          archivedAt: true,
+          deadline: {
+            select: {
+              feedbackDueDate: true,
+              feedbackDueDateMcf: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+/** Clears inactivity flag for a team after a new meeting. */
+export function clearTeamInactivityFlag(teamId: number) {
+  return prisma.team.update({
+    where: { id: teamId },
+    data: { inactivityFlag: "NONE" },
   });
 }
 
 export async function getModuleLeadsForTeam(teamId: number) {
-  const project = await prisma.project.findFirst({
-    where: { teams: { some: { id: teamId } } },
-    select: { moduleId: true },
-  });
-  if (!project) return [];
+  const moduleId = await getModuleIdForTeam(teamId);
+  if (!moduleId) return [];
   return prisma.moduleLead.findMany({
-    where: { moduleId: project.moduleId },
+    where: { moduleId },
     select: { userId: true },
   });
 }
@@ -298,4 +235,12 @@ export async function getModuleMeetingSettingsForTeam(teamId: number) {
     allowAnyoneToRecordAttendance: false,
     allowAnyoneToWriteMinutes: false,
   };
+}
+
+async function getModuleIdForTeam(teamId: number) {
+  const project = await prisma.project.findFirst({
+    where: { teams: { some: { id: teamId } } },
+    select: { moduleId: true },
+  });
+  return project?.moduleId ?? null;
 }
