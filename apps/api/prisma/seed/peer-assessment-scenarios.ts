@@ -21,35 +21,17 @@ async function ensureScenarioProject(
   name: string,
   informationText: string
 ) {
-  const existing = await prisma.project.findFirst({
-    where: {
-      name,
-      module: { enterpriseId },
-    },
-    select: { id: true },
-  });
-
+  const existing = await findScenarioProject(enterpriseId, name);
+  const data = buildScenarioProjectWrite(moduleId, templateId, informationText, name);
   if (existing) {
     return prisma.project.update({
       where: { id: existing.id },
-      data: {
-        moduleId,
-        questionnaireTemplateId: templateId,
-        informationText,
-      },
+      data: { moduleId: data.moduleId, questionnaireTemplateId: data.questionnaireTemplateId, informationText: data.informationText },
       select: { id: true, questionnaireTemplateId: true },
     });
   }
 
-  return prisma.project.create({
-    data: {
-      name,
-      moduleId,
-      questionnaireTemplateId: templateId,
-      informationText,
-    },
-    select: { id: true, questionnaireTemplateId: true },
-  });
+  return prisma.project.create({ data, select: { id: true, questionnaireTemplateId: true } });
 }
 
 async function ensureScenarioTeam(enterpriseId: string, projectId: number, teamName: string) {
@@ -163,36 +145,22 @@ async function seedAssessmentOpenScenario(
   memberIds: number[],
   questionLabels: string[]
 ) {
-  const project = await ensureScenarioProject(
+  const seeded = await prepareScenarioTeam({
     enterpriseId,
     moduleId,
     templateId,
-    ASSESSMENT_OPEN_PROJECT_NAME,
-    "This scenario keeps the project in an active peer-assessment window so reviewers can submit assessments now."
-  );
-  const team = await ensureScenarioTeam(enterpriseId, project.id, ASSESSMENT_OPEN_TEAM_NAME);
-  const createdAllocations = await ensureTeamAllocations(team.id, memberIds);
-
-  const now = Date.now();
-  await upsertProjectDeadline(project.id, {
-    taskOpenDate: new Date(now - 12 * DAY_MS),
-    taskDueDate: new Date(now - 2 * DAY_MS),
-    assessmentOpenDate: new Date(now - 1 * DAY_MS),
-    assessmentDueDate: new Date(now + 3 * DAY_MS),
-    feedbackOpenDate: new Date(now + 4 * DAY_MS),
-    feedbackDueDate: new Date(now + 8 * DAY_MS),
+    projectName: ASSESSMENT_OPEN_PROJECT_NAME,
+    teamName: ASSESSMENT_OPEN_TEAM_NAME,
+    informationText: "This scenario keeps the project in an active peer-assessment window so reviewers can submit assessments now.",
+    deadlineOffsetDays: { taskOpen: -12, taskDue: -2, assessmentOpen: -1, assessmentDue: 3, feedbackOpen: 4, feedbackDue: 8 },
+    memberIds,
   });
-
-  await prisma.peerFeedback.deleteMany({ where: { teamId: team.id } });
-  await prisma.peerAssessment.deleteMany({
-    where: { projectId: project.id, teamId: team.id },
-  });
-
+  await clearScenarioPeerData(seeded.project.id, seeded.team.id);
   return {
-    projectId: project.id,
-    teamId: team.id,
+    projectId: seeded.project.id,
+    teamId: seeded.team.id,
     questionLabels,
-    createdAllocations,
+    createdAllocations: seeded.createdAllocations,
   };
 }
 
@@ -203,131 +171,45 @@ async function seedFeedbackPendingScenario(
   memberIds: number[],
   questionLabels: string[]
 ) {
-  const project = await ensureScenarioProject(
+  const seeded = await prepareScenarioTeam({
     enterpriseId,
     moduleId,
     templateId,
-    FEEDBACK_OPEN_PROJECT_NAME,
-    "This scenario has peer assessments completed while peer feedback is currently open and pending submission."
-  );
-  const team = await ensureScenarioTeam(enterpriseId, project.id, FEEDBACK_OPEN_TEAM_NAME);
-  const createdAllocations = await ensureTeamAllocations(team.id, memberIds);
-
-  const now = Date.now();
-  await upsertProjectDeadline(project.id, {
-    taskOpenDate: new Date(now - 21 * DAY_MS),
-    taskDueDate: new Date(now - 14 * DAY_MS),
-    assessmentOpenDate: new Date(now - 13 * DAY_MS),
-    assessmentDueDate: new Date(now - 3 * DAY_MS),
-    feedbackOpenDate: new Date(now - 2 * DAY_MS),
-    feedbackDueDate: new Date(now + 5 * DAY_MS),
+    projectName: FEEDBACK_OPEN_PROJECT_NAME,
+    teamName: FEEDBACK_OPEN_TEAM_NAME,
+    informationText: "This scenario has peer assessments completed while peer feedback is currently open and pending submission.",
+    deadlineOffsetDays: { taskOpen: -21, taskDue: -14, assessmentOpen: -13, assessmentDue: -3, feedbackOpen: -2, feedbackDue: 5 },
+    memberIds,
   });
-
-  await prisma.peerFeedback.deleteMany({ where: { teamId: team.id } });
-
-  let assessmentCount = 0;
-  for (let reviewerIndex = 0; reviewerIndex < memberIds.length; reviewerIndex += 1) {
-    const reviewerUserId = memberIds[reviewerIndex];
-
-    for (let revieweeIndex = 0; revieweeIndex < memberIds.length; revieweeIndex += 1) {
-      const revieweeUserId = memberIds[revieweeIndex];
-      if (reviewerUserId === revieweeUserId) continue;
-
-      const answersJson = buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId);
-      await prisma.peerAssessment.upsert({
-        where: {
-          projectId_teamId_reviewerUserId_revieweeUserId: {
-            projectId: project.id,
-            teamId: team.id,
-            reviewerUserId,
-            revieweeUserId,
-          },
-        },
-        update: {
-          templateId,
-          answersJson,
-          submittedLate: false,
-          effectiveDueDate: null,
-        },
-        create: {
-          projectId: project.id,
-          teamId: team.id,
-          reviewerUserId,
-          revieweeUserId,
-          templateId,
-          answersJson,
-          submittedLate: false,
-        },
-      });
-      assessmentCount += 1;
-    }
-  }
+  await prisma.peerFeedback.deleteMany({ where: { teamId: seeded.team.id } });
+  const assessmentCount = await upsertScenarioAssessments(seeded.project.id, seeded.team.id, templateId, memberIds, questionLabels);
 
   return {
-    projectId: project.id,
-    teamId: team.id,
-    createdAllocations,
+    projectId: seeded.project.id,
+    teamId: seeded.team.id,
+    createdAllocations: seeded.createdAllocations,
     assessmentCount,
   };
 }
 
 export async function seedPeerAssessmentProgressScenarios(context: SeedContext) {
   return withSeedLogging("seedPeerAssessmentProgressScenarios", async () => {
-    const module = context.modules[0];
-    const template = context.templates[0];
-    if (!module || !template) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: "skipped (missing module/template)",
-      };
-    }
+    const target = await resolveScenarioSeedTarget(context);
+    if (!target.ready) return target.result;
 
-    const enterpriseAdmins = await prisma.user.findMany({
-      where: {
-        enterpriseId: context.enterprise.id,
-        role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] },
-      },
-      select: { id: true },
-    });
-
-    const fallbackAdmin = context.users.find((user) => user.role === Role.ADMIN);
-    const adminIds = uniqueUserIds([
-      ...enterpriseAdmins.map((user) => user.id),
-      ...(fallbackAdmin ? [fallbackAdmin.id] : []),
-    ]);
-    if (adminIds.length === 0) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: "skipped (no admin user found)",
-      };
-    }
-
-    const studentIds = context.usersByRole.students.slice(0, 3).map((user) => user.id);
-    const memberIds = uniqueUserIds([...adminIds, ...studentIds]);
-    if (memberIds.length < 2) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: "skipped (not enough team members)",
-      };
-    }
-
-    const questionLabels = await getTemplateQuestionLabels(template.id, template.questionLabels);
-
+    const questionLabels = await getTemplateQuestionLabels(target.template.id, target.template.questionLabels);
     const assessmentOpen = await seedAssessmentOpenScenario(
       context.enterprise.id,
-      module.id,
-      template.id,
-      memberIds,
+      target.module.id,
+      target.template.id,
+      target.memberIds,
       questionLabels
     );
     const feedbackPending = await seedFeedbackPendingScenario(
       context.enterprise.id,
-      module.id,
-      template.id,
-      memberIds,
+      target.module.id,
+      target.template.id,
+      target.memberIds,
       questionLabels
     );
 
@@ -340,4 +222,121 @@ export async function seedPeerAssessmentProgressScenarios(context: SeedContext) 
       details: `projects=2, teams=2, assessments=${feedbackPending.assessmentCount}, allocations=${assessmentOpen.createdAllocations + feedbackPending.createdAllocations}`,
     };
   });
+}
+
+function findScenarioProject(enterpriseId: string, name: string) {
+  return prisma.project.findFirst({
+    where: { name, module: { enterpriseId } },
+    select: { id: true },
+  });
+}
+
+function buildScenarioProjectWrite(moduleId: number, templateId: number, informationText: string, name: string) {
+  return { name, moduleId, questionnaireTemplateId: templateId, informationText };
+}
+
+async function prepareScenarioTeam(input: {
+  enterpriseId: string;
+  moduleId: number;
+  templateId: number;
+  projectName: string;
+  teamName: string;
+  informationText: string;
+  deadlineOffsetDays: { taskOpen: number; taskDue: number; assessmentOpen: number; assessmentDue: number; feedbackOpen: number; feedbackDue: number };
+  memberIds: number[];
+}) {
+  const project = await ensureScenarioProject(input.enterpriseId, input.moduleId, input.templateId, input.projectName, input.informationText);
+  const team = await ensureScenarioTeam(input.enterpriseId, project.id, input.teamName);
+  const createdAllocations = await ensureTeamAllocations(team.id, input.memberIds);
+  await upsertProjectDeadline(project.id, buildScenarioDeadlines(input.deadlineOffsetDays));
+  return { project, team, createdAllocations };
+}
+
+function buildScenarioDeadlines(offsetDays: {
+  taskOpen: number;
+  taskDue: number;
+  assessmentOpen: number;
+  assessmentDue: number;
+  feedbackOpen: number;
+  feedbackDue: number;
+}) {
+  const now = Date.now();
+  return {
+    taskOpenDate: new Date(now + offsetDays.taskOpen * DAY_MS),
+    taskDueDate: new Date(now + offsetDays.taskDue * DAY_MS),
+    assessmentOpenDate: new Date(now + offsetDays.assessmentOpen * DAY_MS),
+    assessmentDueDate: new Date(now + offsetDays.assessmentDue * DAY_MS),
+    feedbackOpenDate: new Date(now + offsetDays.feedbackOpen * DAY_MS),
+    feedbackDueDate: new Date(now + offsetDays.feedbackDue * DAY_MS),
+  };
+}
+
+function clearScenarioPeerData(projectId: number, teamId: number) {
+  return Promise.all([
+    prisma.peerFeedback.deleteMany({ where: { teamId } }),
+    prisma.peerAssessment.deleteMany({ where: { projectId, teamId } }),
+  ]);
+}
+
+async function upsertScenarioAssessments(
+  projectId: number,
+  teamId: number,
+  templateId: number,
+  memberIds: number[],
+  questionLabels: string[]
+) {
+  let count = 0;
+  for (const reviewerUserId of memberIds) {
+    for (const revieweeUserId of memberIds) {
+      if (reviewerUserId === revieweeUserId) continue;
+      await upsertScenarioAssessment(projectId, teamId, templateId, reviewerUserId, revieweeUserId, questionLabels);
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function upsertScenarioAssessment(
+  projectId: number,
+  teamId: number,
+  templateId: number,
+  reviewerUserId: number,
+  revieweeUserId: number,
+  questionLabels: string[]
+) {
+  const answersJson = buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId);
+  return prisma.peerAssessment.upsert({
+    where: {
+      projectId_teamId_reviewerUserId_revieweeUserId: { projectId, teamId, reviewerUserId, revieweeUserId },
+    },
+    update: { templateId, answersJson, submittedLate: false, effectiveDueDate: null },
+    create: { projectId, teamId, reviewerUserId, revieweeUserId, templateId, answersJson, submittedLate: false },
+  });
+}
+
+async function resolveScenarioSeedTarget(context: SeedContext) {
+  const module = context.modules[0];
+  const template = context.templates[0];
+  if (!module || !template) {
+    return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (missing module/template)" } };
+  }
+
+  const adminIds = await findScenarioAdminIds(context);
+  if (adminIds.length === 0) return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (no admin user found)" } };
+
+  const memberIds = uniqueUserIds([...adminIds, ...context.usersByRole.students.slice(0, 3).map((user) => user.id)]);
+  if (memberIds.length < 2) {
+    return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (not enough team members)" } };
+  }
+
+  return { ready: true as const, module, template, memberIds };
+}
+
+async function findScenarioAdminIds(context: SeedContext) {
+  const enterpriseAdmins = await prisma.user.findMany({
+    where: { enterpriseId: context.enterprise.id, role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] } },
+    select: { id: true },
+  });
+  const fallbackAdmin = context.users.find((user) => user.role === Role.ADMIN);
+  return uniqueUserIds([...enterpriseAdmins.map((user) => user.id), ...(fallbackAdmin ? [fallbackAdmin.id] : [])]);
 }

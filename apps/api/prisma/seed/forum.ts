@@ -8,89 +8,20 @@ const ROOT_POSTS_PER_PROJECT = 3;
 
 export async function seedForumPosts(projects: SeedProject[], staffUsers: SeedUser[], students: SeedUser[]) {
   return withSeedLogging("seedForumPosts", async () => {
-    if (projects.length === 0) {
-      return { value: undefined, rows: 0, details: "skipped (no projects)" };
-    }
+    const validation = validateForumSeedInput(projects, staffUsers, students);
+    if (!validation.ready) return validation.result;
 
-    if (staffUsers.length === 0 || students.length === 0) {
-      return { value: undefined, rows: 0, details: "skipped (missing staff/student authors)" };
-    }
-
-    await prisma.discussionPost.deleteMany({
-      where: { projectId: { in: projects.map((project) => project.id) } },
-    });
-
-    const rootPosts = projects.flatMap((project, projectIndex) =>
-      Array.from({ length: ROOT_POSTS_PER_PROJECT }, (_, postIndex) => {
-        const staffAuthor = staffUsers[(projectIndex + postIndex) % staffUsers.length];
-        const studentAuthor = students[(projectIndex + postIndex) % students.length];
-        const isStaffAuthored = postIndex === 0;
-
-        return {
-          projectId: project.id,
-          authorId: (isStaffAuthored ? staffAuthor : studentAuthor).id,
-          title: buildForumTitle(isStaffAuthored, projectIndex, postIndex),
-          body: buildForumBody(isStaffAuthored),
-        };
-      }),
-    );
-
-    const createdRoots = await prisma.$transaction(
-      rootPosts.map((post) =>
-        prisma.discussionPost.create({
-          data: post,
-          select: { id: true, projectId: true },
-        }),
-      ),
-    );
-
-    const replies = createdRoots.map((post, index) => {
-      const staffAuthor = staffUsers[index % staffUsers.length];
-      const studentAuthor = students[index % students.length];
-      const isReplyFromStaff = index % 2 === 0;
-
-      return {
-        projectId: post.projectId,
-        parentPostId: post.id,
-        authorId: (isReplyFromStaff ? staffAuthor : studentAuthor).id,
-        title: `Re: ${rootPosts[index]?.title ?? "Discussion thread"}`,
-        body: buildForumReplyBody(isReplyFromStaff),
-      };
-    });
-
-    const createdReplies = await prisma.$transaction(
-      replies.map((reply) =>
-        prisma.discussionPost.create({
-          data: reply,
-          select: { id: true, projectId: true, authorId: true },
-        }),
-      ),
-    );
-
-    const allPosts = [
-      ...createdRoots.map((post, index) => ({
-        id: post.id,
-        projectId: post.projectId,
-        authorId: rootPosts[index]?.authorId ?? 0,
-      })),
-      ...createdReplies,
-    ];
+    await resetProjectDiscussionPosts(projects);
+    const rootPosts = buildRootPostRows(projects, staffUsers, students);
+    const createdRoots = await createRootPosts(rootPosts);
+    const replies = buildReplyRows(createdRoots, rootPosts, staffUsers, students);
+    const createdReplies = await createReplyPosts(replies);
+    const allPosts = buildAllCreatedPosts(createdRoots, rootPosts, createdReplies);
 
     const forumReactionRows = planForumReactionSeedData(allPosts, staffUsers, students);
-    if (forumReactionRows.length > 0) {
-      await prisma.forumReaction.createMany({
-        data: forumReactionRows,
-        skipDuplicates: true,
-      });
-    }
-
+    await createForumReactions(forumReactionRows);
     const forumStudentReportRows = planForumStudentReportSeedData(allPosts, staffUsers, students);
-    if (forumStudentReportRows.length > 0) {
-      await prisma.forumStudentReport.createMany({
-        data: forumStudentReportRows,
-        skipDuplicates: true,
-      });
-    }
+    await createForumStudentReports(forumStudentReportRows);
 
     return {
       value: undefined,
@@ -183,4 +114,106 @@ function buildForumReplyBody(isReplyFromStaff: boolean) {
 function normalizeSentence(value: string | string[]) {
   const sentence = Array.isArray(value) ? value.join(" ") : value;
   return sentence.replace(/\s+/g, " ").trim().replace(/[.?!]+$/, "");
+}
+
+function validateForumSeedInput(projects: SeedProject[], staffUsers: SeedUser[], students: SeedUser[]) {
+  if (projects.length === 0) {
+    return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (no projects)" } };
+  }
+  if (staffUsers.length === 0 || students.length === 0) {
+    return {
+      ready: false as const,
+      result: { value: undefined, rows: 0, details: "skipped (missing staff/student authors)" },
+    };
+  }
+  return { ready: true as const };
+}
+
+function resetProjectDiscussionPosts(projects: SeedProject[]) {
+  return prisma.discussionPost.deleteMany({
+    where: { projectId: { in: projects.map((project) => project.id) } },
+  });
+}
+
+function buildRootPostRows(projects: SeedProject[], staffUsers: SeedUser[], students: SeedUser[]) {
+  return projects.flatMap((project, projectIndex) =>
+    Array.from({ length: ROOT_POSTS_PER_PROJECT }, (_, postIndex) => {
+      const staffAuthor = staffUsers[(projectIndex + postIndex) % staffUsers.length];
+      const studentAuthor = students[(projectIndex + postIndex) % students.length];
+      const isStaffAuthored = postIndex === 0;
+      return {
+        projectId: project.id,
+        authorId: (isStaffAuthored ? staffAuthor : studentAuthor).id,
+        title: buildForumTitle(isStaffAuthored, projectIndex, postIndex),
+        body: buildForumBody(isStaffAuthored),
+      };
+    })
+  );
+}
+
+function createRootPosts(rootPosts: ReturnType<typeof buildRootPostRows>) {
+  return prisma.$transaction(
+    rootPosts.map((post) =>
+      prisma.discussionPost.create({
+        data: post,
+        select: { id: true, projectId: true },
+      })
+    )
+  );
+}
+
+function buildReplyRows(
+  createdRoots: Awaited<ReturnType<typeof createRootPosts>>,
+  rootPosts: ReturnType<typeof buildRootPostRows>,
+  staffUsers: SeedUser[],
+  students: SeedUser[]
+) {
+  return createdRoots.map((post, index) => {
+    const staffAuthor = staffUsers[index % staffUsers.length];
+    const studentAuthor = students[index % students.length];
+    const isReplyFromStaff = index % 2 === 0;
+    return {
+      projectId: post.projectId,
+      parentPostId: post.id,
+      authorId: (isReplyFromStaff ? staffAuthor : studentAuthor).id,
+      title: `Re: ${rootPosts[index]?.title ?? "Discussion thread"}`,
+      body: buildForumReplyBody(isReplyFromStaff),
+    };
+  });
+}
+
+function createReplyPosts(replies: ReturnType<typeof buildReplyRows>) {
+  return prisma.$transaction(
+    replies.map((reply) =>
+      prisma.discussionPost.create({
+        data: reply,
+        select: { id: true, projectId: true, authorId: true },
+      })
+    )
+  );
+}
+
+function buildAllCreatedPosts(
+  createdRoots: Awaited<ReturnType<typeof createRootPosts>>,
+  rootPosts: ReturnType<typeof buildRootPostRows>,
+  createdReplies: Awaited<ReturnType<typeof createReplyPosts>>
+) {
+  return [
+    ...createdRoots.map((post, index) => ({
+      id: post.id,
+      projectId: post.projectId,
+      authorId: rootPosts[index]?.authorId ?? 0,
+    })),
+    ...createdReplies,
+  ];
+}
+
+function createForumReactions(rows: ReturnType<typeof planForumReactionSeedData>) {
+  if (rows.length === 0) return Promise.resolve();
+  return prisma.forumReaction.createMany({ data: rows, skipDuplicates: true });
+}
+
+function createForumStudentReports(rows: ReturnType<typeof planForumStudentReportSeedData>) {
+  if (rows.length === 0) return Promise.resolve();
+  return prisma.forumStudentReport.createMany({ data: rows, skipDuplicates: true });
 }

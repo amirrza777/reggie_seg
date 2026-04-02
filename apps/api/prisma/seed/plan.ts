@@ -56,126 +56,32 @@ function buildCoreSeedPlan(_context: SeedContext): SeedStepDefinition[] {
 }
 
 function buildMembershipSeedPlan(context: SeedContext, config: SeedProfileConfig): SeedStepDefinition[] {
-  const steps: SeedStepDefinition[] = [
-    {
-      name: "seedModuleLeads",
-      layer: "membership",
-      run: () => seedModuleLeads(context.usersByRole.adminOrStaff, context.modules),
-    },
-    {
-      name: "seedModuleTeachingAssistants",
-      layer: "membership",
-      run: () => seedModuleTeachingAssistants(context.usersByRole.adminOrStaff, context.modules),
-    },
-    {
-      name: "seedStudentEnrollments",
-      layer: "membership",
-      run: () => seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules),
-    },
+  const steps = [
+    buildModuleLeadsStep(context),
+    buildModuleTeachingAssistantsStep(context),
+    buildStudentEnrollmentsStep(context),
+    ...buildAdminTeamAllocationStep(context, config),
+    buildTeamAllocationsStep(context),
+    buildAssessmentStudentModuleCoverageStep(context),
   ];
-
-  if (config.scenarios.has("adminTeamAllocation")) {
-    steps.push({
-      name: "seedAdminTeamAllocation",
-      layer: "membership",
-      run: () => seedAdminTeamAllocation(context.enterprise.id),
-    });
-  }
-
-  steps.push({
-    name: "seedTeamAllocations",
-    layer: "membership",
-    run: () => seedTeamAllocations(context.usersByRole.students, context.teams),
-  });
-
-  steps.push({
-    name: "seedAssessmentStudentModuleCoverage",
-    layer: "membership",
-    run: () => seedAssessmentStudentModuleCoverage(context.enterprise.id, context.modules, context.projects, context.teams),
-  });
-
   return steps;
 }
 
 function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig): SeedStepDefinition[] {
-  const steps: SeedStepDefinition[] = [];
-
-  if (config.scenarios.has("staffStudentMarks")) {
-    steps.push({
-      name: "seedStaffStudentMarks",
-      layer: "scenario",
-      run: () => seedStaffStudentMarks(context),
-    });
-  }
-
-  steps.push(
-    {
-      name: "seedTeamInvites",
-      layer: "scenario",
-      run: () => seedTeamInvites(context),
-    },
-    {
-      name: "seedGithubE2EUsers",
-      layer: "scenario",
-      run: () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams),
-    },
-  );
-
-  if (config.scenarios.has("githubDemo")) {
-    steps.push({
-      name: "seedGithubDemoPath",
-      layer: "scenario",
-      run: () => seedGithubDemoPath(context),
-    });
-  }
-
-  if (config.scenarios.has("completedProject")) {
-    steps.push({
-      name: "seedCompletedProjectScenario",
-      layer: "scenario",
-      run: () => seedCompletedProjectScenario(context),
-    });
-  }
-
-  steps.push(
-    {
-      name: "seedProjectDeadlines",
-      layer: "scenario",
-      run: () => seedProjectDeadlines(context.projects),
-    },
-    {
-      name: "seedPeerAssessments",
-      layer: "scenario",
-      run: () => seedPeerAssessments(context.projects, context.teams, context.templates),
-    },
-    {
-      name: "seedFeatureFlags",
-      layer: "scenario",
-      run: () => seedFeatureFlags(context.enterprise.id),
-    },
-    {
-      name: "seedPeerAssessmentProgressScenarios",
-      layer: "scenario",
-      run: () => seedPeerAssessmentProgressScenarios(context),
-    },
-    {
-      name: "seedForumPosts",
-      layer: "scenario",
-      run: () => seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students),
-    },
-    {
-      name: "seedMeetings",
-      layer: "scenario",
-      run: () => seedMeetings(context),
-    },
-    {
-      name: "seedNotifications",
-      layer: "scenario",
-      run: () => seedNotifications(context),
-    },
-  );
-
-  return steps;
+  return [
+    ...buildStaffStudentMarksStep(context, config),
+    buildTeamInvitesStep(context),
+    buildGithubE2EUsersStep(context),
+    ...buildGithubDemoStep(context, config),
+    ...buildCompletedProjectStep(context, config),
+    buildProjectDeadlinesStep(context),
+    buildPeerAssessmentsStep(context),
+    buildFeatureFlagsStep(context),
+    buildPeerAssessmentProgressScenariosStep(context),
+    buildForumPostsStep(context),
+    buildMeetingsStep(context),
+    buildNotificationsStep(context),
+  ];
 }
 
 export function buildDevSeedPlan(context: SeedContext, config: SeedProfileConfig) {
@@ -206,4 +112,96 @@ export function buildSeedStepPlan(context: SeedContext, config: SeedProfileConfi
     default:
       return buildDevSeedPlan(context, config);
   }
+}
+
+function buildMembershipStep(name: string, run: () => Promise<unknown>): SeedStepDefinition {
+  return { name, layer: "membership", run };
+}
+
+function buildScenarioStep(name: string, run: () => Promise<unknown>): SeedStepDefinition {
+  return { name, layer: "scenario", run };
+}
+
+function buildModuleLeadsStep(context: SeedContext) {
+  return buildMembershipStep("seedModuleLeads", () => seedModuleLeads(context.usersByRole.adminOrStaff, context.modules));
+}
+
+function buildModuleTeachingAssistantsStep(context: SeedContext) {
+  return buildMembershipStep("seedModuleTeachingAssistants", () =>
+    seedModuleTeachingAssistants(context.usersByRole.adminOrStaff, context.modules)
+  );
+}
+
+function buildStudentEnrollmentsStep(context: SeedContext) {
+  return buildMembershipStep("seedStudentEnrollments", () =>
+    seedStudentEnrollments(context.enterprise.id, context.usersByRole.students, context.modules)
+  );
+}
+
+function buildAdminTeamAllocationStep(context: SeedContext, config: SeedProfileConfig) {
+  if (!config.scenarios.has("adminTeamAllocation")) return [];
+  return [buildMembershipStep("seedAdminTeamAllocation", () => seedAdminTeamAllocation(context.enterprise.id))];
+}
+
+function buildTeamAllocationsStep(context: SeedContext) {
+  return buildMembershipStep("seedTeamAllocations", () => seedTeamAllocations(context.usersByRole.students, context.teams));
+}
+
+function buildAssessmentStudentModuleCoverageStep(context: SeedContext) {
+  return buildMembershipStep("seedAssessmentStudentModuleCoverage", () =>
+    seedAssessmentStudentModuleCoverage(context.enterprise.id, context.modules, context.projects, context.teams)
+  );
+}
+
+function buildStaffStudentMarksStep(context: SeedContext, config: SeedProfileConfig) {
+  if (!config.scenarios.has("staffStudentMarks")) return [];
+  return [buildScenarioStep("seedStaffStudentMarks", () => seedStaffStudentMarks(context))];
+}
+
+function buildTeamInvitesStep(context: SeedContext) {
+  return buildScenarioStep("seedTeamInvites", () => seedTeamInvites(context));
+}
+
+function buildGithubE2EUsersStep(context: SeedContext) {
+  return buildScenarioStep("seedGithubE2EUsers", () => seedGithubE2EUsers(context.enterprise.id, context.projects, context.teams));
+}
+
+function buildGithubDemoStep(context: SeedContext, config: SeedProfileConfig) {
+  if (!config.scenarios.has("githubDemo")) return [];
+  return [buildScenarioStep("seedGithubDemoPath", () => seedGithubDemoPath(context))];
+}
+
+function buildCompletedProjectStep(context: SeedContext, config: SeedProfileConfig) {
+  if (!config.scenarios.has("completedProject")) return [];
+  return [buildScenarioStep("seedCompletedProjectScenario", () => seedCompletedProjectScenario(context))];
+}
+
+function buildProjectDeadlinesStep(context: SeedContext) {
+  return buildScenarioStep("seedProjectDeadlines", () => seedProjectDeadlines(context.projects));
+}
+
+function buildPeerAssessmentsStep(context: SeedContext) {
+  return buildScenarioStep("seedPeerAssessments", () => seedPeerAssessments(context.projects, context.teams, context.templates));
+}
+
+function buildFeatureFlagsStep(context: SeedContext) {
+  return buildScenarioStep("seedFeatureFlags", () => seedFeatureFlags(context.enterprise.id));
+}
+
+function buildPeerAssessmentProgressScenariosStep(context: SeedContext) {
+  return buildScenarioStep("seedPeerAssessmentProgressScenarios", () => seedPeerAssessmentProgressScenarios(context));
+}
+
+function buildForumPostsStep(context: SeedContext) {
+  return buildScenarioStep("seedForumPosts", () =>
+    seedForumPosts(context.projects, context.usersByRole.adminOrStaff, context.usersByRole.students)
+  );
+}
+
+function buildMeetingsStep(context: SeedContext) {
+  return buildScenarioStep("seedMeetings", () => seedMeetings(context));
+}
+
+function buildNotificationsStep(context: SeedContext) {
+  return buildScenarioStep("seedNotifications", () => seedNotifications(context));
 }
