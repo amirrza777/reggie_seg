@@ -96,10 +96,18 @@
   --glass-ui-border: color-mix(in srgb, var(--border) 72%, rgba(255, 255, 255, 0.55) 28%);
   --glass-ui-shadow: var(--elevation-popup);
   --glass-ui-blur: 10px;
-  --glass-ui-saturate: 130%;
   --glass-ui-hover: color-mix(in srgb, var(--glass-ui-bg) 88%, var(--accent-soft) 12%);
-  --popup-glass-surface-strength: 60%;
+  --popup-glass-surface-strength: 58%;
   --popup-glass-bg: color-mix(in srgb, var(--surface) var(--popup-glass-surface-strength), transparent);
+  --popup-glass-notification-surface-strength: 8%;
+  --popup-glass-notification-blur: 8px;
+  --popup-glass-notification-unread-strength: 4%;
+  --popup-glass-notification-unread-hover-strength: 8%;
+  --popup-glass-notification-bg: color-mix(
+    in srgb,
+    var(--surface) var(--popup-glass-notification-surface-strength),
+    transparent
+  );
   --popup-glass-border: color-mix(in srgb, var(--glass-ui-border) 86%, rgba(255, 255, 255, 0.34) 14%);
   --popup-glass-shadow: var(--elevation-popup);
   --popup-glass-noise-size: 140px;
@@ -131,9 +139,9 @@
   --visual-placeholder-surface: rgba(255, 255, 255, 0.8);
   --usecase-visual-bg: linear-gradient(135deg, rgba(31, 161, 107, 0.12), rgba(0, 0, 0, 0.08));
   --feature-card-visual-bg: linear-gradient(160deg, #f9f9ff 0%, #eef2ff 40%, #e8f7f0 100%);
-  --marketing-glow-1: radial-gradient(42% 36% at 14% 12%, rgba(32, 173, 120, 0.58) 0%, rgba(32, 173, 120, 0.28) 28%, rgba(32, 173, 120, 0.12) 52%, rgba(32, 173, 120, 0) 74%);
-  --marketing-glow-2: radial-gradient(46% 32% at 88% 92%, rgba(32, 173, 120, 0.92) 0%, rgba(32, 173, 120, 0.42) 32%, rgba(32, 173, 120, 0.2) 58%, rgba(32, 173, 120, 0) 84%);
-  --marketing-glow-3: radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.3) 0%, rgba(32, 173, 120, 0.12) 42%, rgba(32, 173, 120, 0) 72%);
+  --marketing-glow-1: radial-gradient(42% 36% at 4% 4%, rgba(32, 173, 120, 0.58) 0%, rgba(32, 173, 120, 0.46) 12%, rgba(32, 173, 120, 0.28) 28%, rgba(32, 173, 120, 0.19) 40%, rgba(32, 173, 120, 0.12) 52%, rgba(32, 173, 120, 0.05) 63%, rgba(32, 173, 120, 0) 74%);
+  --marketing-glow-2: radial-gradient(46% 32% at 96% 98%, rgba(32, 173, 120, 0.92) 0%, rgba(32, 173, 120, 0.72) 14%, rgba(32, 173, 120, 0.42) 32%, rgba(32, 173, 120, 0.3) 44%, rgba(32, 173, 120, 0.2) 58%, rgba(32, 173, 120, 0.08) 72%, rgba(32, 173, 120, 0) 84%);
+  --marketing-glow-3: radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.3) 0%, rgba(32, 173, 120, 0.22) 20%, rgba(32, 173, 120, 0.12) 42%, rgba(32, 173, 120, 0.05) 58%, rgba(32, 173, 120, 0) 72%);
   --marketing-noise-gradient: linear-gradient(180deg, #e5f7ed 0%, #ddf4e7 100%);
   --marketing-noise-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   --marketing-noise-opacity: 0.36;
@@ -229,10 +237,18 @@
     --shadow-sm: var(--elevation-panel);
     --glass-ui-shadow: var(--elevation-popup);
     --glass-ui-blur: 10px;
-    --glass-ui-saturate: 140%;
     --glass-ui-hover: color-mix(in srgb, var(--glass-ui-bg) 82%, var(--accent-soft) 18%);
-    --popup-glass-surface-strength: 56%;
+    --popup-glass-surface-strength: 42%;
     --popup-glass-bg: color-mix(in srgb, var(--surface) var(--popup-glass-surface-strength), transparent);
+    --popup-glass-notification-surface-strength: 8%;
+    --popup-glass-notification-blur: 8px;
+    --popup-glass-notification-unread-strength: 4%;
+    --popup-glass-notification-unread-hover-strength: 8%;
+    --popup-glass-notification-bg: color-mix(
+      in srgb,
+      var(--surface) var(--popup-glass-notification-surface-strength),
+      transparent
+    );
     --popup-glass-border: color-mix(in srgb, var(--glass-ui-border) 88%, rgba(226, 232, 240, 0.24) 12%);
     --popup-glass-shadow: var(--elevation-popup);
     --popup-glass-noise-size: 140px;
@@ -264,9 +280,9 @@
     --visual-placeholder-surface: rgba(226, 232, 240, 0.08);
     --usecase-visual-bg: linear-gradient(135deg, rgba(52, 211, 153, 0.16), rgba(226, 232, 240, 0.05));
     --feature-card-visual-bg: linear-gradient(160deg, rgba(52, 211, 153, 0.1) 0%, rgba(226, 232, 240, 0.08) 35%, rgba(10, 10, 10, 0.6) 100%);
-    --marketing-glow-1: radial-gradient(42% 36% at 14% 12%, rgba(32, 173, 120, 0.48) 0%, rgba(32, 173, 120, 0.2) 28%, rgba(32, 173, 120, 0.07) 52%, rgba(32, 173, 120, 0) 74%);
-    --marketing-glow-2: radial-gradient(46% 32% at 88% 92%, rgba(32, 173, 120, 0.8) 0%, rgba(32, 173, 120, 0.34) 32%, rgba(32, 173, 120, 0.14) 58%, rgba(32, 173, 120, 0) 84%);
-    --marketing-glow-3: radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.2) 0%, rgba(32, 173, 120, 0.08) 42%, rgba(32, 173, 120, 0) 72%);
+    --marketing-glow-1: radial-gradient(42% 36% at 4% 4%, rgba(32, 173, 120, 0.48) 0%, rgba(32, 173, 120, 0.38) 12%, rgba(32, 173, 120, 0.2) 28%, rgba(32, 173, 120, 0.13) 40%, rgba(32, 173, 120, 0.07) 52%, rgba(32, 173, 120, 0.03) 63%, rgba(32, 173, 120, 0) 74%);
+    --marketing-glow-2: radial-gradient(46% 32% at 96% 98%, rgba(32, 173, 120, 0.8) 0%, rgba(32, 173, 120, 0.6) 14%, rgba(32, 173, 120, 0.34) 32%, rgba(32, 173, 120, 0.24) 44%, rgba(32, 173, 120, 0.14) 58%, rgba(32, 173, 120, 0.06) 72%, rgba(32, 173, 120, 0) 84%);
+    --marketing-glow-3: radial-gradient(28% 28% at 74% 12%, rgba(32, 173, 120, 0.2) 0%, rgba(32, 173, 120, 0.14) 20%, rgba(32, 173, 120, 0.08) 42%, rgba(32, 173, 120, 0.03) 58%, rgba(32, 173, 120, 0) 72%);
     --marketing-noise-gradient: linear-gradient(180deg, #050505 0%, #0a0a0a 100%);
     --marketing-noise-pattern: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.6' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
     --marketing-noise-opacity: 0.42;

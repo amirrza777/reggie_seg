@@ -366,4 +366,21 @@ describe("EditQuestionnaireClient behavior", () => {
     });
   });
 
+  it("prevents text questions for customised allocation purpose", async () => {
+    await loadEditorForSave({
+      templateName: "Base Template",
+      canEdit: true,
+      isPublic: true,
+      questions: [{ id: 1, label: "Base question", type: "text", configs: {} }],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Customised Allocation" }));
+
+    expect(screen.queryByRole("button", { name: "Add text" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Question 1 cannot be text for customised allocation questionnaires.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+  });
+
 });

@@ -13,6 +13,7 @@ export type StaffScopedProject = {
   moduleName: string;
   archivedAt: Date | null;
   enterpriseId: string;
+  teamAllocationQuestionnaireTemplateId: number | null;
 };
 
 export type StaffScopedProjectAccess = StaffScopedProject & {
@@ -28,6 +29,8 @@ export type ModuleStudent = {
   lastName: string;
   email: string;
 };
+
+export type InviteEligibleStudent = ModuleStudent;
 
 export type ProjectTeamSummary = {
   id: number;
@@ -115,6 +118,23 @@ export type CustomAllocationLatestResponse = {
   reviewerUserId: number;
   answersJson: unknown;
 };
+
+const SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_project_";
+
+async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
+  const hasProjectStudents = await prisma.projectStudent.findFirst({
+    where: { projectId },
+    select: { userId: true },
+  });
+  if (!hasProjectStudents) return {};
+  return {
+    projectStudents: {
+      some: {
+        projectId,
+      },
+    },
+  };
+}
 
 type ManualAllocationStudentCandidate = {
   id: number;
@@ -231,16 +251,40 @@ export async function updateInviteStatusFromPending(
   status: TeamInviteStatus,
   now: Date,
 ) {
-  const result = await prisma.teamInvite.updateMany({
-    where: {
-      id: inviteId,
-      status: "PENDING",
-      active: true,
-      team: {
-        archivedAt: null,
-        allocationLifecycle: "ACTIVE",
-      },
+  const transitionWhere: Prisma.TeamInviteWhereInput = {
+    id: inviteId,
+    status: "PENDING",
+    active: true,
+    team: {
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
     },
+  };
+  const targetInvite = await prisma.teamInvite.findFirst({
+    where: transitionWhere,
+    select: {
+      id: true,
+      teamId: true,
+      inviteeEmail: true,
+    },
+  });
+  if (!targetInvite) {
+    return null;
+  }
+
+  // Historical rows may already occupy (teamId, inviteeEmail, active=false).
+  // Remove stale inactive duplicates so the pending invite can transition safely.
+  await prisma.teamInvite.deleteMany({
+    where: {
+      teamId: targetInvite.teamId,
+      inviteeEmail: targetInvite.inviteeEmail,
+      active: false,
+      id: { not: targetInvite.id },
+    },
+  });
+
+  const result = await prisma.teamInvite.updateMany({
+    where: transitionWhere,
     data: {
       status,
       active: false,
@@ -253,7 +297,7 @@ export async function updateInviteStatusFromPending(
   }
 
   return prisma.teamInvite.findUnique({
-    where: { id: inviteId },
+    where: { id: targetInvite.id },
   });
 }
 
@@ -293,6 +337,7 @@ export async function findStaffScopedProject(
       name: true,
       moduleId: true,
       archivedAt: true,
+      teamAllocationQuestionnaireTemplateId: true,
       module: {
         select: { name: true },
       },
@@ -310,7 +355,133 @@ export async function findStaffScopedProject(
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
     enterpriseId: user.enterpriseId,
+    teamAllocationQuestionnaireTemplateId: project.teamAllocationQuestionnaireTemplateId ?? null,
   };
+}
+
+export async function findInviteEligibleStudentsForTeam(
+  teamId: number,
+  requesterId: number,
+): Promise<InviteEligibleStudent[]> {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      id: true,
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    throw { code: "TEAM_NOT_FOUND_OR_INACTIVE" };
+  }
+
+  const requesterAllocation = await prisma.teamAllocation.findUnique({
+    where: {
+      teamId_userId: {
+        teamId,
+        userId: requesterId,
+      },
+    },
+    select: { teamId: true },
+  });
+  if (!requesterAllocation) {
+    throw { code: "TEAM_ACCESS_FORBIDDEN" };
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findMany({
+    where: {
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findInviteEligibleStudentForTeamByEmail(teamId: number, email: string) {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    return null;
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findFirst({
+    where: {
+      email: { equals: email },
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+  });
 }
 
 export async function findStaffScopedProjectAccess(
@@ -393,6 +564,7 @@ export async function findVacantModuleStudentsForProject(
   moduleId: number,
   projectId: number,
 ): Promise<ModuleStudent[]> {
+  const projectStudentScope = await buildProjectStudentScope(projectId);
   return prisma.user.findMany({
     where: {
       enterpriseId,
@@ -412,6 +584,7 @@ export async function findVacantModuleStudentsForProject(
           },
         },
       },
+      ...projectStudentScope,
     },
     select: {
       id: true,
@@ -432,6 +605,7 @@ export async function findModuleStudentsForManualAllocation(
   const normalizedQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
   const hasQuery = normalizedQuery.length > 0;
   const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
+  const projectStudentScope = await buildProjectStudentScope(projectId);
 
   let students: ManualAllocationStudentCandidate[] = await prisma.user.findMany({
     where: {
@@ -447,16 +621,16 @@ export async function findModuleStudentsForManualAllocation(
       ...(hasQuery
         ? {
             OR: [
-              { firstName: { contains: normalizedQuery, mode: "insensitive" } },
-              { lastName: { contains: normalizedQuery, mode: "insensitive" } },
-              { email: { contains: normalizedQuery, mode: "insensitive" } },
+              { firstName: { contains: normalizedQuery } },
+              { lastName: { contains: normalizedQuery } },
+              { email: { contains: normalizedQuery } },
               {
                 teamAllocations: {
                   some: {
                     team: {
                       projectId,
                       archivedAt: null,
-                      teamName: { contains: normalizedQuery, mode: "insensitive" },
+                      teamName: { contains: normalizedQuery },
                     },
                   },
                 },
@@ -465,6 +639,7 @@ export async function findModuleStudentsForManualAllocation(
             ],
           }
         : {}),
+      ...projectStudentScope,
     },
     select: {
       id: true,
@@ -630,6 +805,11 @@ export async function findProjectDraftTeams(projectId: number): Promise<ProjectD
       projectId,
       archivedAt: null,
       allocationLifecycle: "DRAFT",
+      teamName: {
+        not: {
+          startsWith: SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
     },
     select: {
       id: true,
@@ -676,6 +856,11 @@ export async function findDraftTeamInProject(projectId: number, teamId: number) 
       projectId,
       archivedAt: null,
       allocationLifecycle: "DRAFT",
+      teamName: {
+        not: {
+          startsWith: SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
     },
     select: {
       id: true,
@@ -726,6 +911,9 @@ export async function findDraftTeamById(teamId: number): Promise<ProjectDraftTea
   });
 
   if (!team || team.archivedAt !== null || team.allocationLifecycle !== "DRAFT") {
+    return null;
+  }
+  if (team.teamName.startsWith(SYSTEM_CUSTOM_ALLOCATION_RESPONSE_TEAM_PREFIX)) {
     return null;
   }
 
@@ -1108,6 +1296,7 @@ export async function findCustomAllocationQuestionnairesForStaff(
 ): Promise<CustomAllocationTemplate[]> {
   return prisma.questionnaireTemplate.findMany({
     where: {
+      purpose: "CUSTOMISED_ALLOCATION",
       OR: [{ ownerId: staffId }, { isPublic: true }],
     },
     select: {
@@ -1140,6 +1329,7 @@ export async function findCustomAllocationTemplateForStaff(
   return prisma.questionnaireTemplate.findFirst({
     where: {
       id: templateId,
+      purpose: "CUSTOMISED_ALLOCATION",
       OR: [{ ownerId: staffId }, { isPublic: true }],
     },
     select: {

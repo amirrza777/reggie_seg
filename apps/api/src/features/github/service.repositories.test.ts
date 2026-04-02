@@ -82,6 +82,15 @@ describe("service.repositories", () => {
     });
   });
 
+  it("returns connected status when an account exists", async () => {
+    repoMocks.findGithubAccountStatusByUserId.mockResolvedValue({ userId: 1, login: "alice" });
+
+    await expect(getGithubConnectionStatus(1)).resolves.toEqual({
+      connected: true,
+      account: { userId: 1, login: "alice" },
+    });
+  });
+
   it("disconnects an existing github account and handles already-disconnected", async () => {
     repoMocks.findGithubAccountStatusByUserId
       .mockResolvedValueOnce({ userId: 1, login: "alice" })
@@ -154,6 +163,42 @@ describe("service.repositories", () => {
 
     const shortPrefixMatches = await listGithubRepositoriesForUser(10, { query: "daa" });
     expect(shortPrefixMatches.map((repo) => repo.name)).toEqual(["Data Structures", "Database Systems"]);
+  });
+
+  it("rejects repository listing when no GitHub account is connected", async () => {
+    repoMocks.findGithubAccountByUserId.mockResolvedValue(null);
+
+    await expect(listGithubRepositoriesForUser(10)).rejects.toMatchObject({
+      status: 404,
+      message: "GitHub account is not connected",
+    });
+  });
+
+  it("rejects repository listing when the app is installed nowhere and no repositories are visible", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
+      if (url.includes("/user/repos")) {
+        return mockFetchResponse([]);
+      }
+      if (url.includes("/user/installations?")) {
+        return mockFetchResponse({ installations: [] });
+      }
+      return mockFetchResponse({}, 404);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(listGithubRepositoriesForUser(10)).rejects.toMatchObject({
+      status: 403,
+      message:
+        "GitHub App is connected but not installed on any account or organization. Install the app, then try again.",
+    });
+  });
+
+  it("lists linked project repositories for project members", async () => {
+    repoMocks.isUserInProject.mockResolvedValue(true);
+    repoMocks.listProjectGithubRepositoryLinks.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+
+    await expect(listProjectGithubRepositories(3, 99)).resolves.toEqual([{ id: 1 }, { id: 2 }]);
+    expect(repoMocks.listProjectGithubRepositoryLinks).toHaveBeenCalledWith(99);
   });
 
   it("links a repository and auto-analyses a snapshot on success", async () => {

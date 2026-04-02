@@ -14,6 +14,7 @@ describe("projects controller parsers", () => {
       name: "  Project Alpha  ",
       moduleId: "2",
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: 9,
       deadline: {
         taskOpenDate: "2026-03-24T09:00:00.000Z",
         taskDueDate: "2026-03-25T09:00:00.000Z",
@@ -31,6 +32,7 @@ describe("projects controller parsers", () => {
     if (!parsed.ok) return;
     expect(parsed.value.name).toBe("Project Alpha");
     expect(parsed.value.moduleId).toBe(2);
+    expect(parsed.value.teamAllocationQuestionnaireTemplateId).toBe(9);
   });
 
   it("parses modules list query", () => {

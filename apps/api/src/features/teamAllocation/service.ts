@@ -16,6 +16,8 @@ import {
   findCustomAllocationQuestionnairesForStaff,
   findCustomAllocationTemplateForStaff,
   findActiveInvite,
+  findInviteEligibleStudentForTeamByEmail,
+  findInviteEligibleStudentsForTeam,
   findInviteContext,
   findLatestCustomAllocationResponsesForStudents,
   findModuleStudentsByIdsInModule,
@@ -792,7 +794,17 @@ export async function listCustomAllocationQuestionnairesForProject(
     throw { code: "PROJECT_ARCHIVED" };
   }
 
-  const templates = await findCustomAllocationQuestionnairesForStaff(staffId);
+  let templates = await findCustomAllocationQuestionnairesForStaff(staffId);
+  if (project.teamAllocationQuestionnaireTemplateId) {
+    const lockedTemplate = await findCustomAllocationTemplateForStaff(
+      staffId,
+      project.teamAllocationQuestionnaireTemplateId,
+    );
+    if (!lockedTemplate) {
+      throw { code: "TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+    }
+    templates = [lockedTemplate];
+  }
   const questionnaires = templates
     .map((template) => {
       const eligibleQuestions = template.questions
@@ -850,6 +862,12 @@ export async function getCustomAllocationCoverageForProject(
   }
   if (project.archivedAt) {
     throw { code: "PROJECT_ARCHIVED" };
+  }
+  if (
+    project.teamAllocationQuestionnaireTemplateId &&
+    project.teamAllocationQuestionnaireTemplateId !== questionnaireTemplateId
+  ) {
+    throw { code: "TEMPLATE_NOT_ALLOWED" };
   }
 
   const template = await findCustomAllocationTemplateForStaff(staffId, questionnaireTemplateId);
@@ -941,6 +959,12 @@ export async function previewCustomAllocationForProject(
   }
   if (project.archivedAt) {
     throw { code: "PROJECT_ARCHIVED" };
+  }
+  if (
+    project.teamAllocationQuestionnaireTemplateId &&
+    project.teamAllocationQuestionnaireTemplateId !== input.questionnaireTemplateId
+  ) {
+    throw { code: "TEMPLATE_NOT_ALLOWED" };
   }
 
   const template = await findCustomAllocationTemplateForStaff(staffId, input.questionnaireTemplateId);
@@ -1475,6 +1499,11 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   });
   if (!inviterAllocation) throw { code: "TEAM_ACCESS_FORBIDDEN" };
 
+  const eligibleInvitee = await findInviteEligibleStudentForTeamByEmail(params.teamId, normalizedEmail);
+  if (!eligibleInvitee) {
+    throw { code: "INVITEE_NOT_ELIGIBLE_FOR_PROJECT" };
+  }
+
   const existing = await findActiveInvite(params.teamId, normalizedEmail);
   if (existing) {
     throw { code: "INVITE_ALREADY_PENDING" };
@@ -1487,7 +1516,7 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   const invite = await createTeamInviteRecord({
     teamId: params.teamId,
     inviterId: params.inviterId,
-    inviteeId: params.inviteeId ?? null,
+    inviteeId: eligibleInvitee.id,
     inviteeEmail: normalizedEmail,
     tokenHash,
     expiresAt,
@@ -1505,11 +1534,15 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
     "Please log in to your account and RSVP to this invite.",
   ].filter(Boolean);
 
-  await sendEmail({
-    to: normalizedEmail,
-    subject: "Team invitation",
-    text: textLines.join("\n"),
-  });
+  try {
+    await sendEmail({
+      to: normalizedEmail,
+      subject: "Team invitation",
+      text: textLines.join("\n"),
+    });
+  } catch (error) {
+    console.error("Failed to send team invitation email; invite was still created.", error);
+  }
 
   const inviteeUserId = params.inviteeId ?? (
     await prisma.user.findFirst({ where: { email: normalizedEmail }, select: { id: true } })
@@ -1517,15 +1550,23 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
 
   if (inviteeUserId) {
     const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : "A teammate";
-    await addNotification({
-      userId: inviteeUserId,
-      type: "TEAM_INVITE",
-      message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
-      link: `/projects/${team?.projectId}/team`,
-    });
+    try {
+      await addNotification({
+        userId: inviteeUserId,
+        type: "TEAM_INVITE",
+        message: `${inviterName} invited you to join "${team?.teamName ?? "a team"}"`,
+        link: `/projects/${team?.projectId}/team`,
+      });
+    } catch (error) {
+      console.error("Failed to create team invitation notification; invite was still created.", error);
+    }
   }
 
   return { invite, rawToken };
+}
+
+export async function listInviteEligibleStudents(teamId: number, requesterId: number) {
+  return findInviteEligibleStudentsForTeam(teamId, requesterId);
 }
 
 export async function listTeamInvites(teamId: number, requesterId?: number) {
@@ -2261,10 +2302,17 @@ async function resolveStudentTeamCreationScope(
         },
       },
     },
-    select: { id: true, module: { select: { enterpriseId: true } } },
+    select: {
+      id: true,
+      teamAllocationQuestionnaireTemplateId: true,
+      module: { select: { enterpriseId: true } },
+    },
   });
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
+  }
+  if (project.teamAllocationQuestionnaireTemplateId) {
+    throw { code: "TEAM_CREATION_FORBIDDEN" };
   }
 
   const existingAllocation = await prisma.teamAllocation.findFirst({

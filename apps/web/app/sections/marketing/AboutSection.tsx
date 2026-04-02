@@ -3,7 +3,7 @@ import Link from "next/link";
 export const AboutSection = () => (
   <section className="section section--muted" id="about">
     <div className="container split split--center" data-reveal-group>
-      <div className="split__content split__content--stack" data-reveal data-reveal-offset="-25%">
+      <div className="split__content split__content--stack" data-reveal>
         <p className="eyebrow">About</p>
         <h2>Your peer assessment, finally manageable</h2>
         <p className="lede">

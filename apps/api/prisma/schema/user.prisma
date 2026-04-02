@@ -66,6 +66,7 @@ model User {
   forumReactions      ForumReaction[]
   forumStudentReports ForumStudentReport[]    @relation("ForumStudentReportReporter")
   forumStudentReportsReviewed ForumStudentReport[] @relation("ForumStudentReportReviewer")
+  projectStudents                ProjectStudent[]
 
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])

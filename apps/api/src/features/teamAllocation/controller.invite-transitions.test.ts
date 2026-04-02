@@ -10,6 +10,10 @@ import {
 } from "./controller.invites.js";
 
 vi.mock("./service.js", () => ({
+  createTeamInvite: vi.fn(),
+  listTeamInvites: vi.fn(),
+  listInviteEligibleStudents: vi.fn(),
+  listReceivedInvites: vi.fn(),
   acceptTeamInvite: vi.fn(),
   cancelTeamInvite: vi.fn(),
   declineTeamInvite: vi.fn(),

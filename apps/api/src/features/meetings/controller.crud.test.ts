@@ -15,11 +15,6 @@ vi.mock("./service.js", () => ({
   addMeeting: vi.fn(),
   editMeeting: vi.fn(),
   removeMeeting: vi.fn(),
-  markAttendance: vi.fn(),
-  saveMinutes: vi.fn(),
-  addComment: vi.fn(),
-  removeComment: vi.fn(),
-  fetchMeetingSettings: vi.fn(),
 }));
 
 function mockResponse() {

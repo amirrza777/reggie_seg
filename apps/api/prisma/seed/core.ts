@@ -50,44 +50,14 @@ export async function getSeedEnterprises(): Promise<SeedEnterprise[]> {
 
 export async function seedAdminUser(enterpriseId: string) {
   return withSeedLogging("seedAdminUser", async () => {
-    const email = ADMIN_BOOTSTRAP_EMAIL;
-    const password = ADMIN_BOOTSTRAP_PASSWORD;
-    if (!email || !password) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: "skipped (ADMIN_BOOTSTRAP_EMAIL/PASSWORD not set)",
-      };
-    }
+    const credentials = getAdminBootstrapCredentials();
+    if (!credentials) return missingAdminCredentialsResult();
 
-    const existing = await prisma.user.findUnique({
-      where: { enterpriseId_email: { enterpriseId, email } },
-    });
-    if (existing) {
-      return {
-        value: undefined,
-        rows: 0,
-        details: `skipped (admin already exists: ${email})`,
-      };
-    }
+    const existing = await findEnterpriseAdminByEmail(enterpriseId, credentials.email);
+    if (existing) return existingAdminResult(credentials.email);
 
-    const passwordHash = await argon2.hash(password);
-    await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        firstName: "Admin",
-        lastName: "User",
-        role: "ADMIN",
-        enterpriseId,
-      },
-    });
-
-    return {
-      value: undefined,
-      rows: 1,
-      details: `created admin=${email}`,
-    };
+    await createAdminUser(enterpriseId, credentials.email, credentials.password);
+    return createdAdminResult(credentials.email);
   });
 }
 
@@ -103,4 +73,55 @@ function buildSeedEnterprise(index: number) {
     code: `ENT${index + 1}`,
     name: `Seed Enterprise ${index + 1}`,
   };
+}
+
+function getAdminBootstrapCredentials() {
+  const email = ADMIN_BOOTSTRAP_EMAIL;
+  const password = ADMIN_BOOTSTRAP_PASSWORD;
+  if (!email || !password) return null;
+  return { email, password };
+}
+
+function missingAdminCredentialsResult() {
+  return {
+    value: undefined,
+    rows: 0,
+    details: "skipped (ADMIN_BOOTSTRAP_EMAIL/PASSWORD not set)",
+  };
+}
+
+function existingAdminResult(email: string) {
+  return {
+    value: undefined,
+    rows: 0,
+    details: `skipped (admin already exists: ${email})`,
+  };
+}
+
+function createdAdminResult(email: string) {
+  return {
+    value: undefined,
+    rows: 1,
+    details: `created admin=${email}`,
+  };
+}
+
+function findEnterpriseAdminByEmail(enterpriseId: string, email: string) {
+  return prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+  });
+}
+
+async function createAdminUser(enterpriseId: string, email: string, password: string) {
+  const passwordHash = await argon2.hash(password);
+  await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      firstName: "Admin",
+      lastName: "User",
+      role: "ADMIN",
+      enterpriseId,
+    },
+  });
 }

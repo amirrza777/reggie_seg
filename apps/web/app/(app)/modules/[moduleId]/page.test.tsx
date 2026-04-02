@@ -2,7 +2,9 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notFound, redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
-import { buildModuleDashboardData, resolveModuleDashboardTab } from "@/features/modules/moduleDashboardData";
+import { buildModuleDashboardData } from "@/features/modules/moduleDashboardData";
+import type { Module } from "@/features/modules/types";
+import { getProjectMarking, getUserProjects } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import ModulePage from "./page";
 
@@ -29,23 +31,20 @@ vi.mock("@/features/modules/api/client", () => ({
 
 vi.mock("@/features/modules/moduleDashboardData", () => ({
   buildModuleDashboardData: vi.fn(),
-  resolveModuleDashboardTab: vi.fn(),
 }));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
 }));
 
-vi.mock("@/features/modules/components/ModuleDashboardSections", () => ({
-  ModuleTabNav: ({ moduleId, activeTab }: { moduleId: number; activeTab: string }) => (
-    <div data-testid="module-tab-nav" data-module-id={moduleId} data-active-tab={activeTab} />
-  ),
-  ModuleSummaryCard: ({ title }: { title: string }) => <div data-testid="module-summary">{title}</div>,
-  ModuleExpectationsSection: ({ briefParagraphs }: { briefParagraphs: string[] }) => (
-    <div data-testid="expectations-section">{briefParagraphs.join(",")}</div>
-  ),
-  ModuleMarksSection: ({ marksRows }: { marksRows: Array<{ student: string }> }) => (
-    <div data-testid="marks-section">{marksRows.length}</div>
+vi.mock("@/features/projects/api/client", () => ({
+  getUserProjects: vi.fn(),
+  getProjectMarking: vi.fn(),
+}));
+
+vi.mock("@/features/modules/components/ModuleDashboard", () => ({
+  ModuleDashboardPageView: ({ dashboard }: { dashboard: unknown }) => (
+    <div data-testid="module-dashboard-view">{JSON.stringify(dashboard)}</div>
   ),
 }));
 
@@ -53,13 +52,21 @@ const redirectMock = vi.mocked(redirect);
 const notFoundMock = vi.mocked(notFound);
 const listModulesMock = vi.mocked(listModules);
 const buildModuleDashboardDataMock = vi.mocked(buildModuleDashboardData);
-const resolveModuleDashboardTabMock = vi.mocked(resolveModuleDashboardTab);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
+const getUserProjectsMock = vi.mocked(getUserProjects);
+const getProjectMarkingMock = vi.mocked(getProjectMarking);
 
-const moduleRow = {
+const moduleRow: Module = {
   id: 17,
   title: "Large-Scale Systems",
   moduleLeadNames: "Staff One",
+  accessRole: "ENROLLED",
+  code: null,
+  teamCount: 0,
+  projectCount: 0,
+  projectWindowStart: null,
+  projectWindowEnd: null,
+  hasLinkedProjects: false,
 };
 
 const dashboardData = {
@@ -67,7 +74,7 @@ const dashboardData = {
   teamCount: 3,
   projectCount: 2,
   hasLinkedProjects: true,
-  marksRows: [{ student: "A" }],
+  marksRows: [["Project A", "78", "Published"]] as Array<[string, string, string]>,
   projectPlans: [],
   timelineRows: [],
   expectationRows: [],
@@ -80,17 +87,17 @@ describe("ModulePage", () => {
     vi.clearAllMocks();
     getCurrentUserMock.mockResolvedValue({ id: 1 } as Awaited<ReturnType<typeof getCurrentUser>>);
     listModulesMock.mockResolvedValue([moduleRow] as Awaited<ReturnType<typeof listModules>>);
+    getUserProjectsMock.mockResolvedValue([{ id: 100, name: "Project A", moduleId: 17, archivedAt: null }] as any);
+    getProjectMarkingMock.mockResolvedValue({ studentMarking: { mark: 78 }, teamMarking: null } as any);
     buildModuleDashboardDataMock.mockReturnValue(dashboardData as ReturnType<typeof buildModuleDashboardData>);
   });
 
   it("redirects unauthenticated users to login", async () => {
     getCurrentUserMock.mockResolvedValue(null);
-    resolveModuleDashboardTabMock.mockReturnValue("expectations");
 
     await expect(
       ModulePage({
         params: Promise.resolve({ moduleId: "17" }),
-        searchParams: Promise.resolve({ tab: "expectations" }),
       }),
     ).rejects.toBeInstanceOf(RedirectSentinel);
 
@@ -98,45 +105,42 @@ describe("ModulePage", () => {
   });
 
   it("calls notFound when modules fail to load or target module does not exist", async () => {
-    resolveModuleDashboardTabMock.mockReturnValue("marks");
     listModulesMock.mockRejectedValue(new Error("modules api down"));
 
     await expect(
       ModulePage({
         params: Promise.resolve({ moduleId: "999" }),
-        searchParams: Promise.resolve({ tab: "marks" }),
       }),
     ).rejects.toBeInstanceOf(NotFoundSentinel);
 
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
-  it("renders expectations tab content when activeTab resolves to expectations", async () => {
-    resolveModuleDashboardTabMock.mockReturnValue("expectations");
-
+  it("renders the dashboard view with built data", async () => {
     const page = await ModulePage({
       params: Promise.resolve({ moduleId: "17" }),
-      searchParams: Promise.resolve({ tab: "expectations" }),
     });
     render(page);
 
-    expect(screen.getByTestId("module-tab-nav")).toHaveAttribute("data-active-tab", "expectations");
-    expect(screen.getByTestId("module-summary")).toHaveTextContent("Large-Scale Systems");
-    expect(screen.getByTestId("expectations-section")).toHaveTextContent("Brief");
-    expect(screen.queryByTestId("marks-section")).not.toBeInTheDocument();
+    expect(buildModuleDashboardDataMock).toHaveBeenCalledWith(
+      moduleRow,
+      [["Project A", "78", "Published"]],
+    );
+    expect(screen.getByTestId("module-dashboard-view")).toHaveTextContent(
+      '"marksRows":[["Project A","78","Published"]]',
+    );
   });
 
-  it("renders marks tab content when activeTab resolves to marks", async () => {
-    resolveModuleDashboardTabMock.mockReturnValue("marks");
+  it("falls back to not-available marks when project marking fetch fails", async () => {
+    getProjectMarkingMock.mockRejectedValueOnce(new Error("marking unavailable"));
 
-    const page = await ModulePage({
+    await ModulePage({
       params: Promise.resolve({ moduleId: "17" }),
-      searchParams: Promise.resolve({ tab: "marks" }),
     });
-    render(page);
 
-    expect(screen.getByTestId("module-tab-nav")).toHaveAttribute("data-active-tab", "marks");
-    expect(screen.getByTestId("marks-section")).toHaveTextContent("1");
-    expect(screen.queryByTestId("expectations-section")).not.toBeInTheDocument();
+    expect(buildModuleDashboardDataMock).toHaveBeenCalledWith(
+      moduleRow,
+      [["Project A", "Not available", "In progress"]],
+    );
   });
 });

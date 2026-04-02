@@ -9,12 +9,18 @@ import { SkeletonText } from "@/shared/ui/Skeleton";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
+  QuestionnairePurpose,
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
 import { createQuestionnaire, getQuestionnaireById, updateQuestionnaire } from "../api/client";
 import {
+  DEFAULT_QUESTIONNAIRE_PURPOSE,
+  normalizeQuestionnairePurpose,
+} from "../purpose";
+import {
   CancelQuestionnaireButton,
+  QuestionnairePurposeButtons,
   QuestionnaireVisibilityButtons,
 } from "./SharedQuestionnaireButtons";
 
@@ -31,10 +37,12 @@ export default function EditQuestionnairePage() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
+  const [purpose, setPurpose] = useState<QuestionnairePurpose>(DEFAULT_QUESTIONNAIRE_PURPOSE);
   const [canEdit, setCanEdit] = useState(true);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
   const [loaded, setLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const disallowTextQuestions = purpose === "CUSTOMISED_ALLOCATION";
 
   useEffect(() => {
     if (Number.isNaN(templateId)) return;
@@ -55,6 +63,7 @@ export default function EditQuestionnairePage() {
         const templateVisibility =
           typeof template.isPublic === "boolean" ? template.isPublic : true;
         setIsPublic(shouldDuplicate ? false : templateVisibility);
+        setPurpose(normalizeQuestionnairePurpose(template.purpose));
         setCanEdit(typeof template.canEdit === "boolean" ? template.canEdit : true);
 
         setQuestions(
@@ -78,6 +87,10 @@ export default function EditQuestionnairePage() {
   }, [templateId, isUseMode, isCopyMode]);
 
   const addQuestion = (type: QuestionType) => {
+    if (disallowTextQuestions && type === "text") {
+      return;
+    }
+
     const q: EditableQuestion = {
       uiId: Date.now() + Math.random(),
       label: "",
@@ -112,6 +125,10 @@ export default function EditQuestionnairePage() {
     questions.forEach((q, idx) => {
       if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
 
+      if (disallowTextQuestions && q.type === "text") {
+        errors.push(`Question ${idx + 1} cannot be text for customised allocation questionnaires.`);
+      }
+
       if (q.type === "multiple-choice") {
         const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
         if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
@@ -135,7 +152,7 @@ export default function EditQuestionnairePage() {
     });
 
     return errors;
-  }, [templateName, questions, preview]);
+  }, [disallowTextQuestions, templateName, questions, preview]);
 
   const isValid = validationErrors.length === 0;
 
@@ -150,6 +167,7 @@ export default function EditQuestionnairePage() {
       if (shouldDuplicate) {
         await createQuestionnaire({
           templateName,
+          purpose,
           isPublic,
           questions: questions.map((q) => ({
             label: q.label,
@@ -164,6 +182,7 @@ export default function EditQuestionnairePage() {
 
       await updateQuestionnaire(templateId, {
         templateName,
+        purpose,
         isPublic,
         questions: questions.map((q) => ({
           id: q.dbId,
@@ -217,6 +236,13 @@ export default function EditQuestionnairePage() {
             value={templateName}
             onChange={(e) => {
               setTemplateName(e.target.value);
+              setHasUnsavedChanges(true);
+            }}
+          />
+          <QuestionnairePurposeButtons
+            purpose={purpose}
+            onChange={(nextPurpose) => {
+              setPurpose(nextPurpose);
               setHasUnsavedChanges(true);
             }}
           />
@@ -488,9 +514,11 @@ export default function EditQuestionnairePage() {
 
       {!preview && (
         <div className="questionnaire-editor__add-row">
-          <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
-            Add text
-          </Button>
+          {!disallowTextQuestions ? (
+            <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
+              Add text
+            </Button>
+          ) : null}
           <Button type="button" variant="quiet" onClick={() => addQuestion("multiple-choice")}>
             Add multiple choice
           </Button>

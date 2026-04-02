@@ -7,6 +7,7 @@ import { HelpNavGate } from "./HelpNavGate";
 import { HelpSectionScroll } from "./HelpSectionScroll";
 import { Footer } from "@/shared/layout/Footer";
 import "../styles/global-app-shell.css";
+import "../styles/marketing/header-footer.css";
 
 export const dynamic = "force-dynamic";
 

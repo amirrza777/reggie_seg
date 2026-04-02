@@ -119,7 +119,7 @@ describe("marketing exports", () => {
     expect(screen.getByText("marketing body")).toBeInTheDocument();
 
     render(<HomePage />);
-    expect(screen.getByText("Team feedback platform")).toBeInTheDocument();
+    expect(screen.getByText("A platform built for group work.")).toBeInTheDocument();
   });
 
   it("re-exports marketing sections via barrel", () => {

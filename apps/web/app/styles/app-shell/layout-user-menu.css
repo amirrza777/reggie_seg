@@ -16,8 +16,8 @@
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
   box-shadow: var(--elevation-none);
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+  backdrop-filter: blur(var(--glass-ui-blur));
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .user-menu__trigger:hover,
@@ -76,10 +76,7 @@
   right: 0;
   top: calc(100% + 12px);
   min-width: min(320px, 92vw);
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
-  border: 1px solid var(--popup-glass-border-fallback);
-  border-color: var(--popup-glass-border);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: 0;
   display: grid;
@@ -87,8 +84,6 @@
   z-index: 20;
   font-size: var(--fs-body);
   overflow: hidden;
-  backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
 }
 
 .user-menu__meta {
@@ -97,8 +92,6 @@
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -125,8 +118,6 @@
 .user-menu__links {
   display: grid;
   gap: 0;
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
 }
 
 .user-menu__links + .user-menu__links {
@@ -162,10 +153,9 @@
   font-weight: var(--fw-semibold);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .user-menu__trigger,
-  .user-menu__dropdown {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .user-menu__trigger {
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
   }
 }

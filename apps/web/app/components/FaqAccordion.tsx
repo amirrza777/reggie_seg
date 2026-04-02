@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from "react";
 import { useState } from "react";
 
 type FaqItem = {
@@ -17,9 +18,9 @@ type FaqAccordionProps = {
 export function FaqAccordion({ items, reveal = true, initialOpenQuestion }: FaqAccordionProps) {
   const initialIndex = initialOpenQuestion
     ? items.findIndex((item) => item.question === initialOpenQuestion)
-    : -1;
+    : 0;
   const [openIndex, setOpenIndex] = useState<number | null>(
-    initialIndex >= 0 ? initialIndex : null,
+    initialIndex >= 0 ? initialIndex : 0,
   );
 
   const handleToggle = (index: number) => {
@@ -30,32 +31,40 @@ export function FaqAccordion({ items, reveal = true, initialOpenQuestion }: FaqA
     <div className="faq">
       {items.map((item, index) => {
         const isOpen = openIndex === index;
+        const revealStyle = reveal
+          ? ({ "--reveal-delay": `${120 + index * 70}ms` } as CSSProperties)
+          : undefined;
         return (
-          <details
+          <div
             key={item.question}
-            className="faq__item"
             data-reveal={reveal ? "" : undefined}
-            open={isOpen}
+            style={revealStyle}
           >
-            <summary
-              onClick={(event) => {
-                event.preventDefault();
-                handleToggle(index);
-              }}
-            >
-              {item.question}
-            </summary>
-            <p className="faq__answer">{item.answer}</p>
-            {item.links && item.links.length > 0 ? (
-              <div className="faq__links">
-                {item.links.map((link) => (
-                  <a key={link.href} href={link.href} className="link-ghost">
-                    {link.label}
-                  </a>
-                ))}
+            <div className={`faq__item${isOpen ? " faq__item--open" : ""}`}>
+              <button
+                type="button"
+                className="faq__trigger"
+                aria-expanded={isOpen}
+                onClick={() => handleToggle(index)}
+              >
+                {item.question}
+              </button>
+              <div className="faq__body">
+                <div className="faq__body-inner">
+                  <p className="faq__answer">{item.answer}</p>
+                  {item.links && item.links.length > 0 ? (
+                    <div className="faq__links">
+                      {item.links.map((link) => (
+                        <a key={link.href} href={link.href} className="link-ghost">
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </div>
-            ) : null}
-          </details>
+            </div>
+          </div>
         );
       })}
     </div>

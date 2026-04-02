@@ -6,6 +6,7 @@ import {
   createTeamInvite,
   declineTeamInvite,
   expireTeamInvite,
+  listInviteEligibleStudents,
   listReceivedInvites,
   listTeamInvites,
   rejectTeamInvite,
@@ -53,7 +54,31 @@ export async function createTeamInviteHandler(req: AuthRequest, res: Response) {
     if (error?.code === "INVITE_ALREADY_PENDING") {
       return res.status(409).json({ error: "Invite already pending" });
     }
+    if (error?.code === "INVITEE_NOT_ELIGIBLE_FOR_PROJECT") {
+      return res.status(400).json({ error: "Only students assigned to this module can be invited" });
+    }
     console.error("Error creating team invite:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function listInviteEligibleStudentsHandler(req: AuthRequest, res: Response) {
+  const requesterId = parseStaffActor(req);
+  if (!requesterId.ok) return res.status(401).json({ error: requesterId.error });
+  const teamId = parseTeamIdParam(req.params.teamId);
+  if (!teamId.ok) return res.status(400).json({ error: teamId.error });
+
+  try {
+    const students = await listInviteEligibleStudents(teamId.value, requesterId.value);
+    return res.json(students);
+  } catch (error: any) {
+    if (error?.code === "TEAM_NOT_FOUND_OR_INACTIVE") {
+      return res.status(404).json({ error: "Team not found" });
+    }
+    if (error?.code === "TEAM_ACCESS_FORBIDDEN") {
+      return res.status(403).json({ error: "You are not allowed to view invite options for this team" });
+    }
+    console.error("Error fetching invite-eligible students:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }

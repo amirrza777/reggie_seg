@@ -11,6 +11,11 @@ import {
   getTeamById,
   getTeamByUserAndProject,
   getQuestionsForProject,
+  getTeamAllocationQuestionnaireForProject,
+  getTeamAllocationQuestionnaireSubmissionContext,
+  hasTeamAllocationQuestionnaireResponse,
+  hasActiveTeamForUserInProject,
+  upsertTeamAllocationQuestionnaireResponse,
   getStaffProjects,
   getStaffProjectTeams,
   getStaffProjectsForMarking,
@@ -23,11 +28,14 @@ import {
   updateStaffTeamDeadlineProfile as updateStaffTeamDeadlineProfileInDb,
   upsertStaffStudentDeadlineOverride as upsertStaffStudentDeadlineOverrideInDb,
   clearStaffStudentDeadlineOverride as clearStaffStudentDeadlineOverrideInDb,
+  getModuleLeadsForProject,
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
+import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
 
 export {
   createTeamWarningForStaff,
@@ -69,16 +77,20 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  teamAllocationQuestionnaireTemplateId: number | undefined,
   informationText: string | null,
   deadline: ProjectDeadlineInput,
+  studentIds?: number[],
 ) {
   return createProjectInDb(
     actorUserId,
     name,
     moduleId,
     questionnaireTemplateId,
+    teamAllocationQuestionnaireTemplateId,
     informationText,
     deadline,
+    studentIds,
   );
 }
 
@@ -99,6 +111,7 @@ export async function fetchProjectsForUser(userId: number) {
   return projects.map((project) => ({
     id: project.id,
     name: project.name,
+    moduleId: project.moduleId,
     moduleName: project.module?.name ?? "",
     archivedAt: project.archivedAt ?? null,
   }));
@@ -110,6 +123,21 @@ export async function fetchModulesForUser(
   options?: { staffOnly?: boolean; compact?: boolean; query?: string | null },
 ) {
   const modules = await getModulesForUser(userId, options);
+  const shouldApplyStudentProjectScope = options?.staffOnly !== true && options?.compact !== true;
+  const moduleProjectCounts = shouldApplyStudentProjectScope
+    ? new Map<number, number>(
+        (
+          await getUserProjects(userId)
+        ).reduce((accumulator, project) => {
+          const moduleId = Number((project as { moduleId?: unknown }).moduleId);
+          if (!Number.isInteger(moduleId) || moduleId <= 0) return accumulator;
+          const current = accumulator.get(moduleId) ?? 0;
+          accumulator.set(moduleId, current + 1);
+          return accumulator;
+        }, new Map<number, number>()),
+      )
+    : null;
+
   const staffFullList = options?.staffOnly === true && options?.compact !== true;
   return modules.map((module) => {
     const rawCount =
@@ -135,6 +163,14 @@ export async function fetchModulesForUser(
             : undefined
         : undefined;
 
+    const moduleIdNumeric = Number(module.id);
+    const userProjectCountForModule =
+      moduleProjectCounts && Number.isInteger(moduleIdNumeric) ? moduleProjectCounts.get(moduleIdNumeric) ?? 0 : null;
+    const projectCount =
+      module.accessRole === "ENROLLED" && userProjectCountForModule !== null
+        ? userProjectCountForModule
+        : ("projectCount" in module ? module.projectCount : 0);
+
     return {
       id: String(module.id),
       code: "code" in module ? module.code ?? undefined : undefined,
@@ -149,7 +185,7 @@ export async function fetchModulesForUser(
       ...(projectWindowStart !== undefined ? { projectWindowStart } : {}),
       ...(projectWindowEnd !== undefined ? { projectWindowEnd } : {}),
       teamCount: "teamCount" in module ? module.teamCount : 0,
-      projectCount: "projectCount" in module ? module.projectCount : 0,
+      projectCount,
       accountRole: module.accessRole,
       ...(typeof staffWithAccessCount === "number" ? { staffWithAccessCount } : {}),
     };
@@ -164,10 +200,6 @@ export async function fetchModuleStaffList(userId: number, moduleId: number) {
 /** Enrolled students and their team per project (staff module matrix). */
 export async function fetchModuleStudentProjectMatrix(userId: number, moduleId: number) {
   return getModuleStudentProjectMatrixForUser(userId, moduleId);
-}
-
-export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  return joinModuleByCodeInModuleJoin(actorUserId, rawCode);
 }
 
 /** Returns the teammates for project. */
@@ -193,6 +225,98 @@ export async function fetchTeamByUserAndProject(userId: number, projectId: numbe
 /** Returns the questions for project. */
 export async function fetchQuestionsForProject(projectId: number) {
   return getQuestionsForProject(projectId);
+}
+
+/** Returns the team-allocation questionnaire for project. */
+export async function fetchTeamAllocationQuestionnaireForProject(projectId: number) {
+  return getTeamAllocationQuestionnaireForProject(projectId);
+}
+
+/** Returns team-allocation questionnaire status for the authenticated student in this project. */
+export async function fetchTeamAllocationQuestionnaireStatusForUser(userId: number, projectId: number) {
+  const context = await getTeamAllocationQuestionnaireSubmissionContext(userId, projectId);
+  if (!context) {
+    return null;
+  }
+
+  const hasSubmitted = await hasTeamAllocationQuestionnaireResponse({
+    projectId: context.projectId,
+    templateId: context.template.id,
+    userId,
+  });
+  const now = Date.now();
+  const opensAtMs = context.teamAllocationQuestionnaireOpenDate?.getTime() ?? null;
+  const closesAtMs = context.teamAllocationQuestionnaireDueDate?.getTime() ?? null;
+  const windowIsOpen =
+    (opensAtMs === null || now >= opensAtMs) &&
+    (closesAtMs === null || now <= closesAtMs);
+
+  return {
+    questionnaireTemplate: {
+      id: context.template.id,
+      purpose: context.template.purpose,
+      questions: context.template.questions,
+    },
+    hasSubmitted,
+    teamAllocationQuestionnaireOpenDate:
+      context.teamAllocationQuestionnaireOpenDate?.toISOString() ?? null,
+    teamAllocationQuestionnaireDueDate:
+      context.teamAllocationQuestionnaireDueDate?.toISOString() ?? null,
+    windowIsOpen,
+  };
+}
+
+/** Saves a student's response to the project team-allocation questionnaire. */
+export async function submitTeamAllocationQuestionnaireResponse(
+  userId: number,
+  projectId: number,
+  answersJson: unknown,
+) {
+  const context = await getTeamAllocationQuestionnaireSubmissionContext(userId, projectId);
+  if (!context) {
+    throw { code: "PROJECT_OR_TEMPLATE_NOT_FOUND_OR_FORBIDDEN" };
+  }
+
+  if (context.template.purpose !== "CUSTOMISED_ALLOCATION") {
+    throw { code: "TEMPLATE_INVALID_PURPOSE" };
+  }
+
+  const now = Date.now();
+  const opensAtMs = context.teamAllocationQuestionnaireOpenDate?.getTime() ?? null;
+  const closesAtMs = context.teamAllocationQuestionnaireDueDate?.getTime() ?? null;
+  if (opensAtMs !== null && now < opensAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_NOT_OPEN" };
+  }
+  if (closesAtMs !== null && now > closesAtMs) {
+    throw { code: "QUESTIONNAIRE_WINDOW_CLOSED" };
+  }
+
+  const hasUnsupportedTextQuestions = context.template.questions.some((question) => {
+    const normalized = String(question.type ?? "").trim().toLowerCase();
+    return !(normalized === "multiple-choice" || normalized === "multiple_choice" || normalized === "rating" || normalized === "slider");
+  });
+  if (hasUnsupportedTextQuestions) {
+    throw { code: "TEMPLATE_CONTAINS_UNSUPPORTED_QUESTION_TYPES" };
+  }
+
+  const userAlreadyAssigned = await hasActiveTeamForUserInProject(userId, projectId);
+  if (userAlreadyAssigned) {
+    throw { code: "USER_ALREADY_IN_TEAM" };
+  }
+
+  const normalizedAnswers = normalizeAndValidateAssessmentAnswers(answersJson, context.template.questions);
+  const saved = await upsertTeamAllocationQuestionnaireResponse({
+    projectId: context.projectId,
+    enterpriseId: context.enterpriseId,
+    templateId: context.template.id,
+    reviewerUserId: userId,
+    answersJson: normalizedAnswers,
+  });
+
+  return {
+    id: saved.id,
+    updatedAt: saved.updatedAt.toISOString(),
+  };
 }
 
 /** Returns all projects with teams for the staff marking overview. */
@@ -278,7 +402,8 @@ export async function fetchProjectsForStaff(userId: number, options?: { query?: 
   const now = Date.now();
   return projects.map((project) => {
     const allAllocations = project.teams.flatMap((t) => t.allocations);
-    const membersTotal = allAllocations.length;
+    const hasProjectStudents = project._count.projectStudents > 0;
+    const membersTotal = hasProjectStudents ? project._count.projectStudents : allAllocations.length;
     const membersConnected = allAllocations.filter((a) => a.user.githubAccount).length;
     const { start, end } = deadlineRangeBounds(project.deadline as Record<string, unknown> | null | undefined);
     const trelloStats = trelloTeamsLinkedStats(project.teams);
@@ -346,7 +471,19 @@ export async function submitTeamHealthMessage(
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;
 
-  return createTeamHealthMessage(projectId, team.id, userId, subject, details);
+  const message = await createTeamHealthMessage(projectId, team.id, userId, subject, details);
+  const leads = await getModuleLeadsForProject(projectId);
+  await Promise.all(
+    leads.map((lead) =>
+      addNotification({
+        userId: lead.userId,
+        type: "TEAM_HEALTH_SUBMITTED",
+        message: "A team health message has been submitted",
+        link: `/staff/projects/${projectId}/teams/${team.id}/teamhealth`,
+      })
+    )
+  );
+  return message;
 }
 
 export async function fetchMyTeamHealthMessages(userId: number, projectId: number) {
@@ -381,7 +518,14 @@ export async function upsertStaffStudentDeadlineOverride(
   studentId: number,
   payload: StudentDeadlineOverrideInput,
 ) {
-  return upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
+  const override = await upsertStaffStudentDeadlineOverrideInDb(actorUserId, projectId, studentId, payload);
+  await addNotification({
+    userId: studentId,
+    type: "DEADLINE_OVERRIDE_GRANTED",
+    message: "Your deadline has been updated by a staff member",
+    link: `/projects/${projectId}/deadlines`,
+  });
+  return override;
 }
 
 export async function clearStaffStudentDeadlineOverride(

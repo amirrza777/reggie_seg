@@ -2,7 +2,7 @@ import Link from "next/link";
 import { toolkitCards, type ToolkitCardItem } from "../../content/marketing";
 
 const ToolkitCard = ({ card }: { card: ToolkitCardItem }) => (
-  <article className="feature-card">
+  <article className="feature-card" data-reveal>
     <div className="feature-card__visual">
       <p className="eyebrow">Placeholder</p>
       <p className="muted">Swap in the real UI later.</p>
@@ -18,13 +18,13 @@ const ToolkitCard = ({ card }: { card: ToolkitCardItem }) => (
 export const ToolkitSection = () => (
   <section className="section section--padded" id="toolkit">
     <div className="container stack">
-      <div className="section__header">
+      <div className="section__header" data-reveal>
         <h2>Executive functioning&apos;s favourite toolkit</h2>
         <p className="lede">
           Benefit-first cards that map to your real workflows: assessment, meetings, contributions, and permissions.
         </p>
       </div>
-      <div className="card-grid">
+      <div className="card-grid" data-reveal-group>
         {toolkitCards.map((card) => (
           <ToolkitCard key={card.title} card={card} />
         ))}

@@ -176,6 +176,7 @@ export function deleteEnterpriseWithDependencies(enterpriseId: string, auditLogC
     if (auditLogCount > 0) {
       await tx.auditLog.deleteMany({ where: { enterpriseId } });
     }
+    await tx.auditLogIntegrity.deleteMany({ where: { enterpriseId } });
     await tx.featureFlag.deleteMany({ where: { enterpriseId } });
     await tx.enterprise.delete({ where: { id: enterpriseId } });
   });

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi, type MockedFunction } from "vitest";
 
 vi.mock("@/features/auth/useUser", () => ({
@@ -50,8 +50,10 @@ function fillRequiredFields() {
 }
 
 describe("CreateMeetingForm", () => {
-  it("renders all form fields", () => {
-    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+  it("renders all form fields", async () => {
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
     expect(screen.getByLabelText(/title/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/subject/i)).toBeInTheDocument();
@@ -59,14 +61,18 @@ describe("CreateMeetingForm", () => {
     expect(screen.getByLabelText(/agenda/i)).toBeInTheDocument();
   });
 
-  it("calls onCancel when cancel button is clicked", () => {
-    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+  it("calls onCancel when cancel button is clicked", async () => {
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(onCancel).toHaveBeenCalled();
   });
 
-  it("does not submit when required fields are empty", () => {
-    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+  it("does not submit when required fields are empty", async () => {
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
     expect(createMeetingMock).not.toHaveBeenCalled();
     expect(screen.getByText("Enter a title.")).toBeInTheDocument();
@@ -75,8 +81,10 @@ describe("CreateMeetingForm", () => {
     expect(screen.getByLabelText(/date/i)).toHaveAttribute("aria-invalid", "true");
   });
 
-  it("clears field errors as required fields are completed", () => {
-    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+  it("clears field errors as required fields are completed", async () => {
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
     expect(screen.getByText("Enter a title.")).toBeInTheDocument();
@@ -162,9 +170,11 @@ describe("CreateMeetingForm", () => {
     await waitFor(() => expect(screen.getByText(/meeting created/i)).toBeInTheDocument());
   });
 
-  it("disables submit button when no user is logged in", () => {
+  it("disables submit button when no user is logged in", async () => {
     useUserMock.mockReturnValue(makeUseUserValue(null));
-    render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
     expect(screen.getByRole("button", { name: /create meeting/i })).toBeDisabled();
   });
 });

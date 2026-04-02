@@ -1,18 +1,32 @@
 import { apiFetch } from "@/shared/api/http";
-import type { QuestionConfigs, QuestionType, Questionnaire } from "../types";
+import type {
+  QuestionConfigs,
+  QuestionType,
+  Questionnaire,
+  QuestionnairePurpose,
+} from "../types";
 
-export async function getMyQuestionnaires(options?: { query?: string }): Promise<Questionnaire[]> {
+export async function getMyQuestionnaires(options?: {
+  query?: string;
+  purpose?: QuestionnairePurpose;
+}): Promise<Questionnaire[]> {
   const searchParams = new URLSearchParams();
   if (options?.query?.trim()) {
     searchParams.set("q", options.query.trim());
+  }
+  if (options?.purpose) {
+    searchParams.set("purpose", options.purpose);
   }
   const query = searchParams.toString();
   const path = query ? `/questionnaires/mine?${query}` : "/questionnaires/mine";
   return apiFetch(path);
 }
 
-export async function getPublicQuestionnairesFromOthers(): Promise<Questionnaire[]> {
-  return apiFetch("/questionnaires/public/others");
+export async function getPublicQuestionnairesFromOthers(options?: {
+  purpose?: QuestionnairePurpose;
+}): Promise<Questionnaire[]> {
+  const query = options?.purpose ? `?purpose=${encodeURIComponent(options.purpose)}` : "";
+  return apiFetch(`/questionnaires/public/others${query}`);
 }
 
 export async function getQuestionnaireById(templateId: number | string): Promise<Questionnaire> {
@@ -28,6 +42,7 @@ type QuestionnaireMutationQuestion = {
 
 type QuestionnaireMutationPayload = {
   templateName: string;
+  purpose: QuestionnairePurpose;
   isPublic: boolean;
   questions: QuestionnaireMutationQuestion[];
 };

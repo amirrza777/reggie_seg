@@ -8,6 +8,7 @@ import type {
 import { Card } from "@/shared/ui/Card";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { formatDateTime } from "@/shared/lib/dateFormatter";
+import Link from "next/link";
 
 type DisplayDeadlineState = {
   label: string;
@@ -222,13 +223,75 @@ function TutorMarkingCard({
   );
 }
 
+function TeamFormationCard({
+  project,
+  team,
+  mode,
+}: {
+  project: Project;
+  team: ProjectOverviewDashboardProps["team"];
+  mode: ProjectOverviewDashboardProps["teamFormationMode"];
+}) {
+  const teamHref = `/projects/${project.id}/team`;
+
+  if (team) {
+    return (
+      <Card title="Your team">
+        <p className="project-overview-info__paragraph">
+          You are in <strong>{team.teamName}</strong>. Manage your teammates, invites, and team details from the team page.
+        </p>
+        <Link href={teamHref} className="ui-link">
+          Go to team page
+        </Link>
+      </Card>
+    );
+  }
+
+  if (mode === "custom") {
+    return (
+      <Card title="Team allocation">
+        <p className="project-overview-info__paragraph">
+          This project uses a questionnaire-based allocation. Complete the questionnaire to be assigned to a team.
+        </p>
+        <Link href={teamHref} className="ui-link">
+          Complete questionnaire
+        </Link>
+      </Card>
+    );
+  }
+
+  if (mode === "staff") {
+    return (
+      <Card title="Team allocation">
+        <p className="project-overview-info__paragraph">
+          Please wait for staff to add you to a team for this project.
+        </p>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Create or join a team">
+      <p className="project-overview-info__paragraph">
+        Create a new team or accept an invitation to join an existing team for this project.
+      </p>
+      <Link href={teamHref} className="ui-link">
+        Go to team page
+      </Link>
+    </Card>
+  );
+}
+
 export function ProjectOverviewDashboard({
   project,
   deadline,
   marking,
+  team,
+  teamFormationMode,
 }: ProjectOverviewDashboardProps) {
   const deadlineItems = buildDeadlineItems(deadline);
   const completed = isProjectCompleted(project, deadline, marking);
+  const teamMode = teamFormationMode ?? "self";
 
   return (
     <div className="stack project-overview-dashboard">
@@ -237,6 +300,7 @@ export function ProjectOverviewDashboard({
       />
 
       <div className="stack project-overview-layout project-overview-layout--overview">
+        <TeamFormationCard project={project} team={team} mode={teamMode} />
         <InformationBoardCard informationText={project.informationText} largeText />
         {!completed ? <DeadlinesScheduleCard items={deadlineItems} emphasize /> : null}
       </div>

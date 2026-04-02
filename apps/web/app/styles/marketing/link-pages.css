@@ -55,6 +55,42 @@
   font-size: var(--fs-body-sm);
 }
 
+.footer-link-page__cta-band {
+  margin-top: 8px;
+  margin-bottom: clamp(18px, 2.5vw, 36px);
+}
+
+.footer-link-page__cta-inner {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+  text-align: center;
+}
+
+.footer-link-page__cta-content {
+  display: grid;
+  gap: 10px;
+  max-width: min(980px, 100%);
+}
+
+.footer-link-page__cta-title {
+  margin: 0;
+  font-size: clamp(2rem, 5.1vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.footer-link-page__cta-copy {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.45;
+  font-size: clamp(1.02rem, 2.1vw, 1.35rem);
+}
+
+.footer-link-page__cta-actions {
+  justify-content: center;
+}
+
 @media (max-width: 640px) {
   .footer-link-page__hero {
     gap: 12px;
@@ -66,5 +102,18 @@
 
   .footer-link-page__card {
     padding: 14px;
+  }
+
+  .footer-link-page__cta-content {
+    gap: 8px;
+  }
+
+  .footer-link-page__cta-title {
+    font-size: clamp(1.72rem, 9.4vw, 2.5rem);
+  }
+
+  .footer-link-page__cta-copy {
+    max-width: 42ch;
+    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
   }
 }

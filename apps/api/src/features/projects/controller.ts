@@ -2,20 +2,26 @@ export {
   createProjectHandler,
   getProjectByIdHandler,
   getUserProjectsHandler,
-  getUserModulesHandler,
-  joinModuleHandler,
-  getModuleStaffListHandler,
-  getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
   getTeammatesForProjectHandler,
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getQuestionsForProjectHandler,
+  getTeamAllocationQuestionnaireForProjectHandler,
+  getTeamAllocationQuestionnaireStatusForProjectHandler,
+  submitTeamAllocationQuestionnaireResponseHandler,
   getStaffProjectsHandler,
   getStaffProjectTeamsHandler,
   getStaffMarkingProjectsHandler,
   getProjectMarkingHandler,
 } from "./controller.core.js";
+
+export {
+  getUserModulesHandler,
+  joinModuleHandler,
+  getModuleStaffListHandler,
+  getModuleStudentProjectMatrixHandler,
+} from "./controller.modules.js";
 
 export {
   createTeamHealthMessageHandler,

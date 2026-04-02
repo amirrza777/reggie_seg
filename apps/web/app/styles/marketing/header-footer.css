@@ -6,12 +6,17 @@
   right: 0;
   width: 100%;
   z-index: 20;
-  background: var(--glass-surface);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  background-color: var(--glass-surface);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   transition: transform 0.24s ease, opacity 0.18s ease;
-  will-change: transform, opacity;
   pointer-events: none;
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .header {
+    background-color: transparent;
+  }
 }
 
 .header--hidden {
@@ -117,8 +122,6 @@
   position: absolute;
   inset: 0;
   background: var(--modal-backdrop, var(--backdrop-strong));
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
   border: none;
   padding: 0;
   margin: 0;
@@ -143,10 +146,10 @@
   font-family: inherit;
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .mobile-menu__panel {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 }
 
@@ -208,10 +211,8 @@
 
 @media (max-width: 1024px) {
   .header {
-    backdrop-filter: blur(10px) saturate(130%);
-    -webkit-backdrop-filter: blur(10px) saturate(130%);
-    background: color-mix(in srgb, var(--glass-surface) 85%, var(--bg) 15%);
-    background: var(--glass-surface);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
   }
 
   .header__inner {
@@ -270,15 +271,11 @@
 .footer {
   margin-top: auto;
   position: relative;
-  padding-top: var(--footer-offset-top);
+  padding-top: var(--footer-offset-top, clamp(88px, 12vw, 176px));
   background: transparent;
   color: inherit;
-  overflow: visible;
 }
 
-.footer::before {
-  content: none;
-}
 
 /* ── Main body: brand + nav ─── */
 
@@ -330,19 +327,13 @@
 .footer .brand-wordmark__icon {
   width: 18px;
   height: 18px;
-  filter: none;
   opacity: 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  .footer .brand-wordmark__icon {
-    filter: brightness(0) invert(1);
-  }
-}
-
 .footer .brand-wordmark__text {
-  font-size: 0.9rem;
-  letter-spacing: -0.01em;
+  font-size: 1.25rem;
+  letter-spacing: -0.015em;
+  line-height: 1;
 }
 
 .footer__brand-tagline {

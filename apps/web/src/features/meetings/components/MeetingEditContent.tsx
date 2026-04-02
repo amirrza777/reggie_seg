@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
-import { getMeeting, getMeetingSettings } from "../api/client";
+import { isMeetingMember } from "../lib/meetingMember";
+import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { MeetingEditForm } from "./MeetingEditForm";
 import "../styles/meeting-detail.css";
-import type { Meeting } from "../types";
 
 type MeetingEditContentProps = {
   meetingId: number;
@@ -16,21 +15,13 @@ type MeetingEditContentProps = {
 
 export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentProps) {
   const { user } = useUser();
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [allowAnyoneToEdit, setAllowAnyoneToEdit] = useState(false);
+  const { meeting, settings } = useMeetingWithSettings(meetingId);
 
-  useEffect(() => {
-    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, s]) => {
-      setMeeting(m);
-      setAllowAnyoneToEdit(s.allowAnyoneToEditMeetings);
-    });
-  }, [meetingId]);
-
-  if (!meeting || !user) return null;
+  if (!meeting || !user || !settings) return null;
 
   const isOrganiser = meeting.organiserId === user.id;
-  const isMember = meeting.team.allocations.some((a) => a.user.id === user.id);
-  const canEdit = isOrganiser || (allowAnyoneToEdit && isMember);
+  const isMember = isMeetingMember(meeting.team.allocations, user.id);
+  const canEdit = isOrganiser || (settings.allowAnyoneToEditMeetings && isMember);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">

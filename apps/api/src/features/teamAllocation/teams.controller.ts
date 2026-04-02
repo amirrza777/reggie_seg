@@ -39,6 +39,9 @@ export async function createTeamForProjectHandler(req: AuthRequest, res: Respons
     if (error?.code === "USER_NOT_FOUND") {
       return res.status(404).json({ error: "User not found" });
     }
+    if (error?.code === "TEAM_CREATION_FORBIDDEN") {
+      return res.status(403).json({ error: "Team creation is disabled for this project" });
+    }
     console.error("Error creating team for project:", error);
     return res.status(500).json({ error: "Internal server error" });
   }

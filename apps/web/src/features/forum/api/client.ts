@@ -144,3 +144,13 @@ export async function updateForumSettings(
     body: JSON.stringify({ userId, forumIsAnonymous }),
   });
 }
+
+export async function getForumMembers(
+  userId: number,
+  projectId: number
+): Promise<{ id: number; firstName: string; lastName: string; projectRole?: string }[]> {
+  return apiFetch<{ id: number; firstName: string; lastName: string; projectRole?: string }[]>(
+    `/forum/projects/${projectId}/members?userId=${userId}`,
+    { cache: "no-store" }
+  );
+}

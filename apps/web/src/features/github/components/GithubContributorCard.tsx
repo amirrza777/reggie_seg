@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { ContributorRow } from "./GithubRepoChartsDashboard.helpers";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { useChartCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 import {
   buildContributorMiniSeries,
   CHART_COLOR_COMMITS,
@@ -36,6 +37,7 @@ export function GithubContributorCard({
   showWeeklyCommitSummary = false,
   weeklyDenominator = 0,
 }: GithubContributorCardProps) {
+  const { containerHandlers, chartHandlers, tooltipProps } = useChartCursorTooltip();
   const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
   const miniSeries = useMemo(() => buildContributorMiniSeries(contributor.commitsByDay), [contributor.commitsByDay]);
   const weeklyActivity = useMemo(() => getContributorWeeklyActivity(contributor.commitsByDay), [contributor.commitsByDay]);
@@ -106,9 +108,18 @@ export function GithubContributorCard({
       ) : null}
 
       {miniSeries.length > 0 ? (
-        <div className="github-chart-section__contributor-mini">
+        <div
+          className="github-chart-section__contributor-mini ui-no-select"
+          {...containerHandlers}
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={miniSeries} margin={{ top: 8, right: 0, left: 0, bottom: 0 }} barGap={4}>
+            <BarChart
+              data={miniSeries}
+              margin={{ top: 8, right: 0, left: 0, bottom: 0 }}
+              barGap={4}
+              accessibilityLayer={false}
+              {...chartHandlers}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
               <XAxis
                 dataKey="date"
@@ -119,7 +130,7 @@ export function GithubContributorCard({
               />
               <YAxis allowDecimals={false} hide />
               <Tooltip
-                isAnimationActive
+                {...tooltipProps}
                 content={<ChartTooltipContent />}
                 labelFormatter={(label) => formatShortDate(String(label))}
               />

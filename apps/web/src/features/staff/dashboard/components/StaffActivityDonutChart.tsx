@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type MouseEvent } from "react";
 import { Cell, Label, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartTooltipContent } from "@/shared/ui/ChartTooltipContent";
+import { usePieCursorTooltip } from "@/shared/ui/usePieCursorTooltip";
 
 type ActivityDonutProps = {
   active: number;
@@ -18,7 +18,7 @@ const COLORS = {
 
 export function StaffActivityDonutChart({ active, lowActivity, inactive }: ActivityDonutProps) {
   const total = active + lowActivity + inactive;
-  const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number }>();
+  const { containerHandlers, pieHandlers, tooltipProps, pieTooltipContentProps } = usePieCursorTooltip();
 
   const data = [
     { name: "Active", value: active, fill: COLORS.active },
@@ -30,22 +30,14 @@ export function StaffActivityDonutChart({ active, lowActivity, inactive }: Activ
     return <p className="muted">No team data available.</p>;
   }
 
-  const updateTooltipPosition = (event: MouseEvent<SVGGraphicsElement>) => {
-    const svgRoot = event.currentTarget.ownerSVGElement;
-    const wrapper = svgRoot?.closest(".recharts-wrapper");
-    if (!wrapper) return;
-
-    const bounds = wrapper.getBoundingClientRect();
-    setTooltipPosition({
-      x: event.clientX - bounds.left + 12,
-      y: event.clientY - bounds.top + 12,
-    });
-  };
-
   return (
-    <div style={{ height: 220 }}>
+    <div
+      className="ui-no-select"
+      style={{ height: 220 }}
+      {...containerHandlers}
+    >
       <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
+        <PieChart accessibilityLayer={false}>
           <Pie
             data={data}
             dataKey="value"
@@ -61,12 +53,7 @@ export function StaffActivityDonutChart({ active, lowActivity, inactive }: Activ
             onClick={(_sector, _index, event) => {
               event.stopPropagation();
             }}
-            onMouseMove={(_sector, _index, event) => {
-              updateTooltipPosition(event);
-            }}
-            onMouseLeave={() => {
-              setTooltipPosition(undefined);
-            }}
+            {...pieHandlers}
           >
             {data.map((entry) => (
               <Cell key={entry.name} fill={entry.fill} />
@@ -78,10 +65,8 @@ export function StaffActivityDonutChart({ active, lowActivity, inactive }: Activ
             />
           </Pie>
           <Tooltip
-            isAnimationActive
-            content={<ChartTooltipContent />}
-            position={tooltipPosition}
-            trigger="hover"
+            content={<ChartTooltipContent {...pieTooltipContentProps} />}
+            {...tooltipProps}
             formatter={(value, name) => {
               const num = Number(value ?? 0);
               const pct = total > 0 ? ((num / total) * 100).toFixed(0) : "0";

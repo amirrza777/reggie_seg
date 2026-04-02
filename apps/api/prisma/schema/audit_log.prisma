@@ -1,6 +1,10 @@
 enum AuditAction {
   LOGIN
   LOGOUT
+  USER_ROLE_CHANGED
+  USER_UPDATED
+  ENTERPRISE_CREATED
+  ENTERPRISE_DELETED
 }
 
 model AuditLog {
@@ -11,9 +15,21 @@ model AuditLog {
   ip           String?     @db.VarChar(64)
   userAgent    String?     @db.VarChar(500)
   createdAt    DateTime    @default(now())
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User        @relation(fields: [userId], references: [id], onDelete: Restrict)
   enterprise   Enterprise  @relation(fields: [enterpriseId], references: [id], onDelete: Restrict)
 
   @@index([enterpriseId, createdAt])
   @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model AuditLogIntegrity {
+  enterpriseId     String    @id
+  logCount         Int       @default(0)
+  lastLogId        Int?
+  lastLogCreatedAt DateTime?
+  signature        String    @default("") @db.Char(64)
+  updatedAt        DateTime  @updatedAt
+
+  @@index([updatedAt])
 }

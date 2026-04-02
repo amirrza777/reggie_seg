@@ -287,6 +287,14 @@
   width: fit-content;
 }
 
+.audit-badge.audit-badge--compact {
+  font-size: 0.62rem;
+  line-height: 3.05;
+  padding: 12px 12px;
+  white-space: pre-line;
+  text-align: center;
+}
+
 .audit-badge--login {
   background: var(--status-success-soft);
   color: var(--status-success-text);

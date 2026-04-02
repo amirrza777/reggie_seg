@@ -15,15 +15,20 @@ import {
 import { requireAuth, optionalAuth } from "./middleware.js";
 import { configureGoogle } from "./google.js";
 import { issueTokensForUser } from "./service.js";
+import { rateLimit } from "../shared/rateLimit.js";
+
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, prefix: "auth:login" });
+const signupLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, prefix: "auth:signup" });
+const forgotLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 5, prefix: "auth:forgot" });
 
 const router = Router();
 const googleEnabled = configureGoogle();
 
-router.post("/signup", signupHandler);
-router.post("/login", loginHandler);
+router.post("/signup", signupLimiter, signupHandler);
+router.post("/login", loginLimiter, loginHandler);
 router.post("/refresh", refreshHandler);
 router.post("/logout", logoutHandler);
-router.post("/forgot-password", forgotPasswordHandler);
+router.post("/forgot-password", forgotLimiter, forgotPasswordHandler);
 router.post("/reset-password", resetPasswordHandler);
 router.get("/me", optionalAuth, meHandler);
 router.patch("/profile", requireAuth, updateProfileHandler);

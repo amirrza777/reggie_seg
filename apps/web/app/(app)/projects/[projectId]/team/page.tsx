@@ -1,14 +1,30 @@
-import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getTeamAllocationQuestionnaireStatusForProject,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { TeamFormationPanel } from "@/features/projects/components/TeamFormationPanel";
+import { TeamAllocationQuestionnaireCard } from "@/features/projects/components/TeamAllocationQuestionnaireCard";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 import { PageSection } from "@/shared/ui/PageSection";
+import type { TeamAllocationQuestionnaireStatus } from "@/features/projects/types";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
 };
+
+function resolveTeamFormationMode(
+  project: Awaited<ReturnType<typeof getProject>> | null,
+): "self" | "custom" | "staff" {
+  if (!project) return "self";
+  if (project.archivedAt) return "staff";
+  if (project.teamAllocationQuestionnaireTemplateId) return "custom";
+  return "self";
+}
 
 async function getTeamInvites(teamId: number): Promise<TeamInvite[]> {
   try {
@@ -33,18 +49,20 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   }
 
   let projectCompleted = false;
+  let project: Awaited<ReturnType<typeof getProject>> | null = null;
   if (user && !Number.isNaN(numericProjectId)) {
     try {
-      const [project, deadline] = await Promise.all([
+      const [projectRecord, deadline] = await Promise.all([
         getProject(projectId),
         getProjectDeadline(user.id, numericProjectId),
       ]);
+      project = projectRecord;
       const feedbackDueDate = deadline.feedbackDueDate ? new Date(deadline.feedbackDueDate) : null;
       const now = new Date();
       const feedbackDueDatePassed = feedbackDueDate
         ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
         : false;
-      projectCompleted = Boolean(project.archivedAt) || feedbackDueDatePassed;
+      projectCompleted = Boolean(projectRecord.archivedAt) || feedbackDueDatePassed;
     } catch {
       projectCompleted = false;
     }
@@ -53,6 +71,21 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   const initialInvites = team && !projectCompleted ? await getTeamInvites(team.id) : [];
 
   const pageTitle = team?.teamName ? `Team - ${team.teamName}` : "Team";
+  const teamFormationMode = resolveTeamFormationMode(project);
+  const shouldRenderTeamPanel =
+    !user ||
+    Boolean(team) ||
+    teamFormationMode === "self" ||
+    teamFormationMode === "staff";
+  let teamAllocationQuestionnaireStatus: TeamAllocationQuestionnaireStatus | null = null;
+
+  if (user && !team && teamFormationMode === "custom" && project?.teamAllocationQuestionnaireTemplateId) {
+    try {
+      teamAllocationQuestionnaireStatus = await getTeamAllocationQuestionnaireStatusForProject(numericProjectId);
+    } catch {
+      teamAllocationQuestionnaireStatus = null;
+    }
+  }
 
   return (
     <PageSection
@@ -60,18 +93,42 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
       description="Manage teammates and invitations for this project."
       className="ui-page--project"
     >
-      <Card>
-        {user ? (
-          <TeamFormationPanel
-            team={team}
+      {teamFormationMode === "custom" && !team && user ? (
+        teamAllocationQuestionnaireStatus ? (
+          teamAllocationQuestionnaireStatus.hasSubmitted || teamAllocationQuestionnaireStatus.windowIsOpen ? (
+          <TeamAllocationQuestionnaireCard
             projectId={numericProjectId}
-            initialInvites={initialInvites}
-            projectCompleted={projectCompleted}
+            currentUserId={user.id}
+            questionnaire={teamAllocationQuestionnaireStatus.questionnaireTemplate}
+            initialSubmitted={teamAllocationQuestionnaireStatus.hasSubmitted}
           />
+          ) : (
+            <Card title="Team allocation">
+              <p>Please wait for staff to add you to a team for this project.</p>
+            </Card>
+          )
         ) : (
-          <p>Please sign in to manage your team.</p>
-        )}
-      </Card>
+          <Card title="Team allocation questionnaire">
+            <p>Allocation questionnaire is not available right now. Please try again shortly.</p>
+          </Card>
+        )
+      ) : null}
+
+      {shouldRenderTeamPanel ? (
+        <Card>
+          {user ? (
+            <TeamFormationPanel
+              team={team}
+              projectId={numericProjectId}
+              initialInvites={initialInvites}
+              projectCompleted={projectCompleted}
+              teamFormationMode={teamFormationMode}
+            />
+          ) : (
+            <p>Please sign in to manage your team.</p>
+          )}
+        </Card>
+      ) : null}
     </PageSection>
   );
 }

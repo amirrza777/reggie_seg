@@ -22,6 +22,9 @@ vi.mock("../../shared/db.js", () => ({
       create: vi.fn(),
       findFirst: vi.fn(),
     },
+    projectStudent: {
+      createMany: vi.fn(),
+    },
     teamAllocation: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -44,6 +47,16 @@ vi.mock("../../shared/db.js", () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
+    $transaction: vi.fn(async (callback: (tx: any) => Promise<any>) =>
+      callback({
+        project: {
+          create: vi.fn(),
+        },
+        projectStudent: {
+          createMany: vi.fn(),
+        },
+      }),
+    ),
   },
 }));
 
@@ -69,19 +82,31 @@ describe("projects repo read and create flows", () => {
 
     expect(prisma.project.findMany).toHaveBeenCalledWith({
       where: {
-        teams: {
-          some: {
-            archivedAt: null,
-            allocationLifecycle: "ACTIVE",
-            allocations: {
-              some: { userId: 11 },
+        OR: [
+          {
+            teams: {
+              some: {
+                archivedAt: null,
+                allocationLifecycle: "ACTIVE",
+                allocations: {
+                  some: { userId: 11 },
+                },
+              },
             },
           },
-        },
+          {
+            projectStudents: {
+              some: {
+                userId: 11,
+              },
+            },
+          },
+        ],
       },
       select: {
         id: true,
         name: true,
+        moduleId: true,
         archivedAt: true,
         module: { select: { name: true } },
       },
@@ -243,6 +268,8 @@ describe("projects repo read and create flows", () => {
         informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        archivedAt: true,
+        projectNavFlags: true,
       },
     });
   });
@@ -256,7 +283,7 @@ describe("projects repo read and create flows", () => {
     (prisma.module.findFirst as any).mockResolvedValue({ id: 2 });
     (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
     (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3 });
-    (prisma.project.create as any).mockResolvedValue({
+    const txProjectCreate = vi.fn().mockResolvedValue({
       id: 1,
       name: "P1",
       informationText: "Info board copy",
@@ -266,9 +293,15 @@ describe("projects repo read and create flows", () => {
         ...deadlineInput,
       },
     });
-    const result = await createProject(99, "P1", 2, 3, "Info board copy", deadlineInput);
+    (prisma.$transaction as any).mockImplementation(async (callback: (tx: any) => Promise<any>) =>
+      callback({
+        project: { create: txProjectCreate },
+        projectStudent: { createMany: vi.fn() },
+      }),
+    );
+    const result = await createProject(99, "P1", 2, 3, undefined, "Info board copy", deadlineInput, undefined);
 
-    expect(prisma.project.create).toHaveBeenCalledWith({
+    expect(txProjectCreate).toHaveBeenCalledWith({
       data: {
         name: "P1",
         informationText: "Info board copy",
@@ -330,7 +363,7 @@ describe("projects repo read and create flows", () => {
     (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 }).mockResolvedValueOnce(null);
     (prisma.moduleLead.findFirst as any).mockResolvedValue(null);
 
-    await expect(createProject(44, "Blocked", 7, 3, null, deadlineInput)).rejects.toMatchObject({
+    await expect(createProject(44, "Blocked", 7, 3, undefined, null, deadlineInput, undefined)).rejects.toMatchObject({
       code: "FORBIDDEN",
     });
     expect(prisma.project.create).not.toHaveBeenCalled();
@@ -355,7 +388,7 @@ describe("projects repo read and create flows", () => {
       },
     });
 
-    await expect(createProject(45, "Admin Project", 7, 3, null, deadlineInput)).resolves.toMatchObject({
+    await expect(createProject(45, "Admin Project", 7, 3, undefined, null, deadlineInput, undefined)).resolves.toMatchObject({
       id: 17,
       moduleId: 7,
     });

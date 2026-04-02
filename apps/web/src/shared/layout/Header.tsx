@@ -21,23 +21,65 @@ const useIsHydrated = () => useSyncExternalStore(subscribe, () => true, () => fa
 const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
+  const hiddenRef = useRef(false);
+  const downwardTravelRef = useRef(0);
+  const upwardTravelRef = useRef(0);
+  const frameIdRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const current = window.scrollY;
+    const resetTravel = () => {
+      downwardTravelRef.current = 0;
+      upwardTravelRef.current = 0;
+    };
+
+    const updateVisibility = () => {
+      const current = Math.max(window.scrollY, 0);
       const delta = current - lastScrollY.current;
-      const isScrollingDown = delta > 6;
-      const isScrollingUp = delta < -6;
-      if (current < 40 || isScrollingUp) {
-        setHidden(false);
-      } else if (isScrollingDown) {
-        setHidden(true);
+      let nextHidden = hiddenRef.current;
+
+      if (delta > 0) {
+        downwardTravelRef.current += delta;
+        upwardTravelRef.current = 0;
+      } else if (delta < 0) {
+        upwardTravelRef.current += -delta;
+        downwardTravelRef.current = 0;
       }
+
+      if (current < 40) {
+        nextHidden = false;
+        resetTravel();
+      } else if (!hiddenRef.current && downwardTravelRef.current >= 18) {
+        nextHidden = true;
+        resetTravel();
+      } else if (hiddenRef.current && upwardTravelRef.current >= 10) {
+        nextHidden = false;
+        resetTravel();
+      }
+
+      if (nextHidden !== hiddenRef.current) {
+        hiddenRef.current = nextHidden;
+        setHidden(nextHidden);
+      }
+
       lastScrollY.current = current;
     };
 
+    const handleScroll = () => {
+      if (frameIdRef.current !== null) return;
+      frameIdRef.current = window.requestAnimationFrame(() => {
+        frameIdRef.current = null;
+        updateVisibility();
+      });
+    };
+
+    lastScrollY.current = window.scrollY;
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frameIdRef.current !== null) {
+        window.cancelAnimationFrame(frameIdRef.current);
+      }
+    };
   }, []);
 
   return hidden;

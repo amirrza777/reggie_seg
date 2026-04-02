@@ -12,6 +12,8 @@ const TYPE_LABEL: Record<CalendarEvent["type"], string> = {
   assessment_due:   "Assessment Due",
   feedback_open:    "Feedback Opens",
   feedback_due:     "Feedback Due",
+  team_allocation_questionnaire_open: "Allocation Questionnaire Opens",
+  team_allocation_questionnaire_due: "Allocation Questionnaire Due",
   meeting:          "Meeting",
 };
 
@@ -22,6 +24,8 @@ const TYPE_BADGE: Record<CalendarEvent["type"], string> = {
   assessment_due:   "calendar-badge--warning",
   feedback_open:    "calendar-badge--info",
   feedback_due:     "calendar-badge--success",
+  team_allocation_questionnaire_open: "calendar-badge--info",
+  team_allocation_questionnaire_due: "calendar-badge--warning",
   meeting:          "calendar-badge--purple",
 };
 

@@ -161,7 +161,7 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
         <Link
           href={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
           className="pill-nav__link staff-projects__team-action"
-          style={{ width: "fit-content" }}
+          style={{ width: "fit-content", marginBottom: 14 }}
         >
           ← Back to peer overview
         </Link>
@@ -185,7 +185,6 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
         </section>
       ) : (
         <StaffPeerStudentAssessmentsPanel
-          studentTitle={studentTitle}
           questionLabels={questionLabelById}
           expectedPeerReviews={expectedPeerReviews}
           givenGroups={givenGroups}

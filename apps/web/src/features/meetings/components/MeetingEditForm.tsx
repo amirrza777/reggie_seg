@@ -6,6 +6,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { updateMeeting, deleteMeeting } from "../api/client";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
+import { useParticipantSelection } from "../hooks/useParticipantSelection";
 import "../styles/meeting-list.css";
 import type { Meeting } from "../types";
 
@@ -28,12 +29,11 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const members = meeting.team.allocations.map((a) => a.user);
-  const [inviteAll, setInviteAll] = useState(
-    meeting.participants.length === members.length
-  );
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(
-    new Set(meeting.participants.map((p) => p.userId))
-  );
+  const { inviteAll, setInviteAll, selectedIds, toggleParticipant } =
+    useParticipantSelection({
+      initialSelectedIds: meeting.participants.map((p) => p.userId),
+      initialInviteAll: meeting.participants.length === members.length,
+    });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,18 +56,6 @@ export function MeetingEditForm({ meeting, userId, projectId }: MeetingEditFormP
       setStatus("error");
       setError(err instanceof Error ? err.message : "Failed to save changes");
     }
-  }
-
-  function toggleParticipant(id: number) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
   }
 
   async function handleDelete() {

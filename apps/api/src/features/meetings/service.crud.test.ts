@@ -5,12 +5,6 @@ import {
   addMeeting,
   editMeeting,
   removeMeeting,
-  markAttendance,
-  saveMinutes,
-  addComment,
-  removeComment,
-  fetchMeetingSettings,
-  parseMentions,
 } from "./service.js";
 
 import * as repo from "./repo.js";
@@ -28,19 +22,11 @@ vi.mock("./repo.js", () => ({
   getTeamMeetingState: vi.fn(),
   clearTeamInactivityFlag: vi.fn(),
   deleteMeeting: vi.fn(),
-  bulkUpsertAttendance: vi.fn(),
-  upsertMinutes: vi.fn(),
-  createComment: vi.fn(),
-  deleteComment: vi.fn(),
-  createMentions: vi.fn(),
-  getRecentAttendanceForUser: vi.fn(),
-  getModuleLeadsForTeam: vi.fn(),
   getModuleMeetingSettingsForTeam: vi.fn(),
 }));
 
 vi.mock("../teamAllocation/service.js", () => ({
   getTeamMembers: vi.fn(),
-  getTeamById: vi.fn(),
 }));
 
 vi.mock("../../shared/email.js", () => ({
@@ -54,7 +40,7 @@ vi.mock("../notifications/service.js", () => ({
 const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-describe("meetings service", () => {
+describe("meetings crud service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -157,6 +143,28 @@ describe("meetings service", () => {
     );
   });
 
+  it("escapes special characters in ics text fields", async () => {
+    const members = [{ id: 1, email: "a@test.com" }];
+    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
+    (repo.createMeeting as any).mockResolvedValue({ id: 1 });
+    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
+    (repo.createParticipants as any).mockResolvedValue(undefined);
+    (email.sendEmail as any).mockResolvedValue(undefined);
+
+    await addMeeting({
+      teamId: 1,
+      organiserId: 1,
+      title: "Review; Planning, Notes",
+      date: new Date("2026-05-01T14:00:00Z"),
+      location: "Room 2.01; Floor 2",
+    });
+
+    const call = (email.sendEmail as any).mock.calls[0][0];
+    const icsContent = call.attachments[0].content;
+    expect(icsContent).toContain("SUMMARY:Review\\; Planning\\, Notes");
+    expect(icsContent).toContain("LOCATION:Room 2.01\\; Floor 2");
+  });
+
   it("sends invite email only to selected participants when participantIds provided", async () => {
     const members = [
       { id: 1, email: "a@test.com" },
@@ -237,7 +245,7 @@ describe("meetings service", () => {
 
   it("allows non-organiser to edit when toggle is on and user is a team member", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1, teamId: 1, organiserId: 2, date: tomorrow, team: { allocations: [{ userId: 1 }] },
+      id: 1, teamId: 1, organiserId: 2, date: tomorrow, participants: [], team: { projectId: 5, allocations: [{ userId: 1 }] },
     });
     (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: true });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
@@ -266,9 +274,7 @@ describe("meetings service", () => {
 
   it("returns updated meeting from editMeeting on success", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Team Meeting", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -280,9 +286,7 @@ describe("meetings service", () => {
 
   it("replaces participants when participantIds provided in editMeeting", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Team Meeting", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -293,9 +297,7 @@ describe("meetings service", () => {
 
   it("does not replace participants when participantIds not provided in editMeeting", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
-      id: 1,
-      organiserId: 1,
-      date: tomorrow,
+      id: 1, organiserId: 1, date: tomorrow, title: "Team Meeting", participants: [], team: { projectId: 5, allocations: [] },
     });
     (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Updated" });
 
@@ -315,7 +317,7 @@ describe("meetings service", () => {
   it("sends MEETING_DELETED notification to all participants when meeting exists", async () => {
     (repo.getMeetingById as any).mockResolvedValue({
       id: 7,
-      title: "Sprint Review",
+      title: "Team Meeting",
       teamId: 1,
       team: { projectId: 10 },
       participants: [{ userId: 1 }, { userId: 2 }],
@@ -343,191 +345,59 @@ describe("meetings service", () => {
     expect(repo.deleteMeeting).toHaveBeenCalledWith(99);
   });
 
-  it("forwards markAttendance to repo", async () => {
-    const records = [{ userId: 1, status: "Present" }];
-    (repo.getMeetingById as any).mockResolvedValue(null);
+  describe("editMeeting MEETING_UPDATED notifications", () => {
+    const meetingWithParticipants = {
+      id: 1, organiserId: 1, date: tomorrow, title: "Project Review",
+      participants: [{ userId: 2 }, { userId: 3 }],
+      team: { projectId: 5, allocations: [{ userId: 1 }] },
+    };
 
-    await markAttendance(3, records);
-
-    expect(repo.bulkUpsertAttendance).toHaveBeenCalledWith(3, records);
-  });
-
-  it("does not notify when no records have absent status", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({
-      id: 3,
-      teamId: 1,
-      team: { projectId: 10, teamName: "Team A", allocations: [] },
-    });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ absenceThreshold: 2, minutesEditWindowDays: 7 });
-    (repo.getModuleLeadsForTeam as any).mockResolvedValue([]);
-
-    await markAttendance(3, [{ userId: 1, status: "Present" }]);
-
-    expect(notificationsService.addNotification).not.toHaveBeenCalled();
-  });
-
-  it("notifies user and module leads when consecutive absence threshold is reached", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({
-      id: 3,
-      teamId: 1,
-      team: {
-        projectId: 10,
-        teamName: "Team A",
-        allocations: [{ user: { id: 1, firstName: "Alice", lastName: "Smith" } }],
-      },
-    });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ absenceThreshold: 2, minutesEditWindowDays: 7 });
-    (repo.getModuleLeadsForTeam as any).mockResolvedValue([{ userId: 99 }]);
-    (repo.getRecentAttendanceForUser as any).mockResolvedValue([{ status: "absent" }, { status: "absent" }]);
-
-    await markAttendance(3, [{ userId: 1, status: "absent" }]);
-
-    expect(notificationsService.addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 1, type: "LOW_ATTENDANCE" })
-    );
-    expect(notificationsService.addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 99, type: "LOW_ATTENDANCE" })
-    );
-  });
-
-  it("throws NOT_FOUND from saveMinutes when meeting does not exist", async () => {
-    (repo.getMeetingById as any).mockResolvedValue(null);
-
-    await expect(saveMinutes(5, 1, "notes")).rejects.toEqual({ code: "NOT_FOUND" });
-  });
-
-  it("throws FORBIDDEN from saveMinutes when writer is not the original writer and toggle is off", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({
-      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [{ userId: 1 }] },
-    });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: false });
-
-    await expect(saveMinutes(5, 1, "overwrite")).rejects.toEqual({ code: "FORBIDDEN" });
-  });
-
-  it("allows team member to edit minutes when toggle is on", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({
-      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [{ userId: 1 }] },
-    });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: true });
-    (repo.upsertMinutes as any).mockResolvedValue({ id: 1, content: "updated" });
-
-    await saveMinutes(5, 1, "updated");
-
-    expect(repo.upsertMinutes).toHaveBeenCalledWith(5, 1, "updated");
-  });
-
-  it("throws FORBIDDEN from saveMinutes when toggle is on but user is not a team member", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({
-      id: 5, teamId: 1, minutes: { writerId: 2, content: "original" }, team: { allocations: [] },
-    });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToWriteMinutes: true });
-
-    await expect(saveMinutes(5, 1, "overwrite")).rejects.toEqual({ code: "FORBIDDEN" });
-  });
-
-  it("forwards saveMinutes to repo", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({ id: 5, minutes: null, organiserId: 1 });
-    (repo.upsertMinutes as any).mockResolvedValue({ id: 1, content: "notes" });
-
-    await saveMinutes(5, 1, "notes");
-
-    expect(repo.upsertMinutes).toHaveBeenCalledWith(5, 1, "notes");
-  });
-
-  it("forwards addComment to repo", async () => {
-    (repo.createComment as any).mockResolvedValue({ id: 1 });
-
-    await addComment(5, 1, "looks good");
-
-    expect(repo.createComment).toHaveBeenCalledWith(5, 1, "looks good");
-  });
-
-  it("does not process mentions when no teamId provided", async () => {
-    (repo.createComment as any).mockResolvedValue({ id: 1 });
-
-    await addComment(5, 1, "@Bob Jones hello");
-
-    expect(repo.createMentions).not.toHaveBeenCalled();
-  });
-
-  it("creates mentions and notifies mentioned users when teamId provided", async () => {
-    (repo.createComment as any).mockResolvedValue({ id: 5 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue([
-      { id: 2, firstName: "Bob", lastName: "Jones", email: "b@test.com" },
-    ]);
-    (teamAllocationService.getTeamById as any).mockResolvedValue({ projectId: 10 });
-    (repo.createMentions as any).mockResolvedValue(undefined);
-
-    await addComment(1, 1, "@Bob Jones hello", 5);
-
-    expect(repo.createMentions).toHaveBeenCalledWith(5, [2]);
-    expect(notificationsService.addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 2, type: "MENTION" })
-    );
-  });
-
-  it("skips ambiguous full-name mentions when multiple members share the same name", async () => {
-    (repo.createComment as any).mockResolvedValue({ id: 5 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue([
-      { id: 2, firstName: "Bob", lastName: "Jones", email: "b1@test.com" },
-      { id: 3, firstName: "Bob", lastName: "Jones", email: "b2@test.com" },
-    ]);
-    (teamAllocationService.getTeamById as any).mockResolvedValue({ projectId: 10 });
-    (repo.createMentions as any).mockResolvedValue(undefined);
-
-    await addComment(1, 1, "@Bob Jones please review", 5);
-
-    expect(repo.createMentions).not.toHaveBeenCalled();
-    expect(notificationsService.addNotification).not.toHaveBeenCalled();
-  });
-
-  it("forwards removeComment to repo", async () => {
-    await removeComment(12);
-
-    expect(repo.deleteComment).toHaveBeenCalledWith(12);
-  });
-
-  it("returns null from fetchMeetingSettings when meeting not found", async () => {
-    (repo.getMeetingById as any).mockResolvedValue(null);
-
-    const result = await fetchMeetingSettings(99);
-
-    expect(result).toBeNull();
-  });
-
-  it("returns module settings for the meeting's team", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({ id: 1, teamId: 5 });
-    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ absenceThreshold: 3, minutesEditWindowDays: 7 });
-
-    const result = await fetchMeetingSettings(1);
-
-    expect(repo.getModuleMeetingSettingsForTeam).toHaveBeenCalledWith(5);
-    expect(result).toEqual({ absenceThreshold: 3, minutesEditWindowDays: 7 });
-  });
-
-  describe("parseMentions", () => {
-    it("returns empty array when content has no mentions", () => {
-      expect(parseMentions("no mentions here")).toEqual([]);
+    beforeEach(() => {
+      (repo.getMeetingById as any).mockResolvedValue(meetingWithParticipants);
+      (repo.updateMeeting as any).mockResolvedValue({ id: 1, title: "Project Review" });
     });
 
-    it("extracts a single mention", () => {
-      expect(parseMentions("hello @Alice Smith")).toEqual(["Alice Smith"]);
+    it("notifies all participants except the editor", async () => {
+      await editMeeting(1, 1, { title: "Updated" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 2, type: "MEETING_UPDATED" })
+      );
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 3, type: "MEETING_UPDATED" })
+      );
     });
 
-    it("extracts multiple mentions", () => {
-      expect(parseMentions("cc @Alice Smith and @Bob Jones")).toEqual(["Alice Smith", "Bob Jones"]);
+    it("does not notify the editor", async () => {
+      await editMeeting(1, 1, { title: "Updated" });
+
+      const notifiedIds = (notificationsService.addNotification as any).mock.calls.map((c: any) => c[0].userId);
+      expect(notifiedIds).not.toContain(1);
     });
 
-    it("supports apostrophes, hyphens, and unicode letters", () => {
-      expect(parseMentions("cc @Anne-Marie O'Neil and @José Álvarez")).toEqual([
-        "Anne-Marie O'Neil",
-        "José Álvarez",
-      ]);
+    it("uses the new title in the notification message", async () => {
+      await editMeeting(1, 1, { title: "New Title" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: `The meeting "New Title" has been updated` })
+      );
     });
 
-    it("deduplicates repeated mentions", () => {
-      expect(parseMentions("@Alice Smith and @Alice Smith")).toEqual(["Alice Smith"]);
+    it("falls back to existing title when title is not changed", async () => {
+      await editMeeting(1, 1, { location: "Room 1" });
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: `The meeting "Project Review" has been updated` })
+      );
+    });
+
+    it("sends no notifications when meeting has no participants", async () => {
+      (repo.getMeetingById as any).mockResolvedValue({ ...meetingWithParticipants, participants: [] });
+
+      await editMeeting(1, 1, { title: "Updated" });
+
+      expect(notificationsService.addNotification).not.toHaveBeenCalled();
     });
   });
 });
