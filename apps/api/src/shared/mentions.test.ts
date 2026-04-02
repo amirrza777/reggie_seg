@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractMentionsFromLexicalJSON, resolveMentionedMembers } from "./mentions.js";
+import { extractMentionsFromLexicalJSON, extractMentionsFromText, resolveMentionedMembers } from "./mentions.js";
 
 function makeLexical(nodes: object[]) {
   return JSON.stringify({ root: { children: nodes } });
@@ -48,6 +48,31 @@ describe("extractMentionsFromLexicalJSON", () => {
       },
     });
     expect(extractMentionsFromLexicalJSON(body)).toEqual(["Reggie King"]);
+  });
+});
+
+describe("extractMentionsFromText", () => {
+  it("returns empty array when content has no mentions", () => {
+    expect(extractMentionsFromText("no mentions here")).toEqual([]);
+  });
+
+  it("extracts a single mention", () => {
+    expect(extractMentionsFromText("hello @Alice Smith")).toEqual(["Alice Smith"]);
+  });
+
+  it("extracts multiple mentions", () => {
+    expect(extractMentionsFromText("cc @Alice Smith and @Bob Jones")).toEqual(["Alice Smith", "Bob Jones"]);
+  });
+
+  it("supports apostrophes, hyphens, and unicode letters", () => {
+    expect(extractMentionsFromText("cc @Anne-Marie O'Neil and @José Álvarez")).toEqual([
+      "Anne-Marie O'Neil",
+      "José Álvarez",
+    ]);
+  });
+
+  it("deduplicates repeated mentions", () => {
+    expect(extractMentionsFromText("@Alice Smith and @Alice Smith")).toEqual(["Alice Smith"]);
   });
 });
 

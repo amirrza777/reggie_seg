@@ -25,6 +25,22 @@ export function extractMentionsFromLexicalJSON(body: string): string[] {
   }
 }
 
+export function extractMentionsFromText(content: string): string[] {
+  const matches = content.match(/@([\p{L}][\p{L}''-]*\s+[\p{L}][\p{L}''-]*)/gu);
+  if (!matches) return [];
+
+  const seen = new Set<string>();
+  const mentions: string[] = [];
+  for (const mention of matches) {
+    const normalized = mention.slice(1).trim().replace(/\s+/g, " ");
+    if (!normalized) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    mentions.push(normalized);
+  }
+  return mentions;
+}
+
 type NamedMember = { id: number; firstName: string; lastName: string };
 
 export function resolveMentionedMembers<T extends NamedMember>(
