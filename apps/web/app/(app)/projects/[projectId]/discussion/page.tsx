@@ -38,6 +38,15 @@ export default async function ProjectDiscussionPage({ params }: ProjectDiscussio
     }
   }
 
+  let members: Awaited<ReturnType<typeof getForumMembers>> = [];
+  if (user) {
+    try {
+      members = await getForumMembers(user.id, numericProjectId);
+    } catch {
+      members = [];
+    }
+  }
+
   if (shouldShowCustomAllocationBoard) {
     return (
       <PageSection title="Discussion forum" className="ui-page--project">
