@@ -199,3 +199,240 @@
   background: var(--surface);
   color: var(--ink);
 }
+
+.staff-projects__health-metrics .staff-projects__health-metric-card {
+  min-height: 96px;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+  padding: 12px;
+}
+
+.staff-projects__health-metric-value {
+  margin: 0;
+  font-size: clamp(1.6rem, 2.2vw, 2.1rem);
+  font-weight: var(--fw-bold);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.staff-projects__health-metric-value--muted {
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+.staff-projects__collapsible {
+  overflow: hidden;
+  padding: 0;
+}
+
+.staff-projects__collapsible-summary {
+  list-style: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid transparent;
+}
+
+.staff-projects__collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.staff-projects__collapsible-summary::after {
+  content: "▾";
+  color: var(--muted);
+  font-size: 0.95rem;
+  transition: transform 0.18s ease;
+}
+
+.staff-projects__collapsible[open] > .staff-projects__collapsible-summary {
+  border-bottom-color: var(--border);
+}
+
+.staff-projects__collapsible[open] > .staff-projects__collapsible-summary::after {
+  transform: rotate(180deg);
+}
+
+.staff-projects__collapsible > :not(summary) {
+  padding: 12px 14px;
+}
+
+.staff-projects__team-card--signal {
+  background:
+    radial-gradient(120% 110% at 0% 0%, color-mix(in srgb, var(--accent) 9%, transparent) 0%, transparent 72%),
+    linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, white 5%) 0%, var(--surface) 100%);
+}
+
+.staff-projects__health-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 10px;
+}
+
+.staff-projects__health-insight {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  display: grid;
+  gap: 4px;
+}
+
+.staff-projects__health-insight-label {
+  margin: 0;
+  font-size: var(--fs-label);
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.staff-projects__health-insight-value {
+  margin: 0;
+  font-size: clamp(1.15rem, 1.5vw, 1.35rem);
+  font-weight: var(--fw-bold);
+  line-height: 1.15;
+}
+
+.staff-projects__health-insight-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__signal-sections {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 10px;
+}
+
+.staff-projects__signal-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__signal-section-title {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.2;
+}
+
+.staff-projects__signal-kv {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.staff-projects__signal-kv > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.staff-projects__signal-kv dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__signal-kv dd {
+  margin: 0;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body-sm);
+}
+
+.staff-projects__signal-issues {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__signal-stats {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__signal-stat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  padding: 8px 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.staff-projects__signal-stat dt {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body-sm);
+}
+
+.staff-projects__signal-stat dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__signal-status {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.staff-projects__signal-status--ok {
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+  background: color-mix(in srgb, var(--status-success-text) 14%, transparent);
+}
+
+.staff-projects__signal-status--alert {
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
+  background: color-mix(in srgb, var(--status-danger-text) 14%, transparent);
+}
+
+.staff-projects__signal-status--unknown {
+  border-color: color-mix(in srgb, var(--border) 140%, transparent);
+  color: var(--muted);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+}
+
+.staff-projects__signal-status--high {
+  border-color: var(--status-danger-border);
+  color: var(--status-danger-text);
+  background: color-mix(in srgb, var(--status-danger-text) 14%, transparent);
+}
+
+.staff-projects__signal-status--medium {
+  border-color: var(--status-warning-border);
+  color: var(--status-warning-text);
+  background: color-mix(in srgb, var(--status-warning-text) 14%, transparent);
+}
+
+.staff-projects__signal-status--low {
+  border-color: var(--status-success-border);
+  color: var(--status-success-text);
+  background: color-mix(in srgb, var(--status-success-text) 14%, transparent);
+}

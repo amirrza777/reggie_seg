@@ -44,7 +44,7 @@ export function StaffTeamHealthMessageReviewPanel({
   const [panelError, setPanelError] = useState<string | null>(null);
   const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
-  const compactTitleStyle = { margin: 0, fontSize: "1.02rem", lineHeight: 1.2 } as const;
+  const compactTitleStyle = { margin: 0, fontSize: "1.14rem", lineHeight: 1.22 } as const;
   const compactMutedStyle = { margin: 0 } as const;
   const compactDetailStyle = {
     margin: 0,
