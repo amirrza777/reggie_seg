@@ -45,10 +45,20 @@ describe("StaffProjectCreatePanel", () => {
       { id: "42", title: "Software Engineering", accountRole: "OWNER" },
     ] as never);
     getModuleStudentsMock.mockResolvedValue({
-      students: [{ id: 1, firstName: "Ali", lastName: "Mohammed", email: "ali@example.com", enrolled: true, active: true }],
+      students: [
+        {
+          id: 101,
+          email: "student@example.com",
+          firstName: "Sample",
+          lastName: "Student",
+          active: true,
+          enrolled: true,
+        },
+      ],
     } as never);
     getMyQuestionnairesMock.mockResolvedValue([
-      { id: 12, templateName: "Team Feedback Template", purpose: "GENERAL_PURPOSE" },
+      { id: 12, templateName: "Team Feedback Template", purpose: "PEER_ASSESSMENT" },
+      { id: 18, templateName: "Allocation Setup", purpose: "CUSTOMISED_ALLOCATION" },
     ] as never);
     createStaffProjectMock.mockResolvedValue({
       id: 77,
@@ -60,13 +70,13 @@ describe("StaffProjectCreatePanel", () => {
   it("submits trimmed project data and redirects on success", async () => {
     render(
       <StaffProjectCreatePanel
-        currentUserId={9}
         modules={[{ id: "42", title: "Software Engineering", accountRole: "OWNER" } as never]}
         modulesError={null}
       />,
     );
 
     await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
     const [templateSelect] = screen.getAllByRole("combobox");
 
@@ -105,13 +115,13 @@ describe("StaffProjectCreatePanel", () => {
   it("shows validation feedback when deadline ordering is invalid", async () => {
     render(
       <StaffProjectCreatePanel
-        currentUserId={9}
         modules={[{ id: "42", title: "Software Engineering", accountRole: "OWNER" } as never]}
         modulesError={null}
       />,
     );
 
     await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
     const [templateSelect] = screen.getAllByRole("combobox");
 

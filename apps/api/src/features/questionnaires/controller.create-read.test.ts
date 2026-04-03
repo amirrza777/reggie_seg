@@ -95,6 +95,36 @@ describe("createTemplateHandler", () => {
     expect(service.createTemplate).toHaveBeenCalledWith("JWT", [], 9, true);
   });
 
+  it("accepts access token payload with email and forwards purpose", async () => {
+    (jwt.verify as any).mockReturnValue({ sub: 9, email: "user@test.dev" });
+    (service.createTemplate as any).mockResolvedValue({ id: 79 });
+
+    const req: any = {
+      body: { templateName: "Purpose", questions: [], purpose: "GENERAL_PURPOSE" },
+      headers: { authorization: "Bearer token123" },
+      cookies: {},
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(service.createTemplate).toHaveBeenCalledWith("Purpose", [], 9, true, "GENERAL_PURPOSE");
+  });
+
+  it("returns 401 when access token payload has invalid sub/email shape", async () => {
+    (jwt.verify as any).mockReturnValue({ sub: "9", email: "" });
+    const req: any = {
+      body: { templateName: "JWT", questions: [] },
+      headers: { authorization: "Bearer token123" },
+      cookies: {},
+    };
+    const res = mockResponse();
+
+    await createTemplateHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+  });
+
   it("falls back to refresh token if access token fails", async () => {
     (jwt.verify as any).mockImplementation(() => {
       throw new Error("bad token");

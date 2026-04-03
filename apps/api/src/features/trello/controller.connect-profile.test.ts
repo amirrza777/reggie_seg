@@ -62,6 +62,18 @@ describe("TrelloController connect/profile", () => {
     expect(res.json).toHaveBeenCalledWith({ trelloMemberId: null });
   });
 
+  it("returns 500 when getMyTrelloMemberId lookup fails", async () => {
+    (TrelloRepo.getUserById as any).mockRejectedValue(new Error("lookup failed"));
+
+    const req: any = { user: { sub: 1 } };
+    const res = createMockRes();
+
+    await TrelloController.getMyTrelloMemberId(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.json).toHaveBeenCalledWith({ error: "lookup failed" });
+  });
+
   it("returns 401 when not authenticated for getMyTrelloMemberId", async () => {
     const req: any = { user: null };
     const res = createMockRes();

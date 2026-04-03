@@ -150,6 +150,32 @@ describe("updateTemplateHandler", () => {
     expect(service.updateTemplate).toHaveBeenCalledWith(99, 1, "Updated", [], undefined);
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
+
+  it("forwards purpose when update body includes it", async () => {
+    (service.updateTemplate as any).mockResolvedValue(undefined);
+
+    const req: any = {
+      params: { id: "1" },
+      body: {
+        templateName: "Updated",
+        questions: [{ id: 1, label: "Rate", type: "rating" }],
+        purpose: "GENERAL_PURPOSE",
+      },
+      user: { sub: 99 },
+    };
+    const res = mockResponse();
+
+    await updateTemplateHandler(req, res);
+
+    expect(service.updateTemplate).toHaveBeenCalledWith(
+      99,
+      1,
+      "Updated",
+      [{ id: 1, label: "Rate", type: "rating" }],
+      undefined,
+      "GENERAL_PURPOSE",
+    );
+  });
 });
 
 describe("deleteTemplateHandler", () => {

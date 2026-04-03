@@ -85,6 +85,57 @@ describe("TrelloService team and board operations", () => {
     expect(result).toEqual({ board: { id: "board1" }, sectionConfig: {} });
   });
 
+  it("returns requireJoin when user has Trello member id but is not on board", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      trelloBoardId: "board1",
+      trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: { Todo: "todo" },
+    });
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      id: 1,
+      trelloMemberId: "member-1",
+    });
+
+    vi.spyOn(TrelloService, "getBoardWithData").mockResolvedValue({
+      id: "board1",
+      url: "https://trello.com/b/board1",
+      members: [{ id: "member-2" }],
+    } as any);
+
+    const result = await TrelloService.fetchAssignedTeamBoard(2, 1);
+
+    expect(result).toEqual({
+      requireJoin: true,
+      boardUrl: "https://trello.com/b/board1",
+    });
+  });
+
+  it("returns object section config when available and user is on board", async () => {
+    (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      trelloBoardId: "board1",
+      trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: { Todo: "todo", Doing: "in_progress" },
+    });
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      id: 1,
+      trelloMemberId: "member-1",
+    });
+
+    vi.spyOn(TrelloService, "getBoardWithData").mockResolvedValue({
+      id: "board1",
+      members: [{ id: "member-1" }],
+    } as any);
+
+    const result = await TrelloService.fetchAssignedTeamBoard(2, 1);
+
+    expect(result).toEqual({
+      board: { id: "board1", members: [{ id: "member-1" }] },
+      sectionConfig: { Todo: "todo", Doing: "in_progress" },
+    });
+  });
+
   it("throws if not team member", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(false);
 
@@ -146,6 +197,36 @@ describe("TrelloService team and board operations", () => {
 
     const shortPrefixMatches = await TrelloService.fetchMyBoards(1, { query: "daa" });
     expect(shortPrefixMatches.map((board: any) => board.name)).toEqual(["Data Structures", "Database Systems"]);
+  });
+
+  it("handles boards with non-string names/ids while searching", async () => {
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      trelloToken: "token123",
+    });
+
+    vi.spyOn(TrelloService, "getUserBoards").mockResolvedValue([
+      { id: 99, name: 123 },
+      { id: "board-abc", name: "Readable Board" },
+    ] as any);
+
+    const byId = await TrelloService.fetchMyBoards(1, { query: "board-abc" });
+    expect(byId).toEqual([{ id: "board-abc", name: "Readable Board" }]);
+  });
+
+  it("returns all boards when search query is whitespace", async () => {
+    (TrelloRepo.getUserById as any).mockResolvedValue({
+      trelloToken: "token123",
+    });
+    vi.spyOn(TrelloService, "getUserBoards").mockResolvedValue([
+      { id: "b1", name: "One" },
+      { id: "b2", name: "Two" },
+    ] as any);
+
+    const result = await TrelloService.fetchMyBoards(1, { query: "   " });
+    expect(result).toEqual([
+      { id: "b1", name: "One" },
+      { id: "b2", name: "Two" },
+    ]);
   });
 
   it("throws if user not connected", async () => {
