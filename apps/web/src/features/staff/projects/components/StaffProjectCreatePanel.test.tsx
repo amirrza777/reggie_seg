@@ -63,7 +63,7 @@ describe("StaffProjectCreatePanel", () => {
     createStaffProjectMock.mockResolvedValue({
       id: 77,
       name: "Release Project",
-      moduleId: 42,
+      moduleId: "42",
     } as never);
   });
 
