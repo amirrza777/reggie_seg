@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import { parseSearchQuery } from "../../shared/search.js";
 import { readSingleQueryString } from "../../shared/searchParams.js";
 import {
@@ -89,6 +90,9 @@ export async function createProjectHandler(req: AuthRequest, res: Response) {
     }
     if (errorCode === "MODULE_NOT_FOUND") {
       return res.status(404).json({ error: "Module not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (errorCode === "TEMPLATE_NOT_FOUND") {
       return res.status(404).json({ error: "Questionnaire template not found" });

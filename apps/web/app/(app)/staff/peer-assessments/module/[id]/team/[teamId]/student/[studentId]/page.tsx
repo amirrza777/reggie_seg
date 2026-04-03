@@ -84,6 +84,8 @@ export default async function StudentPage({ params }: PageProps) {
   }
 
   const studentName = memberName(data.student);
+  const markingReadOnly = Boolean(data.module.archivedAt);
+
   return (
     <div className="stack ui-page">
       <Placeholder
@@ -174,6 +176,7 @@ export default async function StudentPage({ params }: PageProps) {
         teamId={teamId}
         studentId={studentId}
         initialMarking={data.studentMarking}
+        readOnly={markingReadOnly}
       />
     </div>
   );

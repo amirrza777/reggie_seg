@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../shared/db.js";
+import { assertProjectMutableForWritesByProjectId } from "../../shared/projectWriteGuard.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
 
@@ -873,6 +874,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
       module: {
         select: {
           name: true,
+          archivedAt: true,
         },
       },
       teams: {
@@ -1022,6 +1024,7 @@ export async function getProjectById(projectId: number) {
       moduleId: true,
       questionnaireTemplateId: true,
       projectNavFlags: true,
+      module: { select: { archivedAt: true } },
     },
   });
 }
@@ -1042,10 +1045,13 @@ export async function createProject(
 
   const moduleRecord = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: actor.enterpriseId },
-    select: { id: true },
+    select: { id: true, archivedAt: true },
   });
   if (!moduleRecord) {
     throw { code: "MODULE_NOT_FOUND" };
+  }
+  if (moduleRecord.archivedAt != null) {
+    throw { code: "MODULE_ARCHIVED" };
   }
 
   const roleCanAccessAll = actor.role === "ADMIN" || actor.role === "ENTERPRISE_ADMIN";
@@ -1144,6 +1150,7 @@ export async function updateStaffTeamDeadlineProfile(
       project: {
         module: {
           enterpriseId: actor.enterpriseId,
+          archivedAt: null,
           ...(roleCanAccessAll
             ? {}
             : {
@@ -2069,6 +2076,7 @@ export async function upsertStaffStudentDeadlineOverride(
   payload: StudentDeadlineOverrideInput,
 ) {
   const project = await getAccessibleProjectDeadlineScope(actorUserId, projectId);
+  await assertProjectMutableForWritesByProjectId(project.id);
   if (!project.deadline) {
     throw { code: "PROJECT_NOT_FOUND" };
   }
@@ -2148,6 +2156,7 @@ export async function clearStaffStudentDeadlineOverride(
   studentId: number,
 ) {
   const project = await getAccessibleProjectDeadlineScope(actorUserId, projectId);
+  await assertProjectMutableForWritesByProjectId(project.id);
   if (!project.deadline) {
     throw { code: "PROJECT_NOT_FOUND" };
   }

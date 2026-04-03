@@ -1,5 +1,6 @@
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { StaffProjectBreadcrumbs } from "@/features/staff/projects/components/StaffProjectBreadcrumbs";
+import { ArchivedModuleProjectScopeBanner } from "@/features/modules/components/ArchivedModuleProjectScopeBanner";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -16,6 +17,7 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
   let teamNamesById: Record<string, string> = {};
   let moduleId: string | null = null;
   let moduleName: string | null = null;
+  let moduleArchivedAt: string | null | undefined;
 
   const user = await getCurrentUser();
   const canLoadProjectData =
@@ -28,6 +30,7 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
       projectName = projectData.project.name;
       moduleId = String(projectData.project.moduleId);
       moduleName = projectData.project.moduleName;
+      moduleArchivedAt = projectData.project.moduleArchivedAt ?? null;
       teamNamesById = Object.fromEntries(projectData.teams.map((team) => [String(team.id), team.teamName]));
     } catch {
       // Keep fallback breadcrumb labels when project data fails to load.
@@ -43,6 +46,7 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
         moduleId={moduleId}
         moduleName={moduleName}
       />
+      <ArchivedModuleProjectScopeBanner moduleArchivedAt={moduleArchivedAt} audience="staff" />
       {children}
     </div>
   );

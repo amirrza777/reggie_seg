@@ -10,10 +10,23 @@ import type {
   QuestionAverage,
   ReviewerAnswer,
   PerformanceSummary,
+  StaffModuleSummaryInResponse,
 } from "./types.js";
 
 async function getModuleIfLead(staffId: number, moduleId: number) {
   return repo.getModuleDetailsIfAuthorised(moduleId, staffId);
+}
+
+function mapModuleForStaffResponse(module: {
+  id: number;
+  name: string;
+  archivedAt: Date | null;
+}): StaffModuleSummaryInResponse {
+  return {
+    id: module.id,
+    title: module.name,
+    archivedAt: module.archivedAt?.toISOString() ?? null,
+  };
 }
 
 function buildProgressSummary(
@@ -83,7 +96,7 @@ export async function getModuleDetailsIfLead(
   if (!module) return null;
   const teams = await getProgressForTeam(moduleId);
   return {
-    module: { id: module.id, title: module.name },
+    module: mapModuleForStaffResponse(module),
     teams,
   };
 }
@@ -113,7 +126,7 @@ export async function getTeamDetailsIfLead(
     return { ...buildProgressSummary(user.id, title, submitted, expected), flagged };
   });
   return {
-    module: { id: module.id, title: module.name },
+    module: mapModuleForStaffResponse(module),
     team: { id: team.id, title: team.teamName },
     students,
     teamMarking: mapMarkingRecord(teamMarking),
@@ -273,7 +286,7 @@ export async function getStudentDetailsIfLead(
   }
 
   return {
-    module: { id: module.id, title: module.name },
+    module: mapModuleForStaffResponse(module),
     team: { id: team.id, title: team.teamName },
     student: {
       id: student.id,
@@ -296,6 +309,9 @@ export async function saveTeamMarkingIfLead(
 ): Promise<StaffMarkingSummary | null> {
   const module = await getModuleIfLead(staffId, moduleId);
   if (!module) return null;
+  if (module.archivedAt != null) {
+    throw { code: "MODULE_ARCHIVED" as const };
+  }
 
   const team = await repo.findTeamByIdAndModule(teamId, moduleId);
   if (!team) return null;
@@ -319,6 +335,9 @@ export async function saveStudentMarkingIfLead(
 ): Promise<StaffMarkingSummary | null> {
   const module = await getModuleIfLead(staffId, moduleId);
   if (!module) return null;
+  if (module.archivedAt != null) {
+    throw { code: "MODULE_ARCHIVED" as const };
+  }
 
   const team = await repo.findTeamByIdAndModule(teamId, moduleId);
   if (!team) return null;

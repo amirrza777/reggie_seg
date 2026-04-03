@@ -51,6 +51,11 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+  assertProjectMutableForWritesByProjectId: vi.fn().mockResolvedValue(undefined),
+}));
+
 const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
@@ -339,7 +344,11 @@ describe("meetings service", () => {
 
   it("forwards markAttendance to repo", async () => {
     const records = [{ userId: 1, status: "Present" }];
-    (repo.getMeetingById as any).mockResolvedValue(null);
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 3,
+      teamId: 1,
+      team: { projectId: 10, teamName: "Team A", allocations: [] },
+    });
 
     await markAttendance(3, records);
 
@@ -527,7 +536,11 @@ describe("meetings service", () => {
 
   describe("editMeeting MEETING_UPDATED notifications", () => {
     const meetingWithParticipants = {
-      id: 1, organiserId: 1, date: tomorrow, title: "Project Review",
+      id: 1,
+      teamId: 1,
+      organiserId: 1,
+      date: tomorrow,
+      title: "Project Review",
       participants: [{ userId: 2 }, { userId: 3 }],
       team: { projectId: 5, allocations: [{ userId: 1 }] },
     };

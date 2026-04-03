@@ -9,7 +9,7 @@ export type ModuleSummary = {
 };
 
 export type ModuleDetails = {
-  module: { id: number; title: string };
+  module: { id: number; title: string; archivedAt: string | null };
   teams: ModuleSummary[];
 };
 
@@ -41,7 +41,7 @@ export async function getModuleDetails(
 }
 
 export type TeamDetails = {
-  module: { id: number; title: string };
+  module: { id: number; title: string; archivedAt: string | null };
   team: { id: number; title: string };
   students: ModuleSummary[];
   teamMarking: StaffMarkingSummary | null;
@@ -88,7 +88,7 @@ export type PerformanceSummary = {
 };
 
 export type StudentDetails = {
-  module: { id: number; title: string };
+  module: { id: number; title: string; archivedAt: string | null };
   team: { id: number; title: string };
   student: { id: number; firstName: string; lastName: string };
   teamMembers: StudentTeamMember[];

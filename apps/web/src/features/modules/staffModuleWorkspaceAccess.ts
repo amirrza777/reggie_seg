@@ -1,4 +1,3 @@
-import { isModuleArchivedFromApi } from "./moduleArchiveState";
 import type { Module } from "./types";
 import type { StaffModuleWorkspaceContext } from "./staffModuleWorkspaceLayoutData";
 import { isAdmin, isEnterpriseAdmin } from "@/shared/auth/session";
@@ -18,11 +17,6 @@ export type StaffModuleWorkspaceAccess = {
   staffModuleSetup: boolean;
   enterpriseModuleEditor: boolean;
   createProjectInModule: boolean;
-  moduleArchived: boolean;
-  /** True when owner or admin_access, and module is not archived. */
-  canEdit: boolean;
-  /** True when owner or admin_access, and module is not archived. */
-  canCreateProject: boolean;
 };
 
 function listSlotFromRecord(moduleRecord: Module | null | undefined): StaffModuleListSlot {
@@ -39,8 +33,6 @@ export function resolveStaffModuleWorkspaceAccess(ctx: StaffModuleWorkspaceConte
   const orgOrPlatformAdmin = isEnterpriseAdmin(ctx.user) || isAdmin(ctx.user);
   const staffOrPlatformAdmin = Boolean(ctx.user.isStaff) || isAdmin(ctx.user);
 
-  const moduleArchived = isModuleArchivedFromApi(ctx.module);
-
   const staffModuleSetup = listSlot === StaffModuleListSlot.Owner && staffOrPlatformAdmin;
 
   const enterpriseModuleEditor = orgOrPlatformAdmin;
@@ -48,18 +40,12 @@ export function resolveStaffModuleWorkspaceAccess(ctx: StaffModuleWorkspaceConte
   const createProjectInModule =
     listSlot === StaffModuleListSlot.Owner || listSlot === StaffModuleListSlot.AdminAccess;
 
-  const canEdit = (staffModuleSetup || enterpriseModuleEditor) && !moduleArchived;
-  const canCreateProject = createProjectInModule && !moduleArchived;
-
   return {
     listSlot,
     orgOrPlatformAdmin,
     staffModuleSetup,
     enterpriseModuleEditor,
     createProjectInModule,
-    moduleArchived,
-    canEdit,
-    canCreateProject,
   };
 }
 
@@ -70,6 +56,5 @@ export function hasStaffModuleListEditRole(moduleRecord: Pick<Module, "accountRo
 }
 
 export function canOpenStaffModuleManagePage(ctx: StaffModuleWorkspaceContext): boolean {
-  const a = resolveStaffModuleWorkspaceAccess(ctx);
-  return a.staffModuleSetup && a.canEdit;
+  return resolveStaffModuleWorkspaceAccess(ctx).staffModuleSetup;
 }

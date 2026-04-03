@@ -4,8 +4,8 @@ import {
   hasStaffModuleListEditRole,
   resolveStaffModuleWorkspaceAccess,
   StaffModuleListSlot,
-} from "./staffModuleWorkspaceAccess";
-import type { StaffModuleWorkspaceContext } from "./staffModuleWorkspaceLayoutData";
+  type StaffModuleWorkspaceContext,
+} from "./staffModuleWorkspaceLayoutData";
 
 function baseCtx(overrides: Partial<StaffModuleWorkspaceContext>): StaffModuleWorkspaceContext {
   return {
@@ -84,19 +84,19 @@ describe("resolveStaffModuleWorkspaceAccess", () => {
     expect(a.staffModuleSetup).toBe(true);
     expect(a.enterpriseModuleEditor).toBe(false);
     expect(a.createProjectInModule).toBe(true);
-    expect(a.moduleArchived).toBe(false);
+    expect(a.isArchived).toBe(false);
     expect(a.canEdit).toBe(true);
     expect(a.canCreateProject).toBe(true);
   });
 
-  it("sets moduleArchived when the module has archivedAt", () => {
+  it("sets isArchived when the module has archivedAt", () => {
     const archived = resolveStaffModuleWorkspaceAccess(
       baseCtx({
         moduleRecord: { id: "9", title: "Mod", accountRole: "OWNER", archivedAt: "2026-01-01T00:00:00.000Z" },
         module: { id: "9", title: "Mod", accountRole: "OWNER", archivedAt: "2026-01-01T00:00:00.000Z" },
       }),
     );
-    expect(archived.moduleArchived).toBe(true);
+    expect(archived.isArchived).toBe(true);
     expect(archived.canEdit).toBe(false);
     expect(archived.canCreateProject).toBe(false);
   });
@@ -114,7 +114,7 @@ describe("resolveStaffModuleWorkspaceAccess", () => {
     expect(b.orgOrPlatformAdmin).toBe(true);
     expect(b.enterpriseModuleEditor).toBe(true);
     expect(b.staffModuleSetup).toBe(false);
-    expect(b.moduleArchived).toBe(false);
+    expect(b.isArchived).toBe(false);
     expect(b.canEdit).toBe(true);
     expect(b.canCreateProject).toBe(false);
   });
@@ -130,7 +130,7 @@ describe("resolveStaffModuleWorkspaceAccess", () => {
     );
     expect(p.enterpriseModuleEditor).toBe(true);
     expect(p.staffModuleSetup).toBe(false);
-    expect(p.moduleArchived).toBe(false);
+    expect(p.isArchived).toBe(false);
     expect(p.canEdit).toBe(true);
     expect(p.canCreateProject).toBe(false);
   });
@@ -148,7 +148,7 @@ describe("resolveStaffModuleWorkspaceAccess", () => {
     expect(c.createProjectInModule).toBe(true);
     expect(c.staffModuleSetup).toBe(false);
     expect(c.enterpriseModuleEditor).toBe(true);
-    expect(c.moduleArchived).toBe(false);
+    expect(c.isArchived).toBe(false);
     expect(c.canEdit).toBe(true);
     expect(c.canCreateProject).toBe(true);
   });

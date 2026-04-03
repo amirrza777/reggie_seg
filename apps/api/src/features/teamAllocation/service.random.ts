@@ -1,3 +1,4 @@
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import {
   applyRandomAllocationPlan,
   findProjectTeamSummaries,
@@ -50,9 +51,7 @@ export async function previewRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,
@@ -110,9 +109,7 @@ export async function applyRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,

@@ -241,8 +241,11 @@ describe("projects repo read and create flows", () => {
         id: true,
         name: true,
         informationText: true,
+        archivedAt: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        projectNavFlags: true,
+        module: { select: { archivedAt: true } },
       },
     });
   });

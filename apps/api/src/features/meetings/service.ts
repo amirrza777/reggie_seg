@@ -1,3 +1,5 @@
+import { prisma } from "../../shared/db.js";
+import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";
 import {
   getMeetingsByTeamId,
   getMeetingById,
@@ -26,6 +28,7 @@ function resolveTeamMeetingFeedbackDueDate(team: {
   deadlineOverride: { feedbackDueDate: Date | null } | null;
   project: {
     archivedAt: Date | null;
+    module?: { archivedAt: Date | null } | null;
     deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
   } | null;
 }) {
@@ -49,12 +52,13 @@ function isProjectCompletedForMeetings(
     deadlineOverride: { feedbackDueDate: Date | null } | null;
     project: {
       archivedAt: Date | null;
+      module?: { archivedAt: Date | null } | null;
       deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
     } | null;
   },
   now: Date = new Date(),
 ) {
-  if (team.archivedAt || team.project?.archivedAt) return true;
+  if (team.archivedAt || team.project?.archivedAt || team.project?.module?.archivedAt) return true;
   const effectiveDueDate = resolveTeamMeetingFeedbackDueDate(team);
   if (!effectiveDueDate) return false;
   return now.getTime() > effectiveDueDate.getTime();
@@ -116,6 +120,7 @@ export async function addMeeting(data: {
   const { participantIds, ...meetingData } = data;
   const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
+  if (team?.project?.module?.archivedAt) throw { code: "MODULE_ARCHIVED" };
   if (team && isProjectCompletedForMeetings(team)) {
     throw { code: "PROJECT_COMPLETED" };
   }
@@ -170,6 +175,7 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 }) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meeting.teamId);
   if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
   const isOrganiser = meeting.organiserId === userId;
   if (!isOrganiser) {
@@ -201,6 +207,7 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 export async function removeMeeting(meetingId: number) {
   const meeting = await getMeetingById(meetingId);
   if (meeting) {
+    await assertProjectMutableForWritesByTeamId(meeting.teamId);
     await Promise.all(
       meeting.participants.map((p) =>
         addNotification({
@@ -255,6 +262,9 @@ async function checkAndNotifyConsecutiveAbsences(
 
 /** Marks the attendance. */
 export async function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
+  const meetingForTeam = await getMeetingById(meetingId);
+  if (!meetingForTeam) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meetingForTeam.teamId);
   await bulkUpsertAttendance(meetingId, records);
   await checkAndNotifyConsecutiveAbsences(meetingId, records);
 }
@@ -263,6 +273,7 @@ export async function markAttendance(meetingId: number, records: { userId: numbe
 export async function saveMinutes(meetingId: number, writerId: number, content: string) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meeting.teamId);
   const isOriginalWriter = meeting.minutes?.writerId === writerId;
   if (meeting.minutes && !isOriginalWriter) {
     const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
@@ -316,7 +327,8 @@ async function processMentions(
     const matchedIds = (membersByName.get(normalizeMentionName(mentionedName)) ?? []).filter((id) => id !== userId);
     // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
     if (matchedIds.length === 1) {
-      mentionedIds.add(matchedIds[0]);
+      const [id] = matchedIds;
+      mentionedIds.add(id);
     }
   }
 
@@ -340,6 +352,9 @@ async function processMentions(
 }
 
 export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
+  const meetingRow = await getMeetingById(meetingId);
+  if (!meetingRow) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meetingRow.teamId);
   const comment = await createComment(meetingId, userId, content);
   if (teamId) {
     try {
@@ -352,7 +367,14 @@ export async function addComment(meetingId: number, userId: number, content: str
 }
 
 /** Removes the comment. */
-export function removeComment(commentId: number) {
+export async function removeComment(commentId: number) {
+  const row = await prisma.meetingComment.findUnique({
+    where: { id: commentId },
+    select: { meeting: { select: { teamId: true } } },
+  });
+  if (row?.meeting?.teamId != null) {
+    await assertProjectMutableForWritesByTeamId(row.meeting.teamId);
+  }
   return deleteComment(commentId);
 }
 

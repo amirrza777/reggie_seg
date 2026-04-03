@@ -165,12 +165,22 @@ type RichTextEditorProps = {
   placeholder?: string;
   showWordCount?: boolean;
   members?: Member[];
+  readOnly?: boolean;
 };
 
-export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeholder = "Start typing...", showWordCount, members }: RichTextEditorProps) {
+export function RichTextEditor({
+  initialContent,
+  onChange,
+  onEmptyChange,
+  placeholder = "Start typing...",
+  showWordCount,
+  members,
+  readOnly = false,
+}: RichTextEditorProps) {
   const [wordCount, setWordCount] = useState(0);
   const initialConfig = {
     namespace: "RichTextEditor",
+    editable: !readOnly,
     nodes: [ListNode, ListItemNode, HeadingNode, QuoteNode, MentionNode],
     onError: console.error,
     theme: RICH_EDITOR_THEME,
@@ -178,8 +188,8 @@ export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeh
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="rich-editor">
-        <Toolbar />
+      <div className={`rich-editor${readOnly ? " rich-editor--readonly" : ""}`}>
+        {!readOnly ? <Toolbar /> : null}
         <div className="rich-editor__content">
           <RichTextPlugin
             contentEditable={
@@ -197,19 +207,23 @@ export function RichTextEditor({ initialContent, onChange, onEmptyChange, placeh
           />
         </div>
         {showWordCount && <WordCountPlugin onWordCountChange={setWordCount} />}
-        <HistoryPlugin />
+        {!readOnly ? <HistoryPlugin /> : null}
         <ListPlugin />
-        <OnChangePlugin onChange={(state: EditorState) => {
-          onChange(JSON.stringify(state.toJSON()));
-          if (onEmptyChange) {
-            state.read(() => {
-              onEmptyChange($getRoot().getTextContent().trim().length === 0);
-            });
-          }
-        }} />
+        {!readOnly ? (
+          <OnChangePlugin
+            onChange={(state: EditorState) => {
+              onChange(JSON.stringify(state.toJSON()));
+              if (onEmptyChange) {
+                state.read(() => {
+                  onEmptyChange($getRoot().getTextContent().trim().length === 0);
+                });
+              }
+            }}
+          />
+        ) : null}
         <InitialContentPlugin content={initialContent} />
-        <TabIndentationPlugin />
-        {members && <MentionPlugin members={members} />}
+        {!readOnly ? <TabIndentationPlugin /> : null}
+        {!readOnly && members ? <MentionPlugin members={members} /> : null}
       </div>
       {showWordCount && <div className="rich-editor__word-count">{wordCount} words</div>}
     </LexicalComposer>

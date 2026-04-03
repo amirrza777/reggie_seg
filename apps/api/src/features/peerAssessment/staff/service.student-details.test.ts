@@ -28,7 +28,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const moduleLead = { id: 1, name: "Module A" };
+const moduleLead = { id: 1, name: "Module A", archivedAt: null as Date | null };
 const teamInModule = { id: 10, teamName: "Team 1" };
 const twoMembers = [
   { id: 100, firstName: "Alice", lastName: "Smith" },

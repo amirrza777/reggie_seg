@@ -1,3 +1,4 @@
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import {
   findCustomAllocationQuestionnairesForStaff,
   findCustomAllocationTemplateForStaff,
@@ -22,9 +23,7 @@ export async function listCustomAllocationQuestionnairesForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const templates = await findCustomAllocationQuestionnairesForStaff(staffId);
   const questionnaires = templates
@@ -82,9 +81,7 @@ export async function getCustomAllocationCoverageForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const template = await findCustomAllocationTemplateForStaff(staffId, questionnaireTemplateId);
   if (!template) {

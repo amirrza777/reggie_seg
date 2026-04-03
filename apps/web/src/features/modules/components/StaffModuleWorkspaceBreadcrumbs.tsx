@@ -18,8 +18,7 @@ const SECTION_LABELS: Record<string, string> = {
   projects: "Projects",
   staff: "Staff members",
   students: "Student members",
-  settings: "Settings",
-  manage: "Manage module",
+  manage: "Settings",
 };
 
 const SUBSECTION_LABELS: Record<string, string> = {

@@ -12,6 +12,7 @@ export type StaffScopedProject = {
   moduleId: number;
   moduleName: string;
   archivedAt: Date | null;
+  moduleArchivedAt: Date | null;
   enterpriseId: string;
 };
 
@@ -294,7 +295,7 @@ export async function findStaffScopedProject(
       moduleId: true,
       archivedAt: true,
       module: {
-        select: { name: true },
+        select: { name: true, archivedAt: true },
       },
     },
   });
@@ -309,6 +310,7 @@ export async function findStaffScopedProject(
     moduleId: project.moduleId,
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
+    moduleArchivedAt: project.module.archivedAt,
     enterpriseId: user.enterpriseId,
   };
 }
@@ -352,6 +354,7 @@ export async function findStaffScopedProjectAccess(
       module: {
         select: {
           name: true,
+          archivedAt: true,
           moduleLeads: {
             where: { userId: staffId },
             select: { userId: true },
@@ -380,6 +383,7 @@ export async function findStaffScopedProjectAccess(
     moduleId: project.moduleId,
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
+    moduleArchivedAt: project.module.archivedAt,
     enterpriseId: user.enterpriseId,
     actorRole: role === "STUDENT" ? "STAFF" : role,
     isModuleLead,
@@ -1447,6 +1451,7 @@ export const TeamService = {
         id: teamId,
         archivedAt: null,
         allocationLifecycle: "ACTIVE",
+        project: { module: { archivedAt: null } },
       },
     });
     if (!team) throw { code: "TEAM_NOT_FOUND" };

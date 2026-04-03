@@ -19,6 +19,7 @@ type StaffMarkingCardProps = {
   teamId: number;
   studentId?: number;
   initialMarking: StaffMarkingSummary | null;
+  readOnly?: boolean;
 };
 
 type SaveState = "idle" | "saving" | "success" | "error";
@@ -53,6 +54,7 @@ export function StaffMarkingCard({
   teamId,
   studentId,
   initialMarking,
+  readOnly = false,
 }: StaffMarkingCardProps) {
   const [marking, setMarking] = useState<StaffMarkingSummary | null>(initialMarking);
   const [markInput, setMarkInput] = useState(
@@ -88,6 +90,7 @@ export function StaffMarkingCard({
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) return;
 
     const trimmedMark = markInput.trim();
     let parsedMark: number | null = null;
@@ -107,6 +110,7 @@ export function StaffMarkingCard({
   }
 
   async function handleClear() {
+    if (readOnly) return;
     await submitMarking(null, null);
   }
 
@@ -118,6 +122,12 @@ export function StaffMarkingCard({
         Last updated by {formatMarkerName(marking)}
         {marking ? ` on ${formatStableDateTime(marking.updatedAt)}` : ""}.
       </p>
+
+      {readOnly ? (
+        <p className="ui-note ui-note--muted" style={{ marginTop: 8 }}>
+          This module is archived; marking is read-only.
+        </p>
+      ) : null}
 
       <form className="stack" style={{ marginTop: 12 }} onSubmit={handleSubmit}>
         <label className="stack" style={{ gap: 6 }}>
@@ -131,7 +141,7 @@ export function StaffMarkingCard({
             value={markInput}
             onChange={(event) => setMarkInput(event.target.value)}
             placeholder="e.g. 72.5"
-            disabled={state === "saving"}
+            disabled={readOnly || state === "saving"}
           />
         </label>
 
@@ -143,9 +153,11 @@ export function StaffMarkingCard({
             onChange={setFeedback}
             onEmptyChange={setFeedbackEmpty}
             placeholder="Write specific strengths, issues, and next actions."
+            readOnly={readOnly}
           />
         </div>
 
+        {readOnly ? null : (
         <div className="ui-row ui-row--wrap">
           <Button type="submit" disabled={state === "saving"}>
             {submitLabel}
@@ -159,6 +171,7 @@ export function StaffMarkingCard({
             Clear
           </Button>
         </div>
+        )}
 
         {message ? (
           <p className={state === "error" ? "error" : "muted"}>{message}</p>

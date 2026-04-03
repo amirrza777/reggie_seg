@@ -9,6 +9,11 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, refresh }),
 }));
 
+vi.mock("@/features/archive/api/client", () => ({
+  archiveItem: vi.fn(() => Promise.resolve()),
+  unarchiveItem: vi.fn(() => Promise.resolve()),
+}));
+
 vi.mock("@/features/auth/useUser", () => ({
   useUser: () => ({
     user: { id: 999, email: "editor@x.com", firstName: "Ed", lastName: "Itor", role: "ENTERPRISE_ADMIN" as const },
@@ -37,6 +42,7 @@ import {
   updateModuleMeetingSettings,
   updateEnterpriseModule,
 } from "../api/client";
+import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
 import type { EnterpriseModuleAccessSelectionResponse } from "../types";
 import { EnterpriseModuleCreateForm } from "./EnterpriseModuleCreateForm";
 import React from "react";
@@ -47,6 +53,7 @@ const editInitialSelection: EnterpriseModuleAccessSelectionResponse = {
     name: "Existing module",
     createdAt: "2026-03-01T00:00:00.000Z",
     updatedAt: "2026-03-01T00:00:00.000Z",
+    archivedAt: null,
     studentCount: 1,
     leaderCount: 1,
     teachingAssistantCount: 1,
@@ -68,6 +75,8 @@ const searchEnterpriseModuleAccessUsersMock = searchEnterpriseModuleAccessUsers 
 const getModuleMeetingSettingsMock = getModuleMeetingSettings as MockedFunction<typeof getModuleMeetingSettings>;
 const updateModuleMeetingSettingsMock = updateModuleMeetingSettings as MockedFunction<typeof updateModuleMeetingSettings>;
 const updateEnterpriseModuleMock = updateEnterpriseModule as MockedFunction<typeof updateEnterpriseModule>;
+const archiveItemMock = archiveItem as MockedFunction<typeof archiveItem>;
+const unarchiveItemMock = unarchiveItem as MockedFunction<typeof unarchiveItem>;
 
 const staffOwner = { id: 11, email: "lead@x.com", firstName: "Staff", lastName: "Owner", active: true };
 const taStudent = { id: 12, email: "ta@student.com", firstName: "TA", lastName: "Student", active: true };
@@ -146,6 +155,7 @@ describe("EnterpriseModuleCreateForm", () => {
         name: "Existing module",
         createdAt: "2026-03-01T00:00:00.000Z",
         updatedAt: "2026-03-01T00:00:00.000Z",
+        archivedAt: null,
         studentCount: 1,
         leaderCount: 1,
         teachingAssistantCount: 1,
@@ -243,6 +253,54 @@ describe("EnterpriseModuleCreateForm", () => {
     expect(screen.getByText(/students can self-enroll using the join code/i)).toBeInTheDocument();
     expect(screen.getByText(/module created\. students can now join with this code/i)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /copy join code zxcv6789/i })).toHaveTextContent("ZXCV6789");
+  });
+
+  it("archives only after confirmation checkbox is selected", async () => {
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
+
+    const archiveButton = await screen.findByRole("button", { name: /^archive module$/i, hidden: true });
+    const confirmation = screen.getByLabelText(/read-only for all users\. it can be unarchived if needed/i, { hidden: true });
+
+    expect(archiveButton).toBeDisabled();
+
+    fireEvent.click(confirmation);
+    expect(archiveButton).toBeEnabled();
+
+    fireEvent.click(archiveButton);
+
+    await waitFor(() => expect(archiveItemMock).toHaveBeenCalledWith("modules", 77));
+    expect(refresh).toHaveBeenCalled();
+  });
+
+  it("unarchives only after confirmation when module is archived", async () => {
+    getEnterpriseModuleAccessSelectionMock.mockResolvedValueOnce({
+      module: {
+        id: 77,
+        code: "4CCS2DBS",
+        name: "Existing module",
+        createdAt: "2026-03-01T00:00:00.000Z",
+        updatedAt: "2026-03-01T00:00:00.000Z",
+        archivedAt: "2026-03-10T12:00:00.000Z",
+        studentCount: 1,
+        leaderCount: 1,
+        teachingAssistantCount: 1,
+      },
+      leaderIds: [11],
+      taIds: [12],
+      studentIds: [31],
+    });
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
+
+    const unarchiveButton = await screen.findByRole("button", { name: /^unarchive module$/i });
+    const confirmation = screen.getByLabelText(/allow people with permission to edit the module again/i);
+
+    expect(unarchiveButton).toBeDisabled();
+    fireEvent.click(confirmation);
+    expect(unarchiveButton).toBeEnabled();
+    fireEvent.click(unarchiveButton);
+
+    await waitFor(() => expect(unarchiveItemMock).toHaveBeenCalledWith("modules", 77));
+    expect(refresh).toHaveBeenCalled();
   });
 
   it("deletes a module only after confirmation checkbox is selected", async () => {

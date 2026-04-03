@@ -31,7 +31,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const moduleLead = { id: 1, name: "Module A" };
+const moduleLead = { id: 1, name: "Module A", archivedAt: null as Date | null };
 const teamInModule = { id: 10, teamName: "Team 1" };
 
 describe("marking support", () => {
@@ -70,6 +70,19 @@ describe("marking support", () => {
     expect(mockRepo.upsertTeamMarking).not.toHaveBeenCalled();
   });
 
+  it("rejects team marking when module is archived", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue({
+      ...moduleLead,
+      archivedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+
+    await expect(
+      saveTeamMarkingIfLead(1, 1, 10, { mark: 50, formativeFeedback: "x" }),
+    ).rejects.toEqual({ code: "MODULE_ARCHIVED" });
+    expect(mockRepo.upsertTeamMarking).not.toHaveBeenCalled();
+  });
+
   it("saves student marking when student is in team and staff leads module", async () => {
     mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue(moduleLead);
     mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
@@ -92,5 +105,19 @@ describe("marking support", () => {
       updatedAt: "2026-03-06T11:00:00.000Z",
       marker: { id: 1, firstName: "Tutor", lastName: "One" },
     });
+  });
+
+  it("rejects student marking when module is archived", async () => {
+    mockRepo.getModuleDetailsIfAuthorised.mockResolvedValue({
+      ...moduleLead,
+      archivedAt: new Date("2026-01-01T00:00:00.000Z"),
+    });
+    mockRepo.findTeamByIdAndModule.mockResolvedValue(teamInModule);
+    mockRepo.isStudentInTeam.mockResolvedValue(true);
+
+    await expect(
+      saveStudentMarkingIfLead(1, 1, 10, 100, { mark: 50, formativeFeedback: "x" }),
+    ).rejects.toEqual({ code: "MODULE_ARCHIVED" });
+    expect(mockRepo.upsertStudentMarking).not.toHaveBeenCalled();
   });
 });

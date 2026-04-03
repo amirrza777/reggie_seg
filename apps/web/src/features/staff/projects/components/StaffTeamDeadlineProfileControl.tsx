@@ -8,11 +8,13 @@ import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 type StaffTeamDeadlineProfileControlProps = {
   teamId: number;
   initialProfile: "STANDARD" | "MCF";
+  readOnly?: boolean;
 };
 
 export function StaffTeamDeadlineProfileControl({
   teamId,
   initialProfile,
+  readOnly = false,
 }: StaffTeamDeadlineProfileControlProps) {
   const router = useRouter();
   const [profile, setProfile] = useState<"STANDARD" | "MCF">(initialProfile);
@@ -21,7 +23,7 @@ export function StaffTeamDeadlineProfileControl({
   const [pendingProfileChange, setPendingProfileChange] = useState<"STANDARD" | "MCF" | null>(null);
 
   function handleChange(nextProfile: "STANDARD" | "MCF") {
-    if (nextProfile === profile || pending) return;
+    if (readOnly || nextProfile === profile || pending) return;
     setPendingProfileChange(nextProfile);
   }
 
@@ -50,12 +52,17 @@ export function StaffTeamDeadlineProfileControl({
         <p className="staff-projects__field-label" style={{ margin: 0 }}>
           Deadline profile
         </p>
+        {readOnly ? (
+          <p className="muted" style={{ margin: "6px 0 0" }}>
+            This module is archived; the deadline profile cannot be changed.
+          </p>
+        ) : null}
         <div className="staff-projects__profile-switch" role="group" aria-label="Deadline profile">
           <button
             type="button"
             onClick={() => handleChange("STANDARD")}
             className={`staff-projects__profile-btn${profile === "STANDARD" ? " staff-projects__profile-btn--active" : ""}`}
-            disabled={pending}
+            disabled={readOnly || pending}
           >
             Standard
           </button>
@@ -63,7 +70,7 @@ export function StaffTeamDeadlineProfileControl({
             type="button"
             onClick={() => handleChange("MCF")}
             className={`staff-projects__profile-btn${profile === "MCF" ? " staff-projects__profile-btn--active" : ""}`}
-            disabled={pending}
+            disabled={readOnly || pending}
           >
             MCF
           </button>

@@ -105,13 +105,28 @@ describe("projects service", () => {
 
   it("delegates createProject and fetchProjectById", async () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
-    (repo.getProjectById as any).mockResolvedValue({ id: 9, projectNavFlags: null });
+    (repo.getProjectById as any).mockResolvedValue({
+      id: 9,
+      name: "P1",
+      informationText: null,
+      archivedAt: null,
+      moduleId: 2,
+      questionnaireTemplateId: 3,
+      projectNavFlags: null,
+      module: { archivedAt: null },
+    });
 
     await expect(createProject(7, "P1", 2, 3, null, deadlineInput)).resolves.toEqual({ id: 9 });
     expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, null, deadlineInput);
 
     await expect(fetchProjectById(9)).resolves.toEqual({
       id: 9,
+      name: "P1",
+      informationText: null,
+      archivedAt: null,
+      moduleId: 2,
+      questionnaireTemplateId: 3,
+      moduleArchivedAt: null,
       projectNavFlags: expect.objectContaining({ version: 1 }),
     });
     expect(repo.getProjectById).toHaveBeenCalledWith(9);

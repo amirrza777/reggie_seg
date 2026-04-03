@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getModuleStaffList } from "@/features/modules/api/client";
 import type { ModuleStaffListMember } from "@/features/modules/types";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
@@ -83,7 +85,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
                 <>
                   Assign leads and TAs in{" "}
                   <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
-                    module setup
+                    module settings
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>

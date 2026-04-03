@@ -63,6 +63,7 @@ async function resolveStudentTeamCreationScope(
       archivedAt: null,
       module: {
         enterpriseId: user.enterpriseId,
+        archivedAt: null,
         userModules: {
           some: {
             userId,

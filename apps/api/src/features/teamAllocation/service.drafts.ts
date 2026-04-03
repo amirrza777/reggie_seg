@@ -1,4 +1,5 @@
 import { sendEmail } from "../../shared/email.js";
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import {
   approveDraftTeam,
   deleteDraftTeam,
@@ -96,9 +97,7 @@ export async function listAllocationDraftsForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const drafts = await findProjectDraftTeams(project.id);
 
@@ -181,9 +180,7 @@ export async function updateAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   if (!(await findDraftTeamInProject(project.id, teamId))) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
@@ -297,9 +294,7 @@ export async function approveAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
   if (!project.canApproveAllocationDrafts) {
     throw { code: "APPROVAL_FORBIDDEN" };
   }
@@ -391,9 +386,7 @@ export async function deleteAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   if (!(await findDraftTeamInProject(project.id, teamId))) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };

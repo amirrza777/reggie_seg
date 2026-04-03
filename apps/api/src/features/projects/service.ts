@@ -89,8 +89,16 @@ export async function fetchProjectById(projectId: number) {
   const project = await getProjectById(projectId);
   if (!project) return null;
 
+  const moduleArchivedAt = project.module?.archivedAt ?? null;
+
   return {
-    ...project,
+    id: project.id,
+    name: project.name,
+    informationText: project.informationText,
+    archivedAt: project.archivedAt,
+    moduleId: project.moduleId,
+    questionnaireTemplateId: project.questionnaireTemplateId,
+    moduleArchivedAt,
     projectNavFlags: normalizeProjectNavFlagsConfig(project.projectNavFlags),
   };
 }
@@ -328,6 +336,7 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
       name: project.name,
       moduleId: project.moduleId,
       moduleName: project.module?.name ?? "",
+      moduleArchivedAt: project.module?.archivedAt ?? null,
     },
     teams: project.teams.map((team) => ({
       id: team.id,

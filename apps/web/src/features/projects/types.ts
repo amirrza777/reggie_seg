@@ -7,6 +7,8 @@ export type Project = {
   teamCount?: number;
   questionnaireTemplateId: number;
   archivedAt?: string | null;
+  /** Set when the parent module is archived */
+  moduleArchivedAt?: string | null;
   projectNavFlags?: ProjectNavFlagsConfig | null;
 };
 
@@ -191,6 +193,7 @@ export type StaffProjectTeamsResponse = {
     name: string;
     moduleId: number;
     moduleName: string;
+    moduleArchivedAt?: string | null;
   };
   teams: Team[];
 };

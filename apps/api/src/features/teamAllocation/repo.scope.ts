@@ -46,7 +46,7 @@ export async function findStaffScopedProject(
       moduleId: true,
       archivedAt: true,
       module: {
-        select: { name: true },
+        select: { name: true, archivedAt: true },
       },
     },
   });
@@ -61,6 +61,7 @@ export async function findStaffScopedProject(
     moduleId: project.moduleId,
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
+    moduleArchivedAt: project.module.archivedAt,
     enterpriseId: user.enterpriseId,
   };
 }
@@ -104,6 +105,7 @@ export async function findStaffScopedProjectAccess(
       module: {
         select: {
           name: true,
+          archivedAt: true,
           moduleLeads: {
             where: { userId: staffId },
             select: { userId: true },
@@ -132,6 +134,7 @@ export async function findStaffScopedProjectAccess(
     moduleId: project.moduleId,
     moduleName: project.module.name,
     archivedAt: project.archivedAt,
+    moduleArchivedAt: project.module.archivedAt,
     enterpriseId: user.enterpriseId,
     actorRole: role === "STUDENT" ? "STAFF" : role,
     isModuleLead,

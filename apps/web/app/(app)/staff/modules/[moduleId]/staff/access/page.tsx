@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StaffModuleAccessForm } from "@/features/modules/components/moduleSetup/StaffModuleAccessForm";
 import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { Card } from "@/shared/ui/Card";
 
 type PageProps = {

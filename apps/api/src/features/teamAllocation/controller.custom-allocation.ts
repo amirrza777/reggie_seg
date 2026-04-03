@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import {
   parseCustomAllocationApplyBody,
   parseCustomAllocationCoverageTemplateId,
@@ -35,8 +36,8 @@ export async function listCustomAllocationQuestionnairesHandler(req: AuthRequest
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
       return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
@@ -80,8 +81,8 @@ export async function getCustomAllocationCoverageHandler(req: AuthRequest, res: 
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "CUSTOM_ALLOCATION_NOT_IMPLEMENTED") {
       return res.status(501).json({ error: "Customised allocation is not fully implemented yet" });
@@ -153,8 +154,8 @@ export async function previewCustomAllocationHandler(req: AuthRequest, res: Resp
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "NO_VACANT_STUDENTS") {
       return res.status(409).json({ error: "No vacant students are available for this project" });
@@ -205,8 +206,8 @@ export async function applyCustomAllocationHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "STUDENTS_NO_LONGER_VACANT") {
       const staleNames = formatCustomAllocationStaleStudentNames(error?.staleStudents);

@@ -31,7 +31,7 @@ export async function getModuleDetailsIfAuthorised(moduleId: number, staffId: nu
             ],
           }),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, archivedAt: true },
   });
 }
 

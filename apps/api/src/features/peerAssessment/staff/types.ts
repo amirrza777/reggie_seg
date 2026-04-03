@@ -17,13 +17,19 @@ export type StaffMarkingSummary = {
   };
 };
 
+export type StaffModuleSummaryInResponse = {
+  id: number;
+  title: string;
+  archivedAt: string | null;
+};
+
 export type ModuleDetailsResponse = {
-  module: { id: number; title: string };
+  module: StaffModuleSummaryInResponse;
   teams: ModuleSummary[];
 };
 
 export type TeamDetailsResponse = {
-  module: { id: number; title: string };
+  module: StaffModuleSummaryInResponse;
   team: { id: number; title: string };
   students: ModuleSummary[];
   teamMarking: StaffMarkingSummary | null;
@@ -61,7 +67,7 @@ export type PerformanceSummary = {
 };
 
 export type StudentDetailsResponse = {
-  module: { id: number; title: string };
+  module: StaffModuleSummaryInResponse;
   team: { id: number; title: string };
   student: { id: number; firstName: string; lastName: string };
   teamMembers: StudentTeamMember[];

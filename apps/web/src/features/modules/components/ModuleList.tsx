@@ -252,7 +252,7 @@ function ModuleCard({
                 ) : null}
                 {canManageModule ? (
                   <Link
-                    href={`/staff/modules/${moduleId}/settings`}
+                    href={`/staff/modules/${moduleId}/manage`}
                     role="menuitem"
                     className="module-card__menu-item"
                     onClick={() => setIsActionMenuOpen(false)}

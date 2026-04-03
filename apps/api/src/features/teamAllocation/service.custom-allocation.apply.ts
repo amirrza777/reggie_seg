@@ -1,3 +1,4 @@
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import { applyRandomAllocationPlan, findStaffScopedProject, findVacantModuleStudentsForProject } from "./repo.js";
 import {
   deleteCustomAllocationPreview,
@@ -31,9 +32,7 @@ export async function applyCustomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const preview = getStoredCustomAllocationPreview(previewId, staffId, projectId);
   if (!preview) {

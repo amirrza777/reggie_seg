@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-const moduleLead = { id: 1, name: "Module A" };
+const moduleLead = { id: 1, name: "Module A", archivedAt: null as Date | null };
 const teamInModule = { id: 10, teamName: "Team 1" };
 const twoMembers = [
   { id: 100, firstName: "Alice", lastName: "Smith" },
@@ -118,7 +118,7 @@ describe("getModuleDetailsIfLead (level 2: module + teams)", () => {
     const result = await getModuleDetailsIfLead(1, 1);
 
     expect(result).not.toBeNull();
-    expect(result!.module).toEqual({ id: 1, title: "Module A" });
+    expect(result!.module).toEqual({ id: 1, title: "Module A", archivedAt: null });
     expect(result!.teams).toHaveLength(2);
     expect(result!.teams[0]).toEqual({ id: 10, title: "Team 1", submitted: 2, expected: 12 });
   });
@@ -126,7 +126,7 @@ describe("getModuleDetailsIfLead (level 2: module + teams)", () => {
   it.each([
     {
       scenario: "returns null when staff is not module lead",
-      module: null as { id: number; name: string } | null,
+      module: null as { id: number; name: string; archivedAt: Date | null } | null,
       teams: [] as { id: number; teamName: string }[],
       staffId: 99,
       moduleId: 1,
@@ -134,12 +134,12 @@ describe("getModuleDetailsIfLead (level 2: module + teams)", () => {
     },
     {
       scenario: "returns module with empty teams when module has no teams",
-      module: { id: 1, name: "Empty Module" },
+      module: { id: 1, name: "Empty Module", archivedAt: null },
       teams: [] as { id: number; teamName: string }[],
       staffId: 1,
       moduleId: 1,
       expectNull: false,
-      expectModule: { id: 1, title: "Empty Module" },
+      expectModule: { id: 1, title: "Empty Module", archivedAt: null },
       expectTeams: [] as { id: number; title: string; submitted: number; expected: number }[],
     },
   ])("$scenario", async (row) => {
@@ -200,7 +200,7 @@ describe("getTeamDetailsIfLead (level 3: team + students)", () => {
     const result = await getTeamDetailsIfLead(1, 1, 10);
 
     expect(result).not.toBeNull();
-    expect(result!.module).toEqual({ id: 1, title: "Module A" });
+    expect(result!.module).toEqual({ id: 1, title: "Module A", archivedAt: null });
     expect(result!.team).toEqual({ id: 10, title: "Team 1" });
     expect(result!.students).toHaveLength(2);
     expect(result!.students[0]).toMatchObject({ id: 101, title: "Bob Jones", submitted: 1, expected: 1 });

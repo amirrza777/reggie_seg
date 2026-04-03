@@ -39,9 +39,9 @@ export function ModuleWorkspaceNav({ moduleId, basePath }: ModuleWorkspaceNavPro
       match: (path) => path === `${base}/students` || Boolean(path?.startsWith(`${base}/students/`)),
     },
     {
-      href: `${base}/settings`,
+      href: `${base}/manage`,
       label: "Settings",
-      match: (path) => path === `${base}/settings` || Boolean(path?.startsWith(`${base}/settings/`)),
+      match: (path) => path === `${base}/manage` || Boolean(path?.startsWith(`${base}/manage/`)),
     },
   ];
 

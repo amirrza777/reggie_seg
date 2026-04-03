@@ -1,4 +1,5 @@
 import { sendEmail } from "../../shared/email.js";
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import { planRandomTeams } from "./randomizer.js";
 import {
   applyManualAllocationTeam,
@@ -207,9 +208,7 @@ export async function getManualAllocationWorkspaceForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
   const [students, existingTeams] = await Promise.all([
@@ -288,9 +287,7 @@ export async function applyManualAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id);
   const moduleStudentById = new Map(moduleStudents.map((student) => [student.id, student] as const));
@@ -345,9 +342,7 @@ export async function previewRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(project.enterpriseId, project.moduleId, projectId);
   if (students.length === 0) {
@@ -397,9 +392,7 @@ export async function applyRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(project.enterpriseId, project.moduleId, projectId);
   if (students.length === 0) {

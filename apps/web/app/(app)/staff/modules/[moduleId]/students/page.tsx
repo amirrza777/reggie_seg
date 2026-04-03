@@ -4,8 +4,10 @@ import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { getModuleStudentProjectMatrix } from "@/features/modules/api/client";
 import { ModuleJoinCodeBanner } from "@/features/modules/components/ModuleJoinCodeBanner";
 import { StaffModuleStudentProjectMatrix } from "@/features/modules/components/StaffModuleStudentProjectMatrix";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
 
@@ -56,25 +58,13 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       <header className="module-workspace__section-header">
         <h2 className="overview-title">Student members</h2>
         <p className="muted">
-          Enrolled students, team placement per project, and where to manage enrollment.
+          Enrolled students can be added to projects and participate in teams. Students can self-enrol via join code, or you can manage access manually.
         </p>
       </header>
 
-      {access.moduleArchived ? (
-        <div className="status-alert status-alert--warning module-workspace__read-only-banner" role="status">
-          <span>
-            This module is <strong>archived</strong> and read-only. Unarchive it from{" "}
-            <Link href="/staff/archive" className="ui-link">
-              Staff → Archive
-            </Link>{" "}
-            to change enrollment or join settings.
-          </span>
-        </div>
-      ) : null}
-
       <div className="staff-module-students__enrollment-grid">
         <Card title="Joining code" className="module-workspace__card">
-          {access.moduleArchived ? (
+          {access.isArchived ? (
             <p className="muted">Self-enrollment is disabled while this module is archived.</p>
           ) : joinCodeFromApi ? (
             <p className="muted">
@@ -101,13 +91,13 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
               to copy the join code if you have access.
             </p>
           )}
-          {!access.moduleArchived && joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
+          {!access.isArchived && joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
         </Card>
 
         <Card title="Manage access" className="module-workspace__card">
           {!access.canEdit ? (
-            access.moduleArchived ? (
-              <p className="muted">Manual enrollment changes are not available while the module is archived.</p>
+            access.isArchived ? (
+              <p className="muted">Manual enrollment changes are not available while this module is archived.</p>
             ) : (
               <p className="muted">Only module leads and administrators can change student enrollment.</p>
             )
@@ -157,7 +147,7 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
                 <>
                   Enroll students from{" "}
                   <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
-                    Manage module
+                    Module settings
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>

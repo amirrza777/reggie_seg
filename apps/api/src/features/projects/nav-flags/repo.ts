@@ -1,4 +1,5 @@
 import { prisma } from "../../../shared/db.js";
+import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
 
 async function getScopedStaffUser(userId: number) {
   return prisma.user.findUnique({
@@ -77,6 +78,7 @@ export async function updateStaffProjectNavFlagsConfig(
   projectNavFlags: unknown,
 ) {
   const scope = await getStaffProjectNavFlagsSettingsScope(actorUserId, projectId);
+  await assertProjectMutableForWritesByProjectId(scope.id);
   return prisma.project.update({
     where: { id: scope.id },
     data: { projectNavFlags: projectNavFlags as any },

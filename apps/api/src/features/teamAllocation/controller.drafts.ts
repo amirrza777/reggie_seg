@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import {
   approveAllocationDraftForProject,
   deleteAllocationDraftForProject,
@@ -27,8 +28,8 @@ export async function listAllocationDraftsHandler(req: AuthRequest, res: Respons
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "P2021" || error?.code === "P2022") {
       return res.status(503).json({
@@ -96,8 +97,8 @@ export async function updateAllocationDraftHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "P2021" || error?.code === "P2022") {
       return res.status(503).json({
@@ -151,8 +152,8 @@ export async function approveAllocationDraftHandler(req: AuthRequest, res: Respo
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "P2021" || error?.code === "P2022") {
       return res.status(503).json({
@@ -200,8 +201,8 @@ export async function deleteAllocationDraftHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "P2021" || error?.code === "P2022") {
       return res.status(503).json({

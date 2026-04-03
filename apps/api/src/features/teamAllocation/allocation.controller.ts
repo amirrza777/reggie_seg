@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import { parseSearchQuery } from "../../shared/search.js";
 import {
   applyManualAllocationForProject,
@@ -42,8 +43,8 @@ export async function previewRandomAllocationHandler(req: AuthRequest, res: Resp
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "NO_VACANT_STUDENTS") {
       return res.status(409).json({ error: "No vacant students are available for this project" });
@@ -78,8 +79,8 @@ export async function getManualAllocationWorkspaceHandler(req: AuthRequest, res:
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error loading manual allocation workspace:", error);
     return res.status(500).json({ error: "Internal server error" });
@@ -140,8 +141,8 @@ export async function applyRandomAllocationHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     if (error?.code === "NO_VACANT_STUDENTS") {
       return res.status(409).json({ error: "No vacant students are available for this project" });
@@ -203,8 +204,8 @@ export async function applyManualAllocationHandler(req: AuthRequest, res: Respon
     if (error?.code === "PROJECT_NOT_FOUND_OR_FORBIDDEN") {
       return res.status(404).json({ error: "Project not found" });
     }
-    if (error?.code === "PROJECT_ARCHIVED") {
-      return res.status(409).json({ error: "Project is archived" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error applying manual team allocation:", error);
     return res.status(500).json({ error: "Internal server error" });
