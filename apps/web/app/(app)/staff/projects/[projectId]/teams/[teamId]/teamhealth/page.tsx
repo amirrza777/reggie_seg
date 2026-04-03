@@ -451,6 +451,7 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
   const actionSignals = healthSignals.filter((signal) => signal.status !== "OK");
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
   const unresolvedNoResponseCount = requests.filter((request) => !request.resolved && !request.responseText?.trim()).length;
+  const totalAlerts = openWarnings.length + openSupportRequests;
   const latestSignalsAt = latestTimestamp([
     ...warnings.map((warning) => warning.updatedAt),
     ...requests.map((request) => request.updatedAt),
@@ -529,8 +530,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               </p>
             </article>
             <article className="staff-projects__team-card staff-projects__health-metric-card">
-              <p className="staff-projects__health-metric-value staff-projects__health-metric-value--muted">{formatDateTime(latestSignalsAt)}</p>
-              <p className="staff-projects__team-count">Latest data refresh</p>
+              <p className="staff-projects__health-metric-value">{totalAlerts}</p>
+              <p className="staff-projects__team-count">Total alerts</p>
             </article>
           </div>
         </article>
