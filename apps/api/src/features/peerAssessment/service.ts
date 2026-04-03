@@ -1,4 +1,5 @@
 import { prisma } from "../../shared/db.js";
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import { fetchProjectDeadline } from "../projects/service.js";
 import {
   getTeammates,
@@ -58,8 +59,15 @@ export async function saveAssessment(data: {
   templateId: number
   answersJson: any
 }) {
-  const project = await prisma.project.findUnique({ where: { id: data.projectId }, select: { archivedAt: true } });
-  if (project?.archivedAt) throw { code: "PROJECT_ARCHIVED" };
+  const project = await prisma.project.findUnique({
+    where: { id: data.projectId },
+    select: { archivedAt: true, module: { select: { archivedAt: true } } },
+  });
+  if (!project) throw { code: "PROJECT_NOT_FOUND" };
+  assertProjectMutableForWrites({
+    archivedAt: project.archivedAt,
+    moduleArchivedAt: project.module.archivedAt,
+  });
   const reviewerDeadline = await fetchProjectDeadline(data.reviewerUserId, data.projectId);
   const window = assertAssessmentWindowOpen(reviewerDeadline);
   return createPeerAssessment({
@@ -84,6 +92,17 @@ export async function updateAssessmentAnswers(assessmentId: number, answersJson:
   const assessment = await getPeerAssessmentById(assessmentId);
   if (!assessment) {
     throw { code: "P2025", message: "Peer assessment not found" };
+  }
+
+  const proj = await prisma.project.findUnique({
+    where: { id: assessment.projectId },
+    select: { archivedAt: true, module: { select: { archivedAt: true } } },
+  });
+  if (proj) {
+    assertProjectMutableForWrites({
+      archivedAt: proj.archivedAt,
+      moduleArchivedAt: proj.module.archivedAt,
+    });
   }
 
   const reviewerDeadline = await fetchProjectDeadline(assessment.reviewerUserId, assessment.projectId);

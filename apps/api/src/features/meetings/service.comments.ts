@@ -1,9 +1,14 @@
-import { createComment, deleteComment, createMentions } from "./repo.js";
+import { prisma } from "../../shared/db.js";
+import { createComment, deleteComment, createMentions, getMeetingById } from "./repo.js";
 import { getTeamMembers, getTeamById } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { extractMentionsFromText, resolveMentionedMembers } from "../../shared/mentions.js";
+import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";
 
 export async function addComment(meetingId: number, userId: number, content: string, teamId?: number) {
+  const meetingRow = await getMeetingById(meetingId);
+  if (!meetingRow) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meetingRow.teamId);
   const comment = await createComment(meetingId, userId, content);
   if (teamId) {
     try {
@@ -16,7 +21,14 @@ export async function addComment(meetingId: number, userId: number, content: str
 }
 
 /** Removes the comment. */
-export function removeComment(commentId: number) {
+export async function removeComment(commentId: number) {
+  const row = await prisma.meetingComment.findUnique({
+    where: { id: commentId },
+    select: { meeting: { select: { teamId: true } } },
+  });
+  if (row?.meeting?.teamId != null) {
+    await assertProjectMutableForWritesByTeamId(row.meeting.teamId);
+  }
   return deleteComment(commentId);
 }
 

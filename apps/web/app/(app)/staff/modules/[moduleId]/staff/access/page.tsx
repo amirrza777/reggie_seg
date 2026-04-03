@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StaffModuleAccessForm } from "@/features/modules/components/moduleSetup/StaffModuleAccessForm";
 import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { Card } from "@/shared/ui/Card";
 
 type PageProps = {
@@ -19,6 +21,9 @@ export default async function StaffModuleStaffAccessPage({ params }: PageProps) 
 
   const access = resolveStaffModuleWorkspaceAccess(ctx);
   if (!access.staffModuleSetup) {
+    redirect(`/staff/modules/${modId}/staff`);
+  }
+  if (!access.canEdit) {
     redirect(`/staff/modules/${modId}/staff`);
   }
 

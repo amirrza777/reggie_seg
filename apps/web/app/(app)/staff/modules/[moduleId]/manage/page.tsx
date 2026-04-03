@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
-import { listModules } from "@/features/modules/api/client";
-import type { Module } from "@/features/modules/types";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { Card } from "@/shared/ui/Card";
 import { getCurrentUser } from "@/shared/auth/session";
 
@@ -18,28 +20,32 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
 
   const { moduleId } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : {};
-  const parsedModuleId = Number.parseInt(moduleId, 10);
-  if (!Number.isInteger(parsedModuleId) || parsedModuleId <= 0) notFound();
+  const parsedFromParam = Number.parseInt(moduleId, 10);
+  if (!Number.isInteger(parsedFromParam) || parsedFromParam <= 0) notFound();
 
-  let staffModules: Module[] = [];
-  try {
-    staffModules = await listModules(user.id, { scope: "staff" });
-  } catch {
-    redirect("/staff/modules");
-  }
-  const moduleRecord = staffModules.find((module) => Number(module.id) === parsedModuleId);
+  const ctx = await loadStaffModuleWorkspaceContext(moduleId);
+  if (!ctx) redirect("/staff/modules");
+
+  const access = resolveStaffModuleWorkspaceAccess(ctx);
+  const moduleRecord = ctx.moduleRecord;
   if (!moduleRecord) redirect("/staff/modules");
+  if (moduleRecord.accountRole !== "OWNER") {
+    if (access.enterpriseModuleEditor) {
+      redirect(`/enterprise/modules/${encodeURIComponent(moduleId)}/edit`);
+    }
+    redirect(`/modules/${moduleRecord.id}`);
+  }
 
-  const canManageModule = moduleRecord.accountRole === "OWNER";
-  if (!canManageModule) redirect(`/modules/${moduleRecord.id}`);
+  const parsedModuleId = ctx.parsedModuleId;
 
   return (
     <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
       <header className="ui-page__header">
         <h1 className="overview-title ui-page__title">Manage module</h1>
         <p className="ui-page__description">
-          Update module guidance, leads, TAs, manual student assignments, and share the module join code from the staff
-          workspace.
+          {access.isArchived
+            ? 'This module is archived and read-only. To make changes, unarchive using the "Archive or delete module" section at the bottom of this page.'
+            : "Update module guidance, leads, TAs, manual student assignments, and share the module join code from the staff workspace."}
         </p>
       </header>
 
@@ -47,12 +53,14 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
         title={<span className="overview-title">Module setup</span>}
         action={
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <Link
-              href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
-              className="btn btn--primary"
-            >
-              Create project
-            </Link>
+            {!access.isArchived ? (
+              <Link
+                href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
+                className="btn btn--primary"
+              >
+                Create project
+              </Link>
+            ) : null}
             <Link href="/staff/modules" className="btn btn--ghost">
               Back to my modules
             </Link>
@@ -64,7 +72,9 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
           mode="edit"
           moduleId={parsedModuleId}
           workspace="staff"
-          createdJoinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
+          joinCode={resolvedSearchParams.created === "1" ? resolvedSearchParams.joinCode ?? null : null}
+          created={resolvedSearchParams.created === "1"}
+          successRedirectAfterUpdateHref={`/staff/modules/${encodeURIComponent(moduleId)}`}
         />
       </Card>
     </div>

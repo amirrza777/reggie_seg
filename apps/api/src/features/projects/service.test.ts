@@ -72,6 +72,28 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByProjectId: vi.fn().mockResolvedValue(undefined),
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../shared/db.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../shared/db.js")>();
+  return {
+    ...mod,
+    prisma: {
+      ...mod.prisma,
+      project: {
+        ...mod.prisma.project,
+        findUnique: vi.fn().mockResolvedValue({
+          archivedAt: null,
+          module: { archivedAt: null },
+        }),
+      },
+    },
+  };
+});
+
 type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
 
 const createProjectMock = vi.mocked(repo.createProject);
@@ -107,13 +129,28 @@ describe("projects service", () => {
 
   it("delegates createProject and fetchProjectById", async () => {
     (repo.createProject as any).mockResolvedValue({ id: 9 });
-    (repo.getProjectById as any).mockResolvedValue({ id: 9, projectNavFlags: null });
+    (repo.getProjectById as any).mockResolvedValue({
+      id: 9,
+      name: "P1",
+      informationText: null,
+      archivedAt: null,
+      moduleId: 2,
+      questionnaireTemplateId: 3,
+      projectNavFlags: null,
+      module: { archivedAt: null },
+    });
 
     await expect(createProject(7, "P1", 2, 3, undefined, null, deadlineInput)).resolves.toEqual({ id: 9 });
     expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, undefined, null, deadlineInput, undefined);
 
     await expect(fetchProjectById(9)).resolves.toEqual({
       id: 9,
+      name: "P1",
+      informationText: null,
+      archivedAt: null,
+      moduleId: 2,
+      questionnaireTemplateId: 3,
+      moduleArchivedAt: null,
       projectNavFlags: expect.objectContaining({ version: 1 }),
     });
     expect(repo.getProjectById).toHaveBeenCalledWith(9);
@@ -150,6 +187,7 @@ describe("projects service", () => {
         teamCount: 5,
         projectCount: 2,
         accessRole: "OWNER",
+        archivedAt: null,
       },
     ]);
 
@@ -170,6 +208,7 @@ describe("projects service", () => {
         projectCount: 2,
         accountRole: "OWNER",
         moduleLeadNames: [],
+        archivedAt: null,
       },
     ]);
   });

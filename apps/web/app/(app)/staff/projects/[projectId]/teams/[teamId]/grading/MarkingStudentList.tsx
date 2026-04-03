@@ -9,9 +9,10 @@ type Props = {
   moduleId: number;
   projectId: number;
   teamId: number;
+  readOnly?: boolean;
 };
 
-export function MarkingStudentList({ students, moduleId, projectId, teamId }: Props) {
+export function MarkingStudentList({ students, moduleId, projectId, teamId, readOnly = false }: Props) {
   const [query, setQuery] = useState("");
   const trimmed = query.trim().toLowerCase();
 
@@ -24,7 +25,9 @@ export function MarkingStudentList({ students, moduleId, projectId, teamId }: Pr
       <article className="staff-projects__team-card">
         <h3 className="staff-projects__team-title" style={{ margin: 0 }}>Student marking detail</h3>
         <p className="staff-projects__team-count">
-          Open any student to set or update individual marks and formative feedback.
+          {readOnly
+            ? "Individual marks are read-only while this module is archived."
+            : "You can still open any student to view individual marks and formative feedback."}
         </p>
       </article>
 
@@ -69,7 +72,7 @@ export function MarkingStudentList({ students, moduleId, projectId, teamId }: Pr
                 href={`/staff/modules/${encodeURIComponent(String(moduleId))}/projects/${projectId}/teams/${teamId}/peer-assessment/${student.id}`}
                 className="pill-nav__link staff-projects__team-action"
               >
-                Open student marking
+                {readOnly ? "View student" : "Open student marking"}
               </Link>
             )}
           </article>

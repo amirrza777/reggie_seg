@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ModuleDashboardData, ModuleTimelineItem } from "../moduleDashboardData";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
@@ -11,6 +12,7 @@ export type ModuleExpectationsSectionProps = {
 
 export type ModuleDashboardPageViewProps = {
   dashboard: ModuleDashboardData;
+  toolbar?: ReactNode;
 };
 
 type ModuleMarksCardProps = {
@@ -20,11 +22,16 @@ type ModuleMarksCardProps = {
 /**
  * Module overview as a vertical stack of cards: brief, timeline, expectations, readiness, marks.
  */
-export function ModuleDashboardPageView({ dashboard }: ModuleDashboardPageViewProps) {
+export function ModuleDashboardPageView({ dashboard, toolbar }: ModuleDashboardPageViewProps) {
   const { marksRows, briefParagraphs, timelineRows, expectationRows, readinessParagraphs } = dashboard;
 
   return (
     <div className="stack module-dashboard">
+      {toolbar ? (
+        <div className="module-dashboard__toolbar" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {toolbar}
+        </div>
+      ) : null}
       <ModuleBriefCard briefParagraphs={briefParagraphs} />
       <ModuleTimelineCard timelineRows={timelineRows} />
       <ModuleExpectationsCard expectationRows={expectationRows} />

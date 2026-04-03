@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getStaffProjects } from "@/features/projects/api/client";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ProjectCard } from "@/features/staff/projects/components/StaffProjectsModuleList";
 import { SearchField } from "@/shared/ui/SearchField";
 import "@/features/staff/projects/styles/staff-projects.css";
@@ -17,8 +19,8 @@ export default async function StaffModuleProjectsPage({ params, searchParams }: 
   const ctx = await loadStaffModuleWorkspaceContext(moduleId);
   if (!ctx) redirect("/staff/modules");
 
-  const { parsedModuleId } = ctx;
   const access = resolveStaffModuleWorkspaceAccess(ctx);
+  const { parsedModuleId } = ctx;
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const rawQuery = Array.isArray(resolvedSearchParams.q) ? resolvedSearchParams.q[0] : resolvedSearchParams.q;
   const hasQuery = typeof rawQuery === "string" && rawQuery.trim().length > 0;
@@ -33,7 +35,7 @@ export default async function StaffModuleProjectsPage({ params, searchParams }: 
     errorMessage = error instanceof Error ? error.message : "Failed to load projects.";
   }
 
-  const createHref = access.createProjectInModule
+  const createHref = access.canCreateProject
     ? `/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`
     : null;
   const projectsBase = `/staff/modules/${encodeURIComponent(moduleId)}/projects`;

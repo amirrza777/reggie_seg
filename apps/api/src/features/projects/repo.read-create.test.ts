@@ -266,10 +266,12 @@ describe("projects repo read and create flows", () => {
         id: true,
         name: true,
         informationText: true,
+        archivedAt: true,
         moduleId: true,
         questionnaireTemplateId: true,
-        archivedAt: true,
+        teamAllocationQuestionnaireTemplateId: true,
         projectNavFlags: true,
+        module: { select: { archivedAt: true } },
       },
     });
   });
@@ -280,9 +282,9 @@ describe("projects repo read and create flows", () => {
       role: "STAFF",
       enterpriseId: "ent-1",
     });
-    (prisma.module.findFirst as any).mockResolvedValue({ id: 2 });
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 2, archivedAt: null });
     (prisma.moduleLead.findFirst as any).mockResolvedValue({ moduleId: 2 });
-    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3 });
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3, purpose: "PEER_ASSESSMENT" });
     const txProjectCreate = vi.fn().mockResolvedValue({
       id: 1,
       name: "P1",
@@ -307,6 +309,7 @@ describe("projects repo read and create flows", () => {
         informationText: "Info board copy",
         moduleId: 2,
         questionnaireTemplateId: 3,
+        teamAllocationQuestionnaireTemplateId: null,
         deadline: {
           create: {
             taskOpenDate: deadlineInput.taskOpenDate,
@@ -318,6 +321,8 @@ describe("projects repo read and create flows", () => {
             feedbackOpenDate: deadlineInput.feedbackOpenDate,
             feedbackDueDate: deadlineInput.feedbackDueDate,
             feedbackDueDateMcf: deadlineInput.feedbackDueDateMcf,
+            teamAllocationQuestionnaireOpenDate: null,
+            teamAllocationQuestionnaireDueDate: null,
           },
         },
       },
@@ -327,6 +332,7 @@ describe("projects repo read and create flows", () => {
         informationText: true,
         moduleId: true,
         questionnaireTemplateId: true,
+        teamAllocationQuestionnaireTemplateId: true,
         deadline: {
           select: {
             taskOpenDate: true,
@@ -338,6 +344,8 @@ describe("projects repo read and create flows", () => {
             feedbackOpenDate: true,
             feedbackDueDate: true,
             feedbackDueDateMcf: true,
+            teamAllocationQuestionnaireOpenDate: true,
+            teamAllocationQuestionnaireDueDate: true,
           },
         },
       },
@@ -375,24 +383,34 @@ describe("projects repo read and create flows", () => {
       role: "ENTERPRISE_ADMIN",
       enterpriseId: "ent-1",
     });
-    (prisma.module.findFirst as any).mockResolvedValue({ id: 7 });
-    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3 });
-    (prisma.project.create as any).mockResolvedValue({
+    (prisma.module.findFirst as any).mockResolvedValue({ id: 7, archivedAt: null });
+    (prisma.questionnaireTemplate.findUnique as any).mockResolvedValue({ id: 3, purpose: "PEER_ASSESSMENT" });
+    const txProjectCreate = vi.fn().mockResolvedValue({
       id: 17,
       name: "Admin Project",
       informationText: null,
       moduleId: 7,
       questionnaireTemplateId: 3,
+      teamAllocationQuestionnaireTemplateId: null,
       deadline: {
         ...deadlineInput,
+        teamAllocationQuestionnaireOpenDate: null,
+        teamAllocationQuestionnaireDueDate: null,
       },
     });
+    (prisma.$transaction as any).mockImplementation(async (callback: (tx: any) => Promise<any>) =>
+      callback({
+        project: { create: txProjectCreate },
+        projectStudent: { createMany: vi.fn() },
+      }),
+    );
 
     await expect(createProject(45, "Admin Project", 7, 3, undefined, null, deadlineInput, undefined)).resolves.toMatchObject({
       id: 17,
       moduleId: 7,
     });
     expect(prisma.moduleLead.findFirst).not.toHaveBeenCalled();
-    expect(prisma.project.create).toHaveBeenCalled();
+    expect(txProjectCreate).toHaveBeenCalled();
+    expect(prisma.project.create).not.toHaveBeenCalled();
   });
 });

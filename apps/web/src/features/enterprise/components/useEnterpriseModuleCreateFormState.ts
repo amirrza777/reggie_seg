@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { archiveItem, unarchiveItem } from "@/features/archive/api/client";
 import {
   createEnterpriseModule,
   deleteEnterpriseModule,
@@ -61,11 +62,15 @@ export function useEnterpriseModuleCreateFormState({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
   const [confirmDeleteModule, setConfirmDeleteModule] = useState(false);
+  const [confirmArchiveModule, setConfirmArchiveModule] = useState(false);
+  const [confirmUnarchiveModule, setConfirmUnarchiveModule] = useState(false);
 
   const [accessSearchPinLeaderIds, setAccessSearchPinLeaderIds] = useState<number[]>([]);
   const [accessSearchPinTaIds, setAccessSearchPinTaIds] = useState<number[]>([]);
   const [accessSearchPinStudentIds, setAccessSearchPinStudentIds] = useState<number[]>([]);
+  const [moduleArchived, setModuleArchived] = useState(false);
 
   const accessBuckets = useEnterpriseModuleAccessBuckets({
     mode,
@@ -85,11 +90,15 @@ export function useEnterpriseModuleCreateFormState({
       setIsLoadingAccess(true);
       setErrorMessage(null);
       setConfirmDeleteModule(false);
+      setConfirmArchiveModule(false);
+      setConfirmUnarchiveModule(false);
       setIsDeleting(false);
+      setIsArchiving(false);
       setCanEditModule(mode !== "edit");
       setAccessSearchPinLeaderIds([]);
       setAccessSearchPinTaIds([]);
       setAccessSearchPinStudentIds([]);
+      setModuleArchived(false);
 
       if (mode !== "edit") {
         if (!isActive) return;
@@ -124,6 +133,7 @@ export function useEnterpriseModuleCreateFormState({
         setAccessSearchPinLeaderIds([...response.leaderIds]);
         setAccessSearchPinTaIds([...response.taIds]);
         setAccessSearchPinStudentIds([...response.studentIds]);
+        setModuleArchived(Boolean(response.module.archivedAt));
       } catch (err) {
         if (!isActive) return;
         setCanEditModule(false);
@@ -142,6 +152,11 @@ export function useEnterpriseModuleCreateFormState({
     };
   }, [mode, moduleId]);
 
+  useEffect(() => {
+    setConfirmArchiveModule(false);
+    setConfirmUnarchiveModule(false);
+  }, [moduleArchived]);
+
   const leaderSet = useMemo(() => new Set(leaderIds), [leaderIds]);
   const taSet = useMemo(() => new Set(taIds), [taIds]);
   const studentSet = useMemo(() => new Set(studentIds), [studentIds]);
@@ -154,6 +169,7 @@ export function useEnterpriseModuleCreateFormState({
   };
 
   const submitEditModule = async () => {
+    if (isArchiving || isDeleting) return;
     const name = moduleName.trim();
     const validation = validateModuleSubmit({ isEditMode: true, name, leaderIds });
     if (validation.moduleNameError) {
@@ -193,6 +209,7 @@ export function useEnterpriseModuleCreateFormState({
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isArchiving || isDeleting) return;
     if (isEditMode) {
       await submitEditModule();
       return;
@@ -251,6 +268,52 @@ export function useEnterpriseModuleCreateFormState({
     }
   };
 
+  const handleArchiveModule = async () => {
+    if (mode !== "edit") return;
+    if (moduleArchived) return;
+    if (!moduleId) {
+      setErrorMessage("Module id is required for edit mode.");
+      return;
+    }
+    if (!confirmArchiveModule) return;
+
+    setIsArchiving(true);
+    setErrorMessage(null);
+
+    try {
+      await archiveItem("modules", moduleId);
+      setConfirmArchiveModule(false);
+      router.refresh();
+    } catch (err) {
+      setErrorMessage(resolveModuleActionError(err, "archive"));
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleUnarchiveModule = async () => {
+    if (mode !== "edit") return;
+    if (!moduleArchived) return;
+    if (!moduleId) {
+      setErrorMessage("Module id is required for edit mode.");
+      return;
+    }
+    if (!confirmUnarchiveModule) return;
+
+    setIsArchiving(true);
+    setErrorMessage(null);
+
+    try {
+      await unarchiveItem("modules", moduleId);
+      setConfirmUnarchiveModule(false);
+      router.refresh();
+    } catch (err) {
+      setErrorMessage(resolveModuleActionError(err, "unarchive"));
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
   const toggleLeader = (userId: number, checked: boolean) => {
     setLeaderIds((prev) => (checked ? includeId(prev, userId) : prev.filter((id) => id !== userId)));
   };
@@ -264,12 +327,13 @@ export function useEnterpriseModuleCreateFormState({
   };
 
   const navigateHome = () => {
-    router.push(modulesHomeHref);
+    router.push(postUpdateHref);
   };
 
   return {
     isEditMode,
     moduleId,
+    moduleArchived,
     moduleName,
     moduleNameError,
     moduleCode,
@@ -285,7 +349,10 @@ export function useEnterpriseModuleCreateFormState({
     errorMessage,
     isSubmitting,
     isDeleting,
+    isArchiving,
     confirmDeleteModule,
+    confirmArchiveModule,
+    confirmUnarchiveModule,
     leaderSet,
     taSet,
     studentSet,
@@ -295,10 +362,14 @@ export function useEnterpriseModuleCreateFormState({
     setExpectationsText,
     setReadinessNotesText,
     setConfirmDeleteModule,
+    setConfirmArchiveModule,
+    setConfirmUnarchiveModule,
     handleModuleNameChange,
     handleSubmit,
     performSubmit,
     handleDeleteModule,
+    handleArchiveModule,
+    handleUnarchiveModule,
     toggleLeader,
     toggleTeachingAssistant,
     toggleStudent,
@@ -401,7 +472,10 @@ function normalizeOptionalMultilineText(value: string): string | undefined {
   return normalized ? normalized : undefined;
 }
 
-function resolveModuleActionError(error: unknown, action: "load" | "create" | "update" | "delete"): string {
+function resolveModuleActionError(
+  error: unknown,
+  action: "load" | "create" | "update" | "delete" | "archive" | "unarchive",
+): string {
   if (error instanceof Error && error.message === "Forbidden") {
     return "Only module owners/leaders can edit this module.";
   }

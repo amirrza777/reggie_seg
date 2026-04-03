@@ -16,14 +16,35 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("meetings attendance service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("forwards markAttendance to repo", async () => {
+  it("throws NOT_FOUND when meeting is missing", async () => {
     const records = [{ userId: 1, status: "Present" }];
     (repo.getMeetingById as any).mockResolvedValue(null);
+
+    await expect(markAttendance(3, records)).rejects.toEqual({ code: "NOT_FOUND" });
+    expect(repo.bulkUpsertAttendance).not.toHaveBeenCalled();
+  });
+
+  it("forwards markAttendance to repo", async () => {
+    const records = [{ userId: 1, status: "Present" }];
+    (repo.getMeetingById as any).mockResolvedValue({
+      id: 3,
+      teamId: 1,
+      team: { projectId: 10, teamName: "Team A", allocations: [] },
+    });
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({
+      absenceThreshold: 2,
+      minutesEditWindowDays: 7,
+    });
+    (repo.getModuleLeadsForTeam as any).mockResolvedValue([]);
 
     await markAttendance(3, records);
 

@@ -171,12 +171,13 @@ describe("ModuleGuidanceSection", () => {
       />
     );
 
-    expect(useEnterpriseModuleCreateFormStateMock).toHaveBeenCalledWith({
-      mode: "edit",
-      moduleId: selection.module.id,
-      workspace: "staff",
-      initialAccessSelection: selection,
-    });
+    expect(useEnterpriseModuleCreateFormStateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mode: "edit",
+        moduleId: selection.module.id,
+        workspace: "staff",
+      }),
+    );
 
     expect(state.applyGuidanceDefaults).toHaveBeenCalledWith({
       moduleName: "Fallback module title",

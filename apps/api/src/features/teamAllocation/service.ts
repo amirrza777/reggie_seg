@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import type { TeamInviteStatus } from "@prisma/client";
 import { sendEmail } from "../../shared/email.js";
+import {
+  assertProjectMutableForWrites,
+  assertProjectMutableForWritesByTeamId,
+} from "../../shared/projectWriteGuard.js";
 import { addNotification } from "../notifications/service.js";
 import { prisma } from "../../shared/db.js";
 import { planCustomAllocationTeams } from "./customAllocator.js";
@@ -790,9 +794,7 @@ export async function listCustomAllocationQuestionnairesForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   let templates = await findCustomAllocationQuestionnairesForStaff(staffId);
   if (project.teamAllocationQuestionnaireTemplateId) {
@@ -860,9 +862,7 @@ export async function getCustomAllocationCoverageForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
   if (
     project.teamAllocationQuestionnaireTemplateId &&
     project.teamAllocationQuestionnaireTemplateId !== questionnaireTemplateId
@@ -957,9 +957,7 @@ export async function previewCustomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
   if (
     project.teamAllocationQuestionnaireTemplateId &&
     project.teamAllocationQuestionnaireTemplateId !== input.questionnaireTemplateId
@@ -1284,9 +1282,7 @@ export async function applyCustomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const preview = getStoredCustomAllocationPreview(previewId, staffId, projectId);
   if (!preview) {
@@ -1480,6 +1476,8 @@ function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[
 export async function createTeamInvite(params: CreateTeamInviteParams) {
   const normalizedEmail = params.inviteeEmail.trim().toLowerCase();
 
+  await assertProjectMutableForWritesByTeamId(params.teamId);
+
   const teamRecord = await prisma.team.findUnique({
     where: { id: params.teamId },
     select: { archivedAt: true, allocationLifecycle: true },
@@ -1648,9 +1646,7 @@ export async function getManualAllocationWorkspaceForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const normalizedSearchQuery = normalizeManualAllocationSearchQuery(searchQuery);
   const [students, existingTeams] = await Promise.all([
@@ -1714,9 +1710,7 @@ export async function listAllocationDraftsForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const drafts = await findProjectDraftTeams(project.id);
 
@@ -1799,9 +1793,7 @@ export async function updateAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   if (!(await findDraftTeamInProject(project.id, teamId))) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
@@ -1915,9 +1907,7 @@ export async function approveAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
   if (!project.canApproveAllocationDrafts) {
     throw { code: "APPROVAL_FORBIDDEN" };
   }
@@ -2009,9 +1999,7 @@ export async function deleteAllocationDraftForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   if (!(await findDraftTeamInProject(project.id, teamId))) {
     throw { code: "DRAFT_TEAM_NOT_FOUND" };
@@ -2075,9 +2063,7 @@ export async function applyManualAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id);
   const moduleStudentById = new Map(moduleStudents.map((student) => [student.id, student] as const));
@@ -2132,9 +2118,7 @@ export async function previewRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,
@@ -2194,9 +2178,7 @@ export async function applyRandomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const students = await findVacantModuleStudentsForProject(
     project.enterpriseId,
@@ -2294,6 +2276,7 @@ async function resolveStudentTeamCreationScope(
       archivedAt: null,
       module: {
         enterpriseId: user.enterpriseId,
+        archivedAt: null,
         userModules: {
           some: {
             userId,

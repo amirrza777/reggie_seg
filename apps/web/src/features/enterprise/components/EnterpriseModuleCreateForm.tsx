@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { ModuleJoinCodeBanner } from "@/features/modules/components/ModuleJoinCodeBanner";
 import { Button } from "@/shared/ui/Button";
@@ -21,9 +22,12 @@ type EnterpriseModuleCreateFormProps = {
   workspace?: "enterprise" | "staff";
   joinCode?: string | null;
   created?: boolean;
+  successRedirectAfterUpdateHref?: string;
 };
 
 type ModuleCreateFormState = ReturnType<typeof useEnterpriseModuleCreateFormState>;
+
+const fieldsetResetStyle: CSSProperties = { border: "none", margin: 0, padding: 0, minWidth: 0 };
 
 export function EnterpriseModuleCreateForm({
   mode = "create",
@@ -31,19 +35,30 @@ export function EnterpriseModuleCreateForm({
   workspace = "enterprise",
   joinCode = null,
   created = false,
+  successRedirectAfterUpdateHref,
 }: EnterpriseModuleCreateFormProps) {
-  const state = useEnterpriseModuleCreateFormState({ mode, moduleId, workspace });
+  const state = useEnterpriseModuleCreateFormState({
+    mode,
+    moduleId,
+    workspace,
+    successRedirectAfterUpdateHref,
+  });
 
   if (state.isLoadingAccess) {
     return <p className="muted">Loading module access options...</p>;
   }
 
-  if (state.isEditMode && !state.canEditModule) {
+  if (state.isEditMode && !state.canEditModule && !state.moduleArchived) {
     return <ModuleEditBlockedNotice state={state} />;
   }
 
   return (
-    <EnterpriseModuleCreateFormBody state={state} moduleId={moduleId} joinCode={joinCode} created={created} />
+    <EnterpriseModuleCreateFormBody
+      state={state}
+      moduleId={moduleId}
+      joinCode={joinCode}
+      created={created}
+    />
   );
 }
 
@@ -60,40 +75,66 @@ function EnterpriseModuleCreateFormBody({
 }) {
   const { user } = useUser();
   const currentUserId = user?.id ?? null;
+  const readOnlyArchived = Boolean(state.isEditMode && state.moduleArchived);
 
   return (
     <form className="enterprise-modules__create-form enterprise-module-create__form" onSubmit={state.handleSubmit} noValidate>
-      <ModuleFormCollapsible title="Module details" defaultOpen>
-        <ModuleNameField state={state} />
-        <ModuleCodeField state={state} />
+      <ModuleFormCollapsible title="Module details" defaultOpen={!readOnlyArchived}>
+        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+          <ModuleNameField state={state} />
+          <ModuleCodeField state={state} />
+        </fieldset>
         {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} created={created} /> : null}
       </ModuleFormCollapsible>
 
       <ModuleFormCollapsible title="User access">
-        <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
-        {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
+        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+          <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
+          {state.isEditMode ? <ModuleEditModeAccessSections state={state} /> : null}
+        </fieldset>
       </ModuleFormCollapsible>
 
       {state.isEditMode && moduleId ? (
         <ModuleFormCollapsible title="Meeting & attendance settings">
-          <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
-            <MeetingSettingsSection moduleId={moduleId} />
-          </div>
+          <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+            <div className="enterprise-module-create__field enterprise-module-create__field--meeting-settings">
+              <MeetingSettingsSection moduleId={moduleId} />
+            </div>
+          </fieldset>
         </ModuleFormCollapsible>
       ) : null}
 
-      <ModuleFormCollapsible title={state.isEditMode ? "Module content" : "After you create"} defaultOpen={!state.isEditMode}>
-        <ModuleEditFieldsSection state={state} />
+      <ModuleFormCollapsible
+        title={state.isEditMode ? "Module content" : "After you create"}
+        defaultOpen={!state.isEditMode && !readOnlyArchived}
+      >
+        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+          <ModuleEditFieldsSection state={state} />
+        </fieldset>
       </ModuleFormCollapsible>
 
-      {state.isEditMode ? (
-        <ModuleFormCollapsible title="Delete module">
+      {state.isEditMode && moduleId != null ? (
+        <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
+          <ModuleArchiveSection state={state} />
           <ModuleDeleteSection state={state} />
         </ModuleFormCollapsible>
       ) : null}
 
       <ModuleErrorMessage errorMessage={state.errorMessage} />
-      <ModuleFormActions state={state} />
+      {readOnlyArchived ? (
+        <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={state.navigateHome}
+            disabled={state.isSubmitting || state.isDeleting || state.isArchiving}
+          >
+            Back
+          </Button>
+        </div>
+      ) : (
+        <ModuleFormActions state={state} />
+      )}
     </form>
   );
 }
@@ -107,9 +148,12 @@ function ModuleFormCollapsible({
   title: string;
   summaryHint?: string;
   defaultOpen?: boolean;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   const [open, setOpen] = useState(defaultOpen);
+  useEffect(() => {
+    setOpen(defaultOpen);
+  }, [defaultOpen]);
   return (
     <details
       className="enterprise-module-create__collapsible"
@@ -245,7 +289,7 @@ function ModuleLeaderAccessSection({
   state: ModuleCreateFormState;
   currentUserId: number | null;
 }) {
-  const scopeDisabled = state.isSubmitting || state.isDeleting;
+  const scopeDisabled = state.isSubmitting || state.isDeleting || state.isArchiving;
   const onToggleLeader = useCallback(
     (userId: number, checked: boolean) => {
       if (currentUserId != null && userId === currentUserId && !checked) return;
@@ -319,7 +363,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         users={state.taUsers}
         selectedSet={state.taSet}
         onToggle={state.toggleTeachingAssistant}
-        isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting}
+        isCheckedDisabled={(user) => state.isSubmitting || state.isDeleting || state.isArchiving}
         message={state.taMessage}
         page={state.taPage}
         pageInput={state.taPageInput}
@@ -354,7 +398,7 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
         users={state.studentUsers}
         selectedSet={state.studentSet}
         onToggle={state.toggleStudent}
-        isCheckedDisabled={() => state.isSubmitting || state.isDeleting}
+        isCheckedDisabled={() => state.isSubmitting || state.isDeleting || state.isArchiving}
         message={state.studentMessage}
         page={state.studentPage}
         pageInput={state.studentPageInput}
@@ -376,19 +420,100 @@ function ModuleEditModeAccessSections({ state }: { state: ModuleCreateFormState 
   );
 }
 
-function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
+function ModuleArchiveSection({
+  state,
+  moduleArchived,
+}: {
+  state: ModuleCreateFormState;
+  moduleArchived: boolean;
+}) {
+  const d = state.isSubmitting || state.isDeleting || state.isArchiving;
+
+  if (moduleArchived) {
+    return (
+      <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger">
+        <div className="enterprise-module-create__danger-zone">
+          <h3 className="enterprise-module-create__danger-title">Unarchive module</h3>
+          <p className="ui-note">
+            This module is archived: students and staff see it as read-only. Unarchive to allow edits again.
+          </p>
+          <label htmlFor="module-unarchive-confirmation" className="enterprise-module-create__danger-confirm">
+            <input
+              id="module-unarchive-confirmation"
+              type="checkbox"
+              checked={state.confirmUnarchiveModule}
+              onChange={(event) => state.setConfirmUnarchiveModule(event.target.checked)}
+              disabled={d}
+            />
+            <span>I understand this will allow people with permission to edit the module again.</span>
+          </label>
+          <div className="ui-row ui-row--end">
+            <Button
+              type="button"
+              variant="primary"
+              onClick={() => void state.handleUnarchiveModule()}
+              disabled={d || !state.confirmUnarchiveModule}
+            >
+              {state.isArchiving ? "Updating…" : "Unarchive module"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger">
       <div className="enterprise-module-create__danger-zone">
+        <h3 className="enterprise-module-create__danger-title">Archive module</h3>
+        <p className="ui-note">
+          Archive the module to make it read-only for everyone with access to it (e.g. at the end of term). 
+          You can unarchive it to allow for edits again.
+        </p>
+        <label htmlFor="module-archive-confirmation" className="enterprise-module-create__danger-confirm">
+          <input
+            id="module-archive-confirmation"
+            type="checkbox"
+            checked={state.confirmArchiveModule}
+            onChange={(event) => state.setConfirmArchiveModule(event.target.checked)}
+            disabled={d}
+          />
+          <span>I understand the module will become read-only for all users. It can be unarchived if needed.</span>
+        </label>
+        <div className="ui-row ui-row--end">
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => void state.handleArchiveModule()}
+            disabled={d || !state.confirmArchiveModule}
+          >
+            {state.isArchiving ? "Updating…" : "Archive module"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
+  const d = state.isSubmitting || state.isDeleting || state.isArchiving;
+  return (
+    <div
+      className="enterprise-modules__create-field enterprise-module-create__field enterprise-module-create__field--danger"
+      style={{ marginTop: 16 }}
+    >
+      <div className="enterprise-module-create__danger-zone">
         <h3 className="enterprise-module-create__danger-title">Delete module</h3>
-        <p className="ui-note">This permanently deletes the module and its related projects, teams, and access assignments.</p>
+        <p className="ui-note">
+          This permanently deletes the module and its related projects, teams, and access assignments.
+        </p>
         <label htmlFor="module-delete-confirmation" className="enterprise-module-create__danger-confirm">
           <input
             id="module-delete-confirmation"
             type="checkbox"
             checked={state.confirmDeleteModule}
             onChange={(event) => state.setConfirmDeleteModule(event.target.checked)}
-            disabled={state.isSubmitting || state.isDeleting}
+            disabled={d}
           />
           <span>I understand this action cannot be undone.</span>
         </label>
@@ -397,7 +522,7 @@ function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
             type="button"
             variant="danger"
             onClick={state.handleDeleteModule}
-            disabled={state.isSubmitting || state.isDeleting || !state.confirmDeleteModule}
+            disabled={d || !state.confirmDeleteModule}
           >
             {state.isDeleting ? "Deleting..." : "Delete module"}
           </Button>
@@ -417,12 +542,13 @@ function ModuleErrorMessage({ errorMessage }: { errorMessage: string | null }) {
 }
 
 function ModuleFormActions({ state }: { state: ModuleCreateFormState }) {
+  const d = state.isSubmitting || state.isDeleting || state.isArchiving;
   return (
     <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-      <Button type="button" variant="ghost" onClick={state.navigateHome} disabled={state.isSubmitting || state.isDeleting}>
+      <Button type="button" variant="ghost" onClick={state.navigateHome} disabled={d}>
         Cancel
       </Button>
-      <Button type="submit" disabled={state.isSubmitting || state.isDeleting || (!state.isEditMode && state.leaderIds.length === 0)}>
+      <Button type="submit" disabled={d || (!state.isEditMode && state.leaderIds.length === 0)}>
         {state.isSubmitting ? (state.isEditMode ? "Saving..." : "Creating...") : state.isEditMode ? "Save module" : "Create module"}
       </Button>
     </div>

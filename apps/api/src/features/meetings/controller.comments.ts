@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import { addComment, removeComment } from "./service.js";
 
 /** Handles requests for add comment. */
@@ -18,6 +19,12 @@ export async function addCommentHandler(req: Request, res: Response) {
     const comment = await addComment(meetingId, userId, content, teamId);
     res.status(201).json(comment);
   } catch (error) {
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
+    if ((error as { code?: string })?.code === "NOT_FOUND") {
+      return res.status(404).json({ error: "Meeting not found" });
+    }
     console.error("Error adding comment:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -37,6 +44,9 @@ export async function deleteCommentHandler(req: Request, res: Response) {
   } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Comment not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error deleting comment:", error);
     res.status(500).json({ error: "Internal server error" });

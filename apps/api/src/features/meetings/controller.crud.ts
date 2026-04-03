@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import { listMeetings, fetchMeeting, addMeeting, editMeeting, removeMeeting } from "./service.js";
 
 /** Handles requests for list meetings. */
@@ -66,6 +67,9 @@ export async function createMeetingHandler(req: Request, res: Response) {
     if (error?.code === "PROJECT_COMPLETED") {
       return res.status(409).json({ error: "This project is completed. Meeting creation is closed." });
     }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error creating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -98,6 +102,9 @@ export async function updateMeetingHandler(req: Request, res: Response) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
     if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit this meeting" });
     if (error?.code === "MEETING_PASSED") return res.status(409).json({ error: "Meeting details cannot be edited after the meeting date" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error updating meeting:", error);
     res.status(500).json({ error: "Internal server error" });
   }
@@ -117,6 +124,9 @@ export async function deleteMeetingHandler(req: Request, res: Response) {
   } catch (error: any) {
     if (error.code === "P2025") {
       return res.status(404).json({ error: "Meeting not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error deleting meeting:", error);
     res.status(500).json({ error: "Internal server error" });

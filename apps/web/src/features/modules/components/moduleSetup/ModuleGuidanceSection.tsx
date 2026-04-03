@@ -58,7 +58,6 @@ function ModuleGuidanceSectionStaffManage({
     mode: "edit",
     moduleId,
     workspace: "staff",
-    initialAccessSelection,
   });
 
   const defaultGuidance = useMemo(() => {

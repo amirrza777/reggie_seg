@@ -69,6 +69,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
   }
 
   const lastUpdatedLabel = teamMarking ? formatStableDateTime(teamMarking.updatedAt) : "Not graded yet";
+  const markingReadOnly = Boolean(projectData.project.moduleArchivedAt);
 
   return (
     <div className="staff-projects">
@@ -100,6 +101,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
             moduleId={projectData.project.moduleId}
             teamId={team.id}
             initialMarking={teamMarking}
+            readOnly={markingReadOnly}
           />
 
           <MarkingStudentList
@@ -107,6 +109,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
             moduleId={projectData.project.moduleId}
             projectId={projectData.project.id}
             teamId={team.id}
+            readOnly={markingReadOnly}
           />
         </>
       )}

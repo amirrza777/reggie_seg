@@ -11,6 +11,7 @@ export const MODULE_SELECT = {
   timelineText: true,
   expectationsText: true,
   readinessNotesText: true,
+  archivedAt: true,
   createdAt: true,
   updatedAt: true,
   _count: {
@@ -53,6 +54,7 @@ export function mapModuleRecord(module: Prisma.ModuleGetPayload<{ select: typeof
     name: module.name,
     createdAt: module.createdAt,
     updatedAt: module.updatedAt,
+    archivedAt: module.archivedAt?.toISOString() ?? null,
     briefText: module.briefText ?? undefined,
     timelineText: module.timelineText ?? undefined,
     expectationsText: module.expectationsText ?? undefined,

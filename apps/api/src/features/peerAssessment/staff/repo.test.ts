@@ -67,7 +67,7 @@ describe("peerAssessment/staff repo", () => {
           { moduleTeachingAssistants: { some: { userId: 99 } } },
         ],
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, archivedAt: true },
     });
   });
 
@@ -85,7 +85,7 @@ describe("peerAssessment/staff repo", () => {
         id: 7,
         enterpriseId: "ent-1",
       },
-      select: { id: true, name: true },
+      select: { id: true, name: true, archivedAt: true },
     });
   });
 

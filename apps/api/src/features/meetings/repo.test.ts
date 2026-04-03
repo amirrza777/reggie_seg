@@ -221,6 +221,7 @@ describe("meetings repo", () => {
           select: {
             archivedAt: true,
             deadline: { select: { feedbackDueDate: true, feedbackDueDateMcf: true } },
+            module: { select: { archivedAt: true } },
           },
         },
       },

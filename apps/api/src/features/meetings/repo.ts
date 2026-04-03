@@ -182,6 +182,7 @@ export function getTeamMeetingState(teamId: number) {
       project: {
         select: {
           archivedAt: true,
+          module: { select: { archivedAt: true } },
           deadline: {
             select: {
               feedbackDueDate: true,

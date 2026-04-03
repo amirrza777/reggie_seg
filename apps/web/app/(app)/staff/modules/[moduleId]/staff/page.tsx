@@ -2,8 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getModuleStaffList } from "@/features/modules/api/client";
 import type { ModuleStaffListMember } from "@/features/modules/types";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
@@ -51,7 +53,7 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
         </p>
       </header>
 
-      {access.staffModuleSetup || access.enterpriseModuleEditor ? (
+      {access.canEdit ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
           {access.staffModuleSetup ? (
             <Link href={`/staff/modules/${enc}/staff/access`} className="btn btn--primary btn--sm">
@@ -77,13 +79,13 @@ export default async function StaffModuleStaffListPage({ params }: PageProps) {
       ) : members && members.length === 0 ? (
         <Card title="Staff list">
           <p className="muted">No module leads or teaching assistants are assigned yet.</p>
-          {(access.staffModuleSetup || access.enterpriseModuleEditor) ? (
+          {access.canEdit ? (
             <p className="muted">
               {access.staffModuleSetup ? (
                 <>
                   Assign leads and TAs in{" "}
                   <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
-                    module setup
+                    module settings
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>

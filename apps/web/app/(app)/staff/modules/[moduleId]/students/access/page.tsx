@@ -3,8 +3,10 @@
 import { redirect } from "next/navigation";
 import { StaffModuleStudentAccessForm } from "@/features/modules/components/moduleSetup/StaffModuleStudentAccessForm";
 import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 
 type PageProps = {
   params: Promise<{ moduleId: string }>;
@@ -19,6 +21,9 @@ export default async function StaffModuleStudentAccessPage({ params }: PageProps
 
   const access = resolveStaffModuleWorkspaceAccess(ctx);
   if (!access.staffModuleSetup) {
+    redirect(`/staff/modules/${modId}/students`);
+  }
+  if (!access.canEdit) {
     redirect(`/staff/modules/${modId}/students`);
   }
 

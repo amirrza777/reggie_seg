@@ -7,6 +7,8 @@ export type StaffScopedProject = {
   moduleId: number;
   moduleName: string;
   archivedAt: Date | null;
+  /** Parent module archive */
+  moduleArchivedAt: Date | null;
   enterpriseId: string;
 };
 

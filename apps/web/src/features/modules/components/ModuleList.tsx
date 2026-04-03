@@ -233,23 +233,13 @@ function ModuleCard({
             {isActionMenuOpen ? (
               <div className="module-card__menu-panel" role="menu">
                 <Link
-                  href={viewModuleHref}
+                  href={`/staff/modules/${moduleId}/projects`}
                   role="menuitem"
                   className="module-card__menu-item"
                   onClick={() => setIsActionMenuOpen(false)}
                 >
-                  View module
+                  View projects
                 </Link>
-                {canManageModule ? (
-                  <Link
-                    href={`/staff/modules/${moduleId}/manage`}
-                    role="menuitem"
-                    className="module-card__menu-item"
-                    onClick={() => setIsActionMenuOpen(false)}
-                  >
-                    Manage module
-                  </Link>
-                ) : null}
                 {canCreateNewProject ? (
                   <Link
                     href={`/staff/projects/create?moduleId=${moduleId}`}
@@ -258,6 +248,16 @@ function ModuleCard({
                     onClick={() => setIsActionMenuOpen(false)}
                   >
                     Create project
+                  </Link>
+                ) : null}
+                {canManageModule ? (
+                  <Link
+                    href={`/staff/modules/${moduleId}/manage`}
+                    role="menuitem"
+                    className="module-card__menu-item"
+                    onClick={() => setIsActionMenuOpen(false)}
+                  >
+                    Manage module
                   </Link>
                 ) : null}
               </div>

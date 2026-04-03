@@ -23,6 +23,7 @@ type StaffStudentDeadlineOverridesPanelProps = {
   projectId: number;
   members: StaffTeamMemberLite[];
   initialStudentId?: number | null;
+  readOnly?: boolean;
 };
 
 type Draft = {
@@ -81,6 +82,7 @@ export function StaffStudentDeadlineOverridesPanel({
   projectId,
   members,
   initialStudentId,
+  readOnly = false,
 }: StaffStudentDeadlineOverridesPanelProps) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -155,6 +157,7 @@ export function StaffStudentDeadlineOverridesPanel({
   );
 
   const handleSave = async (studentId: number) => {
+    if (readOnly) return;
     const draft = drafts[studentId] ?? fromOverride(overrides[studentId]);
     setSavingStudentId(studentId);
     setActionError(null);
@@ -171,6 +174,7 @@ export function StaffStudentDeadlineOverridesPanel({
   };
 
   const handleClear = async (studentId: number) => {
+    if (readOnly) return;
     setSavingStudentId(studentId);
     setActionError(null);
     try {
@@ -193,7 +197,9 @@ export function StaffStudentDeadlineOverridesPanel({
     <section className="staff-projects__team-card" aria-label="Per-student deadline overrides">
       <h3 style={{ margin: 0 }}>Per-student deadline overrides</h3>
       <p className="muted" style={{ margin: 0 }}>
-        Apply manual extensions or date changes for individual students in this team.
+        {readOnly
+          ? "This module is archived; overrides are read-only."
+          : "Apply manual extensions or date changes for individual students in this team."}
       </p>
 
       <label className="staff-projects__field" htmlFor="student-overrides-search">
@@ -251,7 +257,7 @@ export function StaffStudentDeadlineOverridesPanel({
                     className="staff-projects__chip-btn"
                     onClick={() => setExpandedStudentId((prev) => (prev === member.id ? null : member.id))}
                   >
-                    {isExpanded ? "Hide" : "Edit"}
+                    {isExpanded ? "Hide" : readOnly ? "View" : "Edit"}
                   </button>
                 </div>
               </div>
@@ -266,6 +272,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.taskOpenDate}
                         onChange={(event) => updateDraft(member.id, { taskOpenDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                     <label className="staff-projects__field">
@@ -275,6 +282,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.taskDueDate}
                         onChange={(event) => updateDraft(member.id, { taskDueDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                     <label className="staff-projects__field">
@@ -284,6 +292,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.assessmentOpenDate}
                         onChange={(event) => updateDraft(member.id, { assessmentOpenDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                     <label className="staff-projects__field">
@@ -293,6 +302,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.assessmentDueDate}
                         onChange={(event) => updateDraft(member.id, { assessmentDueDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                     <label className="staff-projects__field">
@@ -302,6 +312,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.feedbackOpenDate}
                         onChange={(event) => updateDraft(member.id, { feedbackOpenDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                     <label className="staff-projects__field">
@@ -311,6 +322,7 @@ export function StaffStudentDeadlineOverridesPanel({
                         type="datetime-local"
                         value={draft.feedbackDueDate}
                         onChange={(event) => updateDraft(member.id, { feedbackDueDate: event.target.value })}
+                        disabled={readOnly}
                       />
                     </label>
                   </div>
@@ -324,9 +336,11 @@ export function StaffStudentDeadlineOverridesPanel({
                       placeholder="Reason for this student-specific override"
                       rows={3}
                       style={{ height: "auto", paddingTop: "8px", paddingBottom: "8px" }}
+                      disabled={readOnly}
                     />
                   </label>
 
+                  {readOnly ? null : (
                   <div className="staff-projects__create-actions">
                     <button
                       type="button"
@@ -345,6 +359,7 @@ export function StaffStudentDeadlineOverridesPanel({
                       Clear override
                     </button>
                   </div>
+                  )}
                 </div>
               ) : null}
             </article>

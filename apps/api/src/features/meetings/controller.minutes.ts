@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import { saveMinutes, fetchMeeting } from "./service.js";
 
 /** Handles requests for save minutes. */
@@ -20,6 +21,9 @@ export async function saveMinutesHandler(req: Request, res: Response) {
   } catch (error: any) {
     if (error?.code === "NOT_FOUND") return res.status(404).json({ error: "Meeting not found" });
     if (error?.code === "FORBIDDEN") return res.status(403).json({ error: "You don't have permission to edit these minutes" });
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error saving minutes:", error);
     res.status(500).json({ error: "Internal server error" });
   }

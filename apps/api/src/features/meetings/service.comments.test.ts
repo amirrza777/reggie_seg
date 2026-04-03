@@ -4,8 +4,10 @@ import { addComment, removeComment } from "./service.js";
 import * as repo from "./repo.js";
 import * as teamAllocationService from "../teamAllocation/service.js";
 import * as notificationsService from "../notifications/service.js";
+import { prisma } from "../../shared/db.js";
 
 vi.mock("./repo.js", () => ({
+  getMeetingById: vi.fn(),
   createComment: vi.fn(),
   deleteComment: vi.fn(),
   createMentions: vi.fn(),
@@ -20,12 +22,25 @@ vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
 
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../shared/db.js", () => ({
+  prisma: {
+    meetingComment: {
+      findUnique: vi.fn(),
+    },
+  },
+}));
+
 describe("meetings comments service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("forwards addComment to repo", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({ id: 5, teamId: 1 });
     (repo.createComment as any).mockResolvedValue({ id: 1 });
 
     await addComment(5, 1, "looks good");
@@ -34,6 +49,7 @@ describe("meetings comments service", () => {
   });
 
   it("does not process mentions when no teamId provided", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({ id: 5, teamId: 1 });
     (repo.createComment as any).mockResolvedValue({ id: 1 });
 
     await addComment(5, 1, "@Bob Jones hello");
@@ -42,6 +58,7 @@ describe("meetings comments service", () => {
   });
 
   it("creates mentions and notifies mentioned users when teamId provided", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({ id: 1, teamId: 1 });
     (repo.createComment as any).mockResolvedValue({ id: 5 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue([
       { id: 2, firstName: "Bob", lastName: "Jones", email: "b@test.com" },
@@ -58,6 +75,7 @@ describe("meetings comments service", () => {
   });
 
   it("skips ambiguous full-name mentions when multiple members share the same name", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({ id: 1, teamId: 1 });
     (repo.createComment as any).mockResolvedValue({ id: 5 });
     (teamAllocationService.getTeamMembers as any).mockResolvedValue([
       { id: 2, firstName: "Bob", lastName: "Jones", email: "b1@test.com" },
@@ -73,6 +91,10 @@ describe("meetings comments service", () => {
   });
 
   it("forwards removeComment to repo", async () => {
+    (prisma.meetingComment.findUnique as any).mockResolvedValue({
+      meeting: { teamId: 1 },
+    });
+
     await removeComment(12);
 
     expect(repo.deleteComment).toHaveBeenCalledWith(12);

@@ -63,6 +63,8 @@ export default async function TeamPage({ params }: PageProps) {
     );
   }
 
+  const markingReadOnly = Boolean(moduleInfo.archivedAt);
+
   return (
     <div className="stack ui-page">
       <Placeholder
@@ -88,6 +90,7 @@ export default async function TeamPage({ params }: PageProps) {
         moduleId={moduleId}
         teamId={teamId}
         initialMarking={teamMarking}
+        readOnly={markingReadOnly}
       />
     </div>
   );

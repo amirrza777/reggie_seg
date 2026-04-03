@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 import {
   fetchProjectNavFlagsConfigForStaff,
   updateProjectNavFlagsConfigForStaff,
@@ -59,6 +60,9 @@ export async function updateProjectNavFlagsConfigHandler(req: AuthRequest, res: 
     }
     if (error?.code === "PROJECT_NOT_FOUND") {
       return res.status(404).json({ error: "Project not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error updating project feature flags config:", error);
     return res.status(500).json({ error: "Failed to update project feature flags config" });

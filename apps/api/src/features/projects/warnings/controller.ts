@@ -1,4 +1,5 @@
 import type { Response } from "express";
+import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 import type { AuthRequest } from "../../../auth/middleware.js";
 import {
   createTeamWarningForStaff,
@@ -66,6 +67,9 @@ export async function createStaffTeamWarningHandler(req: AuthRequest, res: Respo
     if (error?.code === "FORBIDDEN") {
       return res.status(403).json({ error: error.message ?? "Forbidden" });
     }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error creating staff team warning:", error);
     return res.status(500).json({ error: "Failed to create team warning" });
   }
@@ -120,6 +124,9 @@ export async function resolveStaffTeamWarningHandler(req: AuthRequest, res: Resp
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
       return res.status(403).json({ error: error.message ?? "Forbidden" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error resolving staff team warning:", error);
     return res.status(500).json({ error: "Failed to resolve team warning" });
@@ -203,6 +210,9 @@ export async function updateProjectWarningsConfigHandler(req: AuthRequest, res: 
     if (error?.code === "PROJECT_NOT_FOUND") {
       return res.status(404).json({ error: "Project not found" });
     }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error updating project warnings config:", error);
     return res.status(500).json({ error: "Failed to update project warnings config" });
   }
@@ -228,6 +238,9 @@ export async function evaluateProjectWarningsHandler(req: AuthRequest, res: Resp
   } catch (error: any) {
     if (error?.code === "FORBIDDEN") {
       return res.status(403).json({ error: error.message ?? "Forbidden" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error evaluating project warnings:", error);
     return res.status(500).json({ error: "Failed to evaluate project warnings" });

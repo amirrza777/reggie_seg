@@ -1,3 +1,4 @@
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import {
   applyManualAllocationTeam,
   findModuleStudentsForManualAllocation,
@@ -33,9 +34,7 @@ export async function getManualAllocationWorkspaceForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const normalizedSearchQuery = normalizeManualAllocationSearchQuery(searchQuery);
   const [students, existingTeams] = await Promise.all([
@@ -116,9 +115,7 @@ export async function applyManualAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const moduleStudents = await findModuleStudentsForManualAllocation(project.enterpriseId, project.moduleId, project.id);
   const moduleStudentById = new Map(moduleStudents.map((student) => [student.id, student] as const));

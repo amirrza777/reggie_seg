@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { sendProjectOrModuleArchivedConflict } from "../../shared/projectWriteGuard.js";
 import {
   clearStaffStudentDeadlineOverride,
   fetchStaffStudentDeadlineOverrides,
@@ -32,6 +33,9 @@ export async function updateTeamDeadlineProfileHandler(req: AuthRequest, res: Re
     }
     if (error?.code === "TEAM_NOT_FOUND") {
       return res.status(404).json({ error: "Team not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error updating team deadline profile:", error);
     return res.status(500).json({ error: "Failed to update team deadline profile" });
@@ -101,6 +105,9 @@ export async function upsertStaffStudentDeadlineOverrideHandler(req: AuthRequest
     if (error?.code === "STUDENT_NOT_IN_PROJECT") {
       return res.status(404).json({ error: "Student not found in project" });
     }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error upserting student deadline override:", error);
     return res.status(500).json({ error: "Failed to update student deadline override" });
   }
@@ -126,6 +133,9 @@ export async function clearStaffStudentDeadlineOverrideHandler(req: AuthRequest,
     }
     if (error?.code === "PROJECT_NOT_FOUND") {
       return res.status(404).json({ error: "Project not found" });
+    }
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
     }
     console.error("Error clearing student deadline override:", error);
     return res.status(500).json({ error: "Failed to clear student deadline override" });

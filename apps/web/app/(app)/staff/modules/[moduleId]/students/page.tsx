@@ -4,8 +4,10 @@ import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { getModuleStudentProjectMatrix } from "@/features/modules/api/client";
 import { ModuleJoinCodeBanner } from "@/features/modules/components/ModuleJoinCodeBanner";
 import { StaffModuleStudentProjectMatrix } from "@/features/modules/components/StaffModuleStudentProjectMatrix";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import { ApiError } from "@/shared/api/errors";
 import { Card } from "@/shared/ui/Card";
 
@@ -21,6 +23,12 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
   const enc = encodeURIComponent(moduleId);
   const access = resolveStaffModuleWorkspaceAccess(ctx);
 
+  const manageStudentAccessHref = !access.canEdit
+    ? null
+    : access.staffModuleSetup
+      ? `/staff/modules/${enc}/students/access`
+      : `/enterprise/modules/${enc}/edit#module-student-access`;
+
   let joinCodeFromApi: string | null = null;
   try {
     const joinRes = await getEnterpriseModuleJoinCode(ctx.parsedModuleId);
@@ -30,12 +38,6 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       throw e;
     }
   }
-
-  const manageStudentAccessHref = access.staffModuleSetup
-    ? `/staff/modules/${enc}/students/access`
-    : access.enterpriseModuleEditor
-      ? `/enterprise/modules/${enc}/edit#module-student-access`
-      : null;
 
   let studentMatrix: Awaited<ReturnType<typeof getModuleStudentProjectMatrix>> | null = null;
   let studentMatrixDenied = false;
@@ -56,13 +58,15 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       <header className="module-workspace__section-header">
         <h2 className="overview-title">Student members</h2>
         <p className="muted">
-          Enrolled students, team placement per project, and where to manage enrollment.
+          Enrolled students can be added to projects and participate in teams. Students can self-enrol via join code, or you can manage access manually.
         </p>
       </header>
 
       <div className="staff-module-students__enrollment-grid">
         <Card title="Joining code" className="module-workspace__card">
-          {joinCodeFromApi ? (
+          {access.isArchived ? (
+            <p className="muted">Self-enrollment is disabled while this module is archived.</p>
+          ) : joinCodeFromApi ? (
             <p className="muted">
               Students can self-enroll using the join code via{" "}
               <Link href="/dashboard" className="ui-link ">
@@ -87,34 +91,38 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
               to copy the join code if you have access.
             </p>
           )}
-          {joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
+          {!access.isArchived && joinCodeFromApi ? <ModuleJoinCodeBanner joinCode={joinCodeFromApi} /> : null}
         </Card>
 
         <Card title="Manage access" className="module-workspace__card">
-          <p className="muted">Add or remove students manually.</p>
-          {manageStudentAccessHref ? (
-            <div>
-              <Link href={manageStudentAccessHref} className="btn btn--primary">
-                Manage access manually
-              </Link>
-            </div>
-          ) : null}
+          {!access.canEdit ? (
+            access.isArchived ? (
+              <p className="muted">Manual enrollment changes are not available while this module is archived.</p>
+            ) : (
+              <p className="muted">Only module leads and administrators can change student enrollment.</p>
+            )
+          ) : (
+            <>
+              <p className="muted">Add or remove students manually.</p>
+              {manageStudentAccessHref ? (
+                <div>
+                  <Link href={manageStudentAccessHref} className="btn btn--primary">
+                    Manage access manually
+                  </Link>
+                </div>
+              ) : null}
 
-          {access.enterpriseModuleEditor ? (
-            <p className="muted">
-              Full enrollment controls are in the{" "}
-              <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
-                enterprise module editor
-              </Link>
-              .
-            </p>
-          ) : null}
-
-          
-
-          {!access.staffModuleSetup && !access.enterpriseModuleEditor ? (
-            <p className="muted">Only module leads and administrators can change student enrollment.</p>
-          ) : null}
+              {access.enterpriseModuleEditor ? (
+                <p className="muted">
+                  Full enrollment controls are in the{" "}
+                  <Link href={`/enterprise/modules/${enc}/edit`} className="ui-link">
+                    enterprise module editor
+                  </Link>
+                  .
+                </p>
+              ) : null}
+            </>
+          )}
         </Card>
       </div>
 
@@ -133,13 +141,13 @@ export default async function StaffModuleStudentsPage({ params }: PageProps) {
       ) : studentMatrix && studentMatrix.students.length === 0 ? (
         <Card title="Students & project teams" className="module-workspace__card">
           <p className="muted">No students are enrolled in this module yet.</p>
-          {access.staffModuleSetup || access.enterpriseModuleEditor ? (
+          {access.canEdit ? (
             <p className="muted">
               {access.staffModuleSetup ? (
                 <>
                   Enroll students from{" "}
                   <Link href={`/staff/modules/${enc}/manage`} className="ui-link">
-                    Manage module
+                    Module settings
                   </Link>
                   {access.enterpriseModuleEditor ? (
                     <>

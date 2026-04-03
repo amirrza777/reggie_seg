@@ -14,9 +14,11 @@ function roleBadgeLabel(ctx: StaffModuleWorkspaceContext): string | null {
 export function StaffModuleWorkspaceHero({
   ctx,
   className,
+  isArchived = false,
 }: {
   ctx: StaffModuleWorkspaceContext;
   className?: string;
+  isArchived?: boolean;
 }) {
   const { moduleCode, projectCount } = buildModuleDashboardData(ctx.module);
   const roleLabel = roleBadgeLabel(ctx);
@@ -35,6 +37,7 @@ export function StaffModuleWorkspaceHero({
           {staffCount === 1 ? "" : "s"} with access
         </span>
         {roleLabel ? <span className="staff-projects__badge">Your role: {roleLabel}</span> : null}
+        {isArchived ? <span className="staff-projects__badge">Archived</span> : null}
       </div>
     </section>
   );

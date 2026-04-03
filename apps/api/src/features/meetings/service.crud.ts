@@ -10,6 +10,7 @@ import {
   createParticipants,
   getModuleMeetingSettingsForTeam,
 } from "./repo.js";
+import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";
 import { getTeamMembers } from "../teamAllocation/service.js";
 import { addNotification } from "../notifications/service.js";
 import { sendEmail } from "../../shared/email.js";
@@ -40,6 +41,7 @@ export async function addMeeting(data: {
   const { participantIds, ...meetingData } = data;
   const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
+  if (team?.project?.module?.archivedAt) throw { code: "MODULE_ARCHIVED" };
   if (team && isProjectCompletedForMeetings(team)) {
     throw { code: "PROJECT_COMPLETED" };
   }
@@ -94,6 +96,7 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 }) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meeting.teamId);
   if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
   const isOrganiser = meeting.organiserId === userId;
   if (!isOrganiser) {
@@ -125,6 +128,7 @@ export async function editMeeting(meetingId: number, userId: number, data: {
 export async function removeMeeting(meetingId: number) {
   const meeting = await getMeetingById(meetingId);
   if (meeting) {
+    await assertProjectMutableForWritesByTeamId(meeting.teamId);
     await Promise.all(
       meeting.participants.map((p) =>
         addNotification({
@@ -144,6 +148,7 @@ function resolveTeamMeetingFeedbackDueDate(team: {
   deadlineOverride: { feedbackDueDate: Date | null } | null;
   project: {
     archivedAt: Date | null;
+    module?: { archivedAt: Date | null } | null;
     deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
   } | null;
 }) {
@@ -167,12 +172,13 @@ function isProjectCompletedForMeetings(
     deadlineOverride: { feedbackDueDate: Date | null } | null;
     project: {
       archivedAt: Date | null;
+      module?: { archivedAt: Date | null } | null;
       deadline: { feedbackDueDate: Date | null; feedbackDueDateMcf: Date | null } | null;
     } | null;
   },
   now: Date = new Date(),
 ) {
-  if (team.archivedAt || team.project?.archivedAt) return true;
+  if (team.archivedAt || team.project?.archivedAt || team.project?.module?.archivedAt) return true;
   const effectiveDueDate = resolveTeamMeetingFeedbackDueDate(team);
   if (!effectiveDueDate) return false;
   return now.getTime() > effectiveDueDate.getTime();

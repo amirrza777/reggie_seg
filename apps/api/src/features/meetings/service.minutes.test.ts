@@ -9,6 +9,10 @@ vi.mock("./repo.js", () => ({
   getModuleMeetingSettingsForTeam: vi.fn(),
 }));
 
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe("meetings minutes service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -51,7 +55,7 @@ describe("meetings minutes service", () => {
   });
 
   it("forwards saveMinutes to repo", async () => {
-    (repo.getMeetingById as any).mockResolvedValue({ id: 5, minutes: null, organiserId: 1 });
+    (repo.getMeetingById as any).mockResolvedValue({ id: 5, teamId: 1, minutes: null, organiserId: 1 });
     (repo.upsertMinutes as any).mockResolvedValue({ id: 1, content: "notes" });
 
     await saveMinutes(5, 1, "notes");

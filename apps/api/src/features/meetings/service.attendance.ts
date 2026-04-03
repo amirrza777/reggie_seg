@@ -5,10 +5,14 @@ import {
   getModuleLeadsForTeam,
   getModuleMeetingSettingsForTeam,
 } from "./repo.js";
+import { assertProjectMutableForWritesByTeamId } from "../../shared/projectWriteGuard.js";
 import { addNotification } from "../notifications/service.js";
 
 /** Marks the attendance. */
 export async function markAttendance(meetingId: number, records: { userId: number; status: string }[]) {
+  const meetingForTeam = await getMeetingById(meetingId);
+  if (!meetingForTeam) throw { code: "NOT_FOUND" };
+  await assertProjectMutableForWritesByTeamId(meetingForTeam.teamId);
   await bulkUpsertAttendance(meetingId, records);
   await checkAndNotifyConsecutiveAbsences(meetingId, records);
 }

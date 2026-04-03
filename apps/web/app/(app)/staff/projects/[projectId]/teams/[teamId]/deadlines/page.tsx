@@ -50,6 +50,8 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
     email: allocation.user.email,
   }));
 
+  const deadlinesReadOnly = Boolean(data.project.moduleArchivedAt);
+
   return (
     <div className="staff-projects">
       <section className="staff-projects__team-policy" aria-label="Deadline policy controls">
@@ -72,6 +74,7 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
           <StaffTeamDeadlineProfileControl
             teamId={team.id}
             initialProfile={team.deadlineProfile === "MCF" ? "MCF" : "STANDARD"}
+            readOnly={deadlinesReadOnly}
           />
         </div>
       </section>
@@ -80,6 +83,7 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
         projectId={numericProjectId}
         members={members}
         initialStudentId={Number.isInteger(initialStudentId) && initialStudentId > 0 ? initialStudentId : null}
+        readOnly={deadlinesReadOnly}
       />
     </div>
   );

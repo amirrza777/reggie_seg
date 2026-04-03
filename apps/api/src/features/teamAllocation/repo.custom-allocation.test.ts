@@ -27,7 +27,9 @@ describe("repo custom-allocation", () => {
     mocks.prisma.questionnaireTemplate.findMany.mockResolvedValue([]);
     await findCustomAllocationQuestionnairesForStaff(7);
     expect(mocks.prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { OR: [{ ownerId: 7 }, { isPublic: true }] } }),
+      expect.objectContaining({
+        where: { OR: [{ ownerId: 7 }, { isPublic: true }], purpose: "CUSTOMISED_ALLOCATION" },
+      }),
     );
   });
 

@@ -6,7 +6,13 @@ import { getStaffProjectTeams } from "@/features/projects/api/client";
 export type StaffTeamContextSuccess = {
   ok: true;
   user: { id: number };
-  project: { id: number; name: string; moduleId: number; moduleName: string };
+  project: {
+    id: number;
+    name: string;
+    moduleId: number;
+    moduleName: string;
+    moduleArchivedAt?: string | null;
+  };
   team: Awaited<ReturnType<typeof getStaffProjectTeams>>["teams"][number];
 };
 

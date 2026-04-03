@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { sendProjectOrModuleArchivedConflict } from "../../../shared/projectWriteGuard.js";
 import {
   getProgressForModulesILead,
   getProgressForTeam,
@@ -162,6 +163,9 @@ export async function upsertTeamMarkingHandler(req: Request, res: Response) {
     }
     res.json(result);
   } catch (error) {
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error saving team marking", error);
     res.status(500).json({ error: "Error saving team marking" });
   }
@@ -184,6 +188,9 @@ export async function upsertStudentMarkingHandler(req: Request, res: Response) {
     }
     res.json(result);
   } catch (error) {
+    if (sendProjectOrModuleArchivedConflict(res, error)) {
+      return;
+    }
     console.error("Error saving student marking", error);
     res.status(500).json({ error: "Error saving student marking" });
   }

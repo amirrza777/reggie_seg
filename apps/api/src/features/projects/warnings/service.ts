@@ -1,3 +1,5 @@
+import { prisma } from "../../../shared/db.js";
+import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
 import {
   getTeamByUserAndProject,
   getStaffProjectWarningsConfig as getStaffProjectWarningsConfigInDb,
@@ -170,6 +172,8 @@ export async function createTeamWarningForStaff(
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
 
+  await assertProjectMutableForWritesByProjectId(projectId);
+
   return createTeamWarning(projectId, teamId, {
     ...payload,
     source: "MANUAL",
@@ -193,6 +197,8 @@ export async function resolveTeamWarningForStaff(
 ) {
   const canAccess = await canStaffAccessTeamInProject(userId, projectId, teamId);
   if (!canAccess) return null;
+
+  await assertProjectMutableForWritesByProjectId(projectId);
 
   const activeWarnings = await getTeamWarningsForTeamInProject(projectId, teamId, { activeOnly: true });
   const warning = activeWarnings.find((item) => item.id === warningId);
@@ -244,6 +250,26 @@ async function evaluateProjectWarningsWithConfig(
   projectId: number,
   rawWarningsConfig: unknown,
 ): Promise<ProjectWarningsEvaluationSummary> {
+  const archiveGate = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { archivedAt: true, module: { select: { archivedAt: true } } },
+  });
+  if (
+    archiveGate &&
+    (archiveGate.archivedAt != null || archiveGate.module.archivedAt != null)
+  ) {
+    return {
+      projectId,
+      evaluatedTeams: 0,
+      createdWarnings: 0,
+      refreshedWarnings: 0,
+      expiredWarnings: 0,
+      resolvedWarnings: 0,
+      activeAutoWarnings: 0,
+      skippedRuleKeys: [],
+    };
+  }
+
   const activeAutoWarnings = await getActiveAutoTeamWarningsForProjectInDb(projectId);
   const normalizedConfig = normalizeProjectWarningsConfig(rawWarningsConfig);
   const hasEnabledRules = normalizedConfig.rules.some((rule) => rule.enabled);
@@ -341,6 +367,7 @@ async function evaluateProjectWarningsWithConfig(
 export async function evaluateProjectWarningsForStaff(actorUserId: number, projectId: number) {
   const scopedProject = await getStaffProjectWarningsConfigInDb(actorUserId, projectId);
   if (!scopedProject) return null;
+  await assertProjectMutableForWritesByProjectId(projectId);
   return evaluateProjectWarningsWithConfig(projectId, scopedProject.warningsConfig);
 }
 

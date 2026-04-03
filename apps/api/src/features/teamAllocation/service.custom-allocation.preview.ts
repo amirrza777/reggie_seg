@@ -1,4 +1,5 @@
 import crypto from "crypto";
+import { assertProjectMutableForWrites } from "../../shared/projectWriteGuard.js";
 import { planCustomAllocationTeams } from "./customAllocator.js";
 import {
   findCustomAllocationTemplateForStaff,
@@ -65,9 +66,7 @@ export async function previewCustomAllocationForProject(
   if (!project) {
     throw { code: "PROJECT_NOT_FOUND_OR_FORBIDDEN" };
   }
-  if (project.archivedAt) {
-    throw { code: "PROJECT_ARCHIVED" };
-  }
+  assertProjectMutableForWrites(project);
 
   const template = await findCustomAllocationTemplateForStaff(staffId, input.questionnaireTemplateId);
   if (!template) {

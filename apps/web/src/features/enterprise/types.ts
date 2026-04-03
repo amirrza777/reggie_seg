@@ -4,6 +4,7 @@ export type EnterpriseModuleRecord = {
   name: string;
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string | null;
   studentCount: number;
   leaderCount: number;
   teachingAssistantCount: number;
