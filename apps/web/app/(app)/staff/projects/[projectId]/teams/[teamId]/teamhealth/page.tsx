@@ -448,10 +448,11 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
     peer: peerSummary,
     requests,
   });
+  const alertSignals = healthSignals.filter((signal) => signal.status === "ALERT");
   const actionSignals = healthSignals.filter((signal) => signal.status !== "OK");
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
   const unresolvedNoResponseCount = requests.filter((request) => !request.resolved && !request.responseText?.trim()).length;
-  const totalAlerts = openWarnings.length + openSupportRequests;
+  const totalAlerts = alertSignals.length;
   const latestSignalsAt = latestTimestamp([
     ...warnings.map((warning) => warning.updatedAt),
     ...requests.map((request) => request.updatedAt),
