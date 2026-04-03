@@ -58,6 +58,23 @@ describe("QuestionnaireTemplate repository read paths", () => {
     });
   });
 
+  it("creates a template with purpose when provided", async () => {
+    const questions = [{ label: "Q1", type: "rating" }];
+    await createQuestionnaireTemplate("Template P", questions, 10, true, "PEER_ASSESSMENT" as any);
+
+    expect(prisma.questionnaireTemplate.create).toHaveBeenCalledWith({
+      data: {
+        templateName: "Template P",
+        isPublic: true,
+        purpose: "PEER_ASSESSMENT",
+        ownerId: 10,
+        questions: {
+          create: [{ label: "Q1", type: "rating", order: 0, configs: null }],
+        },
+      },
+    });
+  });
+
   it("fetches a template including ordered questions", async () => {
     await getQuestionnaireTemplateById(5);
 
@@ -104,11 +121,60 @@ describe("QuestionnaireTemplate repository read paths", () => {
     });
   });
 
+  it("fetches my templates with query and purpose filters", async () => {
+    (prisma.questionnaireTemplate.findMany as any).mockResolvedValue([]);
+    await getMyQuestionnaireTemplates(14, { query: " 12 ", purpose: "GENERAL_PURPOSE" as any });
+
+    expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
+      where: {
+        ownerId: 14,
+        purpose: "GENERAL_PURPOSE",
+        OR: [
+          { templateName: { contains: "12" } },
+          { questions: { some: { label: { contains: "12" } } } },
+          { id: 12 },
+        ],
+      },
+      include: { questions: { orderBy: { order: "asc" } } },
+    });
+  });
+
+  it("applies fuzzy fallback matching for my templates query", async () => {
+    (prisma.questionnaireTemplate.findMany as any)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 21,
+          templateName: "Team Preferences",
+          questions: [{ label: "Preferred role" }],
+        },
+      ]);
+
+    const result = await getMyQuestionnaireTemplates(14, { query: "tem pre" });
+
+    expect(result).toEqual([
+      {
+        id: 21,
+        templateName: "Team Preferences",
+        questions: [{ label: "Preferred role" }],
+      },
+    ]);
+  });
+
   it("fetches public templates owned by other users", async () => {
     await getPublicQuestionnaireTemplatesByOtherUsers(14);
 
     expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
       where: { isPublic: true, ownerId: { not: 14 } },
+      include: { questions: { orderBy: { order: "asc" } } },
+    });
+  });
+
+  it("fetches public templates by others with purpose filter", async () => {
+    await getPublicQuestionnaireTemplatesByOtherUsers(14, { purpose: "CUSTOMISED_ALLOCATION" as any });
+
+    expect(prisma.questionnaireTemplate.findMany).toHaveBeenCalledWith({
+      where: { isPublic: true, ownerId: { not: 14 }, purpose: "CUSTOMISED_ALLOCATION" },
       include: { questions: { orderBy: { order: "asc" } } },
     });
   });
