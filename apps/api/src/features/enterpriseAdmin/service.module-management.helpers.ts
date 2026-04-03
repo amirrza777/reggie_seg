@@ -1,0 +1,155 @@
+import { prisma } from "../../shared/db.js";
+import { replaceModuleAssignments } from "./service.helpers.js";
+import { MODULE_SELECT } from "./service.core.js";
+import type { ParsedModulePayload } from "./types.js";
+
+export async function findManagedModule(enterpriseId: string, moduleId: number) {
+  return prisma.module.findFirst({
+    where: { id: moduleId, enterpriseId },
+    select: MODULE_SELECT,
+  });
+}
+
+export async function loadModuleAccessUsers(enterpriseId: string, moduleId: number) {
+  const [staffUsers, students] = await Promise.all([
+    prisma.user.findMany({
+      where: {
+        enterpriseId,
+        role: { in: ["STAFF", "ENTERPRISE_ADMIN"] },
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+        moduleLeads: { where: { moduleId }, select: { moduleId: true } },
+        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+      },
+      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
+    }),
+    prisma.user.findMany({
+      where: { enterpriseId, role: "STUDENT" },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        active: true,
+        userModules: { where: { enterpriseId, moduleId }, select: { moduleId: true } },
+        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+      },
+      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
+    }),
+  ]);
+
+  return { staffUsers, students };
+}
+
+export function mapStaffAccessUser(user: {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  moduleLeads: { moduleId: number }[];
+  moduleTeachingAssistants: { moduleId: number }[];
+}) {
+  return {
+    id: user.id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    active: user.active,
+    isLeader: user.moduleLeads.length > 0,
+    isTeachingAssistant: user.moduleTeachingAssistants.length > 0,
+  };
+}
+
+export function mapStudentAccessUser(student: {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  active: boolean;
+  userModules: { moduleId: number }[];
+  moduleTeachingAssistants: { moduleId: number }[];
+}) {
+  return {
+    id: student.id,
+    email: student.email,
+    firstName: student.firstName,
+    lastName: student.lastName,
+    active: student.active,
+    enrolled: student.userModules.length > 0,
+    isTeachingAssistant: student.moduleTeachingAssistants.length > 0,
+  };
+}
+
+export function uniqueUserIds(ids: number[]): number[] {
+  return [...new Set(ids)];
+}
+
+export async function moduleNameExists(enterpriseId: string, moduleName: string, excludeModuleId: number) {
+  const existing = await prisma.module.findFirst({
+    where: {
+      enterpriseId,
+      name: moduleName,
+      id: { not: excludeModuleId },
+    },
+    select: { id: true },
+  });
+  return Boolean(existing);
+}
+
+export async function moduleCodeExists(enterpriseId: string, moduleCode: string | null, excludeModuleId?: number) {
+  if (!moduleCode) return false;
+
+  const existing = await prisma.module.findFirst({
+    where: {
+      enterpriseId,
+      code: moduleCode,
+      ...(excludeModuleId ? { id: { not: excludeModuleId } } : {}),
+    },
+    select: { id: true },
+  });
+  return Boolean(existing);
+}
+
+export async function updateModuleRecord(params: {
+  enterpriseId: string;
+  moduleId: number;
+  payload: ParsedModulePayload;
+  taIds: number[];
+}) {
+  return prisma.$transaction(async (tx) => {
+    const module = await tx.module.findFirst({
+      where: { id: params.moduleId, enterpriseId: params.enterpriseId },
+      select: { id: true },
+    });
+    if (!module) return null;
+
+    await tx.module.update({
+      where: { id: params.moduleId },
+      data: {
+        code: params.payload.code,
+        name: params.payload.name,
+        briefText: params.payload.briefText,
+        timelineText: params.payload.timelineText,
+        expectationsText: params.payload.expectationsText,
+        readinessNotesText: params.payload.readinessNotesText,
+      },
+      select: { id: true },
+    });
+
+    await replaceModuleAssignments(tx, {
+      enterpriseId: params.enterpriseId,
+      moduleId: params.moduleId,
+      leaderIds: params.payload.leaderIds,
+      taIds: params.taIds,
+      studentIds: params.payload.studentIds,
+    });
+
+    return tx.module.findUnique({ where: { id: params.moduleId }, select: MODULE_SELECT });
+  });
+}

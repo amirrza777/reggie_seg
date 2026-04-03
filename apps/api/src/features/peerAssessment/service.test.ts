@@ -158,6 +158,53 @@ describe("peerAssessment service", () => {
     );
   });
 
+  it("saveAssessment accepts missing deadline data and uses null effectiveDueDate", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "No deadline" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue(null);
+    repoMocks.createPeerAssessment.mockResolvedValue({ id: 101 });
+
+    await expect(saveAssessment(payload)).resolves.toEqual({ id: 101 });
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: false,
+        effectiveDueDate: null,
+      }),
+    );
+  });
+
+  it("saveAssessment parses valid string deadlines", async () => {
+    const payload = {
+      projectId: 1,
+      teamId: 2,
+      reviewerUserId: 4,
+      revieweeUserId: 5,
+      templateId: 10,
+      answersJson: [{ questionId: 1, answer: "String date" }],
+    };
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: "2020-03-01T09:00:00.000Z",
+      assessmentDueDate: "3026-03-31T23:59:59.000Z",
+    });
+    repoMocks.createPeerAssessment.mockResolvedValue({ id: 102 });
+
+    await expect(saveAssessment(payload)).resolves.toEqual({ id: 102 });
+    expect(repoMocks.createPeerAssessment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ...payload,
+        submittedLate: false,
+        effectiveDueDate: new Date("3026-03-31T23:59:59.000Z"),
+      }),
+    );
+  });
+
   it("fetchAssessment forwards to repo", async () => {
     const expected = { id: 11 };
     repoMocks.getPeerAssessment.mockResolvedValue(expected);
@@ -213,6 +260,31 @@ describe("peerAssessment service", () => {
       expect.objectContaining({
         submittedLate: true,
         effectiveDueDate: new Date("2020-03-31T23:59:59.000Z"),
+      }),
+    );
+  });
+
+  it("updateAssessmentAnswers parses string deadlines and ignores invalid dates", async () => {
+    repoMocks.getPeerAssessmentById.mockResolvedValue({
+      id: 13,
+      projectId: 1,
+      reviewerUserId: 4,
+      submittedLate: true,
+    });
+    projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
+      assessmentOpenDate: "not-a-date",
+      assessmentDueDate: "also-not-a-date",
+    });
+    repoMocks.updatePeerAssessment.mockResolvedValue({ id: 13 });
+
+    await updateAssessmentAnswers(13, { 1: "Edit" });
+
+    expect(repoMocks.updatePeerAssessment).toHaveBeenCalledWith(
+      13,
+      { 1: "Edit" },
+      expect.objectContaining({
+        submittedLate: true,
+        effectiveDueDate: null,
       }),
     );
   });

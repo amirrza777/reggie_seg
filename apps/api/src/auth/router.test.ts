@@ -24,6 +24,29 @@ vi.mock("passport", () => ({
 }));
 vi.mock("./service.js", () => ({ issueTokensForUser: vi.fn().mockResolvedValue({ accessToken: "a", refreshToken: "r" }) }));
 
+const APP_HOME_REDIRECT = "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home";
+
+async function loadGoogleCallbackHandler() {
+  vi.resetModules();
+  vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
+  const { default: router } = await import("./router.js");
+  const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
+  return callbackLayer.route.stack.at(-1).handle as (req: any, res: any) => Promise<void>;
+}
+
+function createGoogleCallbackResponseMock() {
+  return { cookie: vi.fn(), redirect: vi.fn() };
+}
+
+async function invokeGoogleCallback(
+  user: { id: number; email: string; role?: "ADMIN" | "STAFF" | "ENTERPRISE_ADMIN" },
+) {
+  const callbackHandler = await loadGoogleCallbackHandler();
+  const res = createGoogleCallbackResponseMock();
+  await callbackHandler({ user } as any, res as any);
+  return res;
+}
+
 describe("auth router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -57,16 +80,8 @@ describe("auth router", () => {
   });
 
   it("google callback issues tokens, sets cookie and redirects to app-home resolver", async () => {
-    vi.resetModules();
-    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
     const { issueTokensForUser } = await import("./service.js");
-    const { default: router } = await import("./router.js");
-
-    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
-    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
-    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
-
-    await callbackHandler({ user: { id: 5, email: "u@test.com" } } as any, res);
+    const res = await invokeGoogleCallback({ id: 5, email: "u@test.com" });
 
     expect(issueTokensForUser).toHaveBeenCalledWith(5, "u@test.com");
     expect(res.cookie).toHaveBeenCalledWith(
@@ -74,56 +89,52 @@ describe("auth router", () => {
       "r",
       expect.objectContaining({ httpOnly: true, path: "/" })
     );
-    expect(res.redirect).toHaveBeenCalledWith(
-      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
-    );
+    expect(res.redirect).toHaveBeenCalledWith(APP_HOME_REDIRECT);
   });
 
-  it("google callback sends admins through app-home resolver", async () => {
-    vi.resetModules();
-    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
-    const { default: router } = await import("./router.js");
+  it.each([
+    { label: "admins", role: "ADMIN", email: "admin@test.com" },
+    { label: "staff users", role: "STAFF", email: "staff@test.com" },
+    { label: "enterprise admins", role: "ENTERPRISE_ADMIN", email: "ea@test.com" },
+  ])("google callback sends $label through app-home resolver", async ({ role, email }) => {
+    const res = await invokeGoogleCallback({ id: 5, email, role });
 
-    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
-    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
-    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
-
-    await callbackHandler({ user: { id: 5, email: "admin@test.com", role: "ADMIN" } } as any, res);
-
-    expect(res.redirect).toHaveBeenCalledWith(
-      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
-    );
+    expect(res.redirect).toHaveBeenCalledWith(APP_HOME_REDIRECT);
   });
 
-  it("google callback sends staff users through app-home resolver", async () => {
-    vi.resetModules();
-    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
-    const { default: router } = await import("./router.js");
+  it("google callback uses secure cookie settings in production", async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousAppBaseUrl = process.env.APP_BASE_URL;
+    const previousCookieDomain = process.env.COOKIE_DOMAIN;
+    const previousCookieSecure = process.env.COOKIE_SECURE;
+    process.env.NODE_ENV = "production";
+    process.env.APP_BASE_URL = "https://app.example.com/";
+    process.env.COOKIE_DOMAIN = "example.com";
+    delete process.env.COOKIE_SECURE;
 
-    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
-    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
-    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
+    try {
+      const res = await invokeGoogleCallback({ id: 5, email: "u@test.com" });
 
-    await callbackHandler({ user: { id: 5, email: "staff@test.com", role: "STAFF" } } as any, res);
-
-    expect(res.redirect).toHaveBeenCalledWith(
-      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
-    );
-  });
-
-  it("google callback sends enterprise admins through app-home resolver", async () => {
-    vi.resetModules();
-    vi.doMock("./google.js", () => ({ configureGoogle: () => true }));
-    const { default: router } = await import("./router.js");
-
-    const callbackLayer = router.stack.find((layer: any) => layer.route?.path === "/google/callback");
-    const callbackHandler = callbackLayer.route.stack.at(-1).handle;
-    const res: any = { cookie: vi.fn(), redirect: vi.fn() };
-
-    await callbackHandler({ user: { id: 5, email: "ea@test.com", role: "ENTERPRISE_ADMIN" } } as any, res);
-
-    expect(res.redirect).toHaveBeenCalledWith(
-      "http://localhost:3001/google/success?token=a&redirect=%2Fapp-home"
-    );
+      expect(res.cookie).toHaveBeenCalledWith(
+        "refresh_token",
+        "r",
+        expect.objectContaining({
+          secure: true,
+          sameSite: "none",
+          domain: "example.com",
+        }),
+      );
+      expect(res.redirect).toHaveBeenCalledWith(
+        "https://app.example.com/google/success?token=a&redirect=%2Fapp-home",
+      );
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      if (previousAppBaseUrl === undefined) delete process.env.APP_BASE_URL;
+      else process.env.APP_BASE_URL = previousAppBaseUrl;
+      if (previousCookieDomain === undefined) delete process.env.COOKIE_DOMAIN;
+      else process.env.COOKIE_DOMAIN = previousCookieDomain;
+      if (previousCookieSecure === undefined) delete process.env.COOKIE_SECURE;
+      else process.env.COOKIE_SECURE = previousCookieSecure;
+    }
   });
 });

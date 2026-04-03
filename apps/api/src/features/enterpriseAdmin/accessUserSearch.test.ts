@@ -56,6 +56,59 @@ describe("parseEnterpriseAccessUserSearchFilters", () => {
     });
   });
 
+  it("parses excludeOnModule variants and defaults invalid values to all", () => {
+    expect(
+      parseEnterpriseAccessUserSearchFilters({
+        excludeEnrolledInModule: "15",
+        excludeOnModule: "lead-ta",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        scope: "all",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 15,
+        excludeOnModuleParticipation: "lead_and_ta",
+      },
+    });
+
+    expect(
+      parseEnterpriseAccessUserSearchFilters({
+        excludeEnrolledInModule: "15",
+        excludeOnModule: "full",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        scope: "all",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 15,
+        excludeOnModuleParticipation: "all",
+      },
+    });
+
+    expect(
+      parseEnterpriseAccessUserSearchFilters({
+        excludeEnrolledInModule: "15",
+        excludeOnModule: "invalid",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        scope: "all",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 15,
+        excludeOnModuleParticipation: "all",
+      },
+    });
+  });
+
   it("parses prioritiseUserIds from a comma-separated list", () => {
     expect(parseEnterpriseAccessUserSearchFilters({ prioritiseUserIds: "3,3,5,0,-1,bad,6" })).toEqual({
       ok: true,
@@ -67,6 +120,35 @@ describe("parseEnterpriseAccessUserSearchFilters", () => {
         prioritiseUserIds: [3, 5, 6],
       },
     });
+  });
+
+  it("parses first string value from array-shaped module exclusion query", () => {
+    expect(
+      parseEnterpriseAccessUserSearchFilters({
+        excludeEnrolledInModule: ["9", "11"],
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        scope: "all",
+        query: null,
+        page: 1,
+        pageSize: 20,
+        excludeEnrolledInModuleId: 9,
+        excludeOnModuleParticipation: "all",
+      },
+    });
+  });
+
+  it("caps prioritiseUserIds at 200 unique ids", () => {
+    const csv = Array.from({ length: 210 }, (_, index) => String(index + 1)).join(",");
+    const parsed = parseEnterpriseAccessUserSearchFilters({ prioritiseUserIds: csv });
+    expect(parsed.ok).toBe(true);
+    if (parsed.ok) {
+      expect(parsed.value.prioritiseUserIds).toHaveLength(200);
+      expect(parsed.value.prioritiseUserIds?.[0]).toBe(1);
+      expect(parsed.value.prioritiseUserIds?.[199]).toBe(200);
+    }
   });
 
   it("rejects invalid scope and pagination", () => {
@@ -126,6 +208,22 @@ describe("buildEnterpriseAccessUserSearchWhere", () => {
             { firstName: { contains: "12" } },
             { lastName: { contains: "12" } },
             { id: 12 },
+          ],
+        },
+      ],
+    });
+  });
+
+  it("omits numeric-id OR condition for non-numeric query text", () => {
+    expect(buildEnterpriseAccessUserSearchWhere("ent_1", { scope: "all", query: "alice-01" })).toEqual({
+      AND: [
+        { enterpriseId: "ent_1" },
+        { NOT: { role: "ADMIN" } },
+        {
+          OR: [
+            { email: { contains: "alice-01" } },
+            { firstName: { contains: "alice-01" } },
+            { lastName: { contains: "alice-01" } },
           ],
         },
       ],

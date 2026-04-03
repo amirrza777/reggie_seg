@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import request from "supertest";
 import { healthHandler } from "./health.js";
 
 import { app } from "./app.js";
@@ -45,5 +46,25 @@ describe("app module", () => {
     const mountedRouters = stack.filter((layer) => layer.name === "router");
     expect(hasHealthRoute).toBe(true);
     expect(mountedRouters.length).toBeGreaterThan(0);
+  });
+
+  it("applies CORS origin allow/deny rules", async () => {
+    const noOrigin = await request(app).get("/health");
+    expect(noOrigin.status).toBe(200);
+
+    const allowedLocal = await request(app).get("/health").set("Origin", "http://localhost:3001");
+    expect(allowedLocal.status).toBe(200);
+    expect(allowedLocal.headers["access-control-allow-origin"]).toBe("http://localhost:3001");
+
+    const allowedPreview = await request(app)
+      .get("/health")
+      .set("Origin", "https://reggie-abc123-amirrza777s-projects.vercel.app");
+    expect(allowedPreview.status).toBe(200);
+    expect(allowedPreview.headers["access-control-allow-origin"]).toBe(
+      "https://reggie-abc123-amirrza777s-projects.vercel.app",
+    );
+
+    const denied = await request(app).get("/health").set("Origin", "https://evil.example");
+    expect(denied.status).toBe(500);
   });
 });

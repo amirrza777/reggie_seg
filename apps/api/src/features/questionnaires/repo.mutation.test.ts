@@ -27,27 +27,32 @@ vi.mock("../../shared/db.js", () => ({
 
 import { prisma } from "../../shared/db.js";
 
+function createMutationTx() {
+  return {
+    questionnaireTemplate: { update: vi.fn() },
+    question: {
+      findMany: vi.fn(),
+      update: vi.fn(),
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+  };
+}
+
+function setupMutationTx(existingQuestions: Array<{ id: number }>) {
+  const mockTx = createMutationTx();
+  (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(mockTx));
+  mockTx.question.findMany.mockResolvedValue(existingQuestions);
+  return mockTx;
+}
+
 describe("QuestionnaireTemplate repository mutation paths", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("updates template name and handles update/create/delete logic", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) =>
-      cb(mockTx)
-    );
-
-    mockTx.question.findMany.mockResolvedValue([{ id: 1 }, { id: 2 }]);
+    const mockTx = setupMutationTx([{ id: 1 }, { id: 2 }]);
 
     const incomingQuestions = [
       { id: 1, label: "Updated Q1", type: "text" },
@@ -78,18 +83,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
   });
 
   it("updates template visibility when isPublic is provided", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(mockTx));
-    mockTx.question.findMany.mockResolvedValue([]);
+    const mockTx = setupMutationTx([]);
 
     await updateQuestionnaireTemplate(10, "Visible Template", [], true);
 
@@ -100,18 +94,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
   });
 
   it("falls back to order 0 for updates when incomingOrderById lookup is undefined", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(mockTx));
-    mockTx.question.findMany.mockResolvedValue([{ id: 1 }]);
+    const mockTx = setupMutationTx([{ id: 1 }]);
 
     const mapGetSpy = vi.spyOn(Map.prototype, "get").mockReturnValue(undefined as any);
     try {
@@ -132,18 +115,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
   });
 
   it("falls back to order 0 for creates when incomingOrderByRef lookup is undefined", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) => cb(mockTx));
-    mockTx.question.findMany.mockResolvedValue([]);
+    const mockTx = setupMutationTx([]);
 
     const mapGetSpy = vi.spyOn(Map.prototype, "get").mockReturnValue(undefined as any);
     try {
@@ -166,21 +138,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
   });
 
   it("does not create questions if there are no new ones", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) =>
-      cb(mockTx)
-    );
-
-    mockTx.question.findMany.mockResolvedValue([{ id: 1 }]);
+    const mockTx = setupMutationTx([{ id: 1 }]);
 
     const incomingQuestions = [
       { id: 1, label: "Updated Q1", type: "text" },
@@ -192,21 +150,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
   });
 
   it("does not delete questions if none were removed", async () => {
-    const mockTx = {
-      questionnaireTemplate: { update: vi.fn() },
-      question: {
-        findMany: vi.fn(),
-        update: vi.fn(),
-        createMany: vi.fn(),
-        deleteMany: vi.fn(),
-      },
-    };
-
-    (prisma.$transaction as any).mockImplementation(async (cb: any) =>
-      cb(mockTx)
-    );
-
-    mockTx.question.findMany.mockResolvedValue([{ id: 1 }]);
+    const mockTx = setupMutationTx([{ id: 1 }]);
 
     const incomingQuestions = [
       { id: 1, label: "Same Q1", type: "text" },
@@ -252,6 +196,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
       data: {
         templateName: "Source Template (Copy)",
         isPublic: false,
+        purpose: "GENERAL_PURPOSE",
         ownerId: 2,
         purpose: "GENERAL_PURPOSE",
         questions: {

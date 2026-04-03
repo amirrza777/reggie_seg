@@ -1,9 +1,0 @@
-# Commits listed here are ignored by git blame.
-# One commit hash per line.
-#
-# After you commit a refactor-only change, append its hash:
-#   git rev-parse <refactor-commit> >> .git-blame-ignore-revs
-#
-# Example (do not keep commented when used):
-# abcdef1234567890abcdef1234567890abcdef12
-44cf256ca93c8f69465db8efa1e2b9665b14cb15

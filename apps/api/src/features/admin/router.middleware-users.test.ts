@@ -182,6 +182,24 @@ describe("admin router middleware and user management", () => {
     expect(next).toHaveBeenCalled();
   });
 
+  it("ensureAdmin accepts numeric string sub values in jwt payload", async () => {
+    vi.spyOn(jwt, "verify").mockReturnValueOnce({ sub: "1", admin: true } as any);
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 1,
+      email: "admin@kcl.ac.uk",
+      enterpriseId: "ent-1",
+      role: "ADMIN",
+    });
+    const req: any = { cookies: { refresh_token: "rt" } };
+    const res = mockRes();
+    const next = vi.fn() as NextFunction;
+
+    await ensureAdmin(req, res, next);
+
+    expect(req.adminUser).toEqual({ id: 1, email: "admin@kcl.ac.uk", enterpriseId: "ent-1", role: "ADMIN" });
+    expect(next).toHaveBeenCalled();
+  });
+
   it("ensureSuperAdmin allows only admin@kcl.ac.uk", () => {
     const next = vi.fn() as NextFunction;
 

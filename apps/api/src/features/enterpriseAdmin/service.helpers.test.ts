@@ -56,6 +56,56 @@ describe("enterpriseAdmin service.helpers", () => {
     });
   });
 
+  it("normalizes and keeps a valid module code", () => {
+    const parsed = parseModulePayload({
+      name: "Module B",
+      code: "  cs101  ",
+      leaderIds: [],
+      taIds: [],
+      studentIds: [],
+    });
+
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        name: "Module B",
+        code: "CS101",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        leaderIds: [],
+        taIds: [],
+        studentIds: [],
+      },
+    });
+  });
+
+  it("treats blank module code as null", () => {
+    const parsed = parseModulePayload({
+      name: "Module C",
+      code: "   ",
+      leaderIds: [],
+      taIds: [],
+      studentIds: [],
+    });
+
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        name: "Module C",
+        code: null,
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        leaderIds: [],
+        taIds: [],
+        studentIds: [],
+      },
+    });
+  });
+
   it("rejects missing and oversized module names", () => {
     expect(parseModulePayload({})).toEqual({ ok: false, error: "Module name is required" });
     expect(parseModulePayload({ name: "a".repeat(121) })).toEqual({
@@ -73,6 +123,28 @@ describe("enterpriseAdmin service.helpers", () => {
     expect(parseModulePayload({ name: "X", readinessNotesText: "a".repeat(8001) })).toEqual({
       ok: false,
       error: "Readiness notes must be 8000 characters or fewer",
+    });
+
+    expect(parseModulePayload({ name: "X", timelineText: 42 })).toEqual({
+      ok: false,
+      error: "Timeline must be a string",
+    });
+
+    expect(parseModulePayload({ name: "X", expectationsText: 42 })).toEqual({
+      ok: false,
+      error: "Module expectations must be a string",
+    });
+  });
+
+  it("rejects invalid optional module code field", () => {
+    expect(parseModulePayload({ name: "X", code: 42 })).toEqual({
+      ok: false,
+      error: "Module code must be a string",
+    });
+
+    expect(parseModulePayload({ name: "X", code: "a".repeat(33) })).toEqual({
+      ok: false,
+      error: "Module code must be 32 characters or fewer",
     });
   });
 
@@ -99,6 +171,21 @@ describe("enterpriseAdmin service.helpers", () => {
       error: "ids must contain positive integers",
     });
     expect(parsePositiveIntArray([1, 2, 2, 1], "ids")).toEqual({ ok: true, value: [1, 2] });
+  });
+
+  it("rejects invalid leader, ta, and student id arrays in module payloads", () => {
+    expect(parseModulePayload({ name: "X", leaderIds: [1, "bad"], taIds: [], studentIds: [] })).toEqual({
+      ok: false,
+      error: "leaderIds must contain positive integers",
+    });
+    expect(parseModulePayload({ name: "X", leaderIds: [], taIds: [1, "bad"], studentIds: [] })).toEqual({
+      ok: false,
+      error: "taIds must contain positive integers",
+    });
+    expect(parseModulePayload({ name: "X", leaderIds: [], taIds: [], studentIds: [1, "bad"] })).toEqual({
+      ok: false,
+      error: "studentIds must contain positive integers",
+    });
   });
 
   it("returns UTC start of day for days ago", () => {
@@ -156,6 +243,14 @@ describe("enterpriseAdmin service.helpers", () => {
     ).toEqual({ ok: false, error: "Module leaders must be staff or admin accounts" });
 
     dbMocks.prisma.user.findMany.mockResolvedValueOnce([{ id: 11, role: "STAFF" }]);
+    expect(
+      await validateAssignmentUsers({ enterpriseId: "ent-1", leaderIds: [11], taIds: [12], studentIds: [] }),
+    ).toEqual({ ok: false, error: "Some selected users do not belong to this enterprise" });
+
+    dbMocks.prisma.user.findMany.mockResolvedValueOnce([
+      { id: 11, role: "STAFF" },
+      { id: 99, role: "STUDENT" },
+    ]);
     expect(
       await validateAssignmentUsers({ enterpriseId: "ent-1", leaderIds: [11], taIds: [12], studentIds: [] }),
     ).toEqual({ ok: false, error: "Some selected users do not belong to this enterprise" });

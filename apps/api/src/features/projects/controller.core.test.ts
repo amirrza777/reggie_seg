@@ -195,8 +195,20 @@ describe("projects controller core handlers", () => {
       "P1",
       2,
       3,
+      undefined,
       "hello world",
-      expect.any(Object),
+      expect.objectContaining({
+        taskOpenDate: expect.any(Date),
+        taskDueDate: expect.any(Date),
+        taskDueDateMcf: expect.any(Date),
+        assessmentOpenDate: expect.any(Date),
+        assessmentDueDate: expect.any(Date),
+        assessmentDueDateMcf: expect.any(Date),
+        feedbackOpenDate: expect.any(Date),
+        feedbackDueDate: expect.any(Date),
+        feedbackDueDateMcf: expect.any(Date),
+      }),
+      undefined,
     );
     expect(forbiddenRes.status).toHaveBeenCalledWith(403);
 

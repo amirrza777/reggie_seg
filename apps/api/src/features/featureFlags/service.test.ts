@@ -73,6 +73,17 @@ describe("featureFlags service", () => {
     expect(flags).toEqual([{ key: "repos", enabled: true }]);
   });
 
+  it("returns null when listing flags for missing or inactive user", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce(null);
+    await expect(listFeatureFlagsForUser(12)).resolves.toBeNull();
+
+    (prisma.user.findUnique as any).mockResolvedValueOnce({ enterpriseId: "ent-2", active: false });
+    await expect(listFeatureFlagsForUser(12)).resolves.toBeNull();
+
+    expect(prisma.featureFlag.createMany).not.toHaveBeenCalled();
+    expect(prisma.featureFlag.findMany).not.toHaveBeenCalled();
+  });
+
   it("returns false when flag record does not exist", async () => {
     (prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
     (prisma.featureFlag.findUnique as any).mockResolvedValue(null);

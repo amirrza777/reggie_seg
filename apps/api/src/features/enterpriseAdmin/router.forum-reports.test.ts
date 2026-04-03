@@ -34,6 +34,13 @@ function findHandler(path: string, method: "get" | "delete") {
   return layer?.route?.stack?.[0]?.handle as (req: any, res: any) => Promise<void>;
 }
 
+function enterpriseRequestWithId(id: string, role: "ENTERPRISE_ADMIN" | "STAFF" = "ENTERPRISE_ADMIN") {
+  return {
+    params: { id },
+    enterpriseUser: { enterpriseId: "ent-1", role },
+  } as const;
+}
+
 describe("enterprise forum reports routes", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -67,6 +74,22 @@ describe("enterprise forum reports routes", () => {
     const res = mockResponse();
     await handler({ params: { id: "abc" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } }, res);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 500 when conversation route enterprise context is missing", async () => {
+    const handler = findHandler("/forum-reports/:id/conversation", "get");
+    const res = mockResponse();
+
+    await handler({ params: { id: "1" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 403 when conversation route user is not enterprise admin", async () => {
+    const handler = findHandler("/forum-reports/:id/conversation", "get");
+    const res = mockResponse();
+
+    await handler({ params: { id: "1" }, enterpriseUser: { enterpriseId: "ent-1", role: "STAFF" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(403);
   });
 
   it("returns missingPost when report post no longer exists", async () => {
@@ -188,26 +211,59 @@ describe("enterprise forum reports routes", () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
-  it("returns 400 for invalid dismiss report id", async () => {
+  it("dismisses report and preserves parent when it exists", async () => {
     const handler = findHandler("/forum-reports/:id", "delete");
+    prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+    prismaMock.forumReport.findFirst.mockResolvedValueOnce({
+      id: 17,
+      projectId: 10,
+      postId: 15,
+      parentPostId: 99,
+      authorId: 4,
+      title: "T",
+      body: "B",
+      postCreatedAt: new Date("2026-03-01T10:00:00Z"),
+      postUpdatedAt: new Date("2026-03-01T11:00:00Z"),
+    } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce({ id: 99 } as any);
     const res = mockResponse();
 
-    await handler({ params: { id: "abc" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+    await handler({ params: { id: "17" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
 
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid report id" });
+    expect(prismaMock.discussionPost.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ parentPostId: 99 }),
+      }),
+    );
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
-  it("returns 500 on unexpected dismiss errors", async () => {
+  it("dismisses report with null parent without querying parent post", async () => {
     const handler = findHandler("/forum-reports/:id", "delete");
-    prismaMock.$transaction.mockRejectedValueOnce(new Error("db down"));
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    prismaMock.$transaction.mockImplementation(async (callback: any) => callback(prismaMock));
+    prismaMock.forumReport.findFirst.mockResolvedValueOnce({
+      id: 8,
+      projectId: 10,
+      postId: 6,
+      parentPostId: null,
+      authorId: 4,
+      title: "T",
+      body: "B",
+      postCreatedAt: new Date("2026-03-01T10:00:00Z"),
+      postUpdatedAt: new Date("2026-03-01T11:00:00Z"),
+    } as any);
+    prismaMock.discussionPost.findFirst.mockResolvedValueOnce(null);
     const res = mockResponse();
 
-    await handler({ params: { id: "1" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+    await handler({ params: { id: "8" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(errorSpy).toHaveBeenCalled();
+    expect(prismaMock.discussionPost.findFirst).toHaveBeenCalledTimes(1);
+    expect(prismaMock.discussionPost.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ parentPostId: null }),
+      }),
+    );
+    expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
   it("removes report and post on remove endpoint", async () => {
@@ -219,16 +275,6 @@ describe("enterprise forum reports routes", () => {
     expect(prismaMock.discussionPost.deleteMany).toHaveBeenCalledWith({ where: { id: 7, projectId: 3 } });
     expect(prismaMock.forumReport.delete).toHaveBeenCalledWith({ where: { id: 2 } });
     expect(res.json).toHaveBeenCalledWith({ ok: true });
-  });
-
-  it("returns 400 for invalid remove report id", async () => {
-    const handler = findHandler("/forum-reports/:id/remove", "delete");
-    const res = mockResponse();
-
-    await handler({ params: { id: "abc" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid report id" });
   });
 
   it("returns 404 when remove report is missing", async () => {
@@ -243,15 +289,46 @@ describe("enterprise forum reports routes", () => {
     expect(res.json).toHaveBeenCalledWith({ error: "Report not found" });
   });
 
-  it("returns 500 on unexpected remove errors", async () => {
-    const handler = findHandler("/forum-reports/:id/remove", "delete");
-    prismaMock.$transaction.mockRejectedValueOnce(new Error("db down"));
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-    const res = mockResponse();
+  describe.each([
+    { label: "dismiss", path: "/forum-reports/:id" as const },
+    { label: "remove", path: "/forum-reports/:id/remove" as const },
+  ])("$label route guards", ({ label, path }) => {
+    it(`returns 400 for invalid ${label} report id`, async () => {
+      const handler = findHandler(path, "delete");
+      const res = mockResponse();
 
-    await handler({ params: { id: "1" }, enterpriseUser: { enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" } } as any, res);
+      await handler(enterpriseRequestWithId("abc"), res);
 
-    expect(res.status).toHaveBeenCalledWith(500);
-    expect(errorSpy).toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({ error: "Invalid report id" });
+    });
+
+    it(`returns 500 when ${label} route enterprise context is missing`, async () => {
+      const handler = findHandler(path, "delete");
+      const res = mockResponse();
+
+      await handler({ params: { id: "1" } } as any, res);
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+
+    it(`returns 403 when ${label} route user is not enterprise admin`, async () => {
+      const handler = findHandler(path, "delete");
+      const res = mockResponse();
+
+      await handler(enterpriseRequestWithId("1", "STAFF"), res);
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it(`returns 500 on unexpected ${label} errors`, async () => {
+      const handler = findHandler(path, "delete");
+      prismaMock.$transaction.mockRejectedValueOnce(new Error("db down"));
+      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+      const res = mockResponse();
+
+      await handler(enterpriseRequestWithId("1"), res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(errorSpy).toHaveBeenCalled();
+    });
   });
 });
