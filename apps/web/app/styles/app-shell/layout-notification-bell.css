@@ -26,6 +26,11 @@
   transform: translateY(-1px);
 }
 
+.notification-bell__trigger:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 38%, transparent);
+  outline-offset: 2px;
+}
+
 .notification-bell__badge {
   position: absolute;
   top: -4px;
@@ -82,6 +87,12 @@
   text-decoration: underline;
 }
 
+.notification-bell__mark-all:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 36%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .notification-bell__empty {
   padding: 24px 16px;
   text-align: center;
@@ -121,6 +132,12 @@
   color: inherit;
 }
 
+.notification-bell__item-content:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .notification-bell__dismiss {
   background: none;
   border: none;
@@ -133,6 +150,12 @@
 
 .notification-bell__dismiss:hover {
   color: var(--ink);
+}
+
+.notification-bell__dismiss:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 34%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .notification-bell__item + .notification-bell__item {
@@ -164,6 +187,7 @@
 .notification-bell__time {
   font-size: var(--fs-caption);
   color: var(--muted-subtle);
+  line-height: 1.35;
 }
 
 @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {

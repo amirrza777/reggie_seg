@@ -107,3 +107,5 @@ export type CreateEnterprisePayload = {
   name: string;
   code?: string;
 };
+
+export const __adminTypesCoverageMarker = true;

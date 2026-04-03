@@ -32,6 +32,7 @@ const TEAM_SECTION_LABELS: Record<string, string> = {
 
 const PROJECT_SECTION_LABELS: Record<string, string> = {
   discussion: "Discussion Forum",
+  meetings: "Meetings",
   "team-allocation": "Team allocation",
   trello: "Trello",
 };

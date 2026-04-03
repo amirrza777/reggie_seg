@@ -130,7 +130,7 @@ export function StaffProjectCreatePanel({
 
   const [projectName, setProjectName] = useState("");
   const [informationText, setInformationText] = useState("");
-  const [moduleId, setModuleId] = useState(initialModuleId ?? "");
+  const [moduleId, setModuleId] = useState(initialModuleId == null ? "" : String(initialModuleId));
   const [templateId, setTemplateId] = useState("");
   const [allocationTemplateId, setAllocationTemplateId] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
@@ -154,12 +154,16 @@ export function StaffProjectCreatePanel({
   );
 
   useEffect(() => {
+    const normalizedModuleId = typeof moduleId === "string" ? moduleId : String(moduleId ?? "");
     const preferredModuleId =
-      initialModuleId && creatableModulesFromProps.some((module) => module.id === initialModuleId)
-        ? initialModuleId
-        : (creatableModulesFromProps[0]?.id ?? "");
+      initialModuleId != null &&
+      creatableModulesFromProps.some((module) => String(module.id) === String(initialModuleId))
+        ? String(initialModuleId)
+        : String(creatableModulesFromProps[0]?.id ?? "");
     if (!preferredModuleId) return;
-    const moduleIdIsValid = creatableModulesFromProps.some((module) => module.id === moduleId);
+    const moduleIdIsValid = creatableModulesFromProps.some(
+      (module) => String(module.id) === normalizedModuleId,
+    );
     if (!moduleIdIsValid) {
       setModuleId(preferredModuleId);
     }
@@ -285,15 +289,16 @@ export function StaffProjectCreatePanel({
   }
 
   useEffect(() => {
+    const normalizedModuleId = typeof moduleId === "string" ? moduleId : String(moduleId ?? "");
     setModuleStudents([]);
     setStudentSearchInput("");
     setModuleStudentsError(null);
-    if (!moduleId.trim()) {
+    if (!normalizedModuleId.trim()) {
       setSelectedStudentIds([]);
       return;
     }
 
-    const parsed = Number(moduleId);
+    const parsed = Number(normalizedModuleId);
     if (!Number.isInteger(parsed)) {
       setSelectedStudentIds([]);
       return;
@@ -308,7 +313,7 @@ export function StaffProjectCreatePanel({
   const hasSelectedAllocationTemplate = allocationTemplateId.trim().length > 0;
 
   const selectedModule = useMemo(
-    () => creatableModulesFromProps.find((module) => module.id === moduleId) ?? null,
+    () => creatableModulesFromProps.find((module) => String(module.id) === moduleId) ?? null,
     [creatableModulesFromProps, moduleId],
   );
 

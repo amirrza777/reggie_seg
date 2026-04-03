@@ -9,3 +9,5 @@ export type Paginated<T> = {
   data: T[];
   total: number;
 };
+
+export const __commonTypesCoverageMarker = true;

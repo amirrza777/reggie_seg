@@ -12,7 +12,7 @@ export const marqueeLogos: LogoItem[] = [
   { src: "/marketing-logos/logo-6.png", alt: "Logo 6", width: 150, height: 110 },
 ];
 
-const buildMarqueeSet = (logos: LogoItem[], minCount = 20) => {
+export const buildMarqueeSet = (logos: LogoItem[], minCount = 20) => {
   if (!logos.length) return [];
   const repeated: LogoItem[] = [];
   while (repeated.length < minCount) {

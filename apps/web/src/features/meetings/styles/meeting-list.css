@@ -10,15 +10,22 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
+  border: 1px solid transparent;
   border-radius: 6px;
   color: var(--muted);
   text-decoration: none;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .meeting-list__action:hover {
-  background: var(--glass-hover);
+  background: var(--glass-ui-hover);
+  border-color: color-mix(in srgb, var(--accent-border) 40%, transparent);
   color: var(--ink);
+}
+
+.meeting-list__action:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  outline-offset: 2px;
 }
 
 .meeting-list__action--join:hover {
@@ -62,6 +69,6 @@
 }
 
 .meeting-form__participant-item > input[type="checkbox"]:checked {
-  background: #22c55e;
-  border-color: #22c55e;
+  background: var(--status-success);
+  border-color: var(--status-success);
 }

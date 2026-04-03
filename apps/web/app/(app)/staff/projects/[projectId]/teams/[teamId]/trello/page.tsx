@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
@@ -31,7 +32,7 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
   const projectResult = await loadProjectTeamData(user.id, context.numericProjectId);
   const team = projectResult.projectData?.teams.find((item) => item.id === context.numericTeamId) ?? null;
   if (!projectResult.projectData || !team) {
-    return <MissingTeamView message={projectResult.projectError} />;
+    return <MissingTeamView message={projectResult.projectError} projectId={context.projectId} />;
   }
 
   const deadline = await loadProjectDeadline(user.id, context.numericProjectId);
@@ -78,11 +79,15 @@ async function loadProjectDeadline(userId: number, projectId: number) {
   }
 }
 
-function MissingTeamView({ message }: { message: string | null }) {
+function MissingTeamView({ message, projectId }: { message: string | null; projectId: string }) {
   return (
     <div className="stack">
       <p className="muted">{message ?? "Team not found in this project."}</p>
-      <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
+      <Link
+        href={`/staff/projects/${encodeURIComponent(projectId)}`}
+        className="pill-nav__link"
+        style={{ width: "fit-content" }}
+      >
         Back to project teams
       </Link>
     </div>

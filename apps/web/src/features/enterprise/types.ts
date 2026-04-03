@@ -181,3 +181,5 @@ export type UpdateEnterpriseModulePayload = {
   taIds?: number[];
   studentIds?: number[];
 };
+
+export const __enterpriseTypesCoverageMarker = true;

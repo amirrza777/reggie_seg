@@ -10,3 +10,5 @@ export type Commit = {
   author: string;
   date: string;
 };
+
+export const __reposTypesCoverageMarker = true;

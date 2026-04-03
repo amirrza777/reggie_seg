@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -45,43 +46,44 @@ export const RICH_EDITOR_THEME = {
 
 type ToolbarButton = {
   key: string;
+  ariaLabel: string;
   label: React.ReactNode;
   action: (editor: ReturnType<typeof useLexicalComposerContext>[0]) => void;
 };
 
 const TOOLBAR_GROUPS: ToolbarButton[][] = [
   [
-    { key: "undo", label: <Undo2 size={14} />, action: (ed) => ed.dispatchCommand(UNDO_COMMAND, undefined) },
-    { key: "redo", label: <Redo2 size={14} />, action: (ed) => ed.dispatchCommand(REDO_COMMAND, undefined) },
+    { key: "undo", ariaLabel: "Undo", label: <Undo2 size={14} />, action: (ed) => ed.dispatchCommand(UNDO_COMMAND, undefined) },
+    { key: "redo", ariaLabel: "Redo", label: <Redo2 size={14} />, action: (ed) => ed.dispatchCommand(REDO_COMMAND, undefined) },
   ],
   [
-    { key: "h1", label: <Heading1 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }) },
-    { key: "h2", label: <Heading2 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }) },
-    { key: "h3", label: <Heading3 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }) },
+    { key: "h1", ariaLabel: "Heading 1", label: <Heading1 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h1")); }) },
+    { key: "h2", ariaLabel: "Heading 2", label: <Heading2 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h2")); }) },
+    { key: "h3", ariaLabel: "Heading 3", label: <Heading3 size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createHeadingNode("h3")); }) },
   ],
   [
-    { key: "bold", label: <Bold size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "bold") },
-    { key: "italic", label: <Italic size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "italic") },
-    { key: "underline", label: <Underline size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "underline") },
-    { key: "strikethrough", label: <Strikethrough size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough") },
-    { key: "superscript", label: <Superscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript") },
-    { key: "subscript", label: <Subscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript") },
-    { key: "code", label: <Code size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "code") },
+    { key: "bold", ariaLabel: "Bold", label: <Bold size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "bold") },
+    { key: "italic", ariaLabel: "Italic", label: <Italic size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "italic") },
+    { key: "underline", ariaLabel: "Underline", label: <Underline size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "underline") },
+    { key: "strikethrough", ariaLabel: "Strikethrough", label: <Strikethrough size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "strikethrough") },
+    { key: "superscript", ariaLabel: "Superscript", label: <Superscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "superscript") },
+    { key: "subscript", ariaLabel: "Subscript", label: <Subscript size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "subscript") },
+    { key: "code", ariaLabel: "Inline code", label: <Code size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_TEXT_COMMAND, "code") },
   ],
   [
-    { key: "ul", label: <List size={14} />, action: (ed) => ed.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
-    { key: "ol", label: <ListOrdered size={14} />, action: (ed) => ed.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
-    { key: "quote", label: <Quote size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }) },
+    { key: "ul", ariaLabel: "Bulleted list", label: <List size={14} />, action: (ed) => ed.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined) },
+    { key: "ol", ariaLabel: "Numbered list", label: <ListOrdered size={14} />, action: (ed) => ed.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined) },
+    { key: "quote", ariaLabel: "Quote", label: <Quote size={14} />, action: (ed) => ed.update(() => { const s = $getSelection(); if ($isRangeSelection(s)) $setBlocksType(s, () => $createQuoteNode()); }) },
   ],
   [
-    { key: "left", label: <AlignLeft size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left") },
-    { key: "center", label: <AlignCenter size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center") },
-    { key: "right", label: <AlignRight size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right") },
-    { key: "justify", label: <AlignJustify size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify") },
+    { key: "left", ariaLabel: "Align left", label: <AlignLeft size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "left") },
+    { key: "center", ariaLabel: "Align center", label: <AlignCenter size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "center") },
+    { key: "right", ariaLabel: "Align right", label: <AlignRight size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "right") },
+    { key: "justify", ariaLabel: "Justify", label: <AlignJustify size={14} />, action: (ed) => ed.dispatchCommand(FORMAT_ELEMENT_COMMAND, "justify") },
   ],
   [
-    { key: "outdent", label: <Outdent size={14} />, action: (ed) => ed.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined) },
-    { key: "indent", label: <Indent size={14} />, action: (ed) => ed.dispatchCommand(INDENT_CONTENT_COMMAND, undefined) },
+    { key: "outdent", ariaLabel: "Outdent", label: <Outdent size={14} />, action: (ed) => ed.dispatchCommand(OUTDENT_CONTENT_COMMAND, undefined) },
+    { key: "indent", ariaLabel: "Indent", label: <Indent size={14} />, action: (ed) => ed.dispatchCommand(INDENT_CONTENT_COMMAND, undefined) },
   ],
 ];
 
@@ -111,16 +113,23 @@ function Toolbar() {
     <div className="rich-editor__toolbar">
       {TOOLBAR_GROUPS.map((group, i) => (
         <span key={i} className="rich-editor__group">
-          {group.map(({ key, label, action }) => (
-            <button
-              key={key}
-              type="button"
-              className={`rich-editor__tool${activeFormats.has(key) ? " rich-editor__tool--active" : ""}`}
-              onMouseDown={(e) => { e.preventDefault(); action(editor); }}
-            >
-              {label}
-            </button>
-          ))}
+          {group.map(({ key, ariaLabel, label, action }) => {
+            const isActive = activeFormats.has(key);
+            const isToggle = FORMAT_KEYS.includes(key as typeof FORMAT_KEYS[number]);
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`rich-editor__tool${isActive ? " rich-editor__tool--active" : ""}`}
+                onMouseDown={(e) => { e.preventDefault(); action(editor); }}
+                aria-label={ariaLabel}
+                title={ariaLabel}
+                aria-pressed={isToggle ? isActive : undefined}
+              >
+                {label}
+              </button>
+            );
+          })}
         </span>
       ))}
     </div>

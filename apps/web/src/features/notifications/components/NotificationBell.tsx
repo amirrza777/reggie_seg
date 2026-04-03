@@ -7,6 +7,18 @@ import { useUser } from "@/features/auth/useUser";
 import { useNotifications } from "../hooks/useNotifications";
 import type { Notification } from "../types";
 
+const NOTIFICATION_DROPDOWN_ID = "notification-bell-menu";
+const NOTIFICATION_TIME_FORMATTER = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+function formatNotificationTimestamp(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "Unknown time";
+  return NOTIFICATION_TIME_FORMATTER.format(date);
+}
+
 export function NotificationBell() {
   const { user } = useUser();
   const router = useRouter();
@@ -40,6 +52,16 @@ export function NotificationBell() {
 
   if (!user) return null;
 
+  const visibleNotifications = [...notifications].sort((a, b) => {
+    const left = new Date(b.createdAt).getTime();
+    const right = new Date(a.createdAt).getTime();
+    if (Number.isNaN(left) && Number.isNaN(right)) return b.id - a.id;
+    if (Number.isNaN(left)) return 1;
+    if (Number.isNaN(right)) return -1;
+    return left - right;
+  });
+  const badgeLabel = unreadCount > 99 ? "99+" : String(unreadCount);
+
   return (
     <div className="notification-bell" ref={menuRef}>
       <button
@@ -47,15 +69,24 @@ export function NotificationBell() {
         className="notification-bell__trigger"
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifications"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? NOTIFICATION_DROPDOWN_ID : undefined}
       >
         <Bell size={18} />
         {unreadCount > 0 && (
-          <span className="notification-bell__badge">{unreadCount}</span>
+          <span className="notification-bell__badge">{badgeLabel}</span>
         )}
       </button>
 
       {open && (
-        <div className="notification-bell__dropdown" data-elevation="popup">
+        <div
+          id={NOTIFICATION_DROPDOWN_ID}
+          className="notification-bell__dropdown"
+          data-elevation="popup"
+          role="menu"
+          aria-label="Notifications"
+        >
           <div className="notification-bell__header">
             <span className="notification-bell__title">Notifications</span>
             {unreadCount > 0 && (
@@ -73,7 +104,7 @@ export function NotificationBell() {
             <p className="notification-bell__empty">No notifications yet.</p>
           ) : (
             <div className="notification-bell__list">
-              {notifications.map((notification) => (
+              {visibleNotifications.map((notification) => (
                 <div
                   key={notification.id}
                   className={
@@ -89,7 +120,7 @@ export function NotificationBell() {
                   >
                     <span className="notification-bell__message">{notification.message}</span>
                     <span className="notification-bell__time">
-                      {new Date(notification.createdAt).toLocaleString()}
+                      {formatNotificationTimestamp(notification.createdAt)}
                     </span>
                   </button>
                   <button

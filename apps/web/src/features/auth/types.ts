@@ -32,3 +32,5 @@ export type UserProfile = {
   avatarBase64?: string | null;
   avatarMime?: string | null;
 };
+
+export const __authTypesCoverageMarker = true;

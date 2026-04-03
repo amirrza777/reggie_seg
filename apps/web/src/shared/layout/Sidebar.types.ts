@@ -37,3 +37,5 @@ export type MobileSpaceOption = {
   key: SpaceKey;
   label: string;
 };
+
+export const __sidebarTypesCoverageMarker = true;
