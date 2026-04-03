@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
 import { StaffTeamWarningReviewPanel } from "@/features/staff/projects/components/StaffTeamWarningReviewPanel";
 import { listMeetings } from "@/features/meetings/api/client";
@@ -467,25 +465,7 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
   const compactMutedValueStyle = { fontSize: "1rem", lineHeight: 1.2 } as const;
 
   return (
-    <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Team Health</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Monitor activity signals across repositories, meetings, assessment progress,
-          and support requests.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">Project {projectData.project.id}</span>
-          <span className="staff-projects__badge">Team {team.id}</span>
-          <Link href={`/staff/projects/${projectData.project.id}/teams/${team.id}`} className="staff-projects__badge">
-            Back to team overview
-          </Link>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
+    <>
       <section className="staff-projects__grid staff-projects__health-metrics" aria-label="Team health overview metrics">
         <article className="staff-projects__card staff-projects__health-metric-card" style={compactMetricCardStyle}>
           <p className="staff-projects__health-metric-label">Active warnings</p>
@@ -597,6 +577,6 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         initialRequests={requests}
         initialError={requestsError}
       />
-    </div>
+    </>
   );
 }
