@@ -3,6 +3,9 @@ import {
   applyMcfOffsetDaysToDeadlineState,
   buildDeadlinePreview,
   buildDefaultDeadlineState,
+  buildPresetDeadlineState,
+  formatDateTime,
+  parseLocalDateTime,
   parseAndValidateDeadlineState,
 } from "./StaffProjectCreatePanel.deadlines";
 
@@ -48,5 +51,82 @@ describe("StaffProjectCreatePanel.deadlines", () => {
     const preview = buildDeadlinePreview(buildDefaultDeadlineState());
     expect(preview.totalDays).not.toBeNull();
     expect((preview.totalDays ?? 0) > 0).toBe(true);
+  });
+
+  it("parses and formats date values", () => {
+    expect(parseLocalDateTime("")).toBeNull();
+    expect(parseLocalDateTime("not-a-date")).toBeNull();
+    const parsed = parseLocalDateTime("2026-04-10T09:00");
+    expect(parsed).not.toBeNull();
+    expect(formatDateTime(null)).toBe("-");
+  });
+
+  it("builds a preset schedule and validates all ordering guards", () => {
+    const preset = buildPresetDeadlineState(6);
+    const valid = parseAndValidateDeadlineState(preset);
+    expect(valid.ok).toBe(true);
+
+    const invalidTaskToAssessment = {
+      ...preset,
+      assessmentOpenDate: preset.taskOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidTaskToAssessment)).toEqual({
+      ok: false,
+      error: "Assessment open must be on or after task due.",
+    });
+
+    const invalidAssessmentRange = {
+      ...preset,
+      assessmentDueDate: preset.assessmentOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidAssessmentRange)).toEqual({
+      ok: false,
+      error: "Assessment open must be before assessment due.",
+    });
+
+    const invalidFeedbackOpen = {
+      ...preset,
+      feedbackOpenDate: preset.assessmentOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidFeedbackOpen)).toEqual({
+      ok: false,
+      error: "Feedback open must be on or after assessment due.",
+    });
+
+    const invalidFeedbackRange = {
+      ...preset,
+      feedbackDueDate: preset.feedbackOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidFeedbackRange)).toEqual({
+      ok: false,
+      error: "Feedback open must be before feedback due.",
+    });
+
+    const invalidTaskMcf = {
+      ...preset,
+      taskDueDateMcf: preset.taskOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidTaskMcf)).toEqual({
+      ok: false,
+      error: "MCF task due must be on or after standard task due.",
+    });
+
+    const invalidAssessmentMcf = {
+      ...preset,
+      assessmentDueDateMcf: preset.assessmentOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidAssessmentMcf)).toEqual({
+      ok: false,
+      error: "MCF assessment due must be on or after standard assessment due.",
+    });
+
+    const invalidFeedbackMcf = {
+      ...preset,
+      feedbackDueDateMcf: preset.feedbackOpenDate,
+    };
+    expect(parseAndValidateDeadlineState(invalidFeedbackMcf)).toEqual({
+      ok: false,
+      error: "MCF feedback due must be on or after standard feedback due.",
+    });
   });
 });
