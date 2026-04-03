@@ -77,49 +77,16 @@ function emitModuleJoinAuditEvent(
  * CONFLICT -> 409
  */
 export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  const actor = await findJoinActor(actorUserId);
-  if (!actor) {
-    return fail(401, "UNAUTHORIZED", "Unauthorized");
-  }
-  if (actor.role !== "STUDENT") {
-    return fail(403, "FORBIDDEN", "Forbidden");
-  }
+  const actorResult = await resolveStudentJoinActor(actorUserId);
+  if (!actorResult.ok) return actorResult;
 
-  const joinCode = normalizeModuleJoinCode(rawCode);
-  if (!joinCode) {
-    emitModuleJoinAuditEvent("module_join_invalid_code", {
-      actorUserId: actor.id,
-      enterpriseId: actor.enterpriseId,
-      rawCode: rawCode.slice(0, 16),
-    });
-    return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
-  }
+  const moduleResult = await resolveJoinTargetModule(actorResult.value, rawCode);
+  if (!moduleResult.ok) return moduleResult;
 
-  const module = await findJoinableModuleByCode(actor.enterpriseId, joinCode);
-  if (!module) {
-    emitModuleJoinAuditEvent("module_join_invalid_code", {
-      actorUserId: actor.id,
-      enterpriseId: actor.enterpriseId,
-      joinCode,
-    });
-    return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
-  }
+  const enrollmentResult = await joinStudentToModule(actorResult.value, moduleResult.value.module);
+  if (!enrollmentResult.ok) return enrollmentResult;
 
-  const inserted = await insertModuleEnrollment(actor.enterpriseId, actor.id, module.id);
-  emitModuleJoinAuditEvent(inserted ? "module_join_success" : "module_join_already_joined", {
-    actorUserId: actor.id,
-    enterpriseId: actor.enterpriseId,
-    moduleId: module.id,
-  });
-
-  return {
-    ok: true as const,
-    value: {
-      moduleId: module.id,
-      moduleName: module.name,
-      result: inserted ? "joined" : "already_joined",
-    },
-  };
+  return enrollmentResult;
 }
 
 export async function getModuleJoinCode(viewerUser: { enterpriseId: string; role: string; id: number }, moduleId: number) {
@@ -202,4 +169,63 @@ function isModuleJoinCodeUniqueConstraintError(error: unknown) {
 
   const target = prismaError.meta?.target;
   return Array.isArray(target) && target.includes("enterpriseId") && target.includes("joinCode");
+}
+
+async function resolveStudentJoinActor(actorUserId: number) {
+  const actor = await findJoinActor(actorUserId);
+  if (!actor) return fail(401, "UNAUTHORIZED", "Unauthorized");
+  if (actor.role !== "STUDENT") return fail(403, "FORBIDDEN", "Forbidden");
+  return { ok: true as const, value: actor };
+}
+
+async function resolveJoinTargetModule(
+  actor: Awaited<ReturnType<typeof findJoinActor>> & { role: "STUDENT" },
+  rawCode: string,
+) {
+  const joinCode = normalizeModuleJoinCode(rawCode);
+  if (!joinCode) return failWithInvalidJoinCode(actor, { rawCode: rawCode.slice(0, 16) });
+
+  const module = await findJoinableModuleByCode(actor.enterpriseId, joinCode);
+  if (!module) return failWithInvalidJoinCode(actor, { joinCode });
+  return { ok: true as const, value: { module, joinCode } };
+}
+
+function failWithInvalidJoinCode(
+  actor: { id: number; enterpriseId: string },
+  payload: { rawCode?: string; joinCode?: string },
+) {
+  emitModuleJoinAuditEvent("module_join_invalid_code", {
+    actorUserId: actor.id,
+    enterpriseId: actor.enterpriseId,
+    ...payload,
+  });
+  return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
+}
+
+async function joinStudentToModule(
+  actor: { id: number; enterpriseId: string },
+  module: { id: number; name: string },
+) {
+  const inserted = await insertModuleEnrollment(actor.enterpriseId, actor.id, module.id);
+  emitJoinEnrollmentAuditEvent(actor, module.id, inserted);
+  return {
+    ok: true as const,
+    value: {
+      moduleId: module.id,
+      moduleName: module.name,
+      result: inserted ? ("joined" as const) : ("already_joined" as const),
+    },
+  };
+}
+
+function emitJoinEnrollmentAuditEvent(
+  actor: { id: number; enterpriseId: string },
+  moduleId: number,
+  inserted: boolean,
+) {
+  emitModuleJoinAuditEvent(inserted ? "module_join_success" : "module_join_already_joined", {
+    actorUserId: actor.id,
+    enterpriseId: actor.enterpriseId,
+    moduleId,
+  });
 }

@@ -20,6 +20,7 @@ export default defineConfig({
         "src/prisma/**/*.test.ts",
         "src/prisma/**/__mocks__/**",
         "prisma/seed/types.ts",
+        "prisma/seed/**/types.ts",
       ],
       thresholds: {
         lines: 100,

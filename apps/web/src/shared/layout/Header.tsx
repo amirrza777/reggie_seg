@@ -22,20 +22,38 @@ const useHeaderVisibility = () => {
   const [hidden, setHidden] = useState(false);
   const lastScrollY = useRef(0);
   const hiddenRef = useRef(false);
+  const downwardTravelRef = useRef(0);
+  const upwardTravelRef = useRef(0);
   const frameIdRef = useRef<number | null>(null);
 
   useEffect(() => {
+    const resetTravel = () => {
+      downwardTravelRef.current = 0;
+      upwardTravelRef.current = 0;
+    };
+
     const updateVisibility = () => {
-      const current = window.scrollY;
+      const current = Math.max(window.scrollY, 0);
       const delta = current - lastScrollY.current;
-      const isScrollingDown = delta > 6;
-      const isScrollingUp = delta < -6;
       let nextHidden = hiddenRef.current;
 
-      if (current < 40 || isScrollingUp) {
+      if (delta > 0) {
+        downwardTravelRef.current += delta;
+        upwardTravelRef.current = 0;
+      } else if (delta < 0) {
+        upwardTravelRef.current += -delta;
+        downwardTravelRef.current = 0;
+      }
+
+      if (current < 40) {
         nextHidden = false;
-      } else if (isScrollingDown) {
+        resetTravel();
+      } else if (!hiddenRef.current && downwardTravelRef.current >= 18) {
         nextHidden = true;
+        resetTravel();
+      } else if (hiddenRef.current && upwardTravelRef.current >= 10) {
+        nextHidden = false;
+        resetTravel();
       }
 
       if (nextHidden !== hiddenRef.current) {
@@ -176,7 +194,7 @@ function HeaderMobileOverlay({
   return createPortal(
     <div className={`mobile-menu${isMenuOpen ? " is-open" : ""}`} aria-hidden={!isMenuOpen}>
       <button className="mobile-menu__scrim" aria-label="Close menu" onClick={onCloseMenu} />
-      <div className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+      <div className="mobile-menu__panel" data-elevation="popup" role="dialog" aria-modal="true" aria-label="Navigation menu">
         <MobileMenuTopBar handleLogoClick={handleLogoClick} onCloseMenu={onCloseMenu} />
         <MobileMenuLinks onCloseMenu={onCloseMenu} />
         <MobileMenuActions onCloseMenu={onCloseMenu} />

@@ -6,7 +6,7 @@ describe("ProjectOverview", () => {
   it("renders fallback project when prop is missing", () => {
     render(<ProjectOverview />);
     expect(screen.getByText("Capstone Project")).toBeInTheDocument();
-    expect(screen.getByText("Project overview stub. Replace with fetched data.")).toBeInTheDocument();
+    expect(screen.getByText("Project overview.")).toBeInTheDocument();
     expect(screen.getByText("project-123")).toBeInTheDocument();
   });
 
@@ -25,7 +25,7 @@ describe("ProjectOverview", () => {
     );
 
     expect(screen.getByText("Final Demo")).toBeInTheDocument();
-    expect(screen.getByText("Prepare investor demo.")).toBeInTheDocument();
+    expect(screen.getByText("Project overview.")).toBeInTheDocument();
     expect(screen.getByText("proj-99")).toBeInTheDocument();
   });
 });

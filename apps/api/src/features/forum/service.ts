@@ -21,47 +21,31 @@ import {
   isUserInProject,
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
-import { extractMentionsFromLexicalJSON } from "../../shared/lexical.js";
-
-function normalizeName(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-}
+import { extractMentionsFromLexicalJSON, resolveMentionedMembers } from "../../shared/mentions.js";
+import { isStaffRole } from "../../shared/roles.js";
 
 async function processMentions(authorId: number, projectId: number, body: string) {
   const mentionedNames = extractMentionsFromLexicalJSON(body);
   if (mentionedNames.length === 0) return;
 
   const members = await getProjectMembers(projectId);
-  const membersByName = new Map<string, typeof members>();
-  for (const member of members) {
-    const key = normalizeName(`${member.firstName} ${member.lastName}`);
-    const group = membersByName.get(key) ?? [];
-    group.push(member);
-    membersByName.set(key, group);
-  }
-
-  const mentionedMembers = new Map<number, (typeof members)[number]>();
-  for (const name of mentionedNames) {
-    const matched = (membersByName.get(normalizeName(name)) ?? []).filter((m) => m.id !== authorId);
-    // Skip ambiguous names so we don't notify the wrong person when multiple members share a full name.
-    if (matched.length === 1) mentionedMembers.set(matched[0].id, matched[0]);
-  }
-
-  if (mentionedMembers.size === 0) return;
+  const matched = resolveMentionedMembers(mentionedNames, members, authorId);
+  if (matched.length === 0) return;
 
   const author = await getUserById(authorId);
   const authorName = author ? `${author.firstName} ${author.lastName}` : "Someone";
 
-  for (const member of mentionedMembers.values()) {
-    const isStaff = member.role === "STAFF" || member.role === "ADMIN" || member.role === "ENTERPRISE_ADMIN";
-    const link = isStaff ? `/staff/projects/${projectId}/discussion` : `/projects/${projectId}/discussion`;
-    await addNotification({
-      userId: member.id,
-      type: "MENTION",
-      message: `${authorName} mentioned you in a discussion post`,
-      link,
-    });
-  }
+  await Promise.all(
+    matched.map((member) => {
+      const link = isStaffRole(member.role) ? `/staff/projects/${projectId}/discussion` : `/projects/${projectId}/discussion`;
+      return addNotification({
+        userId: member.id,
+        type: "MENTION",
+        message: `${authorName} mentioned you in a discussion post`,
+        link,
+      });
+    })
+  );
 }
 
 export async function fetchDiscussionPosts(userId: number, projectId: number) {
@@ -86,8 +70,7 @@ export async function createDiscussionPost(
   }
   if (post && parentAuthorId && parentAuthorId !== userId) {
     const parentAuthorRole = await getUserRole(parentAuthorId);
-    const isStaff = parentAuthorRole === "STAFF" || parentAuthorRole === "ADMIN" || parentAuthorRole === "ENTERPRISE_ADMIN";
-    const link = isStaff
+    const link = isStaffRole(parentAuthorRole)
       ? `/staff/projects/${projectId}/discussion`
       : `/projects/${projectId}/discussion`;
     await addNotification({

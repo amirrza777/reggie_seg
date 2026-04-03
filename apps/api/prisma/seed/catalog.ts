@@ -8,36 +8,13 @@ import type { SeedModule, SeedProject, SeedTeam, SeedTemplate, SeedUser } from "
 
 export async function seedUsers(enterpriseId: string, seedPasswordHash: string): Promise<SeedUser[]> {
   return withSeedLogging("seedUsers", async () => {
-    const created = await prisma.user.createMany({
-      data: planUserSeedData(enterpriseId, seedPasswordHash),
-      skipDuplicates: true,
-    });
-
-    const updated = await prisma.user.updateMany({
-      where: {
-        enterpriseId,
-        email: { in: userData.map((u) => u.email) },
-      },
-      data: { passwordHash: seedPasswordHash },
-    });
-
-    const allUsers = await prisma.user.findMany({
-      select: { id: true, role: true, email: true, firstName: true, lastName: true },
-      where: {
-        enterpriseId,
-        email: {
-          in: userData.map((u) => u.email),
-        },
-      },
-    });
+    const seedEmails = getSeedUserEmails();
+    const created = await createSeedUsers(enterpriseId, seedPasswordHash);
+    const updated = await updateSeedUserPasswordHashes(enterpriseId, seedPasswordHash, seedEmails);
+    const allUsers = await findSeedUsers(enterpriseId, seedEmails);
 
     return {
-      value: allUsers.map((u: { id: number; role: Role; firstName: string | null; lastName: string | null }) => ({
-        id: u.id,
-        role: u.role,
-        firstName: u.firstName,
-        lastName: u.lastName,
-      })),
+      value: toSeedUsers(allUsers),
       rows: created.count,
       details: `password hashes updated=${updated.count}`,
     };
@@ -70,94 +47,25 @@ export async function seedModules(enterpriseId: string): Promise<SeedModule[]> {
 export async function seedQuestionnaireTemplates(ownerId?: number): Promise<SeedTemplate[]> {
   return withSeedLogging("seedQuestionnaireTemplates", async () => {
     if (!ownerId) {
-      return {
-        value: [] as SeedTemplate[],
-        rows: 0,
-        details: "skipped (no template owner found)",
-      };
+      return buildTemplateSkipResult();
     }
 
-    const templates: SeedTemplate[] = [];
-    let questionCount = 0;
-    let createdCount = 0;
-
-    for (const config of planQuestionnaireTemplateSeedData()) {
-      const existingTemplate = await prisma.questionnaireTemplate.findFirst({
-        where: {
-          ownerId,
-          templateName: config.templateName,
-        },
-        select: { id: true },
-      });
-      const templateData = planTemplateQuestionData(config.questions);
-      const include = { questions: { orderBy: { order: "asc" } } } as const;
-
-      const template = existingTemplate
-        ? await prisma.questionnaireTemplate.update({
-            where: { id: existingTemplate.id },
-            data: {
-              templateName: config.templateName,
-              isPublic: config.isPublic,
-              ownerId,
-              questions: {
-                deleteMany: {},
-                create: templateData,
-              },
-            },
-            include,
-          })
-        : await prisma.questionnaireTemplate.create({
-            data: {
-              templateName: config.templateName,
-              isPublic: config.isPublic,
-              ownerId,
-              questions: {
-                create: templateData,
-              },
-            },
-            include,
-          });
-
-      if (!existingTemplate) {
-        createdCount += 1;
-      }
-
-      templates.push({
-        id: template.id,
-        questionLabels: template.questions.map((question) => question.label),
-      });
-
-      questionCount += template.questions.length;
-    }
+    const seeded = await seedTemplateSet(ownerId, planQuestionnaireTemplateSeedData());
 
     return {
-      value: templates,
-      rows: createdCount,
-      details: `questions generated=${questionCount}`,
+      value: seeded.templates,
+      rows: seeded.createdCount,
+      details: `questions generated=${seeded.questionCount}`,
     };
   });
 }
 
 export async function seedProjects(modules: SeedModule[], templates: SeedTemplate[]): Promise<SeedProject[]> {
   return withSeedLogging("seedProjects", async () => {
-    if (modules.length === 0 || templates.length === 0) {
-      return {
-        value: [] as SeedProject[],
-        rows: 0,
-        details: "skipped (missing modules/templates)",
-      };
-    }
-    const fallbackModule = modules[0];
-    const defaultTemplate = templates[0];
-    if (!fallbackModule || !defaultTemplate) {
-      return {
-        value: [] as SeedProject[],
-        rows: 0,
-        details: "skipped (no fallback module/template)",
-      };
-    }
+    const readiness = resolveProjectSeedReadiness(modules, templates);
+    if (!readiness.ready) return readiness.result;
 
-    const data = planProjectSeedRows(modules, templates, fallbackModule, defaultTemplate);
+    const data = planProjectSeedRows(modules, templates, readiness.fallbackModule, readiness.defaultTemplate);
 
     const created = await prisma.project.createMany({
       data,
@@ -186,23 +94,10 @@ export async function seedProjects(modules: SeedModule[], templates: SeedTemplat
 
 export async function seedTeams(enterpriseId: string, projects: SeedProject[]): Promise<SeedTeam[]> {
   return withSeedLogging("seedTeams", async () => {
-    if (projects.length === 0) {
-      return {
-        value: [] as SeedTeam[],
-        rows: 0,
-        details: "skipped (no projects)",
-      };
-    }
-    const fallbackProject = projects[0];
-    if (!fallbackProject) {
-      return {
-        value: [] as SeedTeam[],
-        rows: 0,
-        details: "skipped (no fallback project)",
-      };
-    }
+    const readiness = resolveTeamSeedReadiness(projects);
+    if (!readiness.ready) return readiness.result;
 
-    const data = planTeamSeedRows(enterpriseId, projects, fallbackProject);
+    const data = planTeamSeedRows(enterpriseId, projects, readiness.fallbackProject);
 
     const created = await prisma.team.createMany({
       data,
@@ -304,4 +199,149 @@ function buildTeamSeedRow(
 
 export function planTeamSeedRows(enterpriseId: string, projects: SeedProject[], fallbackProject: SeedProject) {
   return teamData.map((team) => buildTeamSeedRow(team, enterpriseId, projects, fallbackProject));
+}
+
+type SeededTemplateSet = {
+  templates: SeedTemplate[];
+  createdCount: number;
+  questionCount: number;
+};
+
+function getSeedUserEmails() {
+  return userData.map((user) => user.email);
+}
+
+function createSeedUsers(enterpriseId: string, seedPasswordHash: string) {
+  return prisma.user.createMany({
+    data: planUserSeedData(enterpriseId, seedPasswordHash),
+    skipDuplicates: true,
+  });
+}
+
+function updateSeedUserPasswordHashes(enterpriseId: string, seedPasswordHash: string, emails: string[]) {
+  return prisma.user.updateMany({
+    where: { enterpriseId, email: { in: emails } },
+    data: { passwordHash: seedPasswordHash },
+  });
+}
+
+function findSeedUsers(enterpriseId: string, emails: string[]) {
+  return prisma.user.findMany({
+    select: { id: true, role: true, email: true, firstName: true, lastName: true },
+    where: { enterpriseId, email: { in: emails } },
+  });
+}
+
+function toSeedUsers(users: { id: number; role: Role; firstName: string | null; lastName: string | null }[]) {
+  return users.map((user) => ({
+    id: user.id,
+    role: user.role,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  }));
+}
+
+function buildTemplateSkipResult() {
+  return {
+    value: [] as SeedTemplate[],
+    rows: 0,
+    details: "skipped (no template owner found)",
+  };
+}
+
+async function seedTemplateSet(
+  ownerId: number,
+  configs: ReturnType<typeof planQuestionnaireTemplateSeedData>
+): Promise<SeededTemplateSet> {
+  const summary: SeededTemplateSet = { templates: [], createdCount: 0, questionCount: 0 };
+  for (const config of configs) {
+    const seeded = await seedSingleTemplate(ownerId, config);
+    summary.templates.push(seeded.template);
+    summary.createdCount += seeded.created ? 1 : 0;
+    summary.questionCount += seeded.questionCount;
+  }
+  return summary;
+}
+
+async function seedSingleTemplate(
+  ownerId: number,
+  config: ReturnType<typeof planQuestionnaireTemplateSeedData>[number]
+) {
+  const existing = await findExistingTemplate(ownerId, config.templateName);
+  const template = await writeTemplate(ownerId, config, existing?.id);
+  return {
+    created: !existing,
+    questionCount: template.questions.length,
+    template: { id: template.id, questionLabels: template.questions.map((question) => question.label) },
+  };
+}
+
+function findExistingTemplate(ownerId: number, templateName: string) {
+  return prisma.questionnaireTemplate.findFirst({
+    where: { ownerId, templateName },
+    select: { id: true },
+  });
+}
+
+function writeTemplate(
+  ownerId: number,
+  config: ReturnType<typeof planQuestionnaireTemplateSeedData>[number],
+  existingTemplateId?: number
+) {
+  const include = { questions: { orderBy: { order: "asc" } } } as const;
+  const templateData = planTemplateQuestionData(config.questions);
+  if (existingTemplateId) {
+    return prisma.questionnaireTemplate.update({
+      where: { id: existingTemplateId },
+      data: {
+        templateName: config.templateName,
+        isPublic: config.isPublic,
+        ownerId,
+        questions: { deleteMany: {}, create: templateData },
+      },
+      include,
+    });
+  }
+
+  return prisma.questionnaireTemplate.create({
+    data: {
+      templateName: config.templateName,
+      isPublic: config.isPublic,
+      ownerId,
+      questions: { create: templateData },
+    },
+    include,
+  });
+}
+
+function resolveProjectSeedReadiness(modules: SeedModule[], templates: SeedTemplate[]) {
+  if (modules.length === 0 || templates.length === 0) {
+    return {
+      ready: false as const,
+      result: { value: [] as SeedProject[], rows: 0, details: "skipped (missing modules/templates)" },
+    };
+  }
+  const fallbackModule = modules[0];
+  const defaultTemplate = templates[0];
+  if (!fallbackModule || !defaultTemplate) {
+    return {
+      ready: false as const,
+      result: { value: [] as SeedProject[], rows: 0, details: "skipped (no fallback module/template)" },
+    };
+  }
+  return { ready: true as const, fallbackModule, defaultTemplate };
+}
+
+function resolveTeamSeedReadiness(projects: SeedProject[]) {
+  if (projects.length === 0) {
+    return { ready: false as const, result: { value: [] as SeedTeam[], rows: 0, details: "skipped (no projects)" } };
+  }
+  const fallbackProject = projects[0];
+  if (!fallbackProject) {
+    return {
+      ready: false as const,
+      result: { value: [] as SeedTeam[], rows: 0, details: "skipped (no fallback project)" },
+    };
+  }
+  return { ready: true as const, fallbackProject };
 }

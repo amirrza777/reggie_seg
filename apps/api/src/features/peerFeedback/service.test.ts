@@ -35,7 +35,7 @@ describe("peerFeedback service", () => {
     repoMocks.getPeerAssessmentById.mockResolvedValue({ id: 4, projectId: 11 });
     projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
       feedbackOpenDate: new Date("2026-03-01T09:00:00.000Z"),
-      feedbackDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      feedbackDueDate: new Date("3026-03-31T23:59:59.000Z"),
     });
   });
 
@@ -58,7 +58,7 @@ describe("peerFeedback service", () => {
       reviewText: "Well done",
       agreementsJson: payload.agreements,
       submittedLate: false,
-      effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      effectiveDueDate: new Date("3026-03-31T23:59:59.000Z"),
     });
     expect(result).toBe(expected);
   });
