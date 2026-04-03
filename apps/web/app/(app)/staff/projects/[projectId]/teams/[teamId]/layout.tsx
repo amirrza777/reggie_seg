@@ -31,12 +31,11 @@ export default async function StaffTeamLayout({ params, children }: LayoutProps)
     );
   }
 
-  const { project, team } = ctx;
+  const { team } = ctx;
 
   return (
     <div className="staff-projects">
       <StaffTeamPageHeader
-        project={{ id: project.id, name: project.name, moduleId: project.moduleId, moduleName: project.moduleName }}
         team={team}
         subtitle={<TeamSectionSubtitle />}
       />

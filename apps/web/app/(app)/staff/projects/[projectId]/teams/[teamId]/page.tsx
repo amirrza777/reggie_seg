@@ -79,7 +79,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     <>
       <section className="staff-projects__grid" aria-label="Team health summary">
         <Link
-          href={`/staff/projects/${projectId}/teams/${teamId}/team`}
+          href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
           className="staff-projects__card"
           aria-label="Team health"
         >

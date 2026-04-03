@@ -130,10 +130,10 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
       {message ? <p className={status === "error" ? "error" : "muted"}>{message}</p> : null}
 
       <div className="stack" style={{ gap: 10 }}>
-        <h4 style={{ margin: 0 }}>My Team Health Messages</h4>
+        <h4 style={{ margin: 0 }}>Team Health Messages</h4>
         {requests.length === 0 ? (
           <p className="muted" style={{ margin: 0 }}>
-            No messages submitted yet.
+            No team health messages yet.
           </p>
         ) : (
           requests.map((request) => {
@@ -157,7 +157,7 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                   </span>
                 </div>
                 <div style={{ margin: 0 }}>
-                  <RichTextViewer content={request.details} />
+                  <RichTextViewer content={request.details} noPadding />
                 </div>
                 <div
                   className="muted"
@@ -186,7 +186,7 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                   >
                     <p style={{ margin: "0 0 6px", fontWeight: 600 }}>Staff response</p>
                     <div style={{ margin: 0 }}>
-                      <RichTextViewer content={request.responseText!} />
+                      <RichTextViewer content={request.responseText!} noPadding />
                     </div>
                   </div>
                 ) : null}

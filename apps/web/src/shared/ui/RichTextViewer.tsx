@@ -12,6 +12,7 @@ import { RICH_EDITOR_THEME } from "./RichTextEditor";
 
 type RichTextViewerProps = {
   content: string;
+  noPadding?: boolean;
 };
 
 function isLexicalJson(value: string): boolean {
@@ -23,9 +24,10 @@ function isLexicalJson(value: string): boolean {
   }
 }
 
-export function RichTextViewer({ content }: RichTextViewerProps) {
+export function RichTextViewer({ content, noPadding = false }: RichTextViewerProps) {
   if (!content || !isLexicalJson(content)) {
-    return <p>{content}</p>;
+    const plainClassName = noPadding ? "rich-editor__plain rich-editor__plain--no-padding" : "rich-editor__plain";
+    return <p className={plainClassName}>{content}</p>;
   }
 
   const initialConfig = {
@@ -36,11 +38,16 @@ export function RichTextViewer({ content }: RichTextViewerProps) {
     editorState: content,
     theme: RICH_EDITOR_THEME,
   };
+  const viewerKey = `${noPadding ? "np" : "p"}:${content}`;
 
   return (
-    <LexicalComposer initialConfig={initialConfig}>
+    <LexicalComposer key={viewerKey} initialConfig={initialConfig}>
       <RichTextPlugin
-        contentEditable={<ContentEditable className="rich-editor__editable rich-editor__editable--readonly" />}
+        contentEditable={
+          <ContentEditable
+            className={`rich-editor__editable rich-editor__editable--readonly${noPadding ? " rich-editor__editable--no-padding" : ""}`}
+          />
+        }
         ErrorBoundary={LexicalErrorBoundary}
       />
       <ListPlugin />

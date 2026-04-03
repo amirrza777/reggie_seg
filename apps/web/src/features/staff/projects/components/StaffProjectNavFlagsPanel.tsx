@@ -278,11 +278,6 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
   return (
     <div className="stack">
       {loading ? <p className="muted">Loading project feature flags...</p> : null}
-      {payload?.name ? (
-        <p className="muted" style={{ margin: 0 }}>
-          Project: <strong>{payload.name}</strong>
-        </p>
-      ) : null}
       {message ? (
         <div className="status-alert status-alert--success" style={{ padding: "10px 12px" }}>
           <span>{message}</span>

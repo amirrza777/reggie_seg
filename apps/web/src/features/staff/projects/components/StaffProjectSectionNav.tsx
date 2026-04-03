@@ -14,6 +14,8 @@ const projectTabs = [
   { key: "overview", label: "Overview", hrefSuffix: "" },
   { key: "team-allocation", label: "Team allocation", hrefSuffix: "/team-allocation" },
   { key: "discussion", label: "Discussion Forum", hrefSuffix: "/discussion" },
+  { key: "feature-flags", label: "Feature flags", hrefSuffix: "/feature-flags" },
+  {key: "warnings", label: "Warnings", hrefSuffix: "/warnings" },
 ];
 
 export function StaffProjectSectionNav({ projectId, moduleId }: StaffProjectSectionNavProps) {

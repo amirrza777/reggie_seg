@@ -4,3 +4,5 @@
 @import "./staff-projects/allocation-controls.css";
 @import "./staff-projects/allocation-manual.css";
 @import "./staff-projects/policy.css";
+@import "../warnings/styles/warnings.css";
+

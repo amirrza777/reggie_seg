@@ -58,11 +58,11 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
             <Link href={`/staff/projects/${data.project.id}/feature-flags`} className="staff-projects__quick-link">
               Feature flags
             </Link>
+            <Link href={`/staff/projects/${data.project.id}/warnings`} className="staff-projects__quick-link">
+              Warnings
+            </Link>
           </div>
-          <StaffProjectWarningsConfigPanel
-            projectId={data.project.id}
-            projectName={data.project.name}
-          />
+
         </div>
       </section>
 
