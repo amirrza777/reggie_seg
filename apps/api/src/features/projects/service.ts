@@ -490,7 +490,7 @@ export async function fetchMyTeamHealthMessages(userId: number, projectId: numbe
   const team = await getTeamByUserAndProject(userId, projectId);
   if (!team) return null;
 
-  return getTeamHealthMessagesForUserInProject(projectId, userId);
+  return getTeamHealthMessagesForTeamInProject(projectId, team.id);
 }
 
 export async function fetchTeamHealthMessagesForStaff(userId: number, projectId: number, teamId: number) {

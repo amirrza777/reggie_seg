@@ -3,7 +3,7 @@ import type {   ProjectWarningRuleConfig,
                 WarningRuleSeverity 
 } from "@/features/projects/types";
 
-import { DEFAULT_WARNING_CONFIG, LOOKBACK_WINDOW_OPTIONS, type WarningConfigState } from "../types";
+import { DEFAULT_WARNING_CONFIG, type WarningConfigState } from "../types";
 
 
 function normalizeLookbackWindow(value: number): number {
@@ -90,7 +90,7 @@ export function mapApiConfigToState(apiConfig: ProjectWarningsConfig): {
       continue;
     }
 
-    if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "COMMIT_ACTIVITY") {
+    if (rule.key === "LOW_CONTRIBUTION_ACTIVITY" || rule.key === "LOW_COMMIT_ACTIVITY") {
       state.contributionActivity.enabled = rule.enabled;
       state.contributionActivity.severity = toSeverity(rule.severity, state.contributionActivity.severity);
       state.contributionActivity.minCommits = clampNonNegative(

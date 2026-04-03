@@ -29,12 +29,17 @@
   transform: translateY(-1px);
 }
 
-.staff-projects__team-card--resolved {
-  border-left: 4px solid var(--status-success-text);
-  background: color-mix(in srgb, var(--status-success-text) 8%, var(--surface));
+.staff-projects__team-card.staff-projects__team-card--resolved {
+  border: 1px solid var(--status-success-border);
+  background: var(--status-success-soft);
 }
 
-.staff-projects__team-card--rejected {
+.staff-projects__team-card.staff-projects__team-card--responded {
+  border-color: var(--status-success-border);
+  background: var(--status-success-soft);
+}
+
+.staff-projects__team-card.staff-projects__team-card--rejected {
   border-left: 4px solid var(--status-danger-text);
   background: color-mix(in srgb, var(--status-danger-text) 8%, var(--surface));
 }

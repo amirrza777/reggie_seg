@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
@@ -512,21 +513,26 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
 
   return (
     <>
-      <section className="staff-projects__grid staff-projects__health-metrics" aria-label="Team health overview metrics">
-        <article className="staff-projects__team-card staff-projects__health-metric-card">
-          <p className="staff-projects__health-metric-value">{openWarnings.length}</p>
-          <p className="staff-projects__team-count">Active warnings</p>
-        </article>
-        <article className="staff-projects__team-card staff-projects__health-metric-card">
-          <p className="staff-projects__health-metric-value">{openSupportRequests}</p>
-          <p className="staff-projects__team-count">
-            Unresolved messages
-            {unresolvedNoResponseCount > 0 ? ` · ${unresolvedNoResponseCount} awaiting response` : ""}
-          </p>
-        </article>
-        <article className="staff-projects__team-card staff-projects__health-metric-card">
-          <p className="staff-projects__health-metric-value staff-projects__health-metric-value--muted">{formatDateTime(latestSignalsAt)}</p>
-          <p className="staff-projects__team-count">Latest data refresh</p>
+      <section className="staff-projects__team-list" aria-label="Team health snapshot">
+        <article className="staff-projects__team-card staff-projects__team-card--signal">
+
+
+          <div className="staff-projects__grid staff-projects__health-metrics">
+            <article className="staff-projects__team-card staff-projects__health-metric-card">
+              <p className="staff-projects__health-metric-value">{openWarnings.length}</p>
+              <p className="staff-projects__team-count">Active warnings</p>
+            </article>
+            <article className="staff-projects__team-card staff-projects__health-metric-card">
+              <p className="staff-projects__health-metric-value">{openSupportRequests}</p>
+              <p className="staff-projects__team-count">
+                Unresolved messages
+              </p>
+            </article>
+            <article className="staff-projects__team-card staff-projects__health-metric-card">
+              <p className="staff-projects__health-metric-value staff-projects__health-metric-value--muted">{formatDateTime(latestSignalsAt)}</p>
+              <p className="staff-projects__team-count">Latest data refresh</p>
+            </article>
+          </div>
         </article>
       </section>
 
@@ -619,30 +625,31 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               ))}
             </dl>
           </div>
-          <p className="staff-projects__team-count">
-            Signal source coverage: {availableSignalSources}/3 data sources currently available.
-          </p>
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}
         </article>
       </section>
 
-      <StaffTeamWarningReviewPanel
-        userId={user.id}
-        projectId={numericProjectId}
-        teamId={numericTeamId}
-        initialWarnings={warnings}
-        initialError={warningsError}
-      />
+      <section className="staff-projects__team-list" aria-label="Warning review">
+        <StaffTeamWarningReviewPanel
+          userId={user.id}
+          projectId={numericProjectId}
+          teamId={numericTeamId}
+          initialWarnings={warnings}
+          initialError={warningsError}
+        />
+      </section>
 
-      <StaffTeamHealthMessageReviewPanel
-        userId={user.id}
-        projectId={numericProjectId}
-        teamId={numericTeamId}
-        initialRequests={requests}
-        initialError={requestsError}
-      />
+      <section className="staff-projects__team-list" aria-label="Message review">
+        <StaffTeamHealthMessageReviewPanel
+          userId={user.id}
+          projectId={numericProjectId}
+          teamId={numericTeamId}
+          initialRequests={requests}
+          initialError={requestsError}
+        />
+      </section>
     </>
   );
 }

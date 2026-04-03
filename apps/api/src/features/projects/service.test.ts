@@ -331,15 +331,15 @@ describe("projects service", () => {
     expect(repo.createTeamHealthMessage).toHaveBeenCalledWith(3, 22, 7, "Need support", "Please review");
   });
 
-  it("fetchMyTeamHealthMessages requires membership and returns user requests", async () => {
+  it("fetchMyTeamHealthMessages requires membership and returns team requests", async () => {
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toBeNull();
-    expect(repo.getTeamHealthMessagesForUserInProject).not.toHaveBeenCalled();
+    expect(repo.getTeamHealthMessagesForTeamInProject).not.toHaveBeenCalled();
 
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.getTeamHealthMessagesForUserInProject as any).mockResolvedValue([{ id: 1 }]);
+    (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 1 }]);
     await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toEqual([{ id: 1 }]);
-    expect(repo.getTeamHealthMessagesForUserInProject).toHaveBeenCalledWith(3, 7);
+    expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 
   it("fetchTeamHealthMessagesForStaff enforces staff scope before listing requests", async () => {

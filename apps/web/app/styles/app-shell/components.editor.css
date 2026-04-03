@@ -74,6 +74,19 @@
     cursor: default;
 }
 
+.rich-editor__editable--no-padding {
+    padding: 0;
+}
+
+.rich-editor__plain {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.rich-editor__plain--no-padding {
+    margin: 0;
+}
+
 .rich-editor__placeholder {
     position: absolute;
     top: 10px;

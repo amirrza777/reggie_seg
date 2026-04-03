@@ -17,6 +17,7 @@ import { seedGithubDemoPath } from "./githubDemo";
 import { seedFeatureFlags, seedPeerAssessments, seedProjectDeadlines, seedStaffStudentMarks } from "./outcomes";
 import { seedPeerAssessmentProgressScenarios } from "./peer-assessment-scenarios";
 import { seedMeetings } from "./meetings";
+import { seedTeamHealthWarningScenario } from "./team-health-warning-scenario";
 import { seedNotifications } from "./notifications";
 import { seedTeamInvites } from "./teamInvites";
 import { seedAdminUser } from "./core";
@@ -78,6 +79,7 @@ function buildScenarioSeedPlan(context: SeedContext, config: SeedProfileConfig):
     buildPeerAssessmentsStep(context),
     buildFeatureFlagsStep(context),
     buildPeerAssessmentProgressScenariosStep(context),
+    buildTeamHealthWarningScenarioStep(context),
     buildForumPostsStep(context),
     buildMeetingsStep(context),
     buildNotificationsStep(context),
@@ -190,6 +192,10 @@ function buildFeatureFlagsStep(context: SeedContext) {
 
 function buildPeerAssessmentProgressScenariosStep(context: SeedContext) {
   return buildScenarioStep("seedPeerAssessmentProgressScenarios", () => seedPeerAssessmentProgressScenarios(context));
+}
+
+function buildTeamHealthWarningScenarioStep(context: SeedContext) {
+  return buildScenarioStep("seedTeamHealthWarningScenario", () => seedTeamHealthWarningScenario(context));
 }
 
 function buildForumPostsStep(context: SeedContext) {

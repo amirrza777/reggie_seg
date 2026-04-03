@@ -42,8 +42,9 @@ export function StaffTeamHealthMessageReviewPanel({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
-  const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
-  const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
+  const compactPanelStyle = { padding: 12, gap: 12, fontSize: "0.92rem", lineHeight: 1.35 } as const;
+  const compactCardStyle = { padding: "12px 14px", gap: 9 } as const;
+  const messageStackStyle = { display: "grid", gap: 14, padding: "2px 2px 4px" } as const;
   const compactTitleStyle = { margin: 0, fontSize: "1.14rem", lineHeight: 1.22 } as const;
   const compactMutedStyle = { margin: 0 } as const;
   const compactDetailStyle = {
@@ -56,6 +57,12 @@ export function StaffTeamHealthMessageReviewPanel({
   } as const;
   const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "0.84rem", lineHeight: 1.1 } as const;
   const openMessageCount = requests.filter((request) => !request.resolved).length;
+  const sortedRequests = [...requests].sort((a, b) => {
+    if (a.resolved !== b.resolved) return Number(a.resolved) - Number(b.resolved);
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    return bTime - aTime;
+  });
 
   const updateRequest = (updated: TeamHealthMessage) => {
     setRequests((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -143,10 +150,16 @@ export function StaffTeamHealthMessageReviewPanel({
               No queries or complaints have been submitted for this team yet.
             </p>
           ) : (
-            requests.map((request) => {
+            <div style={messageStackStyle}>
+              {sortedRequests.map((request) => {
               const isResolved = request.resolved;
               const isRespondOpen = activeRespondRequestId === request.id;
-              const statusCardClass = isResolved ? " staff-projects__team-card--resolved" : "";
+              const hasResponse = Boolean(request.responseText?.trim());
+              const isResponded = hasResponse || Boolean(request.reviewedByUserId) || isResolved;
+              const statusCardClass = [
+                isResponded ? " staff-projects__team-card--responded" : "",
+                isResolved ? " staff-projects__team-card--resolved" : "",
+              ].join("");
               const statusBadgeStyle = {
                 display: "inline-flex",
                 alignItems: "center",
@@ -157,55 +170,74 @@ export function StaffTeamHealthMessageReviewPanel({
                 border: "1px solid var(--border)",
               } as const;
 
-              return (
-                <article key={request.id} className={`staff-projects__team-card${statusCardClass}`} style={compactCardStyle}>
+                return (
+                  <article key={request.id} className={`staff-projects__team-card${statusCardClass}`} style={compactCardStyle}>
                   <div className="staff-projects__team-top">
                     <h3 className="staff-projects__team-title" style={compactTitleStyle}>{request.subject}</h3>
                     <span style={statusBadgeStyle}>{isResolved ? "Resolved" : "Open"}</span>
                   </div>
                   <div style={{ margin: 0 }}>
-                    <RichTextViewer content={request.details} />
+                    <RichTextViewer content={request.details} noPadding />
                   </div>
                   <p className="staff-projects__team-count" style={compactMutedStyle}>
                     Submitted by {request.requester.firstName} {request.requester.lastName} on{" "}
                     {formatDate(request.createdAt)}
                   </p>
                   {request.responseText ? (
-                    <div className="staff-projects__team-count" style={compactMutedStyle}>
-                      <strong>Staff response:</strong>
-                      <RichTextViewer content={request.responseText!} />
+                    <div style={compactMutedStyle}>
+                      <div
+                        style={{
+                          border: "1px solid var(--status-success-border)",
+                          borderRadius: 8,
+                          padding: "8px 10px",
+                          background: "var(--surface)",
+                        }}
+                      >
+                        <p style={{ margin: "0 0 6px", fontWeight: 600, color: "var(--ink)" }}>Staff response</p>
+                        <RichTextViewer content={request.responseText!} noPadding />
+                      </div>
                     </div>
                   ) : null}
-                  {request.reviewedBy ? (
-                    <p className="muted" style={compactMutedStyle}>
-                      Last updated by {request.reviewedBy.firstName} {request.reviewedBy.lastName}
-                      {request.reviewedAt ? ` on ${formatDate(request.reviewedAt)}` : ""}
-                    </p>
-                  ) : null}
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 8,
+                    }}
+                  >
+                    {request.reviewedBy ? (
+                      <p className="muted" style={compactMutedStyle}>
+                        Last updated by {request.reviewedBy.firstName} {request.reviewedBy.lastName}
+                        {request.reviewedAt ? ` on ${formatDate(request.reviewedAt)}` : ""}
+                      </p>
+                    ) : null}
 
-                  <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 }}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      style={compactButtonStyle}
-                      onClick={() => openRespondBox(request)}
-                      disabled={isActionLoading}
-                    >
-                      {isRespondOpen ? "Close response" : request.responseText ? "Edit response" : "Respond"}
-                    </Button>
-                    {isResolved ? (
+                    <div style={{ display: "flex", justifyContent: "flex-end", flexWrap: "wrap", gap: 6, marginLeft: "auto" }}>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         style={compactButtonStyle}
-                        onClick={() => void handleMarkUnresolved(request.id)}
+                        onClick={() => openRespondBox(request)}
                         disabled={isActionLoading}
                       >
-                        {isActionLoading ? "Saving..." : "Mark unresolved"}
+                        {isRespondOpen ? "Close response" : request.responseText ? "Edit response" : "Respond"}
                       </Button>
-                    ) : null}
+                      {isResolved ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          style={compactButtonStyle}
+                          onClick={() => void handleMarkUnresolved(request.id)}
+                          disabled={isActionLoading}
+                        >
+                          {isActionLoading ? "Saving..." : "Mark unresolved"}
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
 
                   {isRespondOpen ? (
@@ -247,9 +279,10 @@ export function StaffTeamHealthMessageReviewPanel({
                       </div>
                     </div>
                   ) : null}
-                </article>
-              );
-            })
+                  </article>
+                );
+              })}
+            </div>
           )}
           {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}
           {panelError ? <p className="error" style={{ margin: 0 }}>{panelError}</p> : null}
