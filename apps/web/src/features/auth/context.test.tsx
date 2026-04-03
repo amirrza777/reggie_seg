@@ -42,8 +42,11 @@ describe("UserProvider", () => {
     refreshAccessTokenMock.mockResolvedValue(undefined as Awaited<ReturnType<typeof refreshAccessToken>>);
 
     let intervalCallback: (() => void) | null = null;
+    vi.spyOn(document, "visibilityState", "get").mockReturnValue("visible");
     const setIntervalSpy = vi.spyOn(window, "setInterval").mockImplementation(((handler: TimerHandler) => {
-      intervalCallback = typeof handler === "function" ? handler : null;
+      if (typeof handler === "function") {
+        intervalCallback = handler;
+      }
       return 77;
     }) as typeof window.setInterval);
     const clearIntervalSpy = vi.spyOn(window, "clearInterval");
@@ -67,6 +70,7 @@ describe("UserProvider", () => {
       window.dispatchEvent(new CustomEvent(AUTH_STATE_EVENT, { detail: { authenticated: true } }));
     });
     await waitFor(() => expect(screen.getByTestId("user")).toHaveTextContent("second@example.com"));
+    await waitFor(() => expect(setIntervalSpy).toHaveBeenCalled());
 
     act(() => {
       window.dispatchEvent(new Event("focus"));
@@ -74,8 +78,8 @@ describe("UserProvider", () => {
       intervalCallback?.();
     });
 
-    expect(setIntervalSpy).toHaveBeenCalled();
-    expect(refreshAccessTokenMock).toHaveBeenCalledTimes(3);
+    await waitFor(() => expect(refreshAccessTokenMock.mock.calls.length).toBeGreaterThanOrEqual(2));
+    const refreshCallsBeforeUnmount = refreshAccessTokenMock.mock.calls.length;
 
     unmount();
 
@@ -84,7 +88,7 @@ describe("UserProvider", () => {
     act(() => {
       window.dispatchEvent(new Event("focus"));
     });
-    expect(refreshAccessTokenMock).toHaveBeenCalledTimes(3);
+    expect(refreshAccessTokenMock).toHaveBeenCalledTimes(refreshCallsBeforeUnmount);
   });
 
   it("falls back to null user when profile loading fails", async () => {

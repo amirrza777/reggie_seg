@@ -37,7 +37,7 @@ describe("RepoLinkForm", () => {
       }),
     );
 
-    expect(screen.getByText("Linked reggie for proj-1 (stub).")).toBeInTheDocument();
+    expect(await screen.findByText("Linked reggie for proj-1 (stub).")).toBeInTheDocument();
     expect(screen.getByLabelText("Repository name")).toHaveValue("");
     expect(screen.getByLabelText("Repository URL")).toHaveValue("");
   });
@@ -51,5 +51,16 @@ describe("RepoLinkForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /link repository/i }));
 
     await waitFor(() => expect(screen.getByText("Could not link")).toBeInTheDocument());
+  });
+
+  it("shows fallback error message for non-Error failures", async () => {
+    linkRepositoryMock.mockRejectedValue("failed");
+    render(<RepoLinkForm />);
+
+    fireEvent.change(screen.getByLabelText("Repository name"), { target: { value: "repo" } });
+    fireEvent.change(screen.getByLabelText("Repository URL"), { target: { value: "https://example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: /link repository/i }));
+
+    await waitFor(() => expect(screen.getByText("Failed to link repository")).toBeInTheDocument());
   });
 });

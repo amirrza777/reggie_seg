@@ -65,4 +65,51 @@ describe("featureFlags", () => {
     await expect(getFeatureFlagMap()).resolves.toEqual({});
     expect(logDevErrorMock).toHaveBeenCalled();
   });
+
+  it("falls back for fetch failures without explicit network codes", async () => {
+    const networkError = new TypeError("fetch failed");
+    apiFetchMock.mockRejectedValue(networkError);
+
+    await expect(getFeatureFlagMap()).resolves.toEqual({});
+    expect(logDevErrorMock).toHaveBeenCalled();
+  });
+
+  it("rethrows fetch failures with unsupported network codes", async () => {
+    const networkError = new TypeError("fetch failed");
+    Object.assign(networkError, { cause: { code: "SOME_OTHER_CODE" } });
+    apiFetchMock.mockRejectedValue(networkError);
+
+    await expect(getFeatureFlagMap()).rejects.toBe(networkError);
+  });
+
+  it("rethrows non-Error and non-matching TypeError failures", async () => {
+    apiFetchMock.mockRejectedValueOnce("plain-failure");
+    await expect(getFeatureFlagMap()).rejects.toBe("plain-failure");
+
+    const nonMatchingTypeError = new TypeError("other failure");
+    apiFetchMock.mockRejectedValueOnce(nonMatchingTypeError);
+    await expect(getFeatureFlagMap()).rejects.toBe(nonMatchingTypeError);
+  });
+
+  it("accepts network error codes from the top-level error object", async () => {
+    const networkError = new TypeError("fetch failed");
+    Object.assign(networkError, { code: "ECONNRESET" });
+    apiFetchMock.mockRejectedValue(networkError);
+
+    await expect(getFeatureFlagMap()).resolves.toEqual({});
+  });
+
+  it("rethrows fetch failures in production even when they are network errors", async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    try {
+      process.env.NODE_ENV = "production";
+      const networkError = new TypeError("fetch failed");
+      Object.assign(networkError, { cause: { code: "ECONNRESET" } });
+      apiFetchMock.mockRejectedValue(networkError);
+
+      await expect(getFeatureFlagMap()).rejects.toBe(networkError);
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+  });
 });

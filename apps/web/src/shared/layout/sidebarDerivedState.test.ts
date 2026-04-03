@@ -67,4 +67,33 @@ describe("computeSidebarDerivedState", () => {
     expect(state.mobileVisibleLinks).toEqual([]);
     expect(state.currentLabel).toBe("Menu");
   });
+
+  it("derives admin/staff spaces from pathname prefixes when no active link is matched", () => {
+    const state = computeSidebarDerivedState({
+      links: [
+        { href: "/admin/dashboard", label: "Admin Dashboard", space: "admin" },
+        { href: "/staff/projects", label: "Staff Projects", space: "staff" },
+      ],
+      pathname: "/admin/settings",
+      searchParams: null,
+      mobileSpace: "staff",
+    });
+
+    expect(state.currentSpace).toBe("admin");
+    expect(state.resolvedMobileSpace).toBe("staff");
+    expect(state.currentLabel).toBe("Admin Dashboard");
+  });
+
+  it("falls back to workspace label when there are no visible links for the current space", () => {
+    const state = computeSidebarDerivedState({
+      links: [{ href: "/admin/dashboard", label: "Admin Dashboard", space: "admin" }],
+      pathname: "/staff/dashboard",
+      searchParams: null,
+      mobileSpace: "workspace",
+    });
+
+    expect(state.currentSpace).toBe("staff");
+    expect(state.visibleLinks).toEqual([]);
+    expect(state.currentLabel).toBe("Menu");
+  });
 });

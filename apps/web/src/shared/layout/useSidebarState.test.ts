@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MOBILE_DRAWER_PERSIST_KEY, MOBILE_DRAWER_SPACE_KEY } from "./Sidebar.constants";
 import type { SidebarLink } from "./Sidebar.types";
 import { useSidebarState } from "./useSidebarState";
@@ -79,5 +79,91 @@ describe("useSidebarState", () => {
       result.current.toggle();
     });
     expect(result.current.isOpen).toBe(true);
+  });
+
+  it("falls back to workspace for invalid persisted space and supports toggle-close path", () => {
+    sessionStorage.setItem(MOBILE_DRAWER_PERSIST_KEY, "1");
+    sessionStorage.setItem(MOBILE_DRAWER_SPACE_KEY, "unknown-space");
+
+    const { result } = renderHook(() =>
+      useSidebarState({
+        links,
+        pathname: "/dashboard",
+        searchParams: null,
+      }),
+    );
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.resolvedMobileSpace).toBe("workspace");
+
+    act(() => {
+      result.current.toggle();
+    });
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("ignores storage failures when persisting and clearing drawer state", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("set blocked");
+    });
+    const removeItemSpy = vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
+      throw new Error("remove blocked");
+    });
+
+    const { result } = renderHook(() =>
+      useSidebarState({
+        links,
+        pathname: "/staff/projects",
+        searchParams: null,
+      }),
+    );
+
+    expect(() => {
+      act(() => {
+        result.current.persistOpenState("staff");
+        result.current.close();
+      });
+    }).not.toThrow();
+
+    setItemSpy.mockRestore();
+    removeItemSpy.mockRestore();
+  });
+
+  it("returns inactive groups as closed when no explicit/default state is provided", () => {
+    const { result } = renderHook(() =>
+      useSidebarState({
+        links,
+        pathname: "/dashboard",
+        searchParams: null,
+      }),
+    );
+
+    expect(result.current.getGroupOpen({ href: "/plain", label: "Plain link" } as SidebarLink)).toBe(false);
+  });
+
+  it("falls back safely when reading persisted drawer state throws", () => {
+    const sessionStorageGetterSpy = vi.spyOn(window, "sessionStorage", "get").mockImplementation(() => {
+      throw new Error("storage blocked");
+    });
+
+    const { result } = renderHook(() =>
+      useSidebarState({
+        links,
+        pathname: "/staff/projects",
+        searchParams: null,
+      }),
+    );
+
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.resolvedMobileSpace).toBe("workspace");
+
+    expect(() => {
+      act(() => {
+        result.current.persistOpenState("staff");
+        result.current.close();
+      });
+    }).not.toThrow();
+
+    sessionStorageGetterSpy.mockRestore();
   });
 });

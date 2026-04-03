@@ -92,6 +92,15 @@ describe("UserManagementTable", () => {
     expect(staffButton).toBeDisabled();
   });
 
+  it("normalizes missing role/active values for non-staff users", async () => {
+    installSearchMock([{ ...apiUser, role: undefined, active: undefined, isStaff: false }]);
+    await renderTable();
+
+    expect(screen.getByText(apiUser.email)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Student/i })).toBeDisabled();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
   it("updates user role and shows confirmation", async () => {
     await renderTable();
     fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
@@ -189,6 +198,56 @@ describe("UserManagementTable", () => {
     expect(screen.queryByText("user1@example.com")).not.toBeInTheDocument();
   });
 
+  it("supports previous-page navigation and submit-based page jump", async () => {
+    const users = Array.from({ length: 13 }, (_, index) => ({
+      ...apiUser,
+      id: index + 1,
+      email: `user${index + 1}@example.com`,
+      firstName: `User${index + 1}`,
+      lastName: "Test",
+    }));
+    installSearchMock(users as any);
+
+    await renderTable();
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    await waitFor(() =>
+      expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    await waitFor(() =>
+      expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    const pageInput = screen.getByRole("spinbutton", { name: /go to page number/i });
+    fireEvent.change(pageInput, { target: { value: "2" } });
+    const pageJumpForm = pageInput.closest("form");
+    expect(pageJumpForm).not.toBeNull();
+    fireEvent.submit(pageJumpForm!);
+    await waitFor(() =>
+      expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 }),
+    );
+  });
+
+  it("restores current page input when an invalid page is entered", async () => {
+    const users = Array.from({ length: 13 }, (_, index) => ({
+      ...apiUser,
+      id: index + 1,
+      email: `user${index + 1}@example.com`,
+      firstName: `User${index + 1}`,
+      lastName: "Test",
+    }));
+    installSearchMock(users as any);
+
+    await renderTable();
+    const pageInput = screen.getByRole("spinbutton", { name: /go to page number/i });
+    fireEvent.change(pageInput, { target: { value: "999" } });
+    fireEvent.blur(pageInput);
+
+    expect(pageInput).toHaveValue(1);
+    expect(searchUsersMock).toHaveBeenCalledTimes(1);
+  });
+
   it("shows enterprise admin as a locked role chip", async () => {
     installSearchMock([
       {
@@ -266,5 +325,71 @@ describe("UserManagementTable", () => {
     fireEvent.click(screen.getByText("Active"));
     await waitFor(() => expect(screen.getByText("Status failed.")).toBeInTheDocument());
     expect(screen.getByText("Active")).toBeInTheDocument();
+  });
+
+  it("uses fallback messages for non-Error rejections", async () => {
+    updateUserRoleMock.mockRejectedValueOnce("role-failed");
+    updateUserMock.mockRejectedValueOnce("status-failed");
+
+    await renderTable();
+    fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
+    await waitFor(() => expect(screen.getByText("Could not update role.")).toBeInTheDocument());
+
+    fireEvent.click(screen.getByText("Active"));
+    await waitFor(() => expect(screen.getByText("Could not update account status.")).toBeInTheDocument());
+  });
+
+  it("shows the fallback load error for non-Error failures", async () => {
+    searchUsersMock.mockRejectedValueOnce("search-failed");
+    render(<UserManagementTable />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Could not load users.")).toBeInTheDocument();
+    });
+  });
+
+  it("handles server page-overflow responses by resetting to the last page", async () => {
+    searchUsersMock
+      .mockResolvedValueOnce({
+        items: [],
+        total: 13,
+        page: 3,
+        pageSize: 10,
+        totalPages: 2,
+        hasPreviousPage: true,
+        hasNextPage: false,
+        query: null,
+        role: null,
+        active: null,
+      } as Awaited<ReturnType<typeof searchUsers>>)
+      .mockResolvedValueOnce(
+        makeSearchResponse(
+          [
+            { ...apiUser, id: 11, email: "user11@example.com" },
+            { ...apiUser, id: 12, email: "user12@example.com" },
+            { ...apiUser, id: 13, email: "user13@example.com" },
+          ],
+          13,
+          2,
+          10,
+        ),
+      );
+
+    render(<UserManagementTable />);
+
+    await waitFor(() => expect(searchUsersMock).toHaveBeenCalledTimes(2));
+    expect(searchUsersMock).toHaveBeenLastCalledWith({ q: undefined, page: 2, pageSize: 10 });
+    expect(screen.getByText("user11@example.com")).toBeInTheDocument();
+  });
+
+  it("shows activation confirmation when toggling a suspended account", async () => {
+    installSearchMock([{ ...apiUser, id: 50, email: "suspended@test.com", active: false }]);
+    updateUserMock.mockResolvedValue({ ...apiUser, id: 50, email: "suspended@test.com", active: true });
+
+    await renderTable();
+
+    fireEvent.click(screen.getByText("Suspended"));
+    await waitFor(() => expect(updateUserMock).toHaveBeenCalledWith(50, { active: true }));
+    expect(screen.getByText("Account activated.")).toBeInTheDocument();
   });
 });

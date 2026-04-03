@@ -39,4 +39,37 @@ describe("middleware", () => {
     const res = await middleware(makeReq("/admin"));
     expect(res.headers.get("location")).toBeNull();
   });
+
+  it("redirects enterprise-admin users away from /staff routes to their enterprise home", async () => {
+    mockFetch(new Response(JSON.stringify({ role: "ENTERPRISE_ADMIN" }), { status: 200 }));
+    const res = await middleware(makeReq("/staff/projects"));
+    expect(res.headers.get("location")).toContain("/enterprise");
+  });
+
+  it("redirects non-enterprise users away from enterprise routes", async () => {
+    mockFetch(new Response(JSON.stringify({ role: "STUDENT" }), { status: 200 }));
+    const res = await middleware(makeReq("/enterprise/modules"));
+    expect(res.headers.get("location")).toContain("/dashboard");
+  });
+
+  it("redirects staff-only users from workspace routes to /staff/dashboard", async () => {
+    vi.spyOn(global, "fetch").mockImplementation(async () => new Response(JSON.stringify({ role: "STAFF", isStaff: true }), { status: 200 }));
+    const dashboardRes = await middleware(makeReq("/dashboard"));
+    expect(dashboardRes.headers.get("location")).toContain("/staff/dashboard");
+
+    const projectsRes = await middleware(makeReq("/projects/123"));
+    expect(projectsRes.headers.get("location")).toContain("/staff/dashboard");
+  });
+
+  it("allows staff-only users through /staff routes", async () => {
+    mockFetch(new Response(JSON.stringify({ role: "STAFF", isStaff: true }), { status: 200 }));
+    const res = await middleware(makeReq("/staff/dashboard"));
+    expect(res.headers.get("location")).toBeNull();
+  });
+
+  it("redirects to login when auth request throws", async () => {
+    vi.spyOn(global, "fetch").mockRejectedValue(new Error("network down"));
+    const res = await middleware(makeReq("/admin"));
+    expect(res.headers.get("location")).toContain("/login");
+  });
 });

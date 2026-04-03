@@ -104,4 +104,51 @@ describe("RegisterForm", () => {
     fireEvent.click(screen.getByRole("button", { name: /continue with google/i }));
     expect(window.location.href).toContain("/auth/google");
   });
+
+  it("shows validation error and does not call signup when passwords do not match", async () => {
+    render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "different" } });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(signupMock).not.toHaveBeenCalled();
+      expect(screen.getByText("Passwords do not match")).toBeInTheDocument();
+    });
+  });
+
+  it("redirects to app-home when refresh returns no profile", async () => {
+    refresh.mockResolvedValue(null);
+    render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app-home"));
+  });
+
+  it("shows default signup error message for non-Error throws", async () => {
+    signupMock.mockRejectedValue("nope");
+    render(<RegisterForm />);
+
+    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
+    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
+    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
+    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Signup failed")).toBeInTheDocument();
+      expect(push).not.toHaveBeenCalled();
+    });
+  });
 });

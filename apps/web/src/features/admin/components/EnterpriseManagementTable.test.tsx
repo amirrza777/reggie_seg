@@ -12,6 +12,7 @@ vi.mock("../api/client", () => ({
 
 import {
   createEnterprise,
+  deleteEnterprise,
   searchEnterprises,
   searchEnterpriseUsers,
   updateEnterpriseUser,
@@ -20,6 +21,7 @@ import { EnterpriseManagementTable } from "./EnterpriseManagementTable";
 
 const searchEnterprisesMock = searchEnterprises as MockedFunction<typeof searchEnterprises>;
 const createEnterpriseMock = createEnterprise as MockedFunction<typeof createEnterprise>;
+const deleteEnterpriseMock = deleteEnterprise as MockedFunction<typeof deleteEnterprise>;
 const searchEnterpriseUsersMock = searchEnterpriseUsers as MockedFunction<typeof searchEnterpriseUsers>;
 const updateEnterpriseUserMock = updateEnterpriseUser as MockedFunction<typeof updateEnterpriseUser>;
 type EnterpriseSearchItem = Awaited<ReturnType<typeof searchEnterprises>>["items"][number];
@@ -126,6 +128,7 @@ describe("EnterpriseManagementTable", () => {
     vi.clearAllMocks();
     installEnterpriseSearchMock([enterprise]);
     createEnterpriseMock.mockResolvedValue(enterprise);
+    deleteEnterpriseMock.mockResolvedValue({ success: true });
     installEnterpriseUserSearchMock([enterpriseUser]);
     updateEnterpriseUserMock.mockResolvedValue({ ...enterpriseUser, role: "STAFF", isStaff: true });
   });
@@ -202,5 +205,67 @@ describe("EnterpriseManagementTable", () => {
     await waitFor(() => {
       expect(screen.queryByRole("status")).not.toBeInTheDocument();
     }, { timeout: 3600 });
+  });
+
+  it("supports delete confirmation cancel and confirm actions", async () => {
+    const user = userEvent.setup();
+    render(<EnterpriseManagementTable isSuperAdmin />);
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    await user.click(screen.getByRole("button", { name: /^Delete$/i }));
+    expect(screen.getByRole("dialog", { name: /delete enterprise/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Cancel$/i }));
+    expect(screen.queryByRole("dialog", { name: /delete enterprise/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^Delete$/i }));
+    await user.click(screen.getByRole("button", { name: /Delete enterprise/i }));
+
+    await waitFor(() => {
+      expect(deleteEnterpriseMock).toHaveBeenCalledWith("ent_1");
+    });
+  });
+
+  it("triggers account modal close, status toggle, and page-input blur handlers", async () => {
+    const user = userEvent.setup();
+    const pagedUsers = Array.from({ length: 11 }, (_, index) => ({
+      ...enterpriseUser,
+      id: 100 + index,
+      email: `user${index}@example.com`,
+      firstName: `User${index}`,
+      lastName: "Test",
+      role: "STUDENT",
+      active: true,
+    }));
+    installEnterpriseUserSearchMock(pagedUsers);
+
+    render(<EnterpriseManagementTable isSuperAdmin />);
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: /manage accounts/i }));
+
+    await waitFor(() =>
+      expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    const firstUserEmail = screen.getByText("user0@example.com");
+    const firstUserRow = firstUserEmail.closest(".table__row");
+    expect(firstUserRow).not.toBeNull();
+
+    const activeButton = within(firstUserRow as HTMLElement).getByRole("button", { name: /active/i });
+    await user.click(activeButton);
+    await waitFor(() => {
+      expect(updateEnterpriseUserMock).toHaveBeenCalledWith("ent_1", 100, { active: false });
+    });
+
+    const pageInput = screen.getByRole("spinbutton", { name: /go to enterprise user page number/i });
+    await user.clear(pageInput);
+    await user.type(pageInput, "2");
+    await user.tab();
+    await waitFor(() => {
+      expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 2, pageSize: 10 });
+    });
+
+    await user.click(screen.getByLabelText("Close"));
+    expect(screen.queryByRole("dialog", { name: /accounts/i })).not.toBeInTheDocument();
   });
 });

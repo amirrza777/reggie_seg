@@ -191,6 +191,38 @@ describe("useEnterpriseManagementState", () => {
     expect(result.current.message).toBe("Delete failed.");
   });
 
+  it("handles unknown create/delete errors and ignores delete without a pending enterprise", async () => {
+    searchEnterprisesMock.mockResolvedValue(makeSearchResponse([makeEnterprise()], 1));
+    createEnterpriseMock.mockRejectedValueOnce("Create unknown failure");
+    deleteEnterpriseMock.mockRejectedValueOnce("Delete unknown failure");
+
+    const { result } = renderHook(() => useEnterpriseManagementState(true));
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    await act(async () => {
+      await result.current.handleDeleteEnterprise();
+    });
+    expect(deleteEnterpriseMock).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.setNameInput("Acme");
+    });
+    await act(async () => {
+      await result.current.handleCreateEnterprise(createSubmitEvent());
+    });
+    expect(result.current.status).toBe("error");
+    expect(result.current.message).toBe("Could not create enterprise.");
+
+    act(() => {
+      result.current.setPendingDeleteEnterprise(makeEnterprise());
+    });
+    await act(async () => {
+      await result.current.handleDeleteEnterprise();
+    });
+    expect(result.current.status).toBe("error");
+    expect(result.current.message).toBe("Could not delete enterprise.");
+  });
+
   it("deletes enterprise, clears selected enterprise when needed, and reloads current page", async () => {
     const clearSelectedEnterpriseIfDeleted = vi.fn();
     useEnterpriseUserManagementStateMock.mockReturnValue(
@@ -220,40 +252,81 @@ describe("useEnterpriseManagementState", () => {
   });
 
   it("applies and validates page input, and resets page on normalized search changes", async () => {
-    searchEnterprisesMock.mockResolvedValue(makeSearchResponse([makeEnterprise()], 40, 1, 8));
+    searchEnterprisesMock.mockImplementation(async ({ page = 1 } = {}) =>
+      makeSearchResponse([makeEnterprise()], 40, page, 8)
+    );
     const { result } = renderHook(() => useEnterpriseManagementState(true));
     await waitFor(() => expect(result.current.enterpriseTotalPages).toBe(5));
 
-    act(() => {
+    await act(async () => {
       result.current.setCurrentPage(3);
     });
-    expect(result.current.currentPage).toBe(3);
+    await waitFor(() => expect(result.current.currentPage).toBe(3));
+    await waitFor(() =>
+      expect(searchEnterprisesMock).toHaveBeenCalledWith({
+        q: undefined,
+        page: 3,
+        pageSize: 8,
+      })
+    );
 
     act(() => {
       result.current.applyPageInput("bad");
     });
     expect(result.current.pageInput).toBe("3");
 
-    act(() => {
+    await act(async () => {
       result.current.applyPageInput("5");
     });
-    expect(result.current.currentPage).toBe(5);
+    await waitFor(() => expect(result.current.currentPage).toBe(5));
+    await waitFor(() =>
+      expect(searchEnterprisesMock).toHaveBeenCalledWith({
+        q: undefined,
+        page: 5,
+        pageSize: 8,
+      })
+    );
 
     const preventDefault = vi.fn();
     act(() => {
       result.current.setPageInput("2");
     });
-    act(() => {
+    await act(async () => {
       result.current.handlePageJump({ preventDefault } as unknown as FormEvent<HTMLFormElement>);
     });
     expect(preventDefault).toHaveBeenCalled();
-    expect(result.current.currentPage).toBe(2);
+    await waitFor(() => expect(result.current.currentPage).toBe(2));
+    await waitFor(() =>
+      expect(searchEnterprisesMock).toHaveBeenCalledWith({
+        q: undefined,
+        page: 2,
+        pageSize: 8,
+      })
+    );
 
-    act(() => {
+    await act(async () => {
       result.current.setCurrentPage(4);
+    });
+    await waitFor(() =>
+      expect(searchEnterprisesMock).toHaveBeenCalledWith({
+        q: undefined,
+        page: 4,
+        pageSize: 8,
+      })
+    );
+
+    await act(async () => {
       result.current.setSearchQuery("  acme ");
     });
-    expect(result.current.currentPage).toBe(1);
+
+    await waitFor(() => expect(result.current.currentPage).toBe(1));
+    await waitFor(() =>
+      expect(searchEnterprisesMock).toHaveBeenCalledWith({
+        q: "acme",
+        page: 1,
+        pageSize: 8,
+      })
+    );
   });
 
   it("clears toast messages after 2.5 seconds", async () => {

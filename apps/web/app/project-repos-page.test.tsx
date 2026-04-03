@@ -1,6 +1,15 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("@/shared/auth/session", () => ({
+  getCurrentUser: vi.fn().mockResolvedValue({ id: 55 }),
+}));
+
+vi.mock("@/features/projects/api/client", () => ({
+  getProject: vi.fn().mockResolvedValue({ teamAllocationQuestionnaireTemplateId: null }),
+  getTeamByUserAndProject: vi.fn().mockResolvedValue({ id: 10 }),
+}));
+
 vi.mock("@/features/github/components/GithubProjectReposClient", () => ({
   GithubProjectReposClient: ({ projectId }: { projectId: string }) => (
     <div data-testid="repos-client">repos:{projectId}</div>

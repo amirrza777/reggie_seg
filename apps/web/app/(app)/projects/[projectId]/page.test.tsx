@@ -89,7 +89,7 @@ describe("ProjectPage", () => {
     expect(dashboard).toHaveAttribute("data-team-id", "");
   });
 
-  it("renders overview dashboard with fallback deadline and nullable marking", async () => {
+  it("renders overview dashboard with fallback deadline and nullable marking before completion", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 7 } as Awaited<ReturnType<typeof getCurrentUser>>);
     getTeamByUserAndProjectMock.mockResolvedValue({ id: 99 } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
     getProjectMock.mockResolvedValue({ title: "Project Titan" } as Awaited<ReturnType<typeof getProject>>);
@@ -102,7 +102,7 @@ describe("ProjectPage", () => {
     const dashboard = screen.getByTestId("project-overview-dashboard");
     expect(getProjectMock).toHaveBeenCalledWith("44");
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(7, 44);
-    expect(getProjectMarkingMock).toHaveBeenCalledWith(7, 44);
+    expect(getProjectMarkingMock).not.toHaveBeenCalled();
     expect(dashboard).toHaveAttribute("data-project-title", "Project Titan");
     expect(dashboard).toHaveAttribute("data-team-id", "99");
     expect(dashboard).toHaveAttribute("data-marking", "");

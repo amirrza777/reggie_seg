@@ -163,8 +163,8 @@ describe("useEnterpriseModuleAccessBuckets", () => {
   });
 
   it("applies page input validation and keeps page inputs in sync", async () => {
-    searchEnterpriseModuleAccessUsersMock.mockImplementation(async ({ scope = "staff" } = {}) =>
-      makeResponse(scope, 1, 4)
+    searchEnterpriseModuleAccessUsersMock.mockImplementation(async ({ scope = "staff", page = 1 } = {}) =>
+      makeResponse(scope, page, 4)
     );
 
     const { result } = renderHook(() =>
@@ -178,20 +178,36 @@ describe("useEnterpriseModuleAccessBuckets", () => {
 
     await waitFor(() => expect(result.current.staffTotalPages).toBe(4));
 
-    act(() => {
+    await act(async () => {
       result.current.setStaffPage(3);
       result.current.setStaffPageInput("3");
     });
+    await waitFor(() =>
+      expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
+        scope: "staff",
+        q: undefined,
+        page: 3,
+        pageSize: 20,
+      })
+    );
 
     act(() => {
       result.current.applyPageInput("staff", "not-a-number");
     });
     expect(result.current.staffPageInput).toBe("3");
 
-    act(() => {
+    await act(async () => {
       result.current.applyPageInput("staff", "4");
     });
-    expect(result.current.staffPage).toBe(4);
+    await waitFor(() => expect(result.current.staffPage).toBe(4));
+    await waitFor(() =>
+      expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
+        scope: "staff",
+        q: undefined,
+        page: 4,
+        pageSize: 20,
+      })
+    );
     expect(result.current.staffPageInput).toBe("4");
   });
 
@@ -229,8 +245,8 @@ describe("useEnterpriseModuleAccessBuckets", () => {
   });
 
   it("resets page to 1 on normalized search query changes", async () => {
-    searchEnterpriseModuleAccessUsersMock.mockImplementation(async ({ scope = "staff" } = {}) =>
-      makeResponse(scope, 1, 4)
+    searchEnterpriseModuleAccessUsersMock.mockImplementation(async ({ scope = "staff", page = 1 } = {}) =>
+      makeResponse(scope, page, 4)
     );
 
     const { result } = renderHook(() =>
@@ -243,11 +259,30 @@ describe("useEnterpriseModuleAccessBuckets", () => {
     );
     await waitFor(() => expect(result.current.staffTotalPages).toBe(4));
 
-    act(() => {
+    await act(async () => {
       result.current.setStaffPage(4);
+    });
+    await waitFor(() =>
+      expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
+        scope: "staff",
+        q: undefined,
+        page: 4,
+        pageSize: 20,
+      })
+    );
+
+    await act(async () => {
       result.current.setStaffSearchQuery("alpha");
     });
 
-    expect(result.current.staffPage).toBe(1);
+    await waitFor(() => expect(result.current.staffPage).toBe(1));
+    await waitFor(() =>
+      expect(searchEnterpriseModuleAccessUsersMock).toHaveBeenCalledWith({
+        scope: "staff",
+        q: "alpha",
+        page: 1,
+        pageSize: 20,
+      })
+    );
   });
 });

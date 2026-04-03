@@ -17,6 +17,16 @@ const useUserMock = vi.mocked(useUser);
 const getForumSettingsMock = vi.mocked(getForumSettings);
 const updateForumSettingsMock = vi.mocked(updateForumSettings);
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe("ForumSettingsCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,6 +90,59 @@ describe("ForumSettingsCard", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Unable to load forum settings.")).toBeInTheDocument();
+    });
+  });
+
+  it("ignores stale settings responses when project changes mid-load", async () => {
+    const first = createDeferred<{ forumIsAnonymous: boolean }>();
+    const second = createDeferred<{ forumIsAnonymous: boolean }>();
+    getForumSettingsMock.mockImplementation((_userId, projectId) => {
+      if (projectId === 9) return first.promise;
+      return second.promise;
+    });
+
+    const { rerender } = render(<ForumSettingsCard projectId={9} />);
+    rerender(<ForumSettingsCard projectId={10} />);
+
+    second.resolve({ forumIsAnonymous: false });
+    await waitFor(() => expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked());
+
+    first.resolve({ forumIsAnonymous: true });
+    await waitFor(() => expect(getForumSettingsMock).toHaveBeenCalledWith(1, 9));
+    expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked();
+  });
+
+  it("ignores stale load errors after a newer successful refresh", async () => {
+    const first = createDeferred<{ forumIsAnonymous: boolean }>();
+    getForumSettingsMock.mockImplementation((_userId, projectId) => {
+      if (projectId === 3) return first.promise;
+      return Promise.resolve({ forumIsAnonymous: false });
+    });
+
+    const { rerender } = render(<ForumSettingsCard projectId={3} />);
+    rerender(<ForumSettingsCard projectId={4} />);
+
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked(),
+    );
+
+    first.reject(new Error("stale-load"));
+    await first.promise.catch(() => undefined);
+
+    expect(screen.queryByText("Unable to load forum settings.")).not.toBeInTheDocument();
+  });
+
+  it("shows an error when updating settings fails", async () => {
+    getForumSettingsMock.mockResolvedValue({ forumIsAnonymous: false });
+    updateForumSettingsMock.mockRejectedValue(new Error("update failed"));
+
+    render(<ForumSettingsCard projectId={11} />);
+
+    const checkbox = await screen.findByRole("checkbox", { name: "Hide student names" });
+    fireEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unable to update forum settings.")).toBeInTheDocument();
     });
   });
 });

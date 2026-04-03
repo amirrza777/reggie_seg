@@ -20,8 +20,19 @@ vi.mock("@/shared/ui/Placeholder", () => ({
 }));
 
 vi.mock("@/shared/ui/ProgressCardGrid", () => ({
-  ProgressCardGrid: ({ items }: { items: Array<{ title: string }> }) => (
-    <div data-testid="progress-grid">{items.map((item) => item.title).join(",")}</div>
+  ProgressCardGrid: ({
+    items,
+    getHref,
+  }: {
+    items: Array<{ id?: number | null; title: string }>;
+    getHref: (item: { id?: number | null; title: string }) => string | undefined;
+  }) => (
+    <div
+      data-testid="progress-grid"
+      data-hrefs={items.map((item) => getHref(item) ?? "").join(",")}
+    >
+      {items.map((item) => item.title).join(",")}
+    </div>
   ),
 }));
 
@@ -75,6 +86,10 @@ describe("Staff peer-assessments module page", () => {
 
     expect(screen.getByTestId("placeholder")).toHaveAttribute("data-title", "Software Engineering");
     expect(screen.getByTestId("progress-grid")).toHaveTextContent("Team Orbit");
+    expect(screen.getByTestId("progress-grid")).toHaveAttribute(
+      "data-hrefs",
+      "/staff/peer-assessments/module/33/team/4"
+    );
   });
 
   it("renders empty-team message when no teams are returned", async () => {
@@ -89,5 +104,18 @@ describe("Staff peer-assessments module page", () => {
 
     expect(screen.getByText("No teams are currently available in this module.")).toBeInTheDocument();
     expect(screen.queryByTestId("progress-grid")).not.toBeInTheDocument();
+  });
+
+  it("returns undefined href for teams with null ids", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 6, isStaff: true, isAdmin: false } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getModuleDetailsMock.mockResolvedValue({
+      module: { title: "Data Science" },
+      teams: [{ id: null, title: "Pending Team", submitted: 0, expected: 3 }],
+    } as Awaited<ReturnType<typeof getModuleDetails>>);
+
+    const page = await ModulePage({ params: Promise.resolve({ id: "55" }) });
+    render(page);
+
+    expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-hrefs", "");
   });
 });

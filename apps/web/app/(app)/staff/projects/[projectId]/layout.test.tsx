@@ -92,4 +92,34 @@ describe("StaffProjectLayout", () => {
       moduleName: null,
     });
   });
+
+  it("loads project data for admin users even when isStaff is false", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 12, isStaff: false, role: "ADMIN" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { name: "Project Zenith", moduleId: 41, moduleName: "Module Z" },
+      teams: [{ id: 5, teamName: "Team Polaris" }],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+
+    const page = await StaffProjectLayout({
+      params: Promise.resolve({ projectId: "88" }),
+      children: <div />,
+    });
+    render(page);
+
+    expect(getStaffProjectTeamsMock).toHaveBeenCalledWith(12, 88);
+    expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("Project Zenith");
+  });
+
+  it("keeps fallback labels when user is missing", async () => {
+    getCurrentUserMock.mockResolvedValue(null as Awaited<ReturnType<typeof getCurrentUser>>);
+
+    const page = await StaffProjectLayout({
+      params: Promise.resolve({ projectId: "100" }),
+      children: <div />,
+    });
+    render(page);
+
+    expect(getStaffProjectTeamsMock).not.toHaveBeenCalled();
+    expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("Project 100");
+  });
 });

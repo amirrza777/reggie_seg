@@ -68,6 +68,49 @@ describe("NavigationPrefetch", () => {
     expect(prefetch).not.toHaveBeenCalled();
   });
 
+  it("skips prefetching on slow effectiveType when save-data is disabled", () => {
+    const prefetch = vi.fn();
+    useRouterMock.mockReturnValue({ prefetch } as ReturnType<typeof useRouter>);
+    Object.defineProperty(navigator, "connection", {
+      value: { saveData: false, effectiveType: "3g" },
+      configurable: true,
+    });
+
+    render(<NavigationPrefetch hrefs={["/staff/projects", "/staff/modules"]} />);
+    vi.advanceTimersByTime(200);
+
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it("does nothing when there are no prefetchable targets", () => {
+    const prefetch = vi.fn();
+    useRouterMock.mockReturnValue({ prefetch } as ReturnType<typeof useRouter>);
+    usePathnameMock.mockReturnValue("/staff/dashboard");
+
+    render(
+      <NavigationPrefetch
+        hrefs={[
+          "/staff/dashboard",
+          "https://example.com/outside",
+          "not-a-route",
+        ]}
+      />
+    );
+
+    vi.advanceTimersByTime(200);
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
+  it("respects a zero target limit", () => {
+    const prefetch = vi.fn();
+    useRouterMock.mockReturnValue({ prefetch } as ReturnType<typeof useRouter>);
+
+    render(<NavigationPrefetch hrefs={["/staff/projects"]} limit={0} />);
+    vi.advanceTimersByTime(200);
+
+    expect(prefetch).not.toHaveBeenCalled();
+  });
+
   it("skips prefetching on low-memory devices and cancels pending timers on unmount", () => {
     const prefetch = vi.fn();
     useRouterMock.mockReturnValue({ prefetch } as ReturnType<typeof useRouter>);

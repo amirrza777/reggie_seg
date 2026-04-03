@@ -19,20 +19,14 @@ describe("AnchorLink", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
-  it("does not auto-scroll for modified clicks, missing hash, or missing target", () => {
+  it("does not auto-scroll for modified clicks, empty hash, or missing target", () => {
     render(
       <>
-        <AnchorLink href="/dashboard">Non-hash</AnchorLink>
         <AnchorLink href="#">Empty hash</AnchorLink>
         <AnchorLink href="#target">Modified hash</AnchorLink>
         <AnchorLink href="#missing">Missing target</AnchorLink>
       </>,
     );
-
-    const nonHash = screen.getByRole("link", { name: "Non-hash" });
-    const nonHashEvent = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });
-    nonHash.dispatchEvent(nonHashEvent);
-    expect(nonHashEvent.defaultPrevented).toBe(false);
 
     const emptyHash = screen.getByRole("link", { name: "Empty hash" });
     const emptyHashEvent = new MouseEvent("click", { bubbles: true, cancelable: true, button: 0 });

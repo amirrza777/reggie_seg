@@ -1,4 +1,4 @@
-import { act, fireEvent, render } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { usePathname, useRouter } from "next/navigation";
 import { Header } from "./Header";
@@ -77,5 +77,47 @@ describe("Header", () => {
 
     triggerScroll(10);
     expect(header).not.toHaveClass("header--hidden");
+  });
+
+  it("navigates home via router when not already on landing page", () => {
+    usePathnameMock.mockReturnValue("/staff/dashboard");
+    render(<Header />);
+
+    fireEvent.click(document.querySelector('.logo[aria-label="Back to landing"]') as Element);
+    expect(pushMock).toHaveBeenCalledWith("/");
+  });
+
+  it("opens mobile menu and closes it with escape and desktop resize", () => {
+    render(<Header />);
+
+    const toggle = screen.getByRole("button", { name: "Toggle navigation" });
+    fireEvent.click(toggle);
+    expect(document.body.style.overflow).toBe("hidden");
+
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(document.body.style.overflow).toBe("");
+
+    fireEvent.click(toggle);
+    Object.defineProperty(window, "innerWidth", { value: 1200, configurable: true, writable: true });
+    fireEvent(window, new Event("resize"));
+    expect(document.body.style.overflow).toBe("");
+  });
+
+  it("cancels pending animation frame work on unmount", () => {
+    const requestSpy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation(() => 123 as unknown as number);
+    const cancelSpy = vi.spyOn(window, "cancelAnimationFrame");
+
+    const { unmount } = render(<Header />);
+    act(() => {
+      setScrollY(80);
+      fireEvent.scroll(window);
+      fireEvent.scroll(window);
+    });
+
+    expect(requestSpy).toHaveBeenCalledTimes(1);
+    unmount();
+    expect(cancelSpy).toHaveBeenCalledWith(123);
   });
 });

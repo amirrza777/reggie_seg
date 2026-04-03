@@ -6,6 +6,11 @@ describe("search helpers", () => {
     expect(normalizeSearchQuery("  Raphaël   Pospíšilová ")).toBe("raphael pospisilova");
   });
 
+  it("normalizes nullish values and treats punctuation-only queries as empty tokens", () => {
+    expect(normalizeSearchQuery(null)).toBe("");
+    expect(matchesSearchQuery({ value: "alpha" }, "!!!")).toBe(true);
+  });
+
   it("matches nested values by default", () => {
     const user = {
       id: 12,
@@ -18,6 +23,16 @@ describe("search helpers", () => {
     expect(matchesSearchQuery(user, "bjarnadottir")).toBe(true);
     expect(matchesSearchQuery(user, "active")).toBe(true);
     expect(matchesSearchQuery(user, "suspended")).toBe(false);
+  });
+
+  it("handles empty and invalid configured field paths", () => {
+    const item = {
+      id: 7,
+      profile: "not-an-object",
+    };
+
+    expect(matchesSearchQuery(item, "7", { fields: [""] })).toBe(true);
+    expect(matchesSearchQuery(item, "name", { fields: ["profile.name"] })).toBe(false);
   });
 
   it("supports field-limited and selector-based matching", () => {
@@ -58,5 +73,23 @@ describe("search helpers", () => {
 
     expect(matchesSearchQuery(modules[0], "eampl", { fields: ["moduleName"] })).toBe(true);
     expect(filterBySearchQuery(modules, "daa", { fields: ["moduleName"] }).map((item) => item.id)).toEqual([2, 3]);
+  });
+
+  it("supports date tokens, maxDepth truncation, and cyclic object traversal", () => {
+    const node: Record<string, unknown> = {
+      createdAt: new Date("2025-01-01T12:00:00.000Z"),
+      nested: { label: "Deep value" },
+    };
+    node.self = node;
+
+    expect(matchesSearchQuery(node, "2025-01-01", { maxDepth: 4 })).toBe(true);
+    expect(matchesSearchQuery(node, "deep value", { maxDepth: 4 })).toBe(true);
+    expect(matchesSearchQuery(node, "deep value", { maxDepth: 1 })).toBe(false);
+  });
+
+  it("falls back to edit-distance and supports query-token supersets", () => {
+    expect(matchesSearchQuery({ code: "xy" }, "zz", { fields: ["code"] })).toBe(false);
+    expect(matchesSearchQuery({ topic: "data" }, "database", { fields: ["topic"] })).toBe(true);
+    expect(matchesSearchQuery({ empty: "   " }, "alpha", { fields: ["empty"] })).toBe(false);
   });
 });

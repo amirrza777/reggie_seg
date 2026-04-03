@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notFound } from "next/navigation";
 import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
+import { ApiError } from "@/shared/api/errors";
 import EnterpriseModuleEditPage from "./page";
 
 class NotFoundSentinel extends Error {}
@@ -92,5 +93,28 @@ describe("EnterpriseModuleEditPage", () => {
     const form = screen.getByTestId("enterprise-module-form");
     expect(form).toHaveAttribute("data-join-code", "ABCD1234");
     expect(form).toHaveAttribute("data-created", "1");
+  });
+
+  it("suppresses 403/404 join-code errors and still renders the edit form", async () => {
+    getEnterpriseModuleJoinCodeMock.mockRejectedValueOnce(new ApiError("forbidden", { status: 403 }));
+
+    const page = await EnterpriseModuleEditPage({
+      params: Promise.resolve({ id: "21" }),
+    });
+    render(page);
+
+    const form = screen.getByTestId("enterprise-module-form");
+    expect(form).toHaveAttribute("data-module-id", "21");
+    expect(form).toHaveAttribute("data-join-code", "");
+  });
+
+  it("rethrows unexpected join-code errors", async () => {
+    getEnterpriseModuleJoinCodeMock.mockRejectedValueOnce(new Error("join-code exploded"));
+
+    await expect(
+      EnterpriseModuleEditPage({
+        params: Promise.resolve({ id: "21" }),
+      }),
+    ).rejects.toThrow("join-code exploded");
   });
 });

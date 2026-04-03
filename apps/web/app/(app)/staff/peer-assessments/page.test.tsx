@@ -19,8 +19,19 @@ vi.mock("@/shared/ui/Placeholder", () => ({
 }));
 
 vi.mock("@/shared/ui/ProgressCardGrid", () => ({
-  ProgressCardGrid: ({ items }: { items: Array<{ id: number; title: string }> }) => (
-    <div data-testid="progress-grid">{items.map((item) => item.title).join(",")}</div>
+  ProgressCardGrid: ({
+    items,
+    getHref,
+  }: {
+    items: Array<{ id?: number | null; title: string }>;
+    getHref: (item: { id?: number | null; title: string }) => string | undefined;
+  }) => (
+    <div
+      data-testid="progress-grid"
+      data-hrefs={items.map((item) => getHref(item) ?? "").join(",")}
+    >
+      {items.map((item) => item.title).join(",")}
+    </div>
   ),
 }));
 
@@ -62,5 +73,28 @@ describe("StaffPeerAssessmentsPage", () => {
     render(page);
 
     expect(screen.getByTestId("progress-grid")).toHaveTextContent("Module A");
+    expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-hrefs", "/staff/peer-assessments/module/11");
+  });
+
+  it("renders generic error message when loading modules fails unexpectedly", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 8, isStaff: true, isAdmin: false } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getModulesSummaryMock.mockRejectedValue(new Error("boom"));
+
+    const page = await StaffPeerAssessmentsPage();
+    render(page);
+
+    expect(screen.getByText("Something went wrong loading staff peer assessments. Please try again.")).toBeInTheDocument();
+  });
+
+  it("returns undefined href for module summaries with missing ids", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 5, isStaff: true, isAdmin: false } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getModulesSummaryMock.mockResolvedValue([
+      { id: null, title: "Module B", submitted: 0, expected: 2 },
+    ] as Awaited<ReturnType<typeof getModulesSummary>>);
+
+    const page = await StaffPeerAssessmentsPage();
+    render(page);
+
+    expect(screen.getByTestId("progress-grid")).toHaveAttribute("data-hrefs", "");
   });
 });

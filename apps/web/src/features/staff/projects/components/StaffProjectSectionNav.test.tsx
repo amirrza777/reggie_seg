@@ -9,11 +9,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 describe("StaffProjectSectionNav", () => {
-  it("renders Team allocation and Discussion Forum links", () => {
+  it("renders Team allocation, Meetings, and Discussion Forum links", () => {
     usePathnameMock.mockReturnValue("/staff/projects/9");
     render(<StaffProjectSectionNav projectId="9" />);
 
     expect(screen.getByRole("link", { name: "Team allocation" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Meetings" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Discussion Forum" })).toBeInTheDocument();
   });
 

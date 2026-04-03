@@ -81,12 +81,31 @@ describe("LoginForm", () => {
     await waitFor(() => expect(push).toHaveBeenCalledWith("/enterprise"));
   });
 
+  it("falls back to app-home when refresh does not return a profile", async () => {
+    loginMock.mockResolvedValue({ accessToken: "abc" } as LoginResult);
+    refresh.mockResolvedValue(undefined);
+    render(<LoginForm />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(refresh).toHaveBeenCalled());
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/app-home"));
+  });
+
   it("shows an error message when login fails", async () => {
     loginMock.mockRejectedValue(new Error("bad creds"));
     render(<LoginForm />);
     fillForm();
     fireEvent.click(screen.getByRole("button", { name: /log in/i }));
     await waitFor(() => expect(screen.getByText(/bad creds/i)).toBeInTheDocument());
+    expect(push).not.toHaveBeenCalled();
+  });
+
+  it("shows fallback error text for non-Error login failures", async () => {
+    loginMock.mockRejectedValue("nope");
+    render(<LoginForm />);
+    fillForm();
+    fireEvent.click(screen.getByRole("button", { name: /log in/i }));
+    await waitFor(() => expect(screen.getByText("Login failed")).toBeInTheDocument());
     expect(push).not.toHaveBeenCalled();
   });
 

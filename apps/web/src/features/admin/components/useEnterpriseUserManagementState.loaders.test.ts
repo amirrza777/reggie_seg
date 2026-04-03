@@ -143,4 +143,65 @@ describe("useEnterpriseUserLoaders", () => {
     expect(options.setEnterpriseUsersStatus).toHaveBeenCalledWith("error");
     expect(options.setEnterpriseUsersMessage).toHaveBeenCalledWith("network down");
   });
+
+  it("ignores stale successful responses from older requests", async () => {
+    const options = createOptions();
+    let resolveSearch: ((value: Awaited<ReturnType<typeof searchEnterpriseUsers>>) => void) | null = null;
+    const pending = new Promise<Awaited<ReturnType<typeof searchEnterpriseUsers>>>((resolve) => {
+      resolveSearch = resolve;
+    });
+    searchEnterpriseUsersMock.mockReturnValue(pending);
+
+    const { result } = renderHook(() => useEnterpriseUserLoaders(options));
+
+    const loadPromise = act(async () => {
+      await result.current.loadEnterpriseUsers("enterprise-stale-success", "", 1);
+    });
+
+    options.latestEnterpriseUsersRequestRef.current = 999;
+    resolveSearch?.({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasPreviousPage: false,
+      hasNextPage: false,
+      query: null,
+      role: null,
+      active: null,
+    });
+
+    await loadPromise;
+
+    expect(options.setEnterpriseUsersStatus).toHaveBeenCalledWith("loading");
+    expect(options.setEnterpriseUsers).not.toHaveBeenCalled();
+    expect(options.setEnterpriseUserTotal).not.toHaveBeenCalled();
+    expect(options.setEnterpriseUserTotalPages).not.toHaveBeenCalled();
+  });
+
+  it("ignores stale failed responses from older requests", async () => {
+    const options = createOptions();
+    let rejectSearch: ((reason?: unknown) => void) | null = null;
+    const pending = new Promise<Awaited<ReturnType<typeof searchEnterpriseUsers>>>((_, reject) => {
+      rejectSearch = reject;
+    });
+    searchEnterpriseUsersMock.mockReturnValue(pending);
+
+    const { result } = renderHook(() => useEnterpriseUserLoaders(options));
+
+    const loadPromise = act(async () => {
+      await result.current.loadEnterpriseUsers("enterprise-stale-error", "abc", 2);
+    });
+
+    options.latestEnterpriseUsersRequestRef.current = 999;
+    rejectSearch?.(new Error("outdated failure"));
+
+    await loadPromise;
+
+    expect(options.setEnterpriseUsersStatus).toHaveBeenCalledWith("loading");
+    expect(options.setEnterpriseUsersStatus).not.toHaveBeenCalledWith("error");
+    expect(options.setEnterpriseUsersMessage).not.toHaveBeenCalledWith("outdated failure");
+    expect(options.setEnterpriseUsers).not.toHaveBeenCalledWith([]);
+  });
 });

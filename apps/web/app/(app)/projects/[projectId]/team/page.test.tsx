@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import {
   getProject,
   getProjectDeadline,
-  getTeamAllocationQuestionnaireForProject,
+  getTeamAllocationQuestionnaireStatusForProject,
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
 import { apiFetch } from "@/shared/api/http";
@@ -18,7 +18,7 @@ vi.mock("@/shared/auth/session", () => ({
 vi.mock("@/features/projects/api/client", () => ({
   getProject: vi.fn(),
   getProjectDeadline: vi.fn(),
-  getTeamAllocationQuestionnaireForProject: vi.fn(),
+  getTeamAllocationQuestionnaireStatusForProject: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
 }));
 
@@ -54,11 +54,17 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
 }));
 
 vi.mock("@/features/projects/components/TeamAllocationQuestionnaireCard", () => ({
-  TeamAllocationQuestionnaireCard: ({ questionnaire }: { questionnaire: { id: number; templateName: string } }) => (
+  TeamAllocationQuestionnaireCard: ({
+    questionnaire,
+    initialSubmitted,
+  }: {
+    questionnaire: { id: number };
+    initialSubmitted?: boolean;
+  }) => (
     <div
       data-testid="allocation-questionnaire"
       data-template-id={questionnaire.id}
-      data-template-name={questionnaire.templateName}
+      data-submitted={String(Boolean(initialSubmitted))}
     />
   ),
 }));
@@ -66,7 +72,7 @@ vi.mock("@/features/projects/components/TeamAllocationQuestionnaireCard", () => 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getProjectMock = vi.mocked(getProject);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
-const getTeamAllocationQuestionnaireForProjectMock = vi.mocked(getTeamAllocationQuestionnaireForProject);
+const getTeamAllocationQuestionnaireStatusForProjectMock = vi.mocked(getTeamAllocationQuestionnaireStatusForProject);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 const apiFetchMock = vi.mocked(apiFetch);
 
@@ -89,12 +95,16 @@ describe("ProjectTeamPage", () => {
       feedbackDueDate: null,
       isOverridden: false,
     });
-    getTeamAllocationQuestionnaireForProjectMock.mockResolvedValue({
-      id: 501,
-      templateName: "Allocation Questionnaire",
-      purpose: "CUSTOMISED_ALLOCATION",
-      createdAt: "2026-03-30T00:00:00.000Z",
-      questions: [],
+    getTeamAllocationQuestionnaireStatusForProjectMock.mockResolvedValue({
+      questionnaireTemplate: {
+        id: 501,
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [],
+      },
+      hasSubmitted: false,
+      teamAllocationQuestionnaireOpenDate: "2026-03-01T00:00:00.000Z",
+      teamAllocationQuestionnaireDueDate: "2026-04-01T00:00:00.000Z",
+      windowIsOpen: true,
     });
   });
 
@@ -161,8 +171,8 @@ describe("ProjectTeamPage", () => {
     const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "7" }) });
     render(page);
 
-    expect(getTeamAllocationQuestionnaireForProjectMock).toHaveBeenCalledWith(7);
-    expect(screen.getByText("Complete this questionnaire so staff can place you into a team.")).toBeInTheDocument();
+    expect(getTeamAllocationQuestionnaireStatusForProjectMock).toHaveBeenCalledWith(7);
     expect(screen.getByTestId("allocation-questionnaire")).toHaveAttribute("data-template-id", "501");
+    expect(screen.getByTestId("allocation-questionnaire")).toHaveAttribute("data-submitted", "false");
   });
 });

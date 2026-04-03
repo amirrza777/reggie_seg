@@ -13,6 +13,9 @@ import ProjectsLoading from "./(app)/projects/loading";
 import StaffDiscussionLoading from "./(app)/staff/projects/[projectId]/discussion/loading";
 import StaffTeamLoading from "./(app)/staff/projects/[projectId]/teams/[teamId]/loading";
 import StaffTrelloLoading from "./(app)/staff/projects/[projectId]/trello/loading";
+import StaffMarksLoading from "./(app)/staff/marks/loading";
+import StaffModuleWorkspaceLoading from "./(app)/staff/modules/[moduleId]/loading";
+import StaffModuleProjectsLoading from "./(app)/staff/modules/[moduleId]/projects/loading";
 import StaffQuestionnairesLoading from "./(app)/staff/questionnaires/loading";
 import StaffReposLoading from "./(app)/staff/repos/loading";
 import EnterpriseForumReportsLoading from "./(enterprise)/enterprise/forum-reports/loading";
@@ -33,6 +36,9 @@ const loadingComponents = [
   StaffDiscussionLoading,
   StaffTeamLoading,
   StaffTrelloLoading,
+  StaffMarksLoading,
+  StaffModuleWorkspaceLoading,
+  StaffModuleProjectsLoading,
   StaffQuestionnairesLoading,
   StaffReposLoading,
   EnterpriseForumReportsLoading,

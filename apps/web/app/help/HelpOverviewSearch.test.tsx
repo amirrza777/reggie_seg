@@ -115,6 +115,28 @@ describe("HelpOverviewSearch", () => {
     expect(screen.getByText('No help topics match "unknown-topic".')).toBeInTheDocument();
   });
 
+  it("renders singular result count and fallback group label", async () => {
+    searchHelpOverviewMock.mockResolvedValue([
+      {
+        id: "result-1",
+        title: "Single result",
+        description: "One item",
+        href: "/help/account-access",
+        kind: "topic",
+        group: null,
+      },
+    ]);
+
+    render(<HelpOverviewSearch items={items} />);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search help" }), { target: { value: "single" } });
+    await flushDebounce();
+    await flushAsyncSearch();
+
+    expect(screen.getByText("1 match")).toBeInTheDocument();
+    expect(screen.getByText("Help topic")).toBeInTheDocument();
+  });
+
   it("shows searching state while request is in flight", async () => {
     let resolveSearch: ((value: unknown) => void) | null = null;
     const pending = new Promise((resolve) => {
@@ -151,5 +173,16 @@ describe("HelpOverviewSearch", () => {
     await flushAsyncSearch();
     expect(searchHelpOverviewMock).toHaveBeenCalledTimes(2);
     expect(screen.queryByText("Search is temporarily unavailable.")).not.toBeInTheDocument();
+  });
+
+  it("handles non-object errors as service failures", async () => {
+    searchHelpOverviewMock.mockRejectedValue("down");
+    render(<HelpOverviewSearch items={items} />);
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search help" }), { target: { value: "team" } });
+    await flushDebounce();
+    await flushAsyncSearch();
+
+    expect(screen.getByText("Search is temporarily unavailable.")).toBeInTheDocument();
   });
 });

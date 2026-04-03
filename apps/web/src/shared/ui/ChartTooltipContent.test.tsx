@@ -97,4 +97,45 @@ describe("ChartTooltipContent", () => {
     expect(screen.queryByText("Low activity")).not.toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(1);
   });
+
+  it("falls back to original entries when preferred entry does not match payload names", () => {
+    render(
+      <ChartTooltipContent
+        active
+        preferredEntryName="Missing"
+        payload={[
+          {
+            dataKey: "plain-payload",
+            name: "A",
+            value: 1,
+            payload: "not-an-object",
+          },
+          {
+            dataKey: "object-without-name",
+            name: "B",
+            value: 2,
+            payload: { label: "B label" },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("A")).toBeInTheDocument();
+    expect(screen.getByText("B")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+  });
+
+  it("returns null when active payload has no visible entries", () => {
+    const { container } = render(
+      <ChartTooltipContent
+        active
+        payload={[
+          { dataKey: "hidden", name: "Hidden", value: 1, hide: true },
+          { dataKey: "null", name: "Null", value: null },
+        ]}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+  });
 });

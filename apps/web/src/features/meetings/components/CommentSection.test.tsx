@@ -117,8 +117,10 @@ describe("CommentSection", () => {
     fireEvent.change(screen.getByPlaceholderText(/add a comment/i), { target: { value: "Nice work" } });
     fireEvent.click(screen.getByRole("button", { name: /post comment/i }));
     await waitFor(() => expect(addCommentMock).toHaveBeenCalledWith(10, 1, "Nice work"));
-    expect(screen.getByText("Nice work")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/add a comment/i)).toHaveValue("");
+    await waitFor(() => {
+      expect(screen.getByText("Nice work")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/add a comment/i)).toHaveValue("");
+    });
   });
 
   it("does not post when textarea is only whitespace", () => {

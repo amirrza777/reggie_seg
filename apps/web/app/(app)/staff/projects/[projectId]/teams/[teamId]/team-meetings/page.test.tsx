@@ -81,6 +81,33 @@ describe("StaffTeamMeetingsSectionPage", () => {
     expect(screen.getByText("project data failed")).toBeInTheDocument();
   });
 
+  it("renders default project/team lookup error for non-Error throws", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 3, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockRejectedValue("project data failed");
+
+    const page = await StaffTeamMeetingsSectionPage({
+      params: Promise.resolve({ projectId: "8", teamId: "9" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Failed to load project team data.")).toBeInTheDocument();
+  });
+
+  it("renders team-not-found fallback message", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 4, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 20, name: "Project Helios", moduleId: 7 },
+      teams: [{ id: 99, teamName: "Team Other" }],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+
+    const page = await StaffTeamMeetingsSectionPage({
+      params: Promise.resolve({ projectId: "20", teamId: "12" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
+  });
+
   it("renders meetings error when meeting list fetch fails", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 4, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
     getStaffProjectTeamsMock.mockResolvedValue({
@@ -95,6 +122,22 @@ describe("StaffTeamMeetingsSectionPage", () => {
     render(page);
 
     expect(screen.getByText("meetings unavailable")).toBeInTheDocument();
+  });
+
+  it("renders default meetings error for non-Error failures", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 4, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 20, name: "Project Helios", moduleId: 7 },
+      teams: [{ id: 12, teamName: "Team Sun" }],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+    listTeamMeetingsMock.mockRejectedValue("meetings unavailable");
+
+    const page = await StaffTeamMeetingsSectionPage({
+      params: Promise.resolve({ projectId: "20", teamId: "12" }),
+    });
+    render(page);
+
+    expect(screen.getByText("Failed to load meetings.")).toBeInTheDocument();
   });
 
   it("renders meetings view when project and meetings load successfully", async () => {

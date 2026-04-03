@@ -112,7 +112,7 @@ describe("CreateMeetingForm", () => {
       agenda: undefined,
     }));
     expect(onCreated).toHaveBeenCalled();
-    expect(screen.getByText(/meeting created/i)).toBeInTheDocument();
+    expect(await screen.findByText(/meeting created/i)).toBeInTheDocument();
   });
 
   it("submits with optional fields included", async () => {
