@@ -51,6 +51,38 @@ describe("getMyTemplatesHandler", () => {
     expect(res.json).toHaveBeenCalledWith([{ id: 10 }]);
   });
 
+  it("passes query and purpose filters to my templates", async () => {
+    (service.getMyTemplates as any).mockResolvedValue([{ id: 10 }]);
+
+    const req: any = { user: { sub: 55 }, query: { q: "  teamwork ", purpose: "PEER_ASSESSMENT" } };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(service.getMyTemplates).toHaveBeenCalledWith(55, {
+      query: "teamwork",
+      purpose: "PEER_ASSESSMENT",
+    });
+  });
+
+  it("returns 400 for invalid purpose on my templates listing", async () => {
+    const req: any = { user: { sub: 55 }, query: { purpose: "INVALID" } };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("returns 400 for invalid search query on my templates listing", async () => {
+    const req: any = { user: { sub: 55 }, query: { q: ["bad"] } };
+    const res = mockResponse();
+
+    await getMyTemplatesHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns 500 for non-auth errors", async () => {
     (service.getMyTemplates as any).mockRejectedValue(new Error("db fail"));
 
@@ -88,6 +120,28 @@ describe("getPublicTemplatesFromOtherUsersHandler", () => {
 
     expect(service.getPublicTemplatesFromOtherUsers).toHaveBeenCalledWith(77);
     expect(res.json).toHaveBeenCalledWith([{ id: 11 }]);
+  });
+
+  it("passes purpose filter to public templates listing", async () => {
+    (service.getPublicTemplatesFromOtherUsers as any).mockResolvedValue([{ id: 11 }]);
+
+    const req: any = { user: { sub: 77 }, query: { purpose: "GENERAL_PURPOSE" } };
+    const res = mockResponse();
+
+    await getPublicTemplatesFromOtherUsersHandler(req, res);
+
+    expect(service.getPublicTemplatesFromOtherUsers).toHaveBeenCalledWith(77, {
+      purpose: "GENERAL_PURPOSE",
+    });
+  });
+
+  it("returns 400 for invalid purpose on public templates listing", async () => {
+    const req: any = { user: { sub: 77 }, query: { purpose: "INVALID" } };
+    const res = mockResponse();
+
+    await getPublicTemplatesFromOtherUsersHandler(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
   });
 
   it("returns 500 for non-auth errors", async () => {

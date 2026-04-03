@@ -254,7 +254,12 @@ function SidebarMobileTrigger({
 function SidebarMobileDrawer(props: SidebarMobileNavProps) {
   return (
     <div className="sidebar__mobile-overlay sidebar__mobile-overlay--drawer" role="dialog" aria-modal="true" onClick={props.close}>
-      <div className="sidebar__mobile-sheet sidebar__mobile-sheet--drawer" id="sidebar-mobile-menu" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="sidebar__mobile-sheet sidebar__mobile-sheet--drawer"
+        data-elevation="popup"
+        id="sidebar-mobile-menu"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="sidebar__mobile-header">
           <p className="eyebrow">{props.title}</p>
           <button type="button" className="sidebar__mobile-close" onClick={props.close} aria-label="Close menu">

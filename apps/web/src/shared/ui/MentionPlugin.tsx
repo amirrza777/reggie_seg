@@ -81,7 +81,7 @@ export function MentionPlugin({ members }: MentionPluginProps) {
         }
 
         return createPortal(
-          <ul className="mention-dropdown">
+          <ul className="mention-dropdown" data-elevation="popup">
             {options.map((option, index) => {
               const isSelected = selectedIndex === index;
               return (

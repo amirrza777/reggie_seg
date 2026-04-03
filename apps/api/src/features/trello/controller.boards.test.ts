@@ -148,6 +148,15 @@ describe("TrelloController board endpoints", () => {
     expect(res.json).toHaveBeenCalledWith([{ id: "b1" }]);
   });
 
+  it("returns 400 when board search query is invalid", async () => {
+    const req: any = { user: { sub: 1 }, query: { q: ["bad"] } };
+    const res = createMockRes();
+
+    await TrelloController.fetchMyBoards(req, res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
   it("returns 400 if service fails while fetching boards", async () => {
     (TrelloService.fetchMyBoards as any).mockRejectedValue(
       new Error("Failure")

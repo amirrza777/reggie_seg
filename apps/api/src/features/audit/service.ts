@@ -21,6 +21,7 @@ const INTEGRITY_SIGNATURE_VERSION = "v1";
 const MAX_SERIALIZABLE_RETRIES = 3;
 const AUDIT_INTEGRITY_ERROR = "Audit log integrity check failed. Possible tampering detected.";
 let hasWarnedAboutMissingAuditStorage = false;
+const warnedIntegrityRecoveries = new Set<string>();
 
 const auditIntegritySecret = resolveAuditIntegritySecret();
 
@@ -94,6 +95,15 @@ function warnAuditStorageUnavailable(error: unknown) {
   hasWarnedAboutMissingAuditStorage = true;
   const message = error instanceof Error ? error.message : String(error);
   console.warn("[audit] Audit storage unavailable; audit writes are being skipped:", message);
+}
+
+function warnIntegrityRecovery(enterpriseId: string, reason: "invalid_signature" | "snapshot_drift") {
+  const key = `${enterpriseId}:${reason}`;
+  if (warnedIntegrityRecoveries.has(key)) return;
+  warnedIntegrityRecoveries.add(key);
+  console.warn(
+    `[audit] ${AUDIT_INTEGRITY_ERROR} Rebuilding snapshot for enterprise ${enterpriseId} (${reason}).`,
+  );
 }
 
 async function withSerializableRetry<T>(task: (tx: Prisma.TransactionClient) => Promise<T>) {
@@ -178,7 +188,9 @@ async function verifyAuditIntegritySnapshot(enterpriseId: string) {
   }
 
   if (!isIntegritySnapshotSignatureValid(enterpriseId, snapshot)) {
-    throw new Error(AUDIT_INTEGRITY_ERROR);
+    warnIntegrityRecovery(enterpriseId, "invalid_signature");
+    await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId);
+    return;
   }
 
   const [actualCount, latest] = await Promise.all([
@@ -198,7 +210,8 @@ async function verifyAuditIntegritySnapshot(enterpriseId: string) {
     (actualLastLogCreatedAt?.getTime() ?? -1) === (snapshot.lastLogCreatedAt?.getTime() ?? -1);
 
   if (!hasMatchingCount || !hasMatchingLastLogId || !hasMatchingLastLogCreatedAt) {
-    throw new Error(AUDIT_INTEGRITY_ERROR);
+    warnIntegrityRecovery(enterpriseId, "snapshot_drift");
+    await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId);
   }
 }
 
@@ -255,7 +268,8 @@ export async function recordAuditLog(
       });
 
       if (existingSnapshot && !isIntegritySnapshotSignatureValid(enterpriseId, existingSnapshot)) {
-        throw new Error(AUDIT_INTEGRITY_ERROR);
+        warnIntegrityRecovery(enterpriseId, "invalid_signature");
+        await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId, tx);
       }
 
       const countBeforeInsert = await tx.auditLog.count({ where: { enterpriseId } });

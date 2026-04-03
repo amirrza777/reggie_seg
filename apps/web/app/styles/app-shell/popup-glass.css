@@ -7,7 +7,8 @@
 .mention-dropdown,
 .discussion-post__menu-panel,
 .module-card__menu-panel,
-.atc-dropdown__list {
+.atc-dropdown__list,
+.team-formation__invite-dropdown {
   background: var(--popup-glass-bg-fallback);
   background: var(--popup-glass-bg);
   border-color: var(--popup-glass-border-fallback);
@@ -18,7 +19,7 @@
 }
 
 .notification-bell__dropdown {
-  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-notification-bg-fallback);
   background: var(--popup-glass-notification-bg);
   border-color: var(--popup-glass-border-fallback);
   border-color: var(--popup-glass-border);
@@ -40,7 +41,7 @@
 }
 
 .notification-bell__header {
-  background: var(--popup-glass-bg-fallback);
+  background: var(--popup-glass-notification-bg-fallback);
   background: var(--popup-glass-notification-bg);
 }
 
@@ -62,7 +63,8 @@
   .mention-dropdown,
   .discussion-post__menu-panel,
   .module-card__menu-panel,
-  .atc-dropdown__list {
+  .atc-dropdown__list,
+  .team-formation__invite-dropdown {
     -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
   }

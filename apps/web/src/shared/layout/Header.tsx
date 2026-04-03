@@ -194,7 +194,7 @@ function HeaderMobileOverlay({
   return createPortal(
     <div className={`mobile-menu${isMenuOpen ? " is-open" : ""}`} aria-hidden={!isMenuOpen}>
       <button className="mobile-menu__scrim" aria-label="Close menu" onClick={onCloseMenu} />
-      <div className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
+      <div className="mobile-menu__panel" data-elevation="popup" role="dialog" aria-modal="true" aria-label="Navigation menu">
         <MobileMenuTopBar handleLogoClick={handleLogoClick} onCloseMenu={onCloseMenu} />
         <MobileMenuLinks onCloseMenu={onCloseMenu} />
         <MobileMenuActions onCloseMenu={onCloseMenu} />

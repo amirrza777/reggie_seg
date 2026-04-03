@@ -6,10 +6,13 @@ import { startAuditRetentionJob } from "./features/audit/retentionJob.js";
 
 dotenv.config();
 
-const port = Number(process.env.PORT) || 3000;
-const host = process.env.HOST || "0.0.0.0";
+export function resolveServerAddress() {
+  const port = Number(process.env.PORT) || 3000;
+  const host = process.env.HOST || "0.0.0.0";
+  return { host, port };
+}
 
-async function bootstrap() {
+export async function bootstrap() {
   await prisma.enterprise.upsert({
     where: { code: "DEFAULT" },
     update: {},
@@ -41,15 +44,32 @@ async function bootstrap() {
   }
 }
 
-bootstrap()
-  .then(() => {
+export async function startServer() {
+  try {
+    await bootstrap();
+    const { host, port } = resolveServerAddress();
     app.listen(port, host, () => {
       console.log(`API listening on http://${host}:${port}`);
       startNotificationJob();
       startAuditRetentionJob();
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error("Bootstrap failed:", err);
     process.exit(1);
-  });
+  }
+}
+
+export function shouldAutoStart(
+  isTestRuntime = process.env.NODE_ENV === "test" || Boolean(import.meta.vitest)
+) {
+  return !isTestRuntime;
+}
+
+export async function maybeStartServer(
+  isTestRuntime = process.env.NODE_ENV === "test" || Boolean(import.meta.vitest)
+) {
+  if (!shouldAutoStart(isTestRuntime)) return;
+  await startServer();
+}
+
+void maybeStartServer();

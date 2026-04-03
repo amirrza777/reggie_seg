@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MailCheck } from "lucide-react";
 import { Button } from "@/shared/ui/Button";
 import { ModalPortal } from "@/shared/ui/ModalPortal";
 import { Skeleton } from "@/shared/ui/Skeleton";
@@ -398,12 +399,16 @@ export default function ProfilePage() {
         <ModalPortal>
         <div className="modal" role="dialog" aria-modal="true" onClick={() => setEmailModalOpen(false)}>
           <div className="modal__dialog profile-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="profile-modal__icon">✉️</div>
-            <h3>Verify it’s you</h3>
-            <p>
-              We sent a verification code. To verify your email address, please check your inbox and enter the code
-              below.
-            </p>
+            <div className="profile-modal__header">
+              <div className="profile-modal__icon" aria-hidden="true">
+                <MailCheck size={22} />
+              </div>
+              <h3>Verify it’s you</h3>
+              <p>
+                We sent a verification code. To verify your email address, please check your inbox and enter the code
+                below.
+              </p>
+            </div>
 
             {emailStep === "request" ? (
               <div className="profile-modal__body">

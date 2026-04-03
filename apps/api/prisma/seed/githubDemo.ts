@@ -1,3 +1,4 @@
+import { createCipheriv, randomBytes } from "crypto";
 import { SEED_GITHUB_STAFF_EMAIL, SEED_GITHUB_STUDENT_EMAIL } from "./config";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
@@ -72,7 +73,7 @@ function buildGithubAccountWrite(kind: "staff" | "student") {
       githubUserId: BigInt(910001),
       login: "github-demo-staff",
       email: SEED_GITHUB_STAFF_EMAIL,
-      accessTokenEncrypted: "seed-access-token-staff",
+      accessTokenEncrypted: encryptSeedGithubToken("seed-access-token-staff"),
       scopes: "repo,read:user",
     };
   }
@@ -80,9 +81,41 @@ function buildGithubAccountWrite(kind: "staff" | "student") {
     githubUserId: BigInt(910002),
     login: "github-demo-student",
     email: SEED_GITHUB_STUDENT_EMAIL,
-    accessTokenEncrypted: "seed-access-token-student",
+    accessTokenEncrypted: encryptSeedGithubToken("seed-access-token-student"),
     scopes: "repo,read:user",
   };
+}
+
+function getSeedGithubTokenEncryptionKey() {
+  const raw = process.env.GITHUB_TOKEN_ENCRYPTION_KEY || "";
+  if (!raw) {
+    throw new Error("GITHUB_TOKEN_ENCRYPTION_KEY must be configured for GitHub demo seeding");
+  }
+
+  if (/^[a-f0-9]{64}$/i.test(raw)) {
+    return Buffer.from(raw, "hex");
+  }
+
+  const base64 = Buffer.from(raw, "base64");
+  if (base64.length === 32) {
+    return base64;
+  }
+
+  const utf8 = Buffer.from(raw, "utf8");
+  if (utf8.length === 32) {
+    return utf8;
+  }
+
+  throw new Error("GITHUB_TOKEN_ENCRYPTION_KEY must decode to 32 bytes for GitHub demo seeding");
+}
+
+function encryptSeedGithubToken(plainToken: string) {
+  const key = getSeedGithubTokenEncryptionKey();
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const encrypted = Buffer.concat([cipher.update(plainToken, "utf8"), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString("base64")}.${encrypted.toString("base64")}.${authTag.toString("base64")}`;
 }
 
 function upsertGithubDemoRepository() {

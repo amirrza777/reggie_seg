@@ -70,6 +70,32 @@ describe("audit service", () => {
     });
   });
 
+  it("recordAuditLog rebuilds stale integrity snapshot instead of failing writes", async () => {
+    const lastCreatedAt = new Date("2026-01-01T00:00:00.000Z");
+    (prisma.user.findUnique as any).mockResolvedValue({ enterpriseId: "ent-1" });
+    (prisma.auditLogIntegrity.findUnique as any).mockResolvedValueOnce({
+      logCount: 1,
+      lastLogId: 1,
+      lastLogCreatedAt: lastCreatedAt,
+      signature: "invalid-signature",
+    });
+    (prisma.auditLog.count as any).mockResolvedValueOnce(1).mockResolvedValueOnce(1);
+    (prisma.auditLog.findFirst as any).mockResolvedValueOnce({ id: 1, createdAt: lastCreatedAt });
+    (prisma.auditLog.create as any).mockResolvedValue({
+      id: 2,
+      action: "LOGIN",
+      createdAt: new Date("2026-01-02T00:00:00.000Z"),
+      ip: null,
+      userAgent: null,
+      user: { id: 5, email: "u@x.com", firstName: "U", lastName: "X", role: "STUDENT" },
+    });
+
+    await expect(recordAuditLog({ userId: 5, action: "LOGIN" as any })).resolves.toBeUndefined();
+
+    expect(prisma.auditLog.create).toHaveBeenCalledTimes(1);
+    expect(prisma.auditLogIntegrity.upsert).toHaveBeenCalledTimes(2);
+  });
+
   it("listAuditLogs applies optional date filters and limit cap", async () => {
     (prisma.auditLog.findMany as any).mockResolvedValue([]);
     const from = new Date("2026-01-01T00:00:00.000Z");
@@ -92,6 +118,32 @@ describe("audit service", () => {
       },
       orderBy: { id: "desc" },
       take: 500,
+    });
+  });
+
+  it("listAuditLogs rebuilds stale integrity snapshot before returning logs", async () => {
+    const lastCreatedAt = new Date("2026-02-01T00:00:00.000Z");
+    (prisma.auditLogIntegrity.findUnique as any).mockResolvedValueOnce({
+      logCount: 3,
+      lastLogId: 9,
+      lastLogCreatedAt: lastCreatedAt,
+      signature: "invalid-signature",
+    });
+    (prisma.auditLog.count as any).mockResolvedValueOnce(3);
+    (prisma.auditLog.findFirst as any).mockResolvedValueOnce({ id: 9, createdAt: lastCreatedAt });
+    (prisma.auditLog.findMany as any).mockResolvedValueOnce([]);
+
+    const result = await listAuditLogs({ enterpriseId: "ent-2" });
+
+    expect(result).toEqual([]);
+    expect(prisma.auditLogIntegrity.upsert).toHaveBeenCalled();
+    expect(prisma.auditLog.findMany).toHaveBeenCalledWith({
+      where: { enterpriseId: "ent-2" },
+      include: {
+        user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
+      },
+      orderBy: { id: "desc" },
+      take: 200,
     });
   });
 });

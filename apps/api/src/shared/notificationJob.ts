@@ -22,7 +22,7 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
-async function sendDeadlineReminders() {
+export async function sendDeadlineReminders() {
   for (const window of WINDOWS) {
     const bounds = dayBounds(window.offsetDays);
 
@@ -98,7 +98,6 @@ async function sendDeadlineReminders() {
     }
 
     for (const { email, firstName, items } of userEvents.values()) {
-      if (items.length === 0) continue;
       const count = items.length;
       const subject = `Deadline reminder – ${count} item${count === 1 ? "" : "s"} due ${window.label}`;
       const text = `Hi ${firstName},\n\nYou have ${count} deadline${count === 1 ? "" : "s"} ${window.label}:\n\n${items.map((i) => `• ${i}`).join("\n")}\n\nLog in to view your calendar.\n`;
@@ -111,7 +110,7 @@ async function sendDeadlineReminders() {
 const YELLOW_THRESHOLD_DAYS = 7;
 const RED_THRESHOLD_DAYS = 14;
 
-async function sendInactivityAlerts() {
+export async function sendInactivityAlerts() {
   const now = new Date();
 
   const teams = await prisma.team.findMany({
@@ -188,7 +187,7 @@ async function sendInactivityAlerts() {
   }
 }
 
-async function sendMissingPeerAssessmentAlerts() {
+export async function sendMissingPeerAssessmentAlerts() {
   const now = new Date();
 
   const teams = await prisma.team.findMany({
@@ -268,7 +267,7 @@ async function sendMissingPeerAssessmentAlerts() {
  * Placeholder for no-repository reminders.
  * Keep as a no-op until the final query and recipient rules are confirmed.
  */
-async function sendNoRepoAlerts() {
+export async function sendNoRepoAlerts() {
   return;
 }
 
@@ -276,37 +275,61 @@ async function sendNoRepoAlerts() {
  * Placeholder for no-GitHub-account reminders.
  * Keep as a no-op until the final query and recipient rules are confirmed.
  */
-async function sendNoGithubAccountAlerts() {
+export async function sendNoGithubAccountAlerts() {
   return;
 }
 
+export type NotificationJobRunners = {
+  sendDeadlineReminders: () => Promise<void>;
+  sendInactivityAlerts: () => Promise<void>;
+  sendMissingPeerAssessmentAlerts: () => Promise<void>;
+  sendNoRepoAlerts: () => Promise<void>;
+  sendNoGithubAccountAlerts: () => Promise<void>;
+};
+
+function logJobError(message: string, err: unknown) {
+  console.error(message, err);
+}
+
+export async function runNotificationCycle(
+  runners: NotificationJobRunners = {
+    sendDeadlineReminders,
+    sendInactivityAlerts,
+    sendMissingPeerAssessmentAlerts,
+    sendNoRepoAlerts,
+    sendNoGithubAccountAlerts,
+  }
+) {
+  try {
+    await runners.sendDeadlineReminders();
+  } catch (err) {
+    logJobError("Notification job error:", err);
+  }
+  try {
+    await runners.sendInactivityAlerts();
+  } catch (err) {
+    logJobError("Inactivity alert job error:", err);
+  }
+  try {
+    await runners.sendMissingPeerAssessmentAlerts();
+  } catch (err) {
+    logJobError("Missing peer assessment alert job error:", err);
+  }
+  try {
+    await runners.sendNoRepoAlerts();
+  } catch (err) {
+    logJobError("No-repo alert job error:", err);
+  }
+  try {
+    await runners.sendNoGithubAccountAlerts();
+  } catch (err) {
+    logJobError("No-GitHub-account alert job error:", err);
+  }
+}
+
 /** Starts the background notification scheduler for reminder and inactivity emails. */
-export function startNotificationJob() {
+export function startNotificationJob(runCycle: () => Promise<void> = runNotificationCycle) {
   cron.schedule("0 8 * * *", async () => {
-    try {
-      await sendDeadlineReminders();
-    } catch (err) {
-      console.error("Notification job error:", err);
-    }
-    try {
-      await sendInactivityAlerts();
-    } catch (err) {
-      console.error("Inactivity alert job error:", err);
-    }
-    try {
-      await sendMissingPeerAssessmentAlerts();
-    } catch (err) {
-      console.error("Missing peer assessment alert job error:", err);
-    }
-    try {
-      await sendNoRepoAlerts();
-    } catch (err) {
-      console.error("No-repo alert job error:", err);
-    }
-    try {
-      await sendNoGithubAccountAlerts();
-    } catch (err) {
-      console.error("No-GitHub-account alert job error:", err);
-    }
+    await runCycle();
   });
 }

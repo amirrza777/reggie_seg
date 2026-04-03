@@ -54,6 +54,21 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual({ id: 1 });
   });
 
+  it("forwards createTemplate purpose when provided", async () => {
+    (repo.createQuestionnaireTemplate as any).mockResolvedValue({ id: 2 });
+    const questions = [{ label: "Q1", type: "rating" }];
+
+    await createTemplate("Template B", questions, 10, true, "GENERAL_PURPOSE");
+
+    expect(repo.createQuestionnaireTemplate).toHaveBeenCalledWith(
+      "Template B",
+      questions,
+      10,
+      true,
+      "GENERAL_PURPOSE",
+    );
+  });
+
   it("rejects text questions for customised allocation templates on create", async () => {
     expect(() =>
       createTemplate(
@@ -103,6 +118,27 @@ describe("QuestionnaireTemplate service", () => {
     expect(result).toEqual([{ id: 7 }]);
   });
 
+  it("forwards getMyTemplates filters to repo when provided", async () => {
+    (repo.getMyQuestionnaireTemplates as any).mockResolvedValue([{ id: 8 }]);
+
+    const result = await getMyTemplates(12, { query: "team", purpose: "PEER_ASSESSMENT" });
+
+    expect(repo.getMyQuestionnaireTemplates).toHaveBeenCalledWith(12, {
+      query: "team",
+      purpose: "PEER_ASSESSMENT",
+    });
+    expect(result).toEqual([{ id: 8 }]);
+  });
+
+  it("treats empty query options as unfiltered my templates request", async () => {
+    (repo.getMyQuestionnaireTemplates as any).mockResolvedValue([{ id: 9 }]);
+
+    const result = await getMyTemplates(12, { query: "" });
+
+    expect(repo.getMyQuestionnaireTemplates).toHaveBeenCalledWith(12);
+    expect(result).toEqual([{ id: 9 }]);
+  });
+
   it("forwards getPublicTemplatesFromOtherUsers to repo", async () => {
     (repo.getPublicQuestionnaireTemplatesByOtherUsers as any).mockResolvedValue([{ id: 9 }]);
 
@@ -110,6 +146,17 @@ describe("QuestionnaireTemplate service", () => {
 
     expect(repo.getPublicQuestionnaireTemplatesByOtherUsers).toHaveBeenCalledWith(21);
     expect(result).toEqual([{ id: 9 }]);
+  });
+
+  it("forwards public template purpose filter when provided", async () => {
+    (repo.getPublicQuestionnaireTemplatesByOtherUsers as any).mockResolvedValue([{ id: 10 }]);
+
+    const result = await getPublicTemplatesFromOtherUsers(21, { purpose: "GENERAL_PURPOSE" });
+
+    expect(repo.getPublicQuestionnaireTemplatesByOtherUsers).toHaveBeenCalledWith(21, {
+      purpose: "GENERAL_PURPOSE",
+    });
+    expect(result).toEqual([{ id: 10 }]);
   });
 
   //Updating a template
@@ -130,6 +177,22 @@ describe("QuestionnaireTemplate service", () => {
       "Updated Template",
       questions,
       true
+    );
+  });
+
+  it("forwards updateTemplate purpose to repo when provided", async () => {
+    (repo.isQuestionnaireTemplateOwnedByUser as any).mockResolvedValue(true);
+    (repo.updateQuestionnaireTemplate as any).mockResolvedValue(undefined);
+    const questions = [{ id: 1, label: "Updated", type: "rating" }];
+
+    await updateTemplate(99, 10, "Updated Template", questions, true, "GENERAL_PURPOSE");
+
+    expect(repo.updateQuestionnaireTemplate).toHaveBeenCalledWith(
+      10,
+      "Updated Template",
+      questions,
+      true,
+      "GENERAL_PURPOSE",
     );
   });
 
