@@ -23,6 +23,7 @@ describe("shared email", () => {
     delete process.env.SMTP_USER;
     delete process.env.SMTP_PASS;
     delete process.env.SMTP_SECURE;
+    delete process.env.SMTP_TLS_REJECT_UNAUTHORIZED;
     delete process.env.SMTP_FROM;
     mocked.createTransport.mockReturnValue({ sendMail: mocked.sendMail });
   });
@@ -61,6 +62,7 @@ describe("shared email", () => {
       port: 2525,
       secure: true,
       auth: { user: "u", pass: "p" },
+      tls: { rejectUnauthorized: true },
     });
     expect(mocked.sendMail).toHaveBeenCalledWith({
       from: "noreply@example.com",
@@ -81,5 +83,20 @@ describe("shared email", () => {
 
     expect(mocked.createTransport).toHaveBeenCalledTimes(1);
     expect(mocked.sendMail).toHaveBeenCalledTimes(2);
+  });
+
+  it("allows self-signed SMTP certificates when explicitly configured", async () => {
+    process.env.SMTP_HOST = "smtp.example.com";
+    process.env.SMTP_TLS_REJECT_UNAUTHORIZED = "false";
+
+    const { sendEmail } = await import("./email.js");
+
+    await sendEmail({ to: "u@test.com", subject: "S", text: "hello" });
+
+    expect(mocked.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tls: { rejectUnauthorized: false },
+      }),
+    );
   });
 });

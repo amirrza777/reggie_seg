@@ -177,6 +177,139 @@
   color: var(--btn-primary-text);
 }
 
+.team-allocation-questionnaire__form {
+  margin-top: 12px;
+  display: grid;
+  gap: 16px;
+}
+
+.team-allocation-questionnaire__question {
+  display: grid;
+  gap: 8px;
+}
+
+.team-allocation-questionnaire__question-title {
+  font-weight: 600;
+}
+
+.team-allocation-questionnaire__choice-list {
+  display: grid;
+  gap: 6px;
+}
+
+.team-allocation-questionnaire__choice-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.team-allocation-questionnaire__choice-text {
+  line-height: 1.35;
+}
+
+.team-allocation-questionnaire__radio-input {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.team-allocation-questionnaire__rating-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+  gap: 8px;
+  width: min(100%, 680px);
+}
+
+.team-allocation-questionnaire__rating-option {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.team-allocation-questionnaire__rating-value {
+  font-size: 12px;
+  line-height: 1;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.team-allocation-questionnaire__slider-field {
+  display: grid;
+  gap: 8px;
+}
+
+.team-allocation-questionnaire__slider-input {
+  width: 100%;
+  min-height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  accent-color: var(--status-success-text);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.team-allocation-questionnaire__slider-input::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 36%, transparent);
+}
+
+.team-allocation-questionnaire__slider-input::-moz-range-track {
+  height: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 36%, transparent);
+}
+
+.team-allocation-questionnaire__slider-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--status-success-text);
+}
+
+.team-allocation-questionnaire__slider-input::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--status-success-text);
+}
+
+.team-allocation-questionnaire__slider-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.team-allocation-questionnaire__slider-selected {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.team-allocation-questionnaire__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 @media (max-width: 768px) {
   .questionnaire-editor {
     padding: 20px;
@@ -186,5 +319,10 @@
   .questionnaire-editor__list-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .team-allocation-questionnaire__rating-grid {
+    grid-template-columns: repeat(auto-fit, minmax(30px, 1fr));
+    width: 100%;
   }
 }

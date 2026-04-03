@@ -2,7 +2,12 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentUser } from "@/shared/auth/session";
-import { getTeamByUserAndProject } from "@/features/projects/api/client";
+import {
+  getProject,
+  getProjectDeadline,
+  getTeamAllocationQuestionnaireForProject,
+  getTeamByUserAndProject,
+} from "@/features/projects/api/client";
 import { apiFetch } from "@/shared/api/http";
 import ProjectTeamPage from "./page";
 
@@ -13,6 +18,7 @@ vi.mock("@/shared/auth/session", () => ({
 vi.mock("@/features/projects/api/client", () => ({
   getProject: vi.fn(),
   getProjectDeadline: vi.fn(),
+  getTeamAllocationQuestionnaireForProject: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
 }));
 
@@ -29,10 +35,12 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
     team,
     projectId,
     initialInvites,
+    teamFormationMode,
   }: {
     team: { id: number; teamName?: string } | null;
     projectId: number;
     initialInvites: unknown[];
+    teamFormationMode?: "self" | "custom" | "staff";
   }) => (
     <div
       data-testid="team-formation-panel"
@@ -40,17 +48,54 @@ vi.mock("@/features/projects/components/TeamFormationPanel", () => ({
       data-team-id={team?.id ?? ""}
       data-team-name={team?.teamName ?? ""}
       data-invite-count={initialInvites.length}
+      data-team-mode={teamFormationMode ?? ""}
+    />
+  ),
+}));
+
+vi.mock("@/features/projects/components/TeamAllocationQuestionnaireCard", () => ({
+  TeamAllocationQuestionnaireCard: ({ questionnaire }: { questionnaire: { id: number; templateName: string } }) => (
+    <div
+      data-testid="allocation-questionnaire"
+      data-template-id={questionnaire.id}
+      data-template-name={questionnaire.templateName}
     />
   ),
 }));
 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
+const getProjectMock = vi.mocked(getProject);
+const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
+const getTeamAllocationQuestionnaireForProjectMock = vi.mocked(getTeamAllocationQuestionnaireForProject);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 const apiFetchMock = vi.mocked(apiFetch);
 
 describe("ProjectTeamPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getProjectMock.mockResolvedValue({
+      id: "1",
+      name: "Project",
+      informationText: "Project info",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: null,
+    });
+    getProjectDeadlineMock.mockResolvedValue({
+      taskOpenDate: null,
+      taskDueDate: null,
+      assessmentOpenDate: null,
+      assessmentDueDate: null,
+      feedbackOpenDate: null,
+      feedbackDueDate: null,
+      isOverridden: false,
+    });
+    getTeamAllocationQuestionnaireForProjectMock.mockResolvedValue({
+      id: 501,
+      templateName: "Allocation Questionnaire",
+      purpose: "CUSTOMISED_ALLOCATION",
+      createdAt: "2026-03-30T00:00:00.000Z",
+      questions: [],
+    });
   });
 
   it("shows sign-in guidance when user is missing", async () => {
@@ -100,5 +145,24 @@ describe("ProjectTeamPage", () => {
 
     expect(screen.getByText("Team")).toBeInTheDocument();
     expect(screen.getByTestId("team-formation-panel")).toHaveAttribute("data-invite-count", "0");
+  });
+
+  it("shows allocation questionnaire on team page for custom allocation when no team exists", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 5 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue(null);
+    getProjectMock.mockResolvedValue({
+      id: "7",
+      name: "Project 7",
+      informationText: "Info text",
+      questionnaireTemplateId: 1,
+      teamAllocationQuestionnaireTemplateId: 77,
+    });
+
+    const page = await ProjectTeamPage({ params: Promise.resolve({ projectId: "7" }) });
+    render(page);
+
+    expect(getTeamAllocationQuestionnaireForProjectMock).toHaveBeenCalledWith(7);
+    expect(screen.getByText("Complete this questionnaire so staff can place you into a team.")).toBeInTheDocument();
+    expect(screen.getByTestId("allocation-questionnaire")).toHaveAttribute("data-template-id", "501");
   });
 });

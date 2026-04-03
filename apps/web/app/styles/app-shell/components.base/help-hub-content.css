@@ -164,7 +164,7 @@
   background: var(--surface);
 }
 
-.workspace-shell .help-faq__group .faq__item summary {
+.workspace-shell .help-faq__group .faq__trigger {
   padding: 12px 14px;
   font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
@@ -178,8 +178,8 @@
   line-height: 1.58;
 }
 
-.workspace-shell .help-faq__group .faq__item[open] .faq__answer {
-  margin: 0;
+.workspace-shell .help-faq__group .faq__item--open .faq__answer {
+  padding: 0 14px 14px;
 }
 
 .workspace-shell .faq__links {

@@ -21,62 +21,15 @@ const INVITE_STATUS_SEQUENCE: TeamInviteStatus[] = ["PENDING", "ACCEPTED", "DECL
 
 export async function seedTeamInvites(context: SeedContext) {
   return withSeedLogging("seedTeamInvites", async () => {
-    if (context.teams.length === 0 || context.usersByRole.students.length < 3) {
-      return { value: undefined, rows: 0, details: "skipped (insufficient teams/students)" };
-    }
+    if (!isTeamInviteSeedReady(context)) return buildTeamInviteSeedSkipResult("insufficient teams/students");
 
-    const allocations = await prisma.teamAllocation.findMany({
-      where: { teamId: { in: context.teams.map((team) => team.id) } },
-      select: { teamId: true, userId: true },
-      orderBy: [{ teamId: "asc" }, { userId: "asc" }],
-    });
-
-    const allocatedUserIds = new Set(allocations.map((allocation) => allocation.userId));
-    const inviteeUsers = await prisma.user.findMany({
-      where: {
-        id: { in: context.usersByRole.students.map((student) => student.id).filter((id) => !allocatedUserIds.has(id)) },
-      },
-      select: { id: true, email: true },
-      orderBy: { id: "asc" },
-    });
-
-    const allocationsByTeamId = new Map<number, number[]>();
-    for (const allocation of allocations) {
-      const current = allocationsByTeamId.get(allocation.teamId) ?? [];
-      current.push(allocation.userId);
-      allocationsByTeamId.set(allocation.teamId, current);
-    }
-
+    const allocations = await findTeamAllocations(context.teams.map((team) => team.id));
+    const inviteeUsers = await findInviteeUsers(context, allocations);
+    const allocationsByTeamId = buildAllocationsByTeamId(allocations);
     const plannedInvites = planTeamInviteSeedData(context.teams, allocationsByTeamId, inviteeUsers);
-    if (plannedInvites.length === 0) {
-      return { value: undefined, rows: 0, details: "skipped (no invite scenarios available)" };
-    }
+    if (plannedInvites.length === 0) return buildTeamInviteSeedSkipResult("no invite scenarios available");
 
-    let changedCount = 0;
-    for (const invite of plannedInvites) {
-      const existing = await prisma.teamInvite.findUnique({
-        where: { tokenHash: invite.tokenHash },
-        select: { id: true },
-      });
-
-      await prisma.teamInvite.upsert({
-        where: { tokenHash: invite.tokenHash },
-        update: {
-          teamId: invite.teamId,
-          inviterId: invite.inviterId,
-          inviteeId: invite.inviteeId,
-          inviteeEmail: invite.inviteeEmail,
-          status: invite.status,
-          active: invite.active,
-          expiresAt: invite.expiresAt,
-          respondedAt: invite.respondedAt,
-          message: invite.message,
-        },
-        create: invite,
-      });
-
-      changedCount += existing ? 0 : 1;
-    }
+    const changedCount = await upsertPlannedTeamInvites(plannedInvites);
 
     return {
       value: undefined,
@@ -104,7 +57,7 @@ export function planTeamInviteSeedData(
     const invitee = pendingInvitees[index % pendingInvitees.length];
     if (!inviterId || !invitee) continue;
 
-    const status = INVITE_STATUS_SEQUENCE[index] ?? "PENDING";
+    const status = INVITE_STATUS_SEQUENCE[index];
     const isResponded = status === "ACCEPTED" || status === "DECLINED";
     const isActive = status === "PENDING";
     const expiresAt = status === "EXPIRED" ? new Date(now - 2 * 24 * 60 * 60 * 1000) : new Date(now + 7 * 24 * 60 * 60 * 1000);
@@ -124,4 +77,73 @@ export function planTeamInviteSeedData(
   }
 
   return data;
+}
+
+function isTeamInviteSeedReady(context: SeedContext) {
+  return context.teams.length > 0 && context.usersByRole.students.length >= 3;
+}
+
+function buildTeamInviteSeedSkipResult(reason: string) {
+  return { value: undefined, rows: 0, details: `skipped (${reason})` };
+}
+
+function findTeamAllocations(teamIds: number[]) {
+  return prisma.teamAllocation.findMany({
+    where: { teamId: { in: teamIds } },
+    select: { teamId: true, userId: true },
+    orderBy: [{ teamId: "asc" }, { userId: "asc" }],
+  });
+}
+
+function buildAllocationsByTeamId(allocations: { teamId: number; userId: number }[]) {
+  const byTeam = new Map<number, number[]>();
+  for (const allocation of allocations) {
+    const current = byTeam.get(allocation.teamId) ?? [];
+    current.push(allocation.userId);
+    byTeam.set(allocation.teamId, current);
+  }
+  return byTeam;
+}
+
+function findInviteeUsers(context: SeedContext, allocations: { teamId: number; userId: number }[]) {
+  const allocatedUserIds = new Set(allocations.map((allocation) => allocation.userId));
+  const unallocatedStudentIds = context.usersByRole.students
+    .map((student) => student.id)
+    .filter((id) => !allocatedUserIds.has(id));
+  return prisma.user.findMany({
+    where: { id: { in: unallocatedStudentIds } },
+    select: { id: true, email: true },
+    orderBy: { id: "asc" },
+  });
+}
+
+async function upsertPlannedTeamInvites(plannedInvites: PlannedInvite[]) {
+  let changedCount = 0;
+  for (const invite of plannedInvites) {
+    const existing = await prisma.teamInvite.findUnique({
+      where: { tokenHash: invite.tokenHash },
+      select: { id: true },
+    });
+    await prisma.teamInvite.upsert({
+      where: { tokenHash: invite.tokenHash },
+      update: buildTeamInviteUpdate(invite),
+      create: invite,
+    });
+    changedCount += existing ? 0 : 1;
+  }
+  return changedCount;
+}
+
+function buildTeamInviteUpdate(invite: PlannedInvite) {
+  return {
+    teamId: invite.teamId,
+    inviterId: invite.inviterId,
+    inviteeId: invite.inviteeId,
+    inviteeEmail: invite.inviteeEmail,
+    status: invite.status,
+    active: invite.active,
+    expiresAt: invite.expiresAt,
+    respondedAt: invite.respondedAt,
+    message: invite.message,
+  };
 }

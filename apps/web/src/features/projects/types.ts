@@ -6,6 +6,7 @@ export type Project = {
   moduleId?: number;
   teamCount?: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number | null;
   archivedAt?: string | null;
   /** Set when the parent module is archived */
   moduleArchivedAt?: string | null;
@@ -59,6 +60,8 @@ export type ProjectDeadline = {
   feedbackOpenDate: string | null;
   feedbackDueDate: string | null;
   feedbackDueDateMcf?: string | null;
+  teamAllocationQuestionnaireOpenDate?: string | null;
+  teamAllocationQuestionnaireDueDate?: string | null;
   isOverridden: boolean;
   overrideScope?: "NONE" | "TEAM" | "STUDENT";
   deadlineProfile?: "STANDARD" | "MCF";
@@ -225,7 +228,9 @@ export type CreateStaffProjectPayload = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number;
   informationText?: string | null;
+  studentIds?: number[];
   deadline: {
     taskOpenDate: string;
     taskDueDate: string;
@@ -236,6 +241,8 @@ export type CreateStaffProjectPayload = {
     feedbackOpenDate: string;
     feedbackDueDate: string;
     feedbackDueDateMcf: string;
+    teamAllocationQuestionnaireOpenDate?: string | null;
+    teamAllocationQuestionnaireDueDate?: string | null;
   };
 };
 
@@ -244,6 +251,7 @@ export type CreatedStaffProject = {
   name: string;
   moduleId: number;
   questionnaireTemplateId: number;
+  teamAllocationQuestionnaireTemplateId?: number | null;
   informationText?: string | null;
   deadline?: {
     taskOpenDate: string;
@@ -255,7 +263,27 @@ export type CreatedStaffProject = {
     feedbackOpenDate: string;
     feedbackDueDate: string;
     feedbackDueDateMcf: string;
+    teamAllocationQuestionnaireOpenDate?: string | null;
+    teamAllocationQuestionnaireDueDate?: string | null;
   } | null;
+};
+
+export type TeamAllocationQuestionnaireStatus = {
+  questionnaireTemplate: {
+    id: number;
+    purpose: string;
+    questions: Array<{
+      id: number;
+      label: string;
+      type: string;
+      order: number;
+      configs: unknown;
+    }>;
+  };
+  hasSubmitted: boolean;
+  teamAllocationQuestionnaireOpenDate: string | null;
+  teamAllocationQuestionnaireDueDate: string | null;
+  windowIsOpen: boolean;
 };
 
 export type StaffMarkingSummary = {
@@ -279,9 +307,10 @@ export type ProjectMarkingSummary = {
 export type ProjectOverviewDashboardProps = {
   project: Project;
   deadline: ProjectDeadline;
-  team: Team;
+  team: Team | null;
   marking: ProjectMarkingSummary | null;
   view?: "overview" | "deadlines";
+  teamFormationMode?: "self" | "custom" | "staff";
 };
 
 export type DeadlineItem = {

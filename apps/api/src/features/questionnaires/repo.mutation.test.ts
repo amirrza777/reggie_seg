@@ -253,6 +253,7 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
         templateName: "Source Template (Copy)",
         isPublic: false,
         ownerId: 2,
+        purpose: "GENERAL_PURPOSE",
         questions: {
           create: [
             { label: "Q1", type: "text", order: 0, configs: null },
@@ -266,3 +267,4 @@ describe("QuestionnaireTemplate repository mutation paths", () => {
     expect(result).toEqual({ id: 91 });
   });
 });
+

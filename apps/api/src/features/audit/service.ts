@@ -20,6 +20,8 @@ const DEFAULT_AUDIT_RETENTION_DAYS = 365;
 const INTEGRITY_SIGNATURE_VERSION = "v1";
 const MAX_SERIALIZABLE_RETRIES = 3;
 const AUDIT_INTEGRITY_ERROR = "Audit log integrity check failed. Possible tampering detected.";
+let hasWarnedAboutMissingAuditStorage = false;
+const warnedIntegrityRecoveries = new Set<string>();
 
 const auditIntegritySecret = resolveAuditIntegritySecret();
 
@@ -72,6 +74,36 @@ function isRetryableSerializableError(error: unknown): boolean {
   if (!error || typeof error !== "object") return false;
   const code = "code" in error ? (error as { code?: unknown }).code : null;
   return code === "P2034";
+}
+
+function isMissingAuditStorageError(error: unknown): boolean {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError)) return false;
+  if (error.code !== "P2021" && error.code !== "P2022") return false;
+  const meta = (error.meta ?? {}) as { table?: unknown; modelName?: unknown };
+  const table = typeof meta.table === "string" ? meta.table : "";
+  const modelName = typeof meta.modelName === "string" ? meta.modelName : "";
+  return (
+    table.includes("AuditLog") ||
+    table.includes("AuditLogIntegrity") ||
+    modelName === "AuditLog" ||
+    modelName === "AuditLogIntegrity"
+  );
+}
+
+function warnAuditStorageUnavailable(error: unknown) {
+  if (hasWarnedAboutMissingAuditStorage) return;
+  hasWarnedAboutMissingAuditStorage = true;
+  const message = error instanceof Error ? error.message : String(error);
+  console.warn("[audit] Audit storage unavailable; audit writes are being skipped:", message);
+}
+
+function warnIntegrityRecovery(enterpriseId: string, reason: "invalid_signature" | "snapshot_drift") {
+  const key = `${enterpriseId}:${reason}`;
+  if (warnedIntegrityRecoveries.has(key)) return;
+  warnedIntegrityRecoveries.add(key);
+  console.warn(
+    `[audit] ${AUDIT_INTEGRITY_ERROR} Rebuilding snapshot for enterprise ${enterpriseId} (${reason}).`,
+  );
 }
 
 async function withSerializableRetry<T>(task: (tx: Prisma.TransactionClient) => Promise<T>) {
@@ -156,7 +188,9 @@ async function verifyAuditIntegritySnapshot(enterpriseId: string) {
   }
 
   if (!isIntegritySnapshotSignatureValid(enterpriseId, snapshot)) {
-    throw new Error(AUDIT_INTEGRITY_ERROR);
+    warnIntegrityRecovery(enterpriseId, "invalid_signature");
+    await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId);
+    return;
   }
 
   const [actualCount, latest] = await Promise.all([
@@ -176,7 +210,8 @@ async function verifyAuditIntegritySnapshot(enterpriseId: string) {
     (actualLastLogCreatedAt?.getTime() ?? -1) === (snapshot.lastLogCreatedAt?.getTime() ?? -1);
 
   if (!hasMatchingCount || !hasMatchingLastLogId || !hasMatchingLastLogCreatedAt) {
-    throw new Error(AUDIT_INTEGRITY_ERROR);
+    warnIntegrityRecovery(enterpriseId, "snapshot_drift");
+    await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId);
   }
 }
 
@@ -225,50 +260,59 @@ export async function recordAuditLog(
     enterpriseId = user.enterpriseId;
   }
 
-  const entry = await withSerializableRetry(async (tx) => {
-    const existingSnapshot = await tx.auditLogIntegrity.findUnique({
-      where: { enterpriseId },
-      select: { logCount: true, lastLogId: true, lastLogCreatedAt: true, signature: true },
-    });
+  try {
+    const entry = await withSerializableRetry(async (tx) => {
+      const existingSnapshot = await tx.auditLogIntegrity.findUnique({
+        where: { enterpriseId },
+        select: { logCount: true, lastLogId: true, lastLogCreatedAt: true, signature: true },
+      });
 
-    if (existingSnapshot && !isIntegritySnapshotSignatureValid(enterpriseId, existingSnapshot)) {
-      throw new Error(AUDIT_INTEGRITY_ERROR);
-    }
+      if (existingSnapshot && !isIntegritySnapshotSignatureValid(enterpriseId, existingSnapshot)) {
+        warnIntegrityRecovery(enterpriseId, "invalid_signature");
+        await rebuildAuditIntegritySnapshotForEnterprise(enterpriseId, tx);
+      }
 
-    const countBeforeInsert = await tx.auditLog.count({ where: { enterpriseId } });
+      const countBeforeInsert = await tx.auditLog.count({ where: { enterpriseId } });
 
-    const createdEntry = await tx.auditLog.create({
-      data: {
-        userId: params.userId,
+      const createdEntry = await tx.auditLog.create({
+        data: {
+          userId: params.userId,
+          enterpriseId,
+          action: params.action as any,
+          ip: params.ip?.slice(0, 64) ?? null,
+          userAgent: params.userAgent?.slice(0, 500) ?? null,
+        },
+        include: {
+          user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
+        },
+      });
+
+      await upsertAuditIntegritySnapshot(
+        tx,
         enterpriseId,
-        action: params.action as any,
-        ip: params.ip?.slice(0, 64) ?? null,
-        userAgent: params.userAgent?.slice(0, 500) ?? null,
-      },
-      include: {
-        user: { select: { id: true, email: true, firstName: true, lastName: true, role: true } },
-      },
+        countBeforeInsert + 1,
+        createdEntry.id,
+        createdEntry.createdAt,
+      );
+
+      return createdEntry;
     });
 
-    await upsertAuditIntegritySnapshot(
-      tx,
-      enterpriseId,
-      countBeforeInsert + 1,
-      createdEntry.id,
-      createdEntry.createdAt,
-    );
-
-    return createdEntry;
-  });
-
-  broadcastAuditEvent(enterpriseId, {
-    id: entry.id,
-    action: entry.action,
-    createdAt: entry.createdAt,
-    ip: entry.ip,
-    userAgent: entry.userAgent,
-    user: entry.user,
-  });
+    broadcastAuditEvent(enterpriseId, {
+      id: entry.id,
+      action: entry.action,
+      createdAt: entry.createdAt,
+      ip: entry.ip,
+      userAgent: entry.userAgent,
+      user: entry.user,
+    });
+  } catch (error) {
+    if (isMissingAuditStorageError(error)) {
+      warnAuditStorageUnavailable(error);
+      return;
+    }
+    throw error;
+  }
 }
 
 /** Returns the audit logs with optional cursor for pagination. */

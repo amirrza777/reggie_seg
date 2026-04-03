@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getMeeting, getMeetingSettings } from "../api/client";
+import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { MeetingDetail } from "./MeetingDetail";
-import type { Meeting, MeetingPermissions } from "../types";
 
 type MeetingDetailContentProps = {
   meetingId: number;
@@ -11,23 +9,21 @@ type MeetingDetailContentProps = {
 };
 
 export function MeetingDetailContent({ meetingId, projectId }: MeetingDetailContentProps) {
-  const [meeting, setMeeting] = useState<Meeting | null>(null);
-  const [permissions, setPermissions] = useState<MeetingPermissions | null>(null);
+  const { meeting, settings } = useMeetingWithSettings(meetingId);
 
-  useEffect(() => {
-    Promise.all([getMeeting(meetingId), getMeetingSettings(meetingId)]).then(([m, s]) => {
-      setMeeting(m);
-      setPermissions({
-        minutesEditWindowDays: s.minutesEditWindowDays,
-        attendanceEditWindowDays: s.attendanceEditWindowDays,
-        allowAnyoneToEditMeetings: s.allowAnyoneToEditMeetings,
-        allowAnyoneToRecordAttendance: s.allowAnyoneToRecordAttendance,
-        allowAnyoneToWriteMinutes: s.allowAnyoneToWriteMinutes,
-      });
-    });
-  }, [meetingId]);
+  if (!meeting || !settings) return null;
 
-  if (!meeting || !permissions) return null;
-
-  return <MeetingDetail meeting={meeting} projectId={projectId} permissions={permissions} />;
+  return (
+    <MeetingDetail
+      meeting={meeting}
+      projectId={projectId}
+      permissions={{
+        minutesEditWindowDays: settings.minutesEditWindowDays,
+        attendanceEditWindowDays: settings.attendanceEditWindowDays,
+        allowAnyoneToEditMeetings: settings.allowAnyoneToEditMeetings,
+        allowAnyoneToRecordAttendance: settings.allowAnyoneToRecordAttendance,
+        allowAnyoneToWriteMinutes: settings.allowAnyoneToWriteMinutes,
+      }}
+    />
+  );
 }

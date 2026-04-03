@@ -11,6 +11,10 @@ import {
   getPublicQuestionnairesFromOthers,
 } from "../api/client";
 import type { Questionnaire } from "../types";
+import {
+  QUESTIONNAIRE_PURPOSE_LABELS,
+  normalizeQuestionnairePurpose,
+} from "../purpose";
 import { EditQuestionnaireButton, DeleteQuestionnaireButton } from "./SharedQuestionnaireButtons";
 
 export function QuestionnaireList() {
@@ -70,7 +74,8 @@ export function QuestionnaireList() {
       <div className="ui-stack-xs">
         <strong>{q.templateName}</strong>
         <div className="questionnaire-editor__meta">
-          Created {new Date(q.createdAt).toLocaleDateString()}
+          Created {new Date(q.createdAt).toLocaleDateString()}{" "}
+          {"\u00b7"} {QUESTIONNAIRE_PURPOSE_LABELS[normalizeQuestionnairePurpose(q.purpose)]}
         </div>
       </div>
 

@@ -21,7 +21,10 @@ export type ModuleDashboardData = {
   readinessParagraphs: string[];
 };
 
-export function buildModuleDashboardData(module: Module): ModuleDashboardData {
+export function buildModuleDashboardData(
+  module: Module,
+  marksRows: Array<[string, string, string]> = [],
+): ModuleDashboardData {
   const moduleCode = toModuleCode(module);
   const teamCount = module.teamCount ?? 0;
   const projectCount = module.projectCount ?? 0;
@@ -35,7 +38,7 @@ export function buildModuleDashboardData(module: Module): ModuleDashboardData {
     teamCount,
     projectCount,
     hasLinkedProjects: projectCount > 0,
-    marksRows: [],
+    marksRows,
     timelineRows,
     expectationRows,
     briefParagraphs,

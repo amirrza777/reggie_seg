@@ -26,6 +26,8 @@ const TYPE_COLOR: Record<CalendarEvent["type"], string> = {
   assessment_due:   "#f59e0b",
   feedback_open:    "#3b82f6",
   feedback_due:     "rgba(32,173,120,1)",
+  team_allocation_questionnaire_open: "#0ea5e9",
+  team_allocation_questionnaire_due: "#f97316",
   meeting:          "#8b5cf6",
 };
 

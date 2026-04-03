@@ -1,11 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
 import * as service from "./service.js";
-import { createTeamInviteHandler, listTeamInvitesHandler } from "./controller.invites.js";
+import {
+  createTeamInviteHandler,
+  listInviteEligibleStudentsHandler,
+  listTeamInvitesHandler,
+} from "./controller.invites.js";
 import { createTeamForProjectHandler, getTeamByIdHandler } from "./controller.teams.js";
 
 vi.mock("./service.js", () => ({
   createTeamInvite: vi.fn(),
+  listInviteEligibleStudents: vi.fn(),
   listTeamInvites: vi.fn(),
   createTeamForProject: vi.fn(),
   getTeamById: vi.fn(),
@@ -39,6 +44,12 @@ describe("controller invites and teams", () => {
   it("rejects invalid team id on listTeamInvites", async () => {
     const res = createResponse();
     await listTeamInvitesHandler({ user: { sub: 4 }, params: { teamId: "x" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("requires valid team id on listInviteEligibleStudents", async () => {
+    const res = createResponse();
+    await listInviteEligibleStudentsHandler({ user: { sub: 4 }, params: { teamId: "x" } } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
 

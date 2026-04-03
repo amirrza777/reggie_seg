@@ -111,7 +111,13 @@ export async function getEnterpriseModuleAccessSelection(
 }
 
 export async function getEnterpriseModuleJoinCode(moduleId: number): Promise<EnterpriseModuleJoinCodeResponse> {
-  return apiFetch<EnterpriseModuleJoinCodeResponse>(`/enterprise-admin/modules/${moduleId}/join-code`);
+  return apiFetch<EnterpriseModuleJoinCodeResponse>(`/module-join/modules/${moduleId}/code`);
+}
+
+export async function rotateEnterpriseModuleJoinCode(moduleId: number): Promise<EnterpriseModuleJoinCodeResponse> {
+  return apiFetch<EnterpriseModuleJoinCodeResponse>(`/module-join/modules/${moduleId}/code/rotate`, {
+    method: "POST",
+  });
 }
 
 export async function listEnterpriseModuleStudents(moduleId: number): Promise<EnterpriseModuleStudentsResponse> {

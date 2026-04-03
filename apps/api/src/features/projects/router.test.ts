@@ -56,6 +56,8 @@ describe("projects router", () => {
         { path: "/:projectId/team", methods: { get: true } },
         { path: "/teams/:teamId", methods: { get: true } },
         { path: "/:projectId/questions", methods: { get: true } },
+        { path: "/:projectId/team-allocation-questionnaire", methods: { get: true } },
+        { path: "/:projectId/team-allocation-questionnaire/response", methods: { post: true } },
       ])
     );
   });

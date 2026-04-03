@@ -121,6 +121,24 @@ describe("TrelloService OAuth and API fetches", () => {
     expect(result).toEqual(mockBoards);
   });
 
+  it("getUserBoards returns [] when API payload is not an array", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ not: "array" }),
+    } as any);
+
+    await expect(TrelloService.getUserBoards("token123")).resolves.toEqual([]);
+  });
+
+  it("getUserBoards filters out non-object entries", async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: "1", name: "Good" }, null, "bad", 1],
+    } as any);
+
+    await expect(TrelloService.getUserBoards("token123")).resolves.toEqual([{ id: "1", name: "Good" }]);
+  });
+
   it("getUserBoards throws on failure", async () => {
     global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
 
@@ -183,6 +201,12 @@ describe("TrelloService OAuth and API fetches", () => {
     await expect(
       TrelloService.getBoardWithData("board1", "token123")
     ).rejects.toThrow("Failed to fetch board");
+  });
+
+  it("getBoardHistory returns [] when Trello actions request fails", async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false } as any);
+
+    await expect(TrelloService.getBoardHistory("board1", "token123")).resolves.toEqual([]);
   });
 
   it("fetches Trello member", async () => {

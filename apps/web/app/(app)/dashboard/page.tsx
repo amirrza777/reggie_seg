@@ -16,6 +16,8 @@ const TYPE_LABEL: Record<string, string> = {
   assessment_due: "Assessment Due",
   feedback_open: "Feedback Opens",
   feedback_due: "Feedback Due",
+  team_allocation_questionnaire_open: "Allocation Questionnaire Opens",
+  team_allocation_questionnaire_due: "Allocation Questionnaire Due",
   meeting: "Meeting",
 };
 

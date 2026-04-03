@@ -67,6 +67,22 @@ describe("forum service", () => {
     expect(repo.createDiscussionPostForProject).toHaveBeenCalledWith(1, 2, "t", "b", null);
   });
 
+  it("swallows mention processing errors and still returns post", async () => {
+    const mentionBody = JSON.stringify({
+      root: { children: [{ type: "mention", mentionName: "Reggie King" }] },
+    });
+    (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 2 });
+    (repo.getProjectMembers as any).mockRejectedValue(new Error("directory unavailable"));
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      await expect(createDiscussionPost(1, 2, "t", mentionBody, null)).resolves.toEqual({ id: 2 });
+      expect(errorSpy).toHaveBeenCalled();
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("fetchDiscussionPost proxies to repo", async () => {
     (repo.getDiscussionPostById as any).mockResolvedValue({ id: 3 });
     await expect(fetchDiscussionPost(1, 2, 3)).resolves.toEqual({ id: 3 });
@@ -279,6 +295,32 @@ describe("forum service", () => {
       await createDiscussionPost(5, 2, "title", "plain text body", null);
 
       expect(repo.getProjectMembers).not.toHaveBeenCalled();
+    });
+
+    it("skips ambiguous mention matches", async () => {
+      (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
+      (repo.getProjectMembers as any).mockResolvedValue([
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STUDENT" },
+        { id: 11, firstName: "Reggie", lastName: "King", role: "STUDENT" },
+      ]);
+
+      await createDiscussionPost(5, 2, "title", mentionBody, null);
+
+      expect(notificationsService.addNotification).not.toHaveBeenCalled();
+    });
+
+    it("uses fallback author name when author profile is missing", async () => {
+      (repo.createDiscussionPostForProject as any).mockResolvedValue({ id: 1 });
+      (repo.getUserById as any).mockResolvedValue(null);
+      (repo.getProjectMembers as any).mockResolvedValue([
+        { id: 10, firstName: "Reggie", lastName: "King", role: "STUDENT" },
+      ]);
+
+      await createDiscussionPost(5, 2, "title", mentionBody, null);
+
+      expect(notificationsService.addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ message: "Someone mentioned you in a discussion post" }),
+      );
     });
   });
 

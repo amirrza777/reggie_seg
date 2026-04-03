@@ -1,31 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { createStaffProject } from "@/features/projects/api/client";
-import { listModules } from "@/features/modules/api/client";
+import { getModuleStudents } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 import type { Questionnaire } from "@/features/questionnaires/types";
-import type { Module } from "@/features/modules/types";
+import type { Module, ModuleStudent } from "@/features/modules/types";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
-import {
-  applyMcfOffsetDaysToDeadlineState,
-  buildDeadlinePreview,
-  buildDefaultDeadlineState,
-  buildPresetDeadlineState,
-  formatDateTime,
-  parseAndValidateDeadlineState,
-  type DeadlineState,
-} from "./StaffProjectCreatePanel.deadlines";
-import {
-  StaffProjectCreateActionsSection,
-  StaffProjectCreateBasicsSection,
-  StaffProjectCreateDeadlinesSection,
-  StaffProjectCreateInformationSection,
-} from "./StaffProjectCreatePanel.sections";
+import { SearchField } from "@/shared/ui/SearchField";
+import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
 
 type StaffProjectCreatePanelProps = {
-  currentUserId: number;
   modules: Module[];
   modulesError: string | null;
   initialModuleId?: string | null;
@@ -33,124 +20,181 @@ type StaffProjectCreatePanelProps = {
 
 const CREATABLE_ROLES = new Set<Module["accountRole"]>(["OWNER", "ADMIN_ACCESS"]);
 
-function findVisibleOption<T extends { id: string | number }>(selectedId: string, primary: T[], secondary: T[]) {
-  // Keep the currently selected option visible even if the latest search result set no longer contains it.
-  const selected = primary.find((item) => String(item.id) === selectedId) ?? secondary.find((item) => String(item.id) === selectedId);
-  if (!selected || secondary.some((item) => item.id === selected.id)) {
-    return secondary;
-  }
-  return [selected, ...secondary];
+type DeadlineState = {
+  taskOpenDate: string;
+  taskDueDate: string;
+  taskDueDateMcf: string;
+  assessmentOpenDate: string;
+  assessmentDueDate: string;
+  assessmentDueDateMcf: string;
+  feedbackOpenDate: string;
+  feedbackDueDate: string;
+  feedbackDueDateMcf: string;
+  teamAllocationQuestionnaireOpenDate: string;
+  teamAllocationQuestionnaireDueDate: string;
+};
+
+function toLocalDateTimeInputValue(date: Date): string {
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function buildDefaultDeadlineState(): DeadlineState {
+  const taskOpen = new Date();
+  taskOpen.setMinutes(0, 0, 0);
+  taskOpen.setHours(taskOpen.getHours() + 1);
+
+  const taskDue = new Date(taskOpen.getTime() + 14 * 24 * 60 * 60 * 1000);
+  const assessmentOpen = new Date(taskDue.getTime() + 24 * 60 * 60 * 1000);
+  const assessmentDue = new Date(assessmentOpen.getTime() + 4 * 24 * 60 * 60 * 1000);
+  const feedbackOpen = new Date(assessmentDue.getTime() + 24 * 60 * 60 * 1000);
+  const feedbackDue = new Date(feedbackOpen.getTime() + 4 * 24 * 60 * 60 * 1000);
+  const questionnaireDue = new Date(taskOpen.getTime() - 24 * 60 * 60 * 1000);
+  const questionnaireOpen = new Date(taskOpen.getTime() - 8 * 24 * 60 * 60 * 1000);
+
+  return {
+    taskOpenDate: toLocalDateTimeInputValue(taskOpen),
+    taskDueDate: toLocalDateTimeInputValue(taskDue),
+    taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    assessmentOpenDate: toLocalDateTimeInputValue(assessmentOpen),
+    assessmentDueDate: toLocalDateTimeInputValue(assessmentDue),
+    assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
+    feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
+    feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
+    teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
+  };
+}
+
+function parseLocalDateTime(value: string): Date | null {
+  if (!value.trim()) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatDateTime(date: Date | null): string {
+  if (!date) return "-";
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function toStudentName(student: ModuleStudent) {
+  const fullName = `${student.firstName} ${student.lastName}`.trim();
+  return fullName.length > 0 ? fullName : student.email;
+}
+
+function buildPresetDeadlineState(totalWeeks: number): DeadlineState {
+  const taskOpen = new Date();
+  taskOpen.setMinutes(0, 0, 0);
+  taskOpen.setHours(taskOpen.getHours() + 1);
+
+  const taskDue = new Date(taskOpen.getTime() + totalWeeks * 7 * 24 * 60 * 60 * 1000);
+  const assessmentOpen = new Date(taskDue.getTime() + 24 * 60 * 60 * 1000);
+  const assessmentDue = new Date(assessmentOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
+  const feedbackOpen = new Date(assessmentDue.getTime() + 24 * 60 * 60 * 1000);
+  const feedbackDue = new Date(feedbackOpen.getTime() + 5 * 24 * 60 * 60 * 1000);
+  const questionnaireDue = new Date(taskOpen.getTime() - 24 * 60 * 60 * 1000);
+  const questionnaireOpen = new Date(taskOpen.getTime() - 8 * 24 * 60 * 60 * 1000);
+
+  return {
+    taskOpenDate: toLocalDateTimeInputValue(taskOpen),
+    taskDueDate: toLocalDateTimeInputValue(taskDue),
+    taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    assessmentOpenDate: toLocalDateTimeInputValue(assessmentOpen),
+    assessmentDueDate: toLocalDateTimeInputValue(assessmentDue),
+    assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    feedbackOpenDate: toLocalDateTimeInputValue(feedbackOpen),
+    feedbackDueDate: toLocalDateTimeInputValue(feedbackDue),
+    feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDue.getTime() + 7 * 24 * 60 * 60 * 1000)),
+    teamAllocationQuestionnaireOpenDate: toLocalDateTimeInputValue(questionnaireOpen),
+    teamAllocationQuestionnaireDueDate: toLocalDateTimeInputValue(questionnaireDue),
+  };
 }
 
 export function StaffProjectCreatePanel({
-  currentUserId,
   modules,
   modulesError,
   initialModuleId = null,
 }: StaffProjectCreatePanelProps) {
   const router = useRouter();
-  const creatableModulesFromProps = useMemo(
-    () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
-    [modules],
-  );
-
   const [templates, setTemplates] = useState<Questionnaire[]>([]);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
   const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [allocationTemplates, setAllocationTemplates] = useState<Questionnaire[]>([]);
+  const [isLoadingAllocationTemplates, setIsLoadingAllocationTemplates] = useState(true);
+  const [allocationTemplatesError, setAllocationTemplatesError] = useState<string | null>(null);
+
   const [projectName, setProjectName] = useState("");
   const [informationText, setInformationText] = useState("");
   const [moduleId, setModuleId] = useState(initialModuleId ?? "");
-  const [moduleSearchQuery, setModuleSearchQuery] = useState("");
-  const [moduleSearchError, setModuleSearchError] = useState<string | null>(null);
-  const [moduleOptions, setModuleOptions] = useState<Module[]>(creatableModulesFromProps);
-  const [isLoadingModules, setIsLoadingModules] = useState(false);
   const [templateId, setTemplateId] = useState("");
-  const [templateSearchQuery, setTemplateSearchQuery] = useState("");
-  const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
+  const [allocationTemplateId, setAllocationTemplateId] = useState("");
   const [deadline, setDeadline] = useState<DeadlineState>(() => buildDefaultDeadlineState());
   const [deadlinePresetStatus, setDeadlinePresetStatus] = useState<string | null>(null);
   const [deadlinePresetError, setDeadlinePresetError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTemplateOption, setSelectedTemplateOption] = useState<Questionnaire | null>(null);
+  const [selectedAllocationTemplateOption, setSelectedAllocationTemplateOption] = useState<Questionnaire | null>(null);
+  const [moduleStudents, setModuleStudents] = useState<ModuleStudent[]>([]);
+  const [isLoadingModuleStudents, setIsLoadingModuleStudents] = useState(false);
+  const [moduleStudentsError, setModuleStudentsError] = useState<string | null>(null);
+  const [studentSearchInput, setStudentSearchInput] = useState("");
+  const [selectedStudentIds, setSelectedStudentIds] = useState<number[]>([]);
+  const latestModuleStudentsRequestRef = useRef(0);
+
+  const creatableModulesFromProps = useMemo(
+    () => modules.filter((module) => CREATABLE_ROLES.has(module.accountRole)),
+    [modules]
+  );
 
   useEffect(() => {
-    if (!moduleSearchQuery.trim()) {
-      setModuleOptions(creatableModulesFromProps);
+    const preferredModuleId =
+      initialModuleId && creatableModulesFromProps.some((module) => module.id === initialModuleId)
+        ? initialModuleId
+        : (creatableModulesFromProps[0]?.id ?? "");
+    if (!preferredModuleId) return;
+    const moduleIdIsValid = creatableModulesFromProps.some((module) => module.id === moduleId);
+    if (!moduleIdIsValid) {
+      setModuleId(preferredModuleId);
     }
-  }, [creatableModulesFromProps, moduleSearchQuery]);
-
-  useEffect(() => {
-    if (!initialModuleId || moduleId.trim() || !creatableModulesFromProps.some((module) => module.id === initialModuleId)) {
-      return;
-    }
-    setModuleId(initialModuleId);
   }, [creatableModulesFromProps, initialModuleId, moduleId]);
 
   useEffect(() => {
-    const normalizedQuery = moduleSearchQuery.trim();
-    if (!normalizedQuery) {
-      setModuleSearchError(null);
-      setIsLoadingModules(false);
-      return;
-    }
-
     let isMounted = true;
-    const timer = window.setTimeout(() => {
-      setIsLoadingModules(true);
-      setModuleSearchError(null);
-      listModules(currentUserId, { scope: "staff", compact: true, query: normalizedQuery })
-        .then((result) => {
-          if (isMounted) {
-            setModuleOptions(result.filter((module) => CREATABLE_ROLES.has(module.accountRole)));
-          }
-        })
-        .catch((error) => {
-          if (isMounted) {
-            setModuleSearchError(error instanceof Error ? error.message : "Failed to search modules.");
-            setModuleOptions([]);
-          }
-        })
-        .finally(() => {
-          if (isMounted) {
-            setIsLoadingModules(false);
-          }
-        });
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => {
-      isMounted = false;
-      window.clearTimeout(timer);
-    };
-  }, [currentUserId, moduleSearchQuery]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const normalizedQuery = templateSearchQuery.trim();
     const timer = window.setTimeout(() => {
       setIsLoadingTemplates(true);
       setTemplatesError(null);
-      getMyQuestionnaires({ query: normalizedQuery || undefined })
+
+      getMyQuestionnaires({
+        query: undefined,
+      })
         .then((result) => {
           if (!isMounted) return;
-          const sorted = [...result].sort((a, b) => a.templateName.localeCompare(b.templateName));
+          const sorted = [...result]
+            .filter((template) => template.purpose === "PEER_ASSESSMENT" || template.purpose === "GENERAL_PURPOSE")
+            .sort((a, b) => a.templateName.localeCompare(b.templateName));
           setTemplates(sorted);
-          if (!templateId.trim()) return;
-          const selected = sorted.find((template) => String(template.id) === templateId) ?? null;
-          if (selected) {
-            setSelectedTemplateOption(selected);
+          if (templateId.trim().length > 0) {
+            const selected = sorted.find((template) => String(template.id) === templateId) ?? null;
+            if (selected) {
+              setSelectedTemplateOption(selected);
+            }
           }
         })
         .catch((error) => {
-          if (isMounted) {
-            setTemplatesError(error instanceof Error ? error.message : "Failed to load your questionnaires.");
-            setTemplates([]);
-          }
+          if (!isMounted) return;
+          setTemplatesError(error instanceof Error ? error.message : "Failed to load your questionnaires.");
+          setTemplates([]);
         })
         .finally(() => {
-          if (isMounted) {
-            setIsLoadingTemplates(false);
-          }
+          if (!isMounted) return;
+          setIsLoadingTemplates(false);
         });
     }, SEARCH_DEBOUNCE_MS);
 
@@ -158,19 +202,149 @@ export function StaffProjectCreatePanel({
       isMounted = false;
       window.clearTimeout(timer);
     };
-  }, [templateId, templateSearchQuery]);
+  }, [templateId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const timer = window.setTimeout(() => {
+      setIsLoadingAllocationTemplates(true);
+      setAllocationTemplatesError(null);
+
+      getMyQuestionnaires({
+        query: undefined,
+      })
+        .then((result) => {
+          if (!isMounted) return;
+          const sorted = [...result]
+            .filter((template) => template.purpose === "CUSTOMISED_ALLOCATION" || template.purpose === "GENERAL_PURPOSE")
+            .sort((a, b) => a.templateName.localeCompare(b.templateName));
+          setAllocationTemplates(sorted);
+          if (allocationTemplateId.trim().length > 0) {
+            const selected = sorted.find((template) => String(template.id) === allocationTemplateId) ?? null;
+            if (selected) {
+              setSelectedAllocationTemplateOption(selected);
+            }
+          }
+        })
+        .catch((error) => {
+          if (!isMounted) return;
+          setAllocationTemplatesError(
+            error instanceof Error ? error.message : "Failed to load allocation questionnaires.",
+          );
+          setAllocationTemplates([]);
+        })
+        .finally(() => {
+          if (!isMounted) return;
+          setIsLoadingAllocationTemplates(false);
+        });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [allocationTemplateId]);
+
+  function loadModuleStudents(
+    nextModuleId: number,
+    options: { preserveSelection?: boolean; autoSelectAll?: boolean } = {},
+  ) {
+    const requestId = latestModuleStudentsRequestRef.current + 1;
+    latestModuleStudentsRequestRef.current = requestId;
+    setIsLoadingModuleStudents(true);
+    setModuleStudentsError(null);
+
+    getModuleStudents(nextModuleId)
+      .then((result) => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        const enrolledStudents = result.students.filter((student) => student.enrolled && student.active);
+        setModuleStudents(result.students);
+
+        if (options.preserveSelection) {
+          const availableIds = new Set(enrolledStudents.map((student) => student.id));
+          setSelectedStudentIds((current) => current.filter((id) => availableIds.has(id)));
+          return;
+        }
+
+        if (options.autoSelectAll) {
+          setSelectedStudentIds(enrolledStudents.map((student) => student.id));
+          return;
+        }
+
+        setSelectedStudentIds([]);
+      })
+      .catch((error) => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        setModuleStudentsError(error instanceof Error ? error.message : "Failed to load module students.");
+        setModuleStudents([]);
+      })
+      .finally(() => {
+        if (latestModuleStudentsRequestRef.current !== requestId) return;
+        setIsLoadingModuleStudents(false);
+      });
+  }
+
+  useEffect(() => {
+    setModuleStudents([]);
+    setStudentSearchInput("");
+    setModuleStudentsError(null);
+    if (!moduleId.trim()) {
+      setSelectedStudentIds([]);
+      return;
+    }
+
+    const parsed = Number(moduleId);
+    if (!Number.isInteger(parsed)) {
+      setSelectedStudentIds([]);
+      return;
+    }
+
+    loadModuleStudents(parsed, { autoSelectAll: true });
+  }, [moduleId]);
 
   const hasCreatableModule = creatableModulesFromProps.length > 0;
   const hasTemplates = templates.length > 0 || templateId.trim().length > 0;
-  const visibleModules = useMemo(
-    () => findVisibleOption(moduleId, creatableModulesFromProps, moduleOptions),
-    [creatableModulesFromProps, moduleId, moduleOptions],
+  const hasAllocationTemplates = allocationTemplates.length > 0 || allocationTemplateId.trim().length > 0;
+  const hasSelectedAllocationTemplate = allocationTemplateId.trim().length > 0;
+
+  const selectedModule = useMemo(
+    () => creatableModulesFromProps.find((module) => module.id === moduleId) ?? null,
+    [creatableModulesFromProps, moduleId],
   );
-  const visibleTemplates = useMemo(
-    () => findVisibleOption(templateId, selectedTemplateOption ? [selectedTemplateOption] : [], templates),
-    [selectedTemplateOption, templateId, templates],
+
+  const visibleTemplates = useMemo(() => {
+    const selectedTemplate = templates.find((template) => String(template.id) === templateId) ?? selectedTemplateOption;
+    if (!selectedTemplate) return templates;
+    if (templates.some((template) => template.id === selectedTemplate.id)) return templates;
+    return [selectedTemplate, ...templates];
+  }, [selectedTemplateOption, templateId, templates]);
+
+  const visibleAllocationTemplates = useMemo(() => {
+    const selectedTemplate =
+      allocationTemplates.find((template) => String(template.id) === allocationTemplateId) ??
+      selectedAllocationTemplateOption;
+    if (!selectedTemplate) return allocationTemplates;
+    if (allocationTemplates.some((template) => template.id === selectedTemplate.id)) return allocationTemplates;
+    return [selectedTemplate, ...allocationTemplates];
+  }, [allocationTemplateId, allocationTemplates, selectedAllocationTemplateOption]);
+
+  const enrolledModuleStudents = useMemo(
+    () => moduleStudents.filter((student) => student.enrolled && student.active),
+    [moduleStudents],
   );
-  const deadlinePreview = useMemo(() => buildDeadlinePreview(deadline), [deadline]);
+
+  const filteredModuleStudents = useMemo(() => {
+    const query = studentSearchInput.trim().toLowerCase();
+    if (!query) return enrolledModuleStudents;
+    return enrolledModuleStudents.filter((student) => {
+      const fullName = `${student.firstName} ${student.lastName}`.trim().toLowerCase();
+      return (
+        fullName.includes(query) ||
+        student.email.toLowerCase().includes(query) ||
+        String(student.id).includes(query)
+      );
+    });
+  }, [enrolledModuleStudents, studentSearchInput]);
 
   const canSubmit =
     !isSubmitting &&
@@ -179,16 +353,66 @@ export function StaffProjectCreatePanel({
     projectName.trim().length > 0 &&
     moduleId.trim().length > 0 &&
     templateId.trim().length > 0 &&
-    Object.values(deadline).every((value) => value.trim().length > 0);
+    deadline.taskOpenDate.trim().length > 0 &&
+    deadline.taskDueDate.trim().length > 0 &&
+    deadline.taskDueDateMcf.trim().length > 0 &&
+    deadline.assessmentOpenDate.trim().length > 0 &&
+    deadline.assessmentDueDate.trim().length > 0 &&
+    deadline.assessmentDueDateMcf.trim().length > 0 &&
+    deadline.feedbackOpenDate.trim().length > 0 &&
+    deadline.feedbackDueDate.trim().length > 0 &&
+    deadline.feedbackDueDateMcf.trim().length > 0 &&
+    (!hasSelectedAllocationTemplate ||
+      (deadline.teamAllocationQuestionnaireOpenDate.trim().length > 0 &&
+        deadline.teamAllocationQuestionnaireDueDate.trim().length > 0));
+
+  const deadlinePreview = useMemo(() => {
+    const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
+    const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const taskDueDateMcf = parseLocalDateTime(deadline.taskDueDateMcf);
+    const assessmentOpenDate = parseLocalDateTime(deadline.assessmentOpenDate);
+    const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const assessmentDueDateMcf = parseLocalDateTime(deadline.assessmentDueDateMcf);
+    const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
+    const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
+
+    const rangeStart = taskOpenDate;
+    const rangeEnd = feedbackDueDate;
+    const totalDays =
+      rangeStart && rangeEnd ? Math.max(1, Math.ceil((rangeEnd.getTime() - rangeStart.getTime()) / (24 * 60 * 60 * 1000))) : null;
+
+    return {
+      taskOpenDate,
+      taskDueDate,
+      taskDueDateMcf,
+      assessmentOpenDate,
+      assessmentDueDate,
+      assessmentDueDateMcf,
+      feedbackOpenDate,
+      feedbackDueDate,
+      feedbackDueDateMcf,
+      totalDays,
+    };
+  }, [deadline]);
 
   function applyMcfOffsetDays(offsetDays: number) {
-    const result = applyMcfOffsetDaysToDeadlineState(deadline, offsetDays);
-    if (!result.ok) {
+    const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    if (!taskDueDate || !assessmentDueDate || !feedbackDueDate) {
       setDeadlinePresetStatus(null);
-      setDeadlinePresetError(result.error);
+      setDeadlinePresetError("Set valid standard due dates first, then apply an MCF offset.");
       return;
     }
-    setDeadline(result.value);
+
+    const deltaMs = offsetDays * 24 * 60 * 60 * 1000;
+    setDeadline((prev) => ({
+      ...prev,
+      taskDueDateMcf: toLocalDateTimeInputValue(new Date(taskDueDate.getTime() + deltaMs)),
+      assessmentDueDateMcf: toLocalDateTimeInputValue(new Date(assessmentDueDate.getTime() + deltaMs)),
+      feedbackDueDateMcf: toLocalDateTimeInputValue(new Date(feedbackDueDate.getTime() + deltaMs)),
+    }));
     setDeadlinePresetError(null);
     setDeadlinePresetStatus(`Applied MCF +${offsetDays} days to all due dates.`);
   }
@@ -205,6 +429,33 @@ export function StaffProjectCreatePanel({
     setDeadlinePresetStatus("Reset to default project schedule.");
   }
 
+  const hasModuleSelection = selectedModule !== null;
+
+  function selectAllModuleStudents() {
+    setSelectedStudentIds(enrolledModuleStudents.map((student) => student.id));
+  }
+
+  function clearSelectedModuleStudents() {
+    setSelectedStudentIds([]);
+  }
+
+  function toggleStudentSelection(studentId: number) {
+    setSelectedStudentIds((current) =>
+      current.includes(studentId) ? current.filter((id) => id !== studentId) : [...current, studentId],
+    );
+  }
+
+  function handleStudentSearchChange(nextValue: string) {
+    setStudentSearchInput(nextValue);
+  }
+
+  function refreshModuleStudents() {
+    if (!hasModuleSelection) return;
+    const parsed = Number(moduleId);
+    if (!Number.isInteger(parsed)) return;
+    loadModuleStudents(parsed, { preserveSelection: true });
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!canSubmit) return;
@@ -216,10 +467,88 @@ export function StaffProjectCreatePanel({
       return;
     }
 
-    const validatedDeadline = parseAndValidateDeadlineState(deadline);
-    if (!validatedDeadline.ok) {
-      setSubmitError(validatedDeadline.error);
+    let parsedAllocationTemplateId: number | null = null;
+    if (allocationTemplateId.trim().length > 0) {
+      const parsed = Number(allocationTemplateId);
+      if (!Number.isInteger(parsed)) {
+        setSubmitError("Team allocation questionnaire must be a valid template.");
+        return;
+      }
+      parsedAllocationTemplateId = parsed;
+    }
+
+    const taskOpenDate = parseLocalDateTime(deadline.taskOpenDate);
+    const taskDueDate = parseLocalDateTime(deadline.taskDueDate);
+    const taskDueDateMcf = parseLocalDateTime(deadline.taskDueDateMcf);
+    const assessmentOpenDate = parseLocalDateTime(deadline.assessmentOpenDate);
+    const assessmentDueDate = parseLocalDateTime(deadline.assessmentDueDate);
+    const assessmentDueDateMcf = parseLocalDateTime(deadline.assessmentDueDateMcf);
+    const feedbackOpenDate = parseLocalDateTime(deadline.feedbackOpenDate);
+    const feedbackDueDate = parseLocalDateTime(deadline.feedbackDueDate);
+    const feedbackDueDateMcf = parseLocalDateTime(deadline.feedbackDueDateMcf);
+    const teamAllocationQuestionnaireOpenDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireOpenDate);
+    const teamAllocationQuestionnaireDueDate = parseLocalDateTime(deadline.teamAllocationQuestionnaireDueDate);
+
+    if (
+      !taskOpenDate ||
+      !taskDueDate ||
+      !taskDueDateMcf ||
+      !assessmentOpenDate ||
+      !assessmentDueDate ||
+      !assessmentDueDateMcf ||
+      !feedbackOpenDate ||
+      !feedbackDueDate ||
+      !feedbackDueDateMcf
+    ) {
+      setSubmitError("All deadline fields must be valid dates.");
       return;
+    }
+
+    if (taskOpenDate >= taskDueDate) {
+      setSubmitError("Task open must be before task due.");
+      return;
+    }
+    if (taskDueDate > assessmentOpenDate) {
+      setSubmitError("Assessment open must be on or after task due.");
+      return;
+    }
+    if (assessmentOpenDate >= assessmentDueDate) {
+      setSubmitError("Assessment open must be before assessment due.");
+      return;
+    }
+    if (assessmentDueDate > feedbackOpenDate) {
+      setSubmitError("Feedback open must be on or after assessment due.");
+      return;
+    }
+    if (feedbackOpenDate >= feedbackDueDate) {
+      setSubmitError("Feedback open must be before feedback due.");
+      return;
+    }
+    if (taskDueDateMcf < taskDueDate) {
+      setSubmitError("MCF task due must be on or after standard task due.");
+      return;
+    }
+    if (assessmentDueDateMcf < assessmentDueDate) {
+      setSubmitError("MCF assessment due must be on or after standard assessment due.");
+      return;
+    }
+    if (feedbackDueDateMcf < feedbackDueDate) {
+      setSubmitError("MCF feedback due must be on or after standard feedback due.");
+      return;
+    }
+    if (parsedAllocationTemplateId !== null) {
+      if (!teamAllocationQuestionnaireOpenDate || !teamAllocationQuestionnaireDueDate) {
+        setSubmitError("Set both open and due dates for the team allocation questionnaire.");
+        return;
+      }
+      if (teamAllocationQuestionnaireOpenDate >= teamAllocationQuestionnaireDueDate) {
+        setSubmitError("Team allocation questionnaire open date must be before the due date.");
+        return;
+      }
+      if (teamAllocationQuestionnaireDueDate >= taskOpenDate) {
+        setSubmitError("Team allocation questionnaire due date must be before project start (task open date).");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -231,25 +560,43 @@ export function StaffProjectCreatePanel({
         name: projectName.trim(),
         moduleId: parsedModuleId,
         questionnaireTemplateId: parsedTemplateId,
-        informationText: informationText.trim() ? informationText.trim() : null,
+        teamAllocationQuestionnaireTemplateId: parsedAllocationTemplateId ?? undefined,
+        informationText: informationText.trim().length > 0 ? informationText.trim() : null,
+        studentIds: selectedStudentIds.length > 0 ? selectedStudentIds : undefined,
         deadline: {
-          taskOpenDate: validatedDeadline.value.taskOpenDate.toISOString(),
-          taskDueDate: validatedDeadline.value.taskDueDate.toISOString(),
-          taskDueDateMcf: validatedDeadline.value.taskDueDateMcf.toISOString(),
-          assessmentOpenDate: validatedDeadline.value.assessmentOpenDate.toISOString(),
-          assessmentDueDate: validatedDeadline.value.assessmentDueDate.toISOString(),
-          assessmentDueDateMcf: validatedDeadline.value.assessmentDueDateMcf.toISOString(),
-          feedbackOpenDate: validatedDeadline.value.feedbackOpenDate.toISOString(),
-          feedbackDueDate: validatedDeadline.value.feedbackDueDate.toISOString(),
-          feedbackDueDateMcf: validatedDeadline.value.feedbackDueDateMcf.toISOString(),
+          taskOpenDate: taskOpenDate.toISOString(),
+          taskDueDate: taskDueDate.toISOString(),
+          taskDueDateMcf: taskDueDateMcf.toISOString(),
+          assessmentOpenDate: assessmentOpenDate.toISOString(),
+          assessmentDueDate: assessmentDueDate.toISOString(),
+          assessmentDueDateMcf: assessmentDueDateMcf.toISOString(),
+          feedbackOpenDate: feedbackOpenDate.toISOString(),
+          feedbackDueDate: feedbackDueDate.toISOString(),
+          feedbackDueDateMcf: feedbackDueDateMcf.toISOString(),
+          teamAllocationQuestionnaireOpenDate:
+            parsedAllocationTemplateId !== null && teamAllocationQuestionnaireOpenDate
+              ? teamAllocationQuestionnaireOpenDate.toISOString()
+              : null,
+          teamAllocationQuestionnaireDueDate:
+            parsedAllocationTemplateId !== null && teamAllocationQuestionnaireDueDate
+              ? teamAllocationQuestionnaireDueDate.toISOString()
+              : null,
         },
       });
-
       setProjectName("");
       setInformationText("");
+      setAllocationTemplateId("");
+      setSelectedAllocationTemplateOption(null);
       setDeadline(buildDefaultDeadlineState());
+      setStudentSearchInput("");
+      setSelectedStudentIds([]);
+      setModuleStudents([]);
       setSubmitSuccess(`Project "${created.name}" created.`);
-      router.push(`/staff/modules/${created.moduleId}`);
+      if (parsedAllocationTemplateId != null) {
+        router.push(`/staff/projects/${created.id}/team-allocation`);
+      } else {
+        router.push(`/staff/modules/${created.moduleId}`);
+      }
       router.refresh();
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to create project.");
@@ -266,7 +613,8 @@ export function StaffProjectCreatePanel({
           <h2 className="staff-projects__create-title">Create New Project</h2>
           <p className="staff-projects__desc">
             Create projects inside modules you lead. Enterprise admins can also create projects as an override.
-            Questionnaire templates define the assessment form used by students.
+            Peer-assessment questionnaires define the assessment form used by students.
+            Optional team allocation questionnaires let staff run questionnaire-based team allocations.
           </p>
         </div>
         <span className="staff-projects__badge">
@@ -275,61 +623,483 @@ export function StaffProjectCreatePanel({
       </div>
 
       <form className="staff-projects__create-form" onSubmit={onSubmit}>
-        <StaffProjectCreateBasicsSection
-          projectName={projectName}
-          onProjectNameChange={setProjectName}
-          moduleId={moduleId}
-          onModuleIdChange={setModuleId}
-          moduleSearchQuery={moduleSearchQuery}
-          onModuleSearchQueryChange={setModuleSearchQuery}
-          templateId={templateId}
-          onTemplateIdChange={(nextTemplateId) => {
-            setTemplateId(nextTemplateId);
-            const nextTemplate = templates.find((template) => String(template.id) === nextTemplateId) ?? null;
-            if (nextTemplate) {
-              setSelectedTemplateOption(nextTemplate);
-            }
-          }}
-          templateSearchQuery={templateSearchQuery}
-          onTemplateSearchQueryChange={setTemplateSearchQuery}
-          hasCreatableModule={hasCreatableModule}
-          visibleModules={visibleModules}
-          hasTemplates={hasTemplates}
-          visibleTemplates={visibleTemplates}
-          isLoadingModules={isLoadingModules}
-          isLoadingTemplates={isLoadingTemplates}
-        />
+        <section className="staff-projects__create-basics" aria-label="Project basics">
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 1</p>
+            <h3 className="staff-projects__section-title">Project details</h3>
+            <p className="staff-projects__hint">
+              This project will be created in the current module. Select a peer-assessment questionnaire and optional
+              team allocation questionnaire.
+            </p>
+          </div>
+          <div className="staff-projects__create-basics-grid">
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">Project name</span>
+              <input
+                className="staff-projects__input"
+                value={projectName}
+                onChange={(event) => setProjectName(event.target.value)}
+                placeholder="e.g. Software Engineering Group Project"
+                maxLength={160}
+              />
+            </label>
 
-        <StaffProjectCreateDeadlinesSection
-          deadline={deadline}
-          setDeadline={setDeadline}
-          applySchedulePreset={applySchedulePreset}
-          resetSchedulePreset={resetSchedulePreset}
-          applyMcfOffsetDays={applyMcfOffsetDays}
-          deadlinePresetStatus={deadlinePresetStatus}
-          deadlinePresetError={deadlinePresetError}
-          deadlinePreview={deadlinePreview}
-          formatDateTime={formatDateTime}
-        />
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">Module</span>
+              <input
+                className="staff-projects__input"
+                value={selectedModule ? selectedModule.title : "No module available"}
+                disabled
+                aria-label="Selected module"
+              />
+              <p className="staff-projects__hint">
+                Module is set automatically from your current workspace.
+              </p>
+            </label>
 
-        <StaffProjectCreateInformationSection
-          informationText={informationText}
-          onInformationTextChange={setInformationText}
-        />
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">Peer assessment questionnaire template</span>
+              <select
+                className="staff-projects__select"
+                value={templateId}
+                onChange={(event) => {
+                  const nextTemplateId = event.target.value;
+                  setTemplateId(nextTemplateId);
+                  const nextTemplate = templates.find((template) => String(template.id) === nextTemplateId) ?? null;
+                  if (nextTemplate) {
+                    setSelectedTemplateOption(nextTemplate);
+                  }
+                }}
+                disabled={isLoadingTemplates || !hasTemplates}
+              >
+                <option value="">
+                  {isLoadingTemplates ? "Loading templates..." : "Select template"}
+                </option>
+                {visibleTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.templateName}
+                  </option>
+                ))}
+              </select>
+              {!isLoadingTemplates && !hasTemplates ? (
+                <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+                  Create questionnaire
+                </Link>
+              ) : null}
+            </label>
 
-        <StaffProjectCreateActionsSection canSubmit={canSubmit} isSubmitting={isSubmitting} />
+            <label className="staff-projects__field">
+              <span className="staff-projects__field-label">Team allocation questionnaire (optional)</span>
+              <select
+                className="staff-projects__select"
+                value={allocationTemplateId}
+                onChange={(event) => {
+                  const nextTemplateId = event.target.value;
+                  setAllocationTemplateId(nextTemplateId);
+                  const nextTemplate =
+                    allocationTemplates.find((template) => String(template.id) === nextTemplateId) ?? null;
+                  if (nextTemplate) {
+                    setSelectedAllocationTemplateOption(nextTemplate);
+                  }
+                }}
+                disabled={isLoadingAllocationTemplates || !hasAllocationTemplates}
+              >
+                <option value="">
+                  {isLoadingAllocationTemplates ? "Loading templates..." : "No team allocation questionnaire"}
+                </option>
+                {visibleAllocationTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.templateName}
+                  </option>
+                ))}
+              </select>
+              <p className="staff-projects__hint">
+                If selected, students cannot create their own teams and staff can run questionnaire-based allocations.
+              </p>
+              {!isLoadingAllocationTemplates && !hasAllocationTemplates ? (
+                <Link href="/staff/questionnaires/new" className="staff-projects__create-link">
+                  Create questionnaire
+                </Link>
+              ) : null}
+            </label>
+          </div>
+        </section>
+
+        <fieldset className="staff-projects__deadline">
+          <legend className="staff-projects__field-label">Project deadlines</legend>
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 2</p>
+            <h3 className="staff-projects__section-title">Timeline setup</h3>
+            <p className="staff-projects__hint">
+              Set standard cohort deadlines and separate MCF due dates. Team and student overrides can be applied later.
+            </p>
+          </div>
+          <div className="staff-projects__deadline-presets">
+            <div className="staff-projects__deadline-preset-group">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                Schedule presets
+              </p>
+              <div className="staff-projects__deadline-preset-actions">
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applySchedulePreset(6)}>
+                  Use 6-week schedule
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applySchedulePreset(8)}>
+                  Use 8-week schedule
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={resetSchedulePreset}>
+                  Reset dates
+                </button>
+              </div>
+            </div>
+
+            <div className="staff-projects__deadline-preset-group">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                MCF due-date offset
+              </p>
+              <div className="staff-projects__deadline-preset-actions">
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applyMcfOffsetDays(7)}>
+                  Set MCF +7 days
+                </button>
+                <button type="button" className="staff-projects__chip-btn" onClick={() => applyMcfOffsetDays(14)}>
+                  Set MCF +14 days
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {deadlinePresetStatus ? <p className="staff-projects__success">{deadlinePresetStatus}</p> : null}
+          {deadlinePresetError ? <p className="staff-projects__error">{deadlinePresetError}</p> : null}
+
+          <div className="staff-projects__deadline-sections">
+            <section className="staff-projects__deadline-block" aria-label="Standard timeline">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                Standard timeline
+              </p>
+              <div className="staff-projects__deadline-grid">
+                {hasSelectedAllocationTemplate ? (
+                  <label className="staff-projects__field">
+                    <span className="staff-projects__field-label">Allocation questionnaire opens</span>
+                    <input
+                      className="staff-projects__input"
+                      type="datetime-local"
+                      value={deadline.teamAllocationQuestionnaireOpenDate}
+                      onChange={(event) =>
+                        setDeadline((prev) => ({
+                          ...prev,
+                          teamAllocationQuestionnaireOpenDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
+                {hasSelectedAllocationTemplate ? (
+                  <label className="staff-projects__field">
+                    <span className="staff-projects__field-label">Allocation questionnaire due</span>
+                    <input
+                      className="staff-projects__input"
+                      type="datetime-local"
+                      value={deadline.teamAllocationQuestionnaireDueDate}
+                      onChange={(event) =>
+                        setDeadline((prev) => ({
+                          ...prev,
+                          teamAllocationQuestionnaireDueDate: event.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                ) : null}
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Task opens</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.taskOpenDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, taskOpenDate: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Task due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.taskDueDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, taskDueDate: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Assessment opens</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.assessmentOpenDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, assessmentOpenDate: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Assessment due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.assessmentDueDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, assessmentDueDate: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Feedback opens</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.feedbackOpenDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, feedbackOpenDate: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">Feedback due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.feedbackDueDate}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, feedbackDueDate: event.target.value }))}
+                  />
+                </label>
+              </div>
+              {hasSelectedAllocationTemplate ? (
+                <p className="staff-projects__hint">
+                  Allocation questionnaire window is required and must be: open before due, and due before task opens.
+                </p>
+              ) : null}
+            </section>
+
+            <section className="staff-projects__deadline-block" aria-label="MCF extension timeline">
+              <p className="staff-projects__field-label" style={{ margin: 0 }}>
+                MCF extension due dates
+              </p>
+              <div className="staff-projects__deadline-grid">
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">MCF task due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.taskDueDateMcf}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, taskDueDateMcf: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">MCF assessment due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.assessmentDueDateMcf}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, assessmentDueDateMcf: event.target.value }))}
+                  />
+                </label>
+                <label className="staff-projects__field">
+                  <span className="staff-projects__field-label">MCF feedback due</span>
+                  <input
+                    className="staff-projects__input"
+                    type="datetime-local"
+                    value={deadline.feedbackDueDateMcf}
+                    onChange={(event) => setDeadline((prev) => ({ ...prev, feedbackDueDateMcf: event.target.value }))}
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="staff-projects__deadline-preview staff-projects__deadline-preview--wide">
+              <h3 className="staff-projects__deadline-preview-title">Timeline preview</h3>
+              <p className="staff-projects__hint">
+                Total project window: {deadlinePreview.totalDays ? `${deadlinePreview.totalDays} day${deadlinePreview.totalDays === 1 ? "" : "s"}` : "-"}
+              </p>
+              <div className="staff-projects__deadline-preview-grid">
+                <div>
+                  <p className="staff-projects__field-label">Task phase</p>
+                  <p className="staff-projects__card-sub">
+                    {formatDateTime(deadlinePreview.taskOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.taskDueDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="staff-projects__field-label">Assessment phase</p>
+                  <p className="staff-projects__card-sub">
+                    {formatDateTime(deadlinePreview.assessmentOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.assessmentDueDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="staff-projects__field-label">Feedback phase</p>
+                  <p className="staff-projects__card-sub">
+                    {formatDateTime(deadlinePreview.feedbackOpenDate)} <ArrowRightIcon /> {formatDateTime(deadlinePreview.feedbackDueDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="staff-projects__field-label">MCF task due</p>
+                  <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.taskDueDateMcf)}</p>
+                </div>
+                <div>
+                  <p className="staff-projects__field-label">MCF assessment due</p>
+                  <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.assessmentDueDateMcf)}</p>
+                </div>
+                <div>
+                  <p className="staff-projects__field-label">MCF feedback due</p>
+                  <p className="staff-projects__card-sub">{formatDateTime(deadlinePreview.feedbackDueDateMcf)}</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </fieldset>
+
+        <section className="staff-projects__create-basics" aria-label="Project students">
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 3</p>
+            <h3 className="staff-projects__section-title">Project students</h3>
+            <p className="staff-projects__hint">
+              Choose which enrolled students should be available for team allocation in this project.
+            </p>
+          </div>
+
+          {!hasModuleSelection ? (
+            <p className="staff-projects__hint">
+              No valid module context is available for project creation right now.
+            </p>
+          ) : (
+            <section className="staff-projects__manual-panel" aria-label="Project student selection">
+              <div className="staff-projects__manual-toolbar">
+                <div className="staff-projects__manual-toolbar-actions">
+                  <button
+                    type="button"
+                    className="staff-projects__allocation-btn staff-projects__allocation-btn--light"
+                    onClick={refreshModuleStudents}
+                    disabled={isLoadingModuleStudents}
+                  >
+                    {isLoadingModuleStudents ? "Loading..." : "Refresh list"}
+                  </button>
+                </div>
+                <div className="staff-projects__meta">
+                  <span className="staff-projects__badge">{enrolledModuleStudents.length} enrolled</span>
+                  <span className="staff-projects__badge">{selectedStudentIds.length} selected</span>
+                </div>
+              </div>
+
+              {moduleStudentsError ? (
+                <p className="staff-projects__allocation-error">{moduleStudentsError}</p>
+              ) : null}
+
+              <div className="staff-projects__manual-workspace-card" aria-label="Project student selection list">
+                <h4 className="staff-projects__manual-workspace-title">Project student selection</h4>
+                <div className="staff-projects__manual-selection-toolbar">
+                  <span className="staff-projects__badge">{selectedStudentIds.length} selected</span>
+                  <div className="staff-projects__manual-selection-actions">
+                    <button
+                      type="button"
+                      className="staff-projects__allocation-btn"
+                      onClick={selectAllModuleStudents}
+                      disabled={isLoadingModuleStudents || enrolledModuleStudents.length === 0}
+                    >
+                      Select all students in module
+                    </button>
+                    <button
+                      type="button"
+                      className="staff-projects__allocation-btn"
+                      onClick={clearSelectedModuleStudents}
+                      disabled={isLoadingModuleStudents || selectedStudentIds.length === 0}
+                    >
+                      Clear selection
+                    </button>
+                  </div>
+                </div>
+
+                <label className="staff-projects__manual-create-field">
+                  Search students
+                  <SearchField
+                    value={studentSearchInput}
+                    onChange={(event) => handleStudentSearchChange(event.target.value)}
+                    disabled={isLoadingModuleStudents}
+                    placeholder="Search by name, email, or ID"
+                    aria-label="Search module students"
+                  />
+                </label>
+
+                {filteredModuleStudents.length === 0 ? (
+                  <p className="staff-projects__card-sub">
+                    {studentSearchInput.trim().length > 0
+                      ? `No students match "${studentSearchInput.trim()}".`
+                      : "No enrolled students found for this module."}
+                  </p>
+                ) : (
+                  <div className="staff-projects__manual-student-list" role="list" aria-label="Module student list">
+                    {filteredModuleStudents.map((student) => (
+                      <article key={student.id} className="staff-projects__manual-student-row" role="listitem">
+                        <div className="staff-projects__manual-student-main">
+                          <p className="staff-projects__manual-student-name">{toStudentName(student)}</p>
+                          <p className="staff-projects__manual-student-email">{student.email}</p>
+                        </div>
+                        <div className="staff-projects__manual-student-side">
+                          <button
+                            type="button"
+                            className={
+                              selectedStudentIds.includes(student.id)
+                                ? "staff-projects__manual-select-btn staff-projects__manual-select-btn--active"
+                                : "staff-projects__manual-select-btn"
+                            }
+                            onClick={() => toggleStudentSelection(student.id)}
+                            disabled={isLoadingModuleStudents}
+                            aria-pressed={selectedStudentIds.includes(student.id)}
+                          >
+                            {selectedStudentIds.includes(student.id) ? "Selected" : "Select"}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+        </section>
+
+        <section className="staff-projects__create-basics" aria-label="Information board setup">
+          <div className="staff-projects__section-head">
+            <p className="staff-projects__eyebrow">Step 4</p>
+            <h3 className="staff-projects__section-title">Information board</h3>
+            <p className="staff-projects__hint">
+              Add project-specific guidance students will see on the project overview information board.
+            </p>
+          </div>
+          <label className="staff-projects__field">
+            <span className="staff-projects__field-label">Information board text</span>
+            <textarea
+              className="staff-projects__input staff-projects__textarea"
+              value={informationText}
+              onChange={(event) => setInformationText(event.target.value)}
+              placeholder="Add project expectations, process notes, and any key instructions for this cohort."
+              rows={6}
+              maxLength={8000}
+            />
+          </label>
+        </section>
+
+        <div className="staff-projects__create-actions">
+          <button className="staff-projects__create-submit" type="submit" disabled={!canSubmit}>
+            {isSubmitting ? "Creating..." : "Create project"}
+          </button>
+        </div>
       </form>
 
       {modulesError ? <p className="staff-projects__error">{modulesError}</p> : null}
-      {moduleSearchError ? <p className="staff-projects__error">{moduleSearchError}</p> : null}
       {templatesError ? <p className="staff-projects__error">{templatesError}</p> : null}
+      {allocationTemplatesError ? <p className="staff-projects__error">{allocationTemplatesError}</p> : null}
       {!hasCreatableModule && !modulesError ? (
         <p className="staff-projects__hint">
           You need module-lead access to create projects in this enterprise. Enterprise admins can override this.
         </p>
       ) : null}
       {!isLoadingTemplates && !hasTemplates && !templatesError ? (
-        <p className="staff-projects__hint">You do not have any questionnaire templates yet. Create one first.</p>
+        <p className="staff-projects__hint">
+          You do not have any peer-assessment questionnaires yet. Create one first.
+        </p>
+      ) : null}
+      {!isLoadingAllocationTemplates && !hasAllocationTemplates && !allocationTemplatesError ? (
+        <p className="staff-projects__hint">
+          No team allocation questionnaires found yet. This step is optional.
+        </p>
       ) : null}
       {submitError ? <p className="staff-projects__error">{submitError}</p> : null}
       {submitSuccess ? <p className="staff-projects__success">{submitSuccess}</p> : null}

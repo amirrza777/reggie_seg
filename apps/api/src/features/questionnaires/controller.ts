@@ -9,12 +9,16 @@ import {
   updateTemplate,
   usePublicTemplate,
 } from "./service.js"
-import type { Question , IncomingQuestion} from "./types.js";
+import type { IncomingQuestion } from "./types.js";
 import jwt from "jsonwebtoken";
 import { verifyRefreshToken } from "../../auth/service.js";
 import type { AuthRequest } from "../../auth/middleware.js";
 import { parseSearchQuery } from "../../shared/search.js";
-import { parseCreateOrUpdateTemplateBody, parseQuestionnaireTemplateId } from "./controller.parsers.js";
+import {
+  parseCreateOrUpdateTemplateBody,
+  parseOptionalQuestionnairePurposeQuery,
+  parseQuestionnaireTemplateId,
+} from "./controller.parsers.js";
 
 const accessSecret = process.env.JWT_ACCESS_SECRET || "";
 
@@ -64,9 +68,26 @@ export async function createTemplateHandler(req: AuthRequest, res: Response) {
     const userId = resolveUserId(req);
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     const visibility = typeof parsedBody.value.isPublic === "boolean" ? parsedBody.value.isPublic : true;
-    const template = await createTemplate(parsedBody.value.templateName, parsedBody.value.questions as IncomingQuestion[], userId, visibility)
+    const template =
+      parsedBody.value.purpose === undefined
+        ? await createTemplate(
+            parsedBody.value.templateName,
+            parsedBody.value.questions as IncomingQuestion[],
+            userId,
+            visibility,
+          )
+        : await createTemplate(
+            parsedBody.value.templateName,
+            parsedBody.value.questions as IncomingQuestion[],
+            userId,
+            visibility,
+            parsedBody.value.purpose,
+          );
     res.json({ ok: true, templateID: template.id, userId, isPublic: visibility })
   } catch (error) {
+    if ((error as any).statusCode === 400) {
+      return res.status(400).json({ error: (error as any).message ?? "Invalid request body" });
+    }
     console.error("Error creating questionnaire template:", error)
     res.status(500).json({ error: "Internal server error" })
   }
@@ -116,9 +137,17 @@ export async function getMyTemplatesHandler(req: Request, res: Response) {
     if (!parsedSearchQuery.ok) {
       return res.status(400).json({ error: parsedSearchQuery.error });
     }
-    const templates = parsedSearchQuery.value
-      ? await getMyTemplates(requesterUserId, { query: parsedSearchQuery.value })
-      : await getMyTemplates(requesterUserId);
+    const parsedPurpose = parseOptionalQuestionnairePurposeQuery((req as AuthRequest).query?.purpose);
+    if (!parsedPurpose.ok) {
+      return res.status(400).json({ error: parsedPurpose.error });
+    }
+    const templates =
+      parsedSearchQuery.value || parsedPurpose.value
+        ? await getMyTemplates(requesterUserId, {
+            ...(parsedSearchQuery.value ? { query: parsedSearchQuery.value } : {}),
+            ...(parsedPurpose.value ? { purpose: parsedPurpose.value } : {}),
+          })
+        : await getMyTemplates(requesterUserId);
     res.json(templates);
   } catch (error) {
     if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
@@ -131,7 +160,16 @@ export async function getMyTemplatesHandler(req: Request, res: Response) {
 export async function getPublicTemplatesFromOtherUsersHandler(req: Request, res: Response) {
   try {
     const requesterUserId = requireRequesterUserId(req);
-    const templates = await getPublicTemplatesFromOtherUsers(requesterUserId);
+    const parsedPurpose = parseOptionalQuestionnairePurposeQuery((req as AuthRequest).query?.purpose);
+    if (!parsedPurpose.ok) {
+      return res.status(400).json({ error: parsedPurpose.error });
+    }
+    const templates =
+      parsedPurpose.value === undefined
+        ? await getPublicTemplatesFromOtherUsers(requesterUserId)
+        : await getPublicTemplatesFromOtherUsers(requesterUserId, {
+            purpose: parsedPurpose.value,
+          });
     res.json(templates);
   } catch (error) {
     if ((error as any).statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
@@ -149,15 +187,29 @@ export async function updateTemplateHandler(req: Request, res: Response) {
 
   try {
     const requesterUserId = requireRequesterUserId(req);
-    await updateTemplate(
-      requesterUserId,
-      templateId.value,
-      parsedBody.value.templateName,
-      parsedBody.value.questions as IncomingQuestion[],
-      parsedBody.value.isPublic,
-    );
+    if (parsedBody.value.purpose === undefined) {
+      await updateTemplate(
+        requesterUserId,
+        templateId.value,
+        parsedBody.value.templateName,
+        parsedBody.value.questions as IncomingQuestion[],
+        parsedBody.value.isPublic,
+      );
+    } else {
+      await updateTemplate(
+        requesterUserId,
+        templateId.value,
+        parsedBody.value.templateName,
+        parsedBody.value.questions as IncomingQuestion[],
+        parsedBody.value.isPublic,
+        parsedBody.value.purpose,
+      );
+    }
     res.json({ ok: true });
   } catch (error: any) {
+    if (error.statusCode === 400) {
+      return res.status(400).json({ error: error.message ?? "Invalid request body" });
+    }
     if (error.statusCode === 401) return res.status(401).json({ error: "Unauthorized" });
     if (error.statusCode === 403) return res.status(403).json({ error: "Forbidden" });
     if (error.code === "P2025") {

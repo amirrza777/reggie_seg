@@ -8,6 +8,8 @@ vi.mock("./repo.js", () => ({
   TeamService: { addUserToTeam: vi.fn() },
   createTeamInviteRecord: vi.fn(),
   findActiveInvite: vi.fn(),
+  findInviteEligibleStudentForTeamByEmail: vi.fn(),
+  findInviteEligibleStudentsForTeam: vi.fn(),
   findInviteContext: vi.fn(),
   findPendingInvitesForEmail: vi.fn(),
   getInvitesForTeam: vi.fn(),
@@ -28,6 +30,12 @@ describe("service invites", () => {
     vi.clearAllMocks();
     (prisma.team.findUnique as any).mockResolvedValue({ archivedAt: null, allocationLifecycle: "ACTIVE" });
     (prisma.teamAllocation.findUnique as any).mockResolvedValue({ teamId: 3 });
+    (repo.findInviteEligibleStudentForTeamByEmail as any).mockResolvedValue({
+      id: 88,
+      firstName: "Casey",
+      lastName: "Lane",
+      email: "user@example.com",
+    });
     (repo.findActiveInvite as any).mockResolvedValue(null);
     (repo.createTeamInviteRecord as any).mockResolvedValue({ id: "inv-1" });
     (repo.findInviteContext as any).mockResolvedValue({ team: { teamName: "Blue", projectId: 9 }, inviter: { firstName: "A", lastName: "B", email: "a@b.com" } });
@@ -37,8 +45,25 @@ describe("service invites", () => {
   it("creates invite and normalizes invitee email", async () => {
     const result = await createTeamInvite({ teamId: 3, inviterId: 2, inviteeEmail: " User@Example.com ", baseUrl: "http://x" });
     expect(repo.findActiveInvite).toHaveBeenCalledWith(3, "user@example.com");
+    expect(repo.createTeamInviteRecord).toHaveBeenCalledWith(expect.objectContaining({ inviteeId: 88 }));
     expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ to: "user@example.com" }));
     expect(result.invite.id).toBe("inv-1");
+  });
+
+  it("rejects invitees outside eligible project/module student scope", async () => {
+    (repo.findInviteEligibleStudentForTeamByEmail as any).mockResolvedValue(null);
+
+    await expect(
+      createTeamInvite({ teamId: 3, inviterId: 2, inviteeEmail: "not-eligible@example.com", baseUrl: "http://x" }),
+    ).rejects.toEqual({ code: "INVITEE_NOT_ELIGIBLE_FOR_PROJECT" });
+  });
+
+  it("does not fail invite creation when email delivery errors", async () => {
+    (sendEmail as any).mockRejectedValue(new Error("SMTP unavailable"));
+
+    await expect(
+      createTeamInvite({ teamId: 3, inviterId: 2, inviteeEmail: "user@example.com", baseUrl: "http://x" }),
+    ).resolves.toEqual(expect.objectContaining({ invite: expect.objectContaining({ id: "inv-1" }) }));
   });
 
   it("rejects listReceivedInvites for unknown users", async () => {

@@ -26,6 +26,7 @@ describe("forum router", () => {
         { path: "/projects/:projectId/student-reports/:reportId/ignore", methods: { post: true } },
         { path: "/projects/:projectId/settings", methods: { get: true } },
         { path: "/projects/:projectId/settings", methods: { put: true } },
+        { path: "/projects/:projectId/members", methods: { get: true } },
       ])
     );
   });

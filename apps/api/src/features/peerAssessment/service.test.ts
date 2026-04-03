@@ -62,7 +62,7 @@ describe("peerAssessment service", () => {
     prismaMocks.projectFindUnique.mockResolvedValue(null);
     projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
       assessmentOpenDate: new Date("2026-03-01T09:00:00.000Z"),
-      assessmentDueDate: new Date("2026-03-31T23:59:59.000Z"),
+      assessmentDueDate: new Date("3026-03-31T23:59:59.000Z"),
     });
   });
 
@@ -94,7 +94,7 @@ describe("peerAssessment service", () => {
       expect.objectContaining({
         ...payload,
         submittedLate: false,
-        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+        effectiveDueDate: new Date("3026-03-31T23:59:59.000Z"),
       }),
     );
     expect(result).toBe(expected);
@@ -186,7 +186,7 @@ describe("peerAssessment service", () => {
       answers,
       expect.objectContaining({
         submittedLate: false,
-        effectiveDueDate: new Date("2026-03-31T23:59:59.000Z"),
+        effectiveDueDate: new Date("3026-03-31T23:59:59.000Z"),
       }),
     );
     expect(result).toBe(expected);

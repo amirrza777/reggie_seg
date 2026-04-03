@@ -7,6 +7,8 @@ import {
   fetchProjectsForUser,
   fetchProjectsWithTeamsForStaffMarking,
   fetchQuestionsForProject,
+  fetchTeamAllocationQuestionnaireForProject,
+  submitTeamAllocationQuestionnaireResponse,
   joinModuleByCode,
   fetchTeamById,
   fetchTeamByUserAndProject,
@@ -30,7 +32,6 @@ import {
   parseProjectWarningsConfig,
 } from "./service.js";
 import * as repo from "./repo.js";
-import * as moduleJoinService from "../moduleJoin/service.js";
 import * as notificationsService from "../notifications/service.js";
 
 vi.mock("./repo.js", () => ({
@@ -43,6 +44,10 @@ vi.mock("./repo.js", () => ({
   getTeamById: vi.fn(),
   getTeamByUserAndProject: vi.fn(),
   getQuestionsForProject: vi.fn(),
+  getTeamAllocationQuestionnaireForProject: vi.fn(),
+  getTeamAllocationQuestionnaireSubmissionContext: vi.fn(),
+  hasActiveTeamForUserInProject: vi.fn(),
+  upsertTeamAllocationQuestionnaireResponse: vi.fn(),
   getStaffProjectsForMarking: vi.fn(),
   createTeamHealthMessage: vi.fn(),
   getTeamHealthMessagesForUserInProject: vi.fn(),
@@ -63,12 +68,31 @@ vi.mock("./repo.js", () => ({
   upsertStaffStudentDeadlineOverride: vi.fn(),
   clearStaffStudentDeadlineOverride: vi.fn(),
 }));
-vi.mock("../moduleJoin/service.js", () => ({
-  joinModuleByCode: vi.fn(),
-}));
 vi.mock("../notifications/service.js", () => ({
   addNotification: vi.fn(),
 }));
+
+vi.mock("../../shared/projectWriteGuard.js", () => ({
+  assertProjectMutableForWritesByProjectId: vi.fn().mockResolvedValue(undefined),
+  assertProjectMutableForWritesByTeamId: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock("../../shared/db.js", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("../../shared/db.js")>();
+  return {
+    ...mod,
+    prisma: {
+      ...mod.prisma,
+      project: {
+        ...mod.prisma.project,
+        findUnique: vi.fn().mockResolvedValue({
+          archivedAt: null,
+          module: { archivedAt: null },
+        }),
+      },
+    },
+  };
+});
 
 type RepoAsyncResult<T extends (...args: unknown[]) => Promise<unknown>> = Awaited<ReturnType<T>>;
 
@@ -116,8 +140,8 @@ describe("projects service", () => {
       module: { archivedAt: null },
     });
 
-    await expect(createProject(7, "P1", 2, 3, null, deadlineInput)).resolves.toEqual({ id: 9 });
-    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, null, deadlineInput);
+    await expect(createProject(7, "P1", 2, 3, undefined, null, deadlineInput)).resolves.toEqual({ id: 9 });
+    expect(repo.createProject).toHaveBeenCalledWith(7, "P1", 2, 3, undefined, null, deadlineInput, undefined);
 
     await expect(fetchProjectById(9)).resolves.toEqual({
       id: 9,
@@ -134,13 +158,13 @@ describe("projects service", () => {
 
   it("maps user projects to API shape with fallback module name", async () => {
     (repo.getUserProjects as any).mockResolvedValue([
-      { id: 1, name: "A", module: { name: "SEGP" } },
-      { id: 2, name: "B", module: null },
+      { id: 1, name: "A", moduleId: 10, module: { name: "SEGP" } },
+      { id: 2, name: "B", moduleId: 11, module: null },
     ]);
 
     await expect(fetchProjectsForUser(7)).resolves.toEqual([
-      { id: 1, name: "A", moduleName: "SEGP", archivedAt: null },
-      { id: 2, name: "B", moduleName: "", archivedAt: null },
+      { id: 1, name: "A", moduleId: 10, moduleName: "SEGP", archivedAt: null },
+      { id: 2, name: "B", moduleId: 11, moduleName: "", archivedAt: null },
     ]);
   });
 
@@ -195,51 +219,34 @@ describe("projects service", () => {
     expect(repo.getModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
   });
 
-  it("joinModuleByCode restricts joins to students and maps idempotent enrollments", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({ ok: false, status: 403, error: "Forbidden" });
-    await expect(joinModuleByCode(7, "ABCD-2345")).resolves.toEqual({
-      ok: false,
-      status: 403,
-      error: "Forbidden",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: true,
-      value: { moduleId: 9, moduleName: "SEGP", result: "already_joined" },
-    });
-    await expect(joinModuleByCode(7, "abcd-2345")).resolves.toEqual({
-      ok: true,
-      value: {
-        moduleId: 9,
-        moduleName: "SEGP",
-        result: "already_joined",
+  it("scopes enrolled module project counts to projects assigned to the user", async () => {
+    (repo.getModulesForUser as any).mockResolvedValue([
+      {
+        id: 5,
+        code: "MOD-5",
+        name: "Elementary Logic with Applications",
+        briefText: null,
+        timelineText: null,
+        expectationsText: null,
+        readinessNotesText: null,
+        leaderCount: 2,
+        teachingAssistantCount: 1,
+        teamCount: 6,
+        projectCount: 3,
+        accessRole: "ENROLLED",
       },
-    });
-    expect(moduleJoinService.joinModuleByCode).toHaveBeenCalledWith(7, "abcd-2345");
-  });
+    ]);
+    (repo.getUserProjects as any).mockResolvedValue([
+      { id: 11, moduleId: 5, name: "Project A", module: { name: "Elementary Logic with Applications" } },
+    ]);
 
-  it("joinModuleByCode rejects invalid or unavailable codes with the generic error", async () => {
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "bad")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-
-    (moduleJoinService.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
-    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
-      ok: false,
-      status: 400,
-      error: "Invalid or unavailable module code",
-    });
+    await expect(fetchModulesForUser(7)).resolves.toEqual([
+      expect.objectContaining({
+        id: "5",
+        accountRole: "ENROLLED",
+        projectCount: 1,
+      }),
+    ]);
   });
 
   it("delegates teammates, deadlines, team and questions fetchers", async () => {
@@ -248,12 +255,51 @@ describe("projects service", () => {
     (repo.getTeamById as any).mockResolvedValue({ id: 3 });
     (repo.getTeamByUserAndProject as any).mockResolvedValue({ id: 3 });
     (repo.getQuestionsForProject as any).mockResolvedValue({ questionnaireTemplate: { id: 8 } });
+    (repo.getTeamAllocationQuestionnaireForProject as any).mockResolvedValue({
+      teamAllocationQuestionnaireTemplate: { id: 11 },
+    });
 
     await expect(fetchTeammatesForProject(1, 2)).resolves.toEqual([{ userId: 4 }]);
     await expect(fetchProjectDeadline(1, 2)).resolves.toEqual({ taskDueDate: "2026-03-01" });
     await expect(fetchTeamById(3)).resolves.toEqual({ id: 3 });
     await expect(fetchTeamByUserAndProject(1, 2)).resolves.toEqual({ id: 3 });
     await expect(fetchQuestionsForProject(2)).resolves.toEqual({ questionnaireTemplate: { id: 8 } });
+    await expect(fetchTeamAllocationQuestionnaireForProject(2)).resolves.toEqual({
+      teamAllocationQuestionnaireTemplate: { id: 11 },
+    });
+  });
+
+  it("submitTeamAllocationQuestionnaireResponse validates context and saves normalized answers", async () => {
+    (repo.getTeamAllocationQuestionnaireSubmissionContext as any).mockResolvedValue({
+      projectId: 3,
+      enterpriseId: "ent-1",
+      template: {
+        id: 91,
+        purpose: "CUSTOMISED_ALLOCATION",
+        questions: [{ id: 1, type: "multiple-choice", configs: { options: ["A", "B"] } }],
+      },
+    });
+    (repo.hasActiveTeamForUserInProject as any).mockResolvedValue(false);
+    (repo.upsertTeamAllocationQuestionnaireResponse as any).mockResolvedValue({
+      id: 700,
+      updatedAt: new Date("2026-03-30T22:05:00.000Z"),
+    });
+
+    await expect(
+      submitTeamAllocationQuestionnaireResponse(11, 3, { 1: "A" }),
+    ).resolves.toEqual({
+      id: 700,
+      updatedAt: "2026-03-30T22:05:00.000Z",
+    });
+
+    expect(repo.upsertTeamAllocationQuestionnaireResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        projectId: 3,
+        enterpriseId: "ent-1",
+        templateId: 91,
+        reviewerUserId: 11,
+      }),
+    );
   });
 
   it("retains numeric project-id matches for staff marking queries", async () => {
@@ -324,15 +370,15 @@ describe("projects service", () => {
     expect(repo.createTeamHealthMessage).toHaveBeenCalledWith(3, 22, 7, "Need support", "Please review");
   });
 
-  it("fetchMyTeamHealthMessages requires membership and returns user requests", async () => {
+  it("fetchMyTeamHealthMessages requires membership and returns team requests", async () => {
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce(null);
     await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toBeNull();
-    expect(repo.getTeamHealthMessagesForUserInProject).not.toHaveBeenCalled();
+    expect(repo.getTeamHealthMessagesForTeamInProject).not.toHaveBeenCalled();
 
     (repo.getTeamByUserAndProject as any).mockResolvedValueOnce({ id: 22 });
-    (repo.getTeamHealthMessagesForUserInProject as any).mockResolvedValue([{ id: 1 }]);
+    (repo.getTeamHealthMessagesForTeamInProject as any).mockResolvedValue([{ id: 1 }]);
     await expect(fetchMyTeamHealthMessages(7, 3)).resolves.toEqual([{ id: 1 }]);
-    expect(repo.getTeamHealthMessagesForUserInProject).toHaveBeenCalledWith(3, 7);
+    expect(repo.getTeamHealthMessagesForTeamInProject).toHaveBeenCalledWith(3, 22);
   });
 
   it("fetchTeamHealthMessagesForStaff enforces staff scope before listing requests", async () => {

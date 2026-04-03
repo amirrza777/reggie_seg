@@ -9,6 +9,21 @@ import type {
   StaffScopedProjectAccess,
 } from "./repo.types.js";
 
+async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
+  const hasProjectStudents = await prisma.projectStudent.findFirst({
+    where: { projectId },
+    select: { userId: true },
+  });
+  if (!hasProjectStudents) return {};
+  return {
+    projectStudents: {
+      some: {
+        projectId,
+      },
+    },
+  };
+}
+
 export async function findStaffScopedProject(
   staffId: number,
   projectId: number,
@@ -148,6 +163,7 @@ export async function findVacantModuleStudentsForProject(
   moduleId: number,
   projectId: number,
 ): Promise<ModuleStudent[]> {
+  const projectStudentScope = await buildProjectStudentScope(projectId);
   return prisma.user.findMany({
     where: {
       enterpriseId,
@@ -167,6 +183,7 @@ export async function findVacantModuleStudentsForProject(
           },
         },
       },
+      ...projectStudentScope,
     },
     select: {
       id: true,
@@ -186,6 +203,7 @@ export async function findModuleStudentsForManualAllocation(
 ): Promise<ManualAllocationStudent[]> {
   const normalizedSearchQuery = typeof searchQuery === "string" ? searchQuery.trim() : "";
   const searchFilters: Prisma.UserWhereInput[] = [];
+  const projectStudentScope = await buildProjectStudentScope(projectId);
   if (normalizedSearchQuery.length > 0) {
     const queryFilters: Prisma.UserWhereInput[] = [
       { email: { contains: normalizedSearchQuery } },
@@ -211,6 +229,7 @@ export async function findModuleStudentsForManualAllocation(
         },
       },
       ...(searchFilters.length > 0 ? { AND: searchFilters } : {}),
+      ...projectStudentScope,
     },
     select: {
       id: true,

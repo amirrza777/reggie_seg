@@ -61,8 +61,17 @@ export function StaffTeamWarningReviewPanel({
 
   const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
-  const compactTitleStyle = { margin: 0, fontSize: "1.02rem", lineHeight: 1.2 } as const;
+  const compactTitleStyle = { margin: 0, fontSize: "1.14rem", lineHeight: 1.22 } as const;
   const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "0.84rem", lineHeight: 1.1 } as const;
+  const warningStackStyle = { display: "grid", gap: 10, padding: "2px 2px 6px" } as const;
+  const resolvedSectionStyle = {
+    borderTop: "1px solid var(--border)",
+    paddingTop: 12,
+    marginTop: 8,
+    paddingBottom: 8,
+    display: "grid",
+    gap: 10,
+  } as const;
 
   const handleResolve = async (warningId: number) => {
     setResolvingWarningId(warningId);
@@ -112,43 +121,9 @@ export function StaffTeamWarningReviewPanel({
             No active warnings.
           </p>
         ) : (
-          activeWarnings.map((warning) => (
-            <article key={warning.id} className="staff-projects__team-card" style={compactCardStyle}>
-              <div className="staff-projects__team-top">
-                <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
-                <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
-                  {warning.severity}
-                </span>
-              </div>
-              <p className="staff-projects__team-count" style={{ margin: 0 }}>{warning.details}</p>
-              <p className="muted" style={{ margin: 0 }}>
-                Triggered on {formatDateTime(warning.createdAt)}
-              </p>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  style={compactButtonStyle}
-                  onClick={() => void handleResolve(warning.id)}
-                  disabled={resolvingWarningId !== null}
-                >
-                  {resolvingWarningId === warning.id ? "Resolving..." : "Resolve"}
-                </Button>
-              </div>
-            </article>
-          ))
-        )}
-
-        <div style={{ borderTop: "1px solid var(--border)", paddingTop: 8 }}>
-          <h4 className="staff-projects__signal-section-title" style={compactTitleStyle}>Resolved history</h4>
-          {resolvedWarnings.length === 0 ? (
-            <p className="staff-projects__team-count" style={{ margin: 0 }}>
-              No resolved warnings yet.
-            </p>
-          ) : (
-            resolvedWarnings.map((warning) => (
-              <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__team-card--resolved" style={compactCardStyle}>
+          <div style={warningStackStyle}>
+            {activeWarnings.map((warning) => (
+              <article key={warning.id} className="staff-projects__team-card" style={compactCardStyle}>
                 <div className="staff-projects__team-top">
                   <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
                   <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
@@ -156,11 +131,49 @@ export function StaffTeamWarningReviewPanel({
                   </span>
                 </div>
                 <p className="staff-projects__team-count" style={{ margin: 0 }}>{warning.details}</p>
-                <p className="muted" style={{ margin: 0 }}>
-                  Resolved on {formatDateTime(warning.resolvedAt ?? warning.updatedAt)}
-                </p>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                  <p className="muted" style={{ margin: 0 }}>
+                    Triggered on {formatDateTime(warning.createdAt)}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    style={compactButtonStyle}
+                    onClick={() => void handleResolve(warning.id)}
+                    disabled={resolvingWarningId !== null}
+                  >
+                    {resolvingWarningId === warning.id ? "Resolving..." : "Resolve"}
+                  </Button>
+                </div>
               </article>
-            ))
+            ))}
+          </div>
+        )}
+
+        <div style={resolvedSectionStyle}>
+          <h4 className="staff-projects__signal-section-title" style={{ ...compactTitleStyle, marginBottom: 2 }}>Resolved history</h4>
+          {resolvedWarnings.length === 0 ? (
+            <p className="staff-projects__team-count" style={{ margin: 0 }}>
+              No resolved warnings yet.
+            </p>
+          ) : (
+            <div style={warningStackStyle}>
+              {resolvedWarnings.map((warning) => (
+                <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__team-card--resolved" style={compactCardStyle}>
+                  <div className="staff-projects__team-top">
+                    <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
+                    <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
+                      {warning.severity}
+                    </span>
+                  </div>
+                  <p className="staff-projects__team-count" style={{ margin: 0 }}>{warning.details}</p>
+                  <p className="muted" style={{ margin: 0 }}>
+                    Resolved on {formatDateTime(warning.resolvedAt ?? warning.updatedAt)}
+                  </p>
+                </article>
+              ))}
+            </div>
           )}
         </div>
 

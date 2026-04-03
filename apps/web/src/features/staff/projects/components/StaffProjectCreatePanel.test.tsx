@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi, type MockedFunction } from "vitest";
 import { StaffProjectCreatePanel } from "./StaffProjectCreatePanel";
 import { createStaffProject } from "@/features/projects/api/client";
-import { listModules } from "@/features/modules/api/client";
+import { getModuleStudents, listModules } from "@/features/modules/api/client";
 import { getMyQuestionnaires } from "@/features/questionnaires/api/client";
 
 const push = vi.fn();
@@ -23,6 +23,7 @@ vi.mock("@/features/projects/api/client", () => ({
 
 vi.mock("@/features/modules/api/client", () => ({
   listModules: vi.fn(),
+  getModuleStudents: vi.fn(),
 }));
 
 vi.mock("@/features/questionnaires/api/client", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/features/questionnaires/api/client", () => ({
 
 const createStaffProjectMock = createStaffProject as MockedFunction<typeof createStaffProject>;
 const listModulesMock = listModules as MockedFunction<typeof listModules>;
+const getModuleStudentsMock = getModuleStudents as MockedFunction<typeof getModuleStudents>;
 const getMyQuestionnairesMock = getMyQuestionnaires as MockedFunction<typeof getMyQuestionnaires>;
 
 describe("StaffProjectCreatePanel", () => {
@@ -40,36 +42,46 @@ describe("StaffProjectCreatePanel", () => {
     refresh.mockReset();
 
     listModulesMock.mockResolvedValue([
-      { id: 42, title: "Software Engineering", accountRole: "OWNER" },
+      { id: "42", title: "Software Engineering", accountRole: "OWNER" },
     ] as never);
+    getModuleStudentsMock.mockResolvedValue({
+      students: [
+        {
+          id: 101,
+          email: "student@example.com",
+          firstName: "Sample",
+          lastName: "Student",
+          active: true,
+          enrolled: true,
+        },
+      ],
+    } as never);
     getMyQuestionnairesMock.mockResolvedValue([
-      { id: 12, templateName: "Team Feedback Template" },
+      { id: 12, templateName: "Team Feedback Template", purpose: "PEER_ASSESSMENT" },
+      { id: 18, templateName: "Allocation Setup", purpose: "CUSTOMISED_ALLOCATION" },
     ] as never);
     createStaffProjectMock.mockResolvedValue({
       id: 77,
       name: "Release Project",
-      moduleId: 42,
+      moduleId: "42",
     } as never);
   });
 
   it("submits trimmed project data and redirects on success", async () => {
     render(
       <StaffProjectCreatePanel
-        currentUserId={9}
-        modules={[{ id: 42, title: "Software Engineering", accountRole: "OWNER" } as never]}
+        modules={[{ id: "42", title: "Software Engineering", accountRole: "OWNER" } as never]}
         modulesError={null}
       />,
     );
 
     await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
-    const [moduleSelect, templateSelect] = screen.getAllByRole("combobox");
+    const [templateSelect] = screen.getAllByRole("combobox");
 
     fireEvent.change(screen.getByPlaceholderText(/software engineering group project/i), {
       target: { value: "  Release Project  " },
-    });
-    fireEvent.change(moduleSelect, {
-      target: { value: "42" },
     });
     fireEvent.change(templateSelect, {
       target: { value: "12" },
@@ -103,21 +115,18 @@ describe("StaffProjectCreatePanel", () => {
   it("shows validation feedback when deadline ordering is invalid", async () => {
     render(
       <StaffProjectCreatePanel
-        currentUserId={9}
-        modules={[{ id: 42, title: "Software Engineering", accountRole: "OWNER" } as never]}
+        modules={[{ id: "42", title: "Software Engineering", accountRole: "OWNER" } as never]}
         modulesError={null}
       />,
     );
 
     await waitFor(() => expect(getMyQuestionnairesMock).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByRole("option", { name: "Team Feedback Template" })).toBeInTheDocument());
 
-    const [moduleSelect, templateSelect] = screen.getAllByRole("combobox");
+    const [templateSelect] = screen.getAllByRole("combobox");
 
     fireEvent.change(screen.getByPlaceholderText(/software engineering group project/i), {
       target: { value: "Broken Project" },
-    });
-    fireEvent.change(moduleSelect, {
-      target: { value: "42" },
     });
     fireEvent.change(templateSelect, {
       target: { value: "12" },

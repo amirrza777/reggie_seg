@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
-import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
 import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
@@ -56,24 +55,8 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
   }
 
   return (
-    <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Team Meetings</p>
-        <h1 className="staff-projects__title">{team.teamName}</h1>
-        <p className="staff-projects__desc">
-          Project: {projectData.project.name}. Review meeting cadence, attendance trends, and recorded minutes.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">Project {projectData.project.id}</span>
-          <span className="staff-projects__badge">Team {team.id}</span>
-        </div>
-      </section>
-
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
-
-      <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
-        {meetingsError ? <p className="muted">{meetingsError}</p> : <StaffMeetingsView meetings={meetings} absenceThreshold={absenceThreshold} />}
-      </section>
-    </div>
+    <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
+      {meetingsError ? <p className="muted">{meetingsError}</p> : <StaffMeetingsView meetings={meetings} absenceThreshold={absenceThreshold} />}
+    </section>
   );
 }

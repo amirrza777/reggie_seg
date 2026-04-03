@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { logDevError } from "@/shared/lib/devLogger";
@@ -8,12 +8,18 @@ import { FormField } from "@/shared/ui/FormField";
 import type {
   EditableQuestion,
   MultipleChoiceConfigs,
+  QuestionnairePurpose,
   QuestionType,
   SliderConfigs,
 } from "@/features/questionnaires/types";
 import { createQuestionnaire } from "../api/client";
 import {
+  DEFAULT_QUESTIONNAIRE_PURPOSE,
+  normalizeQuestionnairePurpose,
+} from "../purpose";
+import {
   CancelQuestionnaireButton,
+  QuestionnairePurposeButtons,
   QuestionnaireVisibilityButtons,
 } from "./SharedQuestionnaireButtons";
 
@@ -26,9 +32,26 @@ export default function NewQuestionnairePage() {
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
+  const [initialPurpose, setInitialPurpose] = useState<QuestionnairePurpose>(
+    DEFAULT_QUESTIONNAIRE_PURPOSE,
+  );
+  const [purpose, setPurpose] = useState<QuestionnairePurpose>(DEFAULT_QUESTIONNAIRE_PURPOSE);
   const [answers, setAnswers] = useState<Record<number, string | number | boolean>>({});
+  const disallowTextQuestions = purpose === "CUSTOMISED_ALLOCATION";
+
+  useEffect(() => {
+    const parsedPurpose = normalizeQuestionnairePurpose(
+      new URLSearchParams(window.location.search).get("purpose"),
+    );
+    setInitialPurpose(parsedPurpose);
+    setPurpose(parsedPurpose);
+  }, []);
 
   const addQuestion = (type: QuestionType) => {
+    if (disallowTextQuestions && type === "text") {
+      return;
+    }
+
     const q: EditableQuestion = {
       uiId: Date.now() + Math.random(),
       label: "",
@@ -63,6 +86,10 @@ export default function NewQuestionnairePage() {
     questions.forEach((q, idx) => {
       if (!q.label.trim()) errors.push(`Question ${idx + 1} must have label.`);
 
+      if (disallowTextQuestions && q.type === "text") {
+        errors.push(`Question ${idx + 1} cannot be text for customised allocation questionnaires.`);
+      }
+
       if (q.type === "multiple-choice") {
         const opts = (q.configs as MultipleChoiceConfigs | undefined)?.options ?? [];
         if (opts.length < 2) errors.push(`Question ${idx + 1} must have at least two options.`);
@@ -86,10 +113,14 @@ export default function NewQuestionnairePage() {
     });
 
     return errors;
-  }, [templateName, questions]);
+  }, [disallowTextQuestions, templateName, questions]);
 
   const isValid = validationErrors.length === 0;
-  const hasUnsavedChanges = Boolean(templateName.trim()) || questions.length > 0 || isPublic;
+  const hasUnsavedChanges =
+    Boolean(templateName.trim()) ||
+    questions.length > 0 ||
+    isPublic ||
+    purpose !== initialPurpose;
 
   const saveTemplate = async () => {
     if (!isValid) return;
@@ -101,6 +132,7 @@ export default function NewQuestionnairePage() {
     try {
       await createQuestionnaire({
         templateName,
+        purpose,
         isPublic,
         questions: questions.map((q) => ({
           label: q.label,
@@ -113,6 +145,7 @@ export default function NewQuestionnairePage() {
       setQuestions([]);
       setPreview(false);
       setIsPublic(false);
+      setPurpose(initialPurpose);
       setAnswers({});
       setSaved(true);
       router.push("/staff/questionnaires");
@@ -136,6 +169,13 @@ export default function NewQuestionnairePage() {
             placeholder="Questionnaire name"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
+          />
+          <QuestionnairePurposeButtons
+            purpose={purpose}
+            onChange={(nextPurpose) => {
+              setPurpose(nextPurpose);
+              setSaved(false);
+            }}
           />
           <QuestionnaireVisibilityButtons
             isPublic={isPublic}
@@ -391,9 +431,11 @@ export default function NewQuestionnairePage() {
 
       {!preview && (
         <div className="questionnaire-editor__add-row">
-          <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
-            Add text
-          </Button>
+          {!disallowTextQuestions ? (
+            <Button type="button" variant="quiet" onClick={() => addQuestion("text")}>
+              Add text
+            </Button>
+          ) : null}
           <Button type="button" variant="quiet" onClick={() => addQuestion("multiple-choice")}>
             Add multiple choice
           </Button>

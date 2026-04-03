@@ -1,4 +1,5 @@
 import { randSentence } from "@ngneat/falso";
+import { buildMeetingDefinitions, type MeetingInput } from "./meetings/definitions";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedContext, SeedUser } from "./types";
@@ -20,6 +21,15 @@ type SeedCommentPlan = {
 type NamedSeedUser = SeedUser & {
   firstName: string;
   lastName: string;
+};
+
+type SeedMeetingSet = {
+  teamIntro: SeedMeetingRecord;
+  weeklyCheckIn: SeedMeetingRecord;
+  uiReview: SeedMeetingRecord;
+  testingSession: SeedMeetingRecord;
+  submissionPrep: SeedMeetingRecord;
+  demoRehearsal: SeedMeetingRecord;
 };
 
 function daysAgo(n: number): Date {
@@ -86,31 +96,7 @@ function buildSeedMeetingComments(meetings: {
   uiReview: SeedMeetingRecord;
   testingSession: SeedMeetingRecord;
 }, teamStudents: NamedSeedUser[]) {
-  if (teamStudents.length < 2) return [];
-
-  const commentSpecs = [
-    { meeting: meetings.weeklyCheckIn, offsetMinutes: 20, authorIndex: 0, mentionIndexes: [] },
-    { meeting: meetings.weeklyCheckIn, offsetMinutes: 65, authorIndex: 1, mentionIndexes: [0] },
-    { meeting: meetings.uiReview, offsetMinutes: 25, authorIndex: 0, mentionIndexes: [1] },
-    { meeting: meetings.uiReview, offsetMinutes: 55, authorIndex: 1, mentionIndexes: [0, 2] },
-    { meeting: meetings.testingSession, offsetMinutes: 35, authorIndex: 0, mentionIndexes: [1] },
-  ] as const;
-
-  return commentSpecs.map((spec) => {
-    const author = teamStudents[spec.authorIndex % teamStudents.length];
-    const mentionedUsers = spec.mentionIndexes
-      .map((mentionIndex) => teamStudents[mentionIndex % teamStudents.length])
-      .filter((user): user is NamedSeedUser => Boolean(user) && user.id !== author.id)
-      .filter((user, position, users) => users.findIndex((candidate) => candidate.id === user.id) === position);
-
-    return {
-      meetingId: spec.meeting.id,
-      userId: author.id,
-      content: buildSeedCommentContent(spec.meeting.title, author, mentionedUsers),
-      createdAt: minutesAfter(spec.meeting.date, spec.offsetMinutes),
-      mentionedUserIds: mentionedUsers.map((user) => user.id),
-    } satisfies SeedCommentPlan;
-  });
+  return getCommentSpecs(meetings).map((spec) => buildCommentPlan(spec, teamStudents));
 }
 
 function buildSeedCommentContent(
@@ -169,184 +155,169 @@ function normalizeSentence(value: string | string[]) {
 
 export async function seedMeetings(context: SeedContext) {
   return withSeedLogging("seedMeetings", async () => {
-    const team = context.teams[0];
-    if (!team) return { value: undefined, rows: 0, details: "skipped (no teams)" };
+    const ready = await getMeetingSeedReadiness(context);
+    if (!ready.ready) return ready.result;
 
-    const existing = await prisma.meeting.findFirst({ where: { teamId: team.id } });
-    if (existing) return { value: undefined, rows: 0, details: "skipped (meetings already seeded)" };
+    const teamStudents = resolveTeamStudents(context, ready.teamAllocations);
+    if (teamStudents.length < 2) return { value: undefined, rows: 0, details: "skipped (insufficient team students)" };
 
-    const teamAllocations = await prisma.teamAllocation.findMany({
-      where: { teamId: team.id },
-      select: { userId: true },
-    });
-    const teamMemberIds = new Set(teamAllocations.map((a) => a.userId));
-    const teamStudents = context.usersByRole.students.filter(
-      (student): student is NamedSeedUser =>
-        teamMemberIds.has(student.id) && Boolean(student.firstName?.trim()) && Boolean(student.lastName?.trim())
-    );
+    const organiser = teamStudents[0]!;
+    const minutesWriter = teamStudents[1]!;
 
-    if (teamStudents.length < 2) {
-      return { value: undefined, rows: 0, details: "skipped (insufficient team students)" };
-    }
-
-    const organiser = teamStudents[0];
-    const minutesWriter = teamStudents[1];
-
-    const teamIntroData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "Team Introduction",
-      subject: "Getting started",
-      date: daysAgo(21),
-      location: "Bush House 3.01",
-      agenda: "Just a quick first meetup - introduce ourselves, figure out who's doing what and set up a group chat. Also need to agree on what tools we're using and how we'll split the work.",
-    };
-    const teamIntro = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: teamIntroData })).id,
-      teamIntroData.title,
-      teamIntroData.date
-    );
-
-    const weeklyCheckInData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "Weekly Check-in",
-      subject: "Progress update",
-      date: daysAgo(14),
-      location: "King's Building Seminar Room B",
-      agenda: "Go through what everyone's been working on this week, flag any blockers and figure out priorities for next week. Shouldn't be too long.",
-    };
-    const weeklyCheckIn = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: weeklyCheckInData })).id,
-      weeklyCheckInData.title,
-      weeklyCheckInData.date
-    );
-
-    const uiReviewData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "UI Review",
-      subject: "Frontend designs",
-      date: daysAgo(7),
-      location: "Waterloo Campus Room 2.03",
-      agenda: "Look at the latest frontend stuff together - meeting detail page, the notification bell, attendance table. Want to get everyone's thoughts before we submit.",
-    };
-    const uiReview = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: uiReviewData })).id,
-      uiReviewData.title,
-      uiReviewData.date
-    );
-
-    const testingSessionData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "Testing Session",
-      subject: "Test coverage review",
-      date: daysAgo(3),
-      location: "Bush House 3.01",
-      agenda: "Go through test coverage as a team and make sure we're not missing anything critical before submission. Each person should come with a list of what they've tested.",
-    };
-    const testingSession = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: testingSessionData })).id,
-      testingSessionData.title,
-      testingSessionData.date
-    );
-
-    const submissionPrepData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "Submission Prep",
-      subject: "Final checks before KCL deadline",
-      date: daysFromNow(7),
-      videoCallLink: "https://meet.google.com/reg-gie-kcl",
-      agenda: "Final run through before we submit - check test coverage, make sure the README is done and go over any last issues. Should be pretty quick if everyone's done their bit.",
-    };
-    const submissionPrep = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: submissionPrepData })).id,
-      submissionPrepData.title,
-      submissionPrepData.date
-    );
-
-    const demoRehearsalData = {
-      teamId: team.id,
-      organiserId: organiser.id,
-      title: "Demo Rehearsal",
-      subject: "End-to-end walkthrough",
-      date: daysFromNow(14),
-      location: "Bush House 4.02",
-      agenda: "Run through the full demo as a team before the presentation. Everyone should know which part they're presenting. Bring questions.",
-    };
-    const demoRehearsal = buildSeedMeetingRecord(
-      (await prisma.meeting.create({ data: demoRehearsalData })).id,
-      demoRehearsalData.title,
-      demoRehearsalData.date
-    );
-
-    const pastMeetings = [testingSession, uiReview, weeklyCheckIn, teamIntro];
-    const attendanceRows = pastMeetings.flatMap((meeting, position) => {
-      const presentIds = teamStudents.filter((_, i) => i <= position).map((s) => s.id);
-      const absentIds = teamStudents.filter((_, i) => i > position).map((s) => s.id);
-      return buildAttendanceRows(meeting.id, presentIds, absentIds);
-    });
-
-    await prisma.meetingAttendance.createMany({ data: attendanceRows, skipDuplicates: true });
-
-    const allMeetingIds = [teamIntro.id, weeklyCheckIn.id, uiReview.id, testingSession.id, submissionPrep.id, demoRehearsal.id];
-    const participantRows = allMeetingIds.flatMap((meetingId) =>
-      teamAllocations.map(({ userId }) => ({ meetingId, userId }))
-    );
-
-    await prisma.meetingParticipant.createMany({ data: participantRows, skipDuplicates: true });
-
-    await prisma.meetingMinutes.createMany({
-      data: [
-        {
-          meetingId: weeklyCheckIn.id,
-          writerId: minutesWriter.id,
-          content: buildMinutesContent(
-            "Most of the team on track. Backend auth is done, frontend still in progress. Two members flagged they're running behind - agreed to pair up this week to get back on schedule. Next meeting we'll do a proper review of what's been merged."
-          ),
-        },
-        {
-          meetingId: uiReview.id,
-          writerId: minutesWriter.id,
-          content: buildMinutesContent(
-            "Went through the frontend changes - everyone happy with the compact calendar button in the meeting header. Sorted the attendance table column width. Agreed on using the notebook icon for minutes links. Need to merge the meetings branch before the deadline."
-          ),
-        },
-      ],
-    });
-
-    const commentPlans = buildSeedMeetingComments({ weeklyCheckIn, uiReview, testingSession }, teamStudents);
-    const mentionRows: Array<{ userId: number; sourceType: "COMMENT"; sourceId: number }> = [];
-
-    for (const plan of commentPlans) {
-      const createdComment = await prisma.meetingComment.create({
-        data: {
-          meetingId: plan.meetingId,
-          userId: plan.userId,
-          content: plan.content,
-          createdAt: plan.createdAt,
-        },
-      });
-
-      for (const userId of plan.mentionedUserIds) {
-        mentionRows.push({
-          userId,
-          sourceType: "COMMENT",
-          sourceId: createdComment.id,
-        });
-      }
-    }
-
-    if (mentionRows.length > 0) {
-      await prisma.mention.createMany({ data: mentionRows, skipDuplicates: true });
-    }
+    const meetings = await createSeedMeetings(ready.team.id, organiser.id);
+    await seedMeetingAttendance(meetings, teamStudents);
+    await seedMeetingParticipants(meetings, ready.teamAllocations);
+    await seedMeetingMinutes(meetings, minutesWriter.id);
+    const commentPlans = buildSeedMeetingComments(meetings, teamStudents);
+    const mentionRows = await seedMeetingCommentsAndMentions(commentPlans);
 
     return {
       value: undefined,
       rows: 6 + commentPlans.length,
-      details: `team=${team.id}, 4 past + 2 upcoming, ${teamStudents.length} participants, comments=${commentPlans.length}, mentions=${mentionRows.length}`,
+      details: `team=${ready.team.id}, 4 past + 2 upcoming, ${teamStudents.length} participants, comments=${commentPlans.length}, mentions=${mentionRows.length}`,
     };
   });
+}
+
+function getCommentSpecs(meetings: {
+  weeklyCheckIn: SeedMeetingRecord;
+  uiReview: SeedMeetingRecord;
+  testingSession: SeedMeetingRecord;
+}) {
+  return [
+    { meeting: meetings.weeklyCheckIn, offsetMinutes: 20, authorIndex: 0, mentionIndexes: [] },
+    { meeting: meetings.weeklyCheckIn, offsetMinutes: 65, authorIndex: 1, mentionIndexes: [0] },
+    { meeting: meetings.uiReview, offsetMinutes: 25, authorIndex: 0, mentionIndexes: [1] },
+    { meeting: meetings.uiReview, offsetMinutes: 35, authorIndex: 2, mentionIndexes: [] },
+    { meeting: meetings.uiReview, offsetMinutes: 55, authorIndex: 1, mentionIndexes: [0, 2, 3] },
+    { meeting: meetings.testingSession, offsetMinutes: 35, authorIndex: 0, mentionIndexes: [1] },
+    { meeting: { ...meetings.testingSession, title: "Backlog Grooming" }, offsetMinutes: 45, authorIndex: 3, mentionIndexes: [0] },
+  ] as const;
+}
+
+function buildCommentPlan(
+  spec: ReturnType<typeof getCommentSpecs>[number],
+  teamStudents: NamedSeedUser[]
+) {
+  const author = teamStudents[spec.authorIndex % teamStudents.length];
+  const mentionedUsers = resolveMentionedUsers(spec.mentionIndexes, teamStudents, author.id);
+  return {
+    meetingId: spec.meeting.id,
+    userId: author.id,
+    content: buildSeedCommentContent(spec.meeting.title, author, mentionedUsers),
+    createdAt: minutesAfter(spec.meeting.date, spec.offsetMinutes),
+    mentionedUserIds: mentionedUsers.map((user) => user.id),
+  } satisfies SeedCommentPlan;
+}
+
+function resolveMentionedUsers(mentionIndexes: readonly number[], teamStudents: NamedSeedUser[], authorId: number) {
+  return mentionIndexes
+    .map((mentionIndex) => teamStudents[mentionIndex % teamStudents.length])
+    .filter((user): user is NamedSeedUser => Boolean(user) && user.id !== authorId)
+    .filter((user, position, users) => users.findIndex((candidate) => candidate.id === user.id) === position);
+}
+
+async function getMeetingSeedReadiness(context: SeedContext) {
+  const team = context.teams[0];
+  if (!team) return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (no teams)" } };
+
+  const existing = await prisma.meeting.findFirst({ where: { teamId: team.id } });
+  if (existing) return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (meetings already seeded)" } };
+
+  const teamAllocations = await prisma.teamAllocation.findMany({
+    where: { teamId: team.id },
+    select: { userId: true },
+  });
+  return { ready: true as const, team, teamAllocations };
+}
+
+function resolveTeamStudents(context: SeedContext, teamAllocations: { userId: number }[]) {
+  const teamMemberIds = new Set(teamAllocations.map((allocation) => allocation.userId));
+  return context.usersByRole.students.filter(
+    (student): student is NamedSeedUser =>
+      teamMemberIds.has(student.id) && Boolean(student.firstName?.trim()) && Boolean(student.lastName?.trim())
+  );
+}
+
+async function createSeedMeetings(teamId: number, organiserId: number): Promise<SeedMeetingSet> {
+  const definitions = buildMeetingDefinitions({ daysAgo, daysFromNow });
+  const teamIntro = await createSeedMeeting(teamId, organiserId, definitions.teamIntro);
+  const weeklyCheckIn = await createSeedMeeting(teamId, organiserId, definitions.weeklyCheckIn);
+  const uiReview = await createSeedMeeting(teamId, organiserId, definitions.uiReview);
+  const testingSession = await createSeedMeeting(teamId, organiserId, definitions.testingSession);
+  const submissionPrep = await createSeedMeeting(teamId, organiserId, definitions.submissionPrep);
+  const demoRehearsal = await createSeedMeeting(teamId, organiserId, definitions.demoRehearsal);
+  return { teamIntro, weeklyCheckIn, uiReview, testingSession, submissionPrep, demoRehearsal };
+}
+
+async function createSeedMeeting(teamId: number, organiserId: number, input: MeetingInput) {
+  const created = await prisma.meeting.create({
+    data: {
+      teamId,
+      organiserId,
+      title: input.title,
+      subject: input.subject,
+      date: input.date,
+      location: input.location,
+      videoCallLink: input.videoCallLink,
+      agenda: input.agenda,
+    },
+  });
+  return buildSeedMeetingRecord(created.id, input.title, input.date);
+}
+
+function seedMeetingAttendance(meetings: SeedMeetingSet, teamStudents: NamedSeedUser[]) {
+  const pastMeetings = [meetings.testingSession, meetings.uiReview, meetings.weeklyCheckIn, meetings.teamIntro];
+  const rows = pastMeetings.flatMap((meeting, position) => buildAttendanceRowsForMeeting(meeting.id, teamStudents, position));
+  return prisma.meetingAttendance.createMany({ data: rows, skipDuplicates: true });
+}
+
+function buildAttendanceRowsForMeeting(meetingId: number, teamStudents: NamedSeedUser[], position: number) {
+  const presentIds = teamStudents.filter((_, index) => index <= position).map((student) => student.id);
+  const absentIds = teamStudents.filter((_, index) => index > position).map((student) => student.id);
+  return buildAttendanceRows(meetingId, presentIds, absentIds);
+}
+
+function seedMeetingParticipants(meetings: SeedMeetingSet, allocations: { userId: number }[]) {
+  const allMeetingIds = Object.values(meetings).map((meeting) => meeting.id);
+  const rows = allMeetingIds.flatMap((meetingId) => allocations.map(({ userId }) => ({ meetingId, userId })));
+  return prisma.meetingParticipant.createMany({ data: rows, skipDuplicates: true });
+}
+
+function seedMeetingMinutes(meetings: SeedMeetingSet, writerId: number) {
+  return prisma.meetingMinutes.createMany({
+    data: [
+      {
+        meetingId: meetings.weeklyCheckIn.id,
+        writerId,
+        content: buildMinutesContent(
+          "Most of the team on track. Backend auth is done, frontend still in progress. Two members flagged they're running behind - agreed to pair up this week to get back on schedule. Next meeting we'll do a proper review of what's been merged."
+        ),
+      },
+      {
+        meetingId: meetings.uiReview.id,
+        writerId,
+        content: buildMinutesContent(
+          "Went through the frontend changes - everyone happy with the compact calendar button in the meeting header. Sorted the attendance table column width. Agreed on using the notebook icon for minutes links. Need to merge the meetings branch before the deadline."
+        ),
+      },
+    ],
+  });
+}
+
+async function seedMeetingCommentsAndMentions(commentPlans: SeedCommentPlan[]) {
+  const mentionRows: Array<{ userId: number; sourceType: "COMMENT"; sourceId: number }> = [];
+  for (const plan of commentPlans) {
+    const createdComment = await prisma.meetingComment.create({
+      data: {
+        meetingId: plan.meetingId,
+        userId: plan.userId,
+        content: plan.content,
+        createdAt: plan.createdAt,
+      },
+    });
+    mentionRows.push(...plan.mentionedUserIds.map((userId) => ({ userId, sourceType: "COMMENT" as const, sourceId: createdComment.id })));
+  }
+  if (mentionRows.length > 0) await prisma.mention.createMany({ data: mentionRows, skipDuplicates: true });
+  return mentionRows;
 }

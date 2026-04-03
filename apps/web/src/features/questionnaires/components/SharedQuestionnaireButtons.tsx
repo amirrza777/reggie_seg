@@ -6,6 +6,8 @@ import { ApiError } from "@/shared/api/errors";
 import { Button } from "@/shared/ui/Button";
 import { ConfirmationModal } from "@/shared/ui/ConfirmationModal";
 import { deleteQuestionnaire } from "../api/client";
+import type { QuestionnairePurpose } from "../types";
+import { QUESTIONNAIRE_PURPOSE_OPTIONS } from "../purpose";
 
 type QuestionnaireVisibilityButtonsProps = {
   isPublic: boolean;
@@ -18,6 +20,11 @@ type CancelQuestionnaireButtonProps = {
   className?: string;
   confirmWhen?: boolean;
   confirmMessage?: string;
+};
+
+type QuestionnairePurposeButtonsProps = {
+  purpose: QuestionnairePurpose;
+  onChange: (next: QuestionnairePurpose) => void;
 };
 
 export function QuestionnaireVisibilityButtons({
@@ -43,6 +50,31 @@ export function QuestionnaireVisibilityButtons({
       >
         Private
       </Button>
+    </div>
+  );
+}
+
+export function QuestionnairePurposeButtons({
+  purpose,
+  onChange,
+}: QuestionnairePurposeButtonsProps) {
+  return (
+    <div className="questionnaire-visibility">
+      <span className="questionnaire-visibility__label">Purpose:</span>
+      {QUESTIONNAIRE_PURPOSE_OPTIONS.map((option) => {
+        const isActive = option.purpose === purpose;
+        return (
+          <Button
+            key={option.purpose}
+            type="button"
+            variant={isActive ? "primary" : "quiet"}
+            className={`questionnaire-visibility__btn${isActive ? " is-active" : ""}`}
+            onClick={() => onChange(option.purpose)}
+          >
+            {option.label}
+          </Button>
+        );
+      })}
     </div>
   );
 }

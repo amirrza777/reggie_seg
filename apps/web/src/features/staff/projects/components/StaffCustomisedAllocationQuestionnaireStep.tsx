@@ -56,6 +56,9 @@ export function StaffCustomisedAllocationQuestionnaireStep({
       <p className="staff-projects__custom-step-sub">
         Choose a questionnaire that has at least one multiple-choice, rating, or slider question.
       </p>
+      <p className="staff-projects__custom-step-sub">
+        Select a public questionnaire so all staff members can access it.
+      </p>
       <div className="staff-projects__custom-questionnaire-controls">
         <label className="staff-projects__allocation-field">
           Search questionnaires

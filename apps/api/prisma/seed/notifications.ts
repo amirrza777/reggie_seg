@@ -5,113 +5,23 @@ import type { SeedContext } from "./types";
 
 export async function seedNotifications(context: SeedContext) {
   return withSeedLogging("seedNotifications", async () => {
-    const team = context.teams[0];
-    if (!team) return { value: undefined, rows: 0, details: "skipped (no teams)" };
+    const target = getNotificationSeedTarget(context);
+    if (!target.ready) return target.result;
 
-    const { students, adminOrStaff } = context.usersByRole;
-    if (students.length < 2) return { value: undefined, rows: 0, details: "skipped (insufficient students)" };
-
-    const existing = await prisma.notification.findFirst({ where: { userId: students[0].id } });
+    const existing = await prisma.notification.findFirst({ where: { userId: target.student.id } });
     if (existing) return { value: undefined, rows: 0, details: "skipped (notifications already seeded)" };
 
-    const projectId = team.projectId;
-    const student = students[0];
-    const staff = adminOrStaff[0];
-
-    const meetings = await prisma.meeting.findMany({
-      where: { teamId: team.id },
-      select: { id: true, title: true, date: true },
-    });
-
-    const upcomingMeeting = meetings.find((m) => m.date > new Date());
-    const pastMeeting = meetings.find((m) => m.date < new Date());
-
-    const studentNotifications = [
-      ...(pastMeeting
-        ? [
-            {
-              userId: student.id,
-              type: "MEETING_CREATED" as const,
-              message: `A new meeting has been scheduled: ${pastMeeting.title}`,
-              link: `/projects/${projectId}/meetings/${pastMeeting.id}`,
-              read: true,
-            },
-          ]
-        : []),
-      ...(upcomingMeeting
-        ? [
-            {
-              userId: student.id,
-              type: "MEETING_CREATED" as const,
-              message: `A new meeting has been scheduled: ${upcomingMeeting.title}`,
-              link: `/projects/${projectId}/meetings/${upcomingMeeting.id}`,
-              read: false,
-            },
-            {
-              userId: student.id,
-              type: "MEETING_UPDATED" as const,
-              message: `The meeting "${upcomingMeeting.title}" has been updated`,
-              link: `/projects/${projectId}/meetings/${upcomingMeeting.id}`,
-              read: false,
-            },
-            {
-              userId: student.id,
-              type: "MENTION" as const,
-              message: "Someone mentioned you in a comment",
-              link: `/projects/${projectId}/meetings/${upcomingMeeting.id}`,
-              read: false,
-            },
-          ]
-        : []),
-      {
-        userId: student.id,
-        type: "DEADLINE_OVERRIDE_GRANTED" as const,
-        message: "Your deadline has been updated by a staff member",
-        link: `/projects/${projectId}/deadlines`,
-        read: false,
-      },
-      {
-        userId: student.id,
-        type: "FORUM_REPLY" as const,
-        message: "Someone replied to your forum post",
-        link: `/projects/${projectId}/discussion`,
-        read: false,
-      },
+    const meetings = await findTeamMeetings(target.team.id);
+    const notifications = [
+      ...buildStudentNotifications(target.student.id, target.projectId, meetings),
+      ...buildStaffNotifications(target.staff?.id, target.projectId, target.team.id),
     ];
-
-    const staffNotifications = staff
-      ? [
-          {
-            userId: staff.id,
-            type: "LOW_ATTENDANCE" as const,
-            message: "A student has missed their last 3 meetings",
-            link: `/staff/projects/${projectId}/teams/${team.id}/team-meetings`,
-            read: false,
-          },
-          {
-            userId: staff.id,
-            type: "TEAM_HEALTH_SUBMITTED" as const,
-            message: "A team health message has been submitted",
-            link: `/staff/projects/${projectId}/teams/${team.id}/teamhealth`,
-            read: false,
-          },
-          {
-            userId: staff.id,
-            type: "FORUM_REPORTED" as const,
-            message: "A forum post has been reported",
-            link: `/staff/projects/${projectId}/discussion`,
-            read: false,
-          },
-        ]
-      : [];
-
-    const notifications = [...studentNotifications, ...staffNotifications];
     const result = await createSeedNotifications(notifications);
 
     return {
       value: undefined,
       rows: result.count,
-      details: `student=${student.id}, staff=${staff?.id ?? "none"}, project=${projectId}`,
+      details: `student=${target.student.id}, staff=${target.staff?.id ?? "none"}, project=${target.projectId}`,
     };
   });
 }
@@ -159,4 +69,134 @@ function mapLegacyNotificationType(type: NotificationType): NotificationType {
 function isLegacyNotificationTypeError(error: unknown) {
   const message = (error as { message?: string })?.message ?? "";
   return message.includes("Data truncated for column 'type'");
+}
+
+function getNotificationSeedTarget(context: SeedContext) {
+  const team = context.teams[0];
+  if (!team) return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (no teams)" } };
+
+  const { students, adminOrStaff } = context.usersByRole;
+  if (students.length < 2) {
+    return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (insufficient students)" } };
+  }
+
+  const student = students[0]!;
+
+  return {
+    ready: true as const,
+    team,
+    student,
+    staff: adminOrStaff[0],
+    projectId: team.projectId,
+  };
+}
+
+function findTeamMeetings(teamId: number) {
+  return prisma.meeting.findMany({
+    where: { teamId },
+    select: { id: true, title: true, date: true },
+  });
+}
+
+function buildStudentNotifications(
+  studentId: number,
+  projectId: number,
+  meetings: Awaited<ReturnType<typeof findTeamMeetings>>
+): SeedNotificationRow[] {
+  const now = new Date();
+  const upcomingMeeting = meetings.find((meeting) => meeting.date > now);
+  const pastMeeting = meetings.find((meeting) => meeting.date < now);
+  return [
+    ...buildPastMeetingNotifications(studentId, projectId, pastMeeting),
+    ...buildUpcomingMeetingNotifications(studentId, projectId, upcomingMeeting),
+    {
+      userId: studentId,
+      type: "DEADLINE_OVERRIDE_GRANTED",
+      message: "Your deadline has been updated by a staff member",
+      link: `/projects/${projectId}/deadlines`,
+      read: false,
+    },
+    {
+      userId: studentId,
+      type: "FORUM_REPLY",
+      message: "Someone replied to your forum post",
+      link: `/projects/${projectId}/discussion`,
+      read: false,
+    },
+  ];
+}
+
+function buildPastMeetingNotifications(
+  studentId: number,
+  projectId: number,
+  meeting: Awaited<ReturnType<typeof findTeamMeetings>>[number] | undefined
+): SeedNotificationRow[] {
+  if (!meeting) return [];
+  return [
+    {
+      userId: studentId,
+      type: "MEETING_CREATED",
+      message: `A new meeting has been scheduled: ${meeting.title}`,
+      link: `/projects/${projectId}/meetings/${meeting.id}`,
+      read: true,
+    },
+  ];
+}
+
+function buildUpcomingMeetingNotifications(
+  studentId: number,
+  projectId: number,
+  meeting: Awaited<ReturnType<typeof findTeamMeetings>>[number] | undefined
+): SeedNotificationRow[] {
+  if (!meeting) return [];
+  return [
+    {
+      userId: studentId,
+      type: "MEETING_CREATED",
+      message: `A new meeting has been scheduled: ${meeting.title}`,
+      link: `/projects/${projectId}/meetings/${meeting.id}`,
+      read: false,
+    },
+    {
+      userId: studentId,
+      type: "MEETING_UPDATED",
+      message: `The meeting "${meeting.title}" has been updated`,
+      link: `/projects/${projectId}/meetings/${meeting.id}`,
+      read: false,
+    },
+    {
+      userId: studentId,
+      type: "MENTION",
+      message: "Someone mentioned you in a comment",
+      link: `/projects/${projectId}/meetings/${meeting.id}`,
+      read: false,
+    },
+  ];
+}
+
+function buildStaffNotifications(staffId: number | undefined, projectId: number, teamId: number): SeedNotificationRow[] {
+  if (!staffId) return [];
+  return [
+    {
+      userId: staffId,
+      type: "LOW_ATTENDANCE",
+      message: "A student has missed their last 3 meetings",
+      link: `/staff/projects/${projectId}/teams/${teamId}/team-meetings`,
+      read: false,
+    },
+    {
+      userId: staffId,
+      type: "TEAM_HEALTH_SUBMITTED",
+      message: "A team health message has been submitted",
+      link: `/staff/projects/${projectId}/teams/${teamId}/teamhealth`,
+      read: false,
+    },
+    {
+      userId: staffId,
+      type: "FORUM_REPORTED",
+      message: "A forum post has been reported",
+      link: `/staff/projects/${projectId}/discussion`,
+      read: false,
+    },
+  ];
 }

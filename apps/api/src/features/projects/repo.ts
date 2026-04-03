@@ -18,6 +18,8 @@ export type ProjectDeadlineInput = {
   feedbackOpenDate: Date;
   feedbackDueDate: Date;
   feedbackDueDateMcf: Date;
+  teamAllocationQuestionnaireOpenDate?: Date | null;
+  teamAllocationQuestionnaireDueDate?: Date | null;
 };
 
 export type StudentDeadlineOverrideInput = {
@@ -42,6 +44,8 @@ const MODULE_LIST_PROJECT_DEADLINE_SELECT = {
   feedbackOpenDate: true,
   feedbackDueDate: true,
   feedbackDueDateMcf: true,
+  teamAllocationQuestionnaireOpenDate: true,
+  teamAllocationQuestionnaireDueDate: true,
 } as const;
 
 type ModuleListProjectDeadline = Prisma.ProjectDeadlineGetPayload<{ select: typeof MODULE_LIST_PROJECT_DEADLINE_SELECT }>;
@@ -62,6 +66,7 @@ const STAFF_PROJECT_LIST_SELECT = {
     select: {
       teams: true,
       githubRepositories: true,
+      projectStudents: true,
     },
   },
   teams: {
@@ -496,21 +501,33 @@ export async function getModuleStudentProjectMatrixForUser(
 export async function getUserProjects(userId: number) {
   return prisma.project.findMany({
     where: {
-      teams: {
-        some: {
-          archivedAt: null,
-          allocationLifecycle: "ACTIVE",
-          allocations: {
+      OR: [
+        {
+          teams: {
+            some: {
+              archivedAt: null,
+              allocationLifecycle: "ACTIVE",
+              allocations: {
+                some: {
+                  userId,
+                },
+              },
+            },
+          },
+        },
+        {
+          projectStudents: {
             some: {
               userId,
             },
           },
         },
-      },
+      ],
     },
     select: {
       id: true,
       name: true,
+      moduleId: true,
       archivedAt: true,
       module: {
         select: {
@@ -1023,6 +1040,7 @@ export async function getProjectById(projectId: number) {
       archivedAt: true,
       moduleId: true,
       questionnaireTemplateId: true,
+      teamAllocationQuestionnaireTemplateId: true,
       projectNavFlags: true,
       module: { select: { archivedAt: true } },
     },
@@ -1035,8 +1053,10 @@ export async function createProject(
   name: string,
   moduleId: number,
   questionnaireTemplateId: number,
+  teamAllocationQuestionnaireTemplateId: number | undefined,
   informationText: string | null,
   deadline: ProjectDeadlineInput,
+  studentIds?: number[],
 ) {
   const actor = await getScopedStaffUser(actorUserId);
   if (!actor) {
@@ -1074,52 +1094,118 @@ export async function createProject(
 
   const template = await prisma.questionnaireTemplate.findUnique({
     where: { id: questionnaireTemplateId },
-    select: { id: true },
+    select: { id: true, purpose: true },
   });
   if (!template) {
     throw { code: "TEMPLATE_NOT_FOUND" };
   }
+  if (template.purpose !== "PEER_ASSESSMENT") {
+    throw { code: "TEMPLATE_INVALID_PURPOSE" };
+  }
 
-  const project = await prisma.project.create({
-    data: {
-      name,
-      informationText,
-      moduleId,
-      questionnaireTemplateId,
-      deadline: {
-        create: {
-          taskOpenDate: deadline.taskOpenDate,
-          taskDueDate: deadline.taskDueDate,
-          taskDueDateMcf: deadline.taskDueDateMcf,
-          assessmentOpenDate: deadline.assessmentOpenDate,
-          assessmentDueDate: deadline.assessmentDueDate,
-          assessmentDueDateMcf: deadline.assessmentDueDateMcf,
-          feedbackOpenDate: deadline.feedbackOpenDate,
-          feedbackDueDate: deadline.feedbackDueDate,
-          feedbackDueDateMcf: deadline.feedbackDueDateMcf,
+  let validatedTeamAllocationTemplateId: number | null = null;
+  if (teamAllocationQuestionnaireTemplateId !== undefined) {
+    const allocationTemplate = await prisma.questionnaireTemplate.findUnique({
+      where: { id: teamAllocationQuestionnaireTemplateId },
+      select: { id: true, purpose: true },
+    });
+    if (!allocationTemplate) {
+      throw { code: "TEAM_ALLOCATION_TEMPLATE_NOT_FOUND" };
+    }
+    if (allocationTemplate.purpose !== "CUSTOMISED_ALLOCATION") {
+      throw { code: "TEAM_ALLOCATION_TEMPLATE_INVALID_PURPOSE" };
+    }
+    validatedTeamAllocationTemplateId = allocationTemplate.id;
+  }
+
+  let normalizedStudentIds: number[] = [];
+  if (Array.isArray(studentIds)) {
+    normalizedStudentIds = Array.from(new Set(studentIds));
+    if (normalizedStudentIds.length !== studentIds.length) {
+      throw { code: "INVALID_STUDENT_IDS" };
+    }
+  }
+
+  if (normalizedStudentIds.length > 0) {
+    const moduleStudents = await prisma.user.findMany({
+      where: {
+        id: { in: normalizedStudentIds },
+        enterpriseId: actor.enterpriseId,
+        role: "STUDENT",
+        userModules: {
+          some: {
+            enterpriseId: actor.enterpriseId,
+            moduleId,
+          },
         },
       },
-    },
-    select: {
-      id: true,
-      name: true,
-      informationText: true,
-      moduleId: true,
-      questionnaireTemplateId: true,
-      deadline: {
-        select: {
-          taskOpenDate: true,
-          taskDueDate: true,
-          taskDueDateMcf: true,
-          assessmentOpenDate: true,
-          assessmentDueDate: true,
-          assessmentDueDateMcf: true,
-          feedbackOpenDate: true,
-          feedbackDueDate: true,
-          feedbackDueDateMcf: true,
+      select: { id: true },
+    });
+    if (moduleStudents.length !== normalizedStudentIds.length) {
+      throw { code: "STUDENTS_NOT_IN_MODULE" };
+    }
+  }
+
+  const project = await prisma.$transaction(async (tx) => {
+    const createdProject = await tx.project.create({
+      data: {
+        name,
+        informationText,
+        moduleId,
+        questionnaireTemplateId,
+        teamAllocationQuestionnaireTemplateId: validatedTeamAllocationTemplateId,
+        deadline: {
+          create: {
+            taskOpenDate: deadline.taskOpenDate,
+            taskDueDate: deadline.taskDueDate,
+            taskDueDateMcf: deadline.taskDueDateMcf,
+            assessmentOpenDate: deadline.assessmentOpenDate,
+            assessmentDueDate: deadline.assessmentDueDate,
+            assessmentDueDateMcf: deadline.assessmentDueDateMcf,
+            feedbackOpenDate: deadline.feedbackOpenDate,
+            feedbackDueDate: deadline.feedbackDueDate,
+            feedbackDueDateMcf: deadline.feedbackDueDateMcf,
+            teamAllocationQuestionnaireOpenDate: deadline.teamAllocationQuestionnaireOpenDate ?? null,
+            teamAllocationQuestionnaireDueDate: deadline.teamAllocationQuestionnaireDueDate ?? null,
+          },
         },
       },
-    },
+      select: {
+        id: true,
+        name: true,
+        informationText: true,
+        moduleId: true,
+        questionnaireTemplateId: true,
+        teamAllocationQuestionnaireTemplateId: true,
+        deadline: {
+          select: {
+            taskOpenDate: true,
+            taskDueDate: true,
+            taskDueDateMcf: true,
+            assessmentOpenDate: true,
+            assessmentDueDate: true,
+            assessmentDueDateMcf: true,
+            feedbackOpenDate: true,
+            feedbackDueDate: true,
+            feedbackDueDateMcf: true,
+            teamAllocationQuestionnaireOpenDate: true,
+            teamAllocationQuestionnaireDueDate: true,
+          },
+        },
+      },
+    });
+
+    if (normalizedStudentIds.length > 0) {
+      await tx.projectStudent.createMany({
+        data: normalizedStudentIds.map((userId) => ({
+          projectId: createdProject.id,
+          userId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    return createdProject;
   });
 
   return project;
@@ -1249,6 +1335,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
                   feedbackOpenDate: true,
                   feedbackDueDate: true,
                   feedbackDueDateMcf: true,
+                  teamAllocationQuestionnaireOpenDate: true,
+                  teamAllocationQuestionnaireDueDate: true,
                   studentOverrides: {
                     where: { userId },
                     take: 1,
@@ -1315,6 +1403,8 @@ export async function getUserProjectDeadline(userId: number, projectId: number) 
     assessmentDueDate,
     feedbackOpenDate: studentOverride?.feedbackOpenDate ?? teamOverride?.feedbackOpenDate ?? projectDeadline?.feedbackOpenDate,
     feedbackDueDate,
+    teamAllocationQuestionnaireOpenDate: projectDeadline?.teamAllocationQuestionnaireOpenDate ?? null,
+    teamAllocationQuestionnaireDueDate: projectDeadline?.teamAllocationQuestionnaireDueDate ?? null,
     isOverridden: hasStudentOverride || hasTeamOverride,
     overrideScope: hasStudentOverride ? "STUDENT" : hasTeamOverride ? "TEAM" : "NONE",
     deadlineProfile: userTeam.team.deadlineProfile,
@@ -1406,6 +1496,254 @@ export async function getQuestionsForProject(projectId: number) {
   });
 }
 
+/** Returns the team-allocation questionnaire for project. */
+export async function getTeamAllocationQuestionnaireForProject(projectId: number) {
+  return prisma.project.findUnique({
+    where: { id: projectId },
+    select: {
+      teamAllocationQuestionnaireTemplate: {
+        select: {
+          id: true,
+          templateName: true,
+          purpose: true,
+          createdAt: true,
+          questions: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              label: true,
+              type: true,
+              order: true,
+              configs: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+const TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX = "__custom_allocation_responses_project_";
+
+type TeamAllocationQuestionnaireSubmissionContext = {
+  projectId: number;
+  enterpriseId: string;
+  teamAllocationQuestionnaireOpenDate: Date | null;
+  teamAllocationQuestionnaireDueDate: Date | null;
+  template: {
+    id: number;
+    purpose: string;
+    questions: Array<{
+      id: number;
+      label: string;
+      type: string;
+      order: number;
+      configs: unknown;
+    }>;
+  };
+};
+
+/** Returns the student submission context for a project's team-allocation questionnaire. */
+export async function getTeamAllocationQuestionnaireSubmissionContext(
+  userId: number,
+  projectId: number,
+): Promise<TeamAllocationQuestionnaireSubmissionContext | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      role: true,
+      active: true,
+      enterpriseId: true,
+    },
+  });
+
+  if (!user || user.active === false || user.role !== "STUDENT") {
+    return null;
+  }
+
+  const scopedProjectMembershipExists = await prisma.projectStudent.findFirst({
+    where: { projectId },
+    select: { userId: true },
+  });
+
+  const project = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      archivedAt: null,
+      module: {
+        enterpriseId: user.enterpriseId,
+        userModules: {
+          some: {
+            userId,
+            enterpriseId: user.enterpriseId,
+          },
+        },
+      },
+      ...(scopedProjectMembershipExists
+        ? {
+            projectStudents: {
+              some: {
+                userId,
+              },
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      module: {
+        select: {
+          enterpriseId: true,
+        },
+      },
+      deadline: {
+        select: {
+          teamAllocationQuestionnaireOpenDate: true,
+          teamAllocationQuestionnaireDueDate: true,
+        },
+      },
+      teamAllocationQuestionnaireTemplate: {
+        select: {
+          id: true,
+          purpose: true,
+          questions: {
+            orderBy: { order: "asc" },
+            select: {
+              id: true,
+              label: true,
+              type: true,
+              order: true,
+              configs: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!project || !project.teamAllocationQuestionnaireTemplate) {
+    return null;
+  }
+
+  return {
+    projectId: project.id,
+    enterpriseId: project.module.enterpriseId,
+    teamAllocationQuestionnaireOpenDate: project.deadline?.teamAllocationQuestionnaireOpenDate ?? null,
+    teamAllocationQuestionnaireDueDate: project.deadline?.teamAllocationQuestionnaireDueDate ?? null,
+    template: project.teamAllocationQuestionnaireTemplate,
+  };
+}
+
+/** Returns whether the user already belongs to an active team in the project. */
+export async function hasActiveTeamForUserInProject(userId: number, projectId: number): Promise<boolean> {
+  const existingTeam = await prisma.teamAllocation.findFirst({
+    where: {
+      userId,
+      team: {
+        projectId,
+        archivedAt: null,
+        allocationLifecycle: "ACTIVE",
+      },
+    },
+    select: { teamId: true },
+  });
+  return Boolean(existingTeam);
+}
+
+async function findOrCreateSystemAllocationResponseTeam(projectId: number, enterpriseId: string): Promise<number> {
+  const systemTeamName = `${TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX}${projectId}`;
+
+  const existingTeam = await prisma.team.findFirst({
+    where: {
+      projectId,
+      teamName: systemTeamName,
+    },
+    select: { id: true },
+  });
+  if (existingTeam) {
+    return existingTeam.id;
+  }
+
+  const createdTeam = await prisma.team.create({
+    data: {
+      teamName: systemTeamName,
+      projectId,
+      enterpriseId,
+      allocationLifecycle: "DRAFT",
+    },
+    select: { id: true },
+  });
+
+  return createdTeam.id;
+}
+
+/** Upserts a student's team-allocation questionnaire response. */
+export async function upsertTeamAllocationQuestionnaireResponse(input: {
+  projectId: number;
+  enterpriseId: string;
+  templateId: number;
+  reviewerUserId: number;
+  answersJson: unknown;
+}) {
+  const responseTeamId = await findOrCreateSystemAllocationResponseTeam(input.projectId, input.enterpriseId);
+
+  return prisma.peerAssessment.upsert({
+    where: {
+      projectId_teamId_reviewerUserId_revieweeUserId: {
+        projectId: input.projectId,
+        teamId: responseTeamId,
+        reviewerUserId: input.reviewerUserId,
+        revieweeUserId: input.reviewerUserId,
+      },
+    },
+    update: {
+      templateId: input.templateId,
+      answersJson: input.answersJson as Prisma.InputJsonValue,
+      updatedAt: new Date(),
+    },
+    create: {
+      projectId: input.projectId,
+      teamId: responseTeamId,
+      reviewerUserId: input.reviewerUserId,
+      revieweeUserId: input.reviewerUserId,
+      templateId: input.templateId,
+      answersJson: input.answersJson as Prisma.InputJsonValue,
+      submittedLate: false,
+      effectiveDueDate: null,
+    },
+    select: {
+      id: true,
+      updatedAt: true,
+    },
+  });
+}
+
+/** Returns whether the student has submitted a team-allocation questionnaire response for the project/template. */
+export async function hasTeamAllocationQuestionnaireResponse(input: {
+  projectId: number;
+  templateId: number;
+  userId: number;
+}): Promise<boolean> {
+  const response = await prisma.peerAssessment.findFirst({
+    where: {
+      projectId: input.projectId,
+      templateId: input.templateId,
+      reviewerUserId: input.userId,
+      revieweeUserId: input.userId,
+      team: {
+        projectId: input.projectId,
+        allocationLifecycle: "DRAFT",
+        teamName: {
+          startsWith: TEAM_ALLOCATION_RESPONSE_TEAM_PREFIX,
+        },
+      },
+    },
+    select: { id: true },
+  });
+  return Boolean(response);
+}
+
 type RawStaffMarking = {
   mark: number | null;
   formativeFeedback: string | null;
@@ -1483,488 +1821,6 @@ export async function getUserProjectMarking(userId: number, projectId: number) {
     teamMarking: mapStaffMarking(enrollment.team.staffTeamMarking),
     studentMarking: mapStaffMarking(studentMarking),
   };
-}
-
-const teamHealthMessageSelect = {
-  id: true,
-  projectId: true,
-  teamId: true,
-  requesterUserId: true,
-  reviewedByUserId: true,
-  subject: true,
-  details: true,
-  responseText: true,
-  resolved: true,
-  createdAt: true,
-  updatedAt: true,
-  reviewedAt: true,
-  requester: {
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-    },
-  },
-  reviewedBy: {
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-    },
-  },
-} as const;
-
-export async function createTeamHealthMessage(
-  projectId: number,
-  teamId: number,
-  requesterUserId: number,
-  subject: string,
-  details: string
-) {
-  return prisma.teamHealthMessage.create({
-    data: {
-      projectId,
-      teamId,
-      requesterUserId,
-      subject,
-      details,
-    },
-    select: teamHealthMessageSelect,
-  });
-}
-
-export async function getTeamHealthMessagesForUserInProject(projectId: number, requesterUserId: number) {
-  return prisma.teamHealthMessage.findMany({
-    where: {
-      projectId,
-      requesterUserId,
-    },
-    orderBy: { createdAt: "desc" },
-    select: teamHealthMessageSelect,
-  });
-}
-
-export async function getTeamHealthMessagesForTeamInProject(projectId: number, teamId: number) {
-  return prisma.teamHealthMessage.findMany({
-    where: {
-      projectId,
-      teamId,
-    },
-    orderBy: { createdAt: "desc" },
-    select: teamHealthMessageSelect,
-  });
-}
-
-export async function hasAnotherResolvedTeamHealthMessage(projectId: number, teamId: number, requestId: number) {
-  const existing = await prisma.teamHealthMessage.findFirst({
-    where: {
-      projectId,
-      teamId,
-      resolved: true,
-      NOT: { id: requestId },
-    },
-    select: { id: true },
-  });
-
-  return Boolean(existing);
-}
-
-export async function canStaffAccessTeamInProject(userId: number, projectId: number, teamId: number) {
-  const user = await getScopedStaffUser(userId);
-  if (!user) return false;
-
-  const roleCanAccessAll = user.role === "ADMIN" || user.role === "ENTERPRISE_ADMIN";
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      teams: {
-        some: { id: teamId, archivedAt: null, allocationLifecycle: "ACTIVE" },
-      },
-      module: {
-        enterpriseId: user.enterpriseId,
-        ...(roleCanAccessAll
-          ? {}
-          : {
-              OR: [
-                { moduleLeads: { some: { userId } } },
-                { moduleTeachingAssistants: { some: { userId } } },
-              ],
-            }),
-      },
-    },
-    select: { id: true },
-  });
-
-  return Boolean(project);
-}
-
-type DeadlineSnapshot = {
-  taskOpenDate: Date | null;
-  taskDueDate: Date | null;
-  assessmentOpenDate: Date | null;
-  assessmentDueDate: Date | null;
-  feedbackOpenDate: Date | null;
-  feedbackDueDate: Date | null;
-  isOverridden: boolean;
-};
-
-type DeadlineFieldKey =
-  | "taskOpenDate"
-  | "taskDueDate"
-  | "assessmentOpenDate"
-  | "assessmentDueDate"
-  | "feedbackOpenDate"
-  | "feedbackDueDate";
-
-export type DeadlineInputMode = "SHIFT_DAYS" | "SELECT_DATE";
-
-type DeadlineOverrideMetadata = {
-  inputMode: DeadlineInputMode;
-  shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-};
-
-function parseDeadlineOverrideMetadata(reason: string | null | undefined): DeadlineOverrideMetadata | null {
-  if (!reason) return null;
-  try {
-    const parsed = JSON.parse(reason) as {
-      inputMode?: unknown;
-      shiftDays?: unknown;
-    };
-    if (parsed.inputMode !== "SHIFT_DAYS" && parsed.inputMode !== "SELECT_DATE") {
-      return null;
-    }
-
-    const shiftDays: Partial<Record<DeadlineFieldKey, number>> = {};
-    if (parsed.shiftDays && typeof parsed.shiftDays === "object" && !Array.isArray(parsed.shiftDays)) {
-      const candidate = parsed.shiftDays as Record<string, unknown>;
-      const fields: DeadlineFieldKey[] = [
-        "taskOpenDate",
-        "taskDueDate",
-        "assessmentOpenDate",
-        "assessmentDueDate",
-        "feedbackOpenDate",
-        "feedbackDueDate",
-      ];
-
-      for (const field of fields) {
-        const value = candidate[field];
-        if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-          shiftDays[field] = value;
-        }
-      }
-    }
-
-    return {
-      inputMode: parsed.inputMode,
-      ...(Object.keys(shiftDays).length > 0 ? { shiftDays } : {}),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function serializeDeadlineOverrideMetadata(
-  metadata?:
-    | {
-        inputMode?: DeadlineInputMode;
-        shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-      }
-    | null
-) {
-  if (!metadata?.inputMode) return undefined;
-
-  const payload: DeadlineOverrideMetadata = {
-    inputMode: metadata.inputMode,
-  };
-
-  if (metadata.inputMode === "SHIFT_DAYS" && metadata.shiftDays) {
-    const sanitised: Partial<Record<DeadlineFieldKey, number>> = {};
-    const fields: DeadlineFieldKey[] = [
-      "taskOpenDate",
-      "taskDueDate",
-      "assessmentOpenDate",
-      "assessmentDueDate",
-      "feedbackOpenDate",
-      "feedbackDueDate",
-    ];
-
-    for (const field of fields) {
-      const value = metadata.shiftDays[field];
-      if (typeof value === "number" && Number.isInteger(value) && value >= 0) {
-        sanitised[field] = value;
-      }
-    }
-    if (Object.keys(sanitised).length > 0) {
-      payload.shiftDays = sanitised;
-    }
-  }
-
-  return JSON.stringify(payload);
-}
-
-function mergeDeadlinesForTeam(
-  projectDeadline: {
-    taskOpenDate: Date;
-    taskDueDate: Date;
-    assessmentOpenDate: Date;
-    assessmentDueDate: Date;
-    feedbackOpenDate: Date;
-    feedbackDueDate: Date;
-  } | null,
-  teamOverride: {
-    taskOpenDate: Date | null;
-    taskDueDate: Date | null;
-    assessmentOpenDate: Date | null;
-    assessmentDueDate: Date | null;
-    feedbackOpenDate: Date | null;
-    feedbackDueDate: Date | null;
-  } | null
-): DeadlineSnapshot | null {
-  if (!projectDeadline) return null;
-  return {
-    taskOpenDate: teamOverride?.taskOpenDate ?? projectDeadline.taskOpenDate,
-    taskDueDate: teamOverride?.taskDueDate ?? projectDeadline.taskDueDate,
-    assessmentOpenDate: teamOverride?.assessmentOpenDate ?? projectDeadline.assessmentOpenDate,
-    assessmentDueDate: teamOverride?.assessmentDueDate ?? projectDeadline.assessmentDueDate,
-    feedbackOpenDate: teamOverride?.feedbackOpenDate ?? projectDeadline.feedbackOpenDate,
-    feedbackDueDate: teamOverride?.feedbackDueDate ?? projectDeadline.feedbackDueDate,
-    isOverridden: Boolean(teamOverride),
-  };
-}
-
-export async function getTeamCurrentDeadlineInProject(projectId: number, teamId: number) {
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, projectId },
-    select: {
-      project: {
-        select: {
-          deadline: {
-            select: {
-              taskOpenDate: true,
-              taskDueDate: true,
-              assessmentOpenDate: true,
-              assessmentDueDate: true,
-              feedbackOpenDate: true,
-              feedbackDueDate: true,
-            },
-          },
-        },
-      },
-      deadlineOverride: {
-        select: {
-          taskOpenDate: true,
-          taskDueDate: true,
-          assessmentOpenDate: true,
-          assessmentDueDate: true,
-          feedbackOpenDate: true,
-          feedbackDueDate: true,
-        },
-      },
-    },
-  });
-  if (!team) return null;
-  return mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
-}
-
-export async function getTeamDeadlineDetailsInProject(projectId: number, teamId: number) {
-  const team = await prisma.team.findFirst({
-    where: { id: teamId, projectId },
-    select: {
-      project: {
-        select: {
-          deadline: {
-            select: {
-              taskOpenDate: true,
-              taskDueDate: true,
-              assessmentOpenDate: true,
-              assessmentDueDate: true,
-              feedbackOpenDate: true,
-              feedbackDueDate: true,
-            },
-          },
-        },
-      },
-      deadlineOverride: {
-        select: {
-          taskOpenDate: true,
-          taskDueDate: true,
-          assessmentOpenDate: true,
-          assessmentDueDate: true,
-          feedbackOpenDate: true,
-          feedbackDueDate: true,
-          reason: true,
-        },
-      },
-    },
-  });
-  if (!team?.project.deadline) return null;
-
-  const effectiveDeadline = mergeDeadlinesForTeam(team.project.deadline, team.deadlineOverride);
-  if (!effectiveDeadline) return null;
-
-  const metadata = parseDeadlineOverrideMetadata(team.deadlineOverride?.reason);
-  return {
-    baseDeadline: {
-      taskOpenDate: team.project.deadline.taskOpenDate,
-      taskDueDate: team.project.deadline.taskDueDate,
-      assessmentOpenDate: team.project.deadline.assessmentOpenDate,
-      assessmentDueDate: team.project.deadline.assessmentDueDate,
-      feedbackOpenDate: team.project.deadline.feedbackOpenDate,
-      feedbackDueDate: team.project.deadline.feedbackDueDate,
-      isOverridden: false,
-    },
-    effectiveDeadline,
-    deadlineInputMode: metadata?.inputMode ?? null,
-    shiftDays: metadata?.shiftDays ?? null,
-  };
-}
-
-export async function reviewTeamHealthMessage(
-  projectId: number,
-  teamId: number,
-  requestId: number,
-  reviewerUserId: number,
-  resolved: boolean,
-  responseText?: string
-) {
-  const existing = await prisma.teamHealthMessage.findFirst({
-    where: { id: requestId, projectId, teamId },
-    select: { id: true, resolved: true },
-  });
-  if (!existing) return null;
-
-  if (!resolved && existing.resolved) {
-    return prisma.$transaction(async (tx) => {
-      await tx.teamDeadlineOverride.deleteMany({
-        where: { teamId },
-      });
-
-      return tx.teamHealthMessage.update({
-        where: { id: requestId },
-        data: {
-          resolved: false,
-          reviewedByUserId: reviewerUserId,
-          reviewedAt: new Date(),
-          responseText: null,
-        },
-        select: teamHealthMessageSelect,
-      });
-    });
-  }
-
-  return prisma.teamHealthMessage.update({
-    where: { id: requestId },
-    data: {
-      resolved,
-      reviewedByUserId: reviewerUserId,
-      reviewedAt: new Date(),
-      ...(resolved
-        ? { ...(responseText !== undefined ? { responseText } : {}) }
-        : { responseText: null }),
-    },
-    select: teamHealthMessageSelect,
-  });
-}
-
-export async function resolveTeamHealthMessageWithDeadlineOverride(
-  projectId: number,
-  teamId: number,
-  requestId: number,
-  reviewerUserId: number,
-  overrides: {
-    taskOpenDate: Date | null;
-    taskDueDate: Date | null;
-    assessmentOpenDate: Date | null;
-    assessmentDueDate: Date | null;
-    feedbackOpenDate: Date | null;
-    feedbackDueDate: Date | null;
-  },
-  metadata?: {
-    inputMode?: DeadlineInputMode;
-    shiftDays?: Partial<Record<DeadlineFieldKey, number>>;
-  }
-) {
-  return prisma.$transaction(async (tx) => {
-    const existingRequest = await tx.teamHealthMessage.findFirst({
-      where: { id: requestId, projectId, teamId },
-      select: { id: true },
-    });
-    if (!existingRequest) return null;
-
-    const team = await tx.team.findFirst({
-      where: { id: teamId, projectId },
-      select: {
-        project: {
-          select: {
-            deadline: {
-              select: {
-                id: true,
-                taskOpenDate: true,
-                taskDueDate: true,
-                assessmentOpenDate: true,
-                assessmentDueDate: true,
-                feedbackOpenDate: true,
-                feedbackDueDate: true,
-              },
-            },
-          },
-        },
-      },
-    });
-    const projectDeadline = team?.project.deadline ?? null;
-    if (!projectDeadline) return null;
-
-    const reason = serializeDeadlineOverrideMetadata(metadata);
-
-    const deadlineOverride = await tx.teamDeadlineOverride.upsert({
-      where: { teamId },
-      update: {
-        projectDeadlineId: projectDeadline.id,
-        taskOpenDate: overrides.taskOpenDate,
-        taskDueDate: overrides.taskDueDate,
-        assessmentOpenDate: overrides.assessmentOpenDate,
-        assessmentDueDate: overrides.assessmentDueDate,
-        feedbackOpenDate: overrides.feedbackOpenDate,
-        feedbackDueDate: overrides.feedbackDueDate,
-        ...(reason !== undefined ? { reason } : {}),
-      },
-      create: {
-        teamId,
-        projectDeadlineId: projectDeadline.id,
-        taskOpenDate: overrides.taskOpenDate,
-        taskDueDate: overrides.taskDueDate,
-        assessmentOpenDate: overrides.assessmentOpenDate,
-        assessmentDueDate: overrides.assessmentDueDate,
-        feedbackOpenDate: overrides.feedbackOpenDate,
-        feedbackDueDate: overrides.feedbackDueDate,
-        reason: reason ?? null,
-      },
-      select: {
-        taskOpenDate: true,
-        taskDueDate: true,
-        assessmentOpenDate: true,
-        assessmentDueDate: true,
-        feedbackOpenDate: true,
-        feedbackDueDate: true,
-      },
-    });
-
-    const request = await tx.teamHealthMessage.update({
-      where: { id: requestId },
-      data: {
-        resolved: true,
-        reviewedByUserId: reviewerUserId,
-        reviewedAt: new Date(),
-      },
-      select: teamHealthMessageSelect,
-    });
-
-    const deadline = mergeDeadlinesForTeam(projectDeadline, deadlineOverride);
-    if (!deadline) return null;
-    return { request, deadline };
-  });
 }
 
 async function getAccessibleProjectDeadlineScope(actorUserId: number, projectId: number) {

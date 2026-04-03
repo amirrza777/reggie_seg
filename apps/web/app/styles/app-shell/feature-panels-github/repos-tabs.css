@@ -72,8 +72,8 @@
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .github-project-repos-tabs__btn {
-    backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur)) saturate(var(--glass-ui-saturate));
+    backdrop-filter: blur(var(--glass-ui-blur));
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
   }
 }
 

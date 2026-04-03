@@ -133,17 +133,19 @@ describe("NewQuestionnaireClient", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() => {
-      expect(createQuestionnaireMock).toHaveBeenCalledWith({
-        templateName: "Save success",
-        isPublic: true,
-        questions: [
-          {
-            label: "Text question",
-            type: "text",
-            configs: {},
-          },
-        ],
-      });
+      expect(createQuestionnaireMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          templateName: "Save success",
+          isPublic: true,
+          questions: [
+            {
+              label: "Text question",
+              type: "text",
+              configs: {},
+            },
+          ],
+        }),
+      );
     });
 
     expect(push).toHaveBeenCalledWith("/staff/questionnaires");
@@ -357,5 +359,25 @@ describe("NewQuestionnaireClient", () => {
     expect(screen.getByText("Question 2 has empty multiple-choice options.")).toBeInTheDocument();
 
     fireEvent.click(screen.getAllByRole("button", { name: "Add option" })[0]);
+  });
+
+  it("prevents text questions for customised allocation purpose", async () => {
+    render(<NewQuestionnaireClient />);
+
+    fireEvent.change(screen.getByPlaceholderText("Questionnaire name"), {
+      target: { value: "Allocation only" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add text" }));
+    fireEvent.change(screen.getByPlaceholderText("Question label"), {
+      target: { value: "Free text prompt" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Customised Allocation" }));
+
+    expect(screen.queryByRole("button", { name: "Add text" })).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Question 1 cannot be text for customised allocation questionnaires.")
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 });
