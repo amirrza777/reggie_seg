@@ -62,15 +62,20 @@ export function StaffTeamWarningReviewPanel({
   const compactPanelStyle = { padding: 12, gap: 10, fontSize: "0.92rem", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
   const compactTitleStyle = { margin: 0, fontSize: "1.14rem", lineHeight: 1.22 } as const;
+  const compactSubtitleStyle = { margin: 0, fontSize: "1.1rem", lineHeight: 1.3, fontWeight: 500 } as const;
   const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "0.84rem", lineHeight: 1.1 } as const;
-  const warningStackStyle = { display: "grid", gap: 10, padding: "2px 2px 6px" } as const;
+  const warningCardStyle = {
+    background: "color-mix(in srgb, var(--surface) 94%, white 6%)",
+    boxShadow: "inset 0 1px 0 color-mix(in srgb, white 4%, transparent)",
+  } as const;
+  const warningStackStyle = { display: "grid", gap: 14, padding: "6px 4px 10px" } as const;
   const resolvedSectionStyle = {
     borderTop: "1px solid var(--border)",
-    paddingTop: 12,
-    marginTop: 8,
-    paddingBottom: 8,
+    paddingTop: 16,
+    marginTop: 12,
+    paddingBottom: 10,
     display: "grid",
-    gap: 10,
+    gap: 12,
   } as const;
 
   const handleResolve = async (warningId: number) => {
@@ -110,7 +115,7 @@ export function StaffTeamWarningReviewPanel({
         <summary className="staff-projects__collapsible-summary">
           <div>
             <h3 className="staff-projects__team-title" style={compactTitleStyle}>Warnings</h3>
-            <p className="staff-projects__team-count" style={{ margin: 0 }}>
+            <p className="staff-projects__team-count" style={compactSubtitleStyle}>
               {activeWarnings.length} active warning{activeWarnings.length === 1 ? "" : "s"}. Click to review.
             </p>
           </div>
@@ -123,7 +128,11 @@ export function StaffTeamWarningReviewPanel({
         ) : (
           <div style={warningStackStyle}>
             {activeWarnings.map((warning) => (
-              <article key={warning.id} className="staff-projects__team-card" style={compactCardStyle}>
+              <article
+                key={warning.id}
+                className="staff-projects__team-card staff-projects__warning-item"
+                style={{ ...compactCardStyle, ...warningCardStyle }}
+              >
                 <div className="staff-projects__team-top">
                   <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
                   <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
@@ -160,7 +169,7 @@ export function StaffTeamWarningReviewPanel({
           ) : (
             <div style={warningStackStyle}>
               {resolvedWarnings.map((warning) => (
-                <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__team-card--resolved" style={compactCardStyle}>
+                <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__warning-item staff-projects__team-card--resolved" style={compactCardStyle}>
                   <div className="staff-projects__team-top">
                     <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
                     <span className={`staff-projects__signal-status staff-projects__signal-status--${warning.severity.toLowerCase()}`}>
