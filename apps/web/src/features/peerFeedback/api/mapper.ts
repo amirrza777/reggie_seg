@@ -152,6 +152,17 @@ export function mapApiAssessmentToPeerFeedback(raw: any): PeerFeedback {
 	};
 }
 
+export function mapApiAssessmentToPeerFeedbackReceived(raw: any): PeerFeedback {
+	const mapped = mapApiAssessmentToPeerFeedback(raw);
+	const assessment = raw?.peerAssessment ?? raw;
+
+	return {
+		...mapped,
+		firstName: assessment?.reviewer?.firstName ?? "",
+		lastName: assessment?.reviewer?.lastName ?? "",
+	};
+}
+
 export function mapApiAssessmentsToPeerFeedbacks(raw: any): PeerFeedback[] {
 	if (!raw) return [];
 	if (Array.isArray(raw)) return raw.map(mapApiAssessmentToPeerFeedback);
@@ -159,4 +170,13 @@ export function mapApiAssessmentsToPeerFeedbacks(raw: any): PeerFeedback[] {
 	if (Array.isArray(raw.feedbacks)) return raw.feedbacks.map(mapApiAssessmentToPeerFeedback);
 
 	return [mapApiAssessmentToPeerFeedback(raw)]; //single case
+}
+
+export function mapApiAssessmentsToPeerFeedbacksReceived(raw: any): PeerFeedback[] {
+	if (!raw) return [];
+	if (Array.isArray(raw)) return raw.map(mapApiAssessmentToPeerFeedbackReceived);
+	if (Array.isArray(raw.data)) return raw.data.map(mapApiAssessmentToPeerFeedbackReceived);
+	if (Array.isArray(raw.feedbacks)) return raw.feedbacks.map(mapApiAssessmentToPeerFeedbackReceived);
+
+	return [mapApiAssessmentToPeerFeedbackReceived(raw)];
 }

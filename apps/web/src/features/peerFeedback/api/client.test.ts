@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const apiFetchMock = vi.fn();
 const mapApiAssessmentToPeerFeedbackMock = vi.fn();
 const mapApiAssessmentsToPeerFeedbacksMock = vi.fn();
+const mapApiAssessmentsToPeerFeedbacksReceivedMock = vi.fn();
 
 vi.mock("@/shared/api/http", () => ({
   apiFetch: (...args: unknown[]) => apiFetchMock(...args),
@@ -13,6 +14,8 @@ vi.mock("./mapper", () => ({
     mapApiAssessmentToPeerFeedbackMock(...args),
   mapApiAssessmentsToPeerFeedbacks: (...args: unknown[]) =>
     mapApiAssessmentsToPeerFeedbacksMock(...args),
+  mapApiAssessmentsToPeerFeedbacksReceived: (...args: unknown[]) =>
+    mapApiAssessmentsToPeerFeedbacksReceivedMock(...args),
 }));
 
 import {
@@ -29,6 +32,7 @@ describe("peer feedback api client wrappers", () => {
     apiFetchMock.mockReset();
     mapApiAssessmentToPeerFeedbackMock.mockReset();
     mapApiAssessmentsToPeerFeedbacksMock.mockReset();
+    mapApiAssessmentsToPeerFeedbacksReceivedMock.mockReset();
   });
 
   it("submitFeedback posts to peer-assessments endpoint", async () => {
@@ -76,12 +80,24 @@ describe("peer feedback api client wrappers", () => {
     expect(result).toEqual(mapped);
   });
 
-  it("getFeedbackReview fetches review endpoint", async () => {
-    apiFetchMock.mockResolvedValue({ id: 99 });
+  it("getFeedbackReview fetches review endpoint and normalizes legacy agreement payloads", async () => {
+    apiFetchMock.mockResolvedValue({
+      id: 99,
+      agreementsJson: {
+        communication: true,
+        collaboration: { selected: "Agree", score: 4 },
+        delivery: { selected: "Unknown", score: 2.2 },
+      },
+    });
 
-    await getFeedbackReview("99");
+    const result = await getFeedbackReview("99");
 
     expect(apiFetchMock).toHaveBeenCalledWith("/peer-feedback/feedback/99/review");
+    expect(result.agreementsJson).toEqual({
+      communication: { selected: "Reasonable", score: 3 },
+      collaboration: { selected: "Agree", score: 4 },
+      delivery: { selected: "Disagree", score: 2 },
+    });
   });
 
   it("getFeedbackReviewStatuses posts bulk ids and returns status map", async () => {

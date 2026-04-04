@@ -167,7 +167,14 @@ async function createScenarioAssessments(
       const assessment = await ensureSingleScenarioAssessment(projectId, teamId, templateId, reviewerId, revieweeId, questions, questionIndex, assessmentIdByPair);
       if (!assessment) continue;
       createdAssessments += Number(assessment.created);
-      const feedbackCreated = await ensureSingleScenarioFeedback(teamId, reviewerId, revieweeId, assessment.id, existingFeedbackIds);
+      const feedbackCreated = await ensureSingleScenarioFeedback(
+        teamId,
+        reviewerId,
+        revieweeId,
+        assessment.id,
+        existingFeedbackIds,
+        questions.map((question) => question.label)
+      );
       createdFeedbacks += feedbackCreated;
     }
   }
@@ -199,16 +206,53 @@ async function ensureSingleScenarioAssessment(
   return { id: created.id, created: true };
 }
 
-async function ensureSingleScenarioFeedback(teamId: number, reviewerId: number, revieweeId: number, assessmentId: number, existingFeedbackIds: Set<number>) {
-  if (existingFeedbackIds.has(assessmentId)) return 0;
+async function ensureSingleScenarioFeedback(
+  teamId: number,
+  reviewerId: number,
+  revieweeId: number,
+  assessmentId: number,
+  existingFeedbackIds: Set<number>,
+  questionLabels: string[],
+) {
+  const reviewText = buildFeedbackText(reviewerId, revieweeId);
+  const agreementsJson = buildAgreementPayload(reviewerId, revieweeId, questionLabels);
+
+  if (existingFeedbackIds.has(assessmentId)) {
+    const peerFeedbackDelegate = prisma.peerFeedback as unknown as {
+      update?: (args: {
+        where: { peerAssessmentId: number };
+        data: {
+          reviewerUserId: number;
+          revieweeUserId: number;
+          reviewText: string;
+          agreementsJson: Record<string, { selected: string; score: number }>;
+          submittedLate: boolean;
+        };
+      }) => Promise<unknown>;
+    };
+    if (typeof peerFeedbackDelegate.update === "function") {
+      await peerFeedbackDelegate.update({
+        where: { peerAssessmentId: assessmentId },
+        data: {
+          reviewerUserId: reviewerId,
+          revieweeUserId: revieweeId,
+          reviewText,
+          agreementsJson,
+          submittedLate: false,
+        },
+      });
+    }
+    return 0;
+  }
+
   await prisma.peerFeedback.create({
     data: {
       teamId,
       peerAssessmentId: assessmentId,
       reviewerUserId: reviewerId,
       revieweeUserId: revieweeId,
-      reviewText: buildFeedbackText(reviewerId, revieweeId),
-      agreementsJson: buildAgreementPayload(reviewerId, revieweeId),
+      reviewText,
+      agreementsJson,
       submittedLate: false,
     },
   });

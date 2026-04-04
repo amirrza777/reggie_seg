@@ -238,7 +238,14 @@ async function upsertPeerAssessmentAndFeedback(
   const assessment = await writePeerAssessment(team, reviewerId, revieweeId, template.id, answersJson, existingAssessmentId);
   const createdAssessment = !existingAssessmentId;
   if (createdAssessment) state.assessmentIdByPair.set(pairKey, assessment.id);
-  const createdFeedback = await upsertPeerFeedback(team.id, assessment.id, reviewerId, revieweeId, state.feedbackIds);
+  const createdFeedback = await upsertPeerFeedback(
+    team.id,
+    assessment.id,
+    reviewerId,
+    revieweeId,
+    state.feedbackIds,
+    template.questionLabels
+  );
   return { createdAssessment, createdFeedback };
 }
 
@@ -267,18 +274,20 @@ async function upsertPeerFeedback(
   peerAssessmentId: number,
   reviewerUserId: number,
   revieweeUserId: number,
-  existingFeedbackIds: Set<number>
+  existingFeedbackIds: Set<number>,
+  questionLabels: string[]
 ) {
+  const agreementsJson = buildAgreementPayload(reviewerUserId, revieweeUserId, questionLabels);
   await prisma.peerFeedback.upsert({
     where: { peerAssessmentId },
-    update: { reviewText: buildFeedbackText(reviewerUserId, revieweeUserId), agreementsJson: buildAgreementPayload(reviewerUserId, revieweeUserId) },
+    update: { reviewText: buildFeedbackText(reviewerUserId, revieweeUserId), agreementsJson },
     create: {
       teamId,
       peerAssessmentId,
       reviewerUserId,
       revieweeUserId,
       reviewText: buildFeedbackText(reviewerUserId, revieweeUserId),
-      agreementsJson: buildAgreementPayload(reviewerUserId, revieweeUserId),
+      agreementsJson,
     },
   });
   const created = !existingFeedbackIds.has(peerAssessmentId);
@@ -349,11 +358,17 @@ function buildFeedbackText(reviewerId: number, revieweeId: number) {
   return `Reviewer ${reviewerId} noted that teammate ${revieweeId} contributed consistently, communicated blockers early, and supported delivery across shared tasks.`;
 }
 
-function buildAgreementPayload(reviewerId: number, revieweeId: number) {
-  return {
-    communication: (reviewerId + revieweeId) % 2 === 0,
-    contributionVisible: true,
-    wouldWorkAgain: (reviewerId + revieweeId) % 3 !== 0,
-    followUpNeeded: (reviewerId + revieweeId) % 5 === 0,
-  };
+function buildAgreementPayload(reviewerId: number, revieweeId: number, questionLabels: string[]) {
+  void reviewerId;
+  void revieweeId;
+  const keys = questionLabels.length > 0 ? questionLabels : ["communication", "contributionVisible", "wouldWorkAgain", "followUpNeeded"];
+  return Object.fromEntries(
+    keys.map((key) => [
+      key,
+      {
+        selected: "Reasonable",
+        score: 3,
+      },
+    ])
+  );
 }

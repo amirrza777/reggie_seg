@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 
@@ -29,6 +30,7 @@ type StaffPeerStudentAssessmentsPanelProps = {
   expectedPeerReviews: number;
   givenGroups: StaffPeerAssessmentGroup[];
   receivedGroups: StaffPeerAssessmentGroup[];
+  backHref?: string;
 };
 
 export function StaffPeerStudentAssessmentsPanel({
@@ -36,6 +38,7 @@ export function StaffPeerStudentAssessmentsPanel({
   expectedPeerReviews,
   givenGroups,
   receivedGroups,
+  backHref,
 }: StaffPeerStudentAssessmentsPanelProps) {
   const [tab, setTab] = useState<TabKey>("given");
 
@@ -53,107 +56,84 @@ export function StaffPeerStudentAssessmentsPanel({
     [groups]
   );
 
-  const receivedReviewSummary = useMemo(() => {
-    const agreementCounts = new Map<string, number>();
-    let answeredRatings = 0;
-    let scoreTotal = 0;
-    let writtenResponses = 0;
-
-    for (const group of receivedGroups) {
-      for (const assessment of group.assessments) {
-        const review = assessment.feedbackReview;
-        if (!review) continue;
-
-        if (review.reviewText && review.reviewText.trim().length > 0) {
-          writtenResponses += 1;
-        }
-
-        if (!review.agreementsJson) continue;
-        for (const value of Object.values(review.agreementsJson)) {
-          answeredRatings += 1;
-          scoreTotal += Number.isFinite(value.score) ? value.score : 0;
-          agreementCounts.set(value.selected, (agreementCounts.get(value.selected) ?? 0) + 1);
-        }
-      }
-    }
-
-    return {
-      answeredRatings,
-      writtenResponses,
-      avgScore: answeredRatings > 0 ? scoreTotal / answeredRatings : null,
-      agreementBreakdown: Array.from(agreementCounts.entries()).sort((a, b) => b[1] - a[1]),
-    };
-  }, [receivedGroups]);
-
   const tabCountLabel = (done: number) =>
     expectedPeerReviews > 0 ? `${done}/${expectedPeerReviews}` : String(done);
+
+  function humanizeLegacyAgreementKey(key: string) {
+    return key
+      .replace(/^question/i, "")
+      .replace(/[_-]+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .trim()
+      .replace(/^./, (char) => char.toUpperCase());
+  }
+
+  function resolveAgreementQuestionLabel({
+    agreementKey,
+    agreementIndex,
+    answers,
+  }: {
+    agreementKey: string;
+    agreementIndex: number;
+    answers: Array<[string, string | number | boolean | null]>;
+  }) {
+    const directMatch = questionLabels[agreementKey];
+    if (directMatch) return directMatch;
+
+    const answerBySameKey = answers.find(([answerKey]) => answerKey === agreementKey);
+    if (answerBySameKey) {
+      const label = questionLabels[answerBySameKey[0]];
+      if (label) return label;
+    }
+
+    const answerByIndex = answers[agreementIndex];
+    if (answerByIndex) {
+      const [answerKey] = answerByIndex;
+      const label = questionLabels[answerKey];
+      if (label) return label;
+      return answerKey;
+    }
+
+    const legacy = humanizeLegacyAgreementKey(agreementKey);
+    return legacy.length > 0 ? legacy : `Question ${agreementKey}`;
+  }
 
   return (
     <div className="stack" style={{ gap: 16, marginTop: 10 }}>
 
-      <div className="pill-nav" role="tablist">
-        <button
-          type="button"
-          role="tab"
-          className={toggleClass(tab === "given")}
-          onClick={() => setTab("given")}
-        >
-          Assessments given ({tabCountLabel(givenGroups.length)})
-        </button>
-        <button
-          type="button"
-          role="tab"
-          className={toggleClass(tab === "received")}
-          onClick={() => setTab("received")}
-        >
-          Assessments received ({tabCountLabel(receivedGroups.length)})
-        </button>
-      </div>
-
-      {tab === "received" ? (
-        <section className="staff-projects__team-card">
-          <h4 style={{ margin: 0, fontSize: "1rem" }}>Feedback review summary</h4>
-          <div
-            style={{
-              display: "grid",
-              gap: 10,
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            }}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+          flexWrap: "wrap",
+        }}
+      >
+        <div className="pill-nav" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            className={toggleClass(tab === "given")}
+            onClick={() => setTab("given")}
           >
-            <div>
-              <p className="muted" style={{ margin: 0 }}>Ratings captured</p>
-              <p style={{ margin: "2px 0 0", fontSize: "1.2rem", fontWeight: 700 }}>
-                {receivedReviewSummary.answeredRatings}
-              </p>
-            </div>
-            <div>
-              <p className="muted" style={{ margin: 0 }}>Average rating</p>
-              <p style={{ margin: "2px 0 0", fontSize: "1.2rem", fontWeight: 700 }}>
-                {receivedReviewSummary.avgScore == null ? "—" : `${receivedReviewSummary.avgScore.toFixed(2)} / 5`}
-              </p>
-            </div>
-            <div>
-              <p className="muted" style={{ margin: 0 }}>Written responses</p>
-              <p style={{ margin: "2px 0 0", fontSize: "1.2rem", fontWeight: 700 }}>
-                {receivedReviewSummary.writtenResponses}
-              </p>
-            </div>
-          </div>
-
-          {receivedReviewSummary.agreementBreakdown.length > 0 ? (
-            <div className="stack" style={{ gap: 6 }}>
-              <strong style={{ fontSize: "0.92rem" }}>Rating distribution</strong>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {receivedReviewSummary.agreementBreakdown.map(([label, count]) => (
-                  <span key={`distribution-${label}`} className="staff-projects__badge">
-                    {label}: {count}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </section>
-      ) : null}
+            Assessments given ({tabCountLabel(givenGroups.length)})
+          </button>
+          <button
+            type="button"
+            role="tab"
+            className={toggleClass(tab === "received")}
+            onClick={() => setTab("received")}
+          >
+            Assessments received ({tabCountLabel(receivedGroups.length)})
+          </button>
+        </div>
+        {backHref ? (
+          <Link href={backHref} className="pill-nav__link">
+            ← Back to peer overview
+          </Link>
+        ) : null}
+      </div>
 
       {sortedGroups.length === 0 ? (
         <section className="staff-projects__team-card">
@@ -198,10 +178,19 @@ export function StaffPeerStudentAssessmentsPanel({
                             <div className="stack" style={{ gap: 6 }}>
                               <strong style={{ fontSize: "0.95rem" }}>Ratings by question</strong>
                               <ul className="stack" style={{ gap: 6, margin: 0, paddingLeft: 18 }}>
-                                {Object.entries(assessment.feedbackReview.agreementsJson).map(([answerId, value]) => (
+                                {Object.entries(assessment.feedbackReview.agreementsJson).map(
+                                  ([answerId, value], agreementIndex) => (
                                   <li key={`${assessment.id}-agr-${answerId}`}>
-                                    <strong>{questionLabels[answerId] ?? `Question ${answerId}`}:</strong>{" "}
-                                    {value.selected} ({value.score}/5)
+                                    <strong>
+                                      {resolveAgreementQuestionLabel({
+                                        agreementKey: answerId,
+                                        agreementIndex,
+                                        answers,
+                                      })}
+                                      :
+                                    </strong>{" "}
+                                    {value.selected ?? "Reasonable"} (
+                                    {typeof value.score === "number" && Number.isFinite(value.score) ? value.score : 3}/5)
                                   </li>
                                 ))}
                               </ul>

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import {
   StaffPeerStudentAssessmentsPanel,
@@ -157,14 +156,6 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
 
   return (
     <>
-        <Link
-          href={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
-          className="pill-nav__link staff-projects__team-action"
-          style={{ width: "fit-content", marginBottom: 14 }}
-        >
-          ← Back to peer overview
-        </Link>
-
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Peer Assessment</p>
         <h1 className="staff-projects__title">{studentTitle}</h1>
@@ -188,6 +179,7 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
           expectedPeerReviews={expectedPeerReviews}
           givenGroups={givenGroups}
           receivedGroups={receivedGroups}
+          backHref={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
         />
       )}
     </>

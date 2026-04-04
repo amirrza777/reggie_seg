@@ -45,10 +45,7 @@ describe("StaffTeamSectionNav", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" moduleId={12} />);
 
-    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute(
-      "href",
-      "/staff/projects/2/teams/3/teamhealth",
-    );
+    expect(screen.getByRole("link", { name: "Health" })).toHaveAttribute("href", "/staff/projects/2/teams/3/teamhealth");
   });
 
   it("normalizes module-scoped routes to canonical staff/projects links", () => {
