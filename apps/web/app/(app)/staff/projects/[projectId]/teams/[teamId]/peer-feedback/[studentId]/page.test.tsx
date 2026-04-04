@@ -177,10 +177,12 @@ describe("StaffPeerFeedbackStudentPage", () => {
     expect(screen.getByRole("heading", { level: 1, name: "Alice Roe" })).toBeInTheDocument();
     expect(screen.getByText("Feedback items")).toBeInTheDocument();
     expect(screen.getByText("Responses written")).toBeInTheDocument();
-    expect(screen.getByText("From Bob Smith")).toBeInTheDocument();
-    expect(screen.getByText("Thanks for the feedback")).toBeInTheDocument();
-    expect(screen.getByText("Answer a1: 5 - Agree")).toBeInTheDocument();
-    expect(screen.getByText("No written response submitted yet.")).toBeInTheDocument();
+    expect(screen.getByText("Feedback ratings by question")).toBeInTheDocument();
+    expect(screen.getByText("Helped team?")).toBeInTheDocument();
+    expect(screen.getByText("Agree: 1")).toBeInTheDocument();
+    expect(screen.getByText("Feedback summaries")).toBeInTheDocument();
+    expect(screen.getByText("Bob Smith")).toBeInTheDocument();
+    expect(screen.getAllByText("Thanks for the feedback").length).toBeGreaterThan(0);
   });
 
   it("renders unknown-name and no-response fallbacks", async () => {
@@ -222,10 +224,8 @@ describe("StaffPeerFeedbackStudentPage", () => {
     render(page);
 
     expect(screen.getByRole("heading", { level: 1, name: "Unknown student" })).toBeInTheDocument();
-    expect(screen.getAllByText(/From Unknown teammate/).length).toBeGreaterThan(0);
-    expect(screen.getByText("No response")).toBeInTheDocument();
-    expect(screen.getByText("No answer content stored.")).toBeInTheDocument();
-    expect(screen.getAllByText("No written response submitted yet.").length).toBeGreaterThan(0);
+    expect(screen.getByText("No rating selections have been submitted yet.")).toBeInTheDocument();
+    expect(screen.getByText("No written feedback responses have been submitted yet.")).toBeInTheDocument();
   });
 
   it("renders feedback load error", async () => {

@@ -4,7 +4,7 @@ import {
   StaffPeerStudentAssessmentsPanel,
   type StaffPeerAssessmentGroup,
 } from "@/features/staff/projects/components/StaffPeerStudentAssessmentsPanel";
-import { getFeedbackReview, getPeerAssessmentsForUser as getPeerFeedbackAssessmentsForUser } from "@/features/peerFeedback/api/client";
+import { getFeedbackReview } from "@/features/peerFeedback/api/client";
 import {
   getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
@@ -133,18 +133,17 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
   > = {};
 
   try {
-    const feedbackRows = await getPeerFeedbackAssessmentsForUser(String(numericStudentId), projectId);
     await Promise.all(
-      feedbackRows.map(async (row) => {
+      receivedAssessments.map(async (assessment) => {
         try {
-          const review = await getFeedbackReview(String(row.id));
-          feedbackById[String(row.id)] = {
+          const review = await getFeedbackReview(String(assessment.id));
+          feedbackById[String(assessment.id)] = {
             reviewText: review.reviewText ?? null,
             agreementsJson:
               (review.agreementsJson as Record<string, { selected: string; score: number }> | null) ?? null,
           };
         } catch {
-          feedbackById[String(row.id)] = { reviewText: null, agreementsJson: null };
+          feedbackById[String(assessment.id)] = { reviewText: null, agreementsJson: null };
         }
       })
     );

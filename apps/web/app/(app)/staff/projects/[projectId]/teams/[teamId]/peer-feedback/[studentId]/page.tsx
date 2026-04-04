@@ -16,6 +16,96 @@ function fullName(firstName: string, lastName: string) {
   return `${firstName} ${lastName}`.trim() || "Unknown student";
 }
 
+type FeedbackEvidenceRow = {
+  id: string;
+  counterpartName: string;
+  submittedAt: string;
+  answers: Array<{ id: string; question: string; answer: string | number | boolean | null }>;
+  reviewText: string | null;
+  agreementsJson: Record<string, { selected: string; score: number }> | null;
+};
+
+type QuestionBreakdown = {
+  key: string;
+  label: string;
+  ratingCount: number;
+  averageScore: number | null;
+  distribution: Array<{ label: string; count: number }>;
+  entries: Array<{
+    rowId: string;
+    counterpartName: string;
+    submittedAt: string;
+    selected: string;
+    score: number;
+    reviewText: string | null;
+  }>;
+};
+
+function buildQuestionBreakdowns(rows: FeedbackEvidenceRow[]): QuestionBreakdown[] {
+  const map = new Map<
+    string,
+    {
+      key: string;
+      label: string;
+      ratingCount: number;
+      scoreTotal: number;
+      distribution: Map<string, number>;
+      entries: QuestionBreakdown["entries"];
+    }
+  >();
+
+  for (const row of rows) {
+    if (!row.agreementsJson) continue;
+
+    for (const [answerId, value] of Object.entries(row.agreementsJson)) {
+      const answerMeta = row.answers.find((answer) => answer.id === answerId);
+      const label = answerMeta?.question ?? `Question ${answerId}`;
+      const key = String(answerId);
+      const score = Number.isFinite(value.score) ? value.score : 0;
+
+      const current =
+        map.get(key) ??
+        {
+          key,
+          label,
+          ratingCount: 0,
+          scoreTotal: 0,
+          distribution: new Map<string, number>(),
+          entries: [],
+        };
+
+      current.ratingCount += 1;
+      current.scoreTotal += score;
+      current.distribution.set(value.selected, (current.distribution.get(value.selected) ?? 0) + 1);
+      current.entries.push({
+        rowId: row.id,
+        counterpartName: row.counterpartName,
+        submittedAt: row.submittedAt,
+        selected: value.selected,
+        score,
+        reviewText: row.reviewText,
+      });
+
+      map.set(key, current);
+    }
+  }
+
+  return Array.from(map.values())
+    .map((item) => ({
+      key: item.key,
+      label: item.label,
+      ratingCount: item.ratingCount,
+      averageScore: item.ratingCount > 0 ? item.scoreTotal / item.ratingCount : null,
+      distribution: Array.from(item.distribution.entries())
+        .map(([label, count]) => ({ label, count }))
+        .sort((a, b) => b.count - a.count),
+      entries: item.entries.sort(
+        (a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      ),
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 export default async function StaffPeerFeedbackStudentPage({ params }: PageProps) {
   const { projectId, teamId, studentId } = await params;
 
@@ -53,14 +143,7 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
     student != null ? fullName(student.firstName, student.lastName) : `Student ${studentId}`;
 
   let feedbackLoadError: string | null = null;
-  const feedbackRows: Array<{
-    id: string;
-    fromName: string;
-    submittedAt: string;
-    answers: Array<{ id: string; question: string; answer: string | number | boolean | null }>;
-    reviewText: string | null;
-    agreementsJson: Record<string, { selected: string; score: number }> | null;
-  }> = [];
+  const feedbackRows: FeedbackEvidenceRow[] = [];
 
   try {
     const feedbacks = await getPeerAssessmentsForUser(String(numericStudentId), projectId);
@@ -79,7 +162,7 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
 
         return {
           id: String(feedback.id),
-          fromName: `${feedback.firstName ?? ""} ${feedback.lastName ?? ""}`.trim() || "Unknown teammate",
+          counterpartName: `${feedback.firstName ?? ""} ${feedback.lastName ?? ""}`.trim() || "Unknown teammate",
           submittedAt: feedback.submittedAt,
           answers: feedback.answers ?? [],
           reviewText,
@@ -100,6 +183,13 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
     (count, row) => count + (row.reviewText && row.reviewText.trim().length > 0 ? 1 : 0),
     0
   );
+  const questionBreakdowns = buildQuestionBreakdowns(feedbackRows);
+  const totalRatings = questionBreakdowns.reduce((sum, question) => sum + question.ratingCount, 0);
+  const weightedScore = questionBreakdowns.reduce(
+    (sum, question) => sum + (question.averageScore ?? 0) * question.ratingCount,
+    0
+  );
+  const overallAverageScore = totalRatings > 0 ? weightedScore / totalRatings : null;
 
   return (
     <div className="staff-projects">
@@ -124,6 +214,16 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
           <h3 className="staff-projects__card-title">Responses written</h3>
           <p className="staff-projects__card-sub">{respondedCount}</p>
         </article>
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Questions rated</h3>
+          <p className="staff-projects__card-sub">{questionBreakdowns.length}</p>
+        </article>
+        <article className="staff-projects__card">
+          <h3 className="staff-projects__card-title">Average rating</h3>
+          <p className="staff-projects__card-sub">
+            {overallAverageScore == null ? "—" : `${overallAverageScore.toFixed(2)} / 5`}
+          </p>
+        </article>
       </section>
 
       {feedbackLoadError ? (
@@ -141,55 +241,84 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
       ) : null}
 
       {!feedbackLoadError && feedbackRows.length > 0 ? (
-        <section className="staff-projects__team-list" aria-label="Peer feedback evidence">
-          {feedbackRows.map((row) => (
-            <Card key={row.id} title={`From ${row.fromName}`}>
-              <p className="muted" style={{ margin: "0 0 12px 0" }}>
-                Submitted: {new Date(row.submittedAt).toLocaleString()}
+        <>
+          <section className="staff-projects__team-list" aria-label="Question rating breakdown">
+            <Card title="Feedback ratings by question">
+              <p className="muted" style={{ margin: "0 0 12px" }}>
+                Review how teammates rated this student on each question. Expand a rating row to read the related
+                written feedback.
               </p>
 
-              <div className="stack" style={{ gap: 8 }}>
-                <h4 style={{ margin: 0, fontSize: "1rem" }}>What was written about this student</h4>
-                {row.answers.length === 0 ? (
-                  <p className="muted" style={{ margin: 0 }}>No answer content stored.</p>
-                ) : (
-                  <ul className="stack" style={{ gap: 8, margin: 0, paddingLeft: 18 }}>
-                    {row.answers.map((answer) => (
-                      <li key={`${row.id}-${answer.id}`}>
-                        <strong>{answer.question}:</strong>{" "}
-                        {answer.answer == null || String(answer.answer).length === 0
-                          ? "No response"
-                          : String(answer.answer)}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="stack" style={{ gap: 8, marginTop: 12 }}>
-                <h4 style={{ margin: 0, fontSize: "1rem" }}>Student response</h4>
+              {questionBreakdowns.length === 0 ? (
                 <p className="muted" style={{ margin: 0 }}>
-                  {row.reviewText && row.reviewText.trim().length > 0
-                    ? row.reviewText
-                    : "No written response submitted yet."}
+                  No rating selections have been submitted yet.
                 </p>
-              </div>
-
-              {row.agreementsJson && Object.keys(row.agreementsJson).length > 0 ? (
-                <div className="stack" style={{ gap: 8, marginTop: 12 }}>
-                  <h4 style={{ margin: 0, fontSize: "1rem" }}>Agreement selections</h4>
-                  <ul className="stack" style={{ gap: 8, margin: 0, paddingLeft: 18 }}>
-                    {Object.entries(row.agreementsJson).map(([answerId, value]) => (
-                      <li key={`${row.id}-agreement-${answerId}`}>
-                        Answer {answerId}: {value.score} - {value.selected}
-                      </li>
-                    ))}
-                  </ul>
+              ) : (
+                <div className="stack" style={{ gap: 12 }}>
+                  {questionBreakdowns.map((question) => (
+                    <section key={`question-${question.key}`} className="staff-projects__team-card" style={{ margin: 0 }}>
+                      <h4 style={{ margin: 0 }}>{question.label}</h4>
+                      <p className="muted" style={{ margin: 0 }}>
+                        {question.ratingCount} rating{question.ratingCount === 1 ? "" : "s"} • Avg{" "}
+                        {question.averageScore == null ? "—" : `${question.averageScore.toFixed(2)} / 5`}
+                      </p>
+                      {question.distribution.length > 0 ? (
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {question.distribution.map((item) => (
+                            <span key={`${question.key}-${item.label}`} className="staff-projects__badge">
+                              {item.label}: {item.count}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                      <div className="stack" style={{ gap: 8 }}>
+                        {question.entries.map((entry) => (
+                          <details key={`${question.key}-${entry.rowId}-${entry.submittedAt}`}>
+                            <summary style={{ cursor: "pointer" }}>
+                              {entry.selected} ({entry.score}/5) • {entry.counterpartName}
+                            </summary>
+                            <p className="muted" style={{ margin: "8px 0 0" }}>
+                              Submitted: {new Date(entry.submittedAt).toLocaleString()}
+                            </p>
+                            <p className="muted" style={{ margin: "6px 0 0" }}>
+                              {entry.reviewText && entry.reviewText.trim().length > 0
+                                ? entry.reviewText
+                                : "No written response submitted for this rating."}
+                            </p>
+                          </details>
+                        ))}
+                      </div>
+                    </section>
+                  ))}
                 </div>
-              ) : null}
+              )}
             </Card>
-          ))}
-        </section>
+          </section>
+
+          <section className="staff-projects__team-list" aria-label="Peer feedback evidence">
+            <Card title="Feedback summaries">
+              {feedbackRows.filter((row) => row.reviewText && row.reviewText.trim().length > 0).length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  No written feedback responses have been submitted yet.
+                </p>
+              ) : (
+                <div className="stack" style={{ gap: 10 }}>
+                  {feedbackRows
+                    .filter((row) => row.reviewText && row.reviewText.trim().length > 0)
+                    .map((row) => (
+                      <div key={`summary-${row.id}`} className="staff-projects__team-card" style={{ margin: 0 }}>
+                        <p style={{ margin: 0, fontWeight: 600 }}>{row.counterpartName}</p>
+                        <p className="muted" style={{ margin: 0 }}>
+                          {new Date(row.submittedAt).toLocaleString()}
+                        </p>
+                        <p className="muted" style={{ margin: 0 }}>{row.reviewText}</p>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </Card>
+          </section>
+        </>
       ) : null}
     </div>
   );
