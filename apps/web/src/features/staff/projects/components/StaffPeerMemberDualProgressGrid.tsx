@@ -12,13 +12,31 @@ export type StaffPeerMemberDualProgressItem = {
   href?: string;
 };
 
+type StaffPeerMemberDualProgressGridProps = {
+  items: StaffPeerMemberDualProgressItem[];
+  eyebrowLabel?: string;
+  firstMetricLabel?: string;
+  firstMetricUnit?: string;
+  secondMetricLabel?: string;
+  secondMetricUnit?: string;
+  disableLinks?: boolean;
+};
+
 const clamp = (value: number) => Math.min(100, Math.max(0, value));
 
 function barPct(submitted: number, expected: number) {
   return expected > 0 ? clamp((submitted / expected) * 100) : 0;
 }
 
-export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMemberDualProgressItem[] }) {
+export function StaffPeerMemberDualProgressGrid({
+  items,
+  eyebrowLabel = "Peer assessments",
+  firstMetricLabel = "Written for teammates",
+  firstMetricUnit = "submitted",
+  secondMetricLabel = "Received from teammates",
+  secondMetricUnit = "received",
+  disableLinks = false,
+}: StaffPeerMemberDualProgressGridProps) {
   return (
     <div
       style={{
@@ -36,7 +54,7 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
             <div className="card__header">
               <div>
                 <div className="eyebrow" style={{ marginBottom: 6 }}>
-                  Peer assessments
+                  {eyebrowLabel}
                 </div>
                 <h3 style={{ margin: 0 }}>{item.title}</h3>
                 <p className="muted" style={{ margin: "6px 0 0" }}>
@@ -47,10 +65,10 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
             <div className="card__body" style={{ display: "grid", gap: 14 }}>
               <div>
                 <p className="muted" style={{ margin: "0 0 6px", fontSize: "0.875rem" }}>
-                  Written for teammates
+                  {firstMetricLabel}
                 </p>
                 <p style={{ margin: "0 0 6px", fontSize: "0.9rem" }}>
-                  {item.givenSubmitted}/{item.givenExpected} submitted
+                  {item.givenSubmitted}/{item.givenExpected} {firstMetricUnit}
                 </p>
                 <ProgressBar value={givenPct} />
                 <div className="progress-bar__label">
@@ -59,10 +77,10 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
               </div>
               <div>
                 <p className="muted" style={{ margin: "0 0 6px", fontSize: "0.875rem" }}>
-                  Received from teammates
+                  {secondMetricLabel}
                 </p>
                 <p style={{ margin: "0 0 6px", fontSize: "0.9rem" }}>
-                  {item.receivedSubmitted}/{item.receivedExpected} received
+                  {item.receivedSubmitted}/{item.receivedExpected} {secondMetricUnit}
                 </p>
                 <ProgressBar value={receivedPct} />
                 <div className="progress-bar__label">
@@ -73,7 +91,7 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
           </div>
         );
 
-        if (item.href) {
+        if (item.href && !disableLinks) {
           return (
             <Link
               key={item.id}

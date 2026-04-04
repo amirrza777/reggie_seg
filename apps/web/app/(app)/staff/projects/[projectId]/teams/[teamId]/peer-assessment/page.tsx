@@ -1,6 +1,10 @@
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { getTeamDetails, getStudentDetails } from "@/features/staff/peerAssessments/api/client";
 import { StaffPeerMemberDualProgressGrid } from "@/features/staff/projects/components/StaffPeerMemberDualProgressGrid";
+import {
+  getStaffPeerFeedbackByStudentModel,
+  StaffPeerFeedbackByStudentPanel,
+} from "@/features/staff/projects/components/StaffPeerFeedbackByStudentPanel";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
@@ -79,21 +83,33 @@ export default async function StaffPeerAssessmentSectionPage({ params }: PagePro
     };
   });
 
+  const feedbackModel = await getStaffPeerFeedbackByStudentModel({
+    userId: user.id,
+    projectId,
+    moduleId: project.moduleId,
+    teamId: team.id,
+  });
+
   return (
-    <section className="staff-projects__team-card">
-      <h3 style={{ margin: 0 }}>Peer assessments by student</h3>
-      <p className="muted" style={{ margin: 0 }}>
-        Track assessments each student has written about teammates and assessments they have received. Open a student to
-        see detail grouped by teammate. Written feedback responses on received assessments appear under{" "}
-        <strong>Assessments received</strong>.
-      </p>
-      {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
-      {!detailError && students.length === 0 ? (
-        <p className="muted" style={{ marginTop: 8 }}>
-          No student allocation data is available for this team yet.
+    <>
+      <section className="staff-projects__team-card">
+        <h3 style={{ margin: 0 }}>Peer assessments by student</h3>
+        <p className="muted" style={{ margin: 0 }}>
+          Track assessments each student has written about teammates and assessments they have received. Open a student to
+          see detail grouped by teammate. Written feedback responses on received assessments appear under{" "}
+          <strong>Assessments received</strong>.
         </p>
-      ) : null}
-      {!detailError && students.length > 0 ? <StaffPeerMemberDualProgressGrid items={gridItems} /> : null}
-    </section>
+        {detailError ? <p className="muted" style={{ marginTop: 8 }}>{detailError}</p> : null}
+        {!detailError && students.length === 0 ? (
+          <p className="muted" style={{ marginTop: 8 }}>
+            No student allocation data is available for this team yet.
+          </p>
+        ) : null}
+        {!detailError && students.length > 0 ? <StaffPeerMemberDualProgressGrid items={gridItems} /> : null}
+      </section>
+      <StaffPeerFeedbackByStudentPanel
+        model={feedbackModel}
+      />
+    </>
   );
 }

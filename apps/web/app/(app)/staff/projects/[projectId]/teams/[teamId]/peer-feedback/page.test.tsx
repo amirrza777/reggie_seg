@@ -139,7 +139,7 @@ describe("StaffPeerFeedbackSectionPage", () => {
     expect(screen.getByText("Failed to load peer feedback progress.")).toBeInTheDocument();
   });
 
-  it("renders per-student feedback progress and evidence links", async () => {
+  it("renders per-student feedback progress cards", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockResolvedValue({
       project: { id: 10, moduleId: 3, name: "Project X" },
@@ -165,16 +165,17 @@ describe("StaffPeerFeedbackSectionPage", () => {
     const page = await StaffPeerFeedbackSectionPage({ params: Promise.resolve({ projectId: "10", teamId: "20" }) });
     render(page);
 
-    expect(screen.getByText("Students")).toBeInTheDocument();
-    expect(screen.getByText("Feedback tasks")).toBeInTheDocument();
-    expect(screen.getByText("Completed reviews")).toBeInTheDocument();
-    expect(screen.getByText("Pending reviews")).toBeInTheDocument();
-    expect(screen.getByText(/Assigned: 2 • Completed: 1 • Pending: 1/)).toBeInTheDocument();
-    expect(screen.getByText("Missing student id")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open feedback evidence" })).toHaveAttribute(
-      "href",
-      "/staff/modules/3/projects/10/teams/20/peer-feedback/101",
-    );
+    expect(screen.getByText("Peer feedback by student")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Track feedback responses each student has completed for teammates and which responses are still outstanding."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Feedback reviews completed").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Feedback reviews pending").length).toBeGreaterThan(0);
+    expect(screen.getByText("1/2 completed")).toBeInTheDocument();
+    expect(screen.getByText("1/2 pending")).toBeInTheDocument();
+    expect(screen.getByText(/Missing student id/)).toBeInTheDocument();
   });
 
   it("renders row-level student fetch errors", async () => {
@@ -191,8 +192,9 @@ describe("StaffPeerFeedbackSectionPage", () => {
     const page = await StaffPeerFeedbackSectionPage({ params: Promise.resolve({ projectId: "10", teamId: "20" }) });
     render(page);
 
-    expect(screen.getByText("student feedback failed")).toBeInTheDocument();
-    expect(screen.getByText(/Assigned: 0 • Completed: 0 • Pending: 0/)).toBeInTheDocument();
+    expect(screen.getByText(/student feedback failed/)).toBeInTheDocument();
+    expect(screen.getByText("0/0 completed")).toBeInTheDocument();
+    expect(screen.getByText("0/0 pending")).toBeInTheDocument();
   });
 
   it("renders empty student feedback state when team has no students", async () => {
