@@ -2,8 +2,10 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
-import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
+import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffProjectTeamTabsPage from "./page";
@@ -30,10 +32,20 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/features/projects/api/client", () => ({
   getStaffTeamHealthMessages: vi.fn(),
+  getStaffTeamWarnings: vi.fn(),
 }));
 
 vi.mock("@/features/staff/meetings/api/client", () => ({
   listTeamMeetings: vi.fn(),
+}));
+
+vi.mock("@/features/staff/peerAssessments/api/client", () => ({
+  getTeamDetails: vi.fn(),
+}));
+
+vi.mock("@/features/github/api/client", () => ({
+  listProjectGithubRepoLinks: vi.fn(),
+  getLatestProjectGithubSnapshot: vi.fn(),
 }));
 
 vi.mock("@/shared/auth/session", () => ({
@@ -48,13 +60,33 @@ const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getStaffTeamHealthMessagesMock = vi.mocked(getStaffTeamHealthMessages);
+const getStaffTeamWarningsMock = vi.mocked(getStaffTeamWarnings);
 const listTeamMeetingsMock = vi.mocked(listTeamMeetings);
+const getTeamDetailsMock = vi.mocked(getTeamDetails);
+const listProjectGithubRepoLinksMock = vi.mocked(listProjectGithubRepoLinks);
+const getLatestProjectGithubSnapshotMock = vi.mocked(getLatestProjectGithubSnapshot);
 
 const staffUser = { id: 10, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>;
 
 describe("StaffProjectTeamTabsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getStaffTeamWarningsMock.mockResolvedValue([] as Awaited<ReturnType<typeof getStaffTeamWarnings>>);
+    getTeamDetailsMock.mockResolvedValue({
+      module: { id: 2, title: "Module", archivedAt: null },
+      team: { id: 1, title: "Team" },
+      students: [],
+      teamMarking: null,
+    } as Awaited<ReturnType<typeof getTeamDetails>>);
+    listProjectGithubRepoLinksMock.mockResolvedValue([]);
+    getLatestProjectGithubSnapshotMock.mockResolvedValue({
+      snapshot: {
+        id: 1,
+        analysedAt: "2026-01-01T00:00:00.000Z",
+        userStats: [],
+        repoStats: [],
+      },
+    });
   });
 
   it("redirects non-staff users", async () => {
@@ -181,6 +213,7 @@ describe("StaffProjectTeamTabsPage", () => {
 
     expect(screen.getByText("2 open support requests.")).toBeInTheDocument();
     expect(screen.getByText(/3 meetings recorded · Last meeting/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Team versus project average metrics")).toBeInTheDocument();
     expect(screen.getByText("Alice Roe")).toBeInTheDocument();
     expect(screen.getByText("unknown@example.com")).toBeInTheDocument();
     expect(screen.getByText("AR")).toBeInTheDocument();

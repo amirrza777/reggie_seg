@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffTeamHealthMessages } from "@/features/projects/api/client";
+import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
+import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
@@ -14,6 +16,92 @@ function getInitials(firstName: string, lastName: string) {
   const first = firstName?.trim()?.[0] ?? "";
   const last = lastName?.trim()?.[0] ?? "";
   return `${first}${last}`.toUpperCase() || "?";
+}
+
+type TeamOverviewMetrics = {
+  activeWarnings: number | null;
+  assessmentCompletion: number | null;
+  meetingCount: number | null;
+  totalRepoCommits: number | null;
+  averageAttendance: number | null;
+};
+
+const presentStatuses = new Set(["on_time", "late", "present"]);
+
+function getAttendanceRate(meetings: Awaited<ReturnType<typeof listTeamMeetings>>): number | null {
+  let marked = 0;
+  let present = 0;
+
+  for (const meeting of meetings) {
+    const attendances = Array.isArray(meeting.attendances) ? meeting.attendances : [];
+    for (const attendance of attendances) {
+      marked += 1;
+      if (presentStatuses.has(attendance.status.trim().toLowerCase())) {
+        present += 1;
+      }
+    }
+  }
+
+  if (marked === 0) return null;
+  return Math.round((present / marked) * 100);
+}
+
+function getAssessmentCompletion(students: Awaited<ReturnType<typeof getTeamDetails>>["students"]): number {
+  const expected = students.reduce((sum, student) => sum + Math.max(0, Number(student.expected) || 0), 0);
+  const submitted = students.reduce((sum, student) => sum + Math.max(0, Number(student.submitted) || 0), 0);
+  if (expected <= 0) return 0;
+  return Math.round((submitted / expected) * 100);
+}
+
+function average(values: Array<number | null>): number | null {
+  const defined = values.filter((value): value is number => value != null && Number.isFinite(value));
+  if (defined.length === 0) return null;
+  return Math.round(defined.reduce((sum, value) => sum + value, 0) / defined.length);
+}
+
+function formatCount(value: number | null) {
+  return value == null ? "—" : value.toLocaleString();
+}
+
+function formatPercent(value: number | null) {
+  return value == null ? "—" : `${value}%`;
+}
+
+async function loadProjectCommitTotalsByTeam(
+  projectId: number,
+  teamUserIdsByTeamId: Map<number, Set<number>>,
+): Promise<Map<number, number>> {
+  const totalsByTeam = new Map<number, number>();
+  for (const teamId of teamUserIdsByTeamId.keys()) {
+    totalsByTeam.set(teamId, 0);
+  }
+
+  const links = await listProjectGithubRepoLinks(projectId);
+  if (links.length === 0) return totalsByTeam;
+
+  const snapshots = await Promise.allSettled(
+    links.map((link) => getLatestProjectGithubSnapshot(link.id))
+  );
+
+  for (const snapshotResult of snapshots) {
+    if (snapshotResult.status !== "fulfilled") continue;
+
+    for (const [teamId, userIds] of teamUserIdsByTeamId.entries()) {
+      let commitsForTeamInSnapshot = 0;
+
+      for (const stat of snapshotResult.value.snapshot.userStats) {
+        if (stat.mappedUserId == null) continue;
+        if (!userIds.has(stat.mappedUserId)) continue;
+        const commits = Number(stat.commits);
+        if (!Number.isFinite(commits)) continue;
+        commitsForTeamInSnapshot += commits;
+      }
+
+      totalsByTeam.set(teamId, (totalsByTeam.get(teamId) ?? 0) + commitsForTeamInSnapshot);
+    }
+  }
+
+  return totalsByTeam;
 }
 
 export default async function StaffProjectTeamTabsPage({ params }: StaffProjectTeamTabsPageProps) {
@@ -50,6 +138,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   let openSupportRequestCount: number | null = null;
   let recordedMeetingCount: number | null = null;
   let lastMeetingLabel: string | null = null;
+  let teamVsAverage: { team: TeamOverviewMetrics; average: TeamOverviewMetrics } | null = null;
 
   const [supportRequestsResult, meetingsResult] = await Promise.allSettled([
     getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
@@ -75,9 +164,84 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     }
   }
 
+  try {
+    const teamUserIdsByTeamId = new Map(
+      data.teams.map((projectTeam) => [
+        projectTeam.id,
+        new Set(projectTeam.allocations.map((allocation) => allocation.userId)),
+      ]),
+    );
+
+    let commitTotalsByTeam = new Map<number, number>();
+    try {
+      commitTotalsByTeam = await loadProjectCommitTotalsByTeam(numericProjectId, teamUserIdsByTeamId);
+    } catch {
+      for (const projectTeam of data.teams) {
+        commitTotalsByTeam.set(projectTeam.id, 0);
+      }
+    }
+
+    const perTeamMetrics = await Promise.all(
+      data.teams.map(async (projectTeam) => {
+        const [teamWarningsResult, teamMeetingsResult, teamAssessmentResult] = await Promise.allSettled([
+          getStaffTeamWarnings(user.id, numericProjectId, projectTeam.id),
+          listTeamMeetings(projectTeam.id),
+          getTeamDetails(user.id, data.project.moduleId, projectTeam.id),
+        ]);
+
+        const activeWarnings =
+          teamWarningsResult.status === "fulfilled"
+            ? teamWarningsResult.value.filter((warning) => warning.active).length
+            : null;
+
+        const meetingCount =
+          teamMeetingsResult.status === "fulfilled"
+            ? teamMeetingsResult.value.length
+            : null;
+
+        const averageAttendance =
+          teamMeetingsResult.status === "fulfilled"
+            ? getAttendanceRate(teamMeetingsResult.value)
+            : null;
+
+        const assessmentCompletion =
+          teamAssessmentResult.status === "fulfilled"
+            ? getAssessmentCompletion(teamAssessmentResult.value.students)
+            : null;
+
+        return [projectTeam.id, {
+          activeWarnings,
+          assessmentCompletion,
+          meetingCount,
+          totalRepoCommits: commitTotalsByTeam.get(projectTeam.id) ?? 0,
+          averageAttendance,
+        } satisfies TeamOverviewMetrics] as const;
+      }),
+    );
+
+    const metricsByTeamId = new Map(perTeamMetrics);
+    const selectedTeamMetrics = metricsByTeamId.get(numericTeamId);
+
+    if (selectedTeamMetrics) {
+      const allMetrics = [...metricsByTeamId.values()];
+      teamVsAverage = {
+        team: selectedTeamMetrics,
+        average: {
+          activeWarnings: average(allMetrics.map((metric) => metric.activeWarnings)),
+          assessmentCompletion: average(allMetrics.map((metric) => metric.assessmentCompletion)),
+          meetingCount: average(allMetrics.map((metric) => metric.meetingCount)),
+          totalRepoCommits: average(allMetrics.map((metric) => metric.totalRepoCommits)),
+          averageAttendance: average(allMetrics.map((metric) => metric.averageAttendance)),
+        },
+      };
+    }
+  } catch {
+    teamVsAverage = null;
+  }
+
   return (
     <>
-      <section className="staff-projects__grid" aria-label="Team health summary">
+      <section className="staff-projects__team-overview-top" aria-label="Team health summary">
         <Link
           href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
           className="staff-projects__card"
@@ -97,6 +261,44 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                 }.`}
           </p>
         </Link>
+
+        {teamVsAverage ? (
+          <article
+            className="staff-projects__card staff-projects__card--comparison"
+            aria-label="Team versus project average metrics"
+          >
+            <div className="staff-projects__comparison-head">
+              <span>Metric</span>
+              <span>Team</span>
+              <span>Avg</span>
+            </div>
+            <div className="staff-projects__comparison-row">
+              <span>Active warnings</span>
+              <strong>{formatCount(teamVsAverage.team.activeWarnings)}</strong>
+              <strong>{formatCount(teamVsAverage.average.activeWarnings)}</strong>
+            </div>
+            <div className="staff-projects__comparison-row">
+              <span>Assessment completion</span>
+              <strong>{formatPercent(teamVsAverage.team.assessmentCompletion)}</strong>
+              <strong>{formatPercent(teamVsAverage.average.assessmentCompletion)}</strong>
+            </div>
+            <div className="staff-projects__comparison-row">
+              <span>Meetings</span>
+              <strong>{formatCount(teamVsAverage.team.meetingCount)}</strong>
+              <strong>{formatCount(teamVsAverage.average.meetingCount)}</strong>
+            </div>
+            <div className="staff-projects__comparison-row">
+              <span>Total repo commits</span>
+              <strong>{formatCount(teamVsAverage.team.totalRepoCommits)}</strong>
+              <strong>{formatCount(teamVsAverage.average.totalRepoCommits)}</strong>
+            </div>
+            <div className="staff-projects__comparison-row">
+              <span>Average attendance</span>
+              <strong>{formatPercent(teamVsAverage.team.averageAttendance)}</strong>
+              <strong>{formatPercent(teamVsAverage.average.averageAttendance)}</strong>
+            </div>
+          </article>
+        ) : null}
       </section>
 
       <section className="staff-projects__team-card" aria-label="Team members">
