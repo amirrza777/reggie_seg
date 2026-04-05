@@ -1426,6 +1426,7 @@ export async function getTeamById(teamId: number) {
           user: {
             select: {
               id: true,
+              role: true,
               firstName: true,
               lastName: true,
               email: true,
@@ -1461,6 +1462,7 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
           user: {
             select: {
               id: true,
+              role: true,
               firstName: true,
               lastName: true,
               email: true,
