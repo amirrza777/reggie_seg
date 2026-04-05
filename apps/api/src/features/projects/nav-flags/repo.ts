@@ -54,6 +54,23 @@ async function getStaffProjectNavFlagsSettingsScope(actorUserId: number, project
   return projectInEnterprise;
 }
 
+async function assertCanWriteProjectNavFlags(actorUserId: number, projectId: number, enterpriseId: string) {
+  const leadAccess = await prisma.project.findFirst({
+    where: {
+      id: projectId,
+      module: {
+        enterpriseId,
+        moduleLeads: { some: { userId: actorUserId } },
+      },
+    },
+    select: { id: true },
+  });
+
+  if (!leadAccess) {
+    throw { code: "FORBIDDEN", message: "Only project/module leads can update project feature flags" };
+  }
+}
+
 export async function getStaffProjectNavFlagsConfig(actorUserId: number, projectId: number) {
   const scope = await getStaffProjectNavFlagsSettingsScope(actorUserId, projectId);
   return prisma.project.findUnique({
@@ -77,7 +94,13 @@ export async function updateStaffProjectNavFlagsConfig(
   projectId: number,
   projectNavFlags: unknown,
 ) {
+  const actor = await getScopedStaffUser(actorUserId);
+  if (!actor) {
+    throw { code: "FORBIDDEN", message: "User not found" };
+  }
+
   const scope = await getStaffProjectNavFlagsSettingsScope(actorUserId, projectId);
+  await assertCanWriteProjectNavFlags(actorUserId, scope.id, actor.enterpriseId);
   await assertProjectMutableForWritesByProjectId(scope.id);
   return prisma.project.update({
     where: { id: scope.id },

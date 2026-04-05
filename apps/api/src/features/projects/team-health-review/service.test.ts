@@ -7,14 +7,20 @@ import {
   reviewTeamHealthMessageForStaff,
 } from "./service.js";
 import * as repo from "../repo.js";
+import * as notificationsService from "../../notifications/service.js";
 
 vi.mock("../repo.js", () => ({
   canStaffAccessTeamInProject: vi.fn(),
+  getTeamById: vi.fn(),
   getTeamDeadlineDetailsInProject: vi.fn(),
   getTeamCurrentDeadlineInProject: vi.fn(),
   hasAnotherResolvedTeamHealthMessage: vi.fn(),
   reviewTeamHealthMessage: vi.fn(),
   resolveTeamHealthMessageWithDeadlineOverride: vi.fn(),
+}));
+
+vi.mock("../../notifications/service.js", () => ({
+  addNotification: vi.fn(),
 }));
 
 describe("team-health-review service", () => {
@@ -47,6 +53,7 @@ describe("team-health-review service", () => {
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(false);
     await expect(reviewTeamHealthMessageForStaff(9, 3, 2, 11, false)).resolves.toBeNull();
     expect(repo.reviewTeamHealthMessage).not.toHaveBeenCalled();
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
 
     (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
     (repo.reviewTeamHealthMessage as any).mockResolvedValueOnce({ id: 11, resolved: false });
@@ -55,6 +62,41 @@ describe("team-health-review service", () => {
       resolved: false,
     });
     expect(repo.reviewTeamHealthMessage).toHaveBeenCalledWith(3, 2, 11, 9, false, undefined);
+    expect(notificationsService.addNotification).not.toHaveBeenCalled();
+  });
+
+  it("reviewTeamHealthMessageForStaff notifies students when staff response text is saved", async () => {
+    (repo.canStaffAccessTeamInProject as any).mockResolvedValueOnce(true);
+    (repo.reviewTeamHealthMessage as any).mockResolvedValueOnce({
+      id: 11,
+      resolved: true,
+      responseText: "Thanks for raising this. We will follow up.",
+    });
+    (repo.getTeamById as any).mockResolvedValueOnce({
+      id: 2,
+      projectId: 3,
+      allocations: [
+        { userId: 101, user: { role: "STUDENT" } },
+        { userId: 102, user: { role: "STUDENT" } },
+        { userId: 9, user: { role: "STAFF" } },
+      ],
+    });
+
+    await reviewTeamHealthMessageForStaff(9, 3, 2, 11, true, "Thanks for raising this. We will follow up.");
+
+    expect(notificationsService.addNotification).toHaveBeenCalledTimes(2);
+    expect(notificationsService.addNotification).toHaveBeenCalledWith({
+      userId: 101,
+      type: "TEAM_HEALTH_SUBMITTED",
+      message: "Staff has responded to a team health message",
+      link: "/projects/3/team-health",
+    });
+    expect(notificationsService.addNotification).toHaveBeenCalledWith({
+      userId: 102,
+      type: "TEAM_HEALTH_SUBMITTED",
+      message: "Staff has responded to a team health message",
+      link: "/projects/3/team-health",
+    });
   });
 
   it("resolveTeamHealthMessageWithDeadlineOverrideForStaff fills omitted fields from current deadline", async () => {

@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import {
   StaffPeerStudentAssessmentsPanel,
   type StaffPeerAssessmentGroup,
 } from "@/features/staff/projects/components/StaffPeerStudentAssessmentsPanel";
-import { getFeedbackReview, getPeerAssessmentsForUser as getPeerFeedbackAssessmentsForUser } from "@/features/peerFeedback/api/client";
+import { getFeedbackReview } from "@/features/peerFeedback/api/client";
 import {
   getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
@@ -133,18 +132,17 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
   > = {};
 
   try {
-    const feedbackRows = await getPeerFeedbackAssessmentsForUser(String(numericStudentId), projectId);
     await Promise.all(
-      feedbackRows.map(async (row) => {
+      receivedAssessments.map(async (assessment) => {
         try {
-          const review = await getFeedbackReview(String(row.id));
-          feedbackById[String(row.id)] = {
+          const review = await getFeedbackReview(String(assessment.id));
+          feedbackById[String(assessment.id)] = {
             reviewText: review.reviewText ?? null,
             agreementsJson:
               (review.agreementsJson as Record<string, { selected: string; score: number }> | null) ?? null,
           };
         } catch {
-          feedbackById[String(row.id)] = { reviewText: null, agreementsJson: null };
+          feedbackById[String(assessment.id)] = { reviewText: null, agreementsJson: null };
         }
       })
     );
@@ -158,14 +156,6 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
 
   return (
     <>
-        <Link
-          href={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
-          className="pill-nav__link staff-projects__team-action"
-          style={{ width: "fit-content", marginBottom: 14 }}
-        >
-          ← Back to peer overview
-        </Link>
-
       <section className="staff-projects__hero">
         <p className="staff-projects__eyebrow">Peer Assessment</p>
         <h1 className="staff-projects__title">{studentTitle}</h1>
@@ -189,6 +179,7 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
           expectedPeerReviews={expectedPeerReviews}
           givenGroups={givenGroups}
           receivedGroups={receivedGroups}
+          backHref={`/staff/projects/${project.id}/teams/${team.id}/peer-assessment`}
         />
       )}
     </>

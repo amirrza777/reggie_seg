@@ -18,13 +18,22 @@ export function buildFeedbackText(reviewerId: number, revieweeId: number) {
   return `Reviewer ${reviewerId} noted that teammate ${revieweeId} maintained steady contributions, met deadlines, and supported team delivery.`;
 }
 
-export function buildAgreementPayload(reviewerId: number, revieweeId: number) {
-  return {
-    communication: (reviewerId + revieweeId) % 2 === 0,
-    contributionVisible: true,
-    wouldWorkAgain: (reviewerId + revieweeId) % 3 !== 0,
-    followUpNeeded: false,
-  };
+export function buildAgreementPayload(reviewerId: number, revieweeId: number, questionLabels?: string[]) {
+  void reviewerId;
+  void revieweeId;
+  const keys =
+    Array.isArray(questionLabels) && questionLabels.length > 0
+      ? questionLabels
+      : ["communication", "contributionVisible", "wouldWorkAgain", "followUpNeeded"];
+  return Object.fromEntries(
+    keys.map((key) => [
+      key,
+      {
+        selected: "Reasonable",
+        score: 3,
+      },
+    ])
+  );
 }
 
 export function buildScenarioAnswer(question: ScenarioQuestion, reviewerId: number, revieweeId: number, index: number): unknown {

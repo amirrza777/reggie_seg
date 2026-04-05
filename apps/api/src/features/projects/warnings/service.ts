@@ -1,7 +1,9 @@
 import { prisma } from "../../../shared/db.js";
 import { assertProjectMutableForWritesByProjectId } from "../../../shared/projectWriteGuard.js";
+import { addNotification } from "../../notifications/service.js";
 import {
   getTeamByUserAndProject,
+  getTeamById,
   getStaffProjectWarningsConfig as getStaffProjectWarningsConfigInDb,
   getProjectWarningsSettings as getProjectWarningsSettingsInDb,
   getProjectTeamWarningSignals as getProjectTeamWarningSignalsInDb,
@@ -163,6 +165,31 @@ function getTtlDaysByWarningType(config: ProjectWarningsConfig): Map<string, num
   return ttlByWarningType;
 }
 
+async function notifyTeamStudentsAboutWarning(
+  projectId: number,
+  teamId: number,
+  title: string,
+) {
+  const team = await getTeamById(teamId);
+  if (!team || team.projectId !== projectId) return;
+
+  const studentIds = team.allocations
+    .filter((allocation) => allocation.user.role === "STUDENT")
+    .map((allocation) => allocation.userId);
+  if (studentIds.length === 0) return;
+
+  await Promise.all(
+    studentIds.map((userId) =>
+      addNotification({
+        userId,
+        type: "LOW_ATTENDANCE",
+        message: `New team warning: ${title}`,
+        link: `/projects/${projectId}/team-health`,
+      }),
+    ),
+  );
+}
+
 export async function createTeamWarningForStaff(
   userId: number,
   projectId: number,
@@ -174,11 +201,13 @@ export async function createTeamWarningForStaff(
 
   await assertProjectMutableForWritesByProjectId(projectId);
 
-  return createTeamWarning(projectId, teamId, {
+  const warning = await createTeamWarning(projectId, teamId, {
     ...payload,
     source: "MANUAL",
     createdByUserId: userId,
   });
+  await notifyTeamStudentsAboutWarning(projectId, teamId, warning.title);
+  return warning;
 }
 
 export async function fetchTeamWarningsForStaff(userId: number, projectId: number, teamId: number) {
@@ -341,7 +370,7 @@ async function evaluateProjectWarningsWithConfig(
   let createdWarnings = 0;
   for (const [key, warning] of desiredByKey.entries()) {
     if (activeByKey.has(key)) continue;
-    await createTeamWarning(projectId, warning.teamId, {
+    const createdWarning = await createTeamWarning(projectId, warning.teamId, {
       type: warning.type,
       severity: warning.severity,
       title: warning.title,
@@ -349,6 +378,7 @@ async function evaluateProjectWarningsWithConfig(
       source: "AUTO",
       createdByUserId: null,
     });
+    await notifyTeamStudentsAboutWarning(projectId, warning.teamId, createdWarning.title);
     createdWarnings += 1;
   }
 

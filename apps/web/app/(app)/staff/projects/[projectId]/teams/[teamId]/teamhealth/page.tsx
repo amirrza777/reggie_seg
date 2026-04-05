@@ -8,6 +8,7 @@ import { listMeetings } from "@/features/meetings/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
+import { StaffSignalLookbackSelect } from "@/features/staff/projects/components/StaffSignalLookbackSelect";
 import "@/features/staff/projects/styles/staff-projects.css";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import type { GithubLatestSnapshot } from "@/features/github/types";
@@ -15,6 +16,7 @@ import type { Meeting } from "@/features/meetings/types";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
+  searchParams?: Promise<{ lookback?: string | string[] }>;
 };
 
 type MeetingHealthSummary = {
@@ -29,8 +31,7 @@ type MeetingHealthSummary = {
 type RepoHealthSummary = {
   linkedRepos: number;
   analysedRepos: number;
-  commitsLast14Days: number | null;
-  activeCommitDaysLast14Days: number | null;
+  commitsByDay: Record<string, number> | null;
   latestAnalysedAt: string | null;
 };
 
@@ -109,15 +110,32 @@ function getTeamCommitsByDay(
   return Object.fromEntries(merged);
 }
 
-function countCommitsForLastDays(commitsByDay: Map<string, number>, days: number) {
-  const now = Date.now();
-  const cutoff = now - days * 24 * 60 * 60 * 1000;
+type SignalLookback = 7 | 14 | 30 | "all";
+
+function parseSignalLookback(value: string | undefined): SignalLookback {
+  if (value === "7") return 7;
+  if (value === "14") return 14;
+  if (value === "30") return 30;
+  if (value === "all") return "all";
+  return 30;
+}
+
+function countCommitsForLookback(
+  commitsByDay: Record<string, number>,
+  nowMs: number,
+  lookback: SignalLookback,
+) {
+  const cutoff = lookback === "all" ? null : nowMs - lookback * 24 * 60 * 60 * 1000;
   let total = 0;
   let activeDays = 0;
 
-  for (const [day, commits] of commitsByDay.entries()) {
-    const timestamp = new Date(`${day}T00:00:00.000Z`).getTime();
-    if (Number.isNaN(timestamp) || timestamp < cutoff) continue;
+  for (const [day, rawCommits] of Object.entries(commitsByDay)) {
+    const dayMs = new Date(`${day}T00:00:00.000Z`).getTime();
+    if (!Number.isFinite(dayMs) || dayMs > nowMs) continue;
+    if (cutoff != null && dayMs < cutoff) continue;
+
+    const commits = Number(rawCommits);
+    if (!Number.isFinite(commits)) continue;
     total += commits;
     if (commits > 0) activeDays += 1;
   }
@@ -131,8 +149,7 @@ async function loadRepoHealthSummary(projectId: number, teamUserIds: number[]): 
     return {
       linkedRepos: 0,
       analysedRepos: 0,
-      commitsLast14Days: null,
-      activeCommitDaysLast14Days: null,
+      commitsByDay: null,
       latestAnalysedAt: null,
     };
   }
@@ -169,18 +186,15 @@ async function loadRepoHealthSummary(projectId: number, teamUserIds: number[]): 
     return {
       linkedRepos: links.length,
       analysedRepos,
-      commitsLast14Days: null,
-      activeCommitDaysLast14Days: null,
+      commitsByDay: null,
       latestAnalysedAt,
     };
   }
 
-  const recent = countCommitsForLastDays(aggregateByDay, 14);
   return {
     linkedRepos: links.length,
     analysedRepos,
-    commitsLast14Days: recent.total,
-    activeCommitDaysLast14Days: recent.activeDays,
+    commitsByDay: Object.fromEntries(aggregateByDay),
     latestAnalysedAt,
   };
 }
@@ -201,143 +215,6 @@ function buildPeerAssessmentHealthSummary(
   };
 }
 
-function formatDateTime(value: string | null) {
-  if (!value) return "Not available";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "Not available";
-  return parsed.toLocaleString();
-}
-
-type HealthSignalStatus = "ALERT" | "OK" | "UNKNOWN";
-
-type HealthSignal = {
-  key: string;
-  label: string;
-  status: HealthSignalStatus;
-  detail: string;
-};
-
-function buildHealthSignals(input: {
-  teamSize: number;
-  repo: RepoHealthSummary | null;
-  meetings: MeetingHealthSummary | null;
-  peer: PeerAssessmentHealthSummary | null;
-  requests: TeamHealthMessage[];
-}) {
-  const signals: HealthSignal[] = [];
-
-  const commitTargetFloor = Math.max(2, input.teamSize);
-  if (input.repo?.commitsLast14Days == null) {
-    signals.push({
-      key: "LOW_COMMIT_ACTIVITY",
-      label: "Commit activity (14d)",
-      status: "UNKNOWN",
-      detail: "No repository activity data available yet.",
-    });
-  } else if (input.repo.commitsLast14Days < commitTargetFloor) {
-    signals.push({
-      key: "LOW_COMMIT_ACTIVITY",
-      label: "Commit activity (14d)",
-      status: "ALERT",
-      detail: `${input.repo.commitsLast14Days} commits in last 14 days (expected at least ${commitTargetFloor}).`,
-    });
-  } else {
-    signals.push({
-      key: "LOW_COMMIT_ACTIVITY",
-      label: "Commit activity (14d)",
-      status: "OK",
-      detail: `${input.repo.commitsLast14Days} commits in last 14 days.`,
-    });
-  }
-
-  if (!input.meetings) {
-    signals.push({
-      key: "MEETING_FREQUENCY",
-      label: "Meeting frequency (30d)",
-      status: "UNKNOWN",
-      detail: "No meeting data available.",
-    });
-  } else if (input.meetings.recentThirtyDays === 0) {
-    signals.push({
-      key: "MEETING_FREQUENCY",
-      label: "Meeting frequency (30d)",
-      status: "ALERT",
-      detail: "No team meetings in the last 30 days.",
-    });
-  } else {
-    signals.push({
-      key: "MEETING_FREQUENCY",
-      label: "Meeting frequency (30d)",
-      status: "OK",
-      detail: `${input.meetings.recentThirtyDays} meeting(s) in the last 30 days.`,
-    });
-  }
-
-  if (input.meetings?.attendanceRate == null) {
-    signals.push({
-      key: "LOW_ATTENDANCE",
-      label: "Attendance trend (30d)",
-      status: "UNKNOWN",
-      detail: "Attendance data has not been marked yet.",
-    });
-  } else if (input.meetings.attendanceRate < 70) {
-    signals.push({
-      key: "LOW_ATTENDANCE",
-      label: "Attendance trend (30d)",
-      status: "ALERT",
-      detail: `Attendance is ${input.meetings.attendanceRate}% (threshold: 70%).`,
-    });
-  } else {
-    signals.push({
-      key: "LOW_ATTENDANCE",
-      label: "Attendance trend (30d)",
-      status: "OK",
-      detail: `Attendance is ${input.meetings.attendanceRate}%.`,
-    });
-  }
-
-  if (input.peer?.completionRate == null) {
-    signals.push({
-      key: "PEER_COMPLETION",
-      label: "Peer assessment completion",
-      status: "UNKNOWN",
-      detail: "Peer-assessment completion data not available.",
-    });
-  } else if (input.peer.completionRate < 80) {
-    signals.push({
-      key: "PEER_COMPLETION",
-      label: "Peer assessment completion",
-      status: "ALERT",
-      detail: `${input.peer.completionRate}% completion (threshold: 80%).`,
-    });
-  } else {
-    signals.push({
-      key: "PEER_COMPLETION",
-      label: "Peer assessment completion",
-      status: "OK",
-      detail: `${input.peer.completionRate}% completion.`,
-    });
-  }
-
-  const openSupportRequests = input.requests.filter((request) => !request.resolved).length;
-  if (openSupportRequests > 0) {
-    signals.push({
-      key: "OPEN_SUPPORT_REQUESTS",
-      label: "Open support requests",
-      status: "ALERT",
-      detail: `${openSupportRequests} request${openSupportRequests === 1 ? "" : "s"} awaiting action.`,
-    });
-  } else {
-    signals.push({
-      key: "OPEN_SUPPORT_REQUESTS",
-      label: "Open support requests",
-      status: "OK",
-      detail: "No open support requests.",
-    });
-  }
-
-  return signals;
-}
 function toTime(value: string | null | undefined) {
   if (!value) return Number.NaN;
   const timestamp = new Date(value).getTime();
@@ -355,8 +232,13 @@ function latestTimestamp(values: Array<string | null | undefined>): string | nul
   return new Date(latest).toISOString();
 }
 
-export default async function StaffTeamHealthPage({ params }: PageProps) {
+export default async function StaffTeamHealthPage({ params, searchParams }: PageProps) {
   const { projectId, teamId } = await params;
+  const rawSearchParams = searchParams ? await searchParams : undefined;
+  const lookbackParam = Array.isArray(rawSearchParams?.lookback) ? rawSearchParams?.lookback[0] : rawSearchParams?.lookback;
+  const selectedLookback = parseSignalLookback(lookbackParam);
+  const lookbackSelectValue: "7" | "14" | "30" | "all" =
+    selectedLookback === "all" ? "all" : String(selectedLookback) as "7" | "14" | "30";
   const user = await getCurrentUser();
 
   if (!user?.isStaff && user?.role !== "ADMIN") {
@@ -441,62 +323,65 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
         : "Failed to load peer-assessment signals."
       : null;
 
-  const healthSignals = buildHealthSignals({
-    teamSize: team.allocations.length,
-    repo: repoSummary,
-    meetings: meetingSummary,
-    peer: peerSummary,
-    requests,
-  });
-  const alertSignals = healthSignals.filter((signal) => signal.status === "ALERT");
-  const actionSignals = healthSignals.filter((signal) => signal.status !== "OK");
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
-  const unresolvedNoResponseCount = requests.filter((request) => !request.resolved && !request.responseText?.trim()).length;
-  const totalAlerts = alertSignals.length;
+  const totalIssues = warnings.length + requests.length;
   const latestSignalsAt = latestTimestamp([
     ...warnings.map((warning) => warning.updatedAt),
     ...requests.map((request) => request.updatedAt),
     meetingSummary?.lastMeetingAt,
     repoSummary?.latestAnalysedAt,
   ]);
-  const nowMs = latestSignalsAt ? new Date(latestSignalsAt).getTime() : Number.NaN;
-  const canUseTimeAnchor = Number.isFinite(nowMs);
-  const recentThirtyDaysCutoff = nowMs - 30 * 24 * 60 * 60 * 1000;
-  const staleSupportCutoff = nowMs - 7 * 24 * 60 * 60 * 1000;
-  const resolvedWarnings14Cutoff = nowMs - 14 * 24 * 60 * 60 * 1000;
+  const parsedSignalsAtMs = latestSignalsAt ? new Date(latestSignalsAt).getTime() : Number.NaN;
+  const fallbackSignalTimestamp = latestTimestamp([
+    ...warnings.map((warning) => warning.createdAt),
+    ...requests.map((request) => request.createdAt),
+    ...(meetingsResult.status === "fulfilled" ? meetingsResult.value.map((meeting) => meeting.date) : []),
+  ]);
+  const fallbackSignalTimestampMs = fallbackSignalTimestamp ? new Date(fallbackSignalTimestamp).getTime() : Number.NaN;
+  const nowMs = Number.isFinite(parsedSignalsAtMs)
+    ? parsedSignalsAtMs
+    : Number.isFinite(fallbackSignalTimestampMs)
+      ? fallbackSignalTimestampMs
+      : 0;
+  const lookbackCutoff = selectedLookback === "all" ? null : nowMs - selectedLookback * 24 * 60 * 60 * 1000;
   const meetings = meetingsResult.status === "fulfilled" ? meetingsResult.value : [];
-  const recentThirtyMeetings = meetings.filter((meeting) => {
-    if (!canUseTimeAnchor) return false;
+  const meetingsInLookback = meetings.filter((meeting) => {
     const dateMs = new Date(meeting.date).getTime();
-    return Number.isFinite(dateMs) && dateMs <= nowMs && dateMs >= recentThirtyDaysCutoff;
+    if (!Number.isFinite(dateMs) || dateMs > nowMs) return false;
+    if (lookbackCutoff == null) return true;
+    return dateMs >= lookbackCutoff;
   });
-  const meetingsWithMarkedAttendance30 = recentThirtyMeetings.filter((meeting) => meeting.attendances.length > 0).length;
-  const meetingsWithMinutes30 = recentThirtyMeetings.filter((meeting) => Boolean(meeting.minutes?.content?.trim())).length;
-  const attendanceCoverage30 =
-    recentThirtyMeetings.length > 0
-      ? Math.round((meetingsWithMarkedAttendance30 / recentThirtyMeetings.length) * 100)
+  const meetingsWithMarkedAttendance = meetingsInLookback.filter((meeting) => meeting.attendances.length > 0).length;
+  const meetingsWithMinutes = meetingsInLookback.filter((meeting) => Boolean(meeting.minutes?.content?.trim())).length;
+  const attendanceCoverage =
+    meetingsInLookback.length > 0
+      ? Math.round((meetingsWithMarkedAttendance / meetingsInLookback.length) * 100)
       : null;
-  const minutesCoverage30 =
-    recentThirtyMeetings.length > 0
-      ? Math.round((meetingsWithMinutes30 / recentThirtyMeetings.length) * 100)
+  const minutesCoverage =
+    meetingsInLookback.length > 0
+      ? Math.round((meetingsWithMinutes / meetingsInLookback.length) * 100)
       : null;
   const staleOpenRequests = requests.filter((request) => {
-    if (!canUseTimeAnchor) return false;
     if (request.resolved) return false;
     const createdMs = new Date(request.createdAt).getTime();
-    return Number.isFinite(createdMs) && createdMs <= staleSupportCutoff;
+    if (!Number.isFinite(createdMs) || createdMs > nowMs) return false;
+    if (lookbackCutoff == null) return true;
+    return createdMs <= lookbackCutoff;
   }).length;
   const respondedRequests = requests.filter((request) => Boolean(request.responseText?.trim())).length;
   const responseCoverage = requests.length > 0 ? Math.round((respondedRequests / requests.length) * 100) : null;
   const highSeverityOpenWarnings = openWarnings.filter((warning) => warning.severity === "HIGH").length;
-  const resolvedWarningsLast14Days = warnings.filter((warning) => {
-    if (!canUseTimeAnchor) return false;
+  const resolvedWarningsInLookback = warnings.filter((warning) => {
     if (warning.active || !warning.resolvedAt) return false;
     const resolvedMs = new Date(warning.resolvedAt).getTime();
-    return Number.isFinite(resolvedMs) && resolvedMs >= resolvedWarnings14Cutoff;
+    if (!Number.isFinite(resolvedMs) || resolvedMs > nowMs) return false;
+    if (lookbackCutoff == null) return true;
+    return resolvedMs >= lookbackCutoff;
   }).length;
+  const contributionInLookback =
+    repoSummary?.commitsByDay != null ? countCommitsForLookback(repoSummary.commitsByDay, nowMs, selectedLookback) : null;
   const avgOpenWarningAgeDays =
-    openWarnings.length > 0 && canUseTimeAnchor
+    openWarnings.length > 0
       ? Math.round(
           openWarnings.reduce((sum, warning) => {
             const createdMs = new Date(warning.createdAt).getTime();
@@ -507,14 +392,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
             (24 * 60 * 60 * 1000),
         )
       : null;
-  const availableSignalSources = [
-    meetingsResult.status === "fulfilled",
-    Boolean(repoSummary && repoSummary.analysedRepos > 0),
-    peerAssessmentResult.status === "fulfilled",
-  ].filter(Boolean).length;
-
   return (
-    <>
+    <div className="staff-projects__team-health-stack">
       <section className="staff-projects__team-list" aria-label="Team health snapshot">
         <article className="staff-projects__team-card staff-projects__team-card--signal">
 
@@ -531,8 +410,8 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               </p>
             </article>
             <article className="staff-projects__team-card staff-projects__health-metric-card">
-              <p className="staff-projects__health-metric-value">{totalAlerts}</p>
-              <p className="staff-projects__team-count">Total alerts</p>
+              <p className="staff-projects__health-metric-value">{totalIssues}</p>
+              <p className="staff-projects__team-count">Total issues</p>
             </article>
           </div>
         </article>
@@ -540,27 +419,30 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
 
       <section className="staff-projects__team-list" aria-label="Signal diagnostics">
         <article className="staff-projects__team-card staff-projects__team-card--signal">
-          <div>
-            <h3 className="staff-projects__team-title">Signals and diagnostics</h3>
-            <p className="staff-projects__team-count">Supporting signal data from meetings, repositories, and assessments.</p>
+          <div className="staff-projects__signal-header">
+            <div>
+              <h3 className="staff-projects__team-title">Signals and diagnostics</h3>
+              <p className="staff-projects__team-count">Supporting signal data from meetings, repositories, and assessments.</p>
+            </div>
+            <StaffSignalLookbackSelect value={lookbackSelectValue} />
           </div>
           <div className="staff-projects__health-insights-grid">
             <article className="staff-projects__health-insight">
-              <p className="staff-projects__health-insight-label">Attendance coverage (30d)</p>
+              <p className="staff-projects__health-insight-label">Attendance coverage</p>
               <p className="staff-projects__health-insight-value">
-                {attendanceCoverage30 == null ? "No meetings" : `${attendanceCoverage30}%`}
+                {attendanceCoverage == null ? "No meetings" : `${attendanceCoverage}%`}
               </p>
               <p className="staff-projects__health-insight-sub">
-                {meetingsWithMarkedAttendance30}/{recentThirtyMeetings.length} meetings have attendance marked.
+                {meetingsWithMarkedAttendance}/{meetingsInLookback.length} meetings have attendance marked.
               </p>
             </article>
             <article className="staff-projects__health-insight">
-              <p className="staff-projects__health-insight-label">Minutes coverage (30d)</p>
+              <p className="staff-projects__health-insight-label">Minutes coverage</p>
               <p className="staff-projects__health-insight-value">
-                {minutesCoverage30 == null ? "No meetings" : `${minutesCoverage30}%`}
+                {minutesCoverage == null ? "No meetings" : `${minutesCoverage}%`}
               </p>
               <p className="staff-projects__health-insight-sub">
-                {meetingsWithMinutes30}/{recentThirtyMeetings.length} meetings have minutes.
+                {meetingsWithMinutes}/{meetingsInLookback.length} meetings have minutes.
               </p>
             </article>
             <article className="staff-projects__health-insight">
@@ -575,7 +457,9 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
             <article className="staff-projects__health-insight">
               <p className="staff-projects__health-insight-label">Stale open requests</p>
               <p className="staff-projects__health-insight-value">{staleOpenRequests}</p>
-              <p className="staff-projects__health-insight-sub">Open for more than 7 days.</p>
+              <p className="staff-projects__health-insight-sub">
+                Unresolved support requests needing follow-up.
+              </p>
             </article>
           </div>
 
@@ -584,15 +468,15 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
               <h4 className="staff-projects__signal-section-title">Warning lifecycle</h4>
               <dl className="staff-projects__signal-kv">
                 <div><dt>High severity open</dt><dd>{highSeverityOpenWarnings}</dd></div>
-                <div><dt>Resolved in 14d</dt><dd>{resolvedWarningsLast14Days}</dd></div>
+                <div><dt>Resolved</dt><dd>{resolvedWarningsInLookback}</dd></div>
                 <div><dt>Avg open age</dt><dd>{avgOpenWarningAgeDays == null ? "—" : `${avgOpenWarningAgeDays}d`}</dd></div>
               </dl>
             </article>
             <article className="staff-projects__signal-section">
               <h4 className="staff-projects__signal-section-title">Contribution diagnostics</h4>
               <dl className="staff-projects__signal-kv">
-                <div><dt>Commits (14d)</dt><dd>{repoSummary?.commitsLast14Days ?? "—"}</dd></div>
-                <div><dt>Active coding days</dt><dd>{repoSummary?.activeCommitDaysLast14Days ?? "—"}</dd></div>
+                <div><dt>Commits</dt><dd>{contributionInLookback?.total ?? "—"}</dd></div>
+                <div><dt>Active coding days</dt><dd>{contributionInLookback?.activeDays ?? "—"}</dd></div>
                 <div><dt>Repo data coverage</dt><dd>{repoSummary ? `${repoSummary.analysedRepos}/${repoSummary.linkedRepos}` : "—"}</dd></div>
               </dl>
             </article>
@@ -606,52 +490,27 @@ export default async function StaffTeamHealthPage({ params }: PageProps) {
             </article>
           </div>
 
-          <div className="staff-projects__signal-issues">
-            <h4 className="staff-projects__signal-section-title">Action queue</h4>
-            {actionSignals.length === 0 ? (
-              <p className="staff-projects__team-count">No alerting signals right now.</p>
-            ) : null}
-            <dl className="staff-projects__signal-stats">
-              {actionSignals.map((signal) => (
-                <div key={signal.key} className="staff-projects__signal-stat">
-                  <dt>
-                    {signal.label}{" "}
-                    <span
-                      className={`staff-projects__signal-status staff-projects__signal-status--${signal.status.toLowerCase()}`}
-                    >
-                      {signal.status}
-                    </span>
-                  </dt>
-                  <dd>{signal.detail}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
           {repoError ? <p className="muted" style={{ margin: 0 }}>Repository signal error: {repoError}</p> : null}
           {meetingsError ? <p className="muted" style={{ margin: 0 }}>Meeting signal error: {meetingsError}</p> : null}
           {peerError ? <p className="muted" style={{ margin: 0 }}>Peer signal error: {peerError}</p> : null}
         </article>
       </section>
 
-      <section className="staff-projects__team-list" aria-label="Warning review">
-        <StaffTeamWarningReviewPanel
-          userId={user.id}
-          projectId={numericProjectId}
-          teamId={numericTeamId}
-          initialWarnings={warnings}
-          initialError={warningsError}
-        />
-      </section>
+      <StaffTeamWarningReviewPanel
+        userId={user.id}
+        projectId={numericProjectId}
+        teamId={numericTeamId}
+        initialWarnings={warnings}
+        initialError={warningsError}
+      />
 
-      <section className="staff-projects__team-list" aria-label="Message review">
-        <StaffTeamHealthMessageReviewPanel
-          userId={user.id}
-          projectId={numericProjectId}
-          teamId={numericTeamId}
-          initialRequests={requests}
-          initialError={requestsError}
-        />
-      </section>
-    </>
+      <StaffTeamHealthMessageReviewPanel
+        userId={user.id}
+        projectId={numericProjectId}
+        teamId={numericTeamId}
+        initialRequests={requests}
+        initialError={requestsError}
+      />
+    </div>
   );
 }
