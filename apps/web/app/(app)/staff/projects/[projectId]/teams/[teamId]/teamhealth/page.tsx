@@ -324,7 +324,7 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
       : null;
 
   const openSupportRequests = requests.filter((request) => !request.resolved).length;
-  const openIssues = openWarnings.length + openSupportRequests;
+  const totalIssues = warnings.length + requests.length;
   const latestSignalsAt = latestTimestamp([
     ...warnings.map((warning) => warning.updatedAt),
     ...requests.map((request) => request.updatedAt),
@@ -410,8 +410,8 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
               </p>
             </article>
             <article className="staff-projects__team-card staff-projects__health-metric-card">
-              <p className="staff-projects__health-metric-value">{openIssues}</p>
-              <p className="staff-projects__team-count">Open issues</p>
+              <p className="staff-projects__health-metric-value">{totalIssues}</p>
+              <p className="staff-projects__team-count">Total issues</p>
             </article>
           </div>
         </article>
