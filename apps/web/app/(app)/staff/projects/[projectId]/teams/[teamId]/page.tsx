@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
+import { getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
+import { getFeedbackReviewStatuses, getPeerAssessmentsForUser } from "@/features/peerFeedback/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
@@ -65,6 +66,83 @@ function formatCount(value: number | null) {
 
 function formatPercent(value: number | null) {
   return value == null ? "—" : `${value}%`;
+}
+
+function percentage(part: number, total: number): number | null {
+  if (!Number.isFinite(total) || total <= 0) return 0;
+  if (!Number.isFinite(part) || part < 0) return 0;
+  return Math.round((part / total) * 100);
+}
+
+function getMemberAttendancePercentByUserId(
+  meetings: Awaited<ReturnType<typeof listTeamMeetings>>,
+): Map<number, number | null> {
+  const counts = new Map<number, { marked: number; present: number }>();
+
+  for (const meeting of meetings) {
+    const attendances = Array.isArray(meeting.attendances) ? meeting.attendances : [];
+    for (const attendance of attendances) {
+      const current = counts.get(attendance.userId) ?? { marked: 0, present: 0 };
+      current.marked += 1;
+      if (presentStatuses.has(attendance.status.trim().toLowerCase())) {
+        current.present += 1;
+      }
+      counts.set(attendance.userId, current);
+    }
+  }
+
+  const result = new Map<number, number | null>();
+  for (const [userId, { marked, present }] of counts.entries()) {
+    result.set(userId, marked > 0 ? Math.round((present / marked) * 100) : null);
+  }
+  return result;
+}
+
+type MemberFeedbackProgress = {
+  assigned: number;
+  completed: number;
+};
+
+async function loadMemberFeedbackProgress(
+  projectId: number,
+  memberIds: number[],
+): Promise<Map<number, MemberFeedbackProgress>> {
+  const rows = await Promise.all(
+    memberIds.map(async (memberId) => {
+      try {
+        const assessments = await getPeerAssessmentsForUser(String(memberId), String(projectId));
+        return {
+          memberId,
+          assessmentIds: assessments.map((assessment) => String(assessment.id)),
+          assigned: assessments.length,
+        };
+      } catch {
+        return {
+          memberId,
+          assessmentIds: [] as string[],
+          assigned: 0,
+        };
+      }
+    }),
+  );
+
+  const allAssessmentIds = rows.flatMap((row) => row.assessmentIds);
+  let statuses: Record<string, boolean> = {};
+  if (allAssessmentIds.length > 0) {
+    try {
+      statuses = await getFeedbackReviewStatuses(allAssessmentIds);
+    } catch {
+      statuses = {};
+    }
+  }
+
+  const progressByMemberId = new Map<number, MemberFeedbackProgress>();
+  for (const row of rows) {
+    const completed = row.assessmentIds.reduce((sum, assessmentId) => sum + (statuses[assessmentId] ? 1 : 0), 0);
+    progressByMemberId.set(row.memberId, { assigned: row.assigned, completed });
+  }
+
+  return progressByMemberId;
 }
 
 async function loadProjectCommitTotalsByTeam(
@@ -135,33 +213,42 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     );
   }
 
-  let openSupportRequestCount: number | null = null;
-  let recordedMeetingCount: number | null = null;
-  let lastMeetingLabel: string | null = null;
   let teamVsAverage: { team: TeamOverviewMetrics; average: TeamOverviewMetrics } | null = null;
+  let assessmentByUserId = new Map<number, { submitted: number; expected: number }>();
+  let feedbackByUserId = new Map<number, MemberFeedbackProgress>();
+  let attendanceByUserId = new Map<number, number | null>();
 
-  const [supportRequestsResult, meetingsResult] = await Promise.allSettled([
-    getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
-    listTeamMeetings(numericTeamId),
-  ]);
-
-  if (supportRequestsResult.status === "fulfilled") {
-    openSupportRequestCount = supportRequestsResult.value.filter((request) => !request.resolved).length;
+  try {
+    const teamDetails = await getTeamDetails(user.id, data.project.moduleId, numericTeamId);
+    assessmentByUserId = new Map(
+      teamDetails.students
+        .filter((student): student is typeof student & { id: number } => student.id != null)
+        .map((student) => [
+          student.id,
+          {
+            submitted: Number(student.submitted) || 0,
+            expected: Number(student.expected) || 0,
+          },
+        ]),
+    );
+  } catch {
+    assessmentByUserId = new Map();
   }
 
-  if (meetingsResult.status === "fulfilled") {
-    recordedMeetingCount = meetingsResult.value.length;
+  try {
+    feedbackByUserId = await loadMemberFeedbackProgress(
+      numericProjectId,
+      team.allocations.map((allocation) => allocation.userId),
+    );
+  } catch {
+    feedbackByUserId = new Map();
+  }
 
-    const latestMeetingTimestamp = meetingsResult.value.reduce<number | null>((latest, meeting) => {
-      const timestamp = new Date(meeting.date).getTime();
-      if (!Number.isFinite(timestamp)) return latest;
-      if (latest == null || timestamp > latest) return timestamp;
-      return latest;
-    }, null);
-
-    if (latestMeetingTimestamp != null) {
-      lastMeetingLabel = new Date(latestMeetingTimestamp).toLocaleDateString();
-    }
+  try {
+    const teamMeetings = await listTeamMeetings(numericTeamId);
+    attendanceByUserId = getMemberAttendancePercentByUserId(teamMeetings);
+  } catch {
+    attendanceByUserId = new Map();
   }
 
   try {
@@ -241,26 +328,75 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
   return (
     <>
-      <section className="staff-projects__team-overview-top" aria-label="Team health summary">
-        <Link
-          href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
-          className="staff-projects__card"
-          aria-label="Team health"
-        >
-          <h3 className="staff-projects__card-title">Team health</h3>
-          <p className="staff-projects__card-sub">
-            {openSupportRequestCount == null
-              ? "Review risk indicators and support requests in the team health view."
-              : `${openSupportRequestCount} open support request${openSupportRequestCount === 1 ? "" : "s"}.`}
+      <section className="staff-projects__team-overview-top" aria-label="Team summary">
+        <section className="staff-projects__team-card" aria-label="Team members">
+          <div className="staff-projects__team-top">
+            <h3 style={{ margin: 0 }}>Team members</h3>
+            <Link
+              href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
+              className="pill-nav__link staff-projects__team-action"
+            >
+              Open team health
+            </Link>
+          </div>
+          <p className="muted" style={{ margin: 0 }}>
+            Use the tabs above to open peer assessment, peer feedback, repositories, meetings, and trello.
           </p>
-          <p className="staff-projects__card-sub">
-            {recordedMeetingCount == null
-              ? "Meeting activity signals are available in the team health view."
-              : `${recordedMeetingCount} meeting${recordedMeetingCount === 1 ? "" : "s"} recorded${
-                  lastMeetingLabel ? ` · Last meeting ${lastMeetingLabel}` : ""
-                }.`}
-          </p>
-        </Link>
+          {team.allocations.length === 0 ? <p className="muted" style={{ margin: 0 }}>No students assigned yet.</p> : null}
+          <div className="staff-projects__members">
+            {team.allocations.map((allocation) => {
+              const assessmentProgress = assessmentByUserId.get(allocation.userId);
+              const feedbackProgress = feedbackByUserId.get(allocation.userId);
+              const attendancePercent = attendanceByUserId.get(allocation.userId) ?? null;
+              const assessmentPercent = assessmentProgress
+                ? percentage(assessmentProgress.submitted, assessmentProgress.expected)
+                : null;
+              const feedbackPercent = feedbackProgress
+                ? percentage(feedbackProgress.completed, feedbackProgress.assigned)
+                : null;
+              return (
+                <div key={allocation.userId} className="staff-projects__member">
+                  <div className="staff-projects__avatar">
+                    {getInitials(allocation.user.firstName, allocation.user.lastName)}
+                  </div>
+                  <div>
+                    <p className="staff-projects__member-name">
+                      {allocation.user.firstName} {allocation.user.lastName}
+                    </p>
+                    <p className="staff-projects__member-email">{allocation.user.email}</p>
+                  </div>
+                  <div className="staff-projects__member-stats">
+                    <div className="staff-projects__member-stat-column">
+                      <Link
+                        href={`/staff/projects/${projectId}/teams/${teamId}/team-meetings`}
+                        className="staff-projects__member-metric-link"
+                      >
+                        Attendance <strong>{formatPercent(attendancePercent)}</strong>
+                      </Link>
+                    </div>
+                    <div className="staff-projects__member-stat-column">
+                      <Link
+                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-assessment/${allocation.userId}`}
+                        className="staff-projects__member-metric-link"
+                      >
+                        Assessment <strong>{formatPercent(assessmentPercent)}</strong>
+                      </Link>
+                      <Link
+                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-feedback/${allocation.userId}`}
+                        className="staff-projects__member-metric-link"
+                      >
+                        Feedback <strong>{formatPercent(feedbackPercent)}</strong>
+                      </Link>
+                    </div>
+                    <div className="staff-projects__member-stat-column">
+                      <p className="staff-projects__member-stat-placeholder">Add metric</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
 
         {teamVsAverage ? (
           <article
@@ -299,29 +435,6 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
             </div>
           </article>
         ) : null}
-      </section>
-
-      <section className="staff-projects__team-card" aria-label="Team members">
-        <h3 style={{ margin: 0 }}>Team members</h3>
-        <p className="muted" style={{ margin: 0 }}>
-          Use the tabs above to open peer assessment, peer feedback, repositories, meetings, and trello.
-        </p>
-        {team.allocations.length === 0 ? <p className="muted" style={{ margin: 0 }}>No students assigned yet.</p> : null}
-        <div className="staff-projects__members">
-          {team.allocations.map((allocation) => (
-            <div key={allocation.userId} className="staff-projects__member">
-              <div className="staff-projects__avatar">
-                {getInitials(allocation.user.firstName, allocation.user.lastName)}
-              </div>
-              <div>
-                <p className="staff-projects__member-name">
-                  {allocation.user.firstName} {allocation.user.lastName}
-                </p>
-                <p className="staff-projects__member-email">{allocation.user.email}</p>
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
     </>
   );

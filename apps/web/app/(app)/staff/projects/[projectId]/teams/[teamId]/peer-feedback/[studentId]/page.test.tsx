@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
   getFeedbackReview,
+  getPeerAssessmentsForUser,
   getPeerAssessmentsReceivedForUser,
 } from "@/features/peerFeedback/api/client";
 import StaffPeerFeedbackStudentPage from "./page";
@@ -31,26 +31,21 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
 }));
 
 vi.mock("@/features/peerFeedback/api/client", () => ({
+  getPeerAssessmentsForUser: vi.fn(),
   getPeerAssessmentsReceivedForUser: vi.fn(),
   getFeedbackReview: vi.fn(),
-}));
-
-vi.mock("@/shared/ui/Card", () => ({
-  Card: ({ title, children }: { title: string; children: ReactNode }) => (
-    <section>
-      <h3>{title}</h3>
-      {children}
-    </section>
-  ),
 }));
 
 const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
+const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
 const getPeerAssessmentsReceivedForUserMock = vi.mocked(getPeerAssessmentsReceivedForUser);
 const getFeedbackReviewMock = vi.mocked(getFeedbackReview);
 
-const staffUser = { id: 7, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>;
+const staffUser = { id: 7, isStaff: true, role: "STAFF" } as Awaited<
+  ReturnType<typeof getCurrentUser>
+>;
 
 describe("StaffPeerFeedbackStudentPage", () => {
   beforeEach(() => {
@@ -58,10 +53,16 @@ describe("StaffPeerFeedbackStudentPage", () => {
   });
 
   it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getCurrentUserMock.mockResolvedValue({
+      id: 1,
+      isStaff: false,
+      role: "STUDENT",
+    } as Awaited<ReturnType<typeof getCurrentUser>>);
 
     await expect(
-      StaffPeerFeedbackStudentPage({ params: Promise.resolve({ projectId: "1", teamId: "2", studentId: "3" }) }),
+      StaffPeerFeedbackStudentPage({
+        params: Promise.resolve({ projectId: "1", teamId: "2", studentId: "3" }),
+      }),
     ).rejects.toBeInstanceOf(RedirectSentinel);
 
     expect(redirectMock).toHaveBeenCalledWith("/dashboard");
@@ -117,14 +118,17 @@ describe("StaffPeerFeedbackStudentPage", () => {
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
   });
 
-  it("uses fallback student title and empty-state evidence message", async () => {
+  it("renders fallback student title and empty-state sections", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockResolvedValue({
       project: { id: 9, moduleId: 1, name: "P" },
       teams: [{ id: 2, teamName: "Team Two", allocations: [] }],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
+    getPeerAssessmentsForUserMock.mockResolvedValue(
+      [] as Awaited<ReturnType<typeof getPeerAssessmentsForUser>>,
+    );
     getPeerAssessmentsReceivedForUserMock.mockResolvedValue(
-      [] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>
+      [] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>,
     );
 
     const page = await StaffPeerFeedbackStudentPage({
@@ -133,10 +137,16 @@ describe("StaffPeerFeedbackStudentPage", () => {
     render(page);
 
     expect(screen.getByRole("heading", { level: 1, name: "Student 3" })).toBeInTheDocument();
-    expect(screen.getByText("No peer-feedback evidence is available for this student yet.")).toBeInTheDocument();
+    expect(screen.getByText("Avg rating received")).toBeInTheDocument();
+    expect(
+      screen.getByText("No assessment reviews were found for assessments this student gave."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("No completed feedback reviews were found for assessments this student received."),
+    ).toBeInTheDocument();
   });
 
-  it("renders feedback evidence cards with student response and agreements", async () => {
+  it("renders ratings and answer text in both sections", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockResolvedValue({
       project: { id: 9, moduleId: 1, name: "P" },
@@ -148,30 +158,35 @@ describe("StaffPeerFeedbackStudentPage", () => {
         },
       ],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
-    getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
+    getPeerAssessmentsForUserMock.mockResolvedValue([
       {
-        id: 11,
+        id: "11",
         firstName: "Bob",
         lastName: "Smith",
         submittedAt: "2026-01-10T10:00:00.000Z",
         answers: [{ id: "a1", question: "Helped team?", answer: "Yes" }],
       },
+    ] as Awaited<ReturnType<typeof getPeerAssessmentsForUser>>);
+    getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
       {
-        id: 12,
+        id: "12",
         firstName: "Cara",
         lastName: "Jones",
         submittedAt: "2026-01-09T10:00:00.000Z",
-        answers: [],
+        answers: [{ id: "r1", question: "Communicated clearly?", answer: "Mostly" }],
       },
     ] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>);
     getFeedbackReviewMock.mockImplementation(async (feedbackId: string) => {
       if (feedbackId === "11") {
         return {
-          reviewText: "Thanks for the feedback",
-          agreementsJson: { a1: { selected: "Agree", score: 5 } },
+          reviewText: "Teammate noted strong delivery and communication.",
+          agreementsJson: { a1: { selected: "Agree", score: 4 } },
         } as Awaited<ReturnType<typeof getFeedbackReview>>;
       }
-      throw new Error("missing");
+      return {
+        reviewText: "I agreed with most of the assessment comments.",
+        agreementsJson: { r1: { selected: "Reasonable", score: 3 } },
+      } as Awaited<ReturnType<typeof getFeedbackReview>>;
     });
 
     const page = await StaffPeerFeedbackStudentPage({
@@ -180,12 +195,19 @@ describe("StaffPeerFeedbackStudentPage", () => {
     render(page);
 
     expect(screen.getByRole("heading", { level: 1, name: "Alice Roe" })).toBeInTheDocument();
-    expect(screen.getByText("Feedback items")).toBeInTheDocument();
-    expect(screen.getByText("Responses written")).toBeInTheDocument();
-    expect(screen.getByText("From Bob Smith")).toBeInTheDocument();
-    expect(screen.getByText("Thanks for the feedback")).toBeInTheDocument();
-    expect(screen.getByText("Answer a1: 5 - Agree")).toBeInTheDocument();
-    expect(screen.getByText("No written response submitted yet.")).toBeInTheDocument();
+    expect(screen.getByText("4.00 / 5")).toBeInTheDocument();
+    expect(screen.getByText("Reviews on this user’s assessments given to teammates")).toBeInTheDocument();
+    expect(screen.getByText("How this user reviewed assessments made on them")).toBeInTheDocument();
+    expect(screen.getAllByText("Bob Smith").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Cara Jones").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Helped team\?/)).toBeInTheDocument();
+    expect(screen.getByText(/Agree \(4\/5\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Communicated clearly\?/)).toBeInTheDocument();
+    expect(screen.getByText(/Reasonable \(3\/5\)/)).toBeInTheDocument();
+    expect(screen.getByText("Yes")).toBeInTheDocument();
+    expect(screen.getByText("Mostly")).toBeInTheDocument();
+    expect(screen.getByText("Teammate noted strong delivery and communication.")).toBeInTheDocument();
+    expect(screen.getByText("I agreed with most of the assessment comments.")).toBeInTheDocument();
   });
 
   it("renders unknown-name and no-response fallbacks", async () => {
@@ -200,25 +222,20 @@ describe("StaffPeerFeedbackStudentPage", () => {
         },
       ],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
-    getPeerAssessmentsReceivedForUserMock.mockResolvedValue([
+    getPeerAssessmentsForUserMock.mockResolvedValue([
       {
-        id: 21,
+        id: "21",
         firstName: "",
         lastName: "",
         submittedAt: "2026-01-10T10:00:00.000Z",
         answers: [{ id: "q1", question: "Communication", answer: "" }],
       },
-      {
-        id: 22,
-        firstName: undefined,
-        lastName: undefined,
-        submittedAt: "2026-01-09T10:00:00.000Z",
-        answers: null,
-      },
-    ] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>);
+    ] as Awaited<ReturnType<typeof getPeerAssessmentsForUser>>);
+    getPeerAssessmentsReceivedForUserMock.mockResolvedValue(
+      [] as Awaited<ReturnType<typeof getPeerAssessmentsReceivedForUser>>,
+    );
     getFeedbackReviewMock.mockResolvedValue({
-      reviewText: undefined,
-      agreementsJson: undefined,
+      agreementsJson: { random: { selected: "Reasonable", score: 3 } },
     } as Awaited<ReturnType<typeof getFeedbackReview>>);
 
     const page = await StaffPeerFeedbackStudentPage({
@@ -227,10 +244,8 @@ describe("StaffPeerFeedbackStudentPage", () => {
     render(page);
 
     expect(screen.getByRole("heading", { level: 1, name: "Unknown student" })).toBeInTheDocument();
-    expect(screen.getAllByText(/From Unknown teammate/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Unknown teammate").length).toBeGreaterThan(0);
     expect(screen.getByText("No response")).toBeInTheDocument();
-    expect(screen.getByText("No answer content stored.")).toBeInTheDocument();
-    expect(screen.getAllByText("No written response submitted yet.").length).toBeGreaterThan(0);
   });
 
   it("renders feedback load error", async () => {
@@ -239,7 +254,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
       project: { id: 9, moduleId: 1, name: "P" },
       teams: [{ id: 2, teamName: "Team Two", allocations: [] }],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
-    getPeerAssessmentsReceivedForUserMock.mockRejectedValue(new Error("feedback unavailable"));
+    getPeerAssessmentsForUserMock.mockRejectedValue(new Error("feedback unavailable"));
 
     const page = await StaffPeerFeedbackStudentPage({
       params: Promise.resolve({ projectId: "9", teamId: "2", studentId: "3" }),
@@ -255,7 +270,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
       project: { id: 9, moduleId: 1, name: "P" },
       teams: [{ id: 2, teamName: "Team Two", allocations: [] }],
     } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
-    getPeerAssessmentsReceivedForUserMock.mockRejectedValue("feedback unavailable");
+    getPeerAssessmentsForUserMock.mockRejectedValue("feedback unavailable");
 
     const page = await StaffPeerFeedbackStudentPage({
       params: Promise.resolve({ projectId: "9", teamId: "2", studentId: "3" }),

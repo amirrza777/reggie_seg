@@ -6,6 +6,7 @@ import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/pro
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
+import { getFeedbackReviewStatuses, getPeerAssessmentsForUser } from "@/features/peerFeedback/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffProjectTeamTabsPage from "./page";
@@ -48,6 +49,11 @@ vi.mock("@/features/github/api/client", () => ({
   getLatestProjectGithubSnapshot: vi.fn(),
 }));
 
+vi.mock("@/features/peerFeedback/api/client", () => ({
+  getPeerAssessmentsForUser: vi.fn(),
+  getFeedbackReviewStatuses: vi.fn(),
+}));
+
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
 }));
@@ -65,6 +71,8 @@ const listTeamMeetingsMock = vi.mocked(listTeamMeetings);
 const getTeamDetailsMock = vi.mocked(getTeamDetails);
 const listProjectGithubRepoLinksMock = vi.mocked(listProjectGithubRepoLinks);
 const getLatestProjectGithubSnapshotMock = vi.mocked(getLatestProjectGithubSnapshot);
+const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
+const getFeedbackReviewStatusesMock = vi.mocked(getFeedbackReviewStatuses);
 
 const staffUser = { id: 10, isStaff: true, role: "STAFF" } as Awaited<ReturnType<typeof getCurrentUser>>;
 
@@ -87,6 +95,8 @@ describe("StaffProjectTeamTabsPage", () => {
         repoStats: [],
       },
     });
+    getPeerAssessmentsForUserMock.mockResolvedValue([]);
+    getFeedbackReviewStatusesMock.mockResolvedValue({});
   });
 
   it("redirects non-staff users", async () => {
@@ -169,8 +179,7 @@ describe("StaffProjectTeamTabsPage", () => {
     });
     render(page);
 
-    expect(screen.getByText("Review risk indicators and support requests in the team health view.")).toBeInTheDocument();
-    expect(screen.getByText("Meeting activity signals are available in the team health view.")).toBeInTheDocument();
+    expect(screen.getByText("Use the tabs above to open peer assessment, peer feedback, repositories, meetings, and trello.")).toBeInTheDocument();
     expect(screen.getByText("No students assigned yet.")).toBeInTheDocument();
   });
 
@@ -211,8 +220,6 @@ describe("StaffProjectTeamTabsPage", () => {
     });
     render(page);
 
-    expect(screen.getByText("2 open support requests.")).toBeInTheDocument();
-    expect(screen.getByText(/3 meetings recorded · Last meeting/)).toBeInTheDocument();
     expect(screen.getByLabelText("Team versus project average metrics")).toBeInTheDocument();
     expect(screen.getByText("Alice Roe")).toBeInTheDocument();
     expect(screen.getByText("unknown@example.com")).toBeInTheDocument();
@@ -249,8 +256,6 @@ describe("StaffProjectTeamTabsPage", () => {
     });
     render(page);
 
-    expect(screen.getByText("1 open support request.")).toBeInTheDocument();
-    expect(screen.getByText("1 meeting recorded.")).toBeInTheDocument();
-    expect(screen.queryByText(/Last meeting/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Team versus project average metrics")).toBeInTheDocument();
   });
 });

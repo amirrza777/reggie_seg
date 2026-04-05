@@ -91,9 +91,9 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) max-content;
+  grid-template-columns: 34px minmax(220px, 1fr) minmax(360px, 1.2fr);
   gap: 10px 14px;
-  align-items: center;
+  align-items: start;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -127,6 +127,43 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--fs-caption);
+}
+
+.staff-projects__member-stats {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.9fr) minmax(160px, 1.1fr) minmax(120px, 0.9fr);
+  gap: 8px 24px;
+  width: 100%;
+  justify-items: end;
+}
+
+.staff-projects__member-stat-column {
+  padding-left: 0;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+
+.staff-projects__member-stat-placeholder {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__member-metric-link {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  display: inline-flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+  width: 100%;
+}
+
+.staff-projects__member-metric-link:hover,
+.staff-projects__member-metric-link:focus-visible {
+  color: var(--ink);
 }
 
 .staff-projects__team-health-review-box {
@@ -555,5 +592,24 @@
 @media (max-width: 960px) {
   .staff-projects__team-overview-top {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .staff-projects__member {
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .staff-projects__member-stats {
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    padding-left: 44px;
+  }
+
+  .staff-projects__member-stat-column {
+    border-top: 0;
+    padding-left: 0;
+    padding-top: 0;
   }
 }
