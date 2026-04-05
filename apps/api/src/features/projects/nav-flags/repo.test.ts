@@ -103,14 +103,25 @@ describe("projects/nav-flags repo", () => {
 
   it("updateStaffProjectNavFlagsConfig persists payload with scoped project id", async () => {
     const navFlags = { version: 1, active: { team: true } };
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 21,
-      role: "STAFF",
-      enterpriseId: "ent-1",
-    });
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 21,
+        role: "STAFF",
+        enterpriseId: "ent-1",
+      })
+      .mockResolvedValueOnce({
+        id: 21,
+        role: "STAFF",
+        enterpriseId: "ent-1",
+      });
     (prisma.project.findFirst as any)
       .mockResolvedValueOnce({ id: 3 })
+      .mockResolvedValueOnce({ id: 3 })
       .mockResolvedValueOnce({ id: 3 });
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      archivedAt: null,
+      module: { archivedAt: null },
+    });
     (prisma.project.update as any).mockResolvedValueOnce({
       id: 3,
       name: "Project 3",
@@ -129,5 +140,28 @@ describe("projects/nav-flags repo", () => {
         data: { projectNavFlags: navFlags },
       }),
     );
+  });
+
+  it("updateStaffProjectNavFlagsConfig rejects admin users who are not project/module leads", async () => {
+    const navFlags = { version: 1, active: { team: true } };
+    (prisma.user.findUnique as any)
+      .mockResolvedValueOnce({
+        id: 99,
+        role: "ADMIN",
+        enterpriseId: "ent-1",
+      })
+      .mockResolvedValueOnce({
+        id: 99,
+        role: "ADMIN",
+        enterpriseId: "ent-1",
+      });
+    (prisma.project.findFirst as any)
+      .mockResolvedValueOnce({ id: 3 })
+      .mockResolvedValueOnce(null);
+
+    await expect(updateStaffProjectNavFlagsConfig(99, 3, navFlags)).rejects.toMatchObject({
+      code: "FORBIDDEN",
+      message: "Only project/module leads can update project feature flags",
+    });
   });
 });
