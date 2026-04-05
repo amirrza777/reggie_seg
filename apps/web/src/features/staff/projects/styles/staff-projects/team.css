@@ -7,12 +7,18 @@
   display: grid;
   grid-template-columns: minmax(320px, 1fr) minmax(280px, 420px);
   gap: 16px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .staff-projects__team-health-stack {
   display: grid;
   gap: 14px;
+}
+
+.staff-projects__team-overview-side {
+  display: grid;
+  gap: 12px;
+  align-content: start;
 }
 
 .staff-projects__team-list > :is(h1, h2, h3, h4, h5, h6) {
@@ -548,6 +554,41 @@
 .staff-projects__card--comparison {
   align-content: start;
   gap: 8px;
+}
+
+.staff-projects__card--messages-preview {
+  align-content: start;
+}
+
+.staff-projects__message-preview-list {
+  display: grid;
+  gap: 8px;
+}
+
+.staff-projects__message-preview-link {
+  display: grid;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--surface) 90%, white 10%) 0%,
+      color-mix(in srgb, var(--surface) 97%, black 3%) 100%
+    );
+}
+
+.staff-projects__message-preview-link > span {
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+.staff-projects__message-preview-link:hover,
+.staff-projects__message-preview-link:focus-visible {
+  border-color: var(--accent-border);
 }
 
 .staff-projects__comparison-head {

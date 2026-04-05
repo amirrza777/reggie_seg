@@ -79,6 +79,7 @@ const staffUser = { id: 10, isStaff: true, role: "STAFF" } as Awaited<ReturnType
 describe("StaffProjectTeamTabsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getStaffTeamHealthMessagesMock.mockResolvedValue([] as Awaited<ReturnType<typeof getStaffTeamHealthMessages>>);
     getStaffTeamWarningsMock.mockResolvedValue([] as Awaited<ReturnType<typeof getStaffTeamWarnings>>);
     getTeamDetailsMock.mockResolvedValue({
       module: { id: 2, title: "Module", archivedAt: null },

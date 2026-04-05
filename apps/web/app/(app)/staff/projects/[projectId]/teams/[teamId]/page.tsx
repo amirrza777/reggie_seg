@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getStaffTeamWarnings } from "@/features/projects/api/client";
+import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
-import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
+import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import { getLatestProjectGithubSnapshot, listProjectGithubRepoLinks } from "@/features/github/api/client";
 import { getFeedbackReviewStatuses, getPeerAssessmentsForUser } from "@/features/peerFeedback/api/client";
+import { getTeamBoard } from "@/features/trello/api/client";
+import { countCardsByStatus } from "@/features/trello/lib/velocity";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
+import type { TeamHealthMessage } from "@/features/projects/types";
 
 type StaffProjectTeamTabsPageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -20,11 +23,12 @@ function getInitials(firstName: string, lastName: string) {
 }
 
 type TeamOverviewMetrics = {
-  activeWarnings: number | null;
+  totalWarnings: number | null;
   assessmentCompletion: number | null;
   meetingCount: number | null;
   totalRepoCommits: number | null;
   averageAttendance: number | null;
+  trelloCompletionRate: number | null;
 };
 
 const presentStatuses = new Set(["on_time", "late", "present"]);
@@ -163,23 +167,43 @@ async function loadProjectCommitTotalsByTeam(
 
   for (const snapshotResult of snapshots) {
     if (snapshotResult.status !== "fulfilled") continue;
+    const snapshot = snapshotResult.value.snapshot;
+    const snapshotTotalCommits = getSnapshotMainCommitTotal(snapshot);
 
     for (const [teamId, userIds] of teamUserIdsByTeamId.entries()) {
-      let commitsForTeamInSnapshot = 0;
-
-      for (const stat of snapshotResult.value.snapshot.userStats) {
-        if (stat.mappedUserId == null) continue;
-        if (!userIds.has(stat.mappedUserId)) continue;
-        const commits = Number(stat.commits);
-        if (!Number.isFinite(commits)) continue;
-        commitsForTeamInSnapshot += commits;
-      }
-
-      totalsByTeam.set(teamId, (totalsByTeam.get(teamId) ?? 0) + commitsForTeamInSnapshot);
+      if (userIds.size === 0) continue;
+      totalsByTeam.set(teamId, (totalsByTeam.get(teamId) ?? 0) + snapshotTotalCommits);
     }
   }
 
   return totalsByTeam;
+}
+
+function getSnapshotMainCommitTotal(
+  snapshot: Awaited<ReturnType<typeof getLatestProjectGithubSnapshot>>["snapshot"],
+): number {
+  const fromDefaultBranch = Number(snapshot.data?.branchScopeStats?.defaultBranch?.totalCommits);
+  if (Number.isFinite(fromDefaultBranch) && fromDefaultBranch >= 0) {
+    return fromDefaultBranch;
+  }
+
+  const fromRepoStats = Number(snapshot.repoStats[0]?.totalCommits);
+  if (Number.isFinite(fromRepoStats) && fromRepoStats >= 0) {
+    return fromRepoStats;
+  }
+
+  const fromAllBranches = Number(snapshot.data?.branchScopeStats?.allBranches?.totalCommits);
+  if (Number.isFinite(fromAllBranches) && fromAllBranches >= 0) {
+    return fromAllBranches;
+  }
+
+  return 0;
+}
+
+function formatMessageDate(value: string) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "Unknown date";
+  return parsed.toLocaleDateString("en-GB");
 }
 
 export default async function StaffProjectTeamTabsPage({ params }: StaffProjectTeamTabsPageProps) {
@@ -217,6 +241,8 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   let assessmentByUserId = new Map<number, { submitted: number; expected: number }>();
   let feedbackByUserId = new Map<number, MemberFeedbackProgress>();
   let attendanceByUserId = new Map<number, number | null>();
+  let finalMarkByUserId = new Map<number, number | null>();
+  let newMessages: TeamHealthMessage[] = [];
 
   try {
     const teamDetails = await getTeamDetails(user.id, data.project.moduleId, numericTeamId);
@@ -252,6 +278,36 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   }
 
   try {
+    const markResults = await Promise.allSettled(
+      team.allocations.map((allocation) =>
+        getStudentDetails(user.id, data.project.moduleId, numericTeamId, allocation.userId),
+      ),
+    );
+
+    finalMarkByUserId = new Map(
+      team.allocations.map((allocation, index) => {
+        const result = markResults[index];
+        if (result.status !== "fulfilled") {
+          return [allocation.userId, null] as const;
+        }
+        return [allocation.userId, result.value.studentMarking?.mark ?? null] as const;
+      }),
+    );
+  } catch {
+    finalMarkByUserId = new Map();
+  }
+
+  try {
+    const messages = await getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId);
+    newMessages = messages
+      .filter((message) => !message.resolved)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  } catch {
+    newMessages = [];
+  }
+
+  try {
     const teamUserIdsByTeamId = new Map(
       data.teams.map((projectTeam) => [
         projectTeam.id,
@@ -270,15 +326,16 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
     const perTeamMetrics = await Promise.all(
       data.teams.map(async (projectTeam) => {
-        const [teamWarningsResult, teamMeetingsResult, teamAssessmentResult] = await Promise.allSettled([
+        const [teamWarningsResult, teamMeetingsResult, teamAssessmentResult, teamTrelloResult] = await Promise.allSettled([
           getStaffTeamWarnings(user.id, numericProjectId, projectTeam.id),
           listTeamMeetings(projectTeam.id),
           getTeamDetails(user.id, data.project.moduleId, projectTeam.id),
+          getTeamBoard(projectTeam.id),
         ]);
 
-        const activeWarnings =
+        const totalWarnings =
           teamWarningsResult.status === "fulfilled"
-            ? teamWarningsResult.value.filter((warning) => warning.active).length
+            ? teamWarningsResult.value.length
             : null;
 
         const meetingCount =
@@ -296,12 +353,26 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
             ? getAssessmentCompletion(teamAssessmentResult.value.students)
             : null;
 
+        const trelloCompletionRate =
+          teamTrelloResult.status === "fulfilled" && teamTrelloResult.value.ok
+            ? (() => {
+                const counts = countCardsByStatus(
+                  teamTrelloResult.value.view.cardsByList,
+                  teamTrelloResult.value.view.listNamesById,
+                  teamTrelloResult.value.sectionConfig,
+                );
+                if (counts.total <= 0) return null;
+                return Math.round((counts.completed / counts.total) * 100);
+              })()
+            : null;
+
         return [projectTeam.id, {
-          activeWarnings,
+          totalWarnings,
           assessmentCompletion,
           meetingCount,
           totalRepoCommits: commitTotalsByTeam.get(projectTeam.id) ?? 0,
           averageAttendance,
+          trelloCompletionRate,
         } satisfies TeamOverviewMetrics] as const;
       }),
     );
@@ -314,11 +385,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
       teamVsAverage = {
         team: selectedTeamMetrics,
         average: {
-          activeWarnings: average(allMetrics.map((metric) => metric.activeWarnings)),
+          totalWarnings: average(allMetrics.map((metric) => metric.totalWarnings)),
           assessmentCompletion: average(allMetrics.map((metric) => metric.assessmentCompletion)),
           meetingCount: average(allMetrics.map((metric) => metric.meetingCount)),
           totalRepoCommits: average(allMetrics.map((metric) => metric.totalRepoCommits)),
           averageAttendance: average(allMetrics.map((metric) => metric.averageAttendance)),
+          trelloCompletionRate: average(allMetrics.map((metric) => metric.trelloCompletionRate)),
         },
       };
     }
@@ -330,15 +402,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     <>
       <section className="staff-projects__team-overview-top" aria-label="Team summary">
         <section className="staff-projects__team-card" aria-label="Team members">
-          <div className="staff-projects__team-top">
-            <h3 style={{ margin: 0 }}>Team members</h3>
-            <Link
-              href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth`}
-              className="pill-nav__link staff-projects__team-action"
-            >
-              Open team health
-            </Link>
-          </div>
+          <h3 style={{ margin: 0 }}>Team members</h3>
           <p className="muted" style={{ margin: 0 }}>
             Use the tabs above to open peer assessment, peer feedback, repositories, meetings, and trello.
           </p>
@@ -354,6 +418,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
               const feedbackPercent = feedbackProgress
                 ? percentage(feedbackProgress.completed, feedbackProgress.assigned)
                 : null;
+              const finalMark = finalMarkByUserId.get(allocation.userId) ?? null;
               return (
                 <div key={allocation.userId} className="staff-projects__member">
                   <div className="staff-projects__avatar">
@@ -389,7 +454,12 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
                       </Link>
                     </div>
                     <div className="staff-projects__member-stat-column">
-                      <p className="staff-projects__member-stat-placeholder">Add metric</p>
+                      <Link
+                        href={`/staff/projects/${projectId}/teams/${teamId}/peer-assessment/${allocation.userId}`}
+                        className="staff-projects__member-metric-link"
+                      >
+                        Final mark <strong>{finalMark == null ? "--" : String(finalMark)}</strong>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -398,43 +468,81 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
           </div>
         </section>
 
-        {teamVsAverage ? (
-          <article
-            className="staff-projects__card staff-projects__card--comparison"
-            aria-label="Team versus project average metrics"
-          >
-            <div className="staff-projects__comparison-head">
-              <span>Metric</span>
-              <span>Team</span>
-              <span>Avg</span>
+        <div className="staff-projects__team-overview-side">
+          {teamVsAverage ? (
+            <article
+              className="staff-projects__card staff-projects__card--comparison"
+              aria-label="Team versus project average metrics"
+            >
+              <div className="staff-projects__comparison-head">
+                <span>Metric</span>
+                <span>Team</span>
+                <span>Avg</span>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Total warnings</span>
+                <strong>{formatCount(teamVsAverage.team.totalWarnings)}</strong>
+                <strong>{formatCount(teamVsAverage.average.totalWarnings)}</strong>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Assessment completion</span>
+                <strong>{formatPercent(teamVsAverage.team.assessmentCompletion)}</strong>
+                <strong>{formatPercent(teamVsAverage.average.assessmentCompletion)}</strong>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Meetings</span>
+                <strong>{formatCount(teamVsAverage.team.meetingCount)}</strong>
+                <strong>{formatCount(teamVsAverage.average.meetingCount)}</strong>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Total commits (main)</span>
+                <strong>{formatCount(teamVsAverage.team.totalRepoCommits)}</strong>
+                <strong>{formatCount(teamVsAverage.average.totalRepoCommits)}</strong>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Average attendance</span>
+                <strong>{formatPercent(teamVsAverage.team.averageAttendance)}</strong>
+                <strong>{formatPercent(teamVsAverage.average.averageAttendance)}</strong>
+              </div>
+              <div className="staff-projects__comparison-row">
+                <span>Trello completion rate</span>
+                <strong>{formatPercent(teamVsAverage.team.trelloCompletionRate)}</strong>
+                <strong>{formatPercent(teamVsAverage.average.trelloCompletionRate)}</strong>
+              </div>
+            </article>
+          ) : null}
+
+          <article className="staff-projects__card staff-projects__card--messages-preview" aria-label="New team health messages">
+            <div className="staff-projects__team-top">
+              <h3 className="staff-projects__team-title" style={{ margin: 0 }}>New messages</h3>
+              <Link
+                href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth#team-health-messages`}
+                className="pill-nav__link"
+              >
+                Open
+              </Link>
             </div>
-            <div className="staff-projects__comparison-row">
-              <span>Active warnings</span>
-              <strong>{formatCount(teamVsAverage.team.activeWarnings)}</strong>
-              <strong>{formatCount(teamVsAverage.average.activeWarnings)}</strong>
-            </div>
-            <div className="staff-projects__comparison-row">
-              <span>Assessment completion</span>
-              <strong>{formatPercent(teamVsAverage.team.assessmentCompletion)}</strong>
-              <strong>{formatPercent(teamVsAverage.average.assessmentCompletion)}</strong>
-            </div>
-            <div className="staff-projects__comparison-row">
-              <span>Meetings</span>
-              <strong>{formatCount(teamVsAverage.team.meetingCount)}</strong>
-              <strong>{formatCount(teamVsAverage.average.meetingCount)}</strong>
-            </div>
-            <div className="staff-projects__comparison-row">
-              <span>Total repo commits</span>
-              <strong>{formatCount(teamVsAverage.team.totalRepoCommits)}</strong>
-              <strong>{formatCount(teamVsAverage.average.totalRepoCommits)}</strong>
-            </div>
-            <div className="staff-projects__comparison-row">
-              <span>Average attendance</span>
-              <strong>{formatPercent(teamVsAverage.team.averageAttendance)}</strong>
-              <strong>{formatPercent(teamVsAverage.average.averageAttendance)}</strong>
-            </div>
+
+            {newMessages.length === 0 ? (
+              <p className="muted" style={{ margin: 0 }}>
+                No new messages.
+              </p>
+            ) : (
+              <div className="staff-projects__message-preview-list">
+                {newMessages.map((message) => (
+                  <Link
+                    key={message.id}
+                    href={`/staff/projects/${projectId}/teams/${teamId}/teamhealth#team-health-messages`}
+                    className="staff-projects__message-preview-link"
+                  >
+                    <strong>{message.subject}</strong>
+                    <span>{formatMessageDate(message.createdAt)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </article>
-        ) : null}
+        </div>
       </section>
     </>
   );

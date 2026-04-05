@@ -119,7 +119,7 @@ export function StaffTeamHealthMessageReviewPanel({
 
   return (
     <>
-      <section className="staff-projects__team-list" aria-label="Team queries and complaints">
+      <section id="team-health-messages" className="staff-projects__team-list" aria-label="Team queries and complaints">
         <details
           className="staff-projects__team-card staff-projects__team-card--signal staff-projects__collapsible"
           style={compactPanelStyle}
