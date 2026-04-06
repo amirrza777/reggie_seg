@@ -5,7 +5,7 @@
     radial-gradient(circle at 12% 12%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
     linear-gradient(135deg, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%), var(--surface));
   padding: var(--space-panel-content-inset);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .github-hero__top {
@@ -18,7 +18,7 @@
 
 .github-hero__eyebrow {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted);
   letter-spacing: 0.4px;
   text-transform: uppercase;
@@ -38,7 +38,7 @@
   color: var(--muted);
   border-radius: 999px;
   padding: 6px 10px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   white-space: nowrap;
 }
 
@@ -58,13 +58,13 @@
 
 .github-hero__chip-label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   margin-bottom: 2px;
 }
 
 .github-hero__chip-value {
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-fixed-16px);
   line-height: 1.1;
 }
 
@@ -78,7 +78,7 @@
 .github-chart-title__text {
   margin: 0;
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   font-weight: 700;
 }
 
@@ -93,7 +93,7 @@
   background: var(--surface);
   color: var(--accent-strong);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   font-weight: 700;
   line-height: 1;
   padding: 0;
@@ -123,12 +123,10 @@
   max-height: 85vh;
   overflow-y: auto;
   border-radius: var(--radius-md);
-  border: 1px solid var(--popup-glass-border-fallback);
-  border-color: var(--popup-glass-border);
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
+  border: 1px solid var(--glass-ui-border);
+  background: var(--glass-ui-bg);
   color: var(--ink);
-  box-shadow: var(--popup-glass-shadow);
+  box-shadow: var(--glass-ui-shadow);
 }
 
 .github-chart-info__header {
@@ -156,7 +154,7 @@
   min-height: 40px;
   padding: 0;
   cursor: pointer;
-  font-size: 1.35rem;
+  font-size: var(--fs-fixed-1-35rem);
   font-weight: 600;
   line-height: 1;
   display: inline-flex;
@@ -179,7 +177,7 @@
 
 .github-chart-info__label {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.35px;

@@ -9,13 +9,13 @@
 .auth-reset-alert {
   padding: 16px;
   margin-bottom: 24px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .auth-reset-message {
   padding: 10px 12px;
   margin-bottom: 12px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .auth-reset-actions {

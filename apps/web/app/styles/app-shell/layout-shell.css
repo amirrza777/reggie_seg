@@ -11,7 +11,7 @@
   /* Shared selection background for sidebar and workspace/admin pills */
   --sidebar-active-bg: var(--selection-gray-bg, color-mix(in srgb, var(--sidebar-text) 12%, transparent));
   /* Underline for the space switcher tabs */
-  --space-switcher-underline: #22c55e;
+  --space-switcher-underline: var(--color-fixed-22c55e);
 }
 
 html,
@@ -173,14 +173,9 @@ body:has(.app-shell) {
   background: var(--glass-ui-bg-soft);
   border: 1px solid var(--glass-ui-border);
   border-radius: 10px;
-  box-shadow: var(--elevation-none);
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .app-shell__ribbon {
-    backdrop-filter: blur(var(--glass-ui-blur));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
-  }
+  box-shadow: var(--glass-ui-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .app-shell__sidebar,

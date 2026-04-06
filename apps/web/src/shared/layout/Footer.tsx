@@ -75,41 +75,49 @@ function FooterColumn({ title, links }: { title: string; links: FooterLink[] }) 
   );
 }
 
+function FooterMainContent() {
+  return (
+    <div className="footer__inner">
+      {/*
+       * Nav is first in the DOM so that on mobile the accordion appears at the
+       * top. CSS grid-template-areas repositions it to the right column on
+       * desktop and below the brand on tablet.
+       */}
+      <nav className="footer__nav" aria-label="Site links">
+        {columns.map((col) => (
+          <FooterColumn key={col.title} title={col.title} links={col.links} />
+        ))}
+      </nav>
+      <div className="footer__brand">
+        <div className="footer__brand-logo">
+          <BrandWordmark />
+        </div>
+        <p className="footer__brand-tagline">A platform built for group work.</p>
+      </div>
+    </div>
+  );
+}
+
+function FooterBottomBar() {
+  return (
+    <div className="footer__bar">
+      <div className="footer__bar-inner">
+        <span className="footer__bar-copy">© {new Date().getFullYear()} Team Feedback</span>
+        <div className="footer__bar-links">
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/cookies">Cookies</Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Footer() {
   return (
     <footer className="footer">
-      <div className="footer__inner">
-        {/*
-         * Nav is first in the DOM so that on mobile the accordion appears at the
-         * top. CSS grid-template-areas repositions it to the right column on
-         * desktop and below the brand on tablet.
-         */}
-        <nav className="footer__nav" aria-label="Site links">
-          {columns.map((col) => (
-            <FooterColumn key={col.title} title={col.title} links={col.links} />
-          ))}
-        </nav>
-
-        <div className="footer__brand">
-          <div className="footer__brand-logo">
-            <BrandWordmark />
-          </div>
-          <p className="footer__brand-tagline">
-            A platform built for group work.
-          </p>
-        </div>
-      </div>
-
-      <div className="footer__bar">
-        <div className="footer__bar-inner">
-          <span className="footer__bar-copy">© {new Date().getFullYear()} Team Feedback</span>
-          <div className="footer__bar-links">
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-            <Link href="/cookies">Cookies</Link>
-          </div>
-        </div>
-      </div>
+      <FooterMainContent />
+      <FooterBottomBar />
     </footer>
   );
 }

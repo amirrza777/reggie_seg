@@ -31,7 +31,7 @@ export async function loadModuleSetupInitialSelection(
 ): Promise<EnterpriseModuleAccessSelectionResponse | null> {
   try {
     const selection = await getEnterpriseModuleAccessSelection(moduleId);
-    if (!staffModuleRow) return selection;
+    if (!staffModuleRow) {return selection;}
     return {
       ...selection,
       module: mergeModuleWithStaffRow(selection.module, staffModuleRow),

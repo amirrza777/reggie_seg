@@ -52,109 +52,23 @@ type DiscussionForumPostListPanelProps = {
   setReportConfirmation: (state: ReportConfirmationState) => void;
 };
 
-export function DiscussionForumPostListPanel({
-  error,
-  userLoading,
-  loadingPosts,
-  posts,
-  visiblePosts,
-  currentPage,
-  totalPages,
-  onPreviousPage,
-  onNextPage,
-  user,
-  isStaff,
-  isStudent,
-  members,
-  editingPostId,
-  editingTitle,
-  editingBody,
-  editingBodyEmpty,
-  savingPostId,
-  savingReplyPostId,
-  deletingPostId,
-  reportingPostId,
-  reactingPostId,
-  replyDrafts,
-  replyOpenByPostId,
-  replyEmptyByPostId,
-  replyKeyByPostId,
-  expandedRepliesByPostId,
-  showAllImmediateRepliesByPostId,
-  menuOpenPostId,
-  setEditingTitle,
-  setEditingBody,
-  setEditingBodyEmpty,
-  setReplyEmptyByPostId,
-  startEditing,
-  cancelEditing,
-  handleUpdate,
-  handleDelete,
-  handleReaction,
-  handleReplyChange,
-  handleReplySubmit,
-  toggleReplies,
-  showMoreReplies,
-  toggleReplyBox,
-  togglePostMenu,
-  closePostMenu,
-  setReportConfirmation,
-}: DiscussionForumPostListPanelProps) {
+type DiscussionForumPostThreadSharedProps = Omit<React.ComponentProps<typeof DiscussionForumPostThread>, "post">;
+
+export function DiscussionForumPostListPanel(props: DiscussionForumPostListPanelProps) {
+  const threadSharedProps: DiscussionForumPostThreadSharedProps = props;
+
   return (
     <DiscussionForumPosts
-      error={error}
-      userLoading={userLoading}
-      loadingPosts={loadingPosts}
-      posts={posts}
-      visiblePosts={visiblePosts}
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPreviousPage={onPreviousPage}
-      onNextPage={onNextPage}
-      renderPost={(post) => (
-        <DiscussionForumPostThread
-          key={post.id}
-          post={post}
-          user={user}
-          userLoading={userLoading}
-          isStaff={isStaff}
-          isStudent={isStudent}
-          members={members}
-          editingPostId={editingPostId}
-          editingTitle={editingTitle}
-          editingBody={editingBody}
-          editingBodyEmpty={editingBodyEmpty}
-          savingPostId={savingPostId}
-          savingReplyPostId={savingReplyPostId}
-          deletingPostId={deletingPostId}
-          reportingPostId={reportingPostId}
-          reactingPostId={reactingPostId}
-          replyDrafts={replyDrafts}
-          replyOpenByPostId={replyOpenByPostId}
-          replyEmptyByPostId={replyEmptyByPostId}
-          replyKeyByPostId={replyKeyByPostId}
-          expandedRepliesByPostId={expandedRepliesByPostId}
-          showAllImmediateRepliesByPostId={showAllImmediateRepliesByPostId}
-          menuOpenPostId={menuOpenPostId}
-          setEditingTitle={setEditingTitle}
-          setEditingBody={setEditingBody}
-          setEditingBodyEmpty={setEditingBodyEmpty}
-          setReplyEmptyByPostId={setReplyEmptyByPostId}
-          startEditing={startEditing}
-          cancelEditing={cancelEditing}
-          handleUpdate={handleUpdate}
-          handleDelete={handleDelete}
-          handleReaction={handleReaction}
-          handleReplyChange={handleReplyChange}
-          handleReplySubmit={handleReplySubmit}
-          toggleReplies={toggleReplies}
-          showMoreReplies={showMoreReplies}
-          toggleReplyBox={toggleReplyBox}
-          togglePostMenu={togglePostMenu}
-          closePostMenu={closePostMenu}
-          setReportConfirmation={setReportConfirmation}
-        />
-      )}
+      error={props.error}
+      userLoading={props.userLoading}
+      loadingPosts={props.loadingPosts}
+      posts={props.posts}
+      visiblePosts={props.visiblePosts}
+      currentPage={props.currentPage}
+      totalPages={props.totalPages}
+      onPreviousPage={props.onPreviousPage}
+      onNextPage={props.onNextPage}
+      renderPost={(post) => <DiscussionForumPostThread key={post.id} post={post} {...threadSharedProps} />}
     />
   );
 }

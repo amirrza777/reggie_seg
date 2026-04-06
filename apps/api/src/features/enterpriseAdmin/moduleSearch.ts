@@ -23,13 +23,13 @@ export type EnterpriseModuleSearchCandidate = {
 /** Parses the enterprise module search filters. */
 export function parseEnterpriseModuleSearchFilters(query: ParsedQs): ParseResult<EnterpriseModuleSearchFilters> {
   const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
-  if (!parsedQuery.ok) return parsedQuery;
+  if (!parsedQuery.ok) {return parsedQuery;}
 
   const parsedPagination = parsePaginationQueryParams(
     { page: query.page, pageSize: query.pageSize },
     { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
   );
-  if (!parsedPagination.ok) return parsedPagination;
+  if (!parsedPagination.ok) {return parsedPagination;}
 
   return {
     ok: true,
@@ -46,7 +46,7 @@ export function buildEnterpriseModuleSearchWhere(
   baseWhere: Prisma.ModuleWhereInput,
   filters: Pick<EnterpriseModuleSearchFilters, "query">,
 ): Prisma.ModuleWhereInput {
-  if (!filters.query) return baseWhere;
+  if (!filters.query) {return baseWhere;}
 
   const q = filters.query;
   const queryConditions: Prisma.ModuleWhereInput[] = [{ name: { contains: q } }, { code: { contains: q.toUpperCase() } }];

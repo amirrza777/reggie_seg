@@ -23,13 +23,13 @@
   display: grid;
   gap: 6px;
   color: var(--status-danger-text);
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
 }
 
 .questionnaire-editor__success {
   margin: 0;
   color: var(--status-success-text);
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
 }
 
 .questionnaire-editor__question {
@@ -37,7 +37,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   padding: 16px;
   display: grid;
   gap: 10px;
@@ -66,7 +66,7 @@
 
 .questionnaire-editor__helper {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted-subtle);
 }
 
@@ -87,14 +87,14 @@
 }
 
 .questionnaire-editor__radio-option {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .questionnaire-editor__slider-meta {
   display: flex;
   justify-content: space-between;
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted-subtle);
 }
 
@@ -120,7 +120,7 @@
 
 .questionnaire-editor__section-title {
   margin: 0 0 8px;
-  font-size: clamp(1.8rem, 2.5vw, 2.2rem);
+  font-size: var(--fs-fixed-clamp-1-8rem-2-5vw-2-2rem);
   line-height: var(--lh-heading);
 }
 
@@ -142,7 +142,7 @@
 }
 
 .questionnaire-editor__meta {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted);
 }
 
@@ -167,7 +167,7 @@
 }
 
 .questionnaire-visibility__label {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted);
 }
 
@@ -234,7 +234,7 @@
 }
 
 .team-allocation-questionnaire__rating-value {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   line-height: 1;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -295,7 +295,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .team-allocation-questionnaire__slider-selected {

@@ -2,6 +2,67 @@ import { prisma } from "../../shared/db.js";
 import { replaceModuleAssignments } from "./service.helpers.js";
 import { MODULE_SELECT } from "./service.core.js";
 import type { ParsedModulePayload } from "./types.js";
+import type { Prisma } from "@prisma/client";
+
+const accessUsersOrderBy = [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }] as const;
+
+function buildStaffAccessUsersQuery(enterpriseId: string, moduleId: number) {
+  return {
+    where: {
+      enterpriseId,
+      role: { in: ["STAFF", "ENTERPRISE_ADMIN"] },
+    },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      active: true,
+      moduleLeads: { where: { moduleId }, select: { moduleId: true } },
+      moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+    },
+    orderBy: accessUsersOrderBy,
+  };
+}
+
+function buildStudentAccessUsersQuery(enterpriseId: string, moduleId: number) {
+  return {
+    where: { enterpriseId, role: "STUDENT" },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      active: true,
+      userModules: { where: { enterpriseId, moduleId }, select: { moduleId: true } },
+      moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
+    },
+    orderBy: accessUsersOrderBy,
+  };
+}
+
+async function findManagedModuleId(tx: Prisma.TransactionClient, enterpriseId: string, moduleId: number) {
+  return tx.module.findFirst({ where: { id: moduleId, enterpriseId }, select: { id: true } });
+}
+
+async function updateModuleDetails(
+  tx: Prisma.TransactionClient,
+  moduleId: number,
+  payload: ParsedModulePayload,
+) {
+  await tx.module.update({
+    where: { id: moduleId },
+    data: {
+      code: payload.code,
+      name: payload.name,
+      briefText: payload.briefText,
+      timelineText: payload.timelineText,
+      expectationsText: payload.expectationsText,
+      readinessNotesText: payload.readinessNotesText,
+    },
+    select: { id: true },
+  });
+}
 
 export async function findManagedModule(enterpriseId: string, moduleId: number) {
   return prisma.module.findFirst({
@@ -12,37 +73,9 @@ export async function findManagedModule(enterpriseId: string, moduleId: number) 
 
 export async function loadModuleAccessUsers(enterpriseId: string, moduleId: number) {
   const [staffUsers, students] = await Promise.all([
-    prisma.user.findMany({
-      where: {
-        enterpriseId,
-        role: { in: ["STAFF", "ENTERPRISE_ADMIN"] },
-      },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        active: true,
-        moduleLeads: { where: { moduleId }, select: { moduleId: true } },
-        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
-      },
-      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
-    }),
-    prisma.user.findMany({
-      where: { enterpriseId, role: "STUDENT" },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        active: true,
-        userModules: { where: { enterpriseId, moduleId }, select: { moduleId: true } },
-        moduleTeachingAssistants: { where: { moduleId }, select: { moduleId: true } },
-      },
-      orderBy: [{ active: "desc" }, { firstName: "asc" }, { lastName: "asc" }, { email: "asc" }],
-    }),
+    prisma.user.findMany(buildStaffAccessUsersQuery(enterpriseId, moduleId)),
+    prisma.user.findMany(buildStudentAccessUsersQuery(enterpriseId, moduleId)),
   ]);
-
   return { staffUsers, students };
 }
 
@@ -103,7 +136,9 @@ export async function moduleNameExists(enterpriseId: string, moduleName: string,
 }
 
 export async function moduleCodeExists(enterpriseId: string, moduleCode: string | null, excludeModuleId?: number) {
-  if (!moduleCode) return false;
+  if (!moduleCode) {
+    return false;
+  }
 
   const existing = await prisma.module.findFirst({
     where: {
@@ -123,25 +158,12 @@ export async function updateModuleRecord(params: {
   taIds: number[];
 }) {
   return prisma.$transaction(async (tx) => {
-    const module = await tx.module.findFirst({
-      where: { id: params.moduleId, enterpriseId: params.enterpriseId },
-      select: { id: true },
-    });
-    if (!module) return null;
+    const module = await findManagedModuleId(tx, params.enterpriseId, params.moduleId);
+    if (!module) {
+      return null;
+    }
 
-    await tx.module.update({
-      where: { id: params.moduleId },
-      data: {
-        code: params.payload.code,
-        name: params.payload.name,
-        briefText: params.payload.briefText,
-        timelineText: params.payload.timelineText,
-        expectationsText: params.payload.expectationsText,
-        readinessNotesText: params.payload.readinessNotesText,
-      },
-      select: { id: true },
-    });
-
+    await updateModuleDetails(tx, params.moduleId, params.payload);
     await replaceModuleAssignments(tx, {
       enterpriseId: params.enterpriseId,
       moduleId: params.moduleId,
@@ -149,7 +171,6 @@ export async function updateModuleRecord(params: {
       taIds: params.taIds,
       studentIds: params.payload.studentIds,
     });
-
     return tx.module.findUnique({ where: { id: params.moduleId }, select: MODULE_SELECT });
   });
 }

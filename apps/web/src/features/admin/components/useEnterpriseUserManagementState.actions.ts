@@ -58,6 +58,34 @@ type EnterpriseUserActionsOptions = {
   showSuccessToast: (message: string) => void;
 };
 
+type EnterpriseUserUpdateHandlerOptions = Pick<
+  EnterpriseUserActionsOptions,
+  | "selectedEnterprise"
+  | "enterpriseUsers"
+  | "enterpriseUserSearchQuery"
+  | "enterpriseUserPage"
+  | "setEnterpriseUsers"
+  | "setEnterpriseUsersMessage"
+  | "setEnterpriseUserActionState"
+  | "loadEnterpriseUsers"
+  | "showSuccessToast"
+> & {
+  setEnterpriseUserRow: EnterpriseUserRowUpdater["setEnterpriseUserRow"];
+};
+
+type EnterpriseUserResetStateOptions = Pick<
+  EnterpriseUserActionsOptions,
+  | "setEnterpriseUsers"
+  | "setEnterpriseUsersStatus"
+  | "setEnterpriseUserTotal"
+  | "setEnterpriseUserTotalPages"
+  | "setEnterpriseUsersMessage"
+  | "setEnterpriseUserSearchQuery"
+  | "setEnterpriseUserPage"
+  | "setEnterpriseUserPageInput"
+  | "setEnterpriseUserActionState"
+>;
+
 function useEnterpriseUserPagingActions(options: {
   enterpriseUserPage: number;
   enterpriseUserPageInput: string;
@@ -65,32 +93,19 @@ function useEnterpriseUserPagingActions(options: {
   setEnterpriseUserPage: Dispatch<SetStateAction<number>>;
   setEnterpriseUserPageInput: Dispatch<SetStateAction<string>>;
 }): EnterpriseUserPagingActions {
-  const {
-    enterpriseUserPage,
-    enterpriseUserPageInput,
-    effectiveEnterpriseUserTotalPages,
-    setEnterpriseUserPage,
-    setEnterpriseUserPageInput,
-  } = options;
-
   const applyEnterpriseUserPageInput = useCallback((value: string) => {
-    const parsedPage = parsePageInput(value, effectiveEnterpriseUserTotalPages);
+    const parsedPage = parsePageInput(value, options.effectiveEnterpriseUserTotalPages);
     if (parsedPage === null) {
-      setEnterpriseUserPageInput(String(enterpriseUserPage));
+      options.setEnterpriseUserPageInput(String(options.enterpriseUserPage));
       return;
     }
-    setEnterpriseUserPage(parsedPage);
-  }, [effectiveEnterpriseUserTotalPages, enterpriseUserPage, setEnterpriseUserPage, setEnterpriseUserPageInput]);
-
+    options.setEnterpriseUserPage(parsedPage);
+  }, [options]);
   const handleEnterpriseUserPageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    applyEnterpriseUserPageInput(enterpriseUserPageInput);
-  }, [applyEnterpriseUserPageInput, enterpriseUserPageInput]);
-
-  return {
-    applyEnterpriseUserPageInput,
-    handleEnterpriseUserPageJump,
-  };
+    applyEnterpriseUserPageInput(options.enterpriseUserPageInput);
+  }, [applyEnterpriseUserPageInput, options.enterpriseUserPageInput]);
+  return { applyEnterpriseUserPageInput, handleEnterpriseUserPageJump };
 }
 
 async function runEnterpriseUserUpdate(options: EnterpriseUserUpdateOptions) {
@@ -98,16 +113,11 @@ async function runEnterpriseUserUpdate(options: EnterpriseUserUpdateOptions) {
   options.setEnterpriseUserActionState((prev) => ({ ...prev, [options.userId]: "loading" }));
   options.setEnterpriseUsersMessage(null);
   options.setEnterpriseUserRow(options.userId, options.optimisticUpdate);
-
   try {
     const updated = await updateEnterpriseUser(options.selectedEnterprise.id, options.userId, options.payload);
     options.setEnterpriseUserRow(options.userId, () => normalizeUser(updated));
     options.showSuccessToast(options.successMessage);
-    void options.loadEnterpriseUsers(
-      options.selectedEnterprise.id,
-      options.enterpriseUserSearchQuery,
-      options.enterpriseUserPage,
-    );
+    void options.loadEnterpriseUsers(options.selectedEnterprise.id, options.enterpriseUserSearchQuery, options.enterpriseUserPage);
   } catch (err) {
     options.setEnterpriseUsers(previousUsers);
     options.setEnterpriseUsersMessage(resolveUnknownError(err, options.errorMessage));
@@ -116,146 +126,111 @@ async function runEnterpriseUserUpdate(options: EnterpriseUserUpdateOptions) {
   }
 }
 
-export function useEnterpriseUserActions(options: EnterpriseUserActionsOptions): EnterpriseUserActions {
-  const {
-    selectedEnterprise,
-    enterpriseUsers,
-    enterpriseUserSearchQuery,
-    enterpriseUserPage,
-    enterpriseUserPageInput,
-    effectiveEnterpriseUserTotalPages,
-    setSelectedEnterprise,
-    setEnterpriseUsers,
-    setEnterpriseUsersStatus,
-    setEnterpriseUsersMessage,
-    setEnterpriseUserActionState,
-    setEnterpriseUserSearchQuery,
-    setEnterpriseUserPage,
-    setEnterpriseUserPageInput,
-    setEnterpriseUserTotal,
-    setEnterpriseUserTotalPages,
-    loadEnterpriseUsers,
-    showSuccessToast,
-  } = options;
-
-  const setEnterpriseUserRow = useCallback((userId: number, update: (user: AdminUser) => AdminUser) => {
+function useEnterpriseUserRowUpdater(setEnterpriseUsers: Dispatch<SetStateAction<AdminUser[]>>) {
+  return useCallback((userId: number, update: (user: AdminUser) => AdminUser) => {
     setEnterpriseUsers((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
   }, [setEnterpriseUsers]);
+}
 
-  const resetEnterpriseUserListState = useCallback(() => {
-    setEnterpriseUsers([]);
-    setEnterpriseUsersStatus("idle");
-    setEnterpriseUserTotal(0);
-    setEnterpriseUserTotalPages(0);
-    setEnterpriseUsersMessage(null);
-    setEnterpriseUserSearchQuery("");
-    setEnterpriseUserPage(1);
-    setEnterpriseUserPageInput("1");
-    setEnterpriseUserActionState({});
-  }, [
-    setEnterpriseUserActionState,
-    setEnterpriseUserPage,
-    setEnterpriseUserPageInput,
-    setEnterpriseUserSearchQuery,
-    setEnterpriseUserTotal,
-    setEnterpriseUserTotalPages,
-    setEnterpriseUsers,
-    setEnterpriseUsersMessage,
-    setEnterpriseUsersStatus,
-  ]);
+function useEnterpriseUserListReset(options: EnterpriseUserResetStateOptions) {
+  return useCallback(() => {
+    options.setEnterpriseUsers([]);
+    options.setEnterpriseUsersStatus("idle");
+    options.setEnterpriseUserTotal(0);
+    options.setEnterpriseUserTotalPages(0);
+    options.setEnterpriseUsersMessage(null);
+    options.setEnterpriseUserSearchQuery("");
+    options.setEnterpriseUserPage(1);
+    options.setEnterpriseUserPageInput("1");
+    options.setEnterpriseUserActionState({});
+  }, [options]);
+}
 
+function useSelectedEnterpriseActions(options: {
+  setSelectedEnterprise: Dispatch<SetStateAction<EnterpriseRecord | null>>;
+  resetEnterpriseUserListState: () => void;
+}) {
   const resetSelectedEnterprise = useCallback(() => {
-    resetEnterpriseUserListState();
-    setSelectedEnterprise(null);
-  }, [setSelectedEnterprise, resetEnterpriseUserListState]);
-
+    options.resetEnterpriseUserListState();
+    options.setSelectedEnterprise(null);
+  }, [options]);
   const openEnterpriseAccounts = useCallback((enterprise: EnterpriseRecord) => {
-    resetEnterpriseUserListState();
-    setSelectedEnterprise(enterprise);
-  }, [setSelectedEnterprise, resetEnterpriseUserListState]);
+    options.resetEnterpriseUserListState();
+    options.setSelectedEnterprise(enterprise);
+  }, [options]);
+  return { resetSelectedEnterprise, openEnterpriseAccounts };
+}
 
+function resolveEnterpriseUserUpdateBase(options: EnterpriseUserUpdateHandlerOptions, userId: number) {
+  if (!options.selectedEnterprise) {
+    return null;
+  }
+  return {
+    selectedEnterprise: options.selectedEnterprise,
+    userId,
+    enterpriseUsers: options.enterpriseUsers,
+    enterpriseUserSearchQuery: options.enterpriseUserSearchQuery,
+    enterpriseUserPage: options.enterpriseUserPage,
+    setEnterpriseUsers: options.setEnterpriseUsers,
+    setEnterpriseUsersMessage: options.setEnterpriseUsersMessage,
+    setEnterpriseUserActionState: options.setEnterpriseUserActionState,
+    setEnterpriseUserRow: options.setEnterpriseUserRow,
+    loadEnterpriseUsers: options.loadEnterpriseUsers,
+    showSuccessToast: options.showSuccessToast,
+  };
+}
+
+function useEnterpriseUserUpdateHandlers(options: EnterpriseUserUpdateHandlerOptions) {
   const handleEnterpriseUserRoleChange = useCallback(async (userId: number, role: UserRole) => {
-    if (!selectedEnterprise) return;
+    const baseOptions = resolveEnterpriseUserUpdateBase(options, userId);
+    if (!baseOptions) {
+      return;
+    }
     await runEnterpriseUserUpdate({
-      selectedEnterprise,
-      userId,
-      enterpriseUsers,
-      enterpriseUserSearchQuery,
-      enterpriseUserPage,
-      setEnterpriseUsers,
-      setEnterpriseUsersMessage,
-      setEnterpriseUserActionState,
-      setEnterpriseUserRow,
-      loadEnterpriseUsers,
-      showSuccessToast,
+      ...baseOptions,
       payload: { role },
       optimisticUpdate: (user) => ({ ...user, role, isStaff: role !== "STUDENT" }),
       successMessage: `Updated role to ${role.toLowerCase()}.`,
       errorMessage: "Could not update role.",
     });
-  }, [
-    enterpriseUserPage,
-    enterpriseUserSearchQuery,
-    enterpriseUsers,
-    loadEnterpriseUsers,
-    selectedEnterprise,
-    setEnterpriseUserActionState,
-    setEnterpriseUsers,
-    setEnterpriseUsersMessage,
-    showSuccessToast,
-    setEnterpriseUserRow,
-  ]);
-
+  }, [options]);
   const handleEnterpriseUserStatusToggle = useCallback(async (userId: number, nextStatus: boolean) => {
-    if (!selectedEnterprise) return;
+    const baseOptions = resolveEnterpriseUserUpdateBase(options, userId);
+    if (!baseOptions) {
+      return;
+    }
     await runEnterpriseUserUpdate({
-      selectedEnterprise,
-      userId,
-      enterpriseUsers,
-      enterpriseUserSearchQuery,
-      enterpriseUserPage,
-      setEnterpriseUsers,
-      setEnterpriseUsersMessage,
-      setEnterpriseUserActionState,
-      setEnterpriseUserRow,
-      loadEnterpriseUsers,
-      showSuccessToast,
+      ...baseOptions,
       payload: { active: nextStatus },
       optimisticUpdate: (user) => ({ ...user, active: nextStatus }),
       successMessage: nextStatus ? "Account activated." : "Account suspended.",
       errorMessage: "Could not update account status.",
     });
-  }, [
-    enterpriseUserPage,
-    enterpriseUserSearchQuery,
-    enterpriseUsers,
-    loadEnterpriseUsers,
-    selectedEnterprise,
-    setEnterpriseUserActionState,
-    setEnterpriseUsers,
-    setEnterpriseUsersMessage,
-    showSuccessToast,
-    setEnterpriseUserRow,
-  ]);
+  }, [options]);
+  return { handleEnterpriseUserRoleChange, handleEnterpriseUserStatusToggle };
+}
 
-  const pagingActions = useEnterpriseUserPagingActions({
-    enterpriseUserPage,
-    enterpriseUserPageInput,
-    effectiveEnterpriseUserTotalPages,
-    setEnterpriseUserPage,
-    setEnterpriseUserPageInput,
-  });
-
-  const clearSelectedEnterpriseIfDeleted = useCallback((enterpriseId: string) => {
-    if (selectedEnterprise?.id !== enterpriseId) return;
+function useClearSelectedEnterpriseIfDeleted(selectedEnterpriseId: string | undefined, resetSelectedEnterprise: () => void) {
+  return useCallback((enterpriseId: string) => {
+    if (selectedEnterpriseId !== enterpriseId) {
+      return;
+    }
     resetSelectedEnterprise();
-  }, [selectedEnterprise?.id, resetSelectedEnterprise]);
+  }, [selectedEnterpriseId, resetSelectedEnterprise]);
+}
 
+export function useEnterpriseUserActions(options: EnterpriseUserActionsOptions): EnterpriseUserActions {
+  const setEnterpriseUserRow = useEnterpriseUserRowUpdater(options.setEnterpriseUsers);
+  const resetEnterpriseUserListState = useEnterpriseUserListReset(options);
+  const selectedEnterpriseActions = useSelectedEnterpriseActions({ setSelectedEnterprise: options.setSelectedEnterprise, resetEnterpriseUserListState });
+  const updateHandlers = useEnterpriseUserUpdateHandlers({ ...options, setEnterpriseUserRow });
+  const pagingActions = useEnterpriseUserPagingActions(options);
+  const clearSelectedEnterpriseIfDeleted = useClearSelectedEnterpriseIfDeleted(options.selectedEnterprise?.id, selectedEnterpriseActions.resetSelectedEnterprise);
   return {
-    resetSelectedEnterprise,
-    openEnterpriseAccounts,
-    handleEnterpriseUserRoleChange,
-    handleEnterpriseUserStatusToggle,
+    resetSelectedEnterprise: selectedEnterpriseActions.resetSelectedEnterprise,
+    openEnterpriseAccounts: selectedEnterpriseActions.openEnterpriseAccounts,
+    handleEnterpriseUserRoleChange: updateHandlers.handleEnterpriseUserRoleChange,
+    handleEnterpriseUserStatusToggle: updateHandlers.handleEnterpriseUserStatusToggle,
     applyEnterpriseUserPageInput: pagingActions.applyEnterpriseUserPageInput,
     handleEnterpriseUserPageJump: pagingActions.handleEnterpriseUserPageJump,
     clearSelectedEnterpriseIfDeleted,

@@ -122,8 +122,11 @@ describe("auth controller profile/me", () => {
 
   it("meHandler returns 401 when neither access user nor refresh cookie exists", async () => {
     const res = mockResponse();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     await meHandler({ cookies: {} } as any, res as any);
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it("meHandler falls back to refresh token and handles missing user", async () => {
@@ -208,6 +211,7 @@ describe("auth controller profile/me", () => {
 
   it("meHandler catches refresh verification errors", async () => {
     const res = mockResponse();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     (service.verifyRefreshToken as any).mockImplementationOnce(() => {
       throw new Error("bad token");
     });
@@ -216,10 +220,13 @@ describe("auth controller profile/me", () => {
 
     expect(res.status).toHaveBeenCalledWith(401);
     expect(res.json).toHaveBeenCalledWith({ error: "Not authenticated" });
+    expect(consoleErrorSpy).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it("meHandler catches downstream profile errors", async () => {
     const res = mockResponse();
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     (prisma.user.findUnique as any).mockResolvedValueOnce({
       id: 8,
       role: "ADMIN",
@@ -231,6 +238,8 @@ describe("auth controller profile/me", () => {
 
     await meHandler({ user: { sub: 8 } } as any, res as any);
     expect(res.status).toHaveBeenCalledWith(401);
+    expect(consoleErrorSpy).toHaveBeenCalledWith("meHandler error", expect.any(Error));
+    consoleErrorSpy.mockRestore();
   });
 
   it("uses code or string detail fallback for profile/email change errors", async () => {

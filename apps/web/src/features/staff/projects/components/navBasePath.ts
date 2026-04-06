@@ -5,7 +5,9 @@ function getPathSegments(pathname: string | null | undefined): string[] {
 }
 
 export function decodePathSegment(segment: string | undefined): string {
-  if (!segment) return "";
+  if (!segment) {
+    return "";
+  }
   try {
     return decodeURIComponent(segment);
   } catch {

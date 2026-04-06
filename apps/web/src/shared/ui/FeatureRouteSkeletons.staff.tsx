@@ -1,5 +1,74 @@
 import { Skeleton, SkeletonText } from "./Skeleton";
 
+function StaffMarksHeroSkeleton() {
+  return (
+    <section className="staff-projects__hero" aria-hidden="true" style={{ display: "grid", gap: 8 }}>
+      <Skeleton width="140px" height="34px" />
+      <SkeletonText lines={2} widths={["68%", "54%"]} />
+      <div className="staff-projects__meta" style={{ marginTop: 0 }}>
+        <Skeleton width="88px" height="26px" radius="999px" />
+        <Skeleton width="100px" height="26px" radius="999px" />
+        <Skeleton width="80px" height="26px" radius="999px" />
+      </div>
+      <div style={{ display: "grid", gap: 8 }}>
+        <Skeleton width="200px" height="14px" />
+        <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ flex: 1 }}>
+            <Skeleton height="40px" />
+          </div>
+          <Skeleton width="72px" height="40px" radius="8px" />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function StaffMarksModuleGroupSkeleton({ groupIndex }: { groupIndex: number }) {
+  return (
+    <div className="staff-projects__module-group" style={{ borderRadius: 8, overflow: "hidden" }}>
+      <div className="staff-projects__module-summary" style={{ padding: "12px 16px" }}>
+        <div className="staff-projects__module-heading">
+          <Skeleton width={groupIndex === 0 ? "260px" : "220px"} height="20px" />
+          <div style={{ marginTop: 4 }}>
+            <Skeleton width="140px" height="13px" />
+          </div>
+        </div>
+      </div>
+      <div className="staff-projects__module-projects">
+        <div className="staff-projects__module-project-card">
+          <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid var(--border)" }}>
+            <Skeleton width="55%" height="16px" />
+          </div>
+          <StaffMarksProjectRowsSkeleton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StaffMarksProjectRowsSkeleton() {
+  return Array.from({ length: 3 }).map((_, rowIndex) => (
+    <div key={rowIndex} className="staff-projects__module-project-link" style={{ pointerEvents: "none" }}>
+      <div className="staff-projects__module-project-copy">
+        <Skeleton width={`${60 + rowIndex * 10}%`} height="14px" />
+        <div style={{ marginTop: 4 }}>
+          <Skeleton width="80px" height="12px" />
+        </div>
+      </div>
+    </div>
+  ));
+}
+
+function StaffMarksModuleListSkeleton() {
+  return (
+    <section className="staff-projects__module-list" aria-hidden="true">
+      {Array.from({ length: 2 }).map((_, groupIndex) => (
+        <StaffMarksModuleGroupSkeleton key={groupIndex} groupIndex={groupIndex} />
+      ))}
+    </section>
+  );
+}
+
 export function StaffProjectsRouteSkeleton() {
   return (
     <div className="staff-projects staff-projects--panel-inset" role="status" aria-live="polite">
@@ -68,56 +137,8 @@ export function StaffModulesListSkeleton() {
 export function StaffMarksRouteSkeleton() {
   return (
     <div className="staff-projects staff-projects--panel-inset" role="status" aria-live="polite">
-      <section className="staff-projects__hero" aria-hidden="true" style={{ display: "grid", gap: 8 }}>
-        <Skeleton width="140px" height="34px" />
-        <SkeletonText lines={2} widths={["68%", "54%"]} />
-        <div className="staff-projects__meta" style={{ marginTop: 0 }}>
-          <Skeleton width="88px" height="26px" radius="999px" />
-          <Skeleton width="100px" height="26px" radius="999px" />
-          <Skeleton width="80px" height="26px" radius="999px" />
-        </div>
-        <div style={{ display: "grid", gap: 8 }}>
-          <Skeleton width="200px" height="14px" />
-          <div style={{ display: "flex", gap: 8 }}>
-            <div style={{ flex: 1 }}>
-              <Skeleton height="40px" />
-            </div>
-            <Skeleton width="72px" height="40px" radius="8px" />
-          </div>
-        </div>
-      </section>
-
-      <section className="staff-projects__module-list" aria-hidden="true">
-        {Array.from({ length: 2 }).map((_, groupIndex) => (
-          <div key={groupIndex} className="staff-projects__module-group" style={{ borderRadius: 8, overflow: "hidden" }}>
-            <div className="staff-projects__module-summary" style={{ padding: "12px 16px" }}>
-              <div className="staff-projects__module-heading">
-                <Skeleton width={groupIndex === 0 ? "260px" : "220px"} height="20px" />
-                <div style={{ marginTop: 4 }}>
-                  <Skeleton width="140px" height="13px" />
-                </div>
-              </div>
-            </div>
-            <div className="staff-projects__module-projects">
-              <div className="staff-projects__module-project-card">
-                <div style={{ padding: "10px 12px 8px", borderBottom: "1px solid var(--border)" }}>
-                  <Skeleton width="55%" height="16px" />
-                </div>
-                {Array.from({ length: 3 }).map((_, rowIndex) => (
-                  <div key={rowIndex} className="staff-projects__module-project-link" style={{ pointerEvents: "none" }}>
-                    <div className="staff-projects__module-project-copy">
-                      <Skeleton width={`${60 + rowIndex * 10}%`} height="14px" />
-                      <div style={{ marginTop: 4 }}>
-                        <Skeleton width="80px" height="12px" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
+      <StaffMarksHeroSkeleton />
+      <StaffMarksModuleListSkeleton />
 
       <span className="ui-visually-hidden">Loading marking overview</span>
     </div>

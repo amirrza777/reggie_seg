@@ -15,9 +15,9 @@
   transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
   font-size: var(--fs-body-sm);
   font-weight: var(--fw-semibold);
-  box-shadow: var(--elevation-none);
-  backdrop-filter: blur(var(--glass-ui-blur));
+  box-shadow: none;
   -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .user-menu__trigger:hover,
@@ -102,7 +102,7 @@
 }
 
 .user-menu__meta-name {
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   font-weight: var(--fw-semibold);
   line-height: 1.3;
   color: var(--ink-strong);

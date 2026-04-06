@@ -92,7 +92,7 @@ export function buildEnterpriseOverviewSummaryView(
 }
 
 function buildRiskItems(overview: EnterpriseOverview | null): OverviewValue[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   const items: OverviewValue[] = [
     { label: "Inactive accounts to review", value: overview.hygiene.inactiveUsers },
@@ -104,7 +104,7 @@ function buildRiskItems(overview: EnterpriseOverview | null): OverviewValue[] {
 }
 
 function buildQuickHealthChecks(overview: EnterpriseOverview | null): HealthCheck[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   const studentsAssigned = Math.max(overview.totals.students - overview.hygiene.studentsWithoutModule, 0);
   const modulesWithStudents = Math.max(overview.totals.modules - overview.hygiene.modulesWithoutStudents, 0);
@@ -129,7 +129,7 @@ function buildQuickHealthChecks(overview: EnterpriseOverview | null): HealthChec
 }
 
 function buildOperationalRatios(overview: EnterpriseOverview | null): OperationalRatio[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   const studentsAssigned = Math.max(overview.totals.students - overview.hygiene.studentsWithoutModule, 0);
   const modulesWithStudents = Math.max(overview.totals.modules - overview.hygiene.modulesWithoutStudents, 0);
@@ -155,7 +155,7 @@ function buildOperationalRatios(overview: EnterpriseOverview | null): Operationa
 }
 
 function buildActionQueue(overview: EnterpriseOverview | null): ActionQueueItem[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   const context = buildActionQueueContext(overview);
   const actions = [...buildCriticalActions(context), ...buildAttentionActions(context)];
@@ -199,18 +199,18 @@ function buildActionQueueContext(overview: EnterpriseOverview): ActionQueueConte
 
 function buildCriticalActions(context: ActionQueueContext): ActionQueueItem[] {
   const actions: ActionQueueItem[] = [];
-  if (context.studentsWithoutModule > 0) actions.push(buildStudentsUnassignedAction(context.studentsWithoutModule));
-  if (context.teams === 0 && context.students > 0) actions.push(buildMissingTeamsAction(context.students));
-  if (context.enterpriseAdmins === 0) actions.push(buildMissingAdminOwnershipAction(context.activeUsers));
+  if (context.studentsWithoutModule > 0) {actions.push(buildStudentsUnassignedAction(context.studentsWithoutModule));}
+  if (context.teams === 0 && context.students > 0) {actions.push(buildMissingTeamsAction(context.students));}
+  if (context.enterpriseAdmins === 0) {actions.push(buildMissingAdminOwnershipAction(context.activeUsers));}
   return actions;
 }
 
 function buildAttentionActions(context: ActionQueueContext): ActionQueueItem[] {
   const actions: ActionQueueItem[] = [];
-  if (context.modulesWithoutStudents > 0) actions.push(buildEmptyModulesAction(context.modulesWithoutStudents));
-  if (context.inactiveUsers > 0) actions.push(buildInactiveAccountsAction(context.inactiveUsers));
-  if (context.activeAccountRate < 0.9 && context.users > 0) actions.push(buildActivationRateAction(context.activeUsers, context.users));
-  if (context.newUsers30d >= 8 && context.newModules30d === 0 && context.modules > 0) actions.push(buildCapacityGrowthAction(context.newUsers30d));
+  if (context.modulesWithoutStudents > 0) {actions.push(buildEmptyModulesAction(context.modulesWithoutStudents));}
+  if (context.inactiveUsers > 0) {actions.push(buildInactiveAccountsAction(context.inactiveUsers));}
+  if (context.activeAccountRate < 0.9 && context.users > 0) {actions.push(buildActivationRateAction(context.activeUsers, context.users));}
+  if (context.newUsers30d >= 8 && context.newModules30d === 0 && context.modules > 0) {actions.push(buildCapacityGrowthAction(context.newUsers30d));}
   return actions;
 }
 
@@ -316,7 +316,7 @@ function rankActionQueue(actions: ActionQueueItem[]): ActionQueueItem[] {
 }
 
 function buildRoleDistribution(overview: EnterpriseOverview | null): RoleDistributionItem[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   const roles = [
     { label: "Students", value: overview.totals.students },
@@ -332,7 +332,7 @@ function buildRoleDistribution(overview: EnterpriseOverview | null): RoleDistrib
 }
 
 function buildSetupChecklist(overview: EnterpriseOverview | null): ChecklistItem[] {
-  if (!overview) return [];
+  if (!overview) {return [];}
 
   return [
     {
@@ -383,11 +383,11 @@ function buildPriorityBanner(status: RequestState, message: string | null, riskI
 }
 
 function formatPercent(value: number, total: number): string {
-  if (total <= 0) return "0%";
+  if (total <= 0) {return "0%";}
   return `${Math.round((value / total) * 100)}%`;
 }
 
 function formatDecimalRatio(value: number, total: number): string {
-  if (total <= 0) return "0.0";
+  if (total <= 0) {return "0.0";}
   return (value / total).toFixed(1);
 }

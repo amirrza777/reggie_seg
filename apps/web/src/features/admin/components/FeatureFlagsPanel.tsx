@@ -9,8 +9,8 @@ type FeatureFlagsPanelProps = {
   updating: Record<string, boolean>;
 };
 
-export function FeatureFlagsPanel({ flags, onToggle, updating }: FeatureFlagsPanelProps) {
-  const rows = flags.map((flag) => {
+function buildFeatureFlagRows({ flags, onToggle, updating }: FeatureFlagsPanelProps) {
+  return flags.map((flag) => {
     const busy = updating[flag.key];
     const nextState = !flag.enabled;
     const statusLabel = flag.enabled ? "Enabled" : "Disabled";
@@ -19,29 +19,19 @@ export function FeatureFlagsPanel({ flags, onToggle, updating }: FeatureFlagsPan
       flag.label,
       <div key={`${flag.key}-action`} className="feature-flag-action">
         <span className={statusClass}>{statusLabel}</span>
-        <Button
-          type="button"
-          variant={flag.enabled ? "ghost" : "primary"}
-          size="sm"
-          onClick={() => onToggle(flag.key, nextState)}
-          disabled={busy}
-          className="feature-flag-action__btn"
-        >
+        <Button type="button" variant={flag.enabled ? "ghost" : "primary"} size="sm" onClick={() => onToggle(flag.key, nextState)} disabled={busy} className="feature-flag-action__btn">
           {busy ? "Saving..." : flag.enabled ? "Disable" : "Enable"}
         </Button>
       </div>,
     ];
   });
+}
 
+export function FeatureFlagsPanel(props: FeatureFlagsPanelProps) {
+  const rows = buildFeatureFlagRows(props);
   return (
     <Card title="Feature flags">
-      <Table
-        headers={["Feature", "Status"]}
-        rows={rows}
-        className="feature-flags-table"
-        rowClassName="feature-flags-table__row"
-        columnTemplate="minmax(0, 1.2fr) minmax(0, 1fr)"
-      />
+      <Table headers={["Feature", "Status"]} rows={rows} className="feature-flags-table" rowClassName="feature-flags-table__row" columnTemplate="minmax(0, 1.2fr) minmax(0, 1fr)" />
     </Card>
   );
 }

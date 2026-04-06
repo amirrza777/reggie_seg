@@ -18,70 +18,98 @@ const subscribe = () => () => {};
 
 const useIsHydrated = () => useSyncExternalStore(subscribe, () => true, () => false);
 
-const useHeaderVisibility = () => {
-  const [hidden, setHidden] = useState(false);
-  const lastScrollY = useRef(0);
-  const hiddenRef = useRef(false);
-  const downwardTravelRef = useRef(0);
-  const upwardTravelRef = useRef(0);
-  const frameIdRef = useRef<number | null>(null);
+type HeaderVisibilityState = {
+  hidden: boolean;
+  lastScrollY: number;
+  downwardTravel: number;
+  upwardTravel: number;
+  frameId: number | null;
+};
 
+function createHeaderVisibilityState(): HeaderVisibilityState {
+  return {
+    hidden: false,
+    lastScrollY: 0,
+    downwardTravel: 0,
+    upwardTravel: 0,
+    frameId: null,
+  };
+}
+
+function resetHeaderTravel(state: HeaderVisibilityState) {
+  state.downwardTravel = 0;
+  state.upwardTravel = 0;
+}
+
+function applyHeaderVisibilityUpdate(state: HeaderVisibilityState): boolean | null {
+  const current = Math.max(window.scrollY, 0);
+  const delta = current - state.lastScrollY;
+
+  if (delta > 0) {
+    state.downwardTravel += delta;
+    state.upwardTravel = 0;
+  } else if (delta < 0) {
+    state.upwardTravel += -delta;
+    state.downwardTravel = 0;
+  }
+
+  let nextHidden = state.hidden;
+  if (current < 40) {
+    nextHidden = false;
+    resetHeaderTravel(state);
+  } else if (!state.hidden && state.downwardTravel >= 18) {
+    nextHidden = true;
+    resetHeaderTravel(state);
+  } else if (state.hidden && state.upwardTravel >= 10) {
+    nextHidden = false;
+    resetHeaderTravel(state);
+  }
+
+  state.lastScrollY = current;
+  if (nextHidden === state.hidden) {
+    return null;
+  }
+
+  state.hidden = nextHidden;
+  return nextHidden;
+}
+
+function queueHeaderVisibilityUpdate(state: HeaderVisibilityState, setHidden: (hidden: boolean) => void) {
+  if (state.frameId !== null) {
+    return;
+  }
+
+  state.frameId = window.requestAnimationFrame(() => {
+    state.frameId = null;
+    const nextHidden = applyHeaderVisibilityUpdate(state);
+    if (nextHidden !== null) {
+      setHidden(nextHidden);
+    }
+  });
+}
+
+function useHeaderVisibilityEffect(stateRef: { current: HeaderVisibilityState }, setHidden: (hidden: boolean) => void) {
   useEffect(() => {
-    const resetTravel = () => {
-      downwardTravelRef.current = 0;
-      upwardTravelRef.current = 0;
-    };
-
-    const updateVisibility = () => {
-      const current = Math.max(window.scrollY, 0);
-      const delta = current - lastScrollY.current;
-      let nextHidden = hiddenRef.current;
-
-      if (delta > 0) {
-        downwardTravelRef.current += delta;
-        upwardTravelRef.current = 0;
-      } else if (delta < 0) {
-        upwardTravelRef.current += -delta;
-        downwardTravelRef.current = 0;
-      }
-
-      if (current < 40) {
-        nextHidden = false;
-        resetTravel();
-      } else if (!hiddenRef.current && downwardTravelRef.current >= 18) {
-        nextHidden = true;
-        resetTravel();
-      } else if (hiddenRef.current && upwardTravelRef.current >= 10) {
-        nextHidden = false;
-        resetTravel();
-      }
-
-      if (nextHidden !== hiddenRef.current) {
-        hiddenRef.current = nextHidden;
-        setHidden(nextHidden);
-      }
-
-      lastScrollY.current = current;
-    };
-
+    const state = stateRef.current;
     const handleScroll = () => {
-      if (frameIdRef.current !== null) return;
-      frameIdRef.current = window.requestAnimationFrame(() => {
-        frameIdRef.current = null;
-        updateVisibility();
-      });
+      queueHeaderVisibilityUpdate(state, setHidden);
     };
 
-    lastScrollY.current = window.scrollY;
+    state.lastScrollY = window.scrollY;
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (frameIdRef.current !== null) {
-        window.cancelAnimationFrame(frameIdRef.current);
+      if (state.frameId !== null) {
+        window.cancelAnimationFrame(state.frameId);
       }
     };
-  }, []);
+  }, [setHidden, stateRef]);
+}
 
+const useHeaderVisibility = () => {
+  const [hidden, setHidden] = useState(false);
+  const visibilityStateRef = useRef<HeaderVisibilityState>(createHeaderVisibilityState());
+  useHeaderVisibilityEffect(visibilityStateRef, setHidden);
   return hidden;
 };
 
@@ -189,12 +217,14 @@ function HeaderMobileOverlay({
   handleLogoClick: (event: MouseEvent<HTMLAnchorElement>) => void;
   onCloseMenu: () => void;
 }) {
-  if (!isMounted) return null;
+  if (!isMounted) {
+    return null;
+  }
 
   return createPortal(
     <div className={`mobile-menu${isMenuOpen ? " is-open" : ""}`} aria-hidden={!isMenuOpen}>
       <button className="mobile-menu__scrim" aria-label="Close menu" onClick={onCloseMenu} />
-      <div className="mobile-menu__panel" data-elevation="popup" role="dialog" aria-modal="true" aria-label="Navigation menu">
+      <div className="mobile-menu__panel" role="dialog" aria-modal="true" aria-label="Navigation menu">
         <MobileMenuTopBar handleLogoClick={handleLogoClick} onCloseMenu={onCloseMenu} />
         <MobileMenuLinks onCloseMenu={onCloseMenu} />
         <MobileMenuActions onCloseMenu={onCloseMenu} />
@@ -251,9 +281,21 @@ function MobileMenuActions({ onCloseMenu }: { onCloseMenu: () => void }) {
 function useMobileMenuState() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isMounted = useIsHydrated();
+  const closeMenu = () => setIsMenuOpen(false);
 
+  useCloseMenuOnResizeAndEscape(closeMenu);
+  useBodyScrollLock(isMenuOpen);
+
+  return {
+    isMenuOpen,
+    isMounted,
+    closeMenu,
+    toggleMenu: () => setIsMenuOpen((open) => !open),
+  };
+}
+
+function useCloseMenuOnResizeAndEscape(closeMenu: () => void) {
   useEffect(() => {
-    const closeMenu = () => setIsMenuOpen(false);
     const onResize = () => {
       if (window.innerWidth > 900) {
         closeMenu();
@@ -271,19 +313,14 @@ function useMobileMenuState() {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, []);
+  }, [closeMenu]);
+}
 
+function useBodyScrollLock(isMenuOpen: boolean) {
   useEffect(() => {
     document.body.style.overflow = isMenuOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
   }, [isMenuOpen]);
-
-  return {
-    isMenuOpen,
-    isMounted,
-    closeMenu: () => setIsMenuOpen(false),
-    toggleMenu: () => setIsMenuOpen((open) => !open),
-  };
 }

@@ -42,7 +42,7 @@ export function ProjectList({ projects, projectMetaById = {} }: ProjectListProps
                   <h2 className="project-card__title">{project.name}</h2>
                   {project.archivedAt && (
                     <span style={{
-                      fontSize: "0.7rem",
+                      fontSize: "var(--fs-fixed-0-7rem)",
                       fontWeight: 600,
                       padding: "2px 8px",
                       borderRadius: 999,

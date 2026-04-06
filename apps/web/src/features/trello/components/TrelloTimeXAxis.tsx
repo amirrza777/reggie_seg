@@ -1,16 +1,12 @@
 "use client";
 
 import { XAxis } from "recharts";
-import { formatDate } from "@/shared/lib/formatDate";
+import { formatTrelloTimeTick } from "./trelloTimeTick";
 
 type TrelloTimeXAxisProps = {
   domain: [number, number] | undefined;
   scale?: "linear";
 };
-
-export function formatTrelloTimeTick(value: number) {
-  return formatDate(new Date(value).toISOString().slice(0, 10));
-}
 
 export function TrelloTimeXAxis({ domain, scale }: TrelloTimeXAxisProps) {
   return (

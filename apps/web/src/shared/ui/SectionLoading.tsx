@@ -109,9 +109,15 @@ function HelpPageSkeleton() {
 }
 
 function renderVariant(variant: SectionLoadingVariant) {
-  if (variant === "admin") return <AdminPageSkeleton />;
-  if (variant === "enterprise") return <EnterprisePageSkeleton />;
-  if (variant === "help") return <HelpPageSkeleton />;
+  if (variant === "admin") {
+    return <AdminPageSkeleton />;
+  }
+  if (variant === "enterprise") {
+    return <EnterprisePageSkeleton />;
+  }
+  if (variant === "help") {
+    return <HelpPageSkeleton />;
+  }
   return <AppPageSkeleton />;
 }
 

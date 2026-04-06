@@ -7,8 +7,8 @@
   width: 100%;
   z-index: 20;
   background-color: var(--glass-surface);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
   transition: transform 0.24s ease, opacity 0.18s ease;
   pointer-events: none;
 }
@@ -132,8 +132,7 @@
   position: relative;
   margin: 0;
   border-radius: 0;
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
+  background: var(--glass-ui-bg);
   color: var(--ink);
   min-height: 100%;
   height: 100%;
@@ -144,13 +143,8 @@
   overflow: hidden;
   overflow-y: auto;
   font-family: inherit;
-}
-
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .mobile-menu__panel {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
-  }
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .mobile-menu__top {
@@ -188,7 +182,7 @@
   padding: 18px;
   border-bottom: 1px solid var(--border);
   color: var(--ink);
-  font-size: 1.08rem;
+  font-size: var(--fs-fixed-1-08rem);
   letter-spacing: 0.01em;
 }
 
@@ -211,8 +205,8 @@
 
 @media (max-width: 1024px) {
   .header {
-    -webkit-backdrop-filter: blur(10px);
-    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
   }
 
   .header__inner {
@@ -250,7 +244,7 @@
   }
 
   .header .logo {
-    font-size: clamp(1.25rem, 5vw, 1.5rem);
+    font-size: var(--fs-fixed-clamp-1-25rem-5vw-1-5rem);
     line-height: 1.1;
   }
 }
@@ -265,6 +259,7 @@
     min-height: 60px;
   }
 }
+
 
 /* ─── Footer ────────────────────────────────────────────────────────── */
 
@@ -331,7 +326,7 @@
 }
 
 .footer .brand-wordmark__text {
-  font-size: 1.25rem;
+  font-size: var(--fs-fixed-1-25rem);
   letter-spacing: -0.015em;
   line-height: 1;
 }
@@ -339,7 +334,7 @@
 .footer__brand-tagline {
   margin: 0;
   max-width: 16ch;
-  font-size: clamp(1.85rem, 2.45vw, 2.7rem);
+  font-size: var(--fs-fixed-clamp-1-85rem-2-45vw-2-7rem);
   color: var(--ink);
   line-height: 1.15;
   letter-spacing: -0.02em;
@@ -382,7 +377,7 @@
 
 .footer__col-summary > span:first-child {
   display: block;
-  font-size: 0.74rem;
+  font-size: var(--fs-fixed-0-74rem);
   font-weight: var(--fw-semibold);
   color: var(--ink);
   margin-bottom: 12px;
@@ -399,7 +394,7 @@
 
 .footer__link {
   display: block;
-  font-size: 0.78rem;
+  font-size: var(--fs-fixed-0-78rem);
   color: var(--muted);
   transition: color 0.14s;
   width: fit-content;
@@ -428,7 +423,7 @@
 }
 
 .footer__bar-copy {
-  font-size: 0.68rem;
+  font-size: var(--fs-fixed-0-68rem);
   color: var(--muted);
   letter-spacing: 0.01em;
 }
@@ -441,7 +436,7 @@
 }
 
 .footer__bar-links a {
-  font-size: 0.68rem;
+  font-size: var(--fs-fixed-0-68rem);
   color: var(--muted);
   transition: color 0.14s;
 }
@@ -458,7 +453,7 @@
   }
 
   .footer__brand-tagline {
-    font-size: clamp(1.55rem, 2.2vw, 2.1rem);
+    font-size: var(--fs-fixed-clamp-1-55rem-2-2vw-2-1rem);
     max-width: 18ch;
   }
 
@@ -466,6 +461,7 @@
     gap: clamp(42px, 6vw, 90px);
   }
 }
+
 
 /* ── Tablet (640–899px): brand above nav, auto-fit columns ─── */
 
@@ -540,7 +536,7 @@
 
   .footer__col-icon {
     display: inline-block;
-    font-size: 1.1rem;
+    font-size: var(--fs-fixed-1-1rem);
     line-height: 1;
     color: var(--muted);
     flex-shrink: 0;
@@ -574,7 +570,7 @@
 
   .footer__brand-tagline {
     max-width: none;
-    font-size: clamp(1.3rem, 9vw, 1.65rem);
+    font-size: var(--fs-fixed-clamp-1-3rem-9vw-1-65rem);
     line-height: 1.2;
   }
 

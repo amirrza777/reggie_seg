@@ -7,6 +7,33 @@ type GithubProjectReposHeroProps = {
   loading: boolean;
 };
 
+function GithubProjectReposHeroChip({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="github-hero__chip">
+      <div className="github-hero__chip-label">{label}</div>
+      <div className="github-hero__chip-value">{value}</div>
+    </div>
+  );
+}
+
+function GithubProjectReposHeroChips({
+  loading,
+  accessibleRepoCount,
+  linkedRepoCount,
+}: {
+  loading: boolean;
+  accessibleRepoCount: number;
+  linkedRepoCount: number;
+}) {
+  return (
+    <div className="github-hero__chips">
+      <GithubProjectReposHeroChip label="Accessible repositories" value={loading ? "..." : accessibleRepoCount} />
+      <GithubProjectReposHeroChip label="Linked repositories" value={loading ? "..." : linkedRepoCount} />
+      <GithubProjectReposHeroChip label="Snapshot model" value="Immutable records" />
+    </div>
+  );
+}
+
 export function GithubProjectReposHero({
   connectedLogin,
   accessibleRepoCount,
@@ -27,21 +54,7 @@ export function GithubProjectReposHero({
           {connectedLogin ? `Connected as @${connectedLogin}` : "GitHub not connected"}
         </span>
       </div>
-
-      <div className="github-hero__chips">
-        <div className="github-hero__chip">
-          <div className="github-hero__chip-label">Accessible repositories</div>
-          <div className="github-hero__chip-value">{loading ? "..." : accessibleRepoCount}</div>
-        </div>
-        <div className="github-hero__chip">
-          <div className="github-hero__chip-label">Linked repositories</div>
-          <div className="github-hero__chip-value">{loading ? "..." : linkedRepoCount}</div>
-        </div>
-        <div className="github-hero__chip">
-          <div className="github-hero__chip-label">Snapshot model</div>
-          <div className="github-hero__chip-value">Immutable records</div>
-        </div>
-      </div>
+      <GithubProjectReposHeroChips loading={loading} accessibleRepoCount={accessibleRepoCount} linkedRepoCount={linkedRepoCount} />
     </section>
   );
 }

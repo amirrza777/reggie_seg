@@ -16,7 +16,7 @@
 
 .trello-link-board__title {
   margin: 0;
-  font-size: clamp(2rem, 2.4vw, 2.9rem);
+  font-size: var(--fs-fixed-clamp-2rem-2-4vw-2-9rem);
   line-height: 1.06;
   letter-spacing: -0.02em;
 }
@@ -43,7 +43,7 @@
 }
 
 .trello-link-board__select-label {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted-subtle);
@@ -87,7 +87,7 @@
 
 .trello-link-board__preview-title {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--fs-fixed-1-1rem);
 }
 
 .trello-link-board__preview-members {

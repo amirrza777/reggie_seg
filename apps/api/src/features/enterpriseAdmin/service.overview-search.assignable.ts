@@ -24,18 +24,109 @@ type AssignableUserRow = {
   active: boolean;
 };
 
+type AssignableSearchFilters = Pick<
+  EnterpriseAccessUserSearchFilters,
+  "scope" | "query" | "page" | "pageSize" | "prioritiseUserIds" | "excludeOnModuleParticipation"
+>;
+
 function sortAssignableUsersWithPriority(users: AssignableUserRow[], pinSet: ReadonlySet<number>): AssignableUserRow[] {
   return [...users].sort((a, b) => {
     const ap = pinSet.has(a.id) ? 0 : 1;
     const bp = pinSet.has(b.id) ? 0 : 1;
-    if (ap !== bp) return ap - bp;
-    if (a.active !== b.active) return a.active ? -1 : 1;
+    if (ap !== bp) {
+      return ap - bp;
+    }
+    if (a.active !== b.active) {
+      return a.active ? -1 : 1;
+    }
     const fn = a.firstName.localeCompare(b.firstName);
-    if (fn !== 0) return fn;
+    if (fn !== 0) {
+      return fn;
+    }
     const ln = a.lastName.localeCompare(b.lastName);
-    if (ln !== 0) return ln;
+    if (ln !== 0) {
+      return ln;
+    }
     return a.email.localeCompare(b.email);
   });
+}
+
+function buildAssignableWhereOptions(filters: AssignableSearchFilters, excludeEnrolledInModuleId?: number) {
+  if (excludeEnrolledInModuleId === undefined) {
+    return undefined;
+  }
+  return {
+    excludeEnrolledInModuleId,
+    excludeOnModuleParticipation: filters.excludeOnModuleParticipation ?? "all",
+  };
+}
+
+function buildAssignableSearchWhere(
+  enterpriseId: string,
+  filters: AssignableSearchFilters,
+  excludeEnrolledInModuleId?: number,
+) {
+  return buildEnterpriseAccessUserSearchWhere(
+    enterpriseId,
+    filters,
+    buildAssignableWhereOptions(filters, excludeEnrolledInModuleId),
+  );
+}
+
+function getPageOffset(page: number, pageSize: number) {
+  return (page - 1) * pageSize;
+}
+
+async function findAssignableUsersPage(where: Prisma.UserWhereInput, skip: number, take: number) {
+  return prisma.user.findMany({
+    where,
+    select: ASSIGNABLE_USER_SELECT,
+    orderBy: ASSIGNABLE_USER_ORDER_BY,
+    skip,
+    take,
+  });
+}
+
+async function findPinnedAndUnpinnedAssignableUsers(
+  where: Prisma.UserWhereInput,
+  pinIds: readonly number[],
+) {
+  const pinnedUsers = await prisma.user.findMany({
+    where: { AND: [where, { id: { in: [...pinIds] } }] },
+    select: ASSIGNABLE_USER_SELECT,
+    orderBy: ASSIGNABLE_USER_ORDER_BY,
+  });
+  const matchedPinIds = pinnedUsers.map((user) => user.id);
+  const unpinnedWhere: Prisma.UserWhereInput =
+    matchedPinIds.length > 0 ? { AND: [where, { id: { notIn: matchedPinIds } }] } : where;
+  return { pinnedUsers, unpinnedWhere };
+}
+
+async function findPinnedStrictPage(
+  where: Prisma.UserWhereInput,
+  pinIds: readonly number[],
+  filters: Pick<EnterpriseAccessUserSearchFilters, "page" | "pageSize">,
+) {
+  const { pinnedUsers, unpinnedWhere } = await findPinnedAndUnpinnedAssignableUsers(where, pinIds);
+  const offset = getPageOffset(filters.page, filters.pageSize);
+  const pageEnd = offset + filters.pageSize;
+  if (offset >= pinnedUsers.length) {
+    return findAssignableUsersPage(unpinnedWhere, offset - pinnedUsers.length, filters.pageSize);
+  }
+  if (pageEnd <= pinnedUsers.length) {
+    return pinnedUsers.slice(offset, pageEnd);
+  }
+  const fromPinned = pinnedUsers.slice(offset);
+  const fromUnpinned = await findAssignableUsersPage(unpinnedWhere, 0, filters.pageSize - fromPinned.length);
+  return [...fromPinned, ...fromUnpinned];
+}
+
+function orderMatchedAssignableUsers(
+  users: AssignableUserRow[],
+  prioritiseUserIds: readonly number[] | undefined,
+) {
+  const pinSet = new Set(prioritiseUserIds ?? []);
+  return pinSet.size > 0 ? sortAssignableUsersWithPriority(users, pinSet) : users;
 }
 
 export async function listAssignableUsersByEnterprise(enterpriseId: string) {
@@ -63,102 +154,36 @@ export async function listAssignableUsersByEnterprise(enterpriseId: string) {
 
 export async function runStrictAssignableUserSearch(
   enterpriseId: string,
-  filters: Pick<
-    EnterpriseAccessUserSearchFilters,
-    "scope" | "query" | "page" | "pageSize" | "prioritiseUserIds" | "excludeOnModuleParticipation"
-  >,
+  filters: AssignableSearchFilters,
   excludeEnrolledInModuleId?: number,
 ) {
-  const where = buildEnterpriseAccessUserSearchWhere(
-    enterpriseId,
-    filters,
-    excludeEnrolledInModuleId === undefined
-      ? undefined
-      : {
-          excludeEnrolledInModuleId,
-          excludeOnModuleParticipation: filters.excludeOnModuleParticipation ?? "all",
-        },
-  );
+  const where = buildAssignableSearchWhere(enterpriseId, filters, excludeEnrolledInModuleId);
   const pinIds = filters.prioritiseUserIds?.length ? filters.prioritiseUserIds : null;
-
   const total = await prisma.user.count({ where });
-
-  if (!pinIds || pinIds.length === 0) {
-    const offset = (filters.page - 1) * filters.pageSize;
-    const users = await prisma.user.findMany({
-      where,
-      select: ASSIGNABLE_USER_SELECT,
-      orderBy: ASSIGNABLE_USER_ORDER_BY,
-      skip: offset,
-      take: filters.pageSize,
-    });
-    return toEnterpriseAccessUserSearchResponse(users, filters, total);
-  }
-
-  const pinWhere: Prisma.UserWhereInput = { AND: [where, { id: { in: pinIds } }] };
-  const pinnedUsers = await prisma.user.findMany({
-    where: pinWhere,
-    select: ASSIGNABLE_USER_SELECT,
-    orderBy: ASSIGNABLE_USER_ORDER_BY,
-  });
-  const matchedPinIds = pinnedUsers.map((u) => u.id);
-  const unpinnedWhere: Prisma.UserWhereInput =
-    matchedPinIds.length > 0 ? { AND: [where, { id: { notIn: matchedPinIds } }] } : where;
-
-  const pinnedCount = pinnedUsers.length;
-  const page = filters.page;
-  const pageSize = filters.pageSize;
-  const start = (page - 1) * pageSize;
-  const end = start + pageSize;
-
-  let pageUsers: AssignableUserRow[];
-  if (start >= pinnedCount) {
-    pageUsers = await prisma.user.findMany({
-      where: unpinnedWhere,
-      select: ASSIGNABLE_USER_SELECT,
-      orderBy: ASSIGNABLE_USER_ORDER_BY,
-      skip: start - pinnedCount,
-      take: pageSize,
-    });
-  } else if (end <= pinnedCount) {
-    pageUsers = pinnedUsers.slice(start, end);
+  let users: AssignableUserRow[];
+  if (pinIds) {
+    users = await findPinnedStrictPage(where, pinIds, filters);
   } else {
-    const fromPinned = pinnedUsers.slice(start);
-    const need = pageSize - fromPinned.length;
-    const fromUnpinned = await prisma.user.findMany({
-      where: unpinnedWhere,
-      select: ASSIGNABLE_USER_SELECT,
-      orderBy: ASSIGNABLE_USER_ORDER_BY,
-      skip: 0,
-      take: need,
-    });
-    pageUsers = [...fromPinned, ...fromUnpinned];
+    users = await findAssignableUsersPage(where, getPageOffset(filters.page, filters.pageSize), filters.pageSize);
   }
-
-  return toEnterpriseAccessUserSearchResponse(pageUsers, filters, total);
+  return toEnterpriseAccessUserSearchResponse(users, filters, total);
 }
 
 export async function runFuzzyAssignableUserSearch(
   enterpriseId: string,
-  filters: Pick<
-    EnterpriseAccessUserSearchFilters,
-    "scope" | "query" | "page" | "pageSize" | "prioritiseUserIds" | "excludeOnModuleParticipation"
-  >,
+  filters: AssignableSearchFilters,
   strictResponse: ReturnType<typeof toEnterpriseAccessUserSearchResponse>,
   excludeEnrolledInModuleId?: number,
 ) {
   const fuzzyBaseWhere = buildEnterpriseAccessUserSearchWhere(
     enterpriseId,
     { scope: filters.scope, query: null },
-    excludeEnrolledInModuleId === undefined
-      ? undefined
-      : {
-          excludeEnrolledInModuleId,
-          excludeOnModuleParticipation: filters.excludeOnModuleParticipation ?? "all",
-        },
+    buildAssignableWhereOptions(filters, excludeEnrolledInModuleId),
   );
   const candidateTotal = await prisma.user.count({ where: fuzzyBaseWhere });
-  if (candidateTotal === 0 || candidateTotal > DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES) return strictResponse;
+  if (candidateTotal === 0 || candidateTotal > DEFAULT_FUZZY_FALLBACK_MAX_CANDIDATES) {
+    return strictResponse;
+  }
 
   const candidates = await prisma.user.findMany({
     where: fuzzyBaseWhere,
@@ -167,9 +192,8 @@ export async function runFuzzyAssignableUserSearch(
     take: candidateTotal,
   });
   const matched = candidates.filter((c) => matchesEnterpriseAccessUserSearchCandidate(c, filters.query ?? ""));
-  const pinSet = new Set(filters.prioritiseUserIds ?? []);
-  const ordered = pinSet.size > 0 ? sortAssignableUsersWithPriority(matched, pinSet) : matched;
-  const offset = (filters.page - 1) * filters.pageSize;
+  const ordered = orderMatchedAssignableUsers(matched, filters.prioritiseUserIds);
+  const offset = getPageOffset(filters.page, filters.pageSize);
   return toEnterpriseAccessUserSearchResponse(
     ordered.slice(offset, offset + filters.pageSize),
     filters,

@@ -6,7 +6,7 @@ export const githubProjectReposClientStyles = {
     borderRadius: 12,
     background: "var(--surface)",
     padding: 16,
-    boxShadow: "var(--shadow-sm)",
+    boxShadow: "none",
   } as React.CSSProperties,
   row: {
     display: "flex",
@@ -32,7 +32,7 @@ export const githubProjectReposClientStyles = {
       background:
         "linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--accent) 8%), var(--surface))",
       padding: 10,
-      boxShadow: "var(--shadow-sm)",
+      boxShadow: "none",
     } as React.CSSProperties),
   } as React.CSSProperties,
   tabRow: {
@@ -63,7 +63,7 @@ export const githubProjectReposClientStyles = {
   sectionKicker: {
     margin: 0,
     color: "var(--muted)",
-    fontSize: 12,
+    fontSize: "var(--fs-fixed-12px)",
     letterSpacing: 0.35,
     textTransform: "uppercase",
   } as React.CSSProperties,
@@ -72,7 +72,7 @@ export const githubProjectReposClientStyles = {
     border: "1px solid var(--border)",
     padding: "10px 12px",
     background: "var(--surface)",
-    boxShadow: "var(--shadow-sm)",
+    boxShadow: "none",
   } as React.CSSProperties,
   statusInfo: {
     borderColor: "color-mix(in srgb, var(--accent) 35%, var(--border))",

@@ -9,6 +9,24 @@ import { useSidebarState } from "./useSidebarState";
 
 export type { SidebarLink, SidebarProps, SpaceKey } from "./Sidebar.types";
 
+type SidebarStateSnapshot = Pick<
+  ReturnType<typeof useSidebarState>,
+  | "activeMobileVisibleHref"
+  | "activeVisibleHref"
+  | "availableSpaces"
+  | "close"
+  | "currentLabel"
+  | "getGroupOpen"
+  | "isOpen"
+  | "mobileVisibleLinks"
+  | "persistOpenState"
+  | "resolvedMobileSpace"
+  | "setMobileSpace"
+  | "toggle"
+  | "toggleGroup"
+  | "visibleLinks"
+>;
+
 function getRootClass(mode: SidebarProps["mode"]) {
   return [
     "sidebar",
@@ -22,61 +40,43 @@ function getRootClass(mode: SidebarProps["mode"]) {
 export function Sidebar({ title = "Navigation", links, footer, mode = "full", mobileSpaces = [] }: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-
-  const showMobile = mode !== "desktop";
-  const showDesktop = mode !== "mobile";
-  const {
-    activeMobileVisibleHref,
-    activeVisibleHref,
-    availableSpaces,
-    close,
-    currentLabel,
-    getGroupOpen,
-    isOpen,
-    mobileVisibleLinks,
-    persistOpenState,
-    resolvedMobileSpace,
-    setMobileSpace,
-    toggle,
-    toggleGroup,
-    visibleLinks,
-  } = useSidebarState({ links, pathname, searchParams });
-
+  const state = useSidebarState({ links, pathname, searchParams });
   const rootClass = getRootClass(mode);
-
-  return (
-    <div className={rootClass}>
-      {showMobile ? (
-        <SidebarMobileSection
-          mode={mode}
-          title={title}
-          isOpen={isOpen}
-          currentLabel={currentLabel}
-          close={close}
-          toggle={toggle}
-          mobileSpaces={mobileSpaces}
-          pathname={pathname}
-          availableSpaces={availableSpaces}
-          resolvedMobileSpace={resolvedMobileSpace}
-          setMobileSpace={setMobileSpace}
-          persistOpenState={persistOpenState}
-          mobileVisibleLinks={mobileVisibleLinks}
-          activeMobileVisibleHref={activeMobileVisibleHref}
-          getGroupOpen={getGroupOpen}
-          toggleGroup={toggleGroup}
-          searchParams={searchParams}
-        />
-      ) : null}
-
-      {showDesktop ? <SidebarDesktopSection state={{ visibleLinks, activeVisibleHref, pathname, searchParams, getGroupOpen, toggleGroup }} /> : null}
-
-      {showDesktop && footer ? <div className="sidebar__footer">{footer}</div> : null}
-    </div>
-  );
+  return <SidebarContent rootClass={rootClass} mode={mode} title={title} footer={footer} mobileSpaces={mobileSpaces} pathname={pathname} searchParams={searchParams} state={state} />;
 }
 
 function SidebarMobileSection(props: ComponentProps<typeof SidebarMobileNav>) {
   return <SidebarMobileNav {...props} />;
+}
+
+function SidebarContent({
+  rootClass,
+  mode,
+  title,
+  footer,
+  mobileSpaces,
+  pathname,
+  searchParams,
+  state,
+}: {
+  rootClass: string;
+  mode: SidebarProps["mode"];
+  title: string;
+  footer?: SidebarProps["footer"];
+  mobileSpaces: SidebarProps["mobileSpaces"];
+  pathname: string | null;
+  searchParams: ReturnType<typeof useSearchParams>;
+  state: SidebarStateSnapshot;
+}) {
+  const showMobile = mode !== "desktop";
+  const showDesktop = mode !== "mobile";
+  return (
+    <div className={rootClass}>
+      {showMobile ? <SidebarMobileSection mode={mode} title={title} isOpen={state.isOpen} currentLabel={state.currentLabel} close={state.close} toggle={state.toggle} mobileSpaces={mobileSpaces} pathname={pathname} availableSpaces={state.availableSpaces} resolvedMobileSpace={state.resolvedMobileSpace} setMobileSpace={state.setMobileSpace} persistOpenState={state.persistOpenState} mobileVisibleLinks={state.mobileVisibleLinks} activeMobileVisibleHref={state.activeMobileVisibleHref} getGroupOpen={state.getGroupOpen} toggleGroup={state.toggleGroup} searchParams={searchParams} /> : null}
+      {showDesktop ? <SidebarDesktopSection state={{ visibleLinks: state.visibleLinks, activeVisibleHref: state.activeVisibleHref, pathname, searchParams, getGroupOpen: state.getGroupOpen, toggleGroup: state.toggleGroup }} /> : null}
+      {showDesktop && footer ? <div className="sidebar__footer">{footer}</div> : null}
+    </div>
+  );
 }
 
 function SidebarDesktopSection({

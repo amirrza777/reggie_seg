@@ -12,36 +12,34 @@ type EnterpriseUserEffectsOptions = {
   loadEnterpriseUsers: EnterpriseUserLoaders["loadEnterpriseUsers"];
 };
 
-export function useEnterpriseUserEffects(options: EnterpriseUserEffectsOptions) {
-  const {
-    selectedEnterprise,
-    enterpriseUserSearchQuery,
-    enterpriseUserPage,
-    normalizedEnterpriseUserSearch,
-    setEnterpriseUserPage,
-    setEnterpriseUserPageInput,
-    loadEnterpriseUsers,
-  } = options;
-
+function useEnterpriseUserFetchEffect(options: EnterpriseUserEffectsOptions) {
   useEffect(() => {
-    if (!selectedEnterprise) return;
-    void loadEnterpriseUsers(
-      selectedEnterprise.id,
-      enterpriseUserSearchQuery,
-      enterpriseUserPage,
-    );
-  }, [
-    enterpriseUserPage,
-    enterpriseUserSearchQuery,
-    loadEnterpriseUsers,
-    selectedEnterprise,
-  ]);
+    if (!options.selectedEnterprise) {
+      return;
+    }
+    void options.loadEnterpriseUsers(options.selectedEnterprise.id, options.enterpriseUserSearchQuery, options.enterpriseUserPage);
+  }, [options]);
+}
 
+function useEnterpriseUserSearchResetEffect(options: EnterpriseUserEffectsOptions) {
+  const normalizedEnterpriseUserSearch = options.normalizedEnterpriseUserSearch;
+  const selectedEnterpriseId = options.selectedEnterprise?.id;
+  const setEnterpriseUserPage = options.setEnterpriseUserPage;
   useEffect(() => {
     setEnterpriseUserPage(1);
-  }, [normalizedEnterpriseUserSearch, selectedEnterprise?.id, setEnterpriseUserPage]);
+  }, [normalizedEnterpriseUserSearch, selectedEnterpriseId, setEnterpriseUserPage]);
+}
 
+function useEnterpriseUserPageInputSyncEffect(options: EnterpriseUserEffectsOptions) {
+  const enterpriseUserPage = options.enterpriseUserPage;
+  const setEnterpriseUserPageInput = options.setEnterpriseUserPageInput;
   useEffect(() => {
     setEnterpriseUserPageInput(String(enterpriseUserPage));
   }, [enterpriseUserPage, setEnterpriseUserPageInput]);
+}
+
+export function useEnterpriseUserEffects(options: EnterpriseUserEffectsOptions) {
+  useEnterpriseUserFetchEffect(options);
+  useEnterpriseUserSearchResetEffect(options);
+  useEnterpriseUserPageInputSyncEffect(options);
 }

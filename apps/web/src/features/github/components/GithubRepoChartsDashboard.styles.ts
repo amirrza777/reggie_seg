@@ -12,7 +12,7 @@ export const chartDashboardStyles = {
     marginTop: 2,
     marginBottom: 4,
     color: "var(--muted)",
-    fontSize: 12,
+    fontSize: "var(--fs-fixed-12px)",
     letterSpacing: 0.4,
     textTransform: "uppercase",
   } as React.CSSProperties,
@@ -44,18 +44,18 @@ export const chartDashboardStyles = {
     background: "var(--surface)",
   } as React.CSSProperties,
   insightLabel: {
-    fontSize: 12,
+    fontSize: "var(--fs-fixed-12px)",
     color: "var(--muted)",
     marginBottom: 4,
   } as React.CSSProperties,
   insightValue: {
-    fontSize: 20,
+    fontSize: "var(--fs-fixed-20px)",
     fontWeight: 700,
     lineHeight: 1.05,
   } as React.CSSProperties,
   insightSubtext: {
     marginTop: 4,
-    fontSize: 12,
+    fontSize: "var(--fs-fixed-12px)",
     color: "var(--muted)",
   } as React.CSSProperties,
 };

@@ -7,19 +7,34 @@ import type { EnterpriseFeatureFlag } from "@/features/enterprise/types";
 
 type ErrorWithCause = Error & { cause?: unknown; code?: string };
 
+function resolveNestedCauseCode(err: ErrorWithCause): string | null {
+  const cause = err.cause;
+  if (!cause || typeof cause !== "object") {
+    return null;
+  }
+  const code = (cause as { code?: unknown }).code;
+  return typeof code === "string" ? code : null;
+}
+
+function isUnauthorizedApiError(err: unknown): boolean {
+  return err instanceof ApiError && (err.status === 401 || err.status === 403);
+}
+
 function isNetworkFetchFailure(err: unknown): boolean {
-  if (!(err instanceof Error)) return false;
-  if (err.name !== "TypeError") return false;
-  if (err.message.toLowerCase() !== "fetch failed") return false;
-
-  const code = (err as ErrorWithCause).code;
-  const causeCode =
-    typeof (err as ErrorWithCause).cause === "object" && (err as ErrorWithCause).cause !== null
-      ? (err as { cause: { code?: unknown } }).cause.code
-      : undefined;
-
-  const normalizedCode = typeof code === "string" ? code : typeof causeCode === "string" ? causeCode : null;
-  if (!normalizedCode) return true;
+  if (!(err instanceof Error)) {
+    return false;
+  }
+  if (err.name !== "TypeError") {
+    return false;
+  }
+  if (err.message.toLowerCase() !== "fetch failed") {
+    return false;
+  }
+  const typedError = err as ErrorWithCause;
+  const normalizedCode = typeof typedError.code === "string" ? typedError.code : resolveNestedCauseCode(typedError);
+  if (!normalizedCode) {
+    return true;
+  }
 
   return ["ECONNRESET", "ECONNREFUSED", "ETIMEDOUT", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET"].includes(
     normalizedCode,
@@ -33,10 +48,15 @@ async function getFeatureFlags(): Promise<EnterpriseFeatureFlag[]> {
       baseUrl: API_BASE_URL,
     });
   } catch (err) {
-    if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return [];
-    if (isNetworkFetchFailure(err)) {
-      logDevError("Feature flags unavailable; defaulting to empty map in non-production environments.", err);
-      if (process.env.NODE_ENV !== "production") return [];
+    if (isUnauthorizedApiError(err)) {
+      return [];
+    }
+    if (!isNetworkFetchFailure(err)) {
+      throw err;
+    }
+    logDevError("Feature flags unavailable; defaulting to empty map in non-production environments.", err);
+    if (process.env.NODE_ENV !== "production") {
+      return [];
     }
     throw err;
   }

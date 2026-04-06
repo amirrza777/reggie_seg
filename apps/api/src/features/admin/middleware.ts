@@ -6,7 +6,7 @@ import { isSuperAdminEmail, resolveAdminUser } from "./service.js";
 const refreshSecret = process.env.JWT_REFRESH_SECRET || "";
 
 function parseAdminTokenPayload(payload: string | jwt.JwtPayload): { sub: number; admin: boolean } | null {
-  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return null;
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {return null;}
   const rawSub = payload.sub;
   const sub =
     typeof rawSub === "number"
@@ -15,21 +15,21 @@ function parseAdminTokenPayload(payload: string | jwt.JwtPayload): { sub: number
         ? Number.parseInt(rawSub, 10)
         : Number.NaN;
   const admin = payload.admin;
-  if (!Number.isInteger(sub) || sub <= 0) return null;
-  if (typeof admin !== "boolean") return null;
+  if (!Number.isInteger(sub) || sub <= 0) {return null;}
+  if (typeof admin !== "boolean") {return null;}
   return { sub, admin };
 }
 
 export async function ensureAdmin(req: AdminRequest, res: Response, next: NextFunction) {
   const token = req.cookies?.refresh_token;
-  if (!token) return res.status(401).json({ error: "Not authenticated" });
+  if (!token) {return res.status(401).json({ error: "Not authenticated" });}
   try {
     const verified = jwt.verify(token, refreshSecret);
     const payload = parseAdminTokenPayload(verified);
-    if (!payload?.sub) return res.status(401).json({ error: "Not authenticated" });
-    if (!payload.admin) return res.status(403).json({ error: "Forbidden" });
+    if (!payload?.sub) {return res.status(401).json({ error: "Not authenticated" });}
+    if (!payload.admin) {return res.status(403).json({ error: "Forbidden" });}
     const adminUser = await resolveAdminUser(payload);
-    if (!adminUser) return res.status(403).json({ error: "Forbidden" });
+    if (!adminUser) {return res.status(403).json({ error: "Forbidden" });}
     req.adminUser = adminUser;
     return next();
   } catch {

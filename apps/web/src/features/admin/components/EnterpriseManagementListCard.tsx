@@ -40,8 +40,12 @@ function EnterpriseTableSummary({
   enterpriseStart: number;
   enterpriseEnd: number;
 }) {
-  if (enterpriseTableStatus === "loading" && enterpriseTotal === 0) return "Loading enterprises...";
-  if (enterpriseTotal === 0) return "Showing 0 enterprises.";
+  if (enterpriseTableStatus === "loading" && enterpriseTotal === 0) {
+    return "Loading enterprises...";
+  }
+  if (enterpriseTotal === 0) {
+    return "Showing 0 enterprises.";
+  }
   return `Showing ${enterpriseStart}-${enterpriseEnd} of ${enterpriseTotal} enterprise${enterpriseTotal === 1 ? "" : "s"}.`;
 }
 
@@ -97,7 +101,9 @@ function EnterpriseCardActions({
 }
 
 function EnterpriseErrorMessage({ message, status }: { message: string | null; status: RequestState }) {
-  if (!message || status !== "error") return null;
+  if (!message || status !== "error") {
+    return null;
+  }
 
   return (
     <div className="status-alert status-alert--error status-alert--spaced">
@@ -106,8 +112,31 @@ function EnterpriseErrorMessage({ message, status }: { message: string | null; s
   );
 }
 
+function EnterpriseRowsPagination(props: EnterpriseManagementListCardProps) {
+  return (
+    <PaginationControls
+      ariaLabel="Enterprise pagination"
+      page={props.currentPage}
+      totalPages={props.enterpriseTotalPages}
+      onPreviousPage={() => props.setCurrentPage((prev) => Math.max(1, prev - 1))}
+      onNextPage={() => props.setCurrentPage((prev) => Math.min(props.effectiveEnterpriseTotalPages, prev + 1))}
+    >
+      <PaginationPageJump
+        pageInputId="enterprise-page-input"
+        pageInput={props.pageInput}
+        totalPages={props.enterpriseTotalPages}
+        pageJumpAriaLabel="Go to enterprise page number"
+        onPageInputChange={props.setPageInput}
+        onPageInputBlur={() => props.applyPageInput(props.pageInput)}
+        onPageJump={props.handlePageJump}
+      />
+    </PaginationControls>
+  );
+}
+
 function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
   const showSkeletonTable = props.enterpriseTableStatus === "loading" && props.rows.length === 0;
+  const showPagination = props.enterpriseTotalPages > 1 && !showSkeletonTable;
 
   return (
     <>
@@ -121,27 +150,7 @@ function EnterpriseRowsTable(props: EnterpriseManagementListCardProps) {
         loadingLabel="Loading enterprises..."
         loadingRowCount={6}
       />
-      {props.enterpriseTotalPages > 1 && !showSkeletonTable ? (
-        <PaginationControls
-          ariaLabel="Enterprise pagination"
-          page={props.currentPage}
-          totalPages={props.enterpriseTotalPages}
-          onPreviousPage={() => props.setCurrentPage((prev) => Math.max(1, prev - 1))}
-          onNextPage={() =>
-            props.setCurrentPage((prev) => Math.min(props.effectiveEnterpriseTotalPages, prev + 1))
-          }
-        >
-          <PaginationPageJump
-            pageInputId="enterprise-page-input"
-            pageInput={props.pageInput}
-            totalPages={props.enterpriseTotalPages}
-            pageJumpAriaLabel="Go to enterprise page number"
-            onPageInputChange={props.setPageInput}
-            onPageInputBlur={() => props.applyPageInput(props.pageInput)}
-            onPageJump={props.handlePageJump}
-          />
-        </PaginationControls>
-      ) : null}
+      {showPagination ? <EnterpriseRowsPagination {...props} /> : null}
     </>
   );
 }

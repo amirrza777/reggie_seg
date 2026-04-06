@@ -9,7 +9,11 @@ export function isStaffNavLinkActive({
   href: string;
   isOverview: boolean;
 }): boolean {
-  if (!pathname) return false;
-  if (isOverview) return pathname === baseHref;
+  if (!pathname) {
+    return false;
+  }
+  if (isOverview) {
+    return pathname === baseHref;
+  }
   return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -7,12 +7,12 @@ type HrefTarget = {
 export type SearchParamsReader = Pick<URLSearchParams, "get"> | null;
 
 export function normalizePath(path: string) {
-  if (path === "/") return "/";
+  if (path === "/") {return "/";}
   return path.replace(/\/+$/, "");
 }
 
 export function isHrefActive(href: string, pathname: string | null, searchParams: SearchParamsReader) {
-  if (!pathname) return false;
+  if (!pathname) {return false;}
 
   const [rawPath, rawQuery] = href.split("?");
   const targetPath = normalizePath(rawPath);
@@ -23,13 +23,13 @@ export function isHrefActive(href: string, pathname: string | null, searchParams
       ? currentPath === "/"
       : currentPath === targetPath || currentPath.startsWith(`${targetPath}/`);
 
-  if (!pathMatches) return false;
-  if (!rawQuery) return true;
-  if (!searchParams) return false;
+  if (!pathMatches) {return false;}
+  if (!rawQuery) {return true;}
+  if (!searchParams) {return false;}
 
   const requiredParams = new URLSearchParams(rawQuery);
   for (const [key, value] of requiredParams.entries()) {
-    if (searchParams.get(key) !== value) return false;
+    if (searchParams.get(key) !== value) {return false;}
   }
 
   return true;
@@ -41,15 +41,15 @@ export function getBestMatchingHref<T extends HrefTarget>(
   searchParams: SearchParamsReader
 ) {
   const matching = targets.filter((target) => isHrefActive(target.href, pathname, searchParams));
-  if (matching.length === 0) return null;
+  if (matching.length === 0) {return null;}
   return matching.sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 }
 
 export function getSpaceFromHref(href: string): SpaceKey {
   const [rawPath] = href.split("?");
   const targetPath = normalizePath(rawPath);
-  if (targetPath.startsWith("/enterprise")) return "enterprise";
-  if (targetPath.startsWith("/admin")) return "admin";
-  if (targetPath.startsWith("/staff")) return "staff";
+  if (targetPath.startsWith("/enterprise")) {return "enterprise";}
+  if (targetPath.startsWith("/admin")) {return "admin";}
+  if (targetPath.startsWith("/staff")) {return "staff";}
   return "workspace";
 }
