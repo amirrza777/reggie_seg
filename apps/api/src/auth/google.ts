@@ -1,8 +1,21 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy, type Profile, type VerifyCallback } from "passport-google-oauth20";
-import { prisma } from "../shared/db.js";
-import { randomBytes } from "crypto";
 import { signUpWithProvider } from "./service.js";
+
+async function handleGoogleVerify(profile: Profile, done: VerifyCallback) {
+  try {
+    const email = profile.emails?.[0]?.value;
+    if (!email) {
+      return done(new Error("email missing"));
+    }
+    const firstName = profile.name?.givenName ?? "";
+    const lastName = profile.name?.familyName ?? "";
+    const user = await signUpWithProvider({ email, firstName, lastName, provider: "google" });
+    return done(null, user);
+  } catch (error) {
+    return done(error);
+  }
+}
 
 /** Configures Google authentication when the required environment variables are available. */
 export function configureGoogle(): boolean {
@@ -23,16 +36,7 @@ export function configureGoogle(): boolean {
         callbackURL,
       },
       async (_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback) => {
-        try {
-          const email = profile.emails?.[0]?.value;
-          if (!email) return done(new Error("email missing"));
-          const firstName = profile.name?.givenName ?? "";
-          const lastName = profile.name?.familyName ?? "";
-          const user = await signUpWithProvider({ email, firstName, lastName, provider: "google" });
-          return done(null, user);
-        } catch (e) {
-          return done(e);
-        }
+        return handleGoogleVerify(profile, done);
       }
     )
   );
