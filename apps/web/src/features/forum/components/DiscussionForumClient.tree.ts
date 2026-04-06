@@ -26,12 +26,16 @@ export function compareRepliesByScore(a: DiscussionPost, b: DiscussionPost) {
     return b.reactionScore - a.reactionScore;
   }
   const createdDiff = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-  if (createdDiff !== 0) return createdDiff;
+  if (createdDiff !== 0) {
+    return createdDiff;
+  }
   return a.id - b.id;
 }
 
 export function normalizeReplyOrder(post: DiscussionPost): DiscussionPost {
-  if (post.replies.length === 0) return post;
+  if (post.replies.length === 0) {
+    return post;
+  }
   return {
     ...post,
     replies: post.replies.map(normalizeReplyOrder).sort(compareRepliesByScore),
@@ -43,7 +47,9 @@ export function addReplyToTree(items: DiscussionPost[], parentPostId: number, re
     if (post.id === parentPostId) {
       return { ...post, replies: [...post.replies, normalizeReplyOrder(reply)].sort(compareRepliesByScore) };
     }
-    if (post.replies.length === 0) return post;
+    if (post.replies.length === 0) {
+      return post;
+    }
     return { ...post, replies: addReplyToTree(post.replies, parentPostId, reply).sort(compareRepliesByScore) };
   });
 }
@@ -54,7 +60,9 @@ export function findPostPath(items: DiscussionPost[], postId: number, trail: num
     if (post.id === postId) {
       return nextTrail;
     }
-    if (post.replies.length === 0) continue;
+    if (post.replies.length === 0) {
+      continue;
+    }
     const nestedMatch = findPostPath(post.replies, postId, nextTrail);
     if (nestedMatch) {
       return nestedMatch;
@@ -68,7 +76,9 @@ export function updatePostInTree(items: DiscussionPost[], updated: DiscussionPos
     if (post.id === updated.id) {
       return normalizeReplyOrder(updated);
     }
-    if (post.replies.length === 0) return post;
+    if (post.replies.length === 0) {
+      return post;
+    }
     return { ...post, replies: updatePostInTree(post.replies, updated).sort(compareRepliesByScore) };
   });
 }
@@ -82,7 +92,9 @@ export function updateReportStatusInTree(
     if (post.id === postId) {
       return { ...post, myStudentReportStatus: status ?? null };
     }
-    if (post.replies.length === 0) return post;
+    if (post.replies.length === 0) {
+      return post;
+    }
     return { ...post, replies: updateReportStatusInTree(post.replies, postId, status) };
   });
 }
@@ -102,7 +114,9 @@ export function collectDescendantIds(post: DiscussionPost): number[] {
 
   while (stack.length > 0) {
     const current = stack.pop();
-    if (!current) continue;
+    if (!current) {
+      continue;
+    }
     descendants.push(current.id);
     if (current.replies.length > 0) {
       stack.push(...current.replies);

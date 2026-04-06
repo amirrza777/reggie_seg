@@ -30,13 +30,13 @@ const MAX_PAGE_SIZE = 100;
 /** Parses the admin enterprise search filters. */
 export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult<AdminEnterpriseSearchFilters> {
   const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
-  if (!parsedQuery.ok) return parsedQuery;
+  if (!parsedQuery.ok) {return parsedQuery;}
 
   const parsedPagination = parsePaginationQueryParams(
     { page: query.page, pageSize: query.pageSize },
     { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
   );
-  if (!parsedPagination.ok) return parsedPagination;
+  if (!parsedPagination.ok) {return parsedPagination;}
 
   return {
     ok: true,
@@ -52,7 +52,7 @@ export function parseAdminEnterpriseSearchFilters(query: ParsedQs): ParseResult<
 export function buildAdminEnterpriseSearchWhere(
   filters: Pick<AdminEnterpriseSearchFilters, "query">,
 ): Prisma.EnterpriseWhereInput {
-  if (!filters.query) return {};
+  if (!filters.query) {return {};}
 
   const q = filters.query;
   const normalizedQuery = q.trim().toLowerCase();
@@ -72,21 +72,21 @@ export function buildAdminEnterpriseSearchWhere(
 /** Checks fuzzy match for an admin enterprise search candidate. */
 export function matchesAdminEnterpriseSearchCandidate(candidate: AdminEnterpriseSearchCandidate, query: string): boolean {
   const trimmedQuery = query.trim();
-  if (!trimmedQuery) return true;
+  if (!trimmedQuery) {return true;}
 
   if (matchesFuzzySearchCandidate({ query: trimmedQuery, sources: [candidate.name, candidate.code] })) {
     return true;
   }
 
   const hintedRoles = parseRolesFromQuery(normalizeSearchText(trimmedQuery));
-  if (hintedRoles.length === 0) return false;
+  if (hintedRoles.length === 0) {return false;}
   return candidate.users.some((user) => hintedRoles.includes(user.role));
 }
 
 /** Checks fuzzy match for lightweight enterprise search candidates. */
 export function matchesAdminEnterpriseFuzzyCandidate(candidate: AdminEnterpriseFuzzyCandidate, query: string): boolean {
   const trimmedQuery = query.trim();
-  if (!trimmedQuery) return true;
+  if (!trimmedQuery) {return true;}
 
   return matchesFuzzySearchCandidate({
     query: trimmedQuery,
@@ -95,11 +95,11 @@ export function matchesAdminEnterpriseFuzzyCandidate(candidate: AdminEnterpriseF
 }
 
 function parseRolesFromQuery(value: string): Array<"STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN"> {
-  if (value === "student" || value === "students") return ["STUDENT"];
-  if (value === "staff") return ["STAFF"];
+  if (value === "student" || value === "students") {return ["STUDENT"];}
+  if (value === "staff") {return ["STAFF"];}
   if (value === "enterprise admin" || value === "enterprise-admin" || value === "enterprise_admin") {
     return ["ENTERPRISE_ADMIN"];
   }
-  if (value === "admin" || value === "admins") return ["ADMIN", "ENTERPRISE_ADMIN"];
+  if (value === "admin" || value === "admins") {return ["ADMIN", "ENTERPRISE_ADMIN"];}
   return [];
 }

@@ -16,8 +16,8 @@
 
 .auth-container.marketing-shell::before {
   background-image:
-    radial-gradient(ellipse 70% 60% at 0% 0%, rgba(32, 173, 120, 0.52), rgba(32, 173, 120, 0.14) 40%, transparent 70%),
-    radial-gradient(ellipse 70% 60% at 100% 100%, rgba(32, 173, 120, 0.52), rgba(32, 173, 120, 0.14) 40%, transparent 70%);
+    radial-gradient(ellipse 70% 60% at 0% 0%, var(--color-fixed-rgba-32-173-120-0-52), var(--color-fixed-rgba-32-173-120-0-14) 40%, transparent 70%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-52), var(--color-fixed-rgba-32-173-120-0-14) 40%, transparent 70%);
 }
 
 .auth-card {
@@ -111,7 +111,7 @@
 .auth-alert {
   margin-bottom: 12px;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .auth-alert--spacious {
@@ -133,37 +133,38 @@
 }
 
 .auth-role-fieldset {
-  margin: 12px 0;
+  margin: 8px 0 18px;
   padding: 0;
   border: none;
 }
 
 .auth-role-legend {
-  font-size: var(--fs-caption);
+  font-size: var(--fs-fixed-15px);
   line-height: 1.4;
-  margin-bottom: 6px;
+  margin: 0 0 4px;
+  color: var(--muted-subtle);
 }
 
 .role-toggle {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
   width: 100%;
 }
 
 .role-toggle__option {
   width: 100%;
-  min-height: 48px;
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface);
-  font-size: 16px;
+  font-size: var(--fs-fixed-14px);
   font-weight: var(--fw-medium);
   color: var(--ink);
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.1s ease;

@@ -27,7 +27,7 @@ type SidebarMobileNavProps = {
 };
 
 function isMobileSpaceActive(pathname: string | null, space: MobileSpaceLink) {
-  if (!pathname) return false;
+  if (!pathname) {return false;}
   const activeByAlias = space.activePaths?.some((prefix) => pathname.startsWith(prefix)) ?? false;
   return activeByAlias || pathname.startsWith(space.href);
 }
@@ -96,6 +96,16 @@ function SidebarMobileSpaceTabs({
   );
 }
 
+type SidebarMobileGroupProps = {
+  link,
+  isParentActive,
+  close,
+  getGroupOpen,
+  toggleGroup,
+  pathname,
+  searchParams,
+};
+
 function SidebarMobileGroup({
   link,
   isParentActive,
@@ -104,75 +114,105 @@ function SidebarMobileGroup({
   toggleGroup,
   pathname,
   searchParams,
-}: {
-  link: SidebarLink;
-  isParentActive: boolean;
-  close: () => void;
-  getGroupOpen: (link: SidebarLink) => boolean;
-  toggleGroup: (href: string, isOpenGroup: boolean) => void;
-  pathname: string | null;
-  searchParams: SearchParamsReader;
-}) {
+}: SidebarMobileGroupProps) {
   const groupOpen = getGroupOpen(link);
   const activeChildHref = getBestMatchingHref(link.children ?? [], pathname, searchParams);
   const groupActive = isParentActive || Boolean(activeChildHref);
 
   return (
     <div className="sidebar__mobile-group" key={link.href}>
-      <button
-        type="button"
-        className={`sidebar__mobile-group-trigger ${groupActive ? "is-active" : ""}`}
-        onClick={() => toggleGroup(link.href, groupOpen)}
-        aria-expanded={groupOpen}
-      >
-        <span>{link.label}</span>
-        <SidebarChevron isOpen={groupOpen} />
-      </button>
-      <div className={`sidebar__mobile-group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
-        <div className="sidebar__mobile-group-collapse-inner">
-          <SidebarMobileChildLinks
-            childrenLinks={link.children ?? []}
-            activeChildHref={activeChildHref}
-            groupOpen={groupOpen}
-            close={close}
-          />
-        </div>
+      <SidebarMobileGroupTrigger link={link} groupOpen={groupOpen} groupActive={groupActive} toggleGroup={toggleGroup} />
+      <SidebarMobileGroupCollapse link={link} groupOpen={groupOpen} activeChildHref={activeChildHref} close={close} />
+    </div>
+  );
+}
+
+function SidebarMobileGroupTrigger({
+  link,
+  groupOpen,
+  groupActive,
+  toggleGroup,
+}: {
+  link: SidebarLink;
+  groupOpen: boolean;
+  groupActive: boolean;
+  toggleGroup: (href: string, isOpenGroup: boolean) => void;
+}) {
+  return (
+    <button type="button" className={`sidebar__mobile-group-trigger ${groupActive ? "is-active" : ""}`} onClick={() => toggleGroup(link.href, groupOpen)} aria-expanded={groupOpen}>
+      <span>{link.label}</span>
+      <SidebarChevron isOpen={groupOpen} />
+    </button>
+  );
+}
+
+function SidebarMobileGroupCollapse({
+  link,
+  groupOpen,
+  activeChildHref,
+  close,
+}: {
+  link: SidebarLink;
+  groupOpen: boolean;
+  activeChildHref: string | null;
+  close: () => void;
+}) {
+  return (
+    <div className={`sidebar__mobile-group-collapse ${groupOpen ? "is-open" : ""}`} aria-hidden={!groupOpen}>
+      <div className="sidebar__mobile-group-collapse-inner">
+        <SidebarMobileChildLinks childrenLinks={link.children ?? []} activeChildHref={activeChildHref} groupOpen={groupOpen} close={close} />
       </div>
     </div>
   );
 }
+
+type SidebarMobileChildLinksProps = {
+  childrenLinks: NonNullable<SidebarLink["children"]>;
+  activeChildHref: string | null;
+  groupOpen: boolean;
+  close: () => void;
+};
 
 function SidebarMobileChildLinks({
   childrenLinks,
   activeChildHref,
   groupOpen,
   close,
-}: {
-  childrenLinks: NonNullable<SidebarLink["children"]>;
-  activeChildHref: string | null;
-  groupOpen: boolean;
-  close: () => void;
-}) {
+}: SidebarMobileChildLinksProps) {
   return (
     <div className="sidebar__mobile-group-items">
       {childrenLinks.map((child, index) => {
-        const isChildActive = activeChildHref === child.href;
-        return (
-          <Link
-            key={child.href}
-            href={child.href}
-            className={`sidebar__mobile-sublink ${isChildActive ? "is-active" : ""}`}
-            onClick={close}
-            style={{ "--dropdown-item-index": String(index) } as CSSProperties}
-            tabIndex={groupOpen ? undefined : -1}
-          >
-            {child.label}
-          </Link>
-        );
+        return <SidebarMobileChildLink key={child.href} child={child} index={index} activeChildHref={activeChildHref} groupOpen={groupOpen} close={close} />;
       })}
     </div>
   );
 }
+
+function SidebarMobileChildLink({
+  child,
+  index,
+  activeChildHref,
+  groupOpen,
+  close,
+}: {
+  child: NonNullable<SidebarLink["children"]>[number];
+  index: number;
+  activeChildHref: string | null;
+  groupOpen: boolean;
+  close: () => void;
+}) {
+  const isChildActive = activeChildHref === child.href;
+  return (
+    <Link href={child.href} className={`sidebar__mobile-sublink ${isChildActive ? "is-active" : ""}`} onClick={close} style={{ "--dropdown-item-index": String(index) } as CSSProperties} tabIndex={groupOpen ? undefined : -1}>
+      {child.label}
+    </Link>
+  );
+}
+
+type SidebarMobileLinksProps = Pick<
+  SidebarMobileNavProps,
+  "mobileVisibleLinks" | "activeMobileVisibleHref" | "close" | "getGroupOpen" | "toggleGroup" | "pathname" | "searchParams"
+>;
 
 function SidebarMobileLinks({
   mobileVisibleLinks,
@@ -182,38 +222,28 @@ function SidebarMobileLinks({
   toggleGroup,
   pathname,
   searchParams,
-}: Pick<
-  SidebarMobileNavProps,
-  "mobileVisibleLinks" | "activeMobileVisibleHref" | "close" | "getGroupOpen" | "toggleGroup" | "pathname" | "searchParams"
->) {
+}: SidebarMobileLinksProps) {
   return (
     <nav className="sidebar__mobile-nav">
-      {mobileVisibleLinks.map((link) => {
-        const hasChildren = Boolean(link.children?.length);
-        const isParentActive = activeMobileVisibleHref === link.href;
-        if (!hasChildren) {
-          return (
-            <Link key={link.href} href={link.href} className={`sidebar__mobile-link ${isParentActive ? "is-active" : ""}`} onClick={close}>
-              {link.label}
-            </Link>
-          );
-        }
-
-        return (
-          <SidebarMobileGroup
-            key={link.href}
-            link={link}
-            isParentActive={isParentActive}
-            close={close}
-            getGroupOpen={getGroupOpen}
-            toggleGroup={toggleGroup}
-            pathname={pathname}
-            searchParams={searchParams}
-          />
-        );
-      })}
+      {mobileVisibleLinks.map((link) => <SidebarMobileLinkItem key={link.href} link={link} activeMobileVisibleHref={activeMobileVisibleHref} close={close} getGroupOpen={getGroupOpen} toggleGroup={toggleGroup} pathname={pathname} searchParams={searchParams} />)}
     </nav>
   );
+}
+
+function SidebarMobileLinkItem({
+  link,
+  activeMobileVisibleHref,
+  close,
+  getGroupOpen,
+  toggleGroup,
+  pathname,
+  searchParams,
+}: { link: SidebarLink } & Omit<SidebarMobileLinksProps, "mobileVisibleLinks">) {
+  const isParentActive = activeMobileVisibleHref === link.href;
+  if (!link.children?.length) {
+    return <Link href={link.href} className={`sidebar__mobile-link ${isParentActive ? "is-active" : ""}`} onClick={close}>{link.label}</Link>;
+  }
+  return <SidebarMobileGroup link={link} isParentActive={isParentActive} close={close} getGroupOpen={getGroupOpen} toggleGroup={toggleGroup} pathname={pathname} searchParams={searchParams} />;
 }
 
 export function SidebarMobileNav(props: SidebarMobileNavProps) {
@@ -251,21 +281,26 @@ function SidebarMobileTrigger({
   );
 }
 
+function SidebarMobileDrawerHeader({ title, close }: Pick<SidebarMobileNavProps, "title" | "close">) {
+  return (
+    <div className="sidebar__mobile-header">
+      <p className="eyebrow">{title}</p>
+      <button type="button" className="sidebar__mobile-close" onClick={close} aria-label="Close menu">
+        ✕
+      </button>
+    </div>
+  );
+}
+
 function SidebarMobileDrawer(props: SidebarMobileNavProps) {
   return (
     <div className="sidebar__mobile-overlay sidebar__mobile-overlay--drawer" role="dialog" aria-modal="true" onClick={props.close}>
       <div
         className="sidebar__mobile-sheet sidebar__mobile-sheet--drawer"
-        data-elevation="popup"
         id="sidebar-mobile-menu"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="sidebar__mobile-header">
-          <p className="eyebrow">{props.title}</p>
-          <button type="button" className="sidebar__mobile-close" onClick={props.close} aria-label="Close menu">
-            ✕
-          </button>
-        </div>
+        <SidebarMobileDrawerHeader title={props.title} close={props.close} />
 
         <SidebarMobileSpaces
           mobileSpaces={props.mobileSpaces}

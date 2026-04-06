@@ -196,11 +196,12 @@
   line-height: 1.25;
 }
 
+
 .discussion-post__meta,
 .discussion-post__edited {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   line-height: 1.35;
 }
 
@@ -216,7 +217,7 @@
   border-color: color-mix(in srgb, var(--accent-border) 66%, transparent);
   background: color-mix(in srgb, var(--glass-ui-bg-soft) 78%, var(--accent-soft) 22%);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   line-height: 1.2;
 }
 
@@ -268,7 +269,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .discussion-post__score-icon {
@@ -316,7 +317,7 @@
 }
 
 .discussion-post__reported-tag {
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .discussion-post__reply-editor {
@@ -394,6 +395,7 @@
   position: relative;
 }
 
+
 .discussion-post__menu-trigger {
   min-width: 32px;
   min-height: 28px;
@@ -425,12 +427,10 @@
   gap: 4px;
   min-width: 138px;
   padding: 6px;
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
-  border: 1px solid var(--popup-glass-border-fallback);
-  border-color: var(--popup-glass-border);
+  background: var(--glass-ui-bg);
+  border: 1px solid var(--glass-ui-border);
   border-radius: var(--radius-sm);
-  box-shadow: var(--popup-glass-shadow);
+  box-shadow: var(--glass-ui-shadow);
 }
 
 .workspace-shell .discussion-post,

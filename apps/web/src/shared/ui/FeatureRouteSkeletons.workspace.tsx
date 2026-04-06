@@ -2,6 +2,71 @@ import { Card } from "./Card";
 import { Table } from "./Table";
 import { Skeleton, SkeletonText } from "./Skeleton";
 
+function ModuleDetailTabsSkeleton() {
+  return (
+    <nav className="pill-nav" aria-hidden="true">
+      <Skeleton width="112px" height="34px" radius="10px" />
+      <Skeleton width="84px" height="34px" radius="10px" />
+    </nav>
+  );
+}
+
+function ModuleDetailProjectsSkeleton() {
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }} aria-hidden="true">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div key={index} className="card">
+          <div className="card__body ui-stack-sm">
+            <Skeleton width="68%" height="16px" />
+            <SkeletonText lines={2} widths={["88%", "62%"]} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ModuleDetailSummaryCardsSkeleton() {
+  return (
+    <>
+      <Card title={<Skeleton width="240px" height="28px" />}>
+        <SkeletonText lines={2} widths={["72%", "56%"]} />
+      </Card>
+      <Card title="Module brief">
+        <SkeletonText lines={3} widths={["100%", "88%", "70%"]} />
+      </Card>
+      <Card title="Projects in this module">
+        <ModuleDetailProjectsSkeleton />
+      </Card>
+    </>
+  );
+}
+
+function ModuleDetailTablesSkeleton() {
+  return (
+    <>
+      <Card title="Timeline">
+        <Table
+          headers={["When?", "Date & time", "Details"]}
+          rows={[]}
+          isLoading
+          loadingLabel="Loading module timeline"
+          loadingRowCount={4}
+        />
+      </Card>
+      <Card title="Module expectations">
+        <Table
+          headers={["Expectation", "Target", "Owner"]}
+          rows={[]}
+          isLoading
+          loadingLabel="Loading module expectations"
+          loadingRowCount={4}
+        />
+      </Card>
+    </>
+  );
+}
+
 export function DashboardRouteSkeleton() {
   return (
     <div className="stack stack--tabbed" role="status" aria-live="polite">
@@ -37,52 +102,9 @@ export function DashboardRouteSkeleton() {
 export function ModuleDetailRouteSkeleton() {
   return (
     <div className="stack stack--tabbed module-dashboard" role="status" aria-live="polite">
-      <nav className="pill-nav" aria-hidden="true">
-        <Skeleton width="112px" height="34px" radius="10px" />
-        <Skeleton width="84px" height="34px" radius="10px" />
-      </nav>
-
-      <Card title={<Skeleton width="240px" height="28px" />}>
-        <SkeletonText lines={2} widths={["72%", "56%"]} />
-      </Card>
-
-      <Card title="Module brief">
-        <SkeletonText lines={3} widths={["100%", "88%", "70%"]} />
-      </Card>
-
-      <Card title="Projects in this module">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }} aria-hidden="true">
-          {Array.from({ length: 2 }).map((_, index) => (
-            <div key={index} className="card">
-              <div className="card__body ui-stack-sm">
-                <Skeleton width="68%" height="16px" />
-                <SkeletonText lines={2} widths={["88%", "62%"]} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card title="Timeline">
-        <Table
-          headers={["When?", "Date & time", "Details"]}
-          rows={[]}
-          isLoading
-          loadingLabel="Loading module timeline"
-          loadingRowCount={4}
-        />
-      </Card>
-
-      <Card title="Module expectations">
-        <Table
-          headers={["Expectation", "Target", "Owner"]}
-          rows={[]}
-          isLoading
-          loadingLabel="Loading module expectations"
-          loadingRowCount={4}
-        />
-      </Card>
-
+      <ModuleDetailTabsSkeleton />
+      <ModuleDetailSummaryCardsSkeleton />
+      <ModuleDetailTablesSkeleton />
       <Card title="Readiness notes">
         <SkeletonText lines={2} widths={["92%", "74%"]} />
       </Card>

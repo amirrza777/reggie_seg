@@ -19,7 +19,7 @@
 .github-chart-section__block-kicker {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   letter-spacing: 0.45px;
   text-transform: uppercase;
   font-weight: 600;
@@ -27,7 +27,7 @@
 
 .github-chart-section__block-title {
   margin: 0;
-  font-size: clamp(1.2rem, 1.7vw, 1.55rem);
+  font-size: var(--fs-fixed-clamp-1-2rem-1-7vw-1-55rem);
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
@@ -49,18 +49,18 @@
   padding: 10px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, var(--accent) 12%) 0%, var(--surface) 100%);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .github-chart-section__metric-label {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-chart-section__metric-value {
   margin: 6px 0 0;
-  font-size: 1.35rem;
+  font-size: var(--fs-fixed-1-35rem);
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -94,10 +94,10 @@
   color: var(--ink-strong);
   min-height: 36px;
   padding: 0 14px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   font-weight: 600;
   letter-spacing: 0.01em;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
 
@@ -116,11 +116,9 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 34%, transparent);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .github-chart-section__subnav-btn {
-    backdrop-filter: blur(var(--glass-ui-blur));
-    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
-  }
+.github-chart-section__subnav-btn {
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .github-chart-section__tab-panel {
@@ -143,13 +141,13 @@
   padding: 10px 12px;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 90%, var(--accent) 10%) 0%, var(--surface) 100%);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .github-chart-section__tab-kicker {
   margin: 0;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   letter-spacing: 0.45px;
   text-transform: uppercase;
   font-weight: 700;
@@ -157,7 +155,7 @@
 
 .github-chart-section__tab-title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: var(--fs-fixed-1-05rem);
   line-height: 1.25;
 }
 
@@ -170,7 +168,7 @@
   border-radius: var(--radius-md);
   padding: 10px;
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   min-width: 0;
   display: grid;
   gap: 8px;
@@ -227,7 +225,7 @@
   border-radius: 12px;
   padding: 12px;
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   display: grid;
   gap: 10px;
   text-decoration: none;
@@ -241,7 +239,7 @@
 .github-chart-section__contributor-card--interactive:hover,
 .github-chart-section__contributor-card--interactive:focus-visible {
   border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--ink) 14%, transparent);
+  box-shadow: none;
   transform: translateY(-1px);
 }
 
@@ -270,7 +268,7 @@
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface) 86%, var(--accent) 14%);
   color: var(--ink);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: 700;
   flex-shrink: 0;
 }
@@ -288,7 +286,7 @@
 .github-chart-section__contributor-name {
   margin: 0;
   font-weight: 700;
-  font-size: 1.02rem;
+  font-size: var(--fs-fixed-1-02rem);
   line-height: 1.2;
   word-break: break-word;
 }
@@ -297,7 +295,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   color: var(--muted);
   font-weight: 700;
   background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
@@ -307,7 +305,7 @@
 .github-chart-section__contributor-meta {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .github-chart-section__contributor-delta {
@@ -315,7 +313,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   font-weight: 700;
 }
 
@@ -326,7 +324,7 @@
 
 .github-chart-section__contributor-weekly-label {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-chart-section__contributor-weekly-row {
@@ -338,13 +336,13 @@
 
 .github-chart-section__contributor-weekly-score {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--fs-fixed-15px);
   font-weight: 700;
 }
 
 .github-chart-section__contributor-weekly-percent {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-chart-section__contributor-weekly-bar {
@@ -358,13 +356,13 @@
 .github-chart-section__contributor-weekly-bar-fill {
   display: block;
   height: 100%;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 75%, #22c55e 25%), var(--accent));
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 75%, var(--color-fixed-22c55e) 25%), var(--accent));
   border-radius: 999px;
 }
 
 .github-chart-section__contributor-weekly-values {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-chart-section__contributor-mini {
@@ -373,12 +371,12 @@
 
 .github-chart-section__contributor-empty {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-chart-section__contributor-hint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 @keyframes github-chart-fade-in {

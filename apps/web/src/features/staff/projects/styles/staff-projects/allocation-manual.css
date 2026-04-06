@@ -1,6 +1,6 @@
 .staff-projects__allocation-mode-title {
   margin: 0;
-  font-size: clamp(1.25rem, 1.5vw, 1.5rem);
+  font-size: var(--fs-fixed-clamp-1-25rem-1-5vw-1-5rem);
 }
 
 .staff-projects__allocation-mode-subtitle {
@@ -173,6 +173,7 @@
   color: var(--status-warning-text);
 }
 
+
 .staff-projects__manual-student-team {
   margin: 0;
   color: var(--muted);
@@ -245,7 +246,7 @@
 
 .staff-projects__team-title {
   margin: 0;
-  font-size: clamp(1.2rem, 1.5vw, 1.45rem);
+  font-size: var(--fs-fixed-clamp-1-2rem-1-5vw-1-45rem);
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -349,6 +350,7 @@
   cursor: not-allowed;
   background-color: color-mix(in srgb, var(--surface) 95%, transparent);
 }
+
 
 .staff-projects__custom-radio-group {
   margin: 0;

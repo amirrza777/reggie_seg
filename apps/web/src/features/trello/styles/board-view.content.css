@@ -20,7 +20,7 @@
 
 .trello-board__title {
   margin: 0;
-  font-size: clamp(2rem, 2.8vw, 3.2rem);
+  font-size: var(--fs-fixed-clamp-2rem-2-8vw-3-2rem);
   line-height: 1.04;
   letter-spacing: -0.02em;
 }
@@ -164,7 +164,7 @@
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
-  font-size: 1.25rem;
+  font-size: var(--fs-fixed-1-25rem);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -172,7 +172,7 @@
 .trello-board-time__arrow--outer {
   width: 44px;
   height: 44px;
-  font-size: 1.1rem;
+  font-size: var(--fs-fixed-1-1rem);
   font-weight: 600;
 }
 
@@ -215,7 +215,7 @@
 
 .trello-lane__title {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--fs-fixed-1-2rem);
   line-height: 1.2;
 }
 
@@ -227,7 +227,7 @@
   height: 26px;
   padding: 0 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: var(--fw-semibold);
   border: 1px solid var(--border);
   background: var(--surface);
@@ -284,7 +284,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   color: var(--muted);
   background: var(--surface);
 }
@@ -302,7 +302,7 @@
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 2px 8px;
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   color: var(--muted);
   background: var(--surface);
 }
@@ -321,7 +321,7 @@
   height: 20px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  font-size: 10px;
+  font-size: var(--fs-fixed-10px);
   font-weight: var(--fw-semibold);
   color: var(--muted);
   background: var(--surface);
@@ -334,7 +334,7 @@
 
 .trello-history__title {
   margin: 0;
-  font-size: clamp(1.2rem, 0.8vw + 0.95rem, 1.6rem);
+  font-size: var(--fs-fixed-clamp-1-2rem-0-8vw-0-95rem-1-6rem);
   line-height: 1.2;
   letter-spacing: -0.01em;
 }
@@ -370,7 +370,7 @@
   top: 0;
   z-index: 1;
   background: var(--surface);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -397,7 +397,7 @@
 
 .trello-chart__title {
   margin: 0;
-  font-size: clamp(1.2rem, 0.8vw + 0.95rem, 1.6rem);
+  font-size: var(--fs-fixed-clamp-1-2rem-0-8vw-0-95rem-1-6rem);
   line-height: 1.2;
   letter-spacing: -0.01em;
 }

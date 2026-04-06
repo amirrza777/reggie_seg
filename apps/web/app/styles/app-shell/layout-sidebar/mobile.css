@@ -15,7 +15,7 @@
   background: var(--glass-ui-bg);
   color: var(--sidebar-text);
   font-weight: var(--fw-semibold);
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   line-height: 1.05;
   cursor: pointer;
   text-align: left;
@@ -130,8 +130,8 @@
   position: fixed;
   inset: 0;
   background: var(--modal-backdrop, var(--backdrop-strong));
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
   display: grid;
   place-items: stretch;
   padding:
@@ -145,8 +145,7 @@
 .sidebar__mobile-sheet {
   width: 100%;
   height: 100%;
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
+  background: var(--glass-ui-bg);
   color: var(--ink);
   border: none;
   border-radius: 0;
@@ -162,9 +161,10 @@
   width: min(88vw, 380px);
   max-width: 100%;
   border-radius: var(--radius-md);
-  border: 1px solid var(--popup-glass-border-fallback);
-  border-color: var(--popup-glass-border);
-  box-shadow: var(--popup-glass-shadow);
+  border: 1px solid var(--glass-ui-border);
+  box-shadow: var(--glass-ui-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .sidebar__mobile-header {
@@ -187,7 +187,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 36px;
+  font-size: var(--fs-fixed-36px);
   line-height: 1;
 }
 
@@ -226,7 +226,7 @@
   background: var(--glass-ui-bg-soft);
   color: var(--ink);
   font-weight: var(--fw-semibold);
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   font-family: inherit;
   line-height: 1.2;
   cursor: pointer;
@@ -250,7 +250,7 @@
   color: var(--ink);
   text-decoration: none;
   font-weight: var(--fw-semibold);
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   line-height: 1.2;
 }
 
@@ -311,7 +311,7 @@
   background: transparent;
   color: var(--ink);
   font-weight: var(--fw-semibold);
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   font-family: inherit;
   cursor: pointer;
   line-height: 1.2;
@@ -337,7 +337,7 @@
   align-items: center;
   color: var(--ink);
   text-decoration: none;
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   opacity: 0;

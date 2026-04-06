@@ -165,7 +165,7 @@
 }
 
 .user-management__page-jump-label {
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
   color: var(--text-muted);
 }
 
@@ -183,7 +183,7 @@
 
 .user-management__role-toggle-btn {
   padding: 8px 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
   min-width: 88px;
 }
 
@@ -196,7 +196,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   font-weight: var(--fw-semibold);
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
 }
 
 .role-chip--locked {
@@ -255,7 +255,7 @@
 
 .audit-modal__agent {
   white-space: pre-wrap;
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
 }
 
 .audit-filters {
@@ -273,7 +273,7 @@
 
 .audit-pill {
   padding: 8px 12px;
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
 }
 
 .audit-badge {
@@ -288,7 +288,7 @@
 }
 
 .audit-badge.audit-badge--compact {
-  font-size: 0.62rem;
+  font-size: var(--fs-fixed-0-62rem);
   line-height: 3.05;
   padding: 12px 12px;
   white-space: pre-line;

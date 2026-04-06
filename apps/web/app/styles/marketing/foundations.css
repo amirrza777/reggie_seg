@@ -28,12 +28,12 @@
   display: block;
   background-color: var(--bg);
   background-image:
-    radial-gradient(ellipse 75% 50% at -5% -3%, rgba(32, 173, 120, 0.72), rgba(32, 173, 120, 0.22) 35%, transparent 60%),
-    linear-gradient(135deg, rgba(32, 173, 120, 0.34) 0%, rgba(32, 173, 120, 0.10) 18%, transparent 34%),
-    radial-gradient(circle farthest-corner at -10% -5%, rgba(32, 173, 120, 0.56), rgba(32, 173, 120, 0.10) 3%, transparent 6%),
-    linear-gradient(0deg, rgba(32, 173, 120, 0.12) 0%, rgba(32, 173, 120, 0.04) 16%, transparent 32%),
-    radial-gradient(ellipse 90% 45% at 90% 105%, rgba(32, 173, 120, 0.48), rgba(32, 173, 120, 0.16) 35%, transparent 65%),
-    radial-gradient(ellipse 40% 25% at 100% 100%, rgba(32, 173, 120, 0.38), transparent 50%);
+    radial-gradient(ellipse 75% 50% at -5% -3%, var(--color-fixed-rgba-32-173-120-0-72), var(--color-fixed-rgba-32-173-120-0-22) 35%, transparent 60%),
+    linear-gradient(135deg, var(--color-fixed-rgba-32-173-120-0-34) 0%, var(--color-fixed-rgba-32-173-120-0-10) 18%, transparent 34%),
+    radial-gradient(circle farthest-corner at -10% -5%, var(--color-fixed-rgba-32-173-120-0-56), var(--color-fixed-rgba-32-173-120-0-10) 3%, transparent 6%),
+    linear-gradient(0deg, var(--color-fixed-rgba-32-173-120-0-12) 0%, var(--color-fixed-rgba-32-173-120-0-04) 16%, transparent 32%),
+    radial-gradient(ellipse 90% 45% at 90% 105%, var(--color-fixed-rgba-32-173-120-0-48), var(--color-fixed-rgba-32-173-120-0-16) 35%, transparent 65%),
+    radial-gradient(ellipse 40% 25% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-38), transparent 50%);
   mix-blend-mode: darken;
   pointer-events: none;
 }
@@ -60,9 +60,9 @@
 @media (max-width: 479px) {
   .marketing-shell::before {
     background-image:
-      linear-gradient(180deg, rgba(32, 173, 120, 0.28) 0%, transparent 24%),
-      radial-gradient(ellipse 90% 50% at 0% 0%, rgba(32, 173, 120, 0.50), rgba(32, 173, 120, 0.12) 40%, transparent 65%),
-      radial-gradient(circle farthest-corner at -16% -5%, rgba(32, 173, 120, 0.46), rgba(32, 173, 120, 0.06) 4%, transparent 7%);
+      linear-gradient(180deg, var(--color-fixed-rgba-32-173-120-0-28) 0%, transparent 24%),
+      radial-gradient(ellipse 90% 50% at 0% 0%, var(--color-fixed-rgba-32-173-120-0-50), var(--color-fixed-rgba-32-173-120-0-12) 40%, transparent 65%),
+      radial-gradient(circle farthest-corner at -16% -5%, var(--color-fixed-rgba-32-173-120-0-46), var(--color-fixed-rgba-32-173-120-0-06) 4%, transparent 7%);
   }
 }
 

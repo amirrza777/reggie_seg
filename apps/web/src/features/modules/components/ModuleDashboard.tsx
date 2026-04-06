@@ -111,7 +111,7 @@ export function ModuleExpectationsCard({ expectationRows }: { expectationRows: A
 
 export function ModuleReadinessCard({ readinessParagraphs }: { readinessParagraphs: string[] }) {
   return (
-    <Card title="Readiness notes" className="module-dashboard__panel">
+    <Card title="Readiness notes" className="module-dashboard__panel module-dashboard__panel--readiness">
       {readinessParagraphs.length > 0 ? (
         readinessParagraphs.map((paragraph, index) => (
           <p key={`readiness-${index}`} className="muted">
@@ -127,7 +127,7 @@ export function ModuleReadinessCard({ readinessParagraphs }: { readinessParagrap
 
 export function ModuleMarksCard({ marksRows }: ModuleMarksCardProps) {
   return (
-    <Card title="Marks" className="module-dashboard__panel">
+    <Card title="Marks" className="module-dashboard__panel module-dashboard__panel--marks">
       {marksRows.length === 0 ? (
         <p className="muted">No module marking scheme summary is available here yet.</p>
       ) : (

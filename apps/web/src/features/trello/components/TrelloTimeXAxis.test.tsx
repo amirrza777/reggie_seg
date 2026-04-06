@@ -32,9 +32,9 @@ vi.mock("@/shared/lib/formatDate", () => ({
 
 import {
   TrelloTimeXAxis,
-  formatTrelloTimeTick,
   TrelloTimeXAxis as PrimaryAxis,
 } from "./TrelloTimeXAxis";
+import { formatTrelloTimeTick } from "./trelloTimeTick";
 
 describe("TrelloTimeXAxis", () => {
   it("formats tick values through shared date formatter", () => {

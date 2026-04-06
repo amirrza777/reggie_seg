@@ -22,7 +22,7 @@
 }
 
 .github-repo-link-card__title {
-  font-size: clamp(1.25rem, 2.1vw, 1.65rem);
+  font-size: var(--fs-fixed-clamp-1-25rem-2-1vw-1-65rem);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.015em;
@@ -43,7 +43,7 @@
   padding: 4px 10px;
   background: var(--surface);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .github-repo-link-card__overview {
@@ -55,7 +55,7 @@
 .github-repo-link-card__section-label {
   margin: 2px 0 4px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   letter-spacing: 0.4px;
   text-transform: uppercase;
 }
@@ -87,13 +87,13 @@
 
 .github-repo-link-card__stat-label {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   margin-bottom: 4px;
 }
 
 .github-repo-link-card__stat-value {
   font-weight: 700;
-  font-size: 18px;
+  font-size: var(--fs-fixed-18px);
   line-height: 1.1;
 }
 

@@ -135,7 +135,7 @@ export function StaffModuleAccessForm({ moduleId, currentUserId, initialAccessSe
               background: "var(--surface)",
             }}
           >
-            <h3 className="overview-title" style={{ fontSize: "1.05rem", marginBottom: 12 }}>
+            <h3 className="overview-title" style={{ fontSize: "var(--fs-fixed-1-05rem)", marginBottom: 12 }}>
               Confirm staff access changes
             </h3>
             <p className="ui-note ui-note--muted" style={{ marginBottom: 16 }}>

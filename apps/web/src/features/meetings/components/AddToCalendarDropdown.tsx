@@ -98,7 +98,6 @@ export function AddToCalendarDropdown({ meeting, compact = false }: AddToCalenda
     <ul
       ref={listRef}
       className="atc-dropdown__list"
-      data-elevation="popup"
       role="listbox"
       style={compact && listPos ? { position: "fixed", top: listPos.top, right: listPos.right } : undefined}
     >

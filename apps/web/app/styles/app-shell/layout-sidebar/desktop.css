@@ -1,7 +1,7 @@
 .app-shell__sidebar {
-  background: var(--glass-ui-bg-soft);
+  background: var(--surface);
   color: var(--sidebar-text);
-  border: 1px solid var(--glass-ui-border);
+  border: 1px solid var(--border);
   border-right: none;
   border-radius: var(--radius-md);
   padding: 12px 10px;
@@ -39,8 +39,8 @@
   align-items: start;
   height: 100%;
   min-height: 0;
-  background: var(--glass-ui-bg-soft);
-  border: 1px solid var(--glass-ui-border);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--workspace-radius);
   background-clip: padding-box;
   overflow-anchor: none;
@@ -66,7 +66,7 @@
   --sidebar-item-min-height: 52px;
   --sidebar-item-pad-x: 16px;
   --sidebar-item-radius: var(--radius-md);
-  --sidebar-item-font-size: 1rem;
+  --sidebar-item-font-size: var(--fs-fixed-1rem);
   --sidebar-group-gap: 8px;
   --sidebar-subitem-indent: 12px;
   --sidebar-subitem-min-height: 48px;

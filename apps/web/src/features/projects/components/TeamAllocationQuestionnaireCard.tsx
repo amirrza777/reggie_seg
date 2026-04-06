@@ -222,7 +222,12 @@ export function TeamAllocationQuestionnaireCard({
                       />
                       <span
                         className="team-allocation-questionnaire__rating-value"
-                        style={{ fontSize: 12, lineHeight: 1, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}
+                        style={{
+                          fontSize: "var(--fs-fixed-12px)",
+                          lineHeight: 1,
+                          color: "var(--muted)",
+                          fontVariantNumeric: "tabular-nums",
+                        }}
                       >
                         {value}
                       </span>
@@ -260,13 +265,13 @@ export function TeamAllocationQuestionnaireCard({
                     className="team-allocation-questionnaire__slider-meta"
                     style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}
                   >
-                    <span className="muted" style={{ fontSize: 12, minWidth: 22 }}>
+                    <span className="muted" style={{ fontSize: "var(--fs-fixed-12px)", minWidth: 22 }}>
                       {sliderMin}
                     </span>
                     <span className="team-allocation-questionnaire__slider-selected" style={{ color: "var(--text)", fontWeight: 600 }}>
                       Selected: {sliderValue}
                     </span>
-                    <span className="muted" style={{ fontSize: 12, minWidth: 22, textAlign: "right" }}>
+                    <span className="muted" style={{ fontSize: "var(--fs-fixed-12px)", minWidth: 22, textAlign: "right" }}>
                       {sliderMax}
                     </span>
                   </div>

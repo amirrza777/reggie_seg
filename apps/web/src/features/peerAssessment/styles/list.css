@@ -9,14 +9,14 @@
 
 .peer-assessment-list-intro__title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-fixed-18px);
   font-weight: 700;
   color: var(--ink-strong);
 }
 
 .peer-assessment-list-intro__description {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-fixed-15px);
   line-height: 1.5;
   color: var(--muted);
 }
@@ -77,18 +77,18 @@
 }
 
 .peer-assessment-card__name {
-  font-size: 16px;
+  font-size: var(--fs-fixed-16px);
   font-weight: 600;
   color: var(--ink-strong);
 }
 
 .peer-assessment-card__email {
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .peer-assessment-card__status {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 999px;
@@ -108,7 +108,7 @@
 }
 
 .peer-assessment-card__cta {
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .peer-assessment-card__cta--completed {

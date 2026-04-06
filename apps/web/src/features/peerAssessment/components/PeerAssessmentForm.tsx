@@ -29,7 +29,7 @@ const answerInputStyle: CSSProperties = {
   backgroundColor: "var(--surface-elevated)",
   color: "var(--ink)",
   fontFamily: "inherit",
-  fontSize: "inherit",
+  fontSize: "var(--fs-fixed-inherit)",
   lineHeight: 1.5,
 };
 const radioInputStyle: CSSProperties = {
@@ -415,7 +415,7 @@ export function PeerAssessmentForm({
                 <p className="muted" style={{ margin: 0 }}>{config.helperText}</p>
               ) : null}
               {(config.left || config.right) ? (
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-fixed-12px)" }}>
                   <span className="muted">{config.left}</span>
                   <span className="muted">{config.right}</span>
                 </div>

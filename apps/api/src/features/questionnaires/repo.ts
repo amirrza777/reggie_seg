@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import type { IncomingQuestion, QuestionnairePurpose } from "./types.js";
 import { matchesFuzzySearchCandidate, parsePositiveIntegerSearchQuery } from "../../shared/fuzzySearch.js";
 import { applyFuzzyFallback } from "../../shared/fuzzyFallback.js";
+import { getMyQuestionnaireTemplatesImpl } from "./repo.getMyQuestionnaireTemplates.impl.js";
 
 function matchesTemplateSearchQuery(
   template: { id: number; templateName: string; questions?: Array<{ label: string }> },
@@ -70,36 +71,13 @@ export async function getMyQuestionnaireTemplates(
   userId: number,
   options?: { query?: string | null; purpose?: QuestionnairePurpose },
 ) {
-  const normalizedQuery = typeof options?.query === "string" ? options.query.trim() : "";
-  const hasQuery = normalizedQuery.length > 0;
-  const numericQuery = hasQuery ? parsePositiveIntegerSearchQuery(normalizedQuery) : null;
-  const purposeFilter =
-    options?.purpose !== undefined ? { purpose: options.purpose } : {};
-
-  const templates = await prisma.questionnaireTemplate.findMany({
-    where: hasQuery
-      ? {
-          ownerId: userId,
-          ...purposeFilter,
-          OR: [
-            { templateName: { contains: normalizedQuery } },
-            { questions: { some: { label: { contains: normalizedQuery } } } },
-            ...(numericQuery !== null ? [{ id: numericQuery }] : []),
-          ],
-        }
-      : { ownerId: userId, ...purposeFilter },
-    include: { questions: { orderBy: { order: "asc" } } },
-  });
-
-  return applyFuzzyFallback(templates, {
-    query: normalizedQuery,
-    fetchFallbackCandidates: async (limit) =>
-      prisma.questionnaireTemplate.findMany({
-        where: { ownerId: userId, ...purposeFilter },
-        include: { questions: { orderBy: { order: "asc" } } },
-        take: limit,
-      }),
-    matches: (template, query) => matchesTemplateSearchQuery(template, query),
+  return getMyQuestionnaireTemplatesImpl({
+    userId,
+    options,
+    prisma,
+    parsePositiveIntegerSearchQuery,
+    applyFuzzyFallback,
+    matchesTemplateSearchQuery,
   });
 }
 

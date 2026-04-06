@@ -21,11 +21,11 @@ export async function listUsers(): Promise<AdminUserRecord[]> {
 
 export async function searchUsers(params: AdminUserSearchParams = {}): Promise<AdminUserSearchResponse> {
   const search = new URLSearchParams();
-  if (params.q) search.set("q", params.q);
-  if (params.role) search.set("role", params.role);
-  if (typeof params.active === "boolean") search.set("active", String(params.active));
-  if (params.page) search.set("page", String(params.page));
-  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params.q) {search.set("q", params.q);}
+  if (params.role) {search.set("role", params.role);}
+  if (typeof params.active === "boolean") {search.set("active", String(params.active));}
+  if (params.page) {search.set("page", String(params.page));}
+  if (params.pageSize) {search.set("pageSize", String(params.pageSize));}
   const qs = search.toString();
   const path = qs ? `/admin/users/search?${qs}` : "/admin/users/search";
   return apiFetch<AdminUserSearchResponse>(path);
@@ -47,10 +47,10 @@ export async function updateUser(userId: number, payload: AdminUserUpdate) {
 
 export async function listAuditLogs(params: { from?: string; to?: string; limit?: number; cursor?: number } = {}) {
   const search = new URLSearchParams();
-  if (params.from) search.set("from", params.from);
-  if (params.to) search.set("to", params.to);
-  if (params.limit) search.set("limit", String(params.limit));
-  if (params.cursor) search.set("cursor", String(params.cursor));
+  if (params.from) {search.set("from", params.from);}
+  if (params.to) {search.set("to", params.to);}
+  if (params.limit) {search.set("limit", String(params.limit));}
+  if (params.cursor) {search.set("cursor", String(params.cursor));}
   const qs = search.toString();
   const path = qs ? `/admin/audit-logs?${qs}` : "/admin/audit-logs";
   return apiFetch<AuditLogEntry[]>(path);
@@ -72,9 +72,9 @@ export async function searchEnterprises(
   params: AdminEnterpriseSearchParams = {},
 ): Promise<AdminEnterpriseSearchResponse> {
   const search = new URLSearchParams();
-  if (params.q) search.set("q", params.q);
-  if (params.page) search.set("page", String(params.page));
-  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params.q) {search.set("q", params.q);}
+  if (params.page) {search.set("page", String(params.page));}
+  if (params.pageSize) {search.set("pageSize", String(params.pageSize));}
   const qs = search.toString();
   const path = qs ? `/admin/enterprises/search?${qs}` : "/admin/enterprises/search";
   return apiFetch<AdminEnterpriseSearchResponse>(path);
@@ -102,11 +102,11 @@ export async function searchEnterpriseUsers(
   params: AdminUserSearchParams = {},
 ): Promise<AdminUserSearchResponse> {
   const search = new URLSearchParams();
-  if (params.q) search.set("q", params.q);
-  if (params.role) search.set("role", params.role);
-  if (typeof params.active === "boolean") search.set("active", String(params.active));
-  if (params.page) search.set("page", String(params.page));
-  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  if (params.q) {search.set("q", params.q);}
+  if (params.role) {search.set("role", params.role);}
+  if (typeof params.active === "boolean") {search.set("active", String(params.active));}
+  if (params.page) {search.set("page", String(params.page));}
+  if (params.pageSize) {search.set("pageSize", String(params.pageSize));}
   const qs = search.toString();
   const basePath = `/admin/enterprises/${encodeURIComponent(enterpriseId)}/users/search`;
   const path = qs ? `${basePath}?${qs}` : basePath;

@@ -28,7 +28,7 @@
 
 .project-overview-hero__title {
   margin: 0;
-  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  font-size: var(--fs-fixed-clamp-1-9rem-3vw-2-5rem);
   line-height: 1.1;
 }
 
@@ -46,7 +46,7 @@
 
 .project-overview-hero__next-label {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--muted);
@@ -54,7 +54,7 @@
 
 .project-overview-hero__next-value {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   font-weight: 600;
 }
 
@@ -73,7 +73,7 @@
 
 .project-overview-hero__fact-label {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .project-overview-hero__fact-value {
@@ -82,12 +82,12 @@
 }
 
 .project-overview-hero__fact-value--lg {
-  font-size: 18px;
+  font-size: var(--fs-fixed-18px);
 }
 
 .project-overview-hero__fact-meta {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .project-deadlines-hero {
@@ -95,7 +95,7 @@
   border-radius: 16px;
   padding: var(--space-panel-content-inset);
   background: linear-gradient(180deg, var(--surface-hero-start), var(--surface));
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -180,12 +180,12 @@
 }
 
 .project-overview-schedule--expanded .project-overview-schedule__label {
-  font-size: 1.05rem;
+  font-size: var(--fs-fixed-1-05rem);
 }
 
 .project-overview-schedule__group {
   margin: 2px 0 0;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .project-overview-schedule__date {
@@ -193,7 +193,7 @@
 }
 
 .project-overview-schedule--expanded .project-overview-schedule__date {
-  font-size: 1.05rem;
+  font-size: var(--fs-fixed-1-05rem);
 }
 
 .project-overview-status {
@@ -201,13 +201,13 @@
   padding: 3px 9px;
   border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
   background: var(--surface);
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .project-overview-schedule--expanded .project-overview-status {
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
   padding: 4px 10px;
 }
 
@@ -279,7 +279,7 @@
 }
 
 .project-overview-info__paragraph--large {
-  font-size: clamp(1.12rem, 1.25vw, 1.32rem);
+  font-size: var(--fs-fixed-clamp-1-12rem-1-25vw-1-32rem);
   line-height: 1.75;
 }
 
@@ -290,7 +290,7 @@
 }
 
 .project-overview-info__body--large .project-overview-info__empty {
-  font-size: clamp(1.02rem, 1.1vw, 1.12rem);
+  font-size: var(--fs-fixed-clamp-1-02rem-1-1vw-1-12rem);
 }
 
 .project-overview-marking {

@@ -163,7 +163,7 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                   className="muted"
                   style={{
                     margin: 0,
-                    fontSize: 12,
+                    fontSize: "var(--fs-fixed-12px)",
                     display: "flex",
                     justifyContent: "space-between",
                     gap: 12,

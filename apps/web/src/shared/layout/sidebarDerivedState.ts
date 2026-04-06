@@ -44,24 +44,24 @@ export function computeSidebarDerivedState({ links, pathname, searchParams, mobi
 }
 
 function findActiveLink(links: SidebarLink[], pathname: string | null, searchParams: SearchParamsReader): SidebarLink | undefined {
-  if (!pathname) return undefined;
+  if (!pathname) {return undefined;}
   const matching = links.filter((link) => isHrefActive(link.href, pathname, searchParams));
   return matching.sort((a, b) => b.href.length - a.href.length)[0];
 }
 
 function resolveCurrentSpace(pathname: string | null, activeSpace?: SpaceKey): SpaceKey {
-  if (activeSpace) return activeSpace;
-  if (!pathname) return "workspace";
-  if (pathname.startsWith("/enterprise")) return "enterprise";
-  if (pathname.startsWith("/admin")) return "admin";
-  if (pathname.startsWith("/staff")) return "staff";
+  if (activeSpace) {return activeSpace;}
+  if (!pathname) {return "workspace";}
+  if (pathname.startsWith("/enterprise")) {return "enterprise";}
+  if (pathname.startsWith("/admin")) {return "admin";}
+  if (pathname.startsWith("/staff")) {return "staff";}
   return "workspace";
 }
 
 function buildAvailableSpaces(links: SidebarLink[]): MobileSpaceOption[] {
   const found = new Set<SpaceKey>();
   for (const link of links) {
-    if (link.space) found.add(link.space);
+    if (link.space) {found.add(link.space);}
   }
 
   return SPACE_ORDER.filter((space) => found.has(space)).map((space) => ({
@@ -75,13 +75,13 @@ function resolveMobileSpace(
   mobileSpace: SpaceKey,
   currentSpace: SpaceKey
 ): SpaceKey {
-  if (availableSpaces.some((space) => space.key === mobileSpace)) return mobileSpace;
+  if (availableSpaces.some((space) => space.key === mobileSpace)) {return mobileSpace;}
   return currentSpace ?? availableSpaces[0]?.key ?? "workspace";
 }
 
 function resolveCurrentLabel(visibleLinks: SidebarLink[], pathname: string | null, searchParams: SearchParamsReader): string {
   const visibleTargets = visibleLinks.flatMap((link) => [link, ...(link.children ?? [])]);
-  if (!pathname) return visibleTargets[0]?.label ?? "Menu";
+  if (!pathname) {return visibleTargets[0]?.label ?? "Menu";}
 
   const matching = visibleTargets.filter((link) => isHrefActive(link.href, pathname, searchParams));
   const best = matching.sort((a, b) => b.href.length - a.href.length)[0];

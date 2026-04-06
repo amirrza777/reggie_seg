@@ -115,7 +115,7 @@
 
 .progress-bar__label {
   min-width: fit-content;
-  font-size: 0.875rem;
+  font-size: var(--fs-fixed-0-875rem);
   font-weight: 600;
   color: var(--ink-strong);
 }
@@ -152,7 +152,7 @@
 }
 
 .circular-progress-pie__pct {
-  font-size: 0.65rem;
+  font-size: var(--fs-fixed-0-65rem);
   font-weight: 700;
   line-height: 1;
   color: var(--text);
@@ -160,7 +160,7 @@
 }
 
 .circular-progress-pie__title {
-  font-size: 0.62rem;
+  font-size: var(--fs-fixed-0-62rem);
   font-weight: 600;
   line-height: 1.15;
   text-align: center;
@@ -172,8 +172,8 @@
   position: fixed;
   inset: 0;
   background: var(--modal-backdrop, var(--backdrop-strong));
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +194,7 @@
   position: relative;
   z-index: 9001;
   margin: auto;
-  box-shadow: var(--elevation-popup);
+  box-shadow: none;
 }
 
 .modal__header,
@@ -216,7 +216,7 @@
   min-width: 42px;
   min-height: 42px;
   padding: 0;
-  font-size: 1.4rem;
+  font-size: var(--fs-fixed-1-4rem);
   line-height: 1;
   display: inline-flex;
   align-items: center;

@@ -97,7 +97,7 @@
   border: 1px solid transparent;
   color: color-mix(in srgb, var(--ink-strong) 86%, var(--ink) 14%);
   font-weight: var(--fw-semibold);
-  font-size: 1.05rem;
+  font-size: var(--fs-fixed-1-05rem);
   line-height: 1.1;
   background: transparent;
   text-decoration: none;

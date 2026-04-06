@@ -9,11 +9,11 @@
 }
 
 .performance-summary__score {
-  font-size: 1.5rem;
+  font-size: var(--fs-fixed-1-5rem);
 }
 
 .performance-summary__score-max {
-  font-size: 1rem;
+  font-size: var(--fs-fixed-1rem);
   margin-left: 4px;
 }
 
@@ -48,7 +48,7 @@
 
 .performance-summary__toggle {
   margin-left: 8px;
-  font-size: 0.875rem;
+  font-size: var(--fs-fixed-0-875rem);
 }
 
 .performance-summary__metric-row {
@@ -117,15 +117,15 @@
 
 .assessment-summary__rating-value {
   min-width: fit-content;
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
 }
 
 .assessment-summary__meta {
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
 }
 
 .assessment-summary__footer {
-  font-size: 0.85rem;
+  font-size: var(--fs-fixed-0-85rem);
   margin-top: 4px;
 }
 

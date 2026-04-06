@@ -44,6 +44,38 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
 
   useEffect(() => () => clearSearchDebounceTimer(), []);
 
+  async function fetchWorkspaceForQuery(query: string) {
+    if (query.length > 0) {
+      return await getManualAllocationWorkspace(projectId, query);
+    }
+    return await getManualAllocationWorkspace(projectId);
+  }
+
+  function applyWorkspaceState(
+    result: ManualAllocationWorkspace,
+    preserveSelection: boolean,
+    openAfterLoad: boolean,
+  ) {
+    setWorkspace(result);
+    if (preserveSelection) {
+      const availableStudentIds = new Set(
+        result.students.filter((student) => student.status === "AVAILABLE").map((student) => student.id),
+      );
+      setSelectedStudentIds((current) => current.filter((studentId) => availableStudentIds.has(studentId)));
+    } else {
+      setSelectedStudentIds([]);
+      setTeamNameInput("");
+    }
+    setFormNotice(null);
+    if (openAfterLoad) {
+      setIsWorkspaceOpen(true);
+    }
+  }
+
+  function setWorkspaceLoadError(error: unknown) {
+    setErrorMessage(error instanceof Error ? error.message : "Failed to load manual allocation workspace.");
+  }
+
   function loadWorkspace(
     openAfterLoad: boolean,
     options: { query?: string; preserveSelection?: boolean } = {},
@@ -55,32 +87,16 @@ export function StaffManualAllocationPanel({ projectId }: StaffManualAllocationP
     latestWorkspaceRequestRef.current = requestId;
     startTransition(async () => {
       try {
-        const result =
-          normalizedQuery.length > 0
-            ? await getManualAllocationWorkspace(projectId, normalizedQuery)
-            : await getManualAllocationWorkspace(projectId);
+        const result = await fetchWorkspaceForQuery(normalizedQuery);
         if (latestWorkspaceRequestRef.current !== requestId) {
           return;
         }
-        setWorkspace(result);
-        if (options.preserveSelection) {
-          const availableStudentIds = new Set(
-            result.students.filter((student) => student.status === "AVAILABLE").map((student) => student.id),
-          );
-          setSelectedStudentIds((current) => current.filter((studentId) => availableStudentIds.has(studentId)));
-        } else {
-          setSelectedStudentIds([]);
-          setTeamNameInput("");
-        }
-        setFormNotice(null);
-        if (openAfterLoad) {
-          setIsWorkspaceOpen(true);
-        }
+        applyWorkspaceState(result, Boolean(options.preserveSelection), openAfterLoad);
       } catch (error) {
         if (latestWorkspaceRequestRef.current !== requestId) {
           return;
         }
-        setErrorMessage(error instanceof Error ? error.message : "Failed to load manual allocation workspace.");
+        setWorkspaceLoadError(error);
       }
     });
   }

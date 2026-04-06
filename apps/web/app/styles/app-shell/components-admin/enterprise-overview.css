@@ -36,7 +36,7 @@
 }
 
 .enterprise-overview .ui-metric-value {
-  font-size: 24px;
+  font-size: var(--fs-fixed-24px);
 }
 
 .enterprise-overview__priority-banner {
@@ -115,7 +115,7 @@
 }
 
 .enterprise-overview__role-label {
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
   color: var(--text);
 }
 
@@ -135,7 +135,7 @@
 }
 
 .enterprise-overview__role-value {
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
   color: var(--muted-subtle);
   white-space: nowrap;
 }
@@ -184,7 +184,7 @@
 }
 
 .enterprise-overview__action-head strong {
-  font-size: 0.98rem;
+  font-size: var(--fs-fixed-0-98rem);
 }
 
 .enterprise-overview__action-tone {

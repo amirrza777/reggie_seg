@@ -23,13 +23,13 @@
 }
 
 .team-formation__empty-icon {
-  font-size: 2.5rem;
+  font-size: var(--fs-fixed-2-5rem);
   line-height: 1;
 }
 
 .team-formation__empty h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: var(--fs-fixed-1-1rem);
   font-weight: 600;
   color: var(--ink);
 }
@@ -37,7 +37,7 @@
 .team-formation__empty p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
   max-width: 360px;
 }
 
@@ -55,7 +55,7 @@
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
   background: var(--bg);
   color: var(--ink);
   outline: none;
@@ -75,7 +75,7 @@
 
 .team-formation__section-title {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--fs-fixed-0-85rem);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -94,7 +94,7 @@
   padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
   background: var(--bg);
   color: var(--ink);
   outline: none;
@@ -119,25 +119,18 @@
   right: 0;
   max-height: 240px;
   overflow-y: auto;
-  border: 1px solid var(--popup-glass-border-fallback);
-  border-color: var(--popup-glass-border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: var(--radius-sm);
-  background: var(--popup-glass-bg-fallback);
-  background: var(--popup-glass-bg);
+  background: var(--glass-ui-bg);
   z-index: 5;
-  box-shadow: var(--popup-glass-shadow);
+  box-shadow: var(--glass-ui-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .team-formation__invite-dropdown--portal {
   position: fixed;
   z-index: 1100;
-}
-
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
-  .team-formation__invite-dropdown {
-    -webkit-backdrop-filter: blur(20px);
-    backdrop-filter: blur(20px);
-  }
 }
 
 .team-formation__invite-option {
@@ -158,24 +151,24 @@
 }
 
 .team-formation__invite-option:hover {
-  background: var(--surface-soft, rgba(15, 23, 42, 0.04));
+  background: var(--surface-soft, var(--color-fixed-rgba-15-23-42-0-04));
 }
 
 .team-formation__invite-option-email {
-  font-size: 0.92rem;
+  font-size: var(--fs-fixed-0-92rem);
   color: var(--ink);
   line-height: 1.2;
 }
 
 .team-formation__invite-option-name {
-  font-size: 0.8rem;
+  font-size: var(--fs-fixed-0-8rem);
   color: var(--muted);
 }
 
 .team-formation__invite-empty {
   margin: 0;
   padding: 10px 12px;
-  font-size: 0.86rem;
+  font-size: var(--fs-fixed-0-86rem);
   color: var(--muted);
 }
 
@@ -198,7 +191,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  font-size: 0.95rem;
+  font-size: var(--fs-fixed-0-95rem);
 }
 
 .team-formation__invite-email {
@@ -218,14 +211,14 @@
 }
 
 .team-formation__invite-date {
-  font-size: 0.8rem;
+  font-size: var(--fs-fixed-0-8rem);
   color: var(--muted);
   white-space: nowrap;
 }
 
 /* ── Feedback message ── */
 .team-formation__feedback {
-  font-size: 0.875rem;
+  font-size: var(--fs-fixed-0-875rem);
   padding: 8px 12px;
   border-radius: var(--radius-sm);
 }
@@ -249,7 +242,7 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--status-danger-text);
-  font-size: 0.8rem;
+  font-size: var(--fs-fixed-0-8rem);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
@@ -265,7 +258,7 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--status-success-text);
-  font-size: 0.8rem;
+  font-size: var(--fs-fixed-0-8rem);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;

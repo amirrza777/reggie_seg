@@ -9,5 +9,8 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/passport": "^1.0.17",
     "tsx": "^4.21.0"
+  },
+  "scripts": {
+    "scan:functions": "bash scripts/scan-functions.sh"
   }
 }

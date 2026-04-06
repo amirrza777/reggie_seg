@@ -103,16 +103,20 @@ function handleRefreshError(res: Response, error: unknown) {
   return respondWithErrorDetail(res, 401, "invalid refresh token", error);
 }
 
-function resolveAuthenticatedUserId(req: AuthRequest): number {
+function resolveAuthenticatedUserId(req: AuthRequest): number | null {
   const userId = req.user?.sub;
   if (userId) {
     return userId;
   }
   const refreshToken = req.cookies?.refresh_token;
   if (!refreshToken) {
-    throw new Error("Not authenticated");
+    return null;
   }
-  return verifyRefreshToken(refreshToken).sub;
+  try {
+    return verifyRefreshToken(refreshToken).sub;
+  } catch {
+    return null;
+  }
 }
 
 function findMeUser(userId: number) {
@@ -354,8 +358,12 @@ function clearRefreshCookie(res: Response) {
 
 /** Handles requests for me. */
 export async function meHandler(req: AuthRequest, res: Response) {
+  const userId = resolveAuthenticatedUserId(req);
+  if (!userId) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
+
   try {
-    const userId = resolveAuthenticatedUserId(req);
     const user = await findMeUser(userId);
     if (!user) {
       return res.status(401).json({ error: "Not authenticated" });

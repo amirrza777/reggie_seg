@@ -46,10 +46,10 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
             </div>
             <div className="card__body" style={{ display: "grid", gap: 14 }}>
               <div>
-                <p className="muted" style={{ margin: "0 0 6px", fontSize: "0.875rem" }}>
+                <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
                   Written for teammates
                 </p>
-                <p style={{ margin: "0 0 6px", fontSize: "0.9rem" }}>
+                <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
                   {item.givenSubmitted}/{item.givenExpected} submitted
                 </p>
                 <ProgressBar value={givenPct} />
@@ -58,10 +58,10 @@ export function StaffPeerMemberDualProgressGrid({ items }: { items: StaffPeerMem
                 </div>
               </div>
               <div>
-                <p className="muted" style={{ margin: "0 0 6px", fontSize: "0.875rem" }}>
+                <p className="muted" style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-875rem)" }}>
                   Received from teammates
                 </p>
-                <p style={{ margin: "0 0 6px", fontSize: "0.9rem" }}>
+                <p style={{ margin: "0 0 6px", fontSize: "var(--fs-fixed-0-9rem)" }}>
                   {item.receivedSubmitted}/{item.receivedExpected} received
                 </p>
                 <ProgressBar value={receivedPct} />

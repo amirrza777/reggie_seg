@@ -36,7 +36,7 @@ describe("auth controller parsers", () => {
 
   it("rejects invalid signup payloads", () => {
     expect(parseSignupBody({})).toEqual({ ok: false, error: "Enterprise code, email and password are required" });
-    expect(parseSignupBody({ enterpriseCode: "ENT", email: "a@b.com", password: "pw", role: "ADMIN" })).toEqual({
+    expect(parseSignupBody({ enterpriseCode: "ENT", email: "a@b.com", password: "pw", role: "OWNER" })).toEqual({
       ok: false,
       error: "Invalid role",
     });

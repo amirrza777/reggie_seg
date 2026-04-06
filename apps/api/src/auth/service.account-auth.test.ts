@@ -43,12 +43,12 @@ afterAll(() => {
 });
 
 describe("auth service", () => {
-  it("signUp creates a student user with enterprise resolution and issues tokens", async () => {
+  it("signUp creates an admin user when admin role is requested", async () => {
     const svc = await loadService();
 
     argon2Mock.hash.mockResolvedValueOnce("password-hash").mockResolvedValueOnce("refresh-hash");
     prismaMock.enterprise.findUnique.mockResolvedValueOnce({ id: "ent-99" });
-    prismaMock.user.create.mockResolvedValueOnce({ id: 4, email: "user@example.com", role: "STUDENT" });
+    prismaMock.user.create.mockResolvedValueOnce({ id: 4, email: "user@example.com", role: "ADMIN" });
 
     const tokens = await svc.signUp({
       enterpriseCode: " ent-99 ",
@@ -63,7 +63,7 @@ describe("auth service", () => {
         passwordHash: "password-hash",
         firstName: "",
         lastName: "",
-        role: "STUDENT",
+        role: "ADMIN",
         enterpriseId: "ent-99",
       },
     });

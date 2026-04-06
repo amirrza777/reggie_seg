@@ -30,13 +30,13 @@ export function parsePaginationQueryParams(
   options: { defaultPage: number; defaultPageSize: number; maxPageSize: number },
 ): ParseResult<{ page: number; pageSize: number }> {
   const parsedPage = parsePositiveIntQueryParam(params.page, { key: "page", fallback: options.defaultPage });
-  if (!parsedPage.ok) return parsedPage;
+  if (!parsedPage.ok) {return parsedPage;}
 
   const parsedPageSize = parsePositiveIntQueryParam(params.pageSize, {
     key: "pageSize",
     fallback: options.defaultPageSize,
   });
-  if (!parsedPageSize.ok) return parsedPageSize;
+  if (!parsedPageSize.ok) {return parsedPageSize;}
 
   if (parsedPageSize.value > options.maxPageSize) {
     return { ok: false, error: `pageSize must be ${options.maxPageSize} or less` };

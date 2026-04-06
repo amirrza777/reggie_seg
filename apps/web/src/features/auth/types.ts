@@ -9,7 +9,7 @@ export type SignupPayload = {
   password: string;
   firstName?: string;
   lastName?: string;
-  role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN";
+  role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 };
 
 export type AuthResponse = {

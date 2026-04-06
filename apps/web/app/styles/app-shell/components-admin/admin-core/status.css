@@ -30,7 +30,7 @@
 .status-alert {
   border-radius: var(--radius-md);
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
   display: flex;
   align-items: center;
   gap: 8px;

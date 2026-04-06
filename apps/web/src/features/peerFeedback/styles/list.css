@@ -9,14 +9,14 @@
 
 .feedback-list-intro__title {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--fs-fixed-18px);
   font-weight: 700;
   color: var(--ink-strong);
 }
 
 .feedback-list-intro__description {
   margin: 8px 0 0;
-  font-size: 15px;
+  font-size: var(--fs-fixed-15px);
   line-height: 1.5;
   color: var(--muted);
 }
@@ -82,7 +82,7 @@
 }
 
 .feedback-card__status {
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
   font-weight: 600;
   padding: 3px 8px;
   border-radius: 999px;
@@ -103,11 +103,11 @@
 
 .feedback-card__timestamp {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .feedback-card__cta {
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
 }
 
 .feedback-card--submitted .feedback-card__cta {

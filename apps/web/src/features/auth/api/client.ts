@@ -3,13 +3,19 @@ import type { AuthResponse, LoginCredentials, SignupPayload, UserProfile } from 
 import { setAccessToken, clearAccessToken } from "./session";
 import { ApiError } from "@/shared/api/errors";
 
+function isUnauthorizedApiError(error: unknown) {
+  return error instanceof ApiError && error.status === 401;
+}
+
 export async function login(credentials: LoginCredentials): Promise<AuthResponse> {
   const res = await apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     auth: false,
     body: JSON.stringify(credentials),
   });
-  if (res.accessToken) setAccessToken(res.accessToken);
+  if (res.accessToken) {
+    setAccessToken(res.accessToken);
+  }
   return res;
 }
 
@@ -19,7 +25,9 @@ export async function signup(payload: SignupPayload) {
     auth: false,
     body: JSON.stringify(payload),
   });
-  if (res.accessToken) setAccessToken(res.accessToken);
+  if (res.accessToken) {
+    setAccessToken(res.accessToken);
+  }
   return res;
 }
 
@@ -49,7 +57,7 @@ export async function refreshAccessToken(): Promise<string | null> {
     clearAccessToken();
     return null;
   } catch (err: unknown) {
-    if (err instanceof ApiError && err.status === 401) {
+    if (isUnauthorizedApiError(err)) {
       clearAccessToken();
     }
     return null;
@@ -60,12 +68,14 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
   try {
     return await apiFetch<UserProfile>("/auth/me");
   } catch (err: unknown) {
-    if (err instanceof ApiError && err.status === 401) {
-      const token = await refreshAccessToken();
-      if (!token) return null;
-      return await apiFetch<UserProfile>("/auth/me");
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
     }
-    throw err;
+    const token = await refreshAccessToken();
+    if (!token) {
+      return null;
+    }
+    return await apiFetch<UserProfile>("/auth/me");
   }
 }
 
@@ -81,15 +91,17 @@ export async function updateProfile(payload: {
       body: JSON.stringify(payload),
     });
   } catch (err: unknown) {
-    if (err instanceof ApiError && err.status === 401) {
-      const token = await refreshAccessToken();
-      if (!token) throw err;
-      return await apiFetch<UserProfile>("/auth/profile", {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
     }
-    throw err;
+    const token = await refreshAccessToken();
+    if (!token) {
+      throw err;
+    }
+    return await apiFetch<UserProfile>("/auth/profile", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    });
   }
 }
 
