@@ -115,11 +115,12 @@ function EnterpriseModuleCreateFormBody({
 
       {state.isEditMode && moduleId != null ? (
         <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
-          <ModuleArchiveSection state={state} />
+          <ModuleArchiveSection state={state} moduleArchived={state.moduleArchived} />
           <ModuleDeleteSection state={state} />
         </ModuleFormCollapsible>
       ) : null}
 
+      <ModuleArchiveActionNotice message={state.archiveActionNotice} />
       <ModuleErrorMessage errorMessage={state.errorMessage} />
       {readOnlyArchived ? (
         <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
@@ -528,6 +529,15 @@ function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ModuleArchiveActionNotice({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div className="status-alert status-alert--success enterprise-module-create__archive-notice" role="status">
+      <span>{message}</span>
     </div>
   );
 }

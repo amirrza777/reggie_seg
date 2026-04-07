@@ -1,12 +1,4 @@
-import {
-  findUserRoleById,
-  listAllModules,
-  listAllProjects,
-  listAllTeams,
-  setModuleArchived,
-  setProjectArchived,
-  setTeamArchived,
-} from "./repo.js";
+import { findUserRoleById, listAllModules, listAllProjects, setModuleArchived, setProjectArchived } from "./repo.js";
 
 /** Returns the modules. */
 export function getModules() {
@@ -16,11 +8,6 @@ export function getModules() {
 /** Returns the projects. */
 export function getProjects() {
   return listAllProjects();
-}
-
-/** Returns the teams. */
-export function getTeams() {
-  return listAllTeams();
 }
 
 /** Returns whether the user is staff, enterprise admin, or admin. */
@@ -49,14 +36,4 @@ export function archiveProject(id: number) {
 /** Restores the project. */
 export function unarchiveProject(id: number) {
   return setProjectArchived(id, null);
-}
-
-/** Archives the team. */
-export function archiveTeam(id: number) {
-  return setTeamArchived(id, new Date());
-}
-
-/** Restores the team. */
-export function unarchiveTeam(id: number) {
-  return setTeamArchived(id, null);
 }
