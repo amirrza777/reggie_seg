@@ -214,50 +214,88 @@ async function ensureSingleScenarioFeedback(
   existingFeedbackIds: Set<number>,
   questionLabels: string[],
 ) {
-  const reviewText = buildFeedbackText(reviewerId, revieweeId);
-  const agreementsJson = buildAgreementPayload(reviewerId, revieweeId, questionLabels);
-
+  const payload = buildScenarioFeedbackPayload(reviewerId, revieweeId, questionLabels);
   if (existingFeedbackIds.has(assessmentId)) {
-    const peerFeedbackDelegate = prisma.peerFeedback as unknown as {
-      update?: (args: {
-        where: { peerAssessmentId: number };
-        data: {
-          reviewerUserId: number;
-          revieweeUserId: number;
-          reviewText: string;
-          agreementsJson: Record<string, { selected: string; score: number }>;
-          submittedLate: boolean;
-        };
-      }) => Promise<unknown>;
-    };
-    if (typeof peerFeedbackDelegate.update === "function") {
-      await peerFeedbackDelegate.update({
-        where: { peerAssessmentId: assessmentId },
-        data: {
-          reviewerUserId: reviewerId,
-          revieweeUserId: revieweeId,
-          reviewText,
-          agreementsJson,
-          submittedLate: false,
-        },
-      });
-    }
+    await updateExistingScenarioFeedback(assessmentId, reviewerId, revieweeId, payload);
     return 0;
   }
 
-  await prisma.peerFeedback.create({
+  await createScenarioFeedback(teamId, assessmentId, reviewerId, revieweeId, payload);
+  existingFeedbackIds.add(assessmentId);
+  return 1;
+}
+
+type ScenarioFeedbackPayload = {
+  reviewText: string;
+  agreementsJson: Record<string, { selected: string; score: number }>;
+};
+
+function buildScenarioFeedbackPayload(reviewerId: number, revieweeId: number, questionLabels: string[]): ScenarioFeedbackPayload {
+  return {
+    reviewText: buildFeedbackText(reviewerId, revieweeId),
+    agreementsJson: buildAgreementPayload(reviewerId, revieweeId, questionLabels),
+  };
+}
+
+function buildScenarioFeedbackWriteData(
+  reviewerId: number,
+  revieweeId: number,
+  payload: ScenarioFeedbackPayload,
+) {
+  return {
+    reviewerUserId: reviewerId,
+    revieweeUserId: revieweeId,
+    reviewText: payload.reviewText,
+    agreementsJson: payload.agreementsJson,
+    submittedLate: false,
+  };
+}
+
+type PeerFeedbackUpdateDelegate = {
+  update?: (args: {
+    where: { peerAssessmentId: number };
+    data: {
+      reviewerUserId: number;
+      revieweeUserId: number;
+      reviewText: string;
+      agreementsJson: Record<string, { selected: string; score: number }>;
+      submittedLate: boolean;
+    };
+  }) => Promise<unknown>;
+};
+
+function canUpdatePeerFeedbackDelegate(delegate: PeerFeedbackUpdateDelegate) {
+  return typeof delegate.update === "function";
+}
+
+async function updateExistingScenarioFeedback(
+  assessmentId: number,
+  reviewerId: number,
+  revieweeId: number,
+  payload: ScenarioFeedbackPayload,
+) {
+  const delegate = prisma.peerFeedback as unknown as PeerFeedbackUpdateDelegate;
+  if (!canUpdatePeerFeedbackDelegate(delegate)) return;
+  await delegate.update({
+    where: { peerAssessmentId: assessmentId },
+    data: buildScenarioFeedbackWriteData(reviewerId, revieweeId, payload),
+  });
+}
+
+function createScenarioFeedback(
+  teamId: number,
+  assessmentId: number,
+  reviewerId: number,
+  revieweeId: number,
+  payload: ScenarioFeedbackPayload,
+) {
+  return prisma.peerFeedback.create({
     data: {
       teamId,
       peerAssessmentId: assessmentId,
-      reviewerUserId: reviewerId,
-      revieweeUserId: revieweeId,
-      reviewText,
-      agreementsJson,
-      submittedLate: false,
+      ...buildScenarioFeedbackWriteData(reviewerId, revieweeId, payload),
     },
   });
-  existingFeedbackIds.add(assessmentId);
-  return 1;
 }
 
 async function seedScenarioMarkings(teamId: number, memberIds: number[], markerId: number, studentIds: number[]) {
