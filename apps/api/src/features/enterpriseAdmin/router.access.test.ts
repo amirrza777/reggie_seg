@@ -37,9 +37,11 @@ function mockRes() {
   const res: Partial<Response> = {
     status: vi.fn(),
     json: vi.fn(),
+    setHeader: vi.fn(),
   };
   (res.status as any).mockReturnValue(res);
   (res.json as any).mockReturnValue(res);
+  (res.setHeader as any).mockReturnValue(res);
   return res as Response;
 }
 
@@ -195,6 +197,7 @@ describe("enterpriseAdmin router access control", () => {
     const res = mockRes();
     await getJoinCode({ enterpriseUser: { id: 11, enterpriseId: "ent-1", role: "STAFF" }, params: { moduleId: "2" } } as any, res);
 
+    expect((res.setHeader as any)).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect((res.json as any)).toHaveBeenCalledWith({ moduleId: 2, joinCode: "ABCDEFGH" });
   });
 

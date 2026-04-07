@@ -52,6 +52,7 @@ describe("seed plan", () => {
       "seedPeerAssessments",
       "seedFeatureFlags",
       "seedPeerAssessmentProgressScenarios",
+      "seedTeamHealthWarningScenario",
       "seedForumPosts",
       "seedMeetings",
       "seedNotifications",

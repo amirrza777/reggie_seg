@@ -11,7 +11,7 @@ export type PrismaMock = {
     findFirst: ReturnType<typeof vi.fn>;
     upsert: ReturnType<typeof vi.fn>;
   };
-  module: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn> };
+  module: { createMany: ReturnType<typeof vi.fn>; findMany: ReturnType<typeof vi.fn>; findFirst: ReturnType<typeof vi.fn> };
   questionnaireTemplate: {
     findFirst: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
@@ -158,6 +158,9 @@ export function mockSeedRuntime(prismaMock: PrismaMock, options?: SeedRuntimeOpt
     randSentence: vi.fn().mockReturnValue("Random generated question."),
     randParagraph: vi.fn().mockReturnValue("Random generated paragraph."),
   }));
+  vi.doMock("../../prisma/seed/team-health-warning-scenario.ts", () => ({
+    seedTeamHealthWarningScenario: vi.fn(async () => undefined),
+  }));
   if (options?.enterpriseCount !== undefined) {
     vi.doMock("../../prisma/seed/volumes.ts", async () => {
       const actual = await vi.importActual<typeof import("../../prisma/seed/volumes.ts")>("../../prisma/seed/volumes.ts");
@@ -201,6 +204,7 @@ export function buildPrismaMock(): PrismaMock {
     },
     module: {
       createMany: vi.fn().mockResolvedValue({ count: 6 }),
+      findFirst: vi.fn().mockResolvedValue({ id: 1 }),
       findMany: vi.fn().mockResolvedValue([
         { id: 1, name: "Software Engineering Group Project" },
         { id: 2, name: "Database Systems" },
@@ -267,8 +271,8 @@ export function buildPrismaMock(): PrismaMock {
       upsert: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue([
         { teamId: 10, userId: 2, user: { id: 2, role: "STUDENT" } },
+        { teamId: 10, userId: 3, user: { id: 3, role: "STUDENT" } },
         { teamId: 10, userId: 5, user: { id: 5, role: "ADMIN" } },
-        { teamId: 11, userId: 3, user: { id: 3, role: "STUDENT" } },
       ]),
       findUnique: vi.fn().mockResolvedValue(null),
     },

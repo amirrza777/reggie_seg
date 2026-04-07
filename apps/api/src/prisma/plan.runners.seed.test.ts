@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   seedPeerAssessments: vi.fn(async () => undefined),
   seedFeatureFlags: vi.fn(async () => undefined),
   seedPeerAssessmentProgressScenarios: vi.fn(async () => undefined),
+  seedTeamHealthWarningScenario: vi.fn(async () => undefined),
   seedForumPosts: vi.fn(async () => undefined),
   seedMeetings: vi.fn(async () => undefined),
   seedNotifications: vi.fn(async () => undefined),
@@ -61,6 +62,10 @@ vi.mock("../../prisma/seed/outcomes", () => ({
 
 vi.mock("../../prisma/seed/peer-assessment-scenarios", () => ({
   seedPeerAssessmentProgressScenarios: mocks.seedPeerAssessmentProgressScenarios,
+}));
+
+vi.mock("../../prisma/seed/team-health-warning-scenario", () => ({
+  seedTeamHealthWarningScenario: mocks.seedTeamHealthWarningScenario,
 }));
 
 vi.mock("../../prisma/seed/meetings", () => ({
@@ -136,6 +141,7 @@ describe("seed plan run callbacks", () => {
     expect(mocks.seedPeerAssessments).toHaveBeenCalled();
     expect(mocks.seedFeatureFlags).toHaveBeenCalled();
     expect(mocks.seedPeerAssessmentProgressScenarios).toHaveBeenCalled();
+    expect(mocks.seedTeamHealthWarningScenario).toHaveBeenCalled();
     expect(mocks.seedForumPosts).toHaveBeenCalled();
     expect(mocks.seedMeetings).toHaveBeenCalled();
     expect(mocks.seedNotifications).toHaveBeenCalled();

@@ -2,6 +2,14 @@ import { describe, expect, it } from "vitest";
 import router from "./router.js";
 
 describe("projects router", () => {
+  it("applies compatibility hardening middleware on legacy module join route", () => {
+    const joinLayer = (router as any).stack.find(
+      (layer: any) => layer.route?.path === "/modules/join" && layer.route.methods?.post,
+    );
+    expect(joinLayer).toBeTruthy();
+    expect(joinLayer.route.stack.length).toBeGreaterThanOrEqual(4);
+  });
+
   it("registers all routes correctly", () => {
     const routes = router.stack
       .filter((layer: any) => layer.route)
