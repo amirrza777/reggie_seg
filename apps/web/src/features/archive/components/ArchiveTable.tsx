@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ArchiveTab } from "../types";
 import type { ArchiveTableRowModel } from "../lib/archiveTableRows";
 import { ArchiveRowInfoHintIcon, ArchiveStatusStack } from "./ArchiveTableHintButtons";
@@ -53,8 +54,16 @@ function ArchiveTableRow({
 
   return (
     <tr className={rowReadOnly ? "archive-row--archived" : ""}>
-      <td className="archive-row__name">{row.name}</td>
-      <td className="archive-row__subtitle">{row.subtitle}</td>
+      <td className="archive-row__name">
+        <Link href={row.href} className="archive-row__entity-link">
+          {row.name}
+        </Link>
+      </td>
+      <td className="archive-row__subtitle">
+        <Link href={row.href} className="archive-row__entity-link archive-row__entity-link--subtitle">
+          {row.subtitle}
+        </Link>
+      </td>
       {showProjectExtras ? (
         <td className="archive-table__cell--status">
           <ArchiveStatusStack

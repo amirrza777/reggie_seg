@@ -400,6 +400,10 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
 
   return (
     <>
+      <p className="muted">
+        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team
+      </p>
+
       <section className="staff-projects__team-overview-top" aria-label="Team summary">
         <section className="staff-projects__team-card" aria-label="Team members">
           <h3 style={{ margin: 0 }}>Team members</h3>

@@ -136,7 +136,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Student 3" })).toBeInTheDocument();
+    expect(screen.getByText(/Student 3.*evidence item/)).toBeInTheDocument();
     expect(screen.getByText("Avg rating received")).toBeInTheDocument();
     expect(
       screen.getByText("No assessment reviews were found for assessments this student gave."),
@@ -194,7 +194,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Alice Roe" })).toBeInTheDocument();
+    expect(screen.getByText(/Alice Roe.*evidence item/)).toBeInTheDocument();
     expect(screen.getByText("4.00 / 5")).toBeInTheDocument();
     expect(screen.getByText("Reviews on this user’s assessments given to teammates")).toBeInTheDocument();
     expect(screen.getByText("How this user reviewed assessments made on them")).toBeInTheDocument();
@@ -243,7 +243,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Unknown student" })).toBeInTheDocument();
+    expect(screen.getByText(/Unknown student.*evidence item/)).toBeInTheDocument();
     expect(screen.getAllByText("Unknown teammate").length).toBeGreaterThan(0);
     expect(screen.getByText("No response")).toBeInTheDocument();
   });

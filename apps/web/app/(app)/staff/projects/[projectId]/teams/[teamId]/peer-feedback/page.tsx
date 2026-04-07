@@ -129,6 +129,11 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {totals.assessments} feedback task{totals.assessments === 1 ? "" : "s"} ·{" "}
+        {totals.completed} review{totals.completed === 1 ? "" : "s"} done · {totals.pending} pending
+      </p>
+
       {feedbackError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{feedbackError}</p>

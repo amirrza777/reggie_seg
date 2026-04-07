@@ -73,6 +73,11 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team · {students.length} in marking list · Team
+        mark: {teamMarking?.mark == null ? "Not set" : String(teamMarking.mark)}
+      </p>
+
       {gradingError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{gradingError}</p>

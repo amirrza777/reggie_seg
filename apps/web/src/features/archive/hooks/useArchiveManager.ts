@@ -1,4 +1,4 @@
-import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import type { ArchivableModule, ArchivableProject, ArchiveTab } from "../types";
 import { archiveItem, getArchiveModules, getArchiveProjects, unarchiveItem } from "../api/client";
 import type { ArchiveListScope } from "../lib/archiveScopes";
@@ -34,8 +34,7 @@ function useArchiveDataLoad(
 
 function useArchiveToggle(params: {
   setLoading: Dispatch<SetStateAction<string | null>>;
-  setModules: Dispatch<SetStateAction<ArchivableModule[]>>;
-  setProjects: Dispatch<SetStateAction<ArchivableProject[]>>;
+  reloadLists: () => Promise<void>;
 }) {
   return async (type: ArchiveTab, id: number, isArchived: boolean) => {
     const key = `${type}-${id}`;
@@ -46,14 +45,7 @@ function useArchiveToggle(params: {
       } else {
         await archiveItem(type, id);
       }
-      const archivedAt = isArchived ? null : new Date().toISOString();
-      if (type === "modules") {
-        params.setModules((previous) => previous.map((item) => (item.id === id ? { ...item, archivedAt } : item)));
-      } else {
-        params.setProjects((previous) =>
-          previous.map((item) => (item.id === id ? { ...item, archivedAt } : item)),
-        );
-      }
+      await params.reloadLists();
     } catch {
     } finally {
       params.setLoading(null);
@@ -70,7 +62,14 @@ export function useArchiveManager(): ArchiveManagerState {
   const [fetching, setFetching] = useState(true);
   const [loading, setLoading] = useState<string | null>(null);
   useArchiveDataLoad(setModules, setProjects, setFetching);
-  const toggle = useArchiveToggle({ setLoading, setModules, setProjects });
+
+  const reloadLists = useCallback(async () => {
+    const [nextModules, nextProjects] = await Promise.all([getArchiveModules(), getArchiveProjects()]);
+    setModules(nextModules);
+    setProjects(nextProjects);
+  }, []);
+
+  const toggle = useArchiveToggle({ setLoading, reloadLists });
   return {
     activeTab,
     setActiveTab,

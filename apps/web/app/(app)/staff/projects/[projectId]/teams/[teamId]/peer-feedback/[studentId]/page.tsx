@@ -129,16 +129,14 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
 
   const receivedRatingScores = getScores(givenRows);
   const averageRatingReceivedLabel = toAverageLabel(receivedRatingScores);
+  const evidenceTotal = givenRows.length + receivedRows.length;
 
   return (
-    <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Peer Feedback</p>
-        <h1 className="staff-projects__title">{studentTitle}</h1>
-        <p className="staff-projects__desc">
-          Inspect how teammates reviewed this student&apos;s assessments, and how this student reviewed assessments written about them.
-        </p>
-      </section>
+    <>
+      <p className="muted">
+        {studentTitle}: {evidenceTotal} evidence item{evidenceTotal === 1 ? "" : "s"}; average rating received:{" "}
+        {averageRatingReceivedLabel}
+      </p>
 
       {feedbackLoadError ? (
         <section className="staff-projects__team-card">
@@ -161,6 +159,6 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

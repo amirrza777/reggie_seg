@@ -39,6 +39,10 @@ export default async function StaffTrelloSectionPage({ params }: PageProps) {
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.trelloBoardId ? "Board linked" : "No board linked"}
+      </p>
+
       <section className="staff-projects__team-card" aria-label="Team Trello activity">
         <StaffProjectTrelloContent
           projectId={context.projectId}

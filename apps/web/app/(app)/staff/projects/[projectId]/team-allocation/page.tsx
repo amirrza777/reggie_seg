@@ -4,7 +4,6 @@ import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/l
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
-import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -34,23 +33,13 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
     );
   }
   const { data } = loadResult;
-
-  const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
   const emptyTeams = data.teams.filter((team) => team.allocations.length === 0).length;
 
   return (
-    <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
-
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Team allocation</p>
-        <h1 className="staff-projects__title">{data.project.name}</h1>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">{totalStudents} allocated student{totalStudents === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">{emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}</span>
-        </div>
-      </section>
+    <>
+      <p className="muted">
+        {emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}
+      </p>
 
       <StaffAllocationModesPanel
         projectId={data.project.id}
@@ -83,6 +72,6 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
           ))}
         </section>
       </section>
-    </div>
+    </>
   );
 }

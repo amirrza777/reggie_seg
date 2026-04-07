@@ -50,3 +50,9 @@ export {
   getProjectNavFlagsConfigHandler,
   updateProjectNavFlagsConfigHandler,
 } from "./nav-flags/controller.js";
+
+export {
+  deleteStaffProjectManageHandler,
+  getStaffProjectManageHandler,
+  patchStaffProjectManageHandler,
+} from "./project-manage/controller.js";

@@ -3,7 +3,6 @@ import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffP
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffProjectReposReadOnlyClient } from "@/features/github/components/StaffProjectReposReadOnlyClient";
-
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
@@ -42,6 +41,10 @@ export default async function StaffRepositoriesSectionPage({ params }: PageProps
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team
+      </p>
+
       <StaffProjectReposReadOnlyClient
         projectId={projectId}
         projectName={data.project.name}

@@ -1,6 +1,9 @@
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { StaffProjectBreadcrumbs } from "@/features/staff/projects/components/StaffProjectBreadcrumbs";
-import { ArchivedModuleProjectScopeBanner } from "@/features/modules/components/ArchivedModuleProjectScopeBanner";
+import { StaffProjectSectionNavGate } from "@/features/staff/projects/components/StaffProjectSectionNavGate";
+import { StaffProjectsWorkspacePageHeader } from "@/features/staff/projects/components/StaffProjectsWorkspacePageHeader";
+import { staffProjectWorkspaceAggregates } from "@/features/staff/projects/lib/staffProjectWorkspaceAggregates";
+import { ArchivedProjectScopeBanner } from "@/features/modules/components/ArchivedProjectScopeBanner";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -15,9 +18,14 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
 
   let projectName = `Project ${projectId}`;
   let teamNamesById: Record<string, string> = {};
-  let moduleId: string | null = null;
+  let moduleId: number | null = null;
   let moduleName: string | null = null;
   let moduleArchivedAt: string | null | undefined;
+  let projectArchivedAt: string | null | undefined;
+  let teamCount = 0;
+  let studentCount = 0;
+  let accessRoleLabel = "Staff access";
+  let canManageProjectSettings = false;
 
   const user = await getCurrentUser();
   const canLoadProjectData =
@@ -28,10 +36,16 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
     try {
       const projectData = await getStaffProjectTeams(user.id, projectIdNumber);
       projectName = projectData.project.name;
-      moduleId = String(projectData.project.moduleId);
+      moduleId = projectData.project.moduleId;
       moduleName = projectData.project.moduleName;
       moduleArchivedAt = projectData.project.moduleArchivedAt ?? null;
+      projectArchivedAt = projectData.project.projectArchivedAt ?? null;
       teamNamesById = Object.fromEntries(projectData.teams.map((team) => [String(team.id), team.teamName]));
+      const aggregates = staffProjectWorkspaceAggregates(projectData);
+      teamCount = aggregates.teamCount;
+      studentCount = aggregates.studentCount;
+      accessRoleLabel = aggregates.accessRoleLabel;
+      canManageProjectSettings = projectData.project.canManageProjectSettings === true;
     } catch {
       // Keep fallback breadcrumb labels when project data fails to load.
     }
@@ -43,10 +57,26 @@ export default async function StaffProjectLayout({ children, params }: LayoutPro
         projectId={projectId}
         projectName={projectName}
         teamNamesById={teamNamesById}
-        moduleId={moduleId}
+        moduleId={moduleId != null ? String(moduleId) : null}
         moduleName={moduleName}
       />
-      <ArchivedModuleProjectScopeBanner moduleArchivedAt={moduleArchivedAt} audience="staff" />
+      <ArchivedProjectScopeBanner
+        moduleArchivedAt={moduleArchivedAt}
+        projectArchivedAt={projectArchivedAt}
+        audience="staff"
+        projectId={projectId}
+      />
+      <StaffProjectSectionNavGate
+        projectId={projectId}
+        moduleId={moduleId}
+        canManageProjectSettings={canManageProjectSettings}
+      />
+      <StaffProjectsWorkspacePageHeader
+        title={projectName}
+        teamCount={teamCount}
+        studentCount={studentCount}
+        accessRoleLabel={accessRoleLabel}
+      />
       {children}
     </div>
   );

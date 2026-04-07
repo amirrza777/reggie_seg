@@ -20,6 +20,7 @@ import type {
   StaffProjectWarningsConfigResponse,
   ProjectNavFlagsConfig,
   StaffProjectNavFlagsConfigResponse,
+  StaffProjectManageSummary,
   TeamWarning,
 } from "../types";
 
@@ -129,6 +130,28 @@ export async function getStaffProjects(userId: number, options?: StaffProjectSea
 export async function getStaffProjectTeams(userId: number, projectId: number): Promise<StaffProjectTeamsResponse> {
   return apiFetch<StaffProjectTeamsResponse>(`/projects/staff/${projectId}/teams?userId=${userId}`, {
     cache: "no-store",
+  });
+}
+
+export async function getStaffProjectManage(projectId: number): Promise<StaffProjectManageSummary> {
+  return apiFetch<StaffProjectManageSummary>(`/projects/staff/${projectId}/manage`, {
+    cache: "no-store",
+  });
+}
+
+export async function patchStaffProjectManage(
+  projectId: number,
+  body: { name?: string; archived?: boolean },
+): Promise<StaffProjectManageSummary> {
+  return apiFetch<StaffProjectManageSummary>(`/projects/staff/${projectId}/manage`, {
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function deleteStaffProjectManage(projectId: number): Promise<{ moduleId: number }> {
+  return apiFetch<{ moduleId: number }>(`/projects/staff/${projectId}/manage`, {
+    method: "DELETE",
   });
 }
 

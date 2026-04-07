@@ -44,6 +44,8 @@ describe("StaffProjectLayout", () => {
     render(page);
 
     expect(screen.getByTestId("breadcrumbs")).toHaveTextContent("Project Atlas");
+    expect(screen.getByText("PROJECT")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Project Atlas" })).toBeInTheDocument();
     expect(getStaffProjectTeamsMock).toHaveBeenCalledWith(7, 42);
     expect(breadcrumbProps.at(-1)).toMatchObject({
       projectId: "42",

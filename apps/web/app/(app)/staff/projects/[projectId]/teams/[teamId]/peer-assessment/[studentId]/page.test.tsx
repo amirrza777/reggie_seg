@@ -149,7 +149,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Alice Roe" })).toBeInTheDocument();
+    expect(screen.getByText(/Alice Roe.*assessment record/)).toBeInTheDocument();
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         questionLabels: { q1: "Communication quality" },
@@ -222,7 +222,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Student 999" })).toBeInTheDocument();
+    expect(screen.getByText(/Student 999.*assessment record/)).toBeInTheDocument();
     expect(studentPanelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         questionLabels: {},
@@ -248,7 +248,7 @@ describe("StaffPeerAssessmentStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Unknown student" })).toBeInTheDocument();
+    expect(screen.getByText(/Unknown student.*assessment record/)).toBeInTheDocument();
   });
 
   it("continues when the optional feedback layer throws at Promise.all level", async () => {

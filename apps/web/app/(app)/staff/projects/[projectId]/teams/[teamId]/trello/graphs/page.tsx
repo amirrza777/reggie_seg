@@ -2,6 +2,7 @@ import { getProjectDeadline } from "@/features/projects/api/client";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloGraphsView } from "@/features/staff/trello/StaffTrelloGraphsView";
+import "@/features/staff/projects/styles/staff-projects.css";
 
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
@@ -15,7 +16,7 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
     return null;
   }
 
-  const { user, team } = ctx;
+  const { user, project, team } = ctx;
   let deadline: Awaited<ReturnType<typeof getProjectDeadline>> | null = null;
   try {
     deadline = await getProjectDeadline(user.id, Number(projectId));
@@ -24,6 +25,11 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
   }
 
   return (
+    <>
+      <p className="muted">
+        Team: {team.teamName} · Velocity and throughput
+      </p>
+
     <StaffProjectTrelloContent
       projectId={projectId}
       teamId={team.id}
@@ -31,5 +37,6 @@ export default async function StaffTrelloGraphsPage({ params }: PageProps) {
       deadline={deadline ?? undefined}
       viewComponent={StaffTrelloGraphsView}
     />
+    </>
   );
 }

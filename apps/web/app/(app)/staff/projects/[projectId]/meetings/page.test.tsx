@@ -26,10 +26,6 @@ vi.mock("@/features/staff/projects/server/loadStaffProjectTeams", () => ({
   loadStaffProjectTeamsForPage: vi.fn(),
 }));
 
-vi.mock("@/features/staff/projects/components/StaffProjectSectionNav", () => ({
-  StaffProjectSectionNav: ({ projectId }: { projectId: string }) => <div data-testid="staff-project-nav">{projectId}</div>,
-}));
-
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
@@ -93,8 +89,6 @@ describe("StaffProjectMeetingsPage", () => {
     const page = await StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "15" }) });
     render(page);
 
-    expect(screen.getByTestId("staff-project-nav")).toHaveTextContent("15");
-    expect(screen.getByRole("heading", { name: "Capstone" })).toBeInTheDocument();
     const links = screen.getAllByRole("link", { name: "Open team meetings" });
     expect(links[0]).toHaveAttribute(
       "href",

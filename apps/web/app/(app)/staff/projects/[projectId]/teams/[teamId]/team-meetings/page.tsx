@@ -55,8 +55,14 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
   }
 
   return (
+    <>
+      <p className="muted">
+        Team: {team.teamName} · {meetings.length} meeting{meetings.length === 1 ? "" : "s"} logged
+      </p>
+
     <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
       {meetingsError ? <p className="muted">{meetingsError}</p> : <StaffMeetingsView meetings={meetings} absenceThreshold={absenceThreshold} />}
     </section>
+    </>
   );
 }
