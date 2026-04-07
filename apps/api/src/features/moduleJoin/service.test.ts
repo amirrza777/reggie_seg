@@ -89,6 +89,10 @@ describe("moduleJoin service", () => {
     });
     expect(mockState.repo.findJoinableModuleByCode).not.toHaveBeenCalled();
     expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[moduleJoin:audit]"), expect.stringContaining("module_join_invalid_code"));
+    const payload = JSON.parse(String((infoSpy.mock.calls.at(-1) ?? [])[1] ?? "{}"));
+    expect(payload.rawCode).toBeUndefined();
+    expect(payload.joinCode).toBeUndefined();
+    expect(payload.reason).toBe("invalid_format");
     infoSpy.mockRestore();
   });
 
@@ -103,6 +107,10 @@ describe("moduleJoin service", () => {
       error: "Invalid or unavailable module code",
     });
     expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining("[moduleJoin:audit]"), expect.stringContaining("module_join_invalid_code"));
+    const payload = JSON.parse(String((infoSpy.mock.calls.at(-1) ?? [])[1] ?? "{}"));
+    expect(payload.rawCode).toBeUndefined();
+    expect(payload.joinCode).toBeUndefined();
+    expect(payload.reason).toBe("not_found");
     infoSpy.mockRestore();
   });
 

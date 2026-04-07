@@ -40,9 +40,11 @@ export function mockRes() {
   const res: Partial<Response> = {
     status: vi.fn(),
     json: vi.fn(),
+    setHeader: vi.fn(),
   };
   (res.status as any).mockReturnValue(res);
   (res.json as any).mockReturnValue(res);
+  (res.setHeader as any).mockReturnValue(res);
   return res as Response;
 }
 

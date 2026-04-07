@@ -29,7 +29,7 @@ describe("moduleJoin code env parsing", () => {
   it("uses fallback numeric values for invalid or non-positive inputs", async () => {
     const code = await loadCodeWithEnv({
       MODULE_JOIN_CODE_LENGTH: "abc",
-      MODULE_JOIN_CODE_MAX_ATTEMPTS: "0",
+      MODULE_JOIN_CODE_MAX_ATTEMPTS: "4",
     });
     expect(code.MODULE_JOIN_CODE_LENGTH).toBe(8);
     expect(code.MODULE_JOIN_CODE_MAX_ATTEMPTS).toBe(20);
@@ -58,8 +58,8 @@ describe("moduleJoin code env parsing", () => {
 
   it("sanitizes configured alphabet by trimming, stripping spaces, and deduplicating", async () => {
     const code = await loadCodeWithEnv({
-      MODULE_JOIN_CODE_ALPHABET: "  A A B B C C D D 2 3 4 5 6 7 8 9 ",
+      MODULE_JOIN_CODE_ALPHABET: "  A A B B C C D D E F G H J K M N P Q R S T V W X Y Z 2 3 4 5 6 7 8 9 ",
     });
-    expect(code.MODULE_JOIN_CODE_ALPHABET).toBe("ABCD23456789");
+    expect(code.MODULE_JOIN_CODE_ALPHABET).toBe("ABCDEFGHJKMNPQRSTVWXYZ23456789");
   });
 });

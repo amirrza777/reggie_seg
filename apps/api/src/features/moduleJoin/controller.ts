@@ -1,5 +1,6 @@
 import type { Response } from "express";
 import type { AuthRequest } from "../../auth/middleware.js";
+import { setSensitiveNoStore } from "../../shared/httpCache.js";
 import { findJoinActor } from "./repo.js";
 import { parseModuleIdParam, parseModuleJoinCodeBody, parseNormalizedModuleJoinCode } from "./controller.parsers.js";
 import { getModuleJoinCode, joinModuleByCode, rotateModuleJoinCode } from "./service.js";
@@ -55,7 +56,7 @@ export async function getModuleJoinCodeHandler(req: AuthRequest, res: Response) 
     return sendModuleJoinError(res, result);
   }
 
-  res.setHeader("Cache-Control", "no-store");
+  setSensitiveNoStore(res);
   return res.json(result.value);
 }
 
@@ -80,7 +81,7 @@ export async function rotateModuleJoinCodeHandler(req: AuthRequest, res: Respons
     return sendModuleJoinError(res, result);
   }
 
-  res.setHeader("Cache-Control", "no-store");
+  setSensitiveNoStore(res);
   return res.json(result.value);
 }
 

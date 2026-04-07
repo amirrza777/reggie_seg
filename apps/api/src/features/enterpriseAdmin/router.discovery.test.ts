@@ -34,9 +34,11 @@ function mockRes() {
   const res: Partial<Response> = {
     status: vi.fn(),
     json: vi.fn(),
+    setHeader: vi.fn(),
   };
   (res.status as any).mockReturnValue(res);
   (res.json as any).mockReturnValue(res);
+  (res.setHeader as any).mockReturnValue(res);
   return res as Response;
 }
 function getUseHandlers() {
@@ -331,6 +333,7 @@ describe("enterpriseAdmin router discovery", () => {
       skipDuplicates: true,
     });
     expect((res.status as any)).toHaveBeenCalledWith(201);
+    expect((res.setHeader as any)).toHaveBeenCalledWith("Cache-Control", "no-store");
     expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ joinCode: expect.any(String) }));
   });
   it("validates access-user scope", async () => {
