@@ -183,21 +183,21 @@ async function resolveJoinTargetModule(
   rawCode: string,
 ) {
   const joinCode = normalizeModuleJoinCode(rawCode);
-  if (!joinCode) return failWithInvalidJoinCode(actor, { rawCode: rawCode.slice(0, 16) });
+  if (!joinCode) return failWithInvalidJoinCode(actor, "invalid_format");
 
   const module = await findJoinableModuleByCode(actor.enterpriseId, joinCode);
-  if (!module) return failWithInvalidJoinCode(actor, { joinCode });
+  if (!module) return failWithInvalidJoinCode(actor, "not_found");
   return { ok: true as const, value: { module, joinCode } };
 }
 
 function failWithInvalidJoinCode(
   actor: { id: number; enterpriseId: string },
-  payload: { rawCode?: string; joinCode?: string },
+  reason: "invalid_format" | "not_found",
 ) {
   emitModuleJoinAuditEvent("module_join_invalid_code", {
     actorUserId: actor.id,
     enterpriseId: actor.enterpriseId,
-    ...payload,
+    reason,
   });
   return fail(400, "INVALID_CODE", "Invalid or unavailable module code");
 }

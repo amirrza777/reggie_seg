@@ -9,6 +9,7 @@ describe("prisma seed script smoke", () => {
     vi.resetModules();
     process.env = { ...originalEnv };
     process.env.SEED_COMPLETED_PROJECT_SCENARIO = "false";
+    process.env.GITHUB_TOKEN_ENCRYPTION_KEY = "12345678901234567890123456789012";
   });
 
   afterEach(() => {

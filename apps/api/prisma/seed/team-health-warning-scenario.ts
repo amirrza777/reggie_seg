@@ -196,77 +196,176 @@ async function upsertScenarioDeadline(projectId: number) {
   });
 }
 
-async function seedTeamHealthMessages(projectId: number, teamId: number, requesterId: number, reviewerId: number | null) {
-  await prisma.teamHealthMessage.deleteMany({
-    where: { projectId, teamId },
-  });
+type TeamHealthMessageRow = {
+  projectId: number;
+  teamId: number;
+  requesterUserId: number;
+  subject: string;
+  details: string;
+  resolved: boolean;
+  responseText: string | null;
+  reviewedByUserId: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  reviewedAt: Date | null;
+};
 
+function deleteScenarioTeamHealthMessages(projectId: number, teamId: number) {
+  return prisma.teamHealthMessage.deleteMany({ where: { projectId, teamId } });
+}
+
+function buildOpenScenarioMessages(projectId: number, teamId: number, requesterId: number) {
   const createdAtOpen = toDateFromNow(-2);
   const createdAtOpenOlder = toDateFromNow(-4);
   const createdAtOpenOldest = toDateFromNow(-9);
+  return [
+    {
+      projectId,
+      teamId,
+      requesterUserId: requesterId,
+      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Blocked on delivery plan and ownership`,
+      details:
+        "We are struggling to keep momentum and need staff support to align priorities and ownership before the feedback deadline.",
+      resolved: false,
+      responseText: null,
+      reviewedByUserId: null,
+      createdAt: createdAtOpen,
+      updatedAt: createdAtOpen,
+      reviewedAt: null,
+    },
+    {
+      projectId,
+      teamId,
+      requesterUserId: requesterId,
+      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Escalation: recurring stand-up absences`,
+      details:
+        "Two members have repeatedly missed stand-ups and planning updates. We need help agreeing expectations and accountability.",
+      resolved: false,
+      responseText: null,
+      reviewedByUserId: null,
+      createdAt: createdAtOpenOlder,
+      updatedAt: createdAtOpenOlder,
+      reviewedAt: null,
+    },
+    {
+      projectId,
+      teamId,
+      requesterUserId: requesterId,
+      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Clarification request on task split`,
+      details: "The team has uncertainty around ownership boundaries and review responsibilities after the last sprint handover.",
+      resolved: false,
+      responseText: null,
+      reviewedByUserId: null,
+      createdAt: createdAtOpenOldest,
+      updatedAt: createdAtOpenOldest,
+      reviewedAt: null,
+    },
+  ] satisfies TeamHealthMessageRow[];
+}
+
+function buildResolvedScenarioMessage(projectId: number, teamId: number, requesterId: number, reviewerId: number | null) {
   const createdAtResolved = toDateFromNow(-6);
   const reviewedAtResolved = toDateFromNow(-5);
+  return {
+    projectId,
+    teamId,
+    requesterUserId: requesterId,
+    subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Earlier concern about uneven contribution`,
+    details: "Raised a concern about uneven contribution. Team has now redistributed tasks and improved communication.",
+    resolved: true,
+    responseText: "Thanks for raising this. Keep tracking ownership in meetings and check in weekly.",
+    reviewedByUserId: reviewerId,
+    createdAt: createdAtResolved,
+    updatedAt: reviewedAtResolved,
+    reviewedAt: reviewedAtResolved,
+  } satisfies TeamHealthMessageRow;
+}
 
-  await prisma.teamHealthMessage.createMany({
-    data: [
-      {
-        projectId,
-        teamId,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Blocked on delivery plan and ownership`,
-        details:
-          "We are struggling to keep momentum and need staff support to align priorities and ownership before the feedback deadline.",
-        resolved: false,
-        responseText: null,
-        reviewedByUserId: null,
-        createdAt: createdAtOpen,
-        updatedAt: createdAtOpen,
-        reviewedAt: null,
-      },
-      {
-        projectId,
-        teamId,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Escalation: recurring stand-up absences`,
-        details:
-          "Two members have repeatedly missed stand-ups and planning updates. We need help agreeing expectations and accountability.",
-        resolved: false,
-        responseText: null,
-        reviewedByUserId: null,
-        createdAt: createdAtOpenOlder,
-        updatedAt: createdAtOpenOlder,
-        reviewedAt: null,
-      },
-      {
-        projectId,
-        teamId,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Clarification request on task split`,
-        details:
-          "The team has uncertainty around ownership boundaries and review responsibilities after the last sprint handover.",
-        resolved: false,
-        responseText: null,
-        reviewedByUserId: null,
-        createdAt: createdAtOpenOldest,
-        updatedAt: createdAtOpenOldest,
-        reviewedAt: null,
-      },
-      {
-        projectId,
-        teamId,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Earlier concern about uneven contribution`,
-        details:
-          "Raised a concern about uneven contribution. Team has now redistributed tasks and improved communication.",
-        resolved: true,
-        responseText: "Thanks for raising this. Keep tracking ownership in meetings and check in weekly.",
-        reviewedByUserId: reviewerId,
-        createdAt: createdAtResolved,
-        updatedAt: reviewedAtResolved,
-        reviewedAt: reviewedAtResolved,
-      },
-    ],
+function buildScenarioTeamHealthMessageRows(projectId: number, teamId: number, requesterId: number, reviewerId: number | null) {
+  return [...buildOpenScenarioMessages(projectId, teamId, requesterId), buildResolvedScenarioMessage(projectId, teamId, requesterId, reviewerId)];
+}
+
+function insertScenarioTeamHealthMessages(rows: TeamHealthMessageRow[]) {
+  return prisma.teamHealthMessage.createMany({ data: rows });
+}
+
+async function seedTeamHealthMessages(projectId: number, teamId: number, requesterId: number, reviewerId: number | null) {
+  await deleteScenarioTeamHealthMessages(projectId, teamId);
+  const rows = buildScenarioTeamHealthMessageRows(projectId, teamId, requesterId, reviewerId);
+  await insertScenarioTeamHealthMessages(rows);
+}
+
+function findExistingScenarioProject(enterpriseId: string) {
+  return prisma.project.findFirst({
+    where: {
+      module: { enterpriseId, name: { contains: SE_MODULE_NAME_FRAGMENT } },
+      NOT: { name: PROJECT_NAME },
+    },
+    orderBy: { id: "asc" },
+    select: { id: true },
   });
+}
+
+function findExistingScenarioTeam(projectId: number) {
+  return prisma.team.findFirst({
+    where: { projectId, archivedAt: null, allocationLifecycle: "ACTIVE" },
+    orderBy: { id: "asc" },
+    select: { id: true },
+  });
+}
+
+async function resolveExistingScenarioRequesterId(teamId: number, fallbackRequesterId: number) {
+  const allocation = await prisma.teamAllocation.findFirst({
+    where: { teamId },
+    orderBy: { userId: "asc" },
+    select: { userId: true },
+  });
+  return allocation?.userId ?? fallbackRequesterId;
+}
+
+function deleteExistingScenarioSeededMessages(projectId: number, teamId: number) {
+  return prisma.teamHealthMessage.deleteMany({
+    where: { projectId, teamId, subject: { startsWith: SEEDED_MESSAGE_SUBJECT_PREFIX } },
+  });
+}
+
+function buildExistingScenarioMessageRows(projectId: number, teamId: number, requesterId: number, reviewerId: number | null) {
+  const createdAtOpen = toDateFromNow(-3);
+  const createdAtResolved = toDateFromNow(-8);
+  const reviewedAtResolved = toDateFromNow(-7);
+  return [
+    {
+      projectId,
+      teamId,
+      requesterUserId: requesterId,
+      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Team requesting intervention`,
+      details:
+        "We need staff guidance on balancing workload and clarifying responsibilities before the next deadline milestone.",
+      resolved: false,
+      responseText: null,
+      reviewedByUserId: null,
+      createdAt: createdAtOpen,
+      updatedAt: createdAtOpen,
+      reviewedAt: null,
+    },
+    {
+      projectId,
+      teamId,
+      requesterUserId: requesterId,
+      subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Follow-up from previous concern`,
+      details: "Previous concern was addressed after staff feedback and a revised team agreement.",
+      resolved: true,
+      responseText: "Reviewed and acknowledged. Continue tracking with weekly check-ins.",
+      reviewedByUserId: reviewerId,
+      createdAt: createdAtResolved,
+      updatedAt: reviewedAtResolved,
+      reviewedAt: reviewedAtResolved,
+    },
+  ] satisfies TeamHealthMessageRow[];
+}
+
+function insertExistingScenarioMessages(rows: TeamHealthMessageRow[]) {
+  return prisma.teamHealthMessage.createMany({ data: rows });
 }
 
 async function seedExistingSeTeamHealthMessages(
@@ -274,138 +373,99 @@ async function seedExistingSeTeamHealthMessages(
   fallbackRequesterId: number,
   reviewerId: number | null
 ) {
-  const existingProject = await prisma.project.findFirst({
-    where: {
-      module: {
-        enterpriseId: context.enterprise.id,
-        name: { contains: SE_MODULE_NAME_FRAGMENT },
-      },
-      NOT: { name: PROJECT_NAME },
-    },
-    orderBy: { id: "asc" },
-    select: { id: true },
-  });
-
+  const existingProject = await findExistingScenarioProject(context.enterprise.id);
   if (!existingProject) return { seeded: false as const };
 
-  const existingTeam = await prisma.team.findFirst({
-    where: {
-      projectId: existingProject.id,
-      archivedAt: null,
-      allocationLifecycle: "ACTIVE",
-    },
-    orderBy: { id: "asc" },
-    select: { id: true },
-  });
-
+  const existingTeam = await findExistingScenarioTeam(existingProject.id);
   if (!existingTeam) return { seeded: false as const };
 
-  const allocation = await prisma.teamAllocation.findFirst({
-    where: { teamId: existingTeam.id },
-    orderBy: { userId: "asc" },
-    select: { userId: true },
-  });
-  const requesterId = allocation?.userId ?? fallbackRequesterId;
-
-  await prisma.teamHealthMessage.deleteMany({
-    where: {
-      projectId: existingProject.id,
-      teamId: existingTeam.id,
-      subject: { startsWith: SEEDED_MESSAGE_SUBJECT_PREFIX },
-    },
-  });
-
-  const createdAtOpen = toDateFromNow(-3);
-  const createdAtResolved = toDateFromNow(-8);
-  const reviewedAtResolved = toDateFromNow(-7);
-
-  await prisma.teamHealthMessage.createMany({
-    data: [
-      {
-        projectId: existingProject.id,
-        teamId: existingTeam.id,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Team requesting intervention`,
-        details:
-          "We need staff guidance on balancing workload and clarifying responsibilities before the next deadline milestone.",
-        resolved: false,
-        responseText: null,
-        reviewedByUserId: null,
-        createdAt: createdAtOpen,
-        updatedAt: createdAtOpen,
-        reviewedAt: null,
-      },
-      {
-        projectId: existingProject.id,
-        teamId: existingTeam.id,
-        requesterUserId: requesterId,
-        subject: `${SEEDED_MESSAGE_SUBJECT_PREFIX} Follow-up from previous concern`,
-        details: "Previous concern was addressed after staff feedback and a revised team agreement.",
-        resolved: true,
-        responseText: "Reviewed and acknowledged. Continue tracking with weekly check-ins.",
-        reviewedByUserId: reviewerId,
-        createdAt: createdAtResolved,
-        updatedAt: reviewedAtResolved,
-        reviewedAt: reviewedAtResolved,
-      },
-    ],
-  });
+  const requesterId = await resolveExistingScenarioRequesterId(existingTeam.id, fallbackRequesterId);
+  await deleteExistingScenarioSeededMessages(existingProject.id, existingTeam.id);
+  const rows = buildExistingScenarioMessageRows(existingProject.id, existingTeam.id, requesterId, reviewerId);
+  await insertExistingScenarioMessages(rows);
 
   return { seeded: true as const, projectId: existingProject.id, teamId: existingTeam.id };
+}
+
+async function resolveScenarioActors(context: SeedContext) {
+  const enterpriseAdmins = await prisma.user.findMany({
+    where: { enterpriseId: context.enterprise.id, role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] } },
+    select: { id: true },
+    orderBy: { id: "asc" },
+  });
+  const fallbackRequester = context.usersByRole.students[0]?.id ?? null;
+  const fallbackReviewer = context.usersByRole.adminOrStaff[0]?.id ?? null;
+  return {
+    enterpriseAdmins,
+    requesterId: fallbackRequester ?? enterpriseAdmins[0]?.id ?? null,
+    reviewerId: enterpriseAdmins[0]?.id ?? fallbackReviewer ?? null,
+  };
+}
+
+function buildScenarioMemberIds(context: SeedContext, enterpriseAdmins: { id: number }[], requesterId: number) {
+  return uniquePositiveUserIds([
+    ...enterpriseAdmins.slice(0, 1).map((user) => user.id),
+    ...context.usersByRole.students.slice(0, 4).map((user) => user.id),
+    requesterId,
+  ]);
+}
+
+function validateScenarioPrerequisites(moduleId: number | null, templateId: number | null, requesterId: number | null, memberIds: number[]) {
+  if (!moduleId || !templateId) return { ok: false as const, details: "skipped (missing module/template)" };
+  if (!requesterId) return { ok: false as const, details: "skipped (missing requester user)" };
+  if (memberIds.length < 2) return { ok: false as const, details: "skipped (not enough team members)" };
+  return { ok: true as const };
+}
+
+async function preparePrimaryScenarioTeam(context: SeedContext, moduleId: number, templateId: number, memberIds: number[]) {
+  const project = await upsertScenarioProject(context, moduleId, templateId);
+  const team = await upsertScenarioTeam(context, project.id);
+  await ensureTeamAllocations(team.id, memberIds);
+  await upsertScenarioDeadline(project.id);
+  return { project, team };
+}
+
+async function clearPrimaryScenarioWarningsAndMeetings(projectId: number, teamId: number) {
+  await prisma.teamWarning.deleteMany({ where: { projectId, teamId } });
+  return clearTeamMeetings(teamId);
+}
+
+function buildTeamHealthScenarioDetails(
+  projectId: number,
+  teamId: number,
+  memberCount: number,
+  deletedMeetings: number,
+  existingSeSeed: { seeded: true; projectId: number; teamId: number } | { seeded: false },
+) {
+  const base =
+    `project=${projectId}, team=${teamId}, members=${memberCount}, ` +
+    `stage=feedback-open, deletedMeetings=${deletedMeetings}, warningsConfig=3-rules`;
+  if (!existingSeSeed.seeded) return base;
+  return `${base}, existingSeProject=${existingSeSeed.projectId}, existingSeTeam=${existingSeSeed.teamId}`;
 }
 
 export async function seedTeamHealthWarningScenario(context: SeedContext) {
   return withSeedLogging("seedTeamHealthWarningScenario", async () => {
     const moduleId = await resolveScenarioModuleId(context);
     const templateId = context.templates[0]?.id ?? null;
-    if (!moduleId || !templateId) {
-      return { value: undefined, rows: 0, details: "skipped (missing module/template)" };
-    }
+    const actors = await resolveScenarioActors(context);
+    const memberIds = actors.requesterId ? buildScenarioMemberIds(context, actors.enterpriseAdmins, actors.requesterId) : [];
+    const validation = validateScenarioPrerequisites(moduleId, templateId, actors.requesterId, memberIds);
+    if (!validation.ok) return { value: undefined, rows: 0, details: validation.details };
+    const requesterId = actors.requesterId as number;
 
-    const enterpriseAdmins = await prisma.user.findMany({
-      where: {
-        enterpriseId: context.enterprise.id,
-        role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] },
-      },
-      select: { id: true },
-      orderBy: { id: "asc" },
-    });
-    const fallbackRequester = context.usersByRole.students[0]?.id ?? null;
-    const fallbackReviewer = context.usersByRole.adminOrStaff[0]?.id ?? null;
-    const requesterId = fallbackRequester ?? enterpriseAdmins[0]?.id ?? null;
-    const reviewerId = enterpriseAdmins[0]?.id ?? fallbackReviewer ?? null;
-    if (!requesterId) {
-      return { value: undefined, rows: 0, details: "skipped (missing requester user)" };
-    }
-
-    const memberIds = uniquePositiveUserIds([
-      ...enterpriseAdmins.slice(0, 1).map((user) => user.id),
-      ...context.usersByRole.students.slice(0, 4).map((user) => user.id),
-      requesterId,
-    ]);
-    if (memberIds.length < 2) {
-      return { value: undefined, rows: 0, details: "skipped (not enough team members)" };
-    }
-
-    const project = await upsertScenarioProject(context, moduleId, templateId);
-    const team = await upsertScenarioTeam(context, project.id);
-    await ensureTeamAllocations(team.id, memberIds);
-    await upsertScenarioDeadline(project.id);
-    await seedTeamHealthMessages(project.id, team.id, requesterId, reviewerId);
-    const existingSeSeed = await seedExistingSeTeamHealthMessages(context, requesterId, reviewerId);
-    await prisma.teamWarning.deleteMany({ where: { projectId: project.id, teamId: team.id } });
-    const deletedMeetings = await clearTeamMeetings(team.id);
+    const setup = await preparePrimaryScenarioTeam(context, moduleId, templateId, memberIds);
+    await seedTeamHealthMessages(setup.project.id, setup.team.id, requesterId, actors.reviewerId);
+    const existingSeSeed = await seedExistingSeTeamHealthMessages(context, requesterId, actors.reviewerId);
+    const deletedMeetings = await clearPrimaryScenarioWarningsAndMeetings(setup.project.id, setup.team.id);
 
     return {
       value: {
-        projectId: project.id,
-        teamId: team.id,
+        projectId: setup.project.id,
+        teamId: setup.team.id,
       },
       rows: 1,
-      details:
-        `project=${project.id}, team=${team.id}, members=${memberIds.length}, ` +
-        `stage=feedback-open, deletedMeetings=${deletedMeetings}, warningsConfig=3-rules` +
-        (existingSeSeed.seeded ? `, existingSeProject=${existingSeSeed.projectId}, existingSeTeam=${existingSeSeed.teamId}` : ""),
+      details: buildTeamHealthScenarioDetails(setup.project.id, setup.team.id, memberIds.length, deletedMeetings, existingSeSeed),
     };
   });
 }

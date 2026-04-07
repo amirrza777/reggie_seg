@@ -47,36 +47,68 @@ export function planTeamInviteSeedData(
   const now = Date.now();
   const pendingInvitees = [...invitees];
   const data: PlannedInvite[] = [];
+  const limit = resolveInvitePlanningLimit(teams.length);
 
-  for (let index = 0; index < Math.min(SEED_TEAM_INVITES_TOTAL, INVITE_STATUS_SEQUENCE.length, teams.length); index += 1) {
+  for (let index = 0; index < limit; index += 1) {
     const team = teams[index];
     if (!team) continue;
 
-    const members = allocationsByTeamId.get(team.id) ?? [];
-    const inviterId = members[0];
+    const inviterId = resolveInviterId(allocationsByTeamId.get(team.id) ?? []);
     const invitee = pendingInvitees[index % pendingInvitees.length];
     if (!inviterId || !invitee) continue;
 
     const status = INVITE_STATUS_SEQUENCE[index];
-    const isResponded = status === "ACCEPTED" || status === "DECLINED";
-    const isActive = status === "PENDING";
-    const expiresAt = status === "EXPIRED" ? new Date(now - 2 * 24 * 60 * 60 * 1000) : new Date(now + 7 * 24 * 60 * 60 * 1000);
-
-    data.push({
-      teamId: team.id,
-      inviterId,
-      inviteeId: invitee.id,
-      inviteeEmail: invitee.email,
-      status,
-      tokenHash: `seed-team-invite-${team.id}-${invitee.id}-${status.toLowerCase()}`,
-      active: isActive,
-      expiresAt,
-      respondedAt: isResponded ? new Date(now - (index + 1) * 60 * 60 * 1000) : null,
-      message: `Seed invite scenario (${status.toLowerCase()}) for team ${team.id}`,
-    });
+    data.push(buildPlannedInvite(team, inviterId, invitee, status, index, now));
   }
 
   return data;
+}
+
+function resolveInvitePlanningLimit(teamsLength: number) {
+  return Math.min(SEED_TEAM_INVITES_TOTAL, INVITE_STATUS_SEQUENCE.length, teamsLength);
+}
+
+function resolveInviterId(members: number[]) {
+  return members[0];
+}
+
+function resolveInviteFlags(status: TeamInviteStatus) {
+  return {
+    isResponded: status === "ACCEPTED" || status === "DECLINED",
+    isActive: status === "PENDING",
+  };
+}
+
+function resolveInviteTiming(status: TeamInviteStatus, index: number, now: number) {
+  const expiresAt = status === "EXPIRED"
+    ? new Date(now - 2 * 24 * 60 * 60 * 1000)
+    : new Date(now + 7 * 24 * 60 * 60 * 1000);
+  const respondedAt = resolveInviteFlags(status).isResponded ? new Date(now - (index + 1) * 60 * 60 * 1000) : null;
+  return { expiresAt, respondedAt };
+}
+
+function buildPlannedInvite(
+  team: { id: number },
+  inviterId: number,
+  invitee: { id: number; email: string },
+  status: TeamInviteStatus,
+  index: number,
+  now: number,
+): PlannedInvite {
+  const flags = resolveInviteFlags(status);
+  const timing = resolveInviteTiming(status, index, now);
+  return {
+    teamId: team.id,
+    inviterId,
+    inviteeId: invitee.id,
+    inviteeEmail: invitee.email,
+    status,
+    tokenHash: `seed-team-invite-${team.id}-${invitee.id}-${status.toLowerCase()}`,
+    active: flags.isActive,
+    expiresAt: timing.expiresAt,
+    respondedAt: timing.respondedAt,
+    message: `Seed invite scenario (${status.toLowerCase()}) for team ${team.id}`,
+  };
 }
 
 function isTeamInviteSeedReady(context: SeedContext) {

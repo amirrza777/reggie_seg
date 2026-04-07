@@ -2,6 +2,7 @@ import { Router } from "express";
 import type { Prisma } from "@prisma/client";
 import { requireAuth } from "../../auth/middleware.js";
 import { prisma } from "../../shared/db.js";
+import { setSensitiveNoStore } from "../../shared/httpCache.js";
 import { resolveEnterpriseUser } from "./middleware.js";
 import { parseFeatureFlagUpdateBody, parseMeetingSettingsBody } from "./router.parsers.js";
 import {
@@ -116,6 +117,7 @@ router.post("/modules", async (req, res) => {
   }
   const result = await createModule(enterpriseUser, { ...payload.value, leaderIds });
   if (!result.ok) return res.status(result.status).json({ error: result.error });
+  setSensitiveNoStore(res);
   return res.status(201).json(result.value);
 });
 
@@ -152,6 +154,7 @@ router.get("/modules/:moduleId/join-code", async (req, res) => {
 
   const result = await getModuleJoinCode(enterpriseUser, moduleId);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
+  setSensitiveNoStore(res);
   return res.json(result.value);
 });
 
