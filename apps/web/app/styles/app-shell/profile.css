@@ -49,13 +49,13 @@
   margin: 0 0 4px;
   text-transform: uppercase;
   letter-spacing: 0.2em;
-  font-size: 11px;
+  font-size: var(--fs-fixed-11px);
   color: var(--profile-subtle, var(--muted));
 }
 
 .profile-card__title {
   margin: 0;
-  font-size: clamp(28px, 4vw, 38px);
+  font-size: var(--fs-fixed-clamp-28px-4vw-38px);
 }
 
 .profile-card .profile-save {
@@ -81,7 +81,7 @@
 .profile-alert {
   border-radius: var(--radius-md);
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .profile-alert--success {
@@ -110,13 +110,13 @@
 
 .profile-section__header h3 {
   margin: 0 0 6px;
-  font-size: 18px;
+  font-size: var(--fs-fixed-18px);
 }
 
 .profile-section__header p {
   margin: 0;
   color: var(--profile-muted, var(--muted));
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .profile-avatar {
@@ -176,7 +176,7 @@
   border: 1px solid var(--profile-border);
   background: var(--profile-surface-1);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--fs-fixed-14px);
 }
 
 .profile-file input {
@@ -230,14 +230,14 @@
 }
 
 .profile-row__label {
-  font-size: 13px;
+  font-size: var(--fs-fixed-13px);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: var(--profile-subtle, var(--muted));
 }
 
 .profile-row__value {
-  font-size: 15px;
+  font-size: var(--fs-fixed-15px);
   overflow-wrap: anywhere;
 }
 
@@ -288,7 +288,7 @@
 
 .profile-modal h3 {
   margin: 0;
-  font-size: clamp(1.65rem, 2.2vw, 2rem);
+  font-size: var(--fs-fixed-clamp-1-65rem-2-2vw-2rem);
   line-height: 1.12;
   letter-spacing: -0.02em;
   color: var(--profile-ink, var(--ink-strong));
@@ -362,7 +362,7 @@
   border: 1px solid var(--profile-border);
   background: color-mix(in srgb, var(--profile-surface-2) 75%, transparent);
   color: var(--ink);
-  font-size: 22px;
+  font-size: var(--fs-fixed-22px);
   font-weight: var(--fw-semibold);
   text-align: center;
   outline: none;

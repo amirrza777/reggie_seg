@@ -42,13 +42,20 @@ export function StaffTeamHealthMessageReviewPanel({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
-  const compactPanelStyle = { padding: 12, gap: 12, fontSize: "0.92rem", lineHeight: 1.35 } as const;
+  const compactPanelStyle = { padding: 12, gap: 12, fontSize: "var(--fs-fixed-0-92rem)", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "12px 14px", gap: 9 } as const;
-  const messageStackStyle = { display: "grid", gap: 16, padding: "6px 4px 10px" } as const;
-  const compactTitleStyle = { margin: 0, fontSize: "1.14rem", lineHeight: 1.22 } as const;
-  const compactSubtitleStyle = { margin: 0, fontSize: "1.1rem", lineHeight: 1.3, fontWeight: 500 } as const;
+  const messageStackStyle = { display: "grid", gap: 14, padding: "2px 2px 4px" } as const;
+  const compactTitleStyle = { margin: 0, fontSize: "var(--fs-fixed-1-14rem)", lineHeight: 1.22 } as const;
   const compactMutedStyle = { margin: 0 } as const;
-  const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "0.84rem", lineHeight: 1.1 } as const;
+  const compactDetailStyle = {
+    margin: 0,
+    lineHeight: 1.3,
+    display: "-webkit-box",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: 2,
+    overflow: "hidden",
+  } as const;
+  const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "var(--fs-fixed-0-84rem)", lineHeight: 1.1 } as const;
   const openMessageCount = requests.filter((request) => !request.resolved).length;
   const sortedRequests = [...requests].sort((a, b) => {
     if (a.resolved !== b.resolved) return Number(a.resolved) - Number(b.resolved);
@@ -119,15 +126,15 @@ export function StaffTeamHealthMessageReviewPanel({
 
   return (
     <>
-      <section id="team-health-messages" className="staff-projects__team-list" aria-label="Team queries and complaints">
+      <section className="staff-projects__team-list" aria-label="Team queries and complaints">
         <details
           className="staff-projects__team-card staff-projects__team-card--signal staff-projects__collapsible"
           style={compactPanelStyle}
         >
           <summary className="staff-projects__collapsible-summary">
             <div>
-              <h1 className="staff-projects__team-title" style={compactTitleStyle}>Messages</h1>
-              <p className="staff-projects__team-count" style={compactSubtitleStyle}>
+              <h3 className="staff-projects__team-title" style={compactTitleStyle}>Messages</h3>
+              <p className="staff-projects__team-count" style={{ margin: 0 }}>
                 {openMessageCount} open · {requests.length} total. Click to expand and respond.
               </p>
             </div>
@@ -158,7 +165,7 @@ export function StaffTeamHealthMessageReviewPanel({
                 alignItems: "center",
                 borderRadius: 999,
                 padding: "2px 10px",
-                fontSize: "0.88rem",
+                fontSize: "var(--fs-fixed-0-88rem)",
                 fontWeight: 600,
                 border: "1px solid var(--border)",
               } as const;

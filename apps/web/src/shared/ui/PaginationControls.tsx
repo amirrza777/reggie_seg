@@ -30,6 +30,15 @@ type PaginationPageIndicatorProps = {
   className?: string;
 };
 
+type PaginationPageJumpInputProps = {
+  pageInputId: string;
+  pageInput: string;
+  effectiveTotalPages: number;
+  pageJumpAriaLabel: string;
+  onPageInputChange: (value: string) => void;
+  onPageInputBlur: () => void;
+};
+
 export function PaginationControls({
   ariaLabel,
   page,
@@ -40,7 +49,9 @@ export function PaginationControls({
   className = "user-management__pagination",
   as = "div",
 }: PaginationControlsProps) {
-  if (totalPages <= 1) return null;
+  if (totalPages <= 1) {
+    return null;
+  }
   const effectiveTotalPages = getEffectiveTotalPages(totalPages);
   const Container = as;
 
@@ -54,6 +65,24 @@ export function PaginationControls({
         Next
       </Button>
     </Container>
+  );
+}
+
+function PaginationPageJumpInput(props: PaginationPageJumpInputProps) {
+  return (
+    <FormField
+      id={props.pageInputId}
+      type="number"
+      min={1}
+      max={props.effectiveTotalPages}
+      step={1}
+      inputMode="numeric"
+      value={props.pageInput}
+      onChange={(event) => props.onPageInputChange(event.target.value)}
+      onBlur={props.onPageInputBlur}
+      className="user-management__page-jump-input"
+      aria-label={props.pageJumpAriaLabel}
+    />
   );
 }
 
@@ -73,18 +102,13 @@ export function PaginationPageJump({
       <label htmlFor={pageInputId} className="user-management__page-jump-label">
         Page
       </label>
-      <FormField
-        id={pageInputId}
-        type="number"
-        min={1}
-        max={effectiveTotalPages}
-        step={1}
-        inputMode="numeric"
-        value={pageInput}
-        onChange={(event) => onPageInputChange(event.target.value)}
-        onBlur={onPageInputBlur}
-        className="user-management__page-jump-input"
-        aria-label={pageJumpAriaLabel}
+      <PaginationPageJumpInput
+        pageInputId={pageInputId}
+        pageInput={pageInput}
+        effectiveTotalPages={effectiveTotalPages}
+        pageJumpAriaLabel={pageJumpAriaLabel}
+        onPageInputChange={onPageInputChange}
+        onPageInputBlur={onPageInputBlur}
       />
       <span className="muted user-management__page-total">of {effectiveTotalPages}</span>
     </form>

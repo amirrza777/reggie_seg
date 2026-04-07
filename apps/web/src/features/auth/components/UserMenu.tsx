@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { logout } from "../api/client";
@@ -15,91 +15,152 @@ function initials(user: UserProfile) {
   return value.length > 0 ? value.toUpperCase() : user.email.slice(0, 2).toUpperCase();
 }
 
-export function UserMenu() {
-  const { user, setUser, loading } = useUser();
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement | null>(null);
-  const router = useRouter();
+function resolveAvatarSrc(user: UserProfile): string | null {
+  return user.avatarBase64 && user.avatarMime ? `data:${user.avatarMime};base64,${user.avatarBase64}` : null;
+}
 
+function resolveDisplayName(user: UserProfile): string {
+  return [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
+}
+
+function useOutsideMenuClose(menuRef: RefObject<HTMLDivElement | null>, onClose: () => void) {
   useEffect(() => {
     const handler = (event: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (menuRef.current.contains(event.target as Node)) return;
-      setOpen(false);
+      if (!menuRef.current) {
+        return;
+      }
+      if (menuRef.current.contains(event.target as Node)) {
+        return;
+      }
+      onClose();
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  }, [menuRef, onClose]);
+}
 
+function UserMenuAvatar({
+  avatarSrc,
+  userInitials,
+  large = false,
+}: {
+  avatarSrc: string | null;
+  userInitials: string;
+  large?: boolean;
+}) {
+  if (avatarSrc) {
+    return <img className={`user-menu__avatar${large ? " user-menu__avatar--large" : ""}`} src={avatarSrc} alt="User avatar" />;
+  }
+  return (
+    <span className={`user-menu__avatar user-menu__avatar--fallback${large ? " user-menu__avatar--large" : ""}`}>
+      {userInitials}
+    </span>
+  );
+}
+
+function UserMenuLoading() {
+  return (
+    <div className="user-menu__trigger" aria-busy="true" aria-label="Loading user menu">
+      <span className="user-menu__avatar user-menu__avatar--fallback">…</span>
+      <MinimalLoader label="Loading" className="user-menu__loader" />
+    </div>
+  );
+}
+
+function UserMenuAnonymous() {
+  return (
+    <Link className="user-menu__trigger" href="/login">
+      <span className="user-menu__avatar user-menu__avatar--fallback">?</span>
+      <span className="user-menu__name">Sign in</span>
+    </Link>
+  );
+}
+
+function UserMenuActionLinks({ onLogout }: { onLogout: () => Promise<void> }) {
+  return (
+    <>
+      <div className="user-menu__links">
+        <Link className="user-menu__link" href="/profile">Profile</Link>
+      </div>
+      <div className="user-menu__links">
+        <Link className="user-menu__link" href="/help">Help</Link>
+      </div>
+      <div className="user-menu__links">
+        <button className="user-menu__link user-menu__link--danger" type="button" onClick={onLogout}>
+          Log out
+        </button>
+      </div>
+    </>
+  );
+}
+
+function UserMenuDropdown({
+  user,
+  avatarSrc,
+  userInitials,
+  displayName,
+  onLogout,
+}: {
+  user: UserProfile;
+  avatarSrc: string | null;
+  userInitials: string;
+  displayName: string;
+  onLogout: () => Promise<void>;
+}) {
+  return (
+    <div className="user-menu__dropdown">
+      <div className="user-menu__meta">
+        <UserMenuAvatar avatarSrc={avatarSrc} userInitials={userInitials} large />
+        <div className="user-menu__identity">
+          <div className="user-menu__meta-name">{displayName}</div>
+          <div className="user-menu__meta-email">{user.email}</div>
+        </div>
+      </div>
+      <UserMenuActionLinks onLogout={onLogout} />
+    </div>
+  );
+}
+
+function UserMenuSignedIn({ user, onLogout }: { user: UserProfile; onLogout: () => Promise<void> }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  useOutsideMenuClose(menuRef, () => setOpen(false));
+  const avatarSrc = resolveAvatarSrc(user);
+  const displayName = resolveDisplayName(user);
+  const userInitials = initials(user);
+
+  return (
+    <div className="user-menu" ref={menuRef}>
+      <button type="button" className="user-menu__trigger" onClick={() => setOpen((value) => !value)}>
+        <UserMenuAvatar avatarSrc={avatarSrc} userInitials={userInitials} />
+        <span className="user-menu__name">{displayName}</span>
+      </button>
+      {open ? (
+        <UserMenuDropdown
+          user={user}
+          avatarSrc={avatarSrc}
+          userInitials={userInitials}
+          displayName={displayName}
+          onLogout={onLogout}
+        />
+      ) : null}
+    </div>
+  );
+}
+
+export function UserMenu() {
+  const { user, setUser, loading } = useUser();
+  const router = useRouter();
   const handleLogout = async () => {
     await logout();
     setUser(null);
     router.push("/login");
   };
-
   if (loading) {
-    return (
-      <div className="user-menu__trigger" aria-busy="true" aria-label="Loading user menu">
-        <span className="user-menu__avatar user-menu__avatar--fallback">…</span>
-        <MinimalLoader label="Loading" className="user-menu__loader" />
-      </div>
-    );
+    return <UserMenuLoading />;
   }
-
   if (!user) {
-    return (
-      <Link className="user-menu__trigger" href="/login">
-        <span className="user-menu__avatar user-menu__avatar--fallback">?</span>
-        <span className="user-menu__name">Sign in</span>
-      </Link>
-    );
+    return <UserMenuAnonymous />;
   }
-
-  const avatarSrc = user.avatarBase64 && user.avatarMime
-    ? `data:${user.avatarMime};base64,${user.avatarBase64}`
-    : null;
-  const displayName = [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || user.email;
-  const userInitials = initials(user);
-
-  return (
-    <div className="user-menu" ref={menuRef}>
-      <button type="button" className="user-menu__trigger" onClick={() => setOpen((v) => !v)}>
-        {avatarSrc ? (
-          <img className="user-menu__avatar" src={avatarSrc} alt="User avatar" />
-        ) : (
-          <span className="user-menu__avatar user-menu__avatar--fallback">{userInitials}</span>
-        )}
-        <span className="user-menu__name">{displayName}</span>
-      </button>
-
-      {open ? (
-        <div className="user-menu__dropdown" data-elevation="popup">
-          <div className="user-menu__meta">
-            {avatarSrc ? (
-              <img className="user-menu__avatar user-menu__avatar--large" src={avatarSrc} alt="User avatar" />
-            ) : (
-              <span className="user-menu__avatar user-menu__avatar--fallback user-menu__avatar--large">
-                {userInitials}
-              </span>
-            )}
-            <div className="user-menu__identity">
-              <div className="user-menu__meta-name">{displayName}</div>
-              <div className="user-menu__meta-email">{user.email}</div>
-            </div>
-          </div>
-          <div className="user-menu__links">
-            <Link className="user-menu__link" href="/profile">Profile</Link>
-          </div>
-          <div className="user-menu__links">
-            <Link className="user-menu__link" href="/help">Help</Link>
-          </div>
-          <div className="user-menu__links">
-            <button className="user-menu__link user-menu__link--danger" type="button" onClick={handleLogout}>
-              Log out
-            </button>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
+  return <UserMenuSignedIn user={user} onLogout={handleLogout} />;
 }

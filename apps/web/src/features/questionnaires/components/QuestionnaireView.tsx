@@ -55,7 +55,7 @@ export function QuestionnaireView({ questionnaire }: Props) {
             return (
               <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
                 {Array.from({ length: max - min + 1 }, (_, i) => min + i).map((n) => (
-                  <label key={n} style={{ fontSize: 12 }}>
+                  <label key={n} style={{ fontSize: "var(--fs-fixed-12px)" }}>
                     <input type="radio" disabled /> {n}
                   </label>
                 ))}
@@ -70,14 +70,14 @@ export function QuestionnaireView({ questionnaire }: Props) {
             return (
               <>
                 {helperText && (
-                  <p style={{ fontSize: 12, opacity: 0.7 }}>{helperText}</p>
+                  <p style={{ fontSize: "var(--fs-fixed-12px)", opacity: 0.7 }}>{helperText}</p>
                 )}
 
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontSize: 12,
+                    fontSize: "var(--fs-fixed-12px)",
                     opacity: 0.7,
                   }}
                 >

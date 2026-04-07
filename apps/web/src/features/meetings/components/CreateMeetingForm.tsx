@@ -5,7 +5,8 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { useUser } from "@/features/auth/useUser";
-import { createMeeting, listTeamMembers } from "../api/client";
+import { listTeamMembers } from "../api/client";
+import { submitCreateMeeting } from "./CreateMeetingForm.submit";
 import { useParticipantSelection } from "../hooks/useParticipantSelection";
 import "../styles/meeting-list.css";
 
@@ -25,13 +26,6 @@ type CreateMeetingFieldErrors = {
   title?: string;
   date?: string;
 };
-
-function validateCreateMeetingFields(title: string, date: string): CreateMeetingFieldErrors {
-  const errors: CreateMeetingFieldErrors = {};
-  if (!title.trim()) errors.title = "Enter a title.";
-  if (!date.trim()) errors.date = "Select a date and time.";
-  return errors;
-}
 
 export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeetingFormProps) {
   const { user } = useUser();
@@ -57,43 +51,25 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage(null);
-    const nextFieldErrors = validateCreateMeetingFields(title, date);
-    setFieldErrors(nextFieldErrors);
-    if (Object.keys(nextFieldErrors).length > 0) {
-      setStatus("idle");
-      return;
-    }
-
-    if (!user) {
-      setStatus("error");
-      setMessage("You must be signed in to create a meeting.");
-      return;
-    }
-
     setStatus("loading");
+    const result = await submitCreateMeeting({
+      teamId,
+      userId: user?.id ?? null,
+      title,
+      date,
+      subject,
+      location,
+      videoCallLink,
+      agenda,
+      inviteAll,
+      selectedIds: Array.from(selectedIds),
+    });
 
-    const trimmedTitle = title.trim();
-    const trimmedSubject = subject.trim();
-    const trimmedLocation = location.trim();
-    const trimmedVideoCallLink = videoCallLink.trim();
-    const trimmedAgenda = agenda.trim();
+    setStatus(result.status);
+    setMessage(result.message);
+    setFieldErrors(result.fieldErrors);
 
-    try {
-      await createMeeting({
-        teamId,
-        organiserId: user.id,
-        title: trimmedTitle,
-        date,
-        subject: trimmedSubject || undefined,
-        location: trimmedLocation || undefined,
-        agenda: trimmedAgenda || undefined,
-        ...(trimmedVideoCallLink ? { videoCallLink: trimmedVideoCallLink } : {}),
-        ...(!inviteAll ? { participantIds: Array.from(selectedIds) } : {}),
-      });
-      setStatus("success");
-      setMessage("Meeting created!");
-      setFieldErrors({});
+    if (result.success) {
       setTitle("");
       setDate("");
       setSubject("");
@@ -101,9 +77,6 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
       setVideoCallLink("");
       setAgenda("");
       onCreated();
-    } catch (error) {
-      setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Failed to create meeting");
     }
   }
 

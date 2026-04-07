@@ -56,12 +56,12 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
   const pathname = usePathname();
   const sortedLinks = useMemo(() => sortSpaceLinks(links), [links]);
   const activeHref = useMemo(() => getActiveSpaceHref(pathname, sortedLinks), [pathname, sortedLinks]);
-  const { navRef, indicatorRef, linkRefs } = useSpaceSwitcherIndicator(activeHref);
+  const { navRef, indicatorRef, registerLinkRef } = useSpaceSwitcherIndicator(activeHref);
 
   return (
     <nav className="space-switcher" aria-label="Spaces" ref={navRef}>
       <span className="space-switcher__indicator" aria-hidden="true" ref={indicatorRef} />
-      <SpaceSwitcherLinks links={sortedLinks} pathname={pathname} linkRefs={linkRefs} />
+      <SpaceSwitcherLinks links={sortedLinks} pathname={pathname} onLinkRef={registerLinkRef} />
     </nav>
   );
 }
@@ -69,39 +69,50 @@ export function SpaceSwitcher({ links }: SpaceSwitcherProps) {
 function SpaceSwitcherLinks({
   links,
   pathname,
-  linkRefs,
+  onLinkRef,
 }: {
   links: SpaceLink[];
   pathname: string | null;
-  linkRefs: MutableRefObject<Record<string, HTMLAnchorElement | null>>;
+  onLinkRef: (href: string, node: HTMLAnchorElement | null) => void;
 }) {
   return (
     <>
-      {links.map(({ href, label, icon, activePaths }) => {
-        const normalizedLabel = label.toLowerCase();
-        const active = isSpaceLinkActive(pathname, href, activePaths);
-        const resolvedIcon = icon ?? defaultIcons[normalizedLabel];
-
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={`space-switcher__link ${active ? "is-active" : ""}`}
-            aria-current={active ? "page" : undefined}
-            ref={(node) => {
-              linkRefs.current[href] = node;
-            }}
-          >
-            {resolvedIcon ? (
-              <span className="space-switcher__icon" aria-hidden="true">
-                {resolvedIcon}
-              </span>
-            ) : null}
-            <span className="space-switcher__label">{label}</span>
-          </Link>
-        );
-      })}
+      {links.map((link) => (
+        <SpaceSwitcherLinkItem key={link.href} link={link} pathname={pathname} onLinkRef={onLinkRef} />
+      ))}
     </>
+  );
+}
+
+function SpaceSwitcherLinkItem({
+  link,
+  pathname,
+  onLinkRef,
+}: {
+  link: SpaceLink;
+  pathname: string | null;
+  onLinkRef: (href: string, node: HTMLAnchorElement | null) => void;
+}) {
+  const { href, label, icon, activePaths } = link;
+  const active = isSpaceLinkActive(pathname, href, activePaths);
+  const resolvedIcon = icon ?? defaultIcons[label.toLowerCase()];
+
+  return (
+    <Link
+      href={href}
+      className={`space-switcher__link ${active ? "is-active" : ""}`}
+      aria-current={active ? "page" : undefined}
+      ref={(node) => {
+        onLinkRef(href, node);
+      }}
+    >
+      {resolvedIcon ? (
+        <span className="space-switcher__icon" aria-hidden="true">
+          {resolvedIcon}
+        </span>
+      ) : null}
+      <span className="space-switcher__label">{label}</span>
+    </Link>
   );
 }
 
@@ -110,10 +121,27 @@ function useSpaceSwitcherIndicator(activeHref: string | null) {
   const indicatorRef = useRef<HTMLSpanElement | null>(null);
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const hasMountedRef = useRef(false);
+  const registerLinkRef = useCallback((href: string, node: HTMLAnchorElement | null) => {
+    linkRefs.current[href] = node;
+  }, []);
 
   const setIndicatorPosition = useCallback((href: string | null, animate: boolean) => {
     updateIndicatorPosition({ href, animate, nav: navRef.current, indicator: indicatorRef.current, linkRefs: linkRefs.current });
   }, []);
+
+  useIndicatorLayoutSync({ activeHref, setIndicatorPosition, hasMountedRef, linkRefs });
+  useIndicatorResizeSync({ activeHref, setIndicatorPosition });
+
+  return { navRef, indicatorRef, registerLinkRef };
+}
+
+function useIndicatorLayoutSync(params: {
+  activeHref: string | null;
+  setIndicatorPosition: (href: string | null, animate: boolean) => void;
+  hasMountedRef: MutableRefObject<boolean>;
+  linkRefs: MutableRefObject<Record<string, HTMLAnchorElement | null>>;
+}) {
+  const { activeHref, setIndicatorPosition, hasMountedRef, linkRefs } = params;
 
   useLayoutEffect(() => {
     if (!activeHref) {
@@ -121,37 +149,62 @@ function useSpaceSwitcherIndicator(activeHref: string | null) {
       return;
     }
 
-    const previousHref = readPersistedActiveHref();
-    const shouldAnimate = shouldAnimateFromPreviousHref({
-      hasMounted: hasMountedRef.current,
-      previousHref,
-      activeHref,
-      hasPreviousLink: previousHref ? Boolean(linkRefs.current[previousHref]) : false,
-    });
-
-    if (shouldAnimate && previousHref) {
-      setIndicatorPosition(previousHref, false);
-      const frameId = window.requestAnimationFrame(() => {
-        setIndicatorPosition(activeHref, true);
-      });
-      hasMountedRef.current = true;
-      persistActiveHref(activeHref);
-      return () => window.cancelAnimationFrame(frameId);
+    const transitionFrameId = animateInitialIndicatorTransition({ activeHref, setIndicatorPosition, hasMountedRef, linkRefs });
+    if (transitionFrameId === null) {
+      setIndicatorPosition(activeHref, hasMountedRef.current);
     }
 
-    setIndicatorPosition(activeHref, hasMountedRef.current);
     hasMountedRef.current = true;
     persistActiveHref(activeHref);
-  }, [activeHref, setIndicatorPosition]);
+
+    if (transitionFrameId === null) {
+      return;
+    }
+
+    return () => window.cancelAnimationFrame(transitionFrameId);
+  }, [activeHref, hasMountedRef, linkRefs, setIndicatorPosition]);
+}
+
+function useIndicatorResizeSync(params: {
+  activeHref: string | null;
+  setIndicatorPosition: (href: string | null, animate: boolean) => void;
+}) {
+  const { activeHref, setIndicatorPosition } = params;
 
   useEffect(() => {
-    if (!activeHref) return;
+    if (!activeHref) {
+      return;
+    }
+
     const reposition = () => setIndicatorPosition(activeHref, false);
     window.addEventListener("resize", reposition);
     return () => window.removeEventListener("resize", reposition);
   }, [activeHref, setIndicatorPosition]);
+}
 
-  return { navRef, indicatorRef, linkRefs };
+function animateInitialIndicatorTransition(params: {
+  activeHref: string;
+  setIndicatorPosition: (href: string | null, animate: boolean) => void;
+  hasMountedRef: MutableRefObject<boolean>;
+  linkRefs: MutableRefObject<Record<string, HTMLAnchorElement | null>>;
+}): number | null {
+  const { activeHref, setIndicatorPosition, hasMountedRef, linkRefs } = params;
+  const previousHref = readPersistedActiveHref();
+  const shouldAnimate = shouldAnimateFromPreviousHref({
+    hasMounted: hasMountedRef.current,
+    previousHref,
+    activeHref,
+    hasPreviousLink: previousHref ? Boolean(linkRefs.current[previousHref]) : false,
+  });
+
+  if (!shouldAnimate || !previousHref) {
+    return null;
+  }
+
+  setIndicatorPosition(previousHref, false);
+  return window.requestAnimationFrame(() => {
+    setIndicatorPosition(activeHref, true);
+  });
 }
 
 function updateIndicatorPosition(params: {
@@ -194,21 +247,29 @@ function sortSpaceLinks(links: SpaceLink[]): SpaceLink[] {
   return [...links].sort((a, b) => {
     const wa = SPACE_WEIGHT[a.label.toLowerCase()] ?? 99;
     const wb = SPACE_WEIGHT[b.label.toLowerCase()] ?? 99;
-    if (wa !== wb) return wa - wb;
+    if (wa !== wb) {
+      return wa - wb;
+    }
     return a.label.localeCompare(b.label);
   });
 }
 
 function getActiveSpaceHref(pathname: string | null, links: SpaceLink[]): string | null {
-  if (!pathname) return null;
+  if (!pathname) {
+    return null;
+  }
   for (const link of links) {
-    if (isSpaceLinkActive(pathname, link.href, link.activePaths)) return link.href;
+    if (isSpaceLinkActive(pathname, link.href, link.activePaths)) {
+      return link.href;
+    }
   }
   return null;
 }
 
 function isSpaceLinkActive(pathname: string | null, href: string, activePaths?: string[]): boolean {
-  if (!pathname) return false;
+  if (!pathname) {
+    return false;
+  }
   const activeByAlias = activePaths?.some((prefix) => pathname.startsWith(prefix)) ?? false;
   return activeByAlias || pathname.startsWith(href);
 }
@@ -235,8 +296,14 @@ function shouldAnimateFromPreviousHref(params: {
   activeHref: string;
   hasPreviousLink: boolean;
 }): boolean {
-  if (params.hasMounted) return false;
-  if (!params.previousHref) return false;
-  if (params.previousHref === params.activeHref) return false;
+  if (params.hasMounted) {
+    return false;
+  }
+  if (!params.previousHref) {
+    return false;
+  }
+  if (params.previousHref === params.activeHref) {
+    return false;
+  }
   return params.hasPreviousLink;
 }

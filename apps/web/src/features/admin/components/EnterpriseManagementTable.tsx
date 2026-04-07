@@ -21,7 +21,9 @@ type EnterpriseManagementTableBodyProps = {
 
 export function EnterpriseManagementTable({ isSuperAdmin }: EnterpriseManagementTableProps) {
   const state = useEnterpriseManagementState(isSuperAdmin);
-  if (!isSuperAdmin) return null;
+  if (!isSuperAdmin) {
+    return null;
+  }
 
   const rows = buildEnterpriseRows({
     enterprises: state.enterprises,
@@ -75,7 +77,9 @@ function EnterpriseManagementTableBody({ state, rows, enterpriseUserRows }: Ente
 }
 
 function EnterpriseSuccessToast({ toastMessage }: { toastMessage: string | null }) {
-  if (!toastMessage) return null;
+  if (!toastMessage) {
+    return null;
+  }
 
   return (
     <div className="ui-toast-layer" aria-live="polite" aria-atomic="true">
@@ -83,6 +87,68 @@ function EnterpriseSuccessToast({ toastMessage }: { toastMessage: string | null 
         {toastMessage}
       </div>
     </div>
+  );
+}
+
+function EnterpriseCreateModalSection({ state }: { state: ManagementState }) {
+  return (
+    <EnterpriseCreateModal
+      open={state.createModalOpen}
+      nameInput={state.nameInput}
+      codeInput={state.codeInput}
+      isCreating={state.isCreating}
+      onNameInputChange={state.setNameInput}
+      onCodeInputChange={state.setCodeInput}
+      onClose={state.closeCreateModal}
+      onSubmit={state.handleCreateEnterprise}
+    />
+  );
+}
+
+function EnterpriseAccountsModalSection({
+  state,
+  enterpriseUserRows,
+}: {
+  state: ManagementState;
+  enterpriseUserRows: ReturnType<typeof buildEnterpriseUserRows>;
+}) {
+  return (
+    <EnterpriseAccountsModal
+      enterprise={state.selectedEnterprise}
+      usersStatus={state.enterpriseUsersStatus}
+      usersMessage={state.enterpriseUsersMessage}
+      userSearchQuery={state.enterpriseUserSearchQuery}
+      onUserSearchQueryChange={state.setEnterpriseUserSearchQuery}
+      userRows={enterpriseUserRows}
+      userTotal={state.enterpriseUserTotal}
+      userStart={state.enterpriseUserStart}
+      userEnd={state.enterpriseUserEnd}
+      userPage={state.enterpriseUserPage}
+      userPageInput={state.enterpriseUserPageInput}
+      userTotalPages={state.enterpriseUserTotalPages}
+      effectiveUserTotalPages={state.effectiveEnterpriseUserTotalPages}
+      onClose={() => state.setSelectedEnterprise(null)}
+      onUserPageChange={state.setEnterpriseUserPage}
+      onUserPageInputChange={state.setEnterpriseUserPageInput}
+      onUserPageInputBlur={() => state.applyEnterpriseUserPageInput(state.enterpriseUserPageInput)}
+      onUserPageJump={state.handleEnterpriseUserPageJump}
+    />
+  );
+}
+
+function EnterpriseDeleteModalSection({ state }: { state: ManagementState }) {
+  return (
+    <ConfirmationModal
+      open={state.pendingDeleteEnterprise !== null}
+      title="Delete enterprise?"
+      message={formatDeleteMessage(state.pendingDeleteEnterprise)}
+      cancelLabel="Cancel"
+      confirmLabel="Delete enterprise"
+      confirmVariant="danger"
+      busy={isDeleteBusy(state.pendingDeleteEnterprise, state.deleteState)}
+      onCancel={() => state.setPendingDeleteEnterprise(null)}
+      onConfirm={() => void state.handleDeleteEnterprise()}
+    />
   );
 }
 
@@ -95,55 +161,17 @@ function EnterpriseManagementModals({
 }) {
   return (
     <>
-      <EnterpriseCreateModal
-        open={state.createModalOpen}
-        nameInput={state.nameInput}
-        codeInput={state.codeInput}
-        isCreating={state.isCreating}
-        onNameInputChange={state.setNameInput}
-        onCodeInputChange={state.setCodeInput}
-        onClose={state.closeCreateModal}
-        onSubmit={state.handleCreateEnterprise}
-      />
-
-      <EnterpriseAccountsModal
-        enterprise={state.selectedEnterprise}
-        usersStatus={state.enterpriseUsersStatus}
-        usersMessage={state.enterpriseUsersMessage}
-        userSearchQuery={state.enterpriseUserSearchQuery}
-        onUserSearchQueryChange={state.setEnterpriseUserSearchQuery}
-        userRows={enterpriseUserRows}
-        userTotal={state.enterpriseUserTotal}
-        userStart={state.enterpriseUserStart}
-        userEnd={state.enterpriseUserEnd}
-        userPage={state.enterpriseUserPage}
-        userPageInput={state.enterpriseUserPageInput}
-        userTotalPages={state.enterpriseUserTotalPages}
-        effectiveUserTotalPages={state.effectiveEnterpriseUserTotalPages}
-        onClose={() => state.setSelectedEnterprise(null)}
-        onUserPageChange={state.setEnterpriseUserPage}
-        onUserPageInputChange={state.setEnterpriseUserPageInput}
-        onUserPageInputBlur={() => state.applyEnterpriseUserPageInput(state.enterpriseUserPageInput)}
-        onUserPageJump={state.handleEnterpriseUserPageJump}
-      />
-
-      <ConfirmationModal
-        open={state.pendingDeleteEnterprise !== null}
-        title="Delete enterprise?"
-        message={formatDeleteMessage(state.pendingDeleteEnterprise)}
-        cancelLabel="Cancel"
-        confirmLabel="Delete enterprise"
-        confirmVariant="danger"
-        busy={isDeleteBusy(state.pendingDeleteEnterprise, state.deleteState)}
-        onCancel={() => state.setPendingDeleteEnterprise(null)}
-        onConfirm={() => void state.handleDeleteEnterprise()}
-      />
+      <EnterpriseCreateModalSection state={state} />
+      <EnterpriseAccountsModalSection state={state} enterpriseUserRows={enterpriseUserRows} />
+      <EnterpriseDeleteModalSection state={state} />
     </>
   );
 }
 
 function formatDeleteMessage(pendingDeleteEnterprise: ManagementState["pendingDeleteEnterprise"]): string {
-  if (!pendingDeleteEnterprise) return "";
+  if (!pendingDeleteEnterprise) {
+    return "";
+  }
   return `Delete enterprise "${pendingDeleteEnterprise.name}"? This action cannot be undone.`;
 }
 
@@ -151,13 +179,17 @@ function isDeleteBusy(
   pendingDeleteEnterprise: ManagementState["pendingDeleteEnterprise"],
   deleteState: ManagementState["deleteState"]
 ): boolean {
-  if (!pendingDeleteEnterprise) return false;
+  if (!pendingDeleteEnterprise) {
+    return false;
+  }
   return deleteState[pendingDeleteEnterprise.id] === true;
 }
 
 function formatDate(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
+  if (Number.isNaN(date.getTime())) {
+    return "Unknown";
+  }
   return date.toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",

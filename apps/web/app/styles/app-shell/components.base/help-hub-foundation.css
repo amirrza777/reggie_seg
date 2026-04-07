@@ -39,7 +39,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   background: var(--surface-elevated);
-  box-shadow: var(--elevation-sticky-strong);
+  box-shadow: none;
   z-index: 30;
 }
 
@@ -82,8 +82,8 @@
   display: grid;
   gap: clamp(14px, 2vw, 20px);
   background:
-    radial-gradient(120% 100% at 0% 0%, rgba(16, 185, 129, 0.12) 0%, transparent 70%),
-    radial-gradient(120% 100% at 100% 100%, rgba(16, 185, 129, 0.12) 0%, transparent 70%),
+    radial-gradient(120% 100% at 0% 0%, var(--color-fixed-rgba-16-185-129-0-12) 0%, transparent 70%),
+    radial-gradient(120% 100% at 100% 100%, var(--color-fixed-rgba-16-185-129-0-12) 0%, transparent 70%),
     linear-gradient(145deg, var(--surface) 0%, var(--surface-elevated) 100%);
 }
 
@@ -97,7 +97,7 @@
 
 .workspace-shell .help-hub__hero h1 {
   margin: 0;
-  font-size: clamp(2.4rem, 4.8vw, 4rem);
+  font-size: var(--fs-fixed-clamp-2-4rem-4-8vw-4rem);
 }
 
 .workspace-shell .help-hub__hero .lede {
@@ -119,7 +119,7 @@
   padding: 13px 14px;
   display: grid;
   gap: 5px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--color-fixed-rgba-255-255-255-0-03);
 }
 
 .workspace-shell .help-hub__hero-metric span {
@@ -144,19 +144,19 @@
   padding: 12px;
   margin-bottom: 0;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(148, 163, 184, 0.24);
-  background: rgba(10, 10, 10, 0.52);
+  border: 1px solid var(--glass-ui-border);
+  background: var(--glass-ui-bg-soft);
   position: sticky;
   top: 8px;
   z-index: 20;
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+  backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .workspace-shell .help-nav__link {
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--glass-ui-bg-soft);
   border: 1px solid var(--border);
   text-decoration: none;
   color: var(--ink);
@@ -177,22 +177,6 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-strong) 34%, transparent);
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .workspace-shell .help-nav {
-    background: var(--surface);
-  }
-}
-
-@media (prefers-color-scheme: light) {
-  .workspace-shell .help-nav {
-    background: rgba(255, 255, 255, 0.58);
-    border-color: rgba(15, 23, 42, 0.14);
-  }
-
-  .workspace-shell .help-nav__link {
-    background: rgba(255, 255, 255, 0.72);
-  }
-}
 
 .workspace-shell .help-hub__overview-header,
 .workspace-shell .help-section__header,
@@ -212,7 +196,7 @@
 
 .workspace-shell .help-hub__overview-header h2,
 .workspace-shell .help-section__header h2 {
-  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-size: var(--fs-fixed-clamp-2rem-3vw-2-8rem);
 }
 
 .workspace-shell .help-hub__search,
@@ -258,7 +242,7 @@
 .workspace-shell .help-faq__search-input:focus {
   outline: none;
   border-color: var(--accent-border);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18);
+  box-shadow: 0 0 0 3px var(--color-fixed-rgba-34-197-94-0-18);
 }
 
 .workspace-shell .help-faq__empty {
@@ -298,23 +282,23 @@
 }
 
 .workspace-shell .help-hub__card:nth-child(1) {
-  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), transparent 45%), var(--surface);
+  background: linear-gradient(145deg, var(--color-fixed-rgba-16-185-129-0-1), transparent 45%), var(--surface);
 }
 
 .workspace-shell .help-hub__card:nth-child(2) {
-  background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), transparent 45%), var(--surface);
+  background: linear-gradient(145deg, var(--color-fixed-rgba-245-158-11-0-1), transparent 45%), var(--surface);
 }
 
 .workspace-shell .help-hub__card:nth-child(3) {
-  background: linear-gradient(145deg, rgba(59, 130, 246, 0.1), transparent 45%), var(--surface);
+  background: linear-gradient(145deg, var(--color-fixed-rgba-59-130-246-0-1), transparent 45%), var(--surface);
 }
 
 .workspace-shell .help-hub__card:nth-child(4) {
-  background: linear-gradient(145deg, rgba(99, 102, 241, 0.1), transparent 45%), var(--surface);
+  background: linear-gradient(145deg, var(--color-fixed-rgba-99-102-241-0-1), transparent 45%), var(--surface);
 }
 
 .workspace-shell .help-hub__card:nth-child(5) {
-  background: linear-gradient(145deg, rgba(239, 68, 68, 0.1), transparent 45%), var(--surface);
+  background: linear-gradient(145deg, var(--color-fixed-rgba-239-68-68-0-1), transparent 45%), var(--surface);
 }
 
 .workspace-shell .help-hub__card-content {
@@ -324,7 +308,7 @@
 
 .workspace-shell .help-hub__card h3 {
   margin: 0;
-  font-size: clamp(1.08rem, 1.4vw, 1.26rem);
+  font-size: var(--fs-fixed-clamp-1-08rem-1-4vw-1-26rem);
   line-height: 1.28;
 }
 
@@ -352,5 +336,5 @@
 .workspace-shell .help-hub__card:hover {
   transform: translateY(-2px);
   border-color: var(--accent-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }

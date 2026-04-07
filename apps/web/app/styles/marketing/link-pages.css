@@ -7,7 +7,7 @@
 
 .footer-link-page__title {
   margin: 0;
-  font-size: clamp(2.1rem, 4.6vw, 3.4rem);
+  font-size: var(--fs-fixed-clamp-2-1rem-4-6vw-3-4rem);
   letter-spacing: -0.03em;
   line-height: 1.05;
 }
@@ -43,7 +43,7 @@
 
 .footer-link-page__card-title {
   margin: 0;
-  font-size: clamp(1.06rem, 2vw, 1.26rem);
+  font-size: var(--fs-fixed-clamp-1-06rem-2vw-1-26rem);
   letter-spacing: -0.01em;
   line-height: 1.25;
 }
@@ -75,7 +75,7 @@
 
 .footer-link-page__cta-title {
   margin: 0;
-  font-size: clamp(2rem, 5.1vw, 4.5rem);
+  font-size: var(--fs-fixed-clamp-2rem-5-1vw-4-5rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
 }
@@ -84,7 +84,7 @@
   margin: 0;
   max-width: 68ch;
   line-height: 1.45;
-  font-size: clamp(1.02rem, 2.1vw, 1.35rem);
+  font-size: var(--fs-fixed-clamp-1-02rem-2-1vw-1-35rem);
 }
 
 .footer-link-page__cta-actions {
@@ -109,11 +109,11 @@
   }
 
   .footer-link-page__cta-title {
-    font-size: clamp(1.72rem, 9.4vw, 2.5rem);
+    font-size: var(--fs-fixed-clamp-1-72rem-9-4vw-2-5rem);
   }
 
   .footer-link-page__cta-copy {
     max-width: 42ch;
-    font-size: clamp(0.98rem, 4.2vw, 1.08rem);
+    font-size: var(--fs-fixed-clamp-0-98rem-4-2vw-1-08rem);
   }
 }

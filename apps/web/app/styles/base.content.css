@@ -237,6 +237,7 @@ a.muted:hover {
     box-sizing: border-box;
 }
 
+
 .btn {
     border: var(--btn-border-width, 1px) solid transparent;
     border-radius: var(--radius-sm);
@@ -377,7 +378,7 @@ nav.pill-nav:not(.pill-nav--inline),
   border-radius: 999px;
   border: 1px solid var(--border);
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: var(--fs-fixed-12px);
 }
 
 .pill-ghost {
@@ -391,22 +392,20 @@ nav.pill-nav:not(.pill-nav--inline),
     box-shadow: var(--glass-ui-shadow);
 }
 
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-    .pill-nav__link,
-    .glass-pane {
-        backdrop-filter: blur(var(--glass-ui-blur));
-        -webkit-backdrop-filter: blur(var(--glass-ui-blur));
-    }
+.pill-nav__link,
+.glass-pane {
+    -webkit-backdrop-filter: blur(var(--glass-ui-blur));
+    backdrop-filter: blur(var(--glass-ui-blur));
 }
 
 .pill-green {
-  background: rgba(16, 185, 129, 0.12);
-  color: #047857;
+  background: var(--color-fixed-rgba-16-185-129-0-12);
+  color: var(--color-fixed-047857);
 }
 
 .pill-amber {
-  background: rgba(245, 158, 11, 0.12);
-  color: #b45309;
+  background: var(--color-fixed-rgba-245-158-11-0-12);
+  color: var(--color-fixed-b45309);
 }
 
 input,

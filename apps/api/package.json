@@ -16,7 +16,9 @@
     "test:seed:coverage": "vitest run --config vitest.seed.config.ts --coverage --silent",
     "dev": "tsx --watch src/index.ts",
     "db:seed": "prisma generate && tsx prisma/seed/seed.ts",
-    "db:unseed": "tsx prisma/seed/unseed.ts"
+    "db:unseed": "tsx prisma/seed/unseed.ts",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "lint:functions": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0 --ignore-pattern \"**/*.test.*\" --ignore-pattern \"**/*.spec.*\" --ignore-pattern \"**/__tests__/**\" --ignore-pattern \"**/*.test-helpers.*\""
   },
   "keywords": [],
   "author": "",
@@ -44,6 +46,7 @@
     "tsx": "^4.21.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
@@ -55,9 +58,12 @@
     "@types/passport-google-oauth20": "^2.0.17",
     "@types/supertest": "^6.0.3",
     "@vitest/coverage-v8": "^2.1.2",
+    "eslint": "^10.2.0",
+    "globals": "^17.4.0",
     "supertest": "^7.0.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.58.0",
     "vitest": "^2.1.9"
   },
   "prisma": {

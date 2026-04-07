@@ -21,9 +21,15 @@ function joinClassNames(...parts: Array<string | undefined | false>) {
 
 export function Skeleton({ className, width, height, radius, inline = false }: SkeletonProps) {
   const style: CSSProperties = {};
-  if (width !== undefined) style.width = width;
-  if (height !== undefined) style.height = height;
-  if (radius !== undefined) style.borderRadius = radius;
+  if (width !== undefined) {
+    style.width = width;
+  }
+  if (height !== undefined) {
+    style.height = height;
+  }
+  if (radius !== undefined) {
+    style.borderRadius = radius;
+  }
 
   return (
     <span

@@ -7,41 +7,34 @@ import { buildEnterpriseOverviewSummaryView } from "./enterpriseOverviewSummary.
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
+async function loadEnterpriseOverview(params: {
+  setOverview: (value: EnterpriseOverview) => void;
+  setStatus: (value: RequestState) => void;
+  setMessage: (value: string | null) => void;
+  setLoadedAt: (value: Date | null) => void;
+}) {
+  params.setStatus("loading");
+  params.setMessage(null);
+  try {
+    const response = await getEnterpriseOverview();
+    params.setOverview(response);
+    params.setLoadedAt(new Date());
+    params.setStatus("success");
+  } catch (err) {
+    params.setStatus("error");
+    params.setLoadedAt(null);
+    params.setMessage(err instanceof Error ? err.message : "Could not load enterprise overview.");
+  }
+}
+
 export function useEnterpriseOverviewSummary() {
   const [overview, setOverview] = useState<EnterpriseOverview | null>(null);
   const [status, setStatus] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<Date | null>(null);
-
   useEffect(() => {
-    const loadOverview = async () => {
-      setStatus("loading");
-      setMessage(null);
-
-      try {
-        const response = await getEnterpriseOverview();
-        setOverview(response);
-        setLoadedAt(new Date());
-        setStatus("success");
-      } catch (err) {
-        setStatus("error");
-        setLoadedAt(null);
-        setMessage(err instanceof Error ? err.message : "Could not load enterprise overview.");
-      }
-    };
-
-    void loadOverview();
+    void loadEnterpriseOverview({ setOverview, setStatus, setMessage, setLoadedAt });
   }, []);
-
-  const summaryView = useMemo(
-    () => buildEnterpriseOverviewSummaryView(overview, status, message, loadedAt),
-    [loadedAt, message, overview, status]
-  );
-
-  return {
-    overview,
-    status,
-    message,
-    ...summaryView,
-  };
+  const summaryView = useMemo(() => buildEnterpriseOverviewSummaryView(overview, status, message, loadedAt), [loadedAt, message, overview, status]);
+  return { overview, status, message, ...summaryView };
 }

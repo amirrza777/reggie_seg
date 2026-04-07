@@ -48,8 +48,10 @@ type ToolbarButton = {
   key: string;
   ariaLabel: string;
   label: React.ReactNode;
-  action: (editor: ReturnType<typeof useLexicalComposerContext>[0]) => void;
+  action: (editor: LexicalEditorInstance) => void;
 };
+
+type LexicalEditorInstance = ReturnType<typeof useLexicalComposerContext>[0];
 
 const TOOLBAR_GROUPS: ToolbarButton[][] = [
   [
@@ -89,6 +91,61 @@ const TOOLBAR_GROUPS: ToolbarButton[][] = [
 
 const FORMAT_KEYS = ["bold", "italic", "underline", "strikethrough", "superscript", "subscript", "code"] as const;
 
+function isToggleFormatKey(key: string) {
+  return FORMAT_KEYS.includes(key as (typeof FORMAT_KEYS)[number]);
+}
+
+function ToolbarGroup({
+  editor,
+  button,
+  activeFormats,
+}: {
+  editor: LexicalEditorInstance;
+  button: ToolbarButton;
+  activeFormats: Set<string>;
+}) {
+  const { key, ariaLabel, label, action } = button;
+  const isActive = activeFormats.has(key);
+  const isToggle = isToggleFormatKey(key);
+
+  return (
+    <button
+      key={key}
+      type="button"
+      className={`rich-editor__tool${isActive ? " rich-editor__tool--active" : ""}`}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        action(editor);
+      }}
+      aria-label={ariaLabel}
+      title={ariaLabel}
+      aria-pressed={isToggle ? isActive : undefined}
+    >
+      {label}
+    </button>
+  );
+}
+
+function ToolbarGroupRow({
+  editor,
+  group,
+  groupIndex,
+  activeFormats,
+}: {
+  editor: LexicalEditorInstance;
+  group: ToolbarButton[];
+  groupIndex: number;
+  activeFormats: Set<string>;
+}) {
+  return (
+    <span key={groupIndex} className="rich-editor__group">
+      {group.map((button) => (
+        <ToolbarGroup editor={editor} button={button} activeFormats={activeFormats} key={button.key} />
+      ))}
+    </span>
+  );
+}
+
 function Toolbar() {
   const [editor] = useLexicalComposerContext();
   const [activeFormats, setActiveFormats] = useState<Set<string>>(new Set());
@@ -112,25 +169,7 @@ function Toolbar() {
   return (
     <div className="rich-editor__toolbar">
       {TOOLBAR_GROUPS.map((group, i) => (
-        <span key={i} className="rich-editor__group">
-          {group.map(({ key, ariaLabel, label, action }) => {
-            const isActive = activeFormats.has(key);
-            const isToggle = FORMAT_KEYS.includes(key as typeof FORMAT_KEYS[number]);
-            return (
-              <button
-                key={key}
-                type="button"
-                className={`rich-editor__tool${isActive ? " rich-editor__tool--active" : ""}`}
-                onMouseDown={(e) => { e.preventDefault(); action(editor); }}
-                aria-label={ariaLabel}
-                title={ariaLabel}
-                aria-pressed={isToggle ? isActive : undefined}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </span>
+        <ToolbarGroupRow key={i} editor={editor} group={group} groupIndex={i} activeFormats={activeFormats} />
       ))}
     </div>
   );

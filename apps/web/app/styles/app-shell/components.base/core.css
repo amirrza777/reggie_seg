@@ -98,6 +98,11 @@
   --table-column-gap: clamp(16px, 2.4vw, 24px);
 }
 
+.module-dashboard__expectations-table,
+.module-dashboard__marks-table {
+  --table-column-gap: clamp(18px, 2.6vw, 28px);
+}
+
 .table__head,
 .table__row {
   display: grid;
@@ -197,6 +202,14 @@
 }
 
 .module-dashboard__panel--timeline {
+  min-height: 0;
+}
+
+.module-dashboard__panel--readiness {
+  min-height: 0;
+}
+
+.module-dashboard__panel--marks {
   min-height: 0;
 }
 

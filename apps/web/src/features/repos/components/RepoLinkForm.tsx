@@ -8,6 +8,31 @@ type RepoLinkFormProps = {
   projectId?: string;
 };
 
+function RepoLinkInputs({
+  name,
+  setName,
+  url,
+  setUrl,
+}: {
+  name: string;
+  setName: (value: string) => void;
+  url: string;
+  setUrl: (value: string) => void;
+}) {
+  return (
+    <>
+      <label className="stack" style={{ gap: 6 }}>
+        <span>Repository name</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} required />
+      </label>
+      <label className="stack" style={{ gap: 6 }}>
+        <span>Repository URL</span>
+        <input value={url} onChange={(e) => setUrl(e.target.value)} required />
+      </label>
+    </>
+  );
+}
+
 export function RepoLinkForm({ projectId = "project-123" }: RepoLinkFormProps) {
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
@@ -28,14 +53,7 @@ export function RepoLinkForm({ projectId = "project-123" }: RepoLinkFormProps) {
 
   return (
     <form className="stack" onSubmit={handleSubmit}>
-      <label className="stack" style={{ gap: 6 }}>
-        <span>Repository name</span>
-        <input value={name} onChange={(e) => setName(e.target.value)} required />
-      </label>
-      <label className="stack" style={{ gap: 6 }}>
-        <span>Repository URL</span>
-        <input value={url} onChange={(e) => setUrl(e.target.value)} required />
-      </label>
+      <RepoLinkInputs name={name} setName={setName} url={url} setUrl={setUrl} />
       <Button type="submit">Link repository</Button>
       {message ? <p className="muted">{message}</p> : null}
     </form>

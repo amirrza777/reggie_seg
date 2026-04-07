@@ -14,7 +14,7 @@
 }
 
 .ui-page--project .ui-page__title {
-  font-size: clamp(1.9rem, 3vw, 2.5rem);
+  font-size: var(--fs-fixed-clamp-1-9rem-3vw-2-5rem);
   line-height: 1.1;
 }
 
@@ -104,7 +104,7 @@
 
 .ui-note {
   margin: 0;
-  font-size: 0.9rem;
+  font-size: var(--fs-fixed-0-9rem);
 }
 
 .ui-note--muted {
@@ -192,7 +192,7 @@
 }
 
 .ui-status-icon {
-  font-size: 16px;
+  font-size: var(--fs-fixed-16px);
 }
 
 .ui-grid-metrics {
@@ -214,7 +214,7 @@
 }
 
 .ui-metric-value {
-  font-size: 22px;
+  font-size: var(--fs-fixed-22px);
   letter-spacing: -0.02em;
 }
 
@@ -231,10 +231,10 @@
   max-width: min(280px, 72vw);
   margin: 0;
   padding: 10px 12px;
-  border: 1px solid var(--popup-glass-border);
+  border: 1px solid var(--glass-ui-border);
   border-radius: var(--radius-md);
-  background: var(--popup-glass-bg);
-  box-shadow: var(--popup-glass-shadow);
+  background: var(--glass-ui-bg);
+  box-shadow: var(--glass-ui-shadow);
   color: var(--ink);
 }
 

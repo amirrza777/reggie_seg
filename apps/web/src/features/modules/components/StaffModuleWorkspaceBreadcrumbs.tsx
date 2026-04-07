@@ -34,7 +34,7 @@ function toTitleCase(value: string): string {
 }
 
 function decodePathSegment(segment: string | undefined): string {
-  if (!segment) return "";
+  if (!segment) {return "";}
   try {
     return decodeURIComponent(segment);
   } catch {
@@ -53,8 +53,8 @@ function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): C
     { label: moduleTitle, href: moduleRoot },
   ];
 
-  if (segments[0] !== "staff" || segments[1] !== "modules") return base;
-  if (decodePathSegment(segments[2]) !== moduleId) return base;
+  if (segments[0] !== "staff" || segments[1] !== "modules") {return base;}
+  if (decodePathSegment(segments[2]) !== moduleId) {return base;}
 
   const section = segments[3];
   if (!section) {
@@ -70,7 +70,7 @@ function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): C
   const sectionCrumb: Crumb = { label: sectionLabel, href: sectionHref };
 
   const child = segments[4];
-  if (!child) return [...base, { label: sectionLabel }];
+  if (!child) {return [...base, { label: sectionLabel }];}
 
   return [
     ...base,

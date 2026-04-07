@@ -14,7 +14,7 @@
   color: var(--ink);
   cursor: pointer;
   transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
-  box-shadow: var(--elevation-none);
+  box-shadow: none;
   -webkit-backdrop-filter: blur(var(--glass-ui-blur));
   backdrop-filter: blur(var(--glass-ui-blur));
 }
@@ -40,7 +40,7 @@
   padding: 0 5px;
   border-radius: 999px;
   background: var(--status-danger);
-  color: white;
+  color: var(--pure-white);
   font-size: var(--fs-caption);
   font-weight: var(--fw-semibold);
   display: grid;

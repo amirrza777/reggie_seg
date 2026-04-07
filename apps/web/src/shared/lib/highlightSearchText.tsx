@@ -9,11 +9,15 @@ export function highlightSearchText(text: string, query?: string): ReactNode {
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-  if (terms.length === 0) return text;
+  if (terms.length === 0) {
+    return text;
+  }
 
   const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`, "ig");
   const parts = text.split(pattern);
-  if (parts.length <= 1) return text;
+  if (parts.length <= 1) {
+    return text;
+  }
 
   const lowerTerms = new Set(terms.map((term) => term.toLowerCase()));
   return parts.map((part, index) =>

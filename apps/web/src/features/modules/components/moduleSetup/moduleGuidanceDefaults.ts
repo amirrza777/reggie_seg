@@ -35,7 +35,7 @@ export function mergeGuidanceDefaultsWithStaffRow(
   defaults: ModuleGuidanceDefaults,
   row: StaffModuleGuidanceRow | null | undefined,
 ): ModuleGuidanceDefaults {
-  if (!row) return defaults;
+  if (!row) {return defaults;}
   const chooseValue = (api: string, list: string | undefined) => (api.trim().length > 0 ? api : (list ?? ""));
   return {
     moduleName: defaults.moduleName.trim().length > 0 ? defaults.moduleName : (row.title ?? defaults.moduleName),

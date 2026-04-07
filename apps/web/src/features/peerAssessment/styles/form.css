@@ -43,16 +43,16 @@
 @media (prefers-color-scheme: dark) {
   .peerAssessmentForm__question,
   .peerAssessmentForm input[type="text"] {
-    background-color: color-mix(in srgb, var(--surface) 80%, #111827 20%);
+    background-color: color-mix(in srgb, var(--surface) 80%, var(--color-fixed-111827) 20%);
   }
 
   .peerAssessmentForm__question {
-    border-color: color-mix(in srgb, var(--border) 55%, #334155 45%);
-    border-left-color: color-mix(in srgb, var(--accent-border) 40%, #60a5fa 60%);
+    border-color: color-mix(in srgb, var(--border) 55%, var(--color-fixed-334155) 45%);
+    border-left-color: color-mix(in srgb, var(--accent-border) 40%, var(--color-fixed-60a5fa) 60%);
   }
 
   .peerAssessmentForm .muted {
-    color: #b6c2d1;
+    color: var(--color-fixed-b6c2d1);
   }
 }
 

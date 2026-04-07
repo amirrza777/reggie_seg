@@ -24,7 +24,11 @@ export function ModuleStaffAccessSection({ state, currentUserId = null }: Module
 
   return (
     <section className="module-setup-section module-setup-section--staff" aria-labelledby="module-setup-staff-title">
-      <h3 id="module-setup-staff-title" className="overview-title" style={{ fontSize: "1.1rem", marginBottom: 8 }}>
+      <h3
+        id="module-setup-staff-title"
+        className="overview-title"
+        style={{ fontSize: "var(--fs-fixed-1-1rem)", marginBottom: 8 }}
+      >
         Staff access
       </h3>
       <p className="ui-note ui-note--muted" style={{ marginBottom: 16 }}>

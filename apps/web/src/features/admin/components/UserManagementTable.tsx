@@ -1,17 +1,50 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type MutableRefObject, type SetStateAction } from "react";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
-import type { AdminUser, AdminUserRecord, UserRole } from "../types";
 import { searchUsers, updateUser, updateUserRole } from "../api/client";
+import type { AdminUser, AdminUserRecord, UserRole } from "../types";
+import { buildUserManagementRows } from "./userManagementRows";
 
 type RequestState = "idle" | "loading" | "success" | "error";
+
+type UserSearchResponse = Awaited<ReturnType<typeof searchUsers>>;
+
+type UserManagementState = ReturnType<typeof useUserManagementState>;
+
+type UserSearchHandlers = {
+  setUsers: Dispatch<SetStateAction<AdminUser[]>>;
+  setTableStatus: Dispatch<SetStateAction<RequestState>>;
+  setMessage: Dispatch<SetStateAction<string | null>>;
+  setTotalUsers: Dispatch<SetStateAction<number>>;
+  setTotalPages: Dispatch<SetStateAction<number>>;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+};
+
+type UserMutationHandlers = {
+  users: AdminUser[];
+  searchQuery: string;
+  currentPage: number;
+  setUsers: Dispatch<SetStateAction<AdminUser[]>>;
+  setStatus: Dispatch<SetStateAction<RequestState>>;
+  setMessage: Dispatch<SetStateAction<string | null>>;
+  loadUsers: (query: string, page: number) => Promise<void>;
+};
+
+type UserOptimisticUpdateOptions = UserMutationHandlers & {
+  userId: number;
+  request: () => Promise<AdminUserRecord>;
+  optimisticUpdate: (user: AdminUser) => AdminUser;
+  successMessage: (previousUsers: AdminUser[]) => string;
+  errorMessage: string;
+};
+
+const USERS_PER_PAGE = 10;
 
 const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   ...user,
@@ -19,9 +52,72 @@ const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   active: user.active ?? true,
 });
 
-const USERS_PER_PAGE = 10;
+function resolveUnknownError(error: unknown, fallbackMessage: string): string {
+  return error instanceof Error ? error.message : fallbackMessage;
+}
 
-export function UserManagementTable() {
+function cloneUsers(users: AdminUser[]) {
+  return users.map((user) => ({ ...user }));
+}
+
+function applyUserSearchSuccess(response: UserSearchResponse, handlers: UserSearchHandlers) {
+  handlers.setUsers(response.items.map(normalizeUser));
+  handlers.setTotalUsers(response.total);
+  handlers.setTotalPages(response.totalPages);
+  handlers.setTableStatus("success");
+}
+
+function applyUserSearchError(err: unknown, handlers: Pick<UserSearchHandlers, "setUsers" | "setTotalUsers" | "setTotalPages" | "setTableStatus" | "setMessage">) {
+  handlers.setUsers([]);
+  handlers.setTotalUsers(0);
+  handlers.setTotalPages(0);
+  handlers.setTableStatus("error");
+  handlers.setMessage(resolveUnknownError(err, "Could not load users."));
+}
+
+function buildUserSearchParams(query: string, page: number) {
+  return { q: query.trim() || undefined, page, pageSize: USERS_PER_PAGE };
+}
+
+function shouldIgnoreStaleUserRequest(latestRequestIdRef: MutableRefObject<number>, requestId: number) {
+  return latestRequestIdRef.current !== requestId;
+}
+
+function resolveOverflowPage(response: UserSearchResponse) {
+  if (response.totalPages > 0 && response.page > response.totalPages) {
+    return response.totalPages;
+  }
+  return null;
+}
+
+async function runUserLoadRequest(options: {
+  latestRequestIdRef: MutableRefObject<number>;
+  requestId: number;
+  query: string;
+  page: number;
+  handlers: UserSearchHandlers;
+}) {
+  options.handlers.setTableStatus("loading");
+  try {
+    const response = await searchUsers(buildUserSearchParams(options.query, options.page));
+    if (shouldIgnoreStaleUserRequest(options.latestRequestIdRef, options.requestId)) {
+      return;
+    }
+    const overflowPage = resolveOverflowPage(response);
+    if (overflowPage !== null) {
+      options.handlers.setCurrentPage(overflowPage);
+      return;
+    }
+    applyUserSearchSuccess(response, options.handlers);
+  } catch (err) {
+    if (shouldIgnoreStaleUserRequest(options.latestRequestIdRef, options.requestId)) {
+      return;
+    }
+    applyUserSearchError(err, options.handlers);
+  }
+}
+
+function useUserManagementState() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [status, setStatus] = useState<RequestState>("idle");
   const [tableStatus, setTableStatus] = useState<RequestState>("idle");
@@ -31,259 +127,254 @@ export function UserManagementTable() {
   const [pageInput, setPageInput] = useState("1");
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const latestRequestId = useRef(0);
+  const latestRequestIdRef = useRef(0);
+  return { users, status, tableStatus, message, searchQuery, currentPage, pageInput, totalUsers, totalPages, latestRequestIdRef, setUsers, setStatus, setTableStatus, setMessage, setSearchQuery, setCurrentPage, setPageInput, setTotalUsers, setTotalPages };
+}
 
-  const loadUsers = useCallback(async (query: string, page: number) => {
-    const requestId = latestRequestId.current + 1;
-    latestRequestId.current = requestId;
-    setTableStatus("loading");
+function useLoadUsers(state: UserManagementState) {
+  const latestRequestIdRef = state.latestRequestIdRef;
+  const setUsers = state.setUsers;
+  const setTableStatus = state.setTableStatus;
+  const setMessage = state.setMessage;
+  const setTotalUsers = state.setTotalUsers;
+  const setTotalPages = state.setTotalPages;
+  const setCurrentPage = state.setCurrentPage;
+  return useCallback(async (query: string, page: number) => {
+    const handlers = { setUsers, setTableStatus, setMessage, setTotalUsers, setTotalPages, setCurrentPage };
+    const requestId = latestRequestIdRef.current + 1;
+    latestRequestIdRef.current = requestId;
+    await runUserLoadRequest({ latestRequestIdRef, requestId, query, page, handlers });
+  }, [latestRequestIdRef, setCurrentPage, setMessage, setTableStatus, setTotalPages, setTotalUsers, setUsers]);
+}
 
-    try {
-      const response = await searchUsers({
-        q: query.trim() || undefined,
-        page,
-        pageSize: USERS_PER_PAGE,
-      });
-      if (latestRequestId.current !== requestId) return;
-
-      if (response.totalPages > 0 && response.page > response.totalPages) {
-        setCurrentPage(response.totalPages);
-        return;
-      }
-
-      setUsers(response.items.map(normalizeUser));
-      setTotalUsers(response.total);
-      setTotalPages(response.totalPages);
-      setTableStatus("success");
-    } catch (err) {
-      if (latestRequestId.current !== requestId) return;
-      setUsers([]);
-      setTotalUsers(0);
-      setTotalPages(0);
-      setTableStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not load users.");
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadUsers(searchQuery, currentPage);
-  }, [searchQuery, currentPage, loadUsers]);
-
-  const setUserRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
-    setUsers((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
-  };
-
-  const handleRoleChange = async (userId: number, role: UserRole) => {
-    const previous = users.map((u) => ({ ...u }));
-    setStatus("loading");
-    setMessage(null);
-    setUserRow(userId, (user) => ({ ...user, role, isStaff: role !== "STUDENT" }));
-    try {
-      const updated = await updateUserRole(userId, role);
-      setUserRow(userId, () => normalizeUser(updated));
-      setStatus("success");
-      setMessage(`Updated role to ${role.toLowerCase()} for ${previous.find((u) => u.id === userId)?.email ?? "user"}.`);
-      void loadUsers(searchQuery, currentPage);
-    } catch (err) {
-      setUsers(previous);
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not update role.");
-    }
-  };
-
-  const handleStatusToggle = async (userId: number, nextStatus: boolean) => {
-    const previous = users.map((u) => ({ ...u }));
-    setStatus("loading");
-    setMessage(null);
-    setUserRow(userId, (user) => ({ ...user, active: nextStatus }));
-    try {
-      const updated = await updateUser(userId, { active: nextStatus });
-      setUserRow(userId, () => normalizeUser(updated));
-      setStatus("success");
-      setMessage(nextStatus ? "Account activated." : "Account suspended.");
-      void loadUsers(searchQuery, currentPage);
-    } catch (err) {
-      setUsers(previous);
-      setStatus("error");
-      setMessage(err instanceof Error ? err.message : "Could not update account status.");
-    }
-  };
-
-  const normalizedSearch = normalizeSearchQuery(searchQuery);
-  const effectiveTotalPages = getEffectiveTotalPages(totalPages);
-
+function useCurrentPageSync(normalizedSearch: string, setCurrentPage: Dispatch<SetStateAction<number>>) {
   useEffect(() => {
     setCurrentPage(1);
-  }, [normalizedSearch]);
+  }, [normalizedSearch, setCurrentPage]);
+}
 
+function usePageInputSync(currentPage: number, setPageInput: Dispatch<SetStateAction<string>>) {
   useEffect(() => {
     setPageInput(String(currentPage));
-  }, [currentPage]);
+  }, [currentPage, setPageInput]);
+}
 
-  const pageStart = getPaginationStart(totalUsers, currentPage, USERS_PER_PAGE);
-  const pageEnd = getPaginationEnd(totalUsers, currentPage, USERS_PER_PAGE, users.length);
+function setUserRow(setUsers: Dispatch<SetStateAction<AdminUser[]>>, userId: number, update: (user: AdminUser) => AdminUser) {
+  setUsers((previousUsers) => previousUsers.map((user) => (user.id === userId ? update(user) : user)));
+}
 
-  const applyPageInput = (value: string) => {
-    const parsedPage = parsePageInput(value, totalPages);
-    if (parsedPage === null) {
-      setPageInput(String(currentPage));
-      return;
-    }
-    setCurrentPage(parsedPage);
-  };
+async function runOptimisticUserUpdate(options: UserOptimisticUpdateOptions) {
+  const previousUsers = cloneUsers(options.users);
+  options.setStatus("loading");
+  options.setMessage(null);
+  setUserRow(options.setUsers, options.userId, options.optimisticUpdate);
+  try {
+    const updated = await options.request();
+    setUserRow(options.setUsers, options.userId, () => normalizeUser(updated));
+    options.setStatus("success");
+    options.setMessage(options.successMessage(previousUsers));
+    void options.loadUsers(options.searchQuery, options.currentPage);
+  } catch (err) {
+    options.setUsers(previousUsers);
+    options.setStatus("error");
+    options.setMessage(resolveUnknownError(err, options.errorMessage));
+  }
+}
 
-  const handlePageJump = (event: FormEvent<HTMLFormElement>) => {
+function resolveRoleUpdateSuccessMessage(previousUsers: AdminUser[], userId: number, role: UserRole) {
+  const email = previousUsers.find((user) => user.id === userId)?.email ?? "user";
+  return `Updated role to ${role.toLowerCase()} for ${email}.`;
+}
+
+function useRoleChangeHandler(options: UserMutationHandlers) {
+  return useCallback(async (userId: number, role: UserRole) => {
+    await runOptimisticUserUpdate({
+      ...options,
+      userId,
+      request: () => updateUserRole(userId, role),
+      optimisticUpdate: (user) => ({ ...user, role, isStaff: role !== "STUDENT" }),
+      successMessage: (previousUsers) => resolveRoleUpdateSuccessMessage(previousUsers, userId, role),
+      errorMessage: "Could not update role.",
+    });
+  }, [options]);
+}
+
+function useStatusToggleHandler(options: UserMutationHandlers) {
+  return useCallback(async (userId: number, nextStatus: boolean) => {
+    await runOptimisticUserUpdate({
+      ...options,
+      userId,
+      request: () => updateUser(userId, { active: nextStatus }),
+      optimisticUpdate: (user) => ({ ...user, active: nextStatus }),
+      successMessage: () => (nextStatus ? "Account activated." : "Account suspended."),
+      errorMessage: "Could not update account status.",
+    });
+  }, [options]);
+}
+
+function useUserActions(options: UserMutationHandlers) {
+  const handleRoleChange = useRoleChangeHandler(options);
+  const handleStatusToggle = useStatusToggleHandler(options);
+  return { handleRoleChange, handleStatusToggle };
+}
+
+function applyPageInputValue(options: {
+  value: string;
+  currentPage: number;
+  totalPages: number;
+  setPageInput: (value: string) => void;
+  setCurrentPage: (value: number) => void;
+}) {
+  const parsedPage = parsePageInput(options.value, options.totalPages);
+  if (parsedPage === null) {
+    options.setPageInput(String(options.currentPage));
+    return;
+  }
+  options.setCurrentPage(parsedPage);
+}
+
+function usePageJumpHandlers(state: UserManagementState) {
+  const applyPageInput = useCallback((value: string) => {
+    applyPageInputValue({ value, currentPage: state.currentPage, totalPages: state.totalPages, setPageInput: state.setPageInput, setCurrentPage: state.setCurrentPage });
+  }, [state.currentPage, state.setCurrentPage, state.setPageInput, state.totalPages]);
+  const handlePageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    applyPageInput(pageInput);
-  };
+    applyPageInput(state.pageInput);
+  }, [applyPageInput, state.pageInput]);
+  return { applyPageInput, handlePageJump };
+}
 
-  const rows = users.map((user) => {
-    const statusClass = user.active ? "status-chip status-chip--success" : "status-chip status-chip--danger";
-    const statusLabel = user.active ? "Active" : "Suspended";
-    const isAdmin = user.role === "ADMIN";
-    const isEnterpriseAdmin = user.role === "ENTERPRISE_ADMIN";
-    const roleLabel =
-      isAdmin
-        ? "Admin"
-        : isEnterpriseAdmin
-          ? "Enterprise admin"
-          : user.role === "STAFF"
-            ? "Staff"
-            : "Student";
-    const isSuperAdmin = user.email.toLowerCase() === "admin@kcl.ac.uk";
-
-    const roleControl = isAdmin ? (
-      <span className="role-chip">Admin</span>
-    ) : isEnterpriseAdmin ? (
-      <span className="role-chip role-chip--locked">Enterprise admin</span>
-    ) : (
-      <div className="user-management__role-toggle">
-        <Button
-          type="button"
-          variant={user.role === "STUDENT" ? "primary" : "ghost"}
-          className="user-management__role-toggle-btn"
-          onClick={() => handleRoleChange(user.id, "STUDENT")}
-          disabled={status === "loading" || user.role === "STUDENT"}
-        >
-          Student
-        </Button>
-        <Button
-          type="button"
-          variant={user.role === "STAFF" ? "primary" : "ghost"}
-          className="user-management__role-toggle-btn"
-          onClick={() => handleRoleChange(user.id, "STAFF")}
-          disabled={status === "loading" || user.role === "STAFF"}
-        >
-          Staff
-        </Button>
-      </div>
-    );
-
-    return [
-      <div key={`${user.id}-email`} className="ui-stack-xs">
-        <strong>{user.email}</strong>
-        <span className="muted">{roleLabel}</span>
-      </div>,
-      <div key={`${user.id}-name`} className="ui-stack-xs">
-        <span>{`${user.firstName} ${user.lastName}`}</span>
-        <span className="muted">ID {user.id}</span>
-      </div>,
-      <div key={`${user.id}-role`} className="ui-row ui-row--start">
-        {roleControl}
-      </div>,
-      isSuperAdmin ? (
-        <span key={`${user.id}-status`} className={`${statusClass} status-chip--disabled`}>
-          <span>●</span>
-          <span>Active</span>
-        </span>
-      ) : (
-        <button
-          key={`${user.id}-status`}
-          onClick={() => handleStatusToggle(user.id, !user.active)}
-          className={statusClass}
-        >
-          <span>{user.active ? "●" : "○"}</span>
-          <span>{statusLabel}</span>
-        </button>
-      ),
-    ];
-  });
-  const shouldShowLoadingSkeleton = tableStatus === "loading" && rows.length === 0;
-
+function UserManagementAction({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
   return (
-    <Card
-      title="User accounts"
-      className="user-management-card"
-      action={
-        <div className="ui-row user-management__actions">
-          <SearchField
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            className="user-management__search"
-            placeholder="Search by name, email, role, status, or ID"
-            aria-label="Search user accounts"
-          />
-        </div>
-      }
-    >
-      {message ? (
-        <div
-          className={`${status === "error" || tableStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"} status-alert--spaced`}
-        >
-          <span>{message}</span>
-        </div>
-      ) : null}
-      <div className="user-management__toolbar">
-        <span className="ui-note ui-note--muted">
-          {tableStatus === "loading" && totalUsers === 0
-            ? "Loading accounts..."
-            : totalUsers === 0
-              ? "Showing 0 accounts."
-              : `Showing ${pageStart}-${pageEnd} of ${totalUsers} account${totalUsers === 1 ? "" : "s"}.`}
-        </span>
-      </div>
-      {rows.length > 0 || shouldShowLoadingSkeleton ? (
-        <>
-          <Table
-            headers={["Email", "Name", "Role", "Account status"]}
-            rows={rows}
-            className="user-management__table"
-            headClassName="user-management__head"
-            rowClassName="user-management__row"
-            columnTemplate="var(--user-management-columns)"
-            isLoading={shouldShowLoadingSkeleton}
-            loadingLabel="Loading user accounts..."
-            loadingRowCount={6}
-          />
-          {totalPages > 1 ? (
-            <PaginationControls
-              ariaLabel="User accounts pagination"
-              page={currentPage}
-              totalPages={totalPages}
-              onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              onNextPage={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
-            >
-              <PaginationPageJump
-                pageInputId="user-management-page-input"
-                pageInput={pageInput}
-                totalPages={totalPages}
-                pageJumpAriaLabel="Go to page number"
-                onPageInputChange={setPageInput}
-                onPageInputBlur={() => applyPageInput(pageInput)}
-                onPageJump={handlePageJump}
-              />
-            </PaginationControls>
-          ) : null}
-        </>
-      ) : (
-        <div className="ui-empty-state">
-          <p>
-            {normalizedSearch
-                ? `No user accounts match "${searchQuery.trim()}".`
-                : "No user accounts found."}
-          </p>
-        </div>
-      )}
+    <div className="ui-row user-management__actions">
+      <SearchField value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} className="user-management__search" placeholder="Search by name, email, role, status, or ID" aria-label="Search user accounts" />
+    </div>
+  );
+}
+
+function UserManagementMessage({ message, status, tableStatus }: { message: string | null; status: RequestState; tableStatus: RequestState }) {
+  if (!message) {
+    return null;
+  }
+  const variantClass = status === "error" || tableStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success";
+  return (
+    <div className={`${variantClass} status-alert--spaced`}>
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function UserManagementCountLabel({ tableStatus, totalUsers, pageStart, pageEnd }: { tableStatus: RequestState; totalUsers: number; pageStart: number; pageEnd: number }) {
+  if (tableStatus === "loading" && totalUsers === 0) {
+    return "Loading accounts...";
+  }
+  if (totalUsers === 0) {
+    return "Showing 0 accounts.";
+  }
+  return `Showing ${pageStart}-${pageEnd} of ${totalUsers} account${totalUsers === 1 ? "" : "s"}.`;
+}
+
+function UserManagementPagination(props: {
+  currentPage: number;
+  totalPages: number;
+  effectiveTotalPages: number;
+  pageInput: string;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+  setPageInput: Dispatch<SetStateAction<string>>;
+  applyPageInput: (value: string) => void;
+  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  if (props.totalPages <= 1) {
+    return null;
+  }
+  return (
+    <PaginationControls ariaLabel="User accounts pagination" page={props.currentPage} totalPages={props.totalPages} onPreviousPage={() => props.setCurrentPage((previousPage) => Math.max(1, previousPage - 1))} onNextPage={() => props.setCurrentPage((previousPage) => Math.min(props.effectiveTotalPages, previousPage + 1))}>
+      <PaginationPageJump pageInputId="user-management-page-input" pageInput={props.pageInput} totalPages={props.totalPages} pageJumpAriaLabel="Go to page number" onPageInputChange={props.setPageInput} onPageInputBlur={() => props.applyPageInput(props.pageInput)} onPageJump={props.handlePageJump} />
+    </PaginationControls>
+  );
+}
+
+function UserManagementEmptyState({ normalizedSearch, searchQuery }: { normalizedSearch: string; searchQuery: string }) {
+  return (
+    <div className="ui-empty-state">
+      <p>{normalizedSearch ? `No user accounts match "${searchQuery.trim()}".` : "No user accounts found."}</p>
+    </div>
+  );
+}
+
+function UserManagementTableContent(props: {
+  rows: ReturnType<typeof buildUserManagementRows>;
+  shouldShowLoadingSkeleton: boolean;
+  totalPages: number;
+  currentPage: number;
+  effectiveTotalPages: number;
+  pageInput: string;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+  setPageInput: Dispatch<SetStateAction<string>>;
+  applyPageInput: (value: string) => void;
+  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
+  normalizedSearch: string;
+  searchQuery: string;
+}) {
+  if (props.rows.length === 0 && !props.shouldShowLoadingSkeleton) {
+    return <UserManagementEmptyState normalizedSearch={props.normalizedSearch} searchQuery={props.searchQuery} />;
+  }
+  return (
+    <>
+      <Table headers={["Email", "Name", "Role", "Account status"]} rows={props.rows} className="user-management__table" headClassName="user-management__head" rowClassName="user-management__row" columnTemplate="var(--user-management-columns)" isLoading={props.shouldShowLoadingSkeleton} loadingLabel="Loading user accounts..." loadingRowCount={6} />
+      <UserManagementPagination currentPage={props.currentPage} totalPages={props.totalPages} effectiveTotalPages={props.effectiveTotalPages} pageInput={props.pageInput} setCurrentPage={props.setCurrentPage} setPageInput={props.setPageInput} applyPageInput={props.applyPageInput} handlePageJump={props.handlePageJump} />
+    </>
+  );
+}
+
+function UserManagementTableBody(props: {
+  message: string | null;
+  status: RequestState;
+  tableStatus: RequestState;
+  pageStart: number;
+  pageEnd: number;
+  totalUsers: number;
+  rows: ReturnType<typeof buildUserManagementRows>;
+  shouldShowLoadingSkeleton: boolean;
+  totalPages: number;
+  currentPage: number;
+  effectiveTotalPages: number;
+  pageInput: string;
+  setCurrentPage: Dispatch<SetStateAction<number>>;
+  setPageInput: Dispatch<SetStateAction<string>>;
+  applyPageInput: (value: string) => void;
+  handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
+  normalizedSearch: string;
+  searchQuery: string;
+}) {
+  return (
+    <>
+      <UserManagementMessage message={props.message} status={props.status} tableStatus={props.tableStatus} />
+      <div className="user-management__toolbar"><span className="ui-note ui-note--muted"><UserManagementCountLabel tableStatus={props.tableStatus} totalUsers={props.totalUsers} pageStart={props.pageStart} pageEnd={props.pageEnd} /></span></div>
+      <UserManagementTableContent rows={props.rows} shouldShowLoadingSkeleton={props.shouldShowLoadingSkeleton} totalPages={props.totalPages} currentPage={props.currentPage} effectiveTotalPages={props.effectiveTotalPages} pageInput={props.pageInput} setCurrentPage={props.setCurrentPage} setPageInput={props.setPageInput} applyPageInput={props.applyPageInput} handlePageJump={props.handlePageJump} normalizedSearch={props.normalizedSearch} searchQuery={props.searchQuery} />
+    </>
+  );
+}
+
+export function UserManagementTable() {
+  const state = useUserManagementState();
+  const normalizedSearch = normalizeSearchQuery(state.searchQuery);
+  const effectiveTotalPages = getEffectiveTotalPages(state.totalPages);
+  const pageStart = getPaginationStart(state.totalUsers, state.currentPage, USERS_PER_PAGE);
+  const pageEnd = getPaginationEnd(state.totalUsers, state.currentPage, USERS_PER_PAGE, state.users.length);
+  const loadUsers = useLoadUsers(state);
+  useCurrentPageSync(normalizedSearch, state.setCurrentPage);
+  usePageInputSync(state.currentPage, state.setPageInput);
+  useEffect(() => {
+    void loadUsers(state.searchQuery, state.currentPage);
+  }, [loadUsers, state.currentPage, state.searchQuery]);
+  const pageJumpHandlers = usePageJumpHandlers(state);
+  const actions = useUserActions({ users: state.users, searchQuery: state.searchQuery, currentPage: state.currentPage, setUsers: state.setUsers, setStatus: state.setStatus, setMessage: state.setMessage, loadUsers });
+  const rows = buildUserManagementRows({ users: state.users, busy: state.status === "loading", onRoleChange: (userId, role) => { void actions.handleRoleChange(userId, role); }, onStatusToggle: (userId, nextStatus) => { void actions.handleStatusToggle(userId, nextStatus); } });
+  const shouldShowLoadingSkeleton = state.tableStatus === "loading" && rows.length === 0;
+  return (
+    <Card title="User accounts" className="user-management-card" action={<UserManagementAction searchQuery={state.searchQuery} onSearchChange={state.setSearchQuery} />}>
+      <UserManagementTableBody message={state.message} status={state.status} tableStatus={state.tableStatus} pageStart={pageStart} pageEnd={pageEnd} totalUsers={state.totalUsers} rows={rows} shouldShowLoadingSkeleton={shouldShowLoadingSkeleton} totalPages={state.totalPages} currentPage={state.currentPage} effectiveTotalPages={effectiveTotalPages} pageInput={state.pageInput} setCurrentPage={state.setCurrentPage} setPageInput={state.setPageInput} applyPageInput={pageJumpHandlers.applyPageInput} handlePageJump={pageJumpHandlers.handlePageJump} normalizedSearch={normalizedSearch} searchQuery={state.searchQuery} />
     </Card>
   );
 }

@@ -85,7 +85,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  background: rgba(127, 127, 127, 0.08);
+  background: var(--color-fixed-rgba-127-127-127-0-08);
 }
 
 .workspace-shell .help-faq__group-toggle::-webkit-details-marker {
@@ -99,7 +99,7 @@
 
 .workspace-shell .help-faq__group-title {
   color: var(--ink-strong);
-  font-size: clamp(1rem, 1.4vw, 1.15rem);
+  font-size: var(--fs-fixed-clamp-1rem-1-4vw-1-15rem);
   font-weight: var(--fw-semibold);
 }
 
@@ -216,7 +216,7 @@
   cursor: pointer;
   list-style: none;
   padding: 14px 16px;
-  background: rgba(127, 127, 127, 0.08);
+  background: var(--color-fixed-rgba-127-127-127-0-08);
 }
 
 .workspace-shell .help-playbook__summary::-webkit-details-marker {
@@ -256,7 +256,7 @@
 .workspace-shell .help-section__card h3,
 .workspace-shell .help-section__card h4 {
   margin: 0;
-  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  font-size: var(--fs-fixed-clamp-1rem-1-5vw-1-2rem);
 }
 
 .workspace-shell .help-section__card p {
@@ -342,7 +342,7 @@
   }
 
   .workspace-shell .help-hub__hero h1 {
-    font-size: clamp(2.05rem, 11vw, 2.8rem);
+    font-size: var(--fs-fixed-clamp-2-05rem-11vw-2-8rem);
   }
 
   .workspace-shell .help-hub__card {
