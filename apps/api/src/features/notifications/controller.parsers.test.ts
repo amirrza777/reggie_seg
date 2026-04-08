@@ -15,4 +15,10 @@ describe("notifications controller parsers", () => {
     expect(parseNotificationActionBody({ userId: "3" })).toEqual({ ok: true, value: { userId: 3 } });
     expect(parseNotificationActionBody({})).toEqual({ ok: false, error: "Missing required field: userId" });
   });
+
+  it("rejects non-object action bodies", () => {
+    expect(parseNotificationActionBody(null)).toEqual({ ok: false, error: "Missing required field: userId" });
+    expect(parseNotificationActionBody("string")).toEqual({ ok: false, error: "Missing required field: userId" });
+    expect(parseNotificationActionBody([{ userId: 3 }])).toEqual({ ok: false, error: "Missing required field: userId" });
+  });
 });

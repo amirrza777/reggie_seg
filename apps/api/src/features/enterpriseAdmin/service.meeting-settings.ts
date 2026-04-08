@@ -11,20 +11,22 @@ type ModuleMeetingSettings = {
   allowAnyoneToWriteMinutes: boolean;
 };
 
+const meetingSettingsSelect = {
+  absenceThreshold: true,
+  minutesEditWindowDays: true,
+  attendanceEditWindowDays: true,
+  allowAnyoneToEditMeetings: true,
+  allowAnyoneToRecordAttendance: true,
+  allowAnyoneToWriteMinutes: true,
+};
+
 export async function getModuleMeetingSettings(
   enterpriseUser: EnterpriseUser,
   moduleId: number
 ): Promise<{ ok: true; value: ModuleMeetingSettings } | { ok: false; status: number; error: string }> {
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
-    select: {
-      absenceThreshold: true,
-      minutesEditWindowDays: true,
-      attendanceEditWindowDays: true,
-      allowAnyoneToEditMeetings: true,
-      allowAnyoneToRecordAttendance: true,
-      allowAnyoneToWriteMinutes: true,
-    },
+    select: meetingSettingsSelect,
   });
 
   if (!module) return { ok: false, status: 404, error: "Module not found" };
@@ -55,22 +57,8 @@ export async function updateModuleMeetingSettings(
 
   const updated = await prisma.module.update({
     where: { id: moduleId },
-    data: {
-      absenceThreshold: data.absenceThreshold,
-      minutesEditWindowDays: data.minutesEditWindowDays,
-      attendanceEditWindowDays: data.attendanceEditWindowDays,
-      allowAnyoneToEditMeetings: data.allowAnyoneToEditMeetings,
-      allowAnyoneToRecordAttendance: data.allowAnyoneToRecordAttendance,
-      allowAnyoneToWriteMinutes: data.allowAnyoneToWriteMinutes,
-    },
-    select: {
-      absenceThreshold: true,
-      minutesEditWindowDays: true,
-      attendanceEditWindowDays: true,
-      allowAnyoneToEditMeetings: true,
-      allowAnyoneToRecordAttendance: true,
-      allowAnyoneToWriteMinutes: true,
-    },
+    data,
+    select: meetingSettingsSelect,
   });
 
   return { ok: true, value: updated };
