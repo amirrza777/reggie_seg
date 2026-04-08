@@ -348,6 +348,28 @@ describe("MeetingList", () => {
     expect(screen.getByText("Adam Author")).toBeInTheDocument();
   });
 
+  it("sorts meetings with no minutes writer below those with one", () => {
+    const mixed = [
+      { ...meetings[0], id: 1, minutes: { writer: { id: 1, firstName: "Alice", lastName: "Doe" } }, title: "Has Writer" },
+      { ...meetings[0], id: 2, minutes: null, title: "No Writer" },
+    ];
+    render(<MeetingList meetings={mixed as any} projectId={1} showMinutesWriter />);
+    fireEvent.click(screen.getByText("Minutes by"));
+    const position = screen.getByText("No Writer").compareDocumentPosition(screen.getByText("Has Writer"));
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("preserves order when both meetings lack a minutes writer", () => {
+    const noWriters = [
+      { ...meetings[0], id: 1, minutes: null, title: "No Writer A", date: "2024-06-01T10:00:00Z" },
+      { ...meetings[0], id: 2, minutes: null, title: "No Writer B", date: "2024-01-01T10:00:00Z" },
+    ];
+    render(<MeetingList meetings={noWriters as any} projectId={1} showMinutesWriter />);
+    fireEvent.click(screen.getByText("Minutes by"));
+    const position = screen.getByText("No Writer A").compareDocumentPosition(screen.getByText("No Writer B"));
+    expect(position & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("ignores attendance-header sorting when minutes-writer mode is enabled", () => {
     const twoMeetings = [
       {
