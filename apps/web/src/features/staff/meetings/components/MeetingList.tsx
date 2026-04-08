@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
-import { Table } from "@/shared/ui/Table";
-import type { SortConfig } from "@/shared/ui/Table";
-import { isPresent, getAttendanceRate } from "../attendance";
+import { Table, type SortConfig } from "@/shared/ui/Table";
+import { isPresent, getAttendanceRate } from "../lib/attendance";
 import type { StaffMeeting } from "../types";
 
 type MeetingListProps = {
@@ -19,21 +18,23 @@ function formatDate(dateStr: string) {
   });
 }
 
+function compareMeetings(a: StaffMeeting, b: StaffMeeting, column: number, dir: number): number {
+  switch (column) {
+    case 0: return dir * a.title.localeCompare(b.title);
+    case 1: return dir * a.date.localeCompare(b.date);
+    case 2: return dir * `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(`${b.organiser.firstName} ${b.organiser.lastName}`);
+    case 3: return dir * (getAttendanceRate(a.attendances) - getAttendanceRate(b.attendances));
+    case 4: return dir * ((a.minutes ? 1 : 0) - (b.minutes ? 1 : 0));
+    default: return 0;
+  }
+}
+
 export function MeetingList({ meetings }: MeetingListProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 1, direction: "desc" });
 
   const sorted = useMemo(() => {
-    return [...meetings].sort((a, b) => {
-      const dir = sortConfig.direction === "asc" ? 1 : -1;
-      switch (sortConfig.column) {
-        case 0: return dir * a.title.localeCompare(b.title);
-        case 1: return dir * a.date.localeCompare(b.date);
-        case 2: return dir * `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(`${b.organiser.firstName} ${b.organiser.lastName}`);
-        case 3: return dir * (getAttendanceRate(a.attendances) - getAttendanceRate(b.attendances));
-        case 4: return dir * ((a.minutes ? 1 : 0) - (b.minutes ? 1 : 0));
-        default: return 0;
-      }
-    });
+    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    return [...meetings].sort((a, b) => compareMeetings(a, b, sortConfig.column, dir));
   }, [meetings, sortConfig]);
 
   function handleSort(columnIndex: number) {

@@ -2,21 +2,21 @@ import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { StaffMeetingsView } from "./StaffMeetingsView";
 
-vi.mock("./components/MeetingStatsPanel", () => ({
+vi.mock("./MeetingStatsPanel", () => ({
   MeetingStatsPanel: ({ stats }: any) => <div data-testid="stats-panel" data-total={stats.totalMeetings} />,
 }));
 
-vi.mock("./components/LowAttendanceAlert", () => ({
+vi.mock("./LowAttendanceAlert", () => ({
   LowAttendanceAlert: ({ flaggedMembers }: any) => (
     <div data-testid="low-attendance-alert" data-count={flaggedMembers.length} />
   ),
 }));
 
-vi.mock("./components/MeetingList", () => ({
+vi.mock("./MeetingList", () => ({
   MeetingList: ({ meetings }: any) => <div data-testid="meeting-list" data-count={meetings.length} />,
 }));
 
-vi.mock("./components/AttendanceTable", () => ({
+vi.mock("./AttendanceTable", () => ({
   AttendanceTable: ({ members }: any) => <div data-testid="attendance-table" data-count={members.length} />,
 }));
 

@@ -6,7 +6,7 @@ import {
   getMemberAttendanceStats,
   getFlaggedMembers,
 } from "./attendance";
-import type { StaffMeeting } from "./types";
+import type { StaffMeeting } from "../types";
 
 function makeMeeting(overrides: Partial<StaffMeeting> = {}): StaffMeeting {
   return {

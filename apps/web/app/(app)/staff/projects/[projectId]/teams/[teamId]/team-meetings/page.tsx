@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
-import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
+import { StaffMeetingsView } from "@/features/staff/meetings/components/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
 import "@/features/staff/projects/styles/staff-projects.css";
 
