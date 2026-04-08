@@ -44,6 +44,28 @@ describe("addCommentHandler", () => {
     expect(res.json).toHaveBeenCalledWith({ id: 10 });
   });
 
+  it("returns 409 when project is archived", async () => {
+    (service.addComment as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = {
+      params: { meetingId: "5" },
+      body: { userId: 1, content: "looks good" },
+    };
+    const res = mockResponse();
+    await addCommentHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("returns 404 when meeting not found", async () => {
+    (service.addComment as any).mockRejectedValue({ code: "NOT_FOUND" });
+    const req: any = {
+      params: { meetingId: "5" },
+      body: { userId: 1, content: "looks good" },
+    };
+    const res = mockResponse();
+    await addCommentHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
   it("returns 500 on error", async () => {
     (service.addComment as any).mockRejectedValue(new Error("fail"));
     const req: any = {
@@ -80,6 +102,14 @@ describe("deleteCommentHandler", () => {
     const res = mockResponse();
     await deleteCommentHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 409 when project is archived", async () => {
+    (service.removeComment as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = { params: { commentId: "12" } };
+    const res = mockResponse();
+    await deleteCommentHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
   });
 
   it("returns 500 for other errors", async () => {

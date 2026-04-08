@@ -65,6 +65,17 @@ describe("saveMinutesHandler", () => {
     expect(res.status).toHaveBeenCalledWith(403);
   });
 
+  it("returns 409 when project is archived", async () => {
+    (service.saveMinutes as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = {
+      params: { meetingId: "5" },
+      body: { writerId: 1, content: "notes" },
+    };
+    const res = mockResponse();
+    await saveMinutesHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
   it("returns 500 on error", async () => {
     (service.saveMinutes as any).mockRejectedValue(new Error("fail"));
     const req: any = {

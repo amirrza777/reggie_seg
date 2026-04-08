@@ -45,6 +45,18 @@ vi.mock("../../shared/projectWriteGuard.js", () => ({
 const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
 const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
+function setupAddMeetingMocks(
+  members: { id: number; email: string }[],
+  meetingId: number,
+  teamState?: Record<string, unknown>,
+) {
+  (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10, ...teamState });
+  (repo.createMeeting as any).mockResolvedValue({ id: meetingId });
+  (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
+  (repo.createParticipants as any).mockResolvedValue(undefined);
+  (email.sendEmail as any).mockResolvedValue(undefined);
+}
+
 describe("meetings crud service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -69,15 +81,8 @@ describe("meetings crud service", () => {
   });
 
   it("creates meeting and participants for all members when no participantIds", async () => {
-    const members = [
-      { id: 1, email: "a@test.com" },
-      { id: 2, email: "b@test.com" },
-    ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 3 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    const members = [{ id: 1, email: "a@test.com" }, { id: 2, email: "b@test.com" }];
+    setupAddMeetingMocks(members, 3);
 
     const result = await addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-03-01") });
 
@@ -112,16 +117,8 @@ describe("meetings crud service", () => {
   });
 
   it("creates participants only for invited members when participantIds provided", async () => {
-    const members = [
-      { id: 1, email: "a@test.com" },
-      { id: 2, email: "b@test.com" },
-      { id: 3, email: "c@test.com" },
-    ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 5 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    const members = [{ id: 1, email: "a@test.com" }, { id: 2, email: "b@test.com" }, { id: 3, email: "c@test.com" }];
+    setupAddMeetingMocks(members, 5);
 
     await addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-03-01"), participantIds: [1, 3] });
 
@@ -129,12 +126,7 @@ describe("meetings crud service", () => {
   });
 
   it("sends invite email with ics attachment to each participant", async () => {
-    const members = [{ id: 1, email: "a@test.com" }];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 1 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    setupAddMeetingMocks([{ id: 1, email: "a@test.com" }], 1);
 
     await addMeeting({ teamId: 1, organiserId: 1, title: "Design Review", date: new Date("2026-05-01T14:00:00Z") });
 
@@ -149,12 +141,7 @@ describe("meetings crud service", () => {
   });
 
   it("escapes special characters in ics text fields", async () => {
-    const members = [{ id: 1, email: "a@test.com" }];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 1 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    setupAddMeetingMocks([{ id: 1, email: "a@test.com" }], 1);
 
     await addMeeting({
       teamId: 1,
@@ -171,15 +158,7 @@ describe("meetings crud service", () => {
   });
 
   it("sends invite email only to selected participants when participantIds provided", async () => {
-    const members = [
-      { id: 1, email: "a@test.com" },
-      { id: 2, email: "b@test.com" },
-    ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 2 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    setupAddMeetingMocks([{ id: 1, email: "a@test.com" }, { id: 2, email: "b@test.com" }], 2);
 
     await addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-05-01"), participantIds: [1] });
 
@@ -188,12 +167,7 @@ describe("meetings crud service", () => {
   });
 
   it("clears inactivity flag when team has YELLOW flag", async () => {
-    const members = [{ id: 1, email: "a@test.com" }];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "YELLOW", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 1 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    setupAddMeetingMocks([{ id: 1, email: "a@test.com" }], 1, { inactivityFlag: "YELLOW" });
 
     await addMeeting({ teamId: 1, organiserId: 1, title: "Team Meeting", date: new Date("2026-05-01") });
 
@@ -201,16 +175,7 @@ describe("meetings crud service", () => {
   });
 
   it("sends MEETING_CREATED notification to participants except the organiser", async () => {
-    const members = [
-      { id: 1, email: "a@test.com" },
-      { id: 2, email: "b@test.com" },
-      { id: 3, email: "c@test.com" },
-    ];
-    (repo.getTeamMeetingState as any).mockResolvedValue({ archivedAt: null, inactivityFlag: "NONE", projectId: 10 });
-    (repo.createMeeting as any).mockResolvedValue({ id: 5 });
-    (teamAllocationService.getTeamMembers as any).mockResolvedValue(members);
-    (repo.createParticipants as any).mockResolvedValue(undefined);
-    (email.sendEmail as any).mockResolvedValue(undefined);
+    setupAddMeetingMocks([{ id: 1, email: "a@test.com" }, { id: 2, email: "b@test.com" }, { id: 3, email: "c@test.com" }], 5);
 
     await addMeeting({ teamId: 1, organiserId: 1, title: "Design Review", date: new Date("2026-05-01") });
 
@@ -223,6 +188,26 @@ describe("meetings crud service", () => {
     expect(notificationsService.addNotification).not.toHaveBeenCalledWith(
       expect.objectContaining({ userId: 1, type: "MEETING_CREATED" })
     );
+  });
+
+  it("rejects addMeeting when MCF deadline profile has passed", async () => {
+    (repo.getTeamMeetingState as any).mockResolvedValue({
+      archivedAt: null,
+      inactivityFlag: "NONE",
+      deadlineProfile: "MCF",
+      deadlineOverride: null,
+      project: {
+        archivedAt: null,
+        deadline: {
+          feedbackDueDate: new Date("2030-01-01"),
+          feedbackDueDateMcf: new Date("2020-01-01"),
+        },
+      },
+    });
+
+    await expect(
+      addMeeting({ teamId: 1, organiserId: 1, title: "Late Meeting", date: new Date("2026-03-01") })
+    ).rejects.toEqual({ code: "PROJECT_COMPLETED" });
   });
 
   it("throws TEAM_ARCHIVED when team is archived", async () => {
