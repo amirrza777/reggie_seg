@@ -49,6 +49,15 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
     });
   }, [teamId]);
 
+  function resetForm() {
+    setTitle("");
+    setDate("");
+    setSubject("");
+    setLocation("");
+    setVideoCallLink("");
+    setAgenda("");
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errors: Record<string, string> = {};
@@ -77,12 +86,7 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
     setFieldErrors(result.fieldErrors);
 
     if (result.success) {
-      setTitle("");
-      setDate("");
-      setSubject("");
-      setLocation("");
-      setVideoCallLink("");
-      setAgenda("");
+      resetForm();
       onCreated();
     }
   }
