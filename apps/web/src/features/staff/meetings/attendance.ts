@@ -6,6 +6,11 @@ export function isPresent(status: string) {
   return ["on_time", "late"].includes(status.toLowerCase());
 }
 
+export function getAttendanceRate(attendances: { status: string }[]): number {
+  if (attendances.length === 0) return 0;
+  return attendances.filter((a) => isPresent(a.status)).length / attendances.length;
+}
+
 function getConsecutiveAbsences(userId: number, meetings: StaffMeeting[]): number {
   let count = 0;
   const now = new Date();

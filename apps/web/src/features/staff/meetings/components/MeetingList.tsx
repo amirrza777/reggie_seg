@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import type { SortConfig } from "@/shared/ui/Table";
-import { isPresent } from "../attendance";
+import { isPresent, getAttendanceRate } from "../attendance";
 import type { StaffMeeting } from "../types";
 
 type MeetingListProps = {
@@ -29,11 +29,7 @@ export function MeetingList({ meetings }: MeetingListProps) {
         case 0: return dir * a.title.localeCompare(b.title);
         case 1: return dir * a.date.localeCompare(b.date);
         case 2: return dir * `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(`${b.organiser.firstName} ${b.organiser.lastName}`);
-        case 3: {
-          const rateA = a.attendances.length > 0 ? a.attendances.filter((x) => isPresent(x.status)).length / a.attendances.length : 0;
-          const rateB = b.attendances.length > 0 ? b.attendances.filter((x) => isPresent(x.status)).length / b.attendances.length : 0;
-          return dir * (rateA - rateB);
-        }
+        case 3: return dir * (getAttendanceRate(a.attendances) - getAttendanceRate(b.attendances));
         case 4: return dir * ((a.minutes ? 1 : 0) - (b.minutes ? 1 : 0));
         default: return 0;
       }
