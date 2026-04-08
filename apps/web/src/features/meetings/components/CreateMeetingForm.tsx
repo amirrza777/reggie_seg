@@ -51,6 +51,13 @@ export function CreateMeetingForm({ teamId, onCreated, onCancel }: CreateMeeting
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const errors: Record<string, string> = {};
+    if (!title.trim()) errors.title = "Enter a title.";
+    if (!date.trim()) errors.date = "Select a date and time.";
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
     setStatus("loading");
     const result = await submitCreateMeeting({
       teamId,
