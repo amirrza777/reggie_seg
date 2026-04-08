@@ -1150,6 +1150,7 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
       teamName: true,
       projectId: true,
       createdAt: true,
+      trelloBoardId: true,
       allocations: {
         select: {
           userId: true,

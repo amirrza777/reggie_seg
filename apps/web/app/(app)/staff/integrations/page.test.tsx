@@ -40,8 +40,16 @@ vi.mock("@/features/github/components/GithubProjectReposClient", () => ({
   GithubProjectReposClient: ({ projectId }: { projectId: string }) => <div data-testid="github-client">{projectId}</div>,
 }));
 
-vi.mock("@/features/trello/components/ProjectTrelloContent", () => ({
-  ProjectTrelloContent: ({ projectId, teamId, teamName }: { projectId: string; teamId: number; teamName: string }) => (
+vi.mock("@/features/staff/trello/StaffProjectTrelloContent", () => ({
+  StaffProjectTrelloContent: ({
+    projectId,
+    teamId,
+    teamName,
+  }: {
+    projectId: string;
+    teamId: number;
+    teamName: string;
+  }) => (
     <div data-testid="trello-content">{`${projectId}:${teamId}:${teamName}`}</div>
   ),
 }));
@@ -200,8 +208,8 @@ describe("StaffIntegrationsPage", () => {
     const page = await StaffIntegrationsPage({ searchParams: Promise.resolve({ projectId: "30" }) });
     render(page);
 
-    expect(screen.getByText(/needs a team context/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open project Trello" })).toHaveAttribute("href", "/projects/30/trello");
+    expect(screen.getByText(/Trello activity is shown per team/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open project teams" })).toHaveAttribute("href", "/staff/projects/30");
   });
 
   it("shows trello fallback when team lookup throws", async () => {
@@ -214,8 +222,8 @@ describe("StaffIntegrationsPage", () => {
     const page = await StaffIntegrationsPage({ searchParams: Promise.resolve({ projectId: "31" }) });
     render(page);
 
-    expect(screen.getByText(/needs a team context/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open project Trello" })).toHaveAttribute("href", "/projects/31/trello");
+    expect(screen.getByText(/Trello activity is shown per team/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open project teams" })).toHaveAttribute("href", "/staff/projects/31");
   });
 
   it("handles non-numeric selected project ids without loading team data", async () => {
@@ -228,7 +236,7 @@ describe("StaffIntegrationsPage", () => {
     render(page);
 
     expect(getStaffProjectTeamsMock).not.toHaveBeenCalled();
-    expect(screen.getByText(/needs a team context/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open project Trello" })).toHaveAttribute("href", "/projects/NaN/trello");
+    expect(screen.getByText(/Trello activity is shown per team/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open project teams" })).toHaveAttribute("href", "/staff/projects/NaN");
   });
 });

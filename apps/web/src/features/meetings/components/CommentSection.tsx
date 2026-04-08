@@ -19,6 +19,7 @@ type CommentSectionProps = {
   teamId?: number;
   members?: Member[];
   initialComments?: MeetingCommentRecord[];
+  allowComposer?: boolean;
 };
 
 function renderCommentContent(content: string) {
@@ -28,7 +29,13 @@ function renderCommentContent(content: string) {
   );
 }
 
-export function CommentSection({ meetingId, teamId, members = [], initialComments = [] }: CommentSectionProps) {
+export function CommentSection({
+  meetingId,
+  teamId,
+  members = [],
+  initialComments = [],
+  allowComposer = true,
+}: CommentSectionProps) {
   const { user } = useUser();
   const [comments, setComments] = useState(initialComments);
   const [message, setMessage] = useState<string | null>(null);
@@ -79,7 +86,7 @@ export function CommentSection({ meetingId, teamId, members = [], initialComment
                 <strong>{comment.user.firstName} {comment.user.lastName}</strong>
                 <span className="muted"> — {new Date(comment.createdAt).toLocaleString()}</span>
               </div>
-              {user && user.id === comment.userId && (
+              {allowComposer && user && user.id === comment.userId && (
                 <Button type="button" variant="ghost" onClick={() => handleDeleteComment(comment.id)}>
                   Delete
                 </Button>
@@ -88,7 +95,7 @@ export function CommentSection({ meetingId, teamId, members = [], initialComment
             <div className="comment__body">{renderCommentContent(comment.content)}</div>
           </div>
         ))}
-        {user && <CommentInput members={members} onPost={handlePost} />}
+        {allowComposer && user ? <CommentInput members={members} onPost={handlePost} /> : null}
         {message && <p className="error">{message}</p>}
       </div>
     </Card>

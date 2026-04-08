@@ -45,6 +45,7 @@ type Props = {
   onFetchBranchCommits?: (linkId: number, branchName: string) => Promise<void>;
   onLinkSelected: () => Promise<void>;
   onRemoveLink: (linkId: number) => void;
+  readOnlyWorkspace?: boolean;
 };
 
 export function GithubProjectReposRepositoriesTab(props: Props) {
@@ -78,6 +79,7 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
     onFetchBranchCommits = async () => undefined,
     onLinkSelected,
     onRemoveLink,
+    readOnlyWorkspace = false,
   } = props;
   const selectedRepo = availableRepos.find((repo) => String(repo.githubRepoId) === selectedRepoId);
   const selectedRepoNeedsAppAccess = Boolean(selectedRepo && !selectedRepo.isAppInstalled);
@@ -90,12 +92,14 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
           <p className="github-repos-tab__kicker">Repositories</p>
           <h2 className="github-repos-tab__heading">Linked repositories</h2>
         </div>
-        <Button variant="ghost" onClick={() => void onRefresh()} disabled={loading || busy}>
-          {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
-        </Button>
+        {readOnlyWorkspace ? null : (
+          <Button variant="ghost" onClick={() => void onRefresh()} disabled={loading || busy}>
+            {busy && links.length > 0 ? "Refreshing..." : "Refresh"}
+          </Button>
+        )}
       </div>
       <div className="github-repos-tab__list">
-        {connection?.connected && links.length === 0 ? (
+        {!readOnlyWorkspace && connection?.connected && links.length === 0 ? (
           <div className="ui-stack-sm github-repos-tab__link-controls">
             <label className="muted" htmlFor="github-repo-search">
               Search repositories
@@ -162,7 +166,7 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
             ) : null}
           </div>
         ) : null}
-        {connection?.connected && links.length > 0 ? (
+        {!readOnlyWorkspace && connection?.connected && links.length > 0 ? (
           <p className="muted">This project already has a linked repository. Remove it before linking another one.</p>
         ) : null}
         {loading ? (
@@ -196,7 +200,8 @@ export function GithubProjectReposRepositoriesTab(props: Props) {
               busy={busy}
               loading={loading}
               removingLinkId={removingLinkId}
-              onRemoveLink={(linkId) => onRemoveLink(linkId)}
+              readOnly={readOnlyWorkspace}
+              onRemoveLink={readOnlyWorkspace ? undefined : (linkId) => onRemoveLink(linkId)}
             />
           ))}
       </div>

@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext } from "react";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
-import type { TeamBoardViewState } from "@/features/trello/lib/teamBoardState";
+import type { LoadTeamBoardOptions, TeamBoardViewState } from "@/features/trello/lib/teamBoardState";
 
 export type { TeamBoardViewState };
 
@@ -17,11 +17,13 @@ export function useTrelloBoard(): TrelloBoardContextValue | null {
 
 type TrelloBoardProviderProps = {
   teamId: number;
+  staffView?: boolean;
   children: React.ReactNode;
 };
 
-export function TrelloBoardProvider({ teamId, children }: TrelloBoardProviderProps) {
-  const value = useTeamBoardState(teamId);
+export function TrelloBoardProvider({ teamId, staffView, children }: TrelloBoardProviderProps) {
+  const boardOptions: LoadTeamBoardOptions | undefined = staffView ? { staffView: true } : undefined;
+  const value = useTeamBoardState(teamId, boardOptions);
   return (
     <TrelloBoardContext.Provider value={value}>
       {children}

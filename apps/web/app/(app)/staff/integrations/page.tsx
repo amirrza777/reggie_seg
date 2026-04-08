@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { GithubProjectReposClient } from "@/features/github/components/GithubProjectReposClient";
 import { getStaffProjectTeams, getStaffProjects } from "@/features/projects/api/client";
-import { ProjectTrelloContent } from "@/features/trello/components/ProjectTrelloContent";
+import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
 import { StaffTrelloSummaryView } from "@/features/staff/trello/StaffTrelloSummaryView";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { SearchField } from "@/shared/ui/SearchField";
@@ -162,7 +162,7 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
           <section className="stack" aria-label="Trello integration">
             <h3 style={{ margin: 0 }}>Trello activity</h3>
             {team ? (
-              <ProjectTrelloContent
+              <StaffProjectTrelloContent
                 projectId={selectedProjectId}
                 teamId={team.id}
                 teamName={team.teamName}
@@ -171,11 +171,14 @@ export default async function StaffIntegrationsPage({ searchParams }: StaffInteg
             ) : (
               <div className="stack">
                 <p className="muted">
-                  Trello board activity needs a team context. Open this project&apos;s Trello page to manage or inspect
-                  team linkage.
+                  Trello activity is shown per team. Open the project, choose a team, then inspect Trello for that team.
                 </p>
-                <Link href={`/projects/${selectedProjectId}/trello`} className="pill-nav__link" style={{ width: "fit-content" }}>
-                  Open project Trello
+                <Link
+                  href={`/staff/projects/${encodeURIComponent(selectedProjectId)}`}
+                  className="pill-nav__link"
+                  style={{ width: "fit-content" }}
+                >
+                  Open project teams
                 </Link>
               </div>
             )}

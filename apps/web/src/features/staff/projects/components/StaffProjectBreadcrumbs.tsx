@@ -46,7 +46,6 @@ const PROJECT_SECTION_LABELS: Record<string, string> = {
   discussion: "Discussion Forum",
   meetings: "Meetings",
   "team-allocation": "Team allocation",
-  trello: "Trello",
 };
 
 function toTitleCase(value: string): string {
@@ -78,17 +77,9 @@ function buildProjectSectionCrumbs(basePath: string, sectionSegments: string[]):
   if (sectionSegments.length === 0) {
     return [];
   }
-  const [section, child] = sectionSegments;
+  const [section] = sectionSegments;
   if (!section) {
     return [];
-  }
-  if (section === "trello") {
-    const trelloRoot = `${basePath}/trello`;
-    const items: BreadcrumbItem[] = [{ label: PROJECT_SECTION_LABELS.trello, href: trelloRoot }];
-    if (child) {
-      items.push({ label: toTitleCase(child) });
-    }
-    return items;
   }
   return [{ label: PROJECT_SECTION_LABELS[section] ?? toTitleCase(section) }];
 }

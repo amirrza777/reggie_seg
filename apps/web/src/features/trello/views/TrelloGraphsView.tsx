@@ -11,6 +11,7 @@ type Props = {
   view: BoardView;
   sectionConfig: Record<string, string>;
   deadline?: ProjectDeadline | null;
+  integrationsReadOnly?: boolean;
 };
 
 export function TrelloGraphsView({ view, sectionConfig, deadline }: Props) {

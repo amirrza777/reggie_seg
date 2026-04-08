@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { Card } from "@/shared/ui/Card";
 import { TeamHealthMessagePanel } from "./TeamHealthMessagePanel";
 import type { TeamHealthMessage, TeamWarning } from "../types";
@@ -34,6 +35,7 @@ export function ProjectTeamHealthPanels({
   messagesLoadError,
   warningsLoadError,
 }: ProjectTeamHealthPanelsProps) {
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const [tab, setTab] = useState<TeamHealthTab>("messages");
 
   const warningCountLabel = useMemo(
@@ -92,7 +94,9 @@ export function ProjectTeamHealthPanels({
         <Card title="Messages">
           <div className="stack" style={{ gap: 6, marginBottom: 12 }}>
             <p className="muted" style={{ margin: 0 }}>
-              Submit and track team health messages for your team.
+              {workspaceCanEdit
+                ? "Submit and track team health messages for your team."
+                : "Historical team health messages for your team. New messages cannot be added while this project is archived."}
             </p>
           </div>
 
@@ -100,6 +104,7 @@ export function ProjectTeamHealthPanels({
             projectId={projectId}
             userId={userId}
             initialRequests={initialRequests}
+            allowNewMessages={workspaceCanEdit}
           />
           {messagesLoadError ? <p className="error">{messagesLoadError}</p> : null}
         </Card>

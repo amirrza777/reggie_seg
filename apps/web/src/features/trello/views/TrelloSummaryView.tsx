@@ -16,6 +16,7 @@ type Props = {
   onRequestChangeBoard: () => void;
   onRequestChangeAccount?: () => void;
   deadline?: ProjectDeadline | null;
+  integrationsReadOnly?: boolean;
 };
 
 export function TrelloSummaryView({
@@ -25,6 +26,7 @@ export function TrelloSummaryView({
   onRequestChangeBoard,
   onRequestChangeAccount,
   deadline,
+  integrationsReadOnly = false,
 }: Props) {
   const data = useTrelloSummaryData(view, sectionConfig, deadline);
 
@@ -58,6 +60,7 @@ export function TrelloSummaryView({
         onRequestChangeBoard={onRequestChangeBoard}
         onRequestChangeAccount={onRequestChangeAccount}
         boardUrl={data.boardUrl}
+        integrationsReadOnly={integrationsReadOnly}
       />
     </div>
   );

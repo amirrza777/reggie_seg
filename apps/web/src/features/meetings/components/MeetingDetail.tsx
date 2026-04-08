@@ -5,6 +5,7 @@ import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { useUser } from "@/features/auth/useUser";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
@@ -27,13 +28,17 @@ function formatStatus(status: string) {
 
 export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetailProps) {
   const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
   const isOrganiser = user?.id === meeting.organiserId;
   const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
-  const canEdit = isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember);
-  const canRecordAttendance = isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember);
-  const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember);
+  const canEdit = workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember));
+  const canRecordAttendance =
+    workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember));
+  const canWriteMinutes =
+    workspaceCanEdit &&
+    (!meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember));
   const minutesWindowOpen = isWithinEditWindow(meeting.date, permissions.minutesEditWindowDays);
   const attendanceWindowOpen = isWithinEditWindow(meeting.date, permissions.attendanceEditWindowDays);
 
@@ -136,6 +141,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
         teamId={meeting.teamId}
         members={members}
         initialComments={meeting.comments ?? []}
+        allowComposer={workspaceCanEdit}
       />
     </div>
   );

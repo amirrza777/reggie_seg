@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useEffect } from "react";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 import { useTeamBoardState } from "@/features/trello/hooks/useTeamBoardState";
 import { TrelloNav } from "@/features/trello/components/TrelloNav";
@@ -12,6 +13,7 @@ import { TrelloLinkBoardView } from "@/features/trello/views/TrelloLinkBoardView
 import { getMyBoards } from "@/features/trello/api/client";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { BoardView } from "@/features/trello/api/client";
+import type { TeamBoardViewState } from "@/features/trello/lib/teamBoardState";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 
 export type TrelloBoardContentViewProps = {
@@ -21,34 +23,67 @@ export type TrelloBoardContentViewProps = {
   onRequestChangeBoard: () => void;
   onRequestChangeAccount?: () => void;
   deadline?: ProjectDeadline | null;
+  integrationsReadOnly?: boolean;
 };
 
 type ProjectTrelloContentProps = {
   projectId: string;
   teamId: number;
   teamName?: string;
+  teamHasLinkedTrelloBoard: boolean;
   deadline?: ProjectDeadline | null;
   viewComponent: ComponentType<TrelloBoardContentViewProps>;
 };
 
-const hasListsButNoSavedConfig = (state: { status: string; view?: { board?: { lists?: unknown[] } }; sectionConfig?: Record<string, string> }) =>
-  state.status === "board" &&
-  (state.view?.board?.lists?.length ?? 0) > 0 &&
-  Object.keys(state.sectionConfig ?? {}).length === 0;
+function archivedNoTeamBoardMessage(teamName?: string): string {
+  const label = teamName?.trim() ? teamName.trim() : "Your team";
+  return `${label} did not link a Trello board to this project before the project was archived.`;
+}
 
-export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, viewComponent: View }: ProjectTrelloContentProps) {
+/** Team has a board on record; viewer never linked their own Trello account. */
+const ARCHIVED_COPY_PERSONAL_TRELLO_UNAVAILABLE =
+  "A Trello board is linked for your team, but you did not connect your personal Trello account before this project was archived. Summary, Board, and Graphs show shared team activity. Anything that depends on your own Trello identity—for example “my tasks” or personal progress breakdowns—is not available.";
+
+function hasBoardWithListsButNoSavedSectionConfig(state: TeamBoardViewState): boolean {
+  return (
+    state.status === "board" &&
+    (state.view.board.lists?.length ?? 0) > 0 &&
+    Object.keys(state.sectionConfig ?? {}).length === 0
+  );
+}
+
+function ArchivedNotice({ children }: { children: ReactNode }) {
+  return (
+    <div className="ui-note ui-note--muted" role="status" style={{ marginBottom: 12 }}>
+      <p className="muted" style={{ margin: 0 }}>
+        {children}
+      </p>
+    </div>
+  );
+}
+
+export function ProjectTrelloContent({
+  projectId,
+  teamId,
+  teamName,
+  teamHasLinkedTrelloBoard,
+  deadline,
+  viewComponent: View,
+}: ProjectTrelloContentProps) {
   const router = useRouter();
+  const { canEdit: allowBoardEdits } = useProjectWorkspaceCanEdit();
   const ctx = useTrelloBoard();
   const fallback = useTeamBoardState(teamId);
   const source = ctx ?? fallback;
   const { state, setState, loadTeamBoard, mergedSectionConfig } = source;
 
   useEffect(() => {
+    if (!allowBoardEdits) return;
     if (state.status !== "board") return;
-    if (hasListsButNoSavedConfig(state)) {
+    if (hasBoardWithListsButNoSavedSectionConfig(state)) {
       router.replace(`/projects/${projectId}/trello/configure`);
     }
-  }, [state, projectId, router]);
+  }, [allowBoardEdits, state, projectId, router]);
 
   const onRequestChangeBoard = async () => {
     try {
@@ -79,13 +114,40 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
     return (
       <div className="stack">
         <div className="trello-error" role="alert">
-        <p className="trello-error__text">{state.message}</p>
+          <p className="trello-error__text">{state.message}</p>
         </div>
       </div>
     );
   }
 
+  if (state.status === "no-team-board") {
+    if (!allowBoardEdits) {
+      return (
+        <div className="stack">
+          <ArchivedNotice>{archivedNoTeamBoardMessage(teamName)}</ArchivedNotice>
+        </div>
+      );
+    }
+    return (
+      <TrelloLinkAccountView
+        projectId={projectId}
+        onError={(message) => setState({ status: "error", message })}
+      />
+    );
+  }
+
   if (state.status === "link-account") {
+    if (!allowBoardEdits) {
+      return (
+        <div className="stack">
+          <ArchivedNotice>
+            {teamHasLinkedTrelloBoard
+              ? ARCHIVED_COPY_PERSONAL_TRELLO_UNAVAILABLE
+              : archivedNoTeamBoardMessage(teamName)}
+          </ArchivedNotice>
+        </div>
+      );
+    }
     return (
       <TrelloLinkAccountView
         projectId={projectId}
@@ -95,6 +157,13 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
   }
 
   if (state.status === "link-board") {
+    if (!allowBoardEdits) {
+      return (
+        <div className="stack">
+          <ArchivedNotice>{archivedNoTeamBoardMessage(teamName)}</ArchivedNotice>
+        </div>
+      );
+    }
     return (
       <TrelloLinkBoardView
         projectId={projectId}
@@ -115,7 +184,9 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
     );
   }
 
-  if (hasListsButNoSavedConfig(state)) {
+  const needsDefaultListStatusFallback = hasBoardWithListsButNoSavedSectionConfig(state);
+
+  if (needsDefaultListStatusFallback && allowBoardEdits) {
     return (
       <div className="stack">
         <p className="muted">Redirecting to configure list statuses…</p>
@@ -137,6 +208,7 @@ export function ProjectTrelloContent({ projectId, teamId, teamName, deadline, vi
         onRequestChangeBoard={onRequestChangeBoard}
         onRequestChangeAccount={onRequestChangeAccount}
         deadline={deadline}
+        integrationsReadOnly={!allowBoardEdits}
       />
     </div>
   );

@@ -35,7 +35,7 @@ export function StaffProjectTrelloContent({
   viewComponent: View,
 }: StaffProjectTrelloContentProps) {
   const ctx = useTrelloBoard();
-  const fallback = useTeamBoardState(teamId);
+  const fallback = useTeamBoardState(teamId, { staffView: true });
   const source = ctx ?? fallback;
   const { state, setState, mergedSectionConfig } = source;
 
@@ -72,14 +72,35 @@ export function StaffProjectTrelloContent({
     );
   }
 
-  if (
-    state.status === "link-account" ||
-    state.status === "link-board" ||
-    state.status === "join-board"
-  ) {
+  if (state.status === "no-team-board" || state.status === "link-board") {
     return (
       <div className="stack">
-        <p className="muted">The team has not connected Trello yet.</p>
+        <p className="muted">This team does not have a Trello board linked yet.</p>
+      </div>
+    );
+  }
+
+  if (state.status === "link-account") {
+    return (
+      <div className="stack">
+        <p className="muted">
+          Trello data could not be loaded for this team (connection or authorisation issue on the server).
+        </p>
+      </div>
+    );
+  }
+
+  if (state.status === "join-board") {
+    return (
+      <div className="stack">
+        <p className="muted">
+          The board could not be loaded in full.{" "}
+          {state.boardUrl ? (
+            <a href={state.boardUrl} target="_blank" rel="noreferrer">
+              Open the board in Trello
+            </a>
+          ) : null}
+        </p>
       </div>
     );
   }

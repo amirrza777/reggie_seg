@@ -2,6 +2,7 @@
 
 import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { daysToMs } from "../lib/meetingTime";
@@ -18,16 +19,10 @@ type MeetingMinutesContentProps = {
 
 export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesContentProps) {
   const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const { meeting, settings } = useMeetingWithSettings(meetingId);
 
   if (!meeting || !user || !settings) return null;
-
-  const isMember = isMeetingMember(meeting.team.allocations, user.id);
-  const isOriginalWriter = meeting.minutes?.writerId === user.id;
-  const canWriteMinutes = !meeting.minutes
-    || isOriginalWriter
-    || (settings.allowAnyoneToWriteMinutes && isMember);
-  const editWindowMs = daysToMs(settings.minutesEditWindowDays);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
@@ -35,6 +30,25 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
       Back to meeting
     </AnchorLink>
   );
+
+  if (!workspaceCanEdit) {
+    return (
+      <div className="stack">
+        {backLink}
+        <Card title="Minutes">
+          <p className="muted">This project is archived; minutes are read-only.</p>
+          {meeting.minutes ? <RichTextViewer content={meeting.minutes.content} /> : <p className="muted">No minutes recorded.</p>}
+        </Card>
+      </div>
+    );
+  }
+
+  const isMember = isMeetingMember(meeting.team.allocations, user.id);
+  const isOriginalWriter = meeting.minutes?.writerId === user.id;
+  const canWriteMinutes = !meeting.minutes
+    || isOriginalWriter
+    || (settings.allowAnyoneToWriteMinutes && isMember);
+  const editWindowMs = daysToMs(settings.minutesEditWindowDays);
 
   const meetingDate = new Date(meeting.date);
   const now = new Date();

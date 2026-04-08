@@ -17,6 +17,7 @@ import {
   getTeamInviteEligibleStudents,
 } from "../api/teamAllocation";
 import { ProjectTeamList } from "./ProjectTeamList";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import "@/features/projects/styles/team-formation.css";
 
 type Props = {
@@ -45,6 +46,7 @@ export function TeamFormationPanel({
   teamFormationMode = "self",
 }: Props) {
   const router = useRouter();
+  const { canEdit: canEditTeamWorkspace, workspaceArchived } = useProjectWorkspaceCanEdit();
 
   // Create team state
   const [teamName, setTeamName] = useState("");
@@ -174,6 +176,7 @@ export function TeamFormationPanel({
   }, [isInviteDropdownOpen, positionInviteDropdown]);
 
   const handleCreateTeam = () => {
+    if (workspaceArchived) return;
     const name = teamName.trim();
     if (!name) return;
     setCreateError("");
@@ -272,6 +275,11 @@ export function TeamFormationPanel({
           <span className="team-formation__empty-icon">👥</span>
           <h3>You're not in a team yet</h3>
           <p>Create a new team for this project, or accept an invitation from a teammate.</p>
+          {workspaceArchived ? (
+            <p className="team-formation__feedback team-formation__feedback--error" style={{ marginTop: 12 }}>
+              This project is archived; you cannot create a team or respond to invitations here.
+            </p>
+          ) : null}
           <div className="team-formation__create-form">
             <input
               type="text"
@@ -280,12 +288,13 @@ export function TeamFormationPanel({
               onChange={(e) => setTeamName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleCreateTeam()}
               maxLength={60}
+              disabled={workspaceArchived}
             />
             <button
               type="button"
               className="btn btn--primary"
               onClick={handleCreateTeam}
-              disabled={isCreating || !teamName.trim()}
+              disabled={isCreating || !teamName.trim() || workspaceArchived}
             >
               {isCreating ? "Creating…" : "Create team"}
             </button>
@@ -313,7 +322,7 @@ export function TeamFormationPanel({
                       type="button"
                       className="btn--accept-ghost"
                       onClick={() => handleAccept(inv.id)}
-                      disabled={respondingId === inv.id}
+                      disabled={respondingId === inv.id || workspaceArchived}
                     >
                       {respondingId === inv.id ? "Accepting…" : "Accept"}
                     </button>
@@ -321,7 +330,7 @@ export function TeamFormationPanel({
                       type="button"
                       className="btn--danger-ghost"
                       onClick={() => handleDecline(inv.id)}
-                      disabled={respondingId === inv.id}
+                      disabled={respondingId === inv.id || workspaceArchived}
                     >
                       Decline
                     </button>
@@ -346,7 +355,26 @@ export function TeamFormationPanel({
         <ProjectTeamList team={team} />
       </div>
 
-      {!projectCompleted ? (
+      {!projectCompleted && pendingInvites.length > 0 && !canEditTeamWorkspace ? (
+        <div className="team-formation__section">
+          <p className="team-formation__section-title">Pending invitations</p>
+          <ul className="team-formation__invite-list">
+            {pendingInvites.map((inv) => (
+              <li key={inv.id} className="team-formation__invite-item">
+                <span className="team-formation__invite-email">{inv.inviteeEmail}</span>
+                <div className="team-formation__invite-meta">
+                  <span className="team-formation__invite-date">Sent {formatDate(inv.createdAt)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Invitations cannot be changed while this project is archived.
+          </p>
+        </div>
+      ) : null}
+
+      {!projectCompleted && canEditTeamWorkspace ? (
         <>
           {/* Invite by email */}
           <div className="team-formation__section">
@@ -461,7 +489,7 @@ export function TeamFormationPanel({
             </div>
           )}
         </>
-      ) : null}
+      )  : null}
     </div>
   );
 }
