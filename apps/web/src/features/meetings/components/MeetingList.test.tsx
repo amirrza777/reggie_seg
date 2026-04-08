@@ -298,23 +298,11 @@ describe("MeetingList", () => {
   });
 
   it("sorts by invited count when invited header is clicked", () => {
+    const fourAllocations = { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] };
     const byInvites = [
-      {
-        ...meetings[0],
-        id: 10,
-        title: "Large Invite",
-        participants: [{ id: 1 }, { id: 2 }, { id: 3 }],
-        team: { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] },
-      },
-      {
-        ...meetings[0],
-        id: 11,
-        title: "Small Invite",
-        participants: [{ id: 1 }],
-        team: { allocations: [{ user: { id: 1 } }, { user: { id: 2 } }, { user: { id: 3 } }, { user: { id: 4 } }] },
-      },
+      { ...meetings[0], id: 10, title: "Large Invite", participants: [{ id: 1 }, { id: 2 }, { id: 3 }], team: fourAllocations },
+      { ...meetings[0], id: 11, title: "Small Invite", participants: [{ id: 1 }], team: fourAllocations },
     ];
-
     render(<MeetingList meetings={byInvites as any} projectId={1} />);
     fireEvent.click(screen.getByText("Invited"));
     expect(screen.getByText("Small Invite")).toBeInTheDocument();
@@ -352,16 +340,8 @@ describe("MeetingList", () => {
 
   it("sorts by minutes writer when minutes-by header is clicked", () => {
     const byWriter = [
-      {
-        ...meetings[0],
-        id: 1,
-        minutes: { writer: { id: 1, firstName: "Zoe", lastName: "Writer" } },
-      },
-      {
-        ...meetings[0],
-        id: 2,
-        minutes: { writer: { id: 2, firstName: "Adam", lastName: "Author" } },
-      },
+      { ...meetings[0], id: 1, minutes: { writer: { id: 1, firstName: "Zoe", lastName: "Writer" } } },
+      { ...meetings[0], id: 2, minutes: { writer: { id: 2, firstName: "Adam", lastName: "Author" } } },
     ];
     render(<MeetingList meetings={byWriter as any} projectId={1} showMinutesWriter />);
     fireEvent.click(screen.getByText("Minutes by"));
