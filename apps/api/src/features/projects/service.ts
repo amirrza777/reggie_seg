@@ -210,6 +210,11 @@ export async function fetchModulesForUser(
   });
 }
 
+/** Compatibility wrapper for legacy /projects/modules/join route. */
+export async function joinModuleByCode(actorUserId: number, rawCode: string) {
+  return joinModuleByCodeInModuleJoin(actorUserId, rawCode);
+}
+
 /** Module leads + TAs for staff-accessible module detail pages. */
 export async function fetchModuleStaffList(userId: number, moduleId: number) {
   return getModuleStaffListForUser(userId, moduleId);
