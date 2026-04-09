@@ -3,16 +3,13 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   applyCustomAllocation,
-  getCustomAllocationCoverage,
-  getCustomAllocationQuestionnaires,
   previewCustomAllocation,
-  type CustomAllocationCoverage,
   type CustomAllocationPreview,
 } from "@/features/projects/api/teamAllocation";
 import { filterBySearchQuery } from "@/shared/lib/search";
 import { emitStaffAllocationDraftsRefresh } from "./allocationDraftEvents";
+import { useCustomisedAllocationLoading } from "./useCustomisedAllocationLoading";
 import {
-  countEligibleQuestions,
   getCurrentPreviewInputSnapshot,
   getInputValidationError,
   getTeamName,
@@ -20,12 +17,10 @@ import {
   getTeamNamesForApply,
   isSupportedCriteriaQuestion,
   isCurrentInputMatchingPreview,
-  sortByTemplateName,
   toDefaultTeamNameMap,
   toPreviewInputKey,
   type CriteriaConfig,
   type CriteriaStrategy,
-  type CustomAllocationQuestionnaire,
   type NonRespondentStrategy,
 } from "./customisedAllocation.utils";
 
@@ -39,14 +34,8 @@ export function useCustomisedAllocation({
   initialTeamCount,
 }: UseCustomisedAllocationArgs) {
   const router = useRouter();
-  const [questionnaires, setQuestionnaires] = useState<CustomAllocationQuestionnaire[]>([]);
-  const [isLoadingQuestionnaires, setIsLoadingQuestionnaires] = useState(true);
-  const [loadError, setLoadError] = useState("");
   const [questionnaireSearch, setQuestionnaireSearch] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const [coverage, setCoverage] = useState<CustomAllocationCoverage | null>(null);
-  const [isLoadingCoverage, setIsLoadingCoverage] = useState(false);
-  const [coverageError, setCoverageError] = useState("");
   const [nonRespondentStrategy, setNonRespondentStrategy] =
     useState<NonRespondentStrategy>("distribute_randomly");
   const [criteriaConfigByQuestionId, setCriteriaConfigByQuestionId] = useState<
@@ -65,48 +54,11 @@ export function useCustomisedAllocation({
   const [isPreviewPending, startPreviewTransition] = useTransition();
   const [isApplyPending, startApplyTransition] = useTransition();
 
-  useEffect(() => {
-    let isMounted = true;
-    setIsLoadingQuestionnaires(true);
-    setLoadError("");
-
-    getCustomAllocationQuestionnaires(projectId)
-      .then((result) => {
-        if (!isMounted) {
-          return;
-        }
-        setQuestionnaires(sortByTemplateName(result.questionnaires));
-      })
-      .catch((error) => {
-        if (!isMounted) {
-          return;
-        }
-        setLoadError(error instanceof Error ? error.message : "Failed to load questionnaires.");
-      })
-      .finally(() => {
-        if (!isMounted) {
-          return;
-        }
-        setIsLoadingQuestionnaires(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [projectId]);
-
-  const eligibleQuestionnaires = useMemo(
-    () => questionnaires.filter((template) => countEligibleQuestions(template) > 0),
-    [questionnaires],
-  );
-
-  const selectedQuestionnaire = useMemo(() => {
-    const parsedTemplateId = Number(selectedTemplateId);
-    if (!Number.isInteger(parsedTemplateId)) {
-      return null;
-    }
-    return eligibleQuestionnaires.find((template) => template.id === parsedTemplateId) ?? null;
-  }, [eligibleQuestionnaires, selectedTemplateId]);
+  const {
+    isLoadingQuestionnaires, loadError,
+    eligibleQuestionnaires, selectedQuestionnaire,
+    coverage, isLoadingCoverage, coverageError,
+  } = useCustomisedAllocationLoading({ projectId, selectedTemplateId });
 
   const visibleQuestionnaires = useMemo(() => {
     const filteredTemplates = filterBySearchQuery(eligibleQuestionnaires, questionnaireSearch, {
@@ -116,22 +68,13 @@ export function useCustomisedAllocation({
         (template) => template.eligibleQuestions.map((question) => question.label),
       ],
     });
-
-    if (!selectedQuestionnaire) {
-      return filteredTemplates;
-    }
-
-    if (filteredTemplates.some((template) => template.id === selectedQuestionnaire.id)) {
-      return filteredTemplates;
-    }
-
+    if (!selectedQuestionnaire) return filteredTemplates;
+    if (filteredTemplates.some((template) => template.id === selectedQuestionnaire.id)) return filteredTemplates;
     return [selectedQuestionnaire, ...filteredTemplates];
   }, [eligibleQuestionnaires, questionnaireSearch, selectedQuestionnaire]);
 
   const criteriaQuestions = useMemo(() => {
-    if (!selectedQuestionnaire) {
-      return [];
-    }
+    if (!selectedQuestionnaire) return [];
     return selectedQuestionnaire.eligibleQuestions.filter(isSupportedCriteriaQuestion);
   }, [selectedQuestionnaire]);
 
@@ -141,49 +84,10 @@ export function useCustomisedAllocation({
   );
 
   useEffect(() => {
-    let isMounted = true;
-
-    if (!selectedQuestionnaire) {
-      setCoverage(null);
-      setCoverageError("");
-      setIsLoadingCoverage(false);
-      return;
-    }
-
-    setCoverage(null);
-    setCoverageError("");
-    setIsLoadingCoverage(true);
-    getCustomAllocationCoverage(projectId, selectedQuestionnaire.id)
-      .then((result) => {
-        if (!isMounted) {
-          return;
-        }
-        setCoverage(result);
-      })
-      .catch((error) => {
-        if (!isMounted) {
-          return;
-        }
-        setCoverageError(error instanceof Error ? error.message : "Failed to load response coverage.");
-      })
-      .finally(() => {
-        if (!isMounted) {
-          return;
-        }
-        setIsLoadingCoverage(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [projectId, selectedQuestionnaire]);
-
-  useEffect(() => {
     if (!selectedQuestionnaire) {
       setCriteriaConfigByQuestionId({});
       return;
     }
-
     setCriteriaConfigByQuestionId((current) => {
       const next: Record<number, CriteriaConfig> = {};
       for (const question of criteriaQuestions) {
@@ -197,11 +101,7 @@ export function useCustomisedAllocation({
     () =>
       criteriaQuestions.map((question) => {
         const current = criteriaConfigByQuestionId[question.id] ?? { strategy: "diversify", weight: 1 };
-        return {
-          questionId: question.id,
-          strategy: current.strategy,
-          weight: current.weight,
-        };
+        return { questionId: question.id, strategy: current.strategy, weight: current.weight };
       }),
     [criteriaConfigByQuestionId, criteriaQuestions],
   );
@@ -212,40 +112,20 @@ export function useCustomisedAllocation({
   );
 
   const currentPreviewInputSnapshot = getCurrentPreviewInputSnapshot({
-    selectedQuestionnaire,
-    teamCountInput,
-    minTeamSizeInput,
-    maxTeamSizeInput,
-    nonRespondentStrategy,
-    criteriaPayload,
+    selectedQuestionnaire, teamCountInput, minTeamSizeInput, maxTeamSizeInput, nonRespondentStrategy, criteriaPayload,
   });
 
   const canPreparePreview =
-    getInputValidationError({
-      selectedQuestionnaire,
-      teamCountInput,
-      minTeamSizeInput,
-      maxTeamSizeInput,
-    }) === null;
+    getInputValidationError({ selectedQuestionnaire, teamCountInput, minTeamSizeInput, maxTeamSizeInput }) === null;
   const hasLowCoverage =
-    coverage !== null &&
-    coverage.totalAvailableStudents > 0 &&
-    coverage.responseRate < coverage.responseThreshold;
-
-  const isPreviewCurrent = isCurrentInputMatchingPreview({
-    preview,
-    previewInputKey,
-    currentSnapshot: currentPreviewInputSnapshot,
-  });
+    coverage !== null && coverage.totalAvailableStudents > 0 && coverage.responseRate < coverage.responseThreshold;
+  const isPreviewCurrent = isCurrentInputMatchingPreview({ preview, previewInputKey, currentSnapshot: currentPreviewInputSnapshot });
   const unassignedStudents = preview?.unassignedStudents ?? [];
 
   function updateStrategy(questionId: number, strategy: CriteriaStrategy) {
     setCriteriaConfigByQuestionId((current) => ({
       ...current,
-      [questionId]: {
-        strategy,
-        weight: current[questionId]?.weight ?? 1,
-      },
+      [questionId]: { strategy, weight: current[questionId]?.weight ?? 1 },
     }));
     setSuccessMessage("");
   }
@@ -253,55 +133,26 @@ export function useCustomisedAllocation({
   function updateWeight(questionId: number, weight: number) {
     setCriteriaConfigByQuestionId((current) => ({
       ...current,
-      [questionId]: {
-        strategy: current[questionId]?.strategy ?? "diversify",
-        weight,
-      },
+      [questionId]: { strategy: current[questionId]?.strategy ?? "diversify", weight },
     }));
     setSuccessMessage("");
   }
 
   function toggleConfirmAllocation() {
-    if (confirmApply) {
-      setConfirmApply(false);
-      return;
-    }
-
+    if (confirmApply) { setConfirmApply(false); return; }
     const teamNameValidationError = getTeamNameValidationError(preview, teamNames);
-    if (teamNameValidationError) {
-      setErrorMessage(teamNameValidationError);
-      return;
-    }
-
+    if (teamNameValidationError) { setErrorMessage(teamNameValidationError); return; }
     setErrorMessage("");
     setConfirmApply(true);
   }
 
   function runPreview() {
-    const inputError = getInputValidationError({
-      selectedQuestionnaire,
-      teamCountInput,
-      minTeamSizeInput,
-      maxTeamSizeInput,
-    });
-    if (inputError) {
-      setErrorMessage(inputError);
-      return;
-    }
-
+    const inputError = getInputValidationError({ selectedQuestionnaire, teamCountInput, minTeamSizeInput, maxTeamSizeInput });
+    if (inputError) { setErrorMessage(inputError); return; }
     const payload = getCurrentPreviewInputSnapshot({
-      selectedQuestionnaire,
-      teamCountInput,
-      minTeamSizeInput,
-      maxTeamSizeInput,
-      nonRespondentStrategy,
-      criteriaPayload,
+      selectedQuestionnaire, teamCountInput, minTeamSizeInput, maxTeamSizeInput, nonRespondentStrategy, criteriaPayload,
     });
-    if (!payload) {
-      setErrorMessage("Invalid input values.");
-      return;
-    }
-
+    if (!payload) { setErrorMessage("Invalid input values."); return; }
     setErrorMessage("");
     setSuccessMessage("");
     startPreviewTransition(async () => {
@@ -324,39 +175,18 @@ export function useCustomisedAllocation({
   }
 
   function runApplyAllocation() {
-    if (!preview) {
-      setErrorMessage("Generate a preview before applying.");
-      return;
-    }
-
-    if (!isPreviewCurrent) {
-      setErrorMessage("Preview is out of date. Generate a fresh preview before applying.");
-      return;
-    }
-
-    if (!confirmApply) {
-      setErrorMessage("Please confirm that this allocation should proceed.");
-      return;
-    }
-
+    if (!preview) { setErrorMessage("Generate a preview before applying."); return; }
+    if (!isPreviewCurrent) { setErrorMessage("Preview is out of date. Generate a fresh preview before applying."); return; }
+    if (!confirmApply) { setErrorMessage("Please confirm that this allocation should proceed."); return; }
     const teamNameValidationError = getTeamNameValidationError(preview, teamNames);
-    if (teamNameValidationError) {
-      setErrorMessage(teamNameValidationError);
-      return;
-    }
-
+    if (teamNameValidationError) { setErrorMessage(teamNameValidationError); return; }
     const teamNamesForApply = getTeamNamesForApply(preview, teamNames);
     setErrorMessage("");
     setSuccessMessage("");
     startApplyTransition(async () => {
       try {
-        const result = await applyCustomAllocation(projectId, {
-          previewId: preview.previewId,
-          teamNames: teamNamesForApply,
-        });
-        setSuccessMessage(
-          `Saved customised allocation as draft across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`,
-        );
+        const result = await applyCustomAllocation(projectId, { previewId: preview.previewId, teamNames: teamNamesForApply });
+        setSuccessMessage(`Saved customised allocation as draft across ${result.appliedTeams.length} team${result.appliedTeams.length === 1 ? "" : "s"}.`);
         setConfirmApply(false);
         setPreview(null);
         setPreviewInputKey(null);
@@ -365,8 +195,7 @@ export function useCustomisedAllocation({
         emitStaffAllocationDraftsRefresh();
         router.refresh();
       } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "Failed to apply customised allocation.";
+        const message = error instanceof Error ? error.message : "Failed to apply customised allocation.";
         if (message.includes("Preview no longer exists") || message.includes("no longer vacant")) {
           setConfirmApply(false);
           setPreview(null);
@@ -386,25 +215,16 @@ export function useCustomisedAllocation({
   function onMaxTeamSizeInputChange(value: string) { setMaxTeamSizeInput(value); setSuccessMessage(""); }
 
   function onTeamNameChange(teamIndex: number, value: string) {
-    setTeamNames((currentNames) => ({
-      ...currentNames,
-      [teamIndex]: value,
-    }));
+    setTeamNames((currentNames) => ({ ...currentNames, [teamIndex]: value }));
     setErrorMessage("");
     setSuccessMessage("");
   }
 
   function onToggleTeamRename(teamIndex: number, suggestedName: string, isRenaming: boolean) {
     if (isRenaming) {
-      setTeamNames((currentNames) => ({
-        ...currentNames,
-        [teamIndex]: (currentNames[teamIndex] ?? suggestedName).trim(),
-      }));
+      setTeamNames((currentNames) => ({ ...currentNames, [teamIndex]: (currentNames[teamIndex] ?? suggestedName).trim() }));
     }
-    setRenamingTeams((currentTeams) => ({
-      ...currentTeams,
-      [teamIndex]: !isRenaming,
-    }));
+    setRenamingTeams((currentTeams) => ({ ...currentTeams, [teamIndex]: !isRenaming }));
   }
 
   return {
