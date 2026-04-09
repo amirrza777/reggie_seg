@@ -306,6 +306,34 @@
   gap: 16px;
 }
 
+.staff-projects__feature-flag-label {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.staff-projects__feature-flag-label-title {
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__feature-flag-mode-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  line-height: 1.2;
+}
+
+.staff-projects__feature-flag-mode-row input {
+  margin: 0;
+}
+
+.staff-projects__feature-flag-mode-text {
+  white-space: nowrap;
+}
+
 .staff-projects__module-list {
   display: grid;
   gap: 14px;
