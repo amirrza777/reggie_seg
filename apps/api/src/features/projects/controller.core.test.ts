@@ -14,7 +14,6 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
-  joinModuleHandler,
   getUserModulesHandler,
   getModuleStaffListHandler,
   getUserProjectsHandler,
@@ -40,7 +39,6 @@ vi.mock("./service.js", () => ({
   fetchProjectsForUser: vi.fn(),
   fetchProjectsForStaff: vi.fn(),
   fetchModulesForUser: vi.fn(),
-  joinModuleByCode: vi.fn(),
   fetchModuleStaffList: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
@@ -291,40 +289,6 @@ describe("projects controller core handlers", () => {
       compactRes,
     );
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
-  });
-
-  it("joinModuleHandler validates input and maps moduleJoin service response", async () => {
-    const missingCodeRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: {} } as any, missingCodeRes);
-    expect(missingCodeRes.status).toHaveBeenCalledWith(400);
-
-    const invalidCodeRes = mockResponse();
-    await joinModuleHandler({ user: { sub: 7 }, body: { code: "bad" } } as any, invalidCodeRes);
-    expect(invalidCodeRes.status).toHaveBeenCalledWith(400);
-
-    (service.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: true,
-      value: { moduleId: 2, moduleName: "Module 2", result: "joined" },
-    });
-    const res = mockResponse();
-    const req: any = { user: { sub: 7 }, body: { code: "ABCD-2345" } };
-    await joinModuleHandler(req, res);
-    expect(service.joinModuleByCode).toHaveBeenCalledWith(7, "ABCD2345");
-    expect(res.json).toHaveBeenCalledWith({ moduleId: 2, moduleName: "Module 2", result: "joined" });
-
-    (service.joinModuleByCode as any).mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      code: "INVALID_CODE",
-      error: "Invalid or unavailable module code",
-    });
-    const errorRes = mockResponse();
-    await joinModuleHandler(req, errorRes);
-    expect(errorRes.status).toHaveBeenCalledWith(400);
-    expect(errorRes.json).toHaveBeenCalledWith({
-      code: "INVALID_CODE",
-      error: "Invalid or unavailable module code",
-    });
   });
 
   it("getModuleStaffListHandler returns members or 403", async () => {
