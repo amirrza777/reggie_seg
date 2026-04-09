@@ -87,6 +87,15 @@ function EnterpriseModuleCreateFormBody({
         {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} created={created} /> : null}
       </ModuleFormCollapsible>
 
+      <ModuleFormCollapsible
+        title={state.isEditMode ? "Module content" : "After you create"}
+        defaultOpen={!state.isEditMode && !readOnlyArchived}
+      >
+        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+          <ModuleEditFieldsSection state={state} />
+        </fieldset>
+      </ModuleFormCollapsible>
+
       <ModuleFormCollapsible title="User access">
         <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
           <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
@@ -103,15 +112,6 @@ function EnterpriseModuleCreateFormBody({
           </fieldset>
         </ModuleFormCollapsible>
       ) : null}
-
-      <ModuleFormCollapsible
-        title={state.isEditMode ? "Module content" : "After you create"}
-        defaultOpen={!state.isEditMode && !readOnlyArchived}
-      >
-        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
-          <ModuleEditFieldsSection state={state} />
-        </fieldset>
-      </ModuleFormCollapsible>
 
       {state.isEditMode && moduleId != null ? (
         <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
