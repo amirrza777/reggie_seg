@@ -28,8 +28,9 @@
 }
 
 .user-menu__avatar {
-  width: 28px;
-  height: 28px;
+  --user-menu-avatar-size: 28px;
+  width: var(--user-menu-avatar-size);
+  height: var(--user-menu-avatar-size);
   border-radius: 999px;
   object-fit: cover;
   display: grid;
@@ -41,13 +42,12 @@
 }
 
 .user-menu__avatar--large {
-  width: 44px;
-  height: 44px;
-  font-size: var(--fs-body);
+  --user-menu-avatar-size: 44px;
 }
 
 .user-menu__avatar--fallback {
-  font-size: var(--fs-caption);
+  font-size: calc(var(--user-menu-avatar-size) * 0.32);
+  line-height: 1;
   text-transform: uppercase;
 }
 

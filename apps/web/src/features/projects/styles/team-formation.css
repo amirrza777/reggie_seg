@@ -75,10 +75,10 @@
 
 .team-formation__section-title {
   margin: 0;
-  font-size: var(--fs-fixed-0-85rem);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-panel-section-title);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
   color: var(--muted);
 }
 

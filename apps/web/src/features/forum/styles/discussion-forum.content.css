@@ -469,6 +469,10 @@
 
 .forum-settings-card__title {
   margin: 0 0 6px;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .forum-settings-card__desc {
