@@ -84,11 +84,3 @@ export async function rotateModuleJoinCodeHandler(req: AuthRequest, res: Respons
   setSensitiveNoStore(res);
   return res.json(result.value);
 }
-
-/**
- * Compatibility route for legacy clients still calling /projects/modules/join.
- * Deprecation: remove in MJ-013 after all clients migrate to /module-join/join.
- */
-export async function joinModuleCompatibilityHandler(req: AuthRequest, res: Response) {
-  return joinModuleHandler(req, res);
-}

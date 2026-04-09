@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 type UseParticipantSelectionOptions = {
   initialSelectedIds: number[];
@@ -14,7 +14,7 @@ export function useParticipantSelection({
     new Set(initialSelectedIds)
   );
 
-  function toggleParticipant(id: number) {
+  const toggleParticipant = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) {
@@ -24,11 +24,11 @@ export function useParticipantSelection({
       }
       return next;
     });
-  }
+  }, []);
 
-  function selectAll(ids: number[]) {
+  const selectAll = useCallback((ids: number[]) => {
     setSelectedIds(new Set(ids));
-  }
+  }, []);
 
   return { inviteAll, setInviteAll, selectedIds, toggleParticipant, selectAll };
 }

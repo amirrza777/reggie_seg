@@ -10,7 +10,6 @@ import { GoogleAuthButton } from "./GoogleAuthButton";
 import { useUser } from "../useUser";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
-type Role = "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 type RegisterStatus = "idle" | "loading" | "error" | "success";
 type RegisterFormData = {
   enterpriseCode: string;
@@ -19,10 +18,8 @@ type RegisterFormData = {
   email: string;
   password: string;
   confirmPassword: string;
-  role: Role;
 };
 
-const ROLE_OPTIONS: readonly Role[] = ["STUDENT", "STAFF", "ENTERPRISE_ADMIN", "ADMIN"];
 const INITIAL_FORM_DATA: RegisterFormData = {
   enterpriseCode: "",
   firstName: "",
@@ -30,7 +27,6 @@ const INITIAL_FORM_DATA: RegisterFormData = {
   email: "",
   password: "",
   confirmPassword: "",
-  role: "STUDENT",
 };
 type RegisterSubmitDeps = {
   formData: RegisterFormData;
@@ -39,19 +35,6 @@ type RegisterSubmitDeps = {
   refresh: () => Promise<unknown>;
   push: (path: string) => void;
 };
-
-function getRoleLabel(role: Role): string {
-  if (role === "STUDENT") {
-    return "Student";
-  }
-  if (role === "STAFF") {
-    return "Staff";
-  }
-  if (role === "ENTERPRISE_ADMIN") {
-    return "Enterprise Admin";
-  }
-  return "Super Admin";
-}
 
 function RegisterStatusMessage({ message, status }: { message: string | null; status: RegisterStatus }) {
   if (!message) {
@@ -92,37 +75,6 @@ function RegisterFormFields({
   );
 }
 
-function RegisterRoleToggle({
-  selectedRole,
-  onSelectRole,
-}: {
-  selectedRole: Role;
-  onSelectRole: (role: Role) => void;
-}) {
-  return (
-    <fieldset className="auth-role-fieldset">
-      <legend className="auth-role-legend">Developer shortcut: choose temporary role</legend>
-      <div role="radiogroup" aria-label="Select role" className="role-toggle">
-        {ROLE_OPTIONS.map((role) => {
-          const active = selectedRole === role;
-          return (
-            <button
-              key={role}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onSelectRole(role)}
-              className={`role-toggle__option${active ? " is-active" : ""}`}
-            >
-              {getRoleLabel(role)}
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
-  );
-}
-
 function RegisterActions({ status, onGoogleRegister }: { status: RegisterStatus; onGoogleRegister: () => void }) {
   return (
     <div className="auth-actions">
@@ -141,7 +93,6 @@ async function submitRegistration(formData: RegisterFormData) {
     password: formData.password,
     firstName: formData.firstName,
     lastName: formData.lastName,
-    role: formData.role,
   });
 }
 
@@ -176,7 +127,6 @@ export function RegisterForm() {
   const { refresh } = useUser();
   const handleSubmit = useRegisterSubmit({ formData, setStatus, setMessage, refresh, push: router.push });
   const handleFieldChange = (name: keyof RegisterFormData, value: string) => setFormData((current) => ({ ...current, [name]: value }));
-  const handleRoleSelect = (role: Role) => setFormData((current) => ({ ...current, role }));
   const handleGoogleRegister = () => {
     window.location.href = `${API_BASE_URL}/auth/google`;
   };
@@ -185,7 +135,6 @@ export function RegisterForm() {
     <form className="auth-form" onSubmit={handleSubmit}>
       <RegisterStatusMessage message={message} status={status} />
       <RegisterFormFields formData={formData} onFieldChange={handleFieldChange} />
-      <RegisterRoleToggle selectedRole={formData.role} onSelectRole={handleRoleSelect} />
       <RegisterActions status={status} onGoogleRegister={handleGoogleRegister} />
     </form>
   );

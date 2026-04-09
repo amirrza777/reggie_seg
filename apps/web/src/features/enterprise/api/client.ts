@@ -3,6 +3,9 @@ import type {
   CreateEnterpriseModulePayload,
   EnterpriseModuleAccessResponse,
   EnterpriseModuleAccessSelectionResponse,
+  EnterpriseManagedUser,
+  EnterpriseManagedUserCreate,
+  EnterpriseManagedUserUpdate,
   EnterpriseAccessUserSearchParams,
   EnterpriseAccessUserSearchResponse,
   DeleteEnterpriseModuleResponse,
@@ -14,6 +17,8 @@ import type {
   EnterpriseModuleSearchParams,
   EnterpriseModuleSearchResponse,
   EnterpriseModuleStudentsResponse,
+  EnterpriseUserSearchParams,
+  EnterpriseUserSearchResponse,
   EnterpriseOverview,
   UpdateEnterpriseModulePayload,
   UpdateEnterpriseModuleStudentsPayload,
@@ -26,6 +31,40 @@ export async function getEnterpriseOverview(): Promise<EnterpriseOverview> {
 
 export async function listEnterpriseFeatureFlags(): Promise<EnterpriseFeatureFlag[]> {
   return apiFetch<EnterpriseFeatureFlag[]>("/enterprise-admin/feature-flags");
+}
+
+export async function searchEnterpriseUsers(
+  params: EnterpriseUserSearchParams = {},
+): Promise<EnterpriseUserSearchResponse> {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.sortBy) search.set("sortBy", params.sortBy);
+  if (params.sortDirection) search.set("sortDirection", params.sortDirection);
+  if (params.page) search.set("page", String(params.page));
+  if (params.pageSize) search.set("pageSize", String(params.pageSize));
+  const qs = search.toString();
+  const path = qs ? `/enterprise-admin/users/search?${qs}` : "/enterprise-admin/users/search";
+  return apiFetch<EnterpriseUserSearchResponse>(path);
+}
+
+export async function updateEnterpriseUser(userId: number, payload: EnterpriseManagedUserUpdate): Promise<EnterpriseManagedUser> {
+  return apiFetch<EnterpriseManagedUser>(`/enterprise-admin/users/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function createEnterpriseUser(payload: EnterpriseManagedUserCreate): Promise<EnterpriseManagedUser> {
+  return apiFetch<EnterpriseManagedUser>("/enterprise-admin/users", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function removeEnterpriseUser(userId: number): Promise<EnterpriseManagedUser> {
+  return apiFetch<EnterpriseManagedUser>(`/enterprise-admin/users/${userId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function updateEnterpriseFeatureFlag(key: string, enabled: boolean): Promise<EnterpriseFeatureFlag> {

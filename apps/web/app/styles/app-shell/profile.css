@@ -1,24 +1,46 @@
 /* Profile and auth surfaces */
 .profile-shell {
   display: grid;
-  align-content: start;
-  justify-items: stretch;
+  align-content: center;
+  justify-items: center;
   gap: 24px;
+  height: 100%;
   min-height: 100%;
   padding: 8px 0 16px;
 }
 
+.app-shell:has(.profile-shell) .app-shell__workspace {
+  align-content: center;
+}
+
+.app-shell:has(.profile-shell) .app-shell__main,
+body.profile-route .app-shell__main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell:has(.profile-shell) .app-shell__sidebar,
+body.profile-route .app-shell__sidebar {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .profile-shell {
+    height: auto;
     padding: 8px 0 24px;
   }
 }
 
+@media (max-width: 860px) {
+  .app-shell:has(.profile-shell) .app-shell__workspace {
+    align-content: start;
+  }
+}
+
 .profile-card {
-  width: 100%;
+  width: min(100%, 960px);
   max-width: 960px;
-  margin: 0 auto;
-  min-height: 100%;
+  margin: 0;
+  min-height: max-content;
   background: var(--surface-strong);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -108,6 +130,14 @@
   padding-top: 0;
 }
 
+.profile-section--danger {
+  border-top-color: color-mix(in srgb, var(--status-danger) 35%, var(--profile-border));
+}
+
+.profile-section--danger .profile-section__header h3 {
+  color: var(--status-danger);
+}
+
 .profile-section__header h3 {
   margin: 0 0 6px;
   font-size: var(--fs-fixed-18px);
@@ -125,13 +155,22 @@
   gap: 16px;
 }
 
-.profile-avatar img,
+.profile-avatar__frame {
+  width: 70px;
+  height: 70px;
+  border-radius: 999px;
+  border: 1px solid var(--avatar-fallback-border);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.profile-avatar__media,
 .profile-avatar__fallback {
-  width: 64px;
-  height: 64px;
+  width: 62px;
+  height: 62px;
   border-radius: 999px;
   object-fit: cover;
-  border: 1px solid var(--avatar-fallback-border);
   background: var(--avatar-fallback-bg);
   color: var(--avatar-fallback-text);
   display: grid;
@@ -185,11 +224,15 @@
 
 .profile-card .auth-label,
 .profile-modal .auth-label {
+  font-size: var(--fs-fixed-13px);
   color: var(--profile-muted, var(--muted));
 }
 
 .profile-card .auth-input,
 .profile-modal .auth-input {
+  font-size: var(--fs-fixed-15px);
+  line-height: 1.35;
+  padding: 10px 14px;
   color: var(--profile-ink, var(--ink));
   background: var(--profile-surface-2);
   border-color: var(--profile-border);
@@ -308,6 +351,17 @@
   color: var(--accent-strong);
 }
 
+.profile-modal__icon--danger {
+  color: var(--status-danger);
+}
+
+.profile-modal__step {
+  font-size: var(--fs-fixed-13px);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--profile-subtle, var(--muted));
+}
+
 .profile-modal__body {
   display: grid;
   gap: 14px;
@@ -347,6 +401,31 @@
   padding: 0;
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.profile-danger-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 6px;
+  color: var(--profile-muted, var(--muted));
+}
+
+.profile-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: var(--fs-fixed-14px);
+  color: var(--profile-ink, var(--ink));
+}
+
+.profile-checkbox input {
+  margin-top: 3px;
+}
+
+.profile-checkbox__label {
+  color: var(--profile-ink, var(--ink));
+  line-height: 1.45;
 }
 
 .otp-group {

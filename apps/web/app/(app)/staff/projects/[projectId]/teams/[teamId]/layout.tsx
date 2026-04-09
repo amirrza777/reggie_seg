@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
@@ -17,13 +16,6 @@ export default async function StaffTeamLayout({ params, children }: LayoutProps)
       <div className="staff-projects">
         <div className="stack">
           <p className="muted">{ctx.error}</p>
-          <Link
-            href={`/staff/projects/${projectId}`}
-            className="pill-nav__link"
-            style={{ width: "fit-content" }}
-          >
-            Back to project teams
-          </Link>
         </div>
       </div>
     );

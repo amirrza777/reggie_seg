@@ -120,8 +120,10 @@
 
 .questionnaire-editor__section-title {
   margin: 0 0 8px;
-  font-size: var(--fs-fixed-clamp-1-8rem-2-5vw-2-2rem);
+  font-size: var(--fs-panel-section-title);
   line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .questionnaire-editor__list-card {

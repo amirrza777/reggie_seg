@@ -329,4 +329,118 @@ describe("EnterpriseModuleCreateForm", () => {
     await screen.findByText(/only module owners\/leaders can edit this module/i);
     expect(screen.queryByRole("button", { name: /save module/i })).not.toBeInTheDocument();
   });
+
+  it("shows create failure messages from module creation errors", async () => {
+    createEnterpriseModuleMock.mockRejectedValueOnce(new Error("Create failed"));
+    render(<EnterpriseModuleCreateForm mode="create" />);
+
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("group", { name: /module leaders/i })).getByRole("checkbox", { name: /staff owner/i }),
+      ).toBeInTheDocument(),
+    );
+
+    fireEvent.change(screen.getByLabelText(/module name/i), { target: { value: "Broken Module" } });
+    fireEvent.change(screen.getByLabelText(/module code/i), { target: { value: "BRK1" } });
+    fireEvent.click(screen.getByRole("checkbox", { name: /staff owner/i }));
+    fireEvent.click(screen.getByRole("button", { name: /create module/i }));
+
+    expect(await screen.findByText("Create failed")).toBeInTheDocument();
+  });
+
+  it("handles pagination callbacks and no-results messaging across access sections in edit mode", async () => {
+    searchEnterpriseModuleAccessUsersMock.mockImplementation(async (params = {}) => {
+      const scope = params.scope ?? "all";
+      const page = params.page ?? 1;
+      const pageSize = params.pageSize ?? 20;
+      const query = (params.q ?? "").trim();
+      const isFiltered = query.length > 0;
+
+      const itemsByScope = {
+        staff: [staffOwner],
+        staff_and_students: [taStudent],
+        students: [enrolledStudent],
+        all: [staffOwner],
+      } as const;
+      const items = isFiltered ? [] : [...(itemsByScope[scope] ?? itemsByScope.all)];
+      const total = isFiltered ? 0 : 40;
+      const totalPages = isFiltered ? 0 : 2;
+
+      return {
+        items,
+        total,
+        page,
+        pageSize,
+        totalPages,
+        hasPreviousPage: page > 1,
+        hasNextPage: totalPages > 0 && page < totalPages,
+        query: query || null,
+        scope,
+      };
+    });
+
+    render(<EnterpriseModuleCreateForm mode="edit" moduleId={77} />);
+
+    const assertSearchCall = async (scope: string, page: number) => {
+      await waitFor(() =>
+        expect(
+          searchEnterpriseModuleAccessUsersMock.mock.calls.some(
+            ([params]) => params?.scope === scope && params?.page === page,
+          ),
+        ).toBe(true),
+      );
+    };
+
+    await screen.findByLabelText("Go to staff page");
+    await screen.findByLabelText("Go to teaching assistant page");
+    await screen.findByLabelText("Go to student page");
+
+    const staffPagination = screen.getByLabelText("Module owners/leaders search pagination");
+    fireEvent.click(within(staffPagination).getByRole("button", { name: "Next" }));
+    await assertSearchCall("staff", 2);
+    fireEvent.click(within(staffPagination).getByRole("button", { name: "Previous" }));
+    await assertSearchCall("staff", 1);
+    const staffPageInput = screen.getByLabelText("Go to staff page");
+    fireEvent.change(staffPageInput, { target: { value: "2" } });
+    fireEvent.blur(staffPageInput);
+    await assertSearchCall("staff", 2);
+    fireEvent.change(staffPageInput, { target: { value: "1" } });
+    fireEvent.keyDown(staffPageInput, { key: "Enter" });
+    await assertSearchCall("staff", 1);
+
+    const taPagination = screen.getByLabelText("Teaching assistants search pagination");
+    fireEvent.click(within(taPagination).getByRole("button", { name: "Next" }));
+    await assertSearchCall("staff_and_students", 2);
+    fireEvent.click(within(taPagination).getByRole("button", { name: "Previous" }));
+    await assertSearchCall("staff_and_students", 1);
+    const taPageInput = screen.getByLabelText("Go to teaching assistant page");
+    fireEvent.change(taPageInput, { target: { value: "2" } });
+    fireEvent.blur(taPageInput);
+    await assertSearchCall("staff_and_students", 2);
+    fireEvent.change(taPageInput, { target: { value: "1" } });
+    fireEvent.keyDown(taPageInput, { key: "Enter" });
+    await assertSearchCall("staff_and_students", 1);
+
+    const studentPagination = screen.getByLabelText("Students search pagination");
+    fireEvent.click(within(studentPagination).getByRole("button", { name: "Next" }));
+    await assertSearchCall("students", 2);
+    fireEvent.click(within(studentPagination).getByRole("button", { name: "Previous" }));
+    await assertSearchCall("students", 1);
+    const studentPageInput = screen.getByLabelText("Go to student page");
+    fireEvent.change(studentPageInput, { target: { value: "2" } });
+    fireEvent.blur(studentPageInput);
+    await assertSearchCall("students", 2);
+    fireEvent.change(studentPageInput, { target: { value: "1" } });
+    fireEvent.keyDown(studentPageInput, { key: "Enter" });
+    await assertSearchCall("students", 1);
+
+    fireEvent.change(screen.getByLabelText(/search staff/i), { target: { value: "nobody-staff" } });
+    expect(await screen.findByText('No staff match "nobody-staff".')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/search teaching assistant accounts/i), { target: { value: "nobody-ta" } });
+    expect(await screen.findByText('No accounts match "nobody-ta".')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/search students/i), { target: { value: "nobody-student" } });
+    expect(await screen.findByText('No students match "nobody-student".')).toBeInTheDocument();
+  });
 });

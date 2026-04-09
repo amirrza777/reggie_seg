@@ -38,6 +38,7 @@ import { prisma } from "../../shared/db.js";
 describe("QuestionnaireTemplate repository", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (prisma.questionnaireTemplate.findMany as any).mockResolvedValue([]);
   });
 
   //Tests creation of template
@@ -399,6 +400,7 @@ describe("QuestionnaireTemplate repository", () => {
       data: {
         templateName: "Source Template (Copy)",
         isPublic: false,
+        purpose: "GENERAL_PURPOSE",
         ownerId: 2,
         questions: {
           create: [

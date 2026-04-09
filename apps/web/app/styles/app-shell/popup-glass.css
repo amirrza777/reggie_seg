@@ -53,4 +53,12 @@
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
+
+  .modal__dialog,
+  .github-chart-info__modal {
+    background: var(--surface);
+    border-color: var(--border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }

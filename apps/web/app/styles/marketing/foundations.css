@@ -62,7 +62,9 @@
     background-image:
       linear-gradient(180deg, var(--color-fixed-rgba-32-173-120-0-28) 0%, transparent 24%),
       radial-gradient(ellipse 90% 50% at 0% 0%, var(--color-fixed-rgba-32-173-120-0-50), var(--color-fixed-rgba-32-173-120-0-12) 40%, transparent 65%),
-      radial-gradient(circle farthest-corner at -16% -5%, var(--color-fixed-rgba-32-173-120-0-46), var(--color-fixed-rgba-32-173-120-0-06) 4%, transparent 7%);
+      radial-gradient(circle farthest-corner at -16% -5%, var(--color-fixed-rgba-32-173-120-0-46), var(--color-fixed-rgba-32-173-120-0-06) 4%, transparent 7%),
+      radial-gradient(ellipse 120% 42% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-44), var(--color-fixed-rgba-32-173-120-0-14) 34%, transparent 62%),
+      radial-gradient(ellipse 62% 22% at 96% 100%, var(--color-fixed-rgba-32-173-120-0-34), transparent 52%);
   }
 }
 

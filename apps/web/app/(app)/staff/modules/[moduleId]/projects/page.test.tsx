@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getStaffProjects } from "@/features/projects/api/client";
-import { resolveStaffModuleWorkspaceAccess } from "@/features/modules/staffModuleWorkspaceAccess";
-import { loadStaffModuleWorkspaceContext } from "@/features/modules/staffModuleWorkspaceLayoutData";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import StaffModuleProjectsPage from "./page";
 
 class RedirectSentinel extends Error {
@@ -31,12 +33,9 @@ vi.mock("@/features/projects/api/client", () => ({
   getStaffProjects: vi.fn(),
 }));
 
-vi.mock("@/features/modules/staffModuleWorkspaceAccess", () => ({
-  resolveStaffModuleWorkspaceAccess: vi.fn(),
-}));
-
 vi.mock("@/features/modules/staffModuleWorkspaceLayoutData", () => ({
   loadStaffModuleWorkspaceContext: vi.fn(),
+  resolveStaffModuleWorkspaceAccess: vi.fn(),
 }));
 
 vi.mock("@/features/staff/projects/components/StaffProjectsModuleList", () => ({
@@ -69,14 +68,21 @@ const loadStaffModuleWorkspaceContextMock = vi.mocked(loadStaffModuleWorkspaceCo
 
 const workspaceContext = {
   parsedModuleId: 88,
-  user: { id: 5 },
-};
+  moduleId: "88",
+  moduleRecord: { id: "88", title: "SEGP", accountRole: "OWNER" },
+  module: { id: "88", title: "SEGP", accountRole: "OWNER" },
+  isElevated: false,
+  isEnterpriseAdmin: false,
+  user: { id: 5, isStaff: true, role: "STAFF" },
+} as Awaited<ReturnType<typeof loadStaffModuleWorkspaceContext>>;
 
 describe("StaffModuleProjectsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    loadStaffModuleWorkspaceContextMock.mockResolvedValue(workspaceContext as Awaited<ReturnType<typeof loadStaffModuleWorkspaceContext>>);
-    resolveStaffModuleWorkspaceAccessMock.mockReturnValue({ createProjectInModule: true } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>);
+    loadStaffModuleWorkspaceContextMock.mockResolvedValue(workspaceContext);
+    resolveStaffModuleWorkspaceAccessMock.mockReturnValue(
+      { canCreateProject: true } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+    );
   });
 
   it("redirects to staff modules when context cannot be loaded", async () => {
@@ -136,7 +142,7 @@ describe("StaffModuleProjectsPage", () => {
 
   it("hides create-project link and clear action when access is read-only and no query is set", async () => {
     resolveStaffModuleWorkspaceAccessMock.mockReturnValueOnce(
-      { createProjectInModule: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+      { canCreateProject: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
     );
     getStaffProjectsMock.mockResolvedValueOnce([] as Awaited<ReturnType<typeof getStaffProjects>>);
 

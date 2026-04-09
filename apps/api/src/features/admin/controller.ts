@@ -7,6 +7,7 @@ import {
   parseAdminUserIdParam,
   parseAuditLogsQuery,
   parseCreateEnterpriseBody,
+  parseInviteEnterpriseAdminBody,
   parseUpdateUserBody,
   parseUpdateUserRoleBody,
 } from "./controller.parsers.js";
@@ -16,6 +17,7 @@ import {
   deleteEnterprise,
   getAuditLogs,
   getSummary,
+  inviteEnterpriseAdmin,
   listEnterpriseUsers,
   listEnterprises,
   listUsers,
@@ -32,13 +34,13 @@ export async function getSummaryHandler(req: AdminRequest, res: Response) {
 }
 
 export async function listUsersHandler(req: AdminRequest, res: Response) {
-  return res.json(await listUsers(req.adminUser?.enterpriseId as string));
+  return res.json(await listUsers(req.adminUser));
 }
 
 export async function searchUsersHandler(req: AdminRequest, res: Response) {
   const parsedFilters = parseAdminUserSearchFilters(req.query);
   if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
-  return res.json(await searchUsers(req.adminUser?.enterpriseId as string, parsedFilters.value));
+  return res.json(await searchUsers(parsedFilters.value, req.adminUser));
 }
 
 export async function updateUserRoleHandler(req: AdminRequest, res: Response) {
@@ -46,7 +48,7 @@ export async function updateUserRoleHandler(req: AdminRequest, res: Response) {
   if (!id.ok) return res.status(400).json({ error: id.error });
   const role = parseUpdateUserRoleBody(req.body);
   if (!role.ok) return res.status(400).json({ error: role.error });
-  const result = await updateOwnEnterpriseUserRole(req.adminUser?.enterpriseId as string, id.value, role.value, req.adminUser?.id);
+  const result = await updateOwnEnterpriseUserRole(id.value, role.value, req.adminUser);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -56,7 +58,7 @@ export async function updateUserHandler(req: AdminRequest, res: Response) {
   if (!id.ok) return res.status(400).json({ error: id.error });
   const updates = parseUpdateUserBody(req.body);
   if (!updates.ok) return res.status(400).json({ error: updates.error });
-  const result = await updateOwnEnterpriseUser(req.adminUser?.enterpriseId as string, id.value, updates.value, req.adminUser?.id);
+  const result = await updateOwnEnterpriseUser(id.value, updates.value, req.adminUser);
   if (!result.ok) return res.status(result.status).json({ error: result.error });
   return res.json(result.value);
 }
@@ -81,6 +83,26 @@ export async function createEnterpriseHandler(req: AdminRequest, res: Response) 
   } catch (err) {
     console.error("create enterprise error", err);
     return res.status(500).json({ error: "Could not create enterprise" });
+  }
+}
+
+export async function inviteEnterpriseAdminHandler(req: AdminRequest, res: Response) {
+  const enterpriseId = parseAdminEnterpriseIdParam(req.params.enterpriseId);
+  if (!enterpriseId.ok) return res.status(400).json({ error: enterpriseId.error });
+
+  const parsedBody = parseInviteEnterpriseAdminBody(req.body);
+  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+
+  try {
+    const result = await inviteEnterpriseAdmin(
+      { enterpriseId: enterpriseId.value, email: parsedBody.value.email },
+      req.adminUser?.id,
+    );
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    return res.status(201).json(result.value);
+  } catch (err) {
+    console.error("invite enterprise admin error", err);
+    return res.status(500).json({ error: "Could not send enterprise admin invite" });
   }
 }
 

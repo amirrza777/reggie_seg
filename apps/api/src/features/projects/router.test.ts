@@ -2,12 +2,11 @@ import { describe, expect, it } from "vitest";
 import router from "./router.js";
 
 describe("projects router", () => {
-  it("applies compatibility hardening middleware on legacy module join route", () => {
+  it("does not register legacy module join route", () => {
     const joinLayer = (router as any).stack.find(
       (layer: any) => layer.route?.path === "/modules/join" && layer.route.methods?.post,
     );
-    expect(joinLayer).toBeTruthy();
-    expect(joinLayer.route.stack.length).toBeGreaterThanOrEqual(4);
+    expect(joinLayer).toBeUndefined();
   });
 
   it("registers all routes correctly", () => {
@@ -30,7 +29,6 @@ describe("projects router", () => {
         { path: "/:projectId/team-warnings/me", methods: { get: true } },
         { path: "/:projectId/team", methods: { get: true } },
         { path: "/modules", methods: { get: true } },
-        { path: "/modules/join", methods: { post: true } },
         { path: "/modules/:moduleId/staff", methods: { get: true } },
         { path: "/modules/:moduleId/student-project-matrix", methods: { get: true } },
         { path: "/staff/mine", methods: { get: true } },

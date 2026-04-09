@@ -4,6 +4,7 @@ import {
   createEnterpriseHandler,
   deleteEnterpriseHandler,
   getSummaryHandler,
+  inviteEnterpriseAdminHandler,
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
   listEnterprisesHandler,
@@ -36,6 +37,7 @@ router.post("/enterprises", createEnterpriseHandler);
 router.get("/enterprises/:enterpriseId/users", listEnterpriseUsersHandler);
 router.get("/enterprises/:enterpriseId/users/search", searchEnterpriseUsersHandler);
 router.patch("/enterprises/:enterpriseId/users/:id", updateEnterpriseUserHandler);
+router.post("/enterprises/:enterpriseId/invites/enterprise-admin", inviteEnterpriseAdminHandler);
 router.delete("/enterprises/:enterpriseId", deleteEnterpriseHandler);
 router.get("/audit-logs/stream", auditLogsStreamHandler);
 router.get("/audit-logs", auditLogLimiter, listAuditLogsHandler);

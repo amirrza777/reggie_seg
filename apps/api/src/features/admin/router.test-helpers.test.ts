@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import jwt from "jsonwebtoken";
 import {
+  buildAdminUserSearchOrderBy,
   buildAdminUserSearchWhere,
   getGenerateFromNameMock,
   getRouteHandler,
@@ -43,6 +44,7 @@ describe("admin router test helpers", () => {
     expect((parseAdminUserSearchFilters as any)({})).toEqual(
       expect.objectContaining({ ok: true, value: expect.objectContaining({ page: 1, pageSize: 10 }) }),
     );
+    expect((buildAdminUserSearchOrderBy as any)({})).toEqual([{ id: "asc" }]);
     expect((buildAdminUserSearchWhere as any)({})).toEqual({ enterpriseId: "ent-1" });
     expect((matchesAdminUserSearchCandidate as any)({ id: 1 }, "query")).toBe(false);
 

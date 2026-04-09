@@ -13,6 +13,7 @@ export const jwtMock = {
 export const prismaMock = {
   user: {
     findFirst: vi.fn(),
+    count: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     findUnique: vi.fn(),
@@ -36,6 +37,23 @@ export const prismaMock = {
     updateMany: vi.fn(),
     create: vi.fn(),
     findFirst: vi.fn(),
+  },
+  enterpriseAdminInviteToken: {
+    findUnique: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
+  moduleLead: {
+    deleteMany: vi.fn(),
+  },
+  moduleTeachingAssistant: {
+    deleteMany: vi.fn(),
+  },
+  userModule: {
+    deleteMany: vi.fn(),
+  },
+  githubAccount: {
+    deleteMany: vi.fn(),
   },
   $transaction: vi.fn(),
 };
@@ -65,6 +83,9 @@ export const ENV_KEYS = [
   "EMAIL_CHANGE_TTL",
   "ADMIN_BOOTSTRAP_EMAIL",
   "ADMIN_BOOTSTRAP_PASSWORD",
+  "SUPER_ADMIN_EMAIL",
+  "REMOVED_USERS_ENTERPRISE_CODE",
+  "REMOVED_USERS_ENTERPRISE_NAME",
 ] as const;
 
 type EnvKey = (typeof ENV_KEYS)[number];
@@ -134,6 +155,7 @@ export function setupAuthServiceTestDefaults() {
   prismaMock.refreshToken.updateMany.mockResolvedValue({ count: 1 });
 
   prismaMock.user.findFirst.mockResolvedValue(null);
+  prismaMock.user.count.mockResolvedValue(1);
   prismaMock.user.findUnique.mockResolvedValue(null);
   prismaMock.user.create.mockResolvedValue({ id: 1, email: "user@example.com", role: "STUDENT" });
   prismaMock.user.update.mockResolvedValue({ id: 1, email: "user@example.com", role: "STUDENT" });
@@ -149,6 +171,15 @@ export function setupAuthServiceTestDefaults() {
   prismaMock.emailChangeToken.updateMany.mockResolvedValue({ count: 1 });
   prismaMock.emailChangeToken.create.mockResolvedValue({ id: 1 });
   prismaMock.emailChangeToken.findFirst.mockResolvedValue(null);
+
+  prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValue(null);
+  prismaMock.enterpriseAdminInviteToken.update.mockResolvedValue({ id: 1 });
+  prismaMock.enterpriseAdminInviteToken.updateMany.mockResolvedValue({ count: 1 });
+
+  prismaMock.moduleLead.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.moduleTeachingAssistant.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.userModule.deleteMany.mockResolvedValue({ count: 0 });
+  prismaMock.githubAccount.deleteMany.mockResolvedValue({ count: 0 });
 
   auditMock.recordAuditLog.mockResolvedValue(undefined);
   emailMock.sendEmail.mockResolvedValue(undefined);

@@ -1,18 +1,9 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffTrelloSectionPage from "./page";
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, className, ...props }: { href: string; children: ReactNode; className?: string }) => (
-    <a href={href} className={className} {...props}>
-      {children}
-    </a>
-  ),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -70,7 +61,7 @@ describe("StaffTrelloSectionPage", () => {
     expect(screen.getByText("Invalid project or team ID.")).toBeInTheDocument();
   });
 
-  it("renders project/team loading error and back link", async () => {
+  it("renders project/team loading error", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockRejectedValue(new Error("team load failed"));
 
@@ -78,7 +69,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(screen.getByText("team load failed")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/21");
   });
 
   it("renders missing-team fallback when team id is not in project", async () => {
@@ -92,7 +82,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/12");
   });
 
   it("renders trello content and tolerates deadline API failure", async () => {
@@ -107,6 +96,7 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(getProjectDeadlineMock).toHaveBeenCalledWith(88, 44);
+    expect(screen.getByText(/Team: Team B · No board linked/)).toBeInTheDocument();
     expect(screen.getByTestId("staff-trello-content")).toHaveTextContent("44:55:3:Team B:none");
   });
 });

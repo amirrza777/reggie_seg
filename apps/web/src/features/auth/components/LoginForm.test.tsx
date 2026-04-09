@@ -18,7 +18,7 @@ type LoginResult = Awaited<ReturnType<typeof login>>;
 const mockLocation: Pick<Location, "href"> = { href: "http://localhost:3000/" };
 
 const fillForm = () => {
-  fireEvent.change(screen.getByLabelText(/email or username/i), { target: { value: "user@example.com" } });
+  fireEvent.change(screen.getByLabelText(/email/i), { target: { value: "user@example.com" } });
   fireEvent.change(screen.getByLabelText(/password/i), { target: { value: "secret" } });
 };
 

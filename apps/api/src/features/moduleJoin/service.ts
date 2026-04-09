@@ -77,7 +77,7 @@ function emitModuleJoinAuditEvent(
  * CONFLICT -> 409
  */
 export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  const actorResult = await resolveStudentJoinActor(actorUserId);
+  const actorResult = await resolveJoinActor(actorUserId);
   if (!actorResult.ok) return actorResult;
 
   const moduleResult = await resolveJoinTargetModule(actorResult.value, rawCode);
@@ -171,15 +171,15 @@ function isModuleJoinCodeUniqueConstraintError(error: unknown) {
   return Array.isArray(target) && target.includes("enterpriseId") && target.includes("joinCode");
 }
 
-async function resolveStudentJoinActor(actorUserId: number) {
+async function resolveJoinActor(actorUserId: number) {
   const actor = await findJoinActor(actorUserId);
   if (!actor) return fail(401, "UNAUTHORIZED", "Unauthorized");
-  if (actor.role !== "STUDENT") return fail(403, "FORBIDDEN", "Forbidden");
+  if (actor.role === "STAFF") return fail(403, "FORBIDDEN", "Forbidden");
   return { ok: true as const, value: actor };
 }
 
 async function resolveJoinTargetModule(
-  actor: Awaited<ReturnType<typeof findJoinActor>> & { role: "STUDENT" },
+  actor: { id: number; enterpriseId: string },
   rawCode: string,
 ) {
   const joinCode = normalizeModuleJoinCode(rawCode);

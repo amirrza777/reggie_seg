@@ -36,7 +36,6 @@ import {
 import { prisma } from "../../shared/db.js";
 import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
-import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
 import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
 
 export {

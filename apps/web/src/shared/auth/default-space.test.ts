@@ -18,4 +18,9 @@ describe("getDefaultSpaceOverviewPath", () => {
   it("routes students to workspace overview", () => {
     expect(getDefaultSpaceOverviewPath({ role: "STUDENT" })).toBe("/dashboard");
   });
+
+  it("routes unassigned accounts to workspace holding view", () => {
+    expect(getDefaultSpaceOverviewPath({ role: "ADMIN", isUnassigned: true })).toBe("/dashboard");
+    expect(getDefaultSpaceOverviewPath({ role: "STUDENT", isUnassigned: true })).toBe("/dashboard");
+  });
 });

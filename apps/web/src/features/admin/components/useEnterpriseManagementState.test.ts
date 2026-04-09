@@ -2,12 +2,13 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import type { FormEvent } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useEnterpriseManagementState } from "./useEnterpriseManagementState";
-import { createEnterprise, deleteEnterprise, searchEnterprises } from "../api/client";
+import { createEnterprise, deleteEnterprise, inviteEnterpriseAdmin, searchEnterprises } from "../api/client";
 import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
 
 vi.mock("../api/client", () => ({
   searchEnterprises: vi.fn(),
   createEnterprise: vi.fn(),
+  inviteEnterpriseAdmin: vi.fn(),
   deleteEnterprise: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock("./useEnterpriseUserManagementState", () => ({
 
 const searchEnterprisesMock = vi.mocked(searchEnterprises);
 const createEnterpriseMock = vi.mocked(createEnterprise);
+const inviteEnterpriseAdminMock = vi.mocked(inviteEnterpriseAdmin);
 const deleteEnterpriseMock = vi.mocked(deleteEnterprise);
 const useEnterpriseUserManagementStateMock = vi.mocked(useEnterpriseUserManagementState);
 
@@ -35,6 +37,8 @@ function makeUserState(overrides: Record<string, unknown> = {}) {
     setEnterpriseUserPage: vi.fn(),
     enterpriseUserPageInput: "1",
     setEnterpriseUserPageInput: vi.fn(),
+    enterpriseUserSortValue: "default",
+    setEnterpriseUserSortValue: vi.fn(),
     enterpriseUserTotal: 0,
     enterpriseUserTotalPages: 0,
     effectiveEnterpriseUserTotalPages: 1,
@@ -136,6 +140,7 @@ describe("useEnterpriseManagementState", () => {
   it("validates and creates enterprises, then resets modal inputs", async () => {
     searchEnterprisesMock.mockResolvedValue(makeSearchResponse([], 0));
     createEnterpriseMock.mockResolvedValue(makeEnterprise({ id: "ent_2", name: "Acme", code: "ACM" }) as any);
+    inviteEnterpriseAdminMock.mockResolvedValue({ email: "owner@acme.com", expiresAt: "2026-04-15T12:00:00.000Z" } as any);
 
     const { result } = renderHook(() => useEnterpriseManagementState(true));
     await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
@@ -150,6 +155,7 @@ describe("useEnterpriseManagementState", () => {
       result.current.setCreateModalOpen(true);
       result.current.setNameInput("  Acme  ");
       result.current.setCodeInput("acm");
+      result.current.setInviteEmailInput("owner@acme.com");
     });
 
     await act(async () => {
@@ -157,11 +163,13 @@ describe("useEnterpriseManagementState", () => {
     });
 
     expect(createEnterpriseMock).toHaveBeenCalledWith({ name: "Acme", code: "ACM" });
+    expect(inviteEnterpriseAdminMock).toHaveBeenCalledWith("ent_2", "owner@acme.com");
     expect(result.current.status).toBe("success");
     expect(result.current.createModalOpen).toBe(false);
     expect(result.current.nameInput).toBe("");
     expect(result.current.codeInput).toBe("");
-    expect(result.current.toastMessage).toContain('Enterprise "Acme" created with code ACM.');
+    expect(result.current.inviteEmailInput).toBe("");
+    expect(result.current.toastMessage).toContain('Enterprise "Acme" created and invite sent to owner@acme.com.');
   });
 
   it("handles create and delete enterprise API failures", async () => {
@@ -189,6 +197,78 @@ describe("useEnterpriseManagementState", () => {
     });
     expect(result.current.status).toBe("error");
     expect(result.current.message).toBe("Delete failed.");
+  });
+
+  it("creates enterprise without sending invite when invite email is empty", async () => {
+    searchEnterprisesMock.mockResolvedValue(makeSearchResponse([], 0));
+    createEnterpriseMock.mockResolvedValue(makeEnterprise({ id: "ent_9", name: "Solo", code: "SOL" }) as any);
+
+    const { result } = renderHook(() => useEnterpriseManagementState(true));
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setNameInput("Solo");
+      result.current.setCodeInput("sol");
+      result.current.setInviteEmailInput("");
+    });
+
+    await act(async () => {
+      await result.current.handleCreateEnterprise(createSubmitEvent());
+    });
+
+    expect(createEnterpriseMock).toHaveBeenCalledWith({ name: "Solo", code: "SOL" });
+    expect(inviteEnterpriseAdminMock).not.toHaveBeenCalled();
+    expect(result.current.toastMessage).toContain('Enterprise "Solo" created with code SOL.');
+  });
+
+  it("validates optional invite email when provided", async () => {
+    searchEnterprisesMock.mockResolvedValue(makeSearchResponse([], 0));
+
+    const { result } = renderHook(() => useEnterpriseManagementState(true));
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setNameInput("Acme");
+      result.current.setInviteEmailInput("bad-email");
+    });
+
+    await act(async () => {
+      await result.current.handleCreateEnterprise(createSubmitEvent());
+    });
+
+    expect(createEnterpriseMock).not.toHaveBeenCalled();
+    expect(result.current.message).toBe("Invite email must be a valid email address.");
+  });
+
+  it("validates enterprise code format and enterprise name length before create", async () => {
+    searchEnterprisesMock.mockResolvedValue(makeSearchResponse([], 0));
+
+    const { result } = renderHook(() => useEnterpriseManagementState(true));
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    act(() => {
+      result.current.setNameInput("Acme");
+      result.current.setCodeInput("ab");
+    });
+
+    await act(async () => {
+      await result.current.handleCreateEnterprise(createSubmitEvent());
+    });
+
+    expect(createEnterpriseMock).not.toHaveBeenCalled();
+    expect(result.current.message).toBe("Enterprise code must be 3-16 letters or numbers.");
+
+    act(() => {
+      result.current.setNameInput("x".repeat(121));
+      result.current.setCodeInput("");
+    });
+
+    await act(async () => {
+      await result.current.handleCreateEnterprise(createSubmitEvent());
+    });
+
+    expect(createEnterpriseMock).not.toHaveBeenCalled();
+    expect(result.current.message).toBe("Enterprise name must be 120 characters or fewer.");
   });
 
   it("handles unknown create/delete errors and ignores delete without a pending enterprise", async () => {

@@ -18,6 +18,43 @@ vi.mock("../../shared/email.js", () => ({
   sendEmail: vi.fn().mockResolvedValue({ suppressed: true }),
 }));
 
+import { listNotifications, countUnread, readNotification, readAllNotifications, removeNotification } from "./service.js";
+
+describe("notification service delegation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lists notifications for a user", async () => {
+    (repo.getNotificationsByUserId as any).mockResolvedValue([{ id: 1 }]);
+    const result = await listNotifications(5);
+    expect(repo.getNotificationsByUserId).toHaveBeenCalledWith(5);
+    expect(result).toEqual([{ id: 1 }]);
+  });
+
+  it("counts unread notifications for a user", async () => {
+    (repo.getUnreadCount as any).mockResolvedValue(3);
+    const result = await countUnread(5);
+    expect(repo.getUnreadCount).toHaveBeenCalledWith(5);
+    expect(result).toBe(3);
+  });
+
+  it("marks a notification as read", async () => {
+    await readNotification(7, 5);
+    expect(repo.markAsRead).toHaveBeenCalledWith(7, 5);
+  });
+
+  it("marks all notifications as read for a user", async () => {
+    await readAllNotifications(5);
+    expect(repo.markAllAsRead).toHaveBeenCalledWith(5);
+  });
+
+  it("removes a notification", async () => {
+    await removeNotification(7, 5);
+    expect(repo.deleteNotification).toHaveBeenCalledWith(7, 5);
+  });
+});
+
 describe("addNotification email alerts", () => {
   beforeEach(() => {
     vi.clearAllMocks();

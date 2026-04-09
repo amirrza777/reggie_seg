@@ -7,7 +7,6 @@ import {
   fetchModulesForUser,
 } from "./service.js";
 import { parsePositiveInt, resolveAuthenticatedUserId } from "./controller.shared.js";
-import { joinModuleCompatibilityHandler } from "../moduleJoin/controller.js";
 
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
@@ -31,10 +30,6 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
     console.error("Error fetching user modules:", error);
     return res.status(500).json({ error: "Failed to fetch modules" });
   }
-}
-
-export async function joinModuleHandler(req: AuthRequest, res: Response) {
-  return joinModuleCompatibilityHandler(req, res);
 }
 
 export async function getModuleStaffListHandler(req: AuthRequest, res: Response) {

@@ -464,7 +464,19 @@
 }
 
 .forum-settings-card {
-  padding: 0;
+  padding: 20px;
+}
+
+.forum-settings-card__title {
+  margin: 0 0 6px;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
+}
+
+.forum-settings-card__desc {
+  margin: 0;
 }
 
 .forum-settings-card__skeleton-text .ui-skeleton-text__line {

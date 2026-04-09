@@ -138,6 +138,16 @@ describe("createMeetingHandler", () => {
     expect(res.status).toHaveBeenCalledWith(500);
   });
 
+  it("returns 409 when project is archived", async () => {
+    (service.addMeeting as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = {
+      body: { teamId: 1, organiserId: 1, title: "Team Meeting", date: "2026-03-01" },
+    };
+    const res = mockResponse();
+    await createMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
   it("returns 409 when project is completed", async () => {
     (service.addMeeting as any).mockRejectedValue({ code: "PROJECT_COMPLETED" });
     const req: any = {
@@ -218,6 +228,14 @@ describe("updateMeetingHandler", () => {
     expect(res.status).toHaveBeenCalledWith(409);
   });
 
+  it("returns 409 when project is archived", async () => {
+    (service.editMeeting as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
+    const res = mockResponse();
+    await updateMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
   it("returns 500 for other errors", async () => {
     (service.editMeeting as any).mockRejectedValue(new Error("fail"));
     const req: any = { params: { meetingId: "1" }, body: { userId: 1 } };
@@ -251,6 +269,14 @@ describe("deleteMeetingHandler", () => {
     const res = mockResponse();
     await deleteMeetingHandler(req, res);
     expect(res.status).toHaveBeenCalledWith(404);
+  });
+
+  it("returns 409 when project is archived", async () => {
+    (service.removeMeeting as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = { params: { meetingId: "7" } };
+    const res = mockResponse();
+    await deleteMeetingHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
   });
 
   it("returns 500 for other errors", async () => {

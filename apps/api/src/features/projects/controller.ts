@@ -18,7 +18,6 @@ export {
 
 export {
   getUserModulesHandler,
-  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
 } from "./controller.modules.js";

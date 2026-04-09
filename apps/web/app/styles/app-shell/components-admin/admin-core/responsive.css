@@ -22,12 +22,22 @@
     padding: 10px 14px;
   }
 
-  .admin-overview-card .overview-title {
-    font-size: clamp(1.7rem, 7vw, var(--fs-overview-title));
+  .ui-page__header > .overview-title.ui-page__title {
+    font-size: clamp(1.7rem, 7vw, var(--fs-panel-title));
   }
 
   .audit-modal__header {
     padding-right: 52px;
+  }
+
+  .user-management__meta {
+    justify-content: flex-start;
+  }
+
+  .user-management__toolbar-summary {
+    margin-left: 0;
+    width: 100%;
+    white-space: normal;
   }
 
   .user-management__table {
@@ -211,6 +221,11 @@
 
   .user-management__table .user-management__row {
     gap: 10px;
+  }
+
+  .user-management__sort {
+    min-width: 0;
+    width: 100%;
   }
 
   .user-management__table .user-management__row > div:nth-child(1) {

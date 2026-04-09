@@ -459,7 +459,10 @@
 
 .enterprise-module-create__danger-title {
   margin: 0;
-  font-size: var(--fs-body-lg);
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
   color: var(--status-danger-text);
 }
 

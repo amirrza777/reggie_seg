@@ -5,7 +5,6 @@ import {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
-  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
@@ -45,23 +44,10 @@ import {
   reviewStaffTeamHealthMessageHandler,
   resolveStaffTeamHealthMessageHandler,
 } from "./team-health-review/controller.js";
-import { moduleJoinAttemptRateLimit } from "../moduleJoin/rateLimit.js";
 
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", requireAuth, getUserModulesHandler);
-// Compatibility route for legacy clients. Remove in MJ-013 after migration to /module-join/join.
-router.post(
-  "/modules/join",
-  requireAuth,
-  moduleJoinAttemptRateLimit,
-  (_req, res, next) => {
-    res.setHeader("Deprecation", "true");
-    res.setHeader("Sunset", "Wed, 31 Dec 2026 23:59:59 GMT");
-    next();
-  },
-  joinModuleHandler,
-);
 router.get("/modules/:moduleId/staff", requireAuth, getModuleStaffListHandler);
 router.get("/modules/:moduleId/student-project-matrix", requireAuth, getModuleStudentProjectMatrixHandler);
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);

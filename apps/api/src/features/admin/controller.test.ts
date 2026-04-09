@@ -9,12 +9,14 @@ const mocks = vi.hoisted(() => ({
   parseAdminUserIdParam: vi.fn(),
   parseAuditLogsQuery: vi.fn(),
   parseCreateEnterpriseBody: vi.fn(),
+  parseInviteEnterpriseAdminBody: vi.fn(),
   parseUpdateUserBody: vi.fn(),
   parseUpdateUserRoleBody: vi.fn(),
   createEnterprise: vi.fn(),
   deleteEnterprise: vi.fn(),
   getAuditLogs: vi.fn(),
   getSummary: vi.fn(),
+  inviteEnterpriseAdmin: vi.fn(),
   listEnterpriseUsers: vi.fn(),
   listEnterprises: vi.fn(),
   listUsers: vi.fn(),
@@ -41,6 +43,7 @@ vi.mock("./controller.parsers.js", () => ({
   parseAdminUserIdParam: mocks.parseAdminUserIdParam,
   parseAuditLogsQuery: mocks.parseAuditLogsQuery,
   parseCreateEnterpriseBody: mocks.parseCreateEnterpriseBody,
+  parseInviteEnterpriseAdminBody: mocks.parseInviteEnterpriseAdminBody,
   parseUpdateUserBody: mocks.parseUpdateUserBody,
   parseUpdateUserRoleBody: mocks.parseUpdateUserRoleBody,
 }));
@@ -49,6 +52,7 @@ vi.mock("./service.js", () => ({
   deleteEnterprise: mocks.deleteEnterprise,
   getAuditLogs: mocks.getAuditLogs,
   getSummary: mocks.getSummary,
+  inviteEnterpriseAdmin: mocks.inviteEnterpriseAdmin,
   listEnterpriseUsers: mocks.listEnterpriseUsers,
   listEnterprises: mocks.listEnterprises,
   listUsers: mocks.listUsers,
@@ -65,6 +69,7 @@ import {
   createEnterpriseHandler,
   deleteEnterpriseHandler,
   getSummaryHandler,
+  inviteEnterpriseAdminHandler,
   listAuditLogsHandler,
   listEnterpriseUsersHandler,
   listEnterprisesHandler,
@@ -102,6 +107,11 @@ describe("admin controller", () => {
     mocks.parseCreateEnterpriseBody.mockReturnValue({ ok: true, value: { name: "E", code: "e" } });
     mocks.parseAuditLogsQuery.mockReturnValue({ ok: true, value: { limit: 10 } });
     mocks.getSummary.mockResolvedValue({ users: 1 });
+    mocks.parseInviteEnterpriseAdminBody.mockReturnValue({ ok: true, value: { email: "invite@example.com" } });
+    mocks.inviteEnterpriseAdmin.mockResolvedValue({
+      ok: true,
+      value: { email: "invite@example.com", expiresAt: new Date("2026-04-15T00:00:00.000Z") },
+    });
     mocks.listUsers.mockResolvedValue([{ id: 1 }]);
     mocks.searchUsers.mockResolvedValue([{ id: 2 }]);
     mocks.updateOwnEnterpriseUserRole.mockResolvedValue({ ok: true, value: { id: 2, role: "STAFF" } });
@@ -213,6 +223,39 @@ describe("admin controller", () => {
     const createThrow = createRes();
     await createEnterpriseHandler(req, createThrow);
     expect(createThrow.status).toHaveBeenCalledWith(500);
+  });
+
+  it("handles enterprise-admin invite validation and service outcomes", async () => {
+    const req = {
+      adminUser: { enterpriseId: "ent-1", id: 1 },
+      params: { enterpriseId: "ent-2" },
+      body: { email: "invite@example.com" },
+    } as any;
+
+    const okRes = createRes();
+    await inviteEnterpriseAdminHandler(req, okRes);
+    expect(mocks.inviteEnterpriseAdmin).toHaveBeenCalledWith({ enterpriseId: "ent-2", email: "invite@example.com" }, 1);
+    expect(okRes.status).toHaveBeenCalledWith(201);
+
+    mocks.parseAdminEnterpriseIdParam.mockReturnValueOnce({ ok: false, error: "Enterprise id is required" });
+    const badEnterpriseRes = createRes();
+    await inviteEnterpriseAdminHandler(req, badEnterpriseRes);
+    expect(badEnterpriseRes.status).toHaveBeenCalledWith(400);
+
+    mocks.parseInviteEnterpriseAdminBody.mockReturnValueOnce({ ok: false, error: "email must be a string" });
+    const badBodyRes = createRes();
+    await inviteEnterpriseAdminHandler(req, badBodyRes);
+    expect(badBodyRes.status).toHaveBeenCalledWith(400);
+
+    mocks.inviteEnterpriseAdmin.mockResolvedValueOnce({ ok: false, status: 409, error: "User already has enterprise admin access" });
+    const conflictRes = createRes();
+    await inviteEnterpriseAdminHandler(req, conflictRes);
+    expect(conflictRes.status).toHaveBeenCalledWith(409);
+
+    mocks.inviteEnterpriseAdmin.mockRejectedValueOnce(new Error("smtp down"));
+    const failRes = createRes();
+    await inviteEnterpriseAdminHandler(req, failRes);
+    expect(failRes.status).toHaveBeenCalledWith(500);
   });
 
   it("handles enterprise user list/search/update/delete branches", async () => {

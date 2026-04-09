@@ -48,7 +48,7 @@ describe("Topbar", () => {
     expect(link).toHaveClass("topbar__title-link");
 
     const brandIcon = container.querySelector(".topbar__title-icon");
-    expect(brandIcon).toHaveAttribute("src", "/favicon-32x32.png");
+    expect(brandIcon).toHaveAttribute("src", "/team-feedback-mark-32.png");
   });
 
   it("renders without a title heading when title is omitted", () => {

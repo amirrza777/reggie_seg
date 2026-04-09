@@ -22,6 +22,11 @@ const apiUser = {
   isStaff: false,
   role: "STUDENT",
   active: true,
+  enterprise: {
+    id: "ent-1",
+    name: "Assessment Enterprise",
+    code: "ASSMT",
+  },
 };
 
 const makeSearchResponse = (
@@ -101,6 +106,30 @@ describe("UserManagementTable", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
+  it("shows the user's current enterprise in the account row", async () => {
+    await renderTable();
+    expect(screen.getByText("Assessment Enterprise")).toBeInTheDocument();
+  });
+
+  it("normalizes legacy unassigned enterprise labels", async () => {
+    installSearchMock([
+      {
+        ...apiUser,
+        id: 44,
+        email: "staff4@example.com",
+        enterprise: {
+          id: "ent-unassigned",
+          name: "Unassigned Accounts",
+          code: "UNASSIGNED",
+        },
+      },
+    ]);
+
+    await renderTable();
+    expect(screen.getByText("Unassigned")).toBeInTheDocument();
+    expect(screen.queryByText("Unassigned Accounts")).not.toBeInTheDocument();
+  });
+
   it("updates user role and shows confirmation", async () => {
     await renderTable();
     fireEvent.click(screen.getByRole("button", { name: /Staff/i }));
@@ -142,6 +171,24 @@ describe("UserManagementTable", () => {
     expect(screen.getByText("admin@kcl.ac.uk")).toBeInTheDocument();
     expect(screen.queryByText("student@test.com")).not.toBeInTheDocument();
     expect(screen.getByText(/Showing 1-1 of 1 account\./i)).toBeInTheDocument();
+  });
+
+  it("requests sorted users when sort selection changes", async () => {
+    await renderTable();
+
+    fireEvent.change(screen.getByRole("combobox", { name: /sort user accounts/i }), {
+      target: { value: "joinDateDesc" },
+    });
+
+    await waitFor(() =>
+      expect(searchUsersMock).toHaveBeenLastCalledWith({
+        q: undefined,
+        page: 1,
+        pageSize: 10,
+        sortBy: "joinDate",
+        sortDirection: "desc",
+      }),
+    );
   });
 
   it("shows 10 users per page and supports pagination controls", async () => {

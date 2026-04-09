@@ -115,6 +115,11 @@ describe("projects/warnings repo", () => {
     (prisma.project.findFirst as any)
       .mockResolvedValueOnce({ id: 4 })
       .mockResolvedValueOnce({ id: 4 });
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      id: 4,
+      archivedAt: null,
+      module: { archivedAt: null },
+    });
     (prisma.project.update as any).mockResolvedValueOnce({
       id: 4,
       warningsConfig: config,

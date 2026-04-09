@@ -1,14 +1,17 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useState, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { updateEnterpriseUser } from "../api/client";
+import { inviteEnterpriseAdmin, updateEnterpriseUser } from "../api/client";
 import { useEnterpriseUserActions } from "./useEnterpriseUserManagementState.actions";
 import type { AdminUser, EnterpriseRecord } from "../types";
+import type { EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
 
 vi.mock("../api/client", () => ({
+  inviteEnterpriseAdmin: vi.fn(),
   updateEnterpriseUser: vi.fn(),
 }));
 
+const inviteEnterpriseAdminMock = vi.mocked(inviteEnterpriseAdmin);
 const updateEnterpriseUserMock = vi.mocked(updateEnterpriseUser);
 
 const enterprise: EnterpriseRecord = {
@@ -41,7 +44,9 @@ type HarnessOptions = {
   enterpriseUserSearchQuery?: string;
   enterpriseUserPage?: number;
   enterpriseUserPageInput?: string;
+  enterpriseUserSortValue?: EnterpriseUserSortValue;
   effectiveEnterpriseUserTotalPages?: number;
+  enterpriseAdminInviteEmail?: string;
   loadEnterpriseUsers?: ReturnType<typeof vi.fn>;
   showSuccessToast?: ReturnType<typeof vi.fn>;
 };
@@ -59,8 +64,14 @@ function useActionsHarness(options: HarnessOptions) {
   );
   const [enterpriseUserPage, setEnterpriseUserPage] = useState(options.enterpriseUserPage ?? 1);
   const [enterpriseUserPageInput, setEnterpriseUserPageInput] = useState(options.enterpriseUserPageInput ?? "1");
+  const [enterpriseUserSortValue, setEnterpriseUserSortValue] = useState<EnterpriseUserSortValue>(
+    options.enterpriseUserSortValue ?? "default"
+  );
   const [enterpriseUserTotal, setEnterpriseUserTotal] = useState(99);
   const [enterpriseUserTotalPages, setEnterpriseUserTotalPages] = useState(9);
+  const [enterpriseAdminInviteEmail, setEnterpriseAdminInviteEmail] = useState(options.enterpriseAdminInviteEmail ?? "");
+  const [enterpriseAdminInviteStatus, setEnterpriseAdminInviteStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [enterpriseAdminInviteMessage, setEnterpriseAdminInviteMessage] = useState<string | null>(null);
 
   const actions = useEnterpriseUserActions({
     selectedEnterprise,
@@ -68,7 +79,9 @@ function useActionsHarness(options: HarnessOptions) {
     enterpriseUserSearchQuery,
     enterpriseUserPage,
     enterpriseUserPageInput,
+    enterpriseUserSortValue,
     effectiveEnterpriseUserTotalPages: options.effectiveEnterpriseUserTotalPages ?? 9,
+    enterpriseAdminInviteEmail,
     setSelectedEnterprise,
     setEnterpriseUsers: setEnterpriseUsers as Dispatch<SetStateAction<AdminUser[]>>,
     setEnterpriseUsersStatus: setEnterpriseUsersStatus,
@@ -79,8 +92,12 @@ function useActionsHarness(options: HarnessOptions) {
     setEnterpriseUserSearchQuery,
     setEnterpriseUserPage,
     setEnterpriseUserPageInput,
+    setEnterpriseUserSortValue,
     setEnterpriseUserTotal,
     setEnterpriseUserTotalPages,
+    setEnterpriseAdminInviteEmail,
+    setEnterpriseAdminInviteStatus,
+    setEnterpriseAdminInviteMessage,
     loadEnterpriseUsers: options.loadEnterpriseUsers ?? vi.fn().mockResolvedValue(undefined),
     showSuccessToast: options.showSuccessToast ?? vi.fn(),
   });
@@ -94,8 +111,13 @@ function useActionsHarness(options: HarnessOptions) {
     enterpriseUserSearchQuery,
     enterpriseUserPage,
     enterpriseUserPageInput,
+    enterpriseUserSortValue,
     enterpriseUserTotal,
     enterpriseUserTotalPages,
+    enterpriseAdminInviteEmail,
+    setEnterpriseAdminInviteEmail,
+    enterpriseAdminInviteStatus,
+    enterpriseAdminInviteMessage,
     actions,
   };
 }
@@ -113,6 +135,7 @@ describe("useEnterpriseUserActions", () => {
         enterpriseUserSearchQuery: "student",
         enterpriseUserPage: 4,
         enterpriseUserPageInput: "4",
+        enterpriseUserSortValue: "joinDateDesc",
       })
     );
 
@@ -126,6 +149,7 @@ describe("useEnterpriseUserActions", () => {
     expect(result.current.enterpriseUserSearchQuery).toBe("");
     expect(result.current.enterpriseUserPage).toBe(1);
     expect(result.current.enterpriseUserPageInput).toBe("1");
+    expect(result.current.enterpriseUserSortValue).toBe("default");
     expect(result.current.enterpriseUserTotal).toBe(0);
     expect(result.current.enterpriseUserTotalPages).toBe(0);
   });
@@ -214,8 +238,10 @@ describe("useEnterpriseUserActions", () => {
     await act(async () => {
       await result.current.actions.handleEnterpriseUserRoleChange(userA.id, "STAFF");
       await result.current.actions.handleEnterpriseUserStatusToggle(userA.id, false);
+      await result.current.actions.submitEnterpriseAdminInvite({ preventDefault: vi.fn() } as unknown as FormEvent<HTMLFormElement>);
     });
 
+    expect(inviteEnterpriseAdminMock).not.toHaveBeenCalled();
     expect(updateEnterpriseUserMock).not.toHaveBeenCalled();
     expect(loadEnterpriseUsers).not.toHaveBeenCalled();
     expect(showSuccessToast).not.toHaveBeenCalled();
@@ -252,7 +278,7 @@ describe("useEnterpriseUserActions", () => {
     expect(result.current.enterpriseUserActionState[userA.id]).toBe("idle");
     expect(showSuccessToast).toHaveBeenCalledWith("Updated role to staff.");
     await waitFor(() =>
-      expect(loadEnterpriseUsers).toHaveBeenCalledWith("ent_1", "stu", 2)
+      expect(loadEnterpriseUsers).toHaveBeenCalledWith("ent_1", "stu", 2, "default")
     );
   });
 
@@ -303,5 +329,65 @@ describe("useEnterpriseUserActions", () => {
     });
     expect(result.current.enterpriseUsers[0].active).toBe(false);
     expect(result.current.enterpriseUsersMessage).toBe("Status failed.");
+  });
+
+  it("submits enterprise admin invites successfully", async () => {
+    const showSuccessToast = vi.fn();
+    inviteEnterpriseAdminMock.mockResolvedValueOnce({
+      email: "invite@example.com",
+      expiresAt: "2026-04-15T12:00:00.000Z",
+    } as any);
+
+    const { result } = renderHook(() =>
+      useActionsHarness({
+        selectedEnterprise: enterprise,
+        enterpriseUsers: [userA],
+        enterpriseAdminInviteEmail: "invite@example.com",
+        showSuccessToast,
+      })
+    );
+
+    await act(async () => {
+      await result.current.actions.submitEnterpriseAdminInvite({
+        preventDefault: vi.fn(),
+      } as unknown as FormEvent<HTMLFormElement>);
+    });
+
+    expect(inviteEnterpriseAdminMock).toHaveBeenCalledWith("ent_1", "invite@example.com");
+    expect(result.current.enterpriseAdminInviteEmail).toBe("");
+    expect(result.current.enterpriseAdminInviteStatus).toBe("success");
+    expect(result.current.enterpriseAdminInviteMessage).toBe("Invite sent to invite@example.com.");
+    expect(showSuccessToast).toHaveBeenCalledWith("Sent enterprise admin invite to invite@example.com.");
+  });
+
+  it("validates and handles invite submission failures", async () => {
+    const { result } = renderHook(() =>
+      useActionsHarness({
+        selectedEnterprise: enterprise,
+        enterpriseUsers: [userA],
+        enterpriseAdminInviteEmail: "bad-email",
+      })
+    );
+
+    await act(async () => {
+      await result.current.actions.submitEnterpriseAdminInvite({
+        preventDefault: vi.fn(),
+      } as unknown as FormEvent<HTMLFormElement>);
+    });
+    expect(result.current.enterpriseAdminInviteStatus).toBe("error");
+    expect(result.current.enterpriseAdminInviteMessage).toBe("Enter a valid email address.");
+    expect(inviteEnterpriseAdminMock).not.toHaveBeenCalled();
+
+    inviteEnterpriseAdminMock.mockRejectedValueOnce(new Error("Invite failed."));
+    act(() => {
+      result.current.setEnterpriseAdminInviteEmail("invite@example.com");
+    });
+    await act(async () => {
+      await result.current.actions.submitEnterpriseAdminInvite({
+        preventDefault: vi.fn(),
+      } as unknown as FormEvent<HTMLFormElement>);
+    });
+    expect(result.current.enterpriseAdminInviteStatus).toBe("error");
+    expect(result.current.enterpriseAdminInviteMessage).toBe("Invite failed.");
   });
 });

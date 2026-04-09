@@ -2,8 +2,11 @@ import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { notFound, redirect } from "next/navigation";
-import { listModules } from "@/features/modules/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
+import {
+  loadStaffModuleWorkspaceContext,
+  resolveStaffModuleWorkspaceAccess,
+} from "@/features/modules/staffModuleWorkspaceLayoutData";
 import StaffModuleManagePage from "./page";
 
 class RedirectSentinel extends Error {}
@@ -30,8 +33,9 @@ vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
 }));
 
-vi.mock("@/features/modules/api/client", () => ({
-  listModules: vi.fn(),
+vi.mock("@/features/modules/staffModuleWorkspaceLayoutData", () => ({
+  loadStaffModuleWorkspaceContext: vi.fn(),
+  resolveStaffModuleWorkspaceAccess: vi.fn(),
 }));
 
 vi.mock("@/shared/ui/Card", () => ({
@@ -49,19 +53,25 @@ vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
     mode,
     moduleId,
     workspace,
-    createdJoinCode,
+    joinCode,
+    created,
+    successRedirectAfterUpdateHref,
   }: {
     mode: string;
     moduleId: number;
     workspace: string;
-    createdJoinCode: string | null;
+    joinCode?: string | null;
+    created?: boolean;
+    successRedirectAfterUpdateHref?: string;
   }) => (
     <div
       data-testid="module-form"
       data-mode={mode}
       data-module-id={String(moduleId)}
       data-workspace={workspace}
-      data-created-join-code={createdJoinCode ?? ""}
+      data-join-code={joinCode ?? ""}
+      data-created={created ? "true" : "false"}
+      data-success-redirect={successRedirectAfterUpdateHref ?? ""}
     />
   ),
 }));
@@ -69,13 +79,29 @@ vi.mock("@/features/enterprise/components/EnterpriseModuleCreateForm", () => ({
 const redirectMock = vi.mocked(redirect);
 const notFoundMock = vi.mocked(notFound);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
-const listModulesMock = vi.mocked(listModules);
+const loadStaffModuleWorkspaceContextMock = vi.mocked(loadStaffModuleWorkspaceContext);
+const resolveStaffModuleWorkspaceAccessMock = vi.mocked(resolveStaffModuleWorkspaceAccess);
 
 const staffUser = { id: 7, isStaff: true, role: "STAFF" };
+
+const baseContext = {
+  user: staffUser,
+  moduleId: "11",
+  parsedModuleId: 11,
+  moduleRecord: { id: "11", title: "CS11", accountRole: "OWNER" },
+  module: { id: "11", title: "CS11", accountRole: "OWNER" },
+  isElevated: false,
+  isEnterpriseAdmin: false,
+} as Awaited<ReturnType<typeof loadStaffModuleWorkspaceContext>>;
 
 describe("StaffModuleManagePage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentUserMock.mockResolvedValue(staffUser as Awaited<ReturnType<typeof getCurrentUser>>);
+    loadStaffModuleWorkspaceContextMock.mockResolvedValue(baseContext);
+    resolveStaffModuleWorkspaceAccessMock.mockReturnValue(
+      { enterpriseModuleEditor: false, isArchived: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+    );
   });
 
   it("redirects unauthenticated users to login", async () => {
@@ -91,7 +117,7 @@ describe("StaffModuleManagePage", () => {
   });
 
   it("redirects unauthorized users to dashboard", async () => {
-    getCurrentUserMock.mockResolvedValueOnce({ id: 7, isStaff: false, role: "STUDENT" });
+    getCurrentUserMock.mockResolvedValueOnce({ id: 7, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
 
     await expect(
       StaffModuleManagePage({
@@ -103,8 +129,6 @@ describe("StaffModuleManagePage", () => {
   });
 
   it("calls notFound for invalid module ids", async () => {
-    getCurrentUserMock.mockResolvedValueOnce(staffUser);
-
     await expect(
       StaffModuleManagePage({
         params: Promise.resolve({ moduleId: "abc" }),
@@ -114,9 +138,8 @@ describe("StaffModuleManagePage", () => {
     expect(notFoundMock).toHaveBeenCalledTimes(1);
   });
 
-  it("redirects to module list when loading staff modules fails", async () => {
-    getCurrentUserMock.mockResolvedValueOnce(staffUser);
-    listModulesMock.mockRejectedValueOnce(new Error("fetch failed"));
+  it("redirects to module list when workspace context cannot be loaded", async () => {
+    loadStaffModuleWorkspaceContextMock.mockResolvedValueOnce(null);
 
     await expect(
       StaffModuleManagePage({
@@ -124,16 +147,15 @@ describe("StaffModuleManagePage", () => {
       }),
     ).rejects.toBeInstanceOf(RedirectSentinel);
 
-    expect(listModulesMock).toHaveBeenCalledWith(7, { scope: "staff" });
+    expect(loadStaffModuleWorkspaceContextMock).toHaveBeenCalledWith("11");
     expect(redirectMock).toHaveBeenCalledWith("/staff/modules");
   });
 
   it("redirects when requested module is missing or not owner-managed", async () => {
-    getCurrentUserMock.mockResolvedValue(staffUser);
-
-    listModulesMock.mockResolvedValueOnce([
-      { id: 44, accountRole: "OWNER", moduleCode: "CS44" },
-    ] as Awaited<ReturnType<typeof listModules>>);
+    loadStaffModuleWorkspaceContextMock.mockResolvedValueOnce({
+      ...baseContext,
+      moduleRecord: null,
+    });
 
     await expect(
       StaffModuleManagePage({
@@ -143,9 +165,10 @@ describe("StaffModuleManagePage", () => {
 
     expect(redirectMock).toHaveBeenLastCalledWith("/staff/modules");
 
-    listModulesMock.mockResolvedValueOnce([
-      { id: 11, accountRole: "MEMBER", moduleCode: "CS11" },
-    ] as Awaited<ReturnType<typeof listModules>>);
+    loadStaffModuleWorkspaceContextMock.mockResolvedValueOnce({
+      ...baseContext,
+      moduleRecord: { id: "11", title: "CS11", accountRole: "TEACHING_ASSISTANT" },
+    });
 
     await expect(
       StaffModuleManagePage({
@@ -154,14 +177,25 @@ describe("StaffModuleManagePage", () => {
     ).rejects.toBeInstanceOf(RedirectSentinel);
 
     expect(redirectMock).toHaveBeenLastCalledWith("/modules/11");
+
+    loadStaffModuleWorkspaceContextMock.mockResolvedValueOnce({
+      ...baseContext,
+      moduleRecord: { id: "11", title: "CS11", accountRole: "TEACHING_ASSISTANT" },
+    });
+    resolveStaffModuleWorkspaceAccessMock.mockReturnValueOnce(
+      { enterpriseModuleEditor: true, isArchived: false } as ReturnType<typeof resolveStaffModuleWorkspaceAccess>,
+    );
+
+    await expect(
+      StaffModuleManagePage({
+        params: Promise.resolve({ moduleId: "11" }),
+      }),
+    ).rejects.toBeInstanceOf(RedirectSentinel);
+
+    expect(redirectMock).toHaveBeenLastCalledWith("/enterprise/modules/11/edit");
   });
 
   it("renders manage page and passes created join code to module form", async () => {
-    getCurrentUserMock.mockResolvedValueOnce(staffUser);
-    listModulesMock.mockResolvedValueOnce([
-      { id: 11, accountRole: "OWNER", moduleCode: "CS11" },
-    ] as Awaited<ReturnType<typeof listModules>>);
-
     const page = await StaffModuleManagePage({
       params: Promise.resolve({ moduleId: "11" }),
       searchParams: Promise.resolve({ created: "1", joinCode: "JOIN123" }),
@@ -174,10 +208,13 @@ describe("StaffModuleManagePage", () => {
       "href",
       "/staff/projects/create?moduleId=11",
     );
-    expect(screen.getByRole("link", { name: "Back to my modules" })).toHaveAttribute("href", "/staff/modules");
-    expect(screen.getByTestId("module-form")).toHaveAttribute("data-mode", "edit");
-    expect(screen.getByTestId("module-form")).toHaveAttribute("data-module-id", "11");
-    expect(screen.getByTestId("module-form")).toHaveAttribute("data-workspace", "staff");
-    expect(screen.getByTestId("module-form")).toHaveAttribute("data-created-join-code", "JOIN123");
+
+    const form = screen.getByTestId("module-form");
+    expect(form).toHaveAttribute("data-mode", "edit");
+    expect(form).toHaveAttribute("data-module-id", "11");
+    expect(form).toHaveAttribute("data-workspace", "staff");
+    expect(form).toHaveAttribute("data-join-code", "JOIN123");
+    expect(form).toHaveAttribute("data-created", "true");
+    expect(form).toHaveAttribute("data-success-redirect", "/staff/modules/11");
   });
 });

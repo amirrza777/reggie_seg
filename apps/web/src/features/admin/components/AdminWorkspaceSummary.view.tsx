@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { normalizeSearchQuery } from "@/shared/lib/search";
+import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationControls";
 import { SearchField } from "@/shared/ui/SearchField";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { AdminUser, AdminUserRecord, UserRole, AdminSummary } from "../types";
@@ -41,6 +43,7 @@ const demoStaff: AdminUser[] = [
 ];
 
 type RequestState = "idle" | "loading" | "success" | "error";
+const STAFF_DIRECTORY_PAGE_SIZE = 100;
 
 const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   ...user,
@@ -60,25 +63,40 @@ export function AdminWorkspaceSummaryView() {
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [summaryStatus, setSummaryStatus] = useState<RequestState>("idle");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState("1");
+  const [totalStaff, setTotalStaff] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const latestRequestId = useRef(0);
 
   const staffDirectory = useMemo(() => staff.filter(isStaffAccount), [staff]);
   const normalizedSearchQuery = normalizeSearchQuery(searchQuery);
+  const effectiveTotalPages = getEffectiveTotalPages(totalPages);
+  const staffStart = getPaginationStart(totalStaff, currentPage, STAFF_DIRECTORY_PAGE_SIZE);
+  const staffEnd = getPaginationEnd(totalStaff, currentPage, STAFF_DIRECTORY_PAGE_SIZE, staffDirectory.length);
 
   const setStaffRow = (userId: number, update: (user: AdminUser) => AdminUser) => {
     setStaff((prev) => prev.map((user) => (user.id === userId ? update(user) : user)));
   };
 
   const loadStaff = useCallback(async () => {
+    const requestId = latestRequestId.current + 1;
+    latestRequestId.current = requestId;
     setStatus("loading");
     setNotice(null);
 
     try {
       const response = await searchUsers({
         q: normalizedSearchQuery || undefined,
-        page: 1,
-        pageSize: 200,
+        page: currentPage,
+        pageSize: STAFF_DIRECTORY_PAGE_SIZE,
       });
+      if (latestRequestId.current !== requestId) {return;}
       const normalized = response.items.map(normalizeUser).filter(isStaffAccount);
+      if (response.totalPages > 0 && response.page > response.totalPages) {
+        setCurrentPage(response.totalPages);
+        return;
+      }
       if (normalized.length === 0) {
         setNotice(
           normalizedSearchQuery
@@ -87,8 +105,11 @@ export function AdminWorkspaceSummaryView() {
         );
       }
       setStaff(normalized);
+      setTotalStaff(response.total);
+      setTotalPages(response.totalPages);
       setStatus("success");
     } catch (err) {
+      if (latestRequestId.current !== requestId) {return;}
       let fallback = demoStaff;
       try {
         const users = await listUsers();
@@ -96,16 +117,43 @@ export function AdminWorkspaceSummaryView() {
       } catch {
         fallback = demoStaff;
       }
-      setStaff(fallback);
+      const fallbackStart = (currentPage - 1) * STAFF_DIRECTORY_PAGE_SIZE;
+      const pagedFallback = fallback.slice(fallbackStart, fallbackStart + STAFF_DIRECTORY_PAGE_SIZE);
+      const fallbackTotalPages = fallback.length === 0 ? 0 : Math.ceil(fallback.length / STAFF_DIRECTORY_PAGE_SIZE);
+      setStaff(pagedFallback);
+      setTotalStaff(fallback.length);
+      setTotalPages(fallbackTotalPages);
       setStatus("error");
-      setNotice(err instanceof Error ? err.message : "Unable to load staff. Showing sample data.");
+      setNotice("Couldn't load staff directory. Showing sample data.");
     }
-  }, [normalizedSearchQuery, searchQuery]);
+  }, [currentPage, normalizedSearchQuery, searchQuery]);
 
   useEffect(() => {
     if (!modalOpen) {return;}
-    loadStaff();
+    void loadStaff();
   }, [modalOpen, loadStaff]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [normalizedSearchQuery]);
+
+  useEffect(() => {
+    setPageInput(String(currentPage));
+  }, [currentPage]);
+
+  const applyPageInput = useCallback((value: string) => {
+    const parsedPage = parsePageInput(value, totalPages);
+    if (parsedPage === null) {
+      setPageInput(String(currentPage));
+      return;
+    }
+    setCurrentPage(parsedPage);
+  }, [currentPage, totalPages]);
+
+  const handlePageJump = useCallback((event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    applyPageInput(pageInput);
+  }, [applyPageInput, pageInput]);
 
   useEffect(() => {
     const loadSummary = async () => {
@@ -145,7 +193,7 @@ export function AdminWorkspaceSummaryView() {
   return (
     <>
       <Card
-        title={<span className="overview-title">Admin workspace</span>}
+        title="Workspace snapshot"
         className="admin-overview-card"
         action={
           <div className="admin-overview-actions">
@@ -214,7 +262,9 @@ export function AdminWorkspaceSummaryView() {
                 <span className="ui-note ui-note--muted">
                   {status === "loading"
                     ? "Loading staff directory..."
-                    : `Showing ${staffDirectory.length} staff ${staffDirectory.length === 1 ? "account" : "accounts"}.`}
+                    : totalStaff === 0
+                      ? "Showing 0 staff accounts."
+                      : `Showing ${staffStart}-${staffEnd} of ${totalStaff} staff accounts.`}
                 </span>
               </div>
               <SearchField
@@ -288,6 +338,26 @@ export function AdminWorkspaceSummaryView() {
                   )}
                 </div>
               </div>
+
+              {!(status === "loading" && staffDirectory.length === 0) ? (
+                <PaginationControls
+                  ariaLabel="Staff directory pagination"
+                  page={currentPage}
+                  totalPages={totalPages}
+                  onPreviousPage={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onNextPage={() => setCurrentPage((prev) => Math.min(effectiveTotalPages, prev + 1))}
+                >
+                  <PaginationPageJump
+                    pageInputId="staff-directory-page-input"
+                    pageInput={pageInput}
+                    totalPages={totalPages}
+                    pageJumpAriaLabel="Go to staff directory page number"
+                    onPageInputChange={setPageInput}
+                    onPageInputBlur={() => applyPageInput(pageInput)}
+                    onPageJump={handlePageJump}
+                  />
+                </PaginationControls>
+              ) : null}
             </div>
 
           </div>

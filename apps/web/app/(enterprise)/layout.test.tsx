@@ -100,6 +100,7 @@ describe("EnterpriseLayout", () => {
     expect(desktopSidebar?.links).toEqual([
       { href: "/enterprise", label: "Enterprise overview", space: "enterprise" },
       { href: "/enterprise/modules", label: "Module management", space: "enterprise" },
+      { href: "/enterprise/users", label: "People", space: "enterprise" },
       { href: "/enterprise/feature-flags", label: "Feature flags", space: "enterprise" },
     ]);
   });

@@ -4,8 +4,8 @@ import { partitionStaffModulesByArchive } from "@/features/modules/lib/staffModu
 import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
+import { StaffBreadcrumbs } from "@/shared/layout/StaffBreadcrumbs";
 import "@/features/staff/projects/styles/staff-projects.css";
-import Link from "next/link";
 
 type StaffCreateProjectPageProps = {
   searchParams?: Promise<{ moduleId?: string }>;
@@ -40,64 +40,25 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
     initialModuleId != null ? modules.find((module) => module.id === initialModuleId) ?? null : null;
   const selectedModuleHref = selectedModule ? `/staff/modules/${encodeURIComponent(selectedModule.id)}` : null;
   const selectedModuleProjectsHref = selectedModuleHref ? `${selectedModuleHref}/projects` : null;
+  const breadcrumbItems = [
+    { label: "Staff", href: "/staff" },
+    { label: "My Modules", href: "/staff/modules" },
+    ...(selectedModuleHref
+      ? [{ label: selectedModule?.title ?? `Module ${initialModuleId}`, href: selectedModuleHref }]
+      : []),
+    ...(selectedModuleProjectsHref ? [{ label: "Projects", href: selectedModuleProjectsHref }] : []),
+    { label: "Create project" },
+  ];
 
   return (
     <div className="staff-projects staff-projects--panel-inset">
-      <nav className="staff-projects__breadcrumbs" aria-label="Breadcrumb">
-        <ol className="staff-projects__breadcrumb-list">
-          <li className="staff-projects__breadcrumb-item">
-            <Link href="/staff" className="staff-projects__breadcrumb-link">
-              Staff
-            </Link>
-            <span className="staff-projects__breadcrumb-sep">/</span>
-          </li>
-          <li className="staff-projects__breadcrumb-item">
-            <Link href="/staff/modules" className="staff-projects__breadcrumb-link">
-              My Modules
-            </Link>
-            <span className="staff-projects__breadcrumb-sep">/</span>
-          </li>
-          {selectedModuleHref ? (
-            <li className="staff-projects__breadcrumb-item">
-              <Link href={selectedModuleHref} className="staff-projects__breadcrumb-link">
-                {selectedModule?.title ?? `Module ${initialModuleId}`}
-              </Link>
-              <span className="staff-projects__breadcrumb-sep">/</span>
-            </li>
-          ) : null}
-          {selectedModuleProjectsHref ? (
-            <li className="staff-projects__breadcrumb-item">
-              <Link href={selectedModuleProjectsHref} className="staff-projects__breadcrumb-link">
-                Projects
-              </Link>
-              <span className="staff-projects__breadcrumb-sep">/</span>
-            </li>
-          ) : null}
-          <li className="staff-projects__breadcrumb-item">
-            <span className="staff-projects__breadcrumb-current" aria-current="page">
-              Create project
-            </span>
-          </li>
-        </ol>
-      </nav>
+      <StaffBreadcrumbs items={breadcrumbItems} />
 
       <section className="staff-projects__hero">
         <h1 className="staff-projects__title">Create Project</h1>
         <p className="staff-projects__desc">
           Create a project under a module you lead, assign the peer-assessment template, and publish the full deadline timeline.
         </p>
-        <div className="staff-projects__meta">
-          <Link
-            href={
-              initialModuleId
-                ? `/staff/modules/${encodeURIComponent(initialModuleId)}`
-                : "/staff/modules"
-            }
-            className="staff-projects__badge"
-          >
-            {initialModuleId ? "Back to module" : "Back to my modules"}
-          </Link>
-        </div>
       </section>
 
       <section className="staff-projects__create-layout">

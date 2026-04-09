@@ -123,11 +123,20 @@ describe("peerAssessment controller", () => {
         },
       } as any;
       const res = createMockResponse();
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({
+        questionnaireTemplate: {
+          id: 10,
+          questions: [{ id: 1, type: "text", configs: null }],
+        },
+      });
       serviceMocks.saveAssessment.mockResolvedValue({ id: 42 });
 
       await createAssessmentHandler(req, res);
 
-      expect(serviceMocks.saveAssessment).toHaveBeenCalledWith(req.body);
+      expect(serviceMocks.saveAssessment).toHaveBeenCalledWith({
+        ...req.body,
+        answersJson: [{ question: "1", answer: "Strong contribution" }],
+      });
       expect(res.json).toHaveBeenCalledWith({ ok: true, assessmentId: 42 });
     });
 
@@ -144,6 +153,12 @@ describe("peerAssessment controller", () => {
       } as any;
       const res = createMockResponse();
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      serviceMocks.fetchProjectQuestionnaireTemplate.mockResolvedValue({
+        questionnaireTemplate: {
+          id: 10,
+          questions: [{ id: 1, type: "text", configs: null }],
+        },
+      });
       serviceMocks.saveAssessment.mockRejectedValue(new Error("boom"));
 
       await createAssessmentHandler(req, res);
@@ -236,17 +251,25 @@ describe("peerAssessment controller", () => {
     it("returns ok on success", async () => {
       const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
       const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({
+        id: 9,
+        questionnaireTemplate: { questions: [{ id: 1, type: "text", configs: null }] },
+      });
       serviceMocks.updateAssessmentAnswers.mockResolvedValue(undefined);
 
       await updateAssessmentHandler(req, res);
 
-      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, { 1: "Updated" });
+      expect(serviceMocks.updateAssessmentAnswers).toHaveBeenCalledWith(9, [{ question: "1", answer: "Updated" }]);
       expect(res.json).toHaveBeenCalledWith({ ok: true });
     });
 
     it("maps Prisma P2025 to 404", async () => {
       const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
       const res = createMockResponse();
+      serviceMocks.fetchAssessmentById.mockResolvedValue({
+        id: 9,
+        questionnaireTemplate: { questions: [{ id: 1, type: "text", configs: null }] },
+      });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue({ code: "P2025" });
 
       await updateAssessmentHandler(req, res);
@@ -259,6 +282,10 @@ describe("peerAssessment controller", () => {
       const req = { params: { id: "9" }, body: { answersJson: { 1: "Updated" } } } as any;
       const res = createMockResponse();
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      serviceMocks.fetchAssessmentById.mockResolvedValue({
+        id: 9,
+        questionnaireTemplate: { questions: [{ id: 1, type: "text", configs: null }] },
+      });
       serviceMocks.updateAssessmentAnswers.mockRejectedValue(new Error("boom"));
 
       await updateAssessmentHandler(req, res);

@@ -29,11 +29,10 @@
   width: min(1200px, calc(100% - 40px));
   margin: 0 auto;
   padding: 14px 0;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
-  flex-wrap: nowrap;
   pointer-events: auto;
 }
 
@@ -43,6 +42,7 @@
   flex-shrink: 0;
   white-space: nowrap;
   display: block;
+  justify-self: start;
 }
 
 .header .logo {
@@ -56,6 +56,8 @@
   gap: 16px;
   flex-wrap: wrap;
   justify-content: center;
+  justify-self: center;
+  min-width: 0;
 }
 
 .nav__link {
@@ -74,6 +76,8 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
+  justify-self: end;
+  justify-content: flex-end;
 }
 
 .header__cta .btn,
@@ -269,6 +273,7 @@
   padding-top: var(--footer-offset-top, clamp(88px, 12vw, 176px));
   background: transparent;
   color: inherit;
+  --footer-pad-inline: clamp(24px, 4.2vw, 64px);
 }
 
 
@@ -278,11 +283,11 @@
   width: 100%;
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(240px, 360px) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
   grid-template-areas: "brand nav";
-  gap: clamp(64px, 8vw, 180px);
+  gap: clamp(44px, 6vw, 120px);
   align-items: start;
-  padding: clamp(34px, 3.5vw, 46px) clamp(24px, 4.2vw, 64px) clamp(28px, 3.3vw, 42px);
+  padding: clamp(34px, 3.5vw, 46px) var(--footer-pad-inline) clamp(28px, 3.3vw, 42px);
   border-top: none;
   border-bottom: 1px solid var(--border);
   position: relative;
@@ -293,8 +298,8 @@
   content: "";
   position: absolute;
   top: 0;
-  left: clamp(24px, 4.2vw, 64px);
-  right: clamp(24px, 4.2vw, 64px);
+  left: var(--footer-pad-inline);
+  right: var(--footer-pad-inline);
   border-top: 1px solid var(--border);
   pointer-events: none;
 }
@@ -344,19 +349,13 @@
   grid-area: nav;
   display: grid;
   grid-template-columns: repeat(5, max-content);
-  column-gap: clamp(132px, 14vw, 324px);
-  row-gap: 22px;
+  column-gap: clamp(52px, 6vw, 120px);
+  row-gap: 28px;
   align-items: start;
-  width: max-content;
+  width: fit-content;
   max-width: 100%;
   justify-self: end;
   justify-content: end;
-}
-
-@media (max-width: 1599px) and (min-width: 1200px) {
-  .footer__nav {
-    column-gap: clamp(72px, 7.2vw, 168px);
-  }
 }
 
 /* ── Per-column ─── */
@@ -419,7 +418,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  padding-inline: clamp(24px, 4.2vw, 64px);
+  padding-left: var(--footer-pad-inline);
+  padding-right: var(--footer-pad-inline);
 }
 
 .footer__bar-copy {
@@ -445,20 +445,27 @@
   color: var(--ink);
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1240px), ((max-aspect-ratio: 5/4) and (min-width: 640px)) {
   .footer__nav {
-    grid-template-columns: repeat(3, minmax(140px, 1fr));
-    column-gap: clamp(30px, 3.8vw, 64px);
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    column-gap: clamp(18px, 3vw, 32px);
     row-gap: 28px;
+    width: 100%;
+    justify-self: stretch;
+    justify-content: stretch;
+  }
+
+  .footer__inner {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "brand"
+      "nav";
+    gap: clamp(28px, 4vw, 44px);
   }
 
   .footer__brand-tagline {
     font-size: var(--fs-fixed-clamp-1-55rem-2-2vw-2-1rem);
-    max-width: 18ch;
-  }
-
-  .footer__inner {
-    gap: clamp(42px, 6vw, 90px);
+    max-width: 20ch;
   }
 }
 
@@ -481,7 +488,7 @@
   }
 
   .footer__nav {
-    grid-template-columns: repeat(2, minmax(150px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px 22px;
   }
 
@@ -498,7 +505,7 @@
 
 @media (max-width: 639px) {
   .footer {
-    padding-top: clamp(132px, 24vh, 250px);
+    padding-top: clamp(72px, 14vh, 128px);
   }
 
   .footer__inner {
@@ -581,5 +588,19 @@
     gap: 10px;
     padding-top: 8px;
     padding-inline: 16px;
+  }
+}
+
+@media (max-width: 639px) and (max-height: 760px) {
+  .footer {
+    padding-top: clamp(40px, 7vh, 72px);
+  }
+
+  .footer__brand {
+    padding: 22px 0 20px;
+  }
+
+  .footer__brand-tagline {
+    font-size: var(--fs-fixed-clamp-1-2rem-7vw-1-5rem);
   }
 }

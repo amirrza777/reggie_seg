@@ -186,7 +186,10 @@ describe("ModuleList", () => {
     const ownerMenuTrigger = screen.getByRole("button", { name: "Module actions for Owner Module" });
     fireEvent.click(ownerMenuTrigger);
     expect(screen.getByRole("menu")).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "View module" })).toHaveAttribute("href", "/modules/owner-1");
+    expect(screen.getByRole("menuitem", { name: "View projects" })).toHaveAttribute(
+      "href",
+      "/staff/modules/owner-1/projects",
+    );
     expect(screen.getByRole("menuitem", { name: "Manage module" })).toHaveAttribute("href", "/staff/modules/owner-1/manage");
     expect(screen.getByRole("menuitem", { name: "Create project" })).toHaveAttribute("href", "/staff/projects/create?moduleId=owner-1");
 
@@ -199,7 +202,10 @@ describe("ModuleList", () => {
 
     const adminMenuTrigger = screen.getByRole("button", { name: "Module actions for Admin Access Module" });
     fireEvent.click(adminMenuTrigger);
-    expect(screen.getByRole("menuitem", { name: "View module" })).toHaveAttribute("href", "/modules/admin-1");
+    expect(screen.getByRole("menuitem", { name: "View projects" })).toHaveAttribute(
+      "href",
+      "/staff/modules/admin-1/projects",
+    );
     expect(screen.queryByRole("menuitem", { name: "Manage module" })).not.toBeInTheDocument();
     const createProject = screen.getByRole("menuitem", { name: "Create project" });
     expect(createProject).toHaveAttribute("href", "/staff/projects/create?moduleId=admin-1");
@@ -253,7 +259,7 @@ describe("ModuleList", () => {
     const trigger = screen.getByRole("button", { name: "Module actions for Owner Module 2" });
 
     fireEvent.click(trigger);
-    clickLinkWithoutNavigation(screen.getByRole("menuitem", { name: "View module" }));
+    clickLinkWithoutNavigation(screen.getByRole("menuitem", { name: "View projects" }));
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
 
     fireEvent.click(trigger);

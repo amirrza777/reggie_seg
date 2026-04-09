@@ -42,7 +42,7 @@ describe("StaffModuleWorkspaceBreadcrumbs", () => {
     render(<StaffModuleWorkspaceBreadcrumbs moduleId="12" moduleTitle="SEGP" />);
 
     expect(screen.getByRole("link", { name: "SEGP" })).toHaveAttribute("href", "/staff/modules/12");
-    expect(screen.getByText("Manage module")).toHaveAttribute("aria-current", "page");
+    expect(screen.getByText("Settings")).toHaveAttribute("aria-current", "page");
   });
 
   it("uses title-cased fallback labels for unknown section and subsection", () => {
@@ -62,7 +62,7 @@ describe("StaffModuleWorkspaceBreadcrumbs", () => {
 
     render(<StaffModuleWorkspaceBreadcrumbs moduleId="12" moduleTitle="SEGP" />);
 
-    expect(screen.queryByText("Manage module")).not.toBeInTheDocument();
+    expect(screen.queryByText("Settings")).not.toBeInTheDocument();
     expect(screen.getByText("SEGP")).toHaveAttribute("aria-current", "page");
   });
 
@@ -71,7 +71,7 @@ describe("StaffModuleWorkspaceBreadcrumbs", () => {
 
     render(<StaffModuleWorkspaceBreadcrumbs moduleId="12" moduleTitle="SEGP" />);
 
-    expect(screen.queryByRole("link", { name: "Manage module" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(screen.getByText("SEGP")).toHaveAttribute("aria-current", "page");
   });
 

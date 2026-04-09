@@ -1,5 +1,4 @@
 import { render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
@@ -8,14 +7,6 @@ import { listMeetings } from "@/features/meetings/api/client";
 import { listProjectGithubRepoLinks, getLatestProjectGithubSnapshot } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import StaffTeamHealthPage from "./page";
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -153,7 +144,6 @@ describe("StaffTeamHealthPage", () => {
     render(page);
 
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/22");
   });
 
   it("renders summary sections and passes warnings/messages to child panels", async () => {

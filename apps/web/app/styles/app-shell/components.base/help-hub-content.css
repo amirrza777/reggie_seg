@@ -256,7 +256,10 @@
 .workspace-shell .help-section__card h3,
 .workspace-shell .help-section__card h4 {
   margin: 0;
-  font-size: var(--fs-fixed-clamp-1rem-1-5vw-1-2rem);
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .workspace-shell .help-section__card p {
@@ -276,7 +279,10 @@
 }
 
 .workspace-shell .help-support__heading {
-  font-size: var(--fs-h3);
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .workspace-shell .footer {

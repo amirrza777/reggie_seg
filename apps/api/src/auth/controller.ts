@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import {
+  acceptEnterpriseAdminInvite,
   signUp,
   login,
   refreshTokens,
@@ -10,13 +11,20 @@ import {
   updateProfile,
   requestEmailChange,
   confirmEmailChange,
+  deleteAccount,
+  joinEnterpriseByCode,
+  leaveEnterprise,
+  validateRefreshTokenSession,
   verifyRefreshToken,
 } from "./service.js";
 import type { AuthRequest } from "./middleware.js";
 import { prisma } from "../shared/db.js";
 import {
+  parseAcceptEnterpriseAdminInviteBody,
   parseConfirmEmailChangeBody,
+  parseDeleteAccountBody,
   parseForgotPasswordBody,
+  parseJoinEnterpriseBody,
   parseLoginBody,
   parseRefreshTokenBody,
   parseRequestEmailChangeBody,
@@ -32,12 +40,13 @@ const cookieSecure = process.env.COOKIE_SECURE === "true" || process.env.NODE_EN
 // SameSite=None is required for cross-site XHR/fetch with credentials; browsers also require Secure in that case.
 const cookieSameSite: "lax" | "none" = cookieSecure ? "none" : "lax";
 const cookieDomain = process.env.COOKIE_DOMAIN || undefined;
+const REMOVED_USERS_ENTERPRISE_CODE = (process.env.REMOVED_USERS_ENTERPRISE_CODE ?? "UNASSIGNED").toUpperCase();
 
 const meUserSelect = {
   id: true,
   role: true,
   active: true,
-  enterprise: { select: { name: true } },
+  enterprise: { select: { name: true, code: true } },
   _count: {
     select: {
       moduleLeads: true,
@@ -88,6 +97,9 @@ function handleLoginError(res: Response, error: unknown) {
   if (code === "ACCOUNT_SUSPENDED") {
     return res.status(403).json({ error: "Account suspended" });
   }
+  if (code === "AMBIGUOUS_EMAIL_ACCOUNT") {
+    return res.status(409).json({ error: "Multiple accounts use this email. Contact support to consolidate access." });
+  }
   return respondWithErrorDetail(res, 500, "login failed", error);
 }
 
@@ -103,7 +115,7 @@ function handleRefreshError(res: Response, error: unknown) {
   return respondWithErrorDetail(res, 401, "invalid refresh token", error);
 }
 
-function resolveAuthenticatedUserId(req: AuthRequest): number | null {
+async function resolveAuthenticatedUserId(req: AuthRequest): Promise<number | null> {
   const userId = req.user?.sub;
   if (userId) {
     return userId;
@@ -113,7 +125,12 @@ function resolveAuthenticatedUserId(req: AuthRequest): number | null {
     return null;
   }
   try {
-    return verifyRefreshToken(refreshToken).sub;
+    const payload = verifyRefreshToken(refreshToken);
+    const valid = await validateRefreshTokenSession(payload.sub, refreshToken);
+    if (!valid) {
+      return null;
+    }
+    return payload.sub;
   } catch {
     return null;
   }
@@ -159,6 +176,36 @@ export async function signupHandler(req: Request, res: Response) {
       return res.status(409).json({ error: "This email is already in use" });
     }
     return respondWithErrorDetail(res, 500, "signup failed", error);
+  }
+}
+
+/** Handles requests for enterprise-admin invite acceptance. */
+export async function acceptEnterpriseAdminInviteHandler(req: Request, res: Response) {
+  const parsedBody = parseAcceptEnterpriseAdminInviteBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    const tokens = await acceptEnterpriseAdminInvite(parsedBody.value);
+    setRefreshCookie(res, tokens.refreshToken);
+    return res.json({ accessToken: tokens.accessToken });
+  } catch (error: unknown) {
+    console.error("accept enterprise admin invite error", error);
+    const code = getErrorCode(error);
+    if (code === "INVALID_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invalid invite token" });
+    }
+    if (code === "USED_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has already been used" });
+    }
+    if (code === "EXPIRED_ENTERPRISE_ADMIN_INVITE") {
+      return res.status(400).json({ error: "Invite token has expired" });
+    }
+    if (code === "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE") {
+      return res.status(409).json({ error: "This email is already used in another enterprise." });
+    }
+    return respondWithErrorDetail(res, 500, "accept enterprise admin invite failed", error);
   }
 }
 
@@ -335,6 +382,107 @@ export async function confirmEmailChangeHandler(req: AuthRequest, res: Response)
   }
 }
 
+/** Handles requests for delete account. */
+export async function deleteAccountHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const parsedBody = parseDeleteAccountBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    await deleteAccount({ userId, password: parsedBody.value.password });
+    clearRefreshCookie(res);
+    return res.json({ success: true });
+  } catch (error: unknown) {
+    console.error("delete account error", error);
+    const code = getErrorCode(error);
+    if (code === "INVALID_PASSWORD") {
+      return res.status(401).json({ error: "Invalid password" });
+    }
+    if (code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (code === "ACCOUNT_DELETE_FORBIDDEN") {
+      return res.status(403).json({ error: "Account deletion is not allowed for this account" });
+    }
+    return respondWithErrorDetail(res, 500, "delete account failed", error);
+  }
+}
+
+/** Handles requests for joining an enterprise using a code. */
+export async function joinEnterpriseByCodeHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const parsedBody = parseJoinEnterpriseBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ error: parsedBody.error });
+  }
+
+  try {
+    const result = await joinEnterpriseByCode({ userId, enterpriseCode: parsedBody.value.enterpriseCode });
+    return res.json({ success: true, ...result });
+  } catch (error: unknown) {
+    console.error("join enterprise by code error", error);
+    const code = getErrorCode(error);
+    if (code === "ENTERPRISE_CODE_REQUIRED") {
+      return res.status(400).json({ error: "Enterprise code is required" });
+    }
+    if (code === "ENTERPRISE_NOT_FOUND") {
+      return res.status(404).json({ error: "Enterprise code not found" });
+    }
+    if (code === "ENTERPRISE_ACCESS_BLOCKED") {
+      return res.status(403).json({ error: "Your account is blocked by that enterprise. Please email your enterprise admin." });
+    }
+    if (code === "ENTERPRISE_JOIN_NOT_ALLOWED") {
+      return res.status(403).json({ error: "Enterprise rejoin is only available when enterprise access is required." });
+    }
+    if (code === "ACCOUNT_SUSPENDED") {
+      return res.status(403).json({ error: "Account suspended" });
+    }
+    if (code === "EMAIL_TAKEN") {
+      return res.status(409).json({ error: "This email is already in use for that enterprise." });
+    }
+    if (code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return respondWithErrorDetail(res, 500, "join enterprise failed", error);
+  }
+}
+
+/** Handles requests for leaving the current enterprise. */
+export async function leaveEnterpriseHandler(req: AuthRequest, res: Response) {
+  const userId = req.user?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  try {
+    const result = await leaveEnterprise({ userId });
+    return res.json({ success: true, ...result });
+  } catch (error: unknown) {
+    console.error("leave enterprise error", error);
+    const code = getErrorCode(error);
+    if (code === "ALREADY_UNASSIGNED") {
+      return res.status(400).json({ error: "This account is already unassigned from an enterprise." });
+    }
+    if (code === "ACCOUNT_LEAVE_FORBIDDEN") {
+      return res.status(403).json({ error: "Leaving enterprise is not allowed for this account." });
+    }
+    if (code === "USER_NOT_FOUND") {
+      return res.status(404).json({ error: "User not found" });
+    }
+    return respondWithErrorDetail(res, 500, "leave enterprise failed", error);
+  }
+}
+
 function setRefreshCookie(res: Response, token: string) {
   res.cookie("refresh_token", token, {
     httpOnly: true,
@@ -358,7 +506,7 @@ function clearRefreshCookie(res: Response) {
 
 /** Handles requests for me. */
 export async function meHandler(req: AuthRequest, res: Response) {
-  const userId = resolveAuthenticatedUserId(req);
+  const userId = await resolveAuthenticatedUserId(req);
   if (!userId) {
     return res.status(401).json({ error: "Not authenticated" });
   }
@@ -380,6 +528,7 @@ export async function meHandler(req: AuthRequest, res: Response) {
     return res.json({
       ...profile,
       enterpriseName: user.enterprise.name,
+      isUnassigned: (user.enterprise.code ?? "").toUpperCase() === REMOVED_USERS_ENTERPRISE_CODE,
       ...roleFlags,
       role,
       active: user.active ?? true,

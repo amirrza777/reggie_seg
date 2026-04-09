@@ -1,6 +1,18 @@
 .module-list {
   padding: 8px 0 4px;
   container-type: inline-size;
+  position: relative;
+  z-index: 0;
+}
+
+.module-list:has(.module-card--menu-open) {
+  z-index: 120;
+}
+
+.workspace-shell .card:has(.module-card--menu-open) {
+  position: relative;
+  z-index: 130;
+  overflow: visible;
 }
 
 .staff-modules__subtitle-row {
@@ -72,8 +84,12 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
-  margin-top: 14px;
   align-items: stretch;
+}
+
+.module-list__toolbar + .module-list__grid,
+.module-list__toolbar + .module-list-empty {
+  margin-top: 8px;
 }
 
 @container (min-width: 640px) {
@@ -309,7 +325,7 @@
 }
 
 .module-list-empty {
-  padding: 28px 24px;
+  padding: 20px 24px;
   text-align: center;
   color: var(--muted-subtle);
   border: 1px dashed var(--border);
