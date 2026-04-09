@@ -227,7 +227,7 @@ export function StaffProjectNavFlagsPanel({
 
       return [
         <div key={`${key}-label`} className="staff-projects__feature-flag-label">
-          <span>{label}</span>
+          <span className="staff-projects__feature-flag-label-title">{label}</span>
           {isPeerFlag ? (
             <label className="staff-projects__feature-flag-mode-row">
               <input
@@ -238,7 +238,9 @@ export function StaffProjectNavFlagsPanel({
                 }
                 disabled={modeBusy || readOnly}
               />
-              <span>{peerMode === "MANUAL" ? "Manual mode" : "Natural mode (deadline-based)"}</span>
+              <span className="staff-projects__feature-flag-mode-text">
+                {peerMode === "MANUAL" ? "Manual mode" : "Natural mode"}
+              </span>
             </label>
           ) : null}
         </div>,

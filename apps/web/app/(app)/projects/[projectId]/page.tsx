@@ -7,6 +7,7 @@ import {
 import { getCurrentUser } from "@/shared/auth/session";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 import Link from "next/link";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 import type {
   ProjectDeadline,
   ProjectMarkingSummary,
@@ -50,7 +51,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
   try {
     team = await getTeamByUserAndProject(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     team = null;
   }
 
@@ -64,10 +66,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     isOverridden: false,
   };
   const [project, deadline] = await Promise.all([
-    getProject(projectId),
+    getProject(projectId).catch((error) => {
+      redirectOnUnauthorized(error);
+      throw error;
+    }),
     getProjectDeadline(user.id, numericProjectId)
       .then((value) => value ?? defaultDeadline)
-      .catch(() => defaultDeadline),
+      .catch((error) => {
+        redirectOnUnauthorized(error);
+        return defaultDeadline;
+      }),
   ]);
 
   const dueCandidates = [deadline.taskDueDate, deadline.assessmentDueDate, deadline.feedbackDueDate]
@@ -83,7 +91,10 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
   let marking: ProjectMarkingSummary | null = null;
   if (likelyCompleted) {
-    marking = await getProjectMarking(user.id, numericProjectId).catch(() => null as ProjectMarkingSummary | null);
+    marking = await getProjectMarking(user.id, numericProjectId).catch((error) => {
+      redirectOnUnauthorized(error);
+      return null as ProjectMarkingSummary | null;
+    });
   }
 
   const teamFormationMode = resolveTeamFormationMode(project);

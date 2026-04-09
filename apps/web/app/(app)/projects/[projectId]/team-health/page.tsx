@@ -11,6 +11,7 @@ import { ProjectTeamHealthTitleWithInfo } from "@/features/projects/components/P
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import type { TeamHealthMessage, TeamWarning } from "@/features/projects/types";
 import { PageSection } from "@/shared/ui/PageSection";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 type ProjectTeamHealthPageProps = {
   params: Promise<{ projectId: string }>;
@@ -41,7 +42,8 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
   try {
     team = await getTeamByUserAndProject(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     team = null;
   }
 
@@ -49,7 +51,8 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   try {
     const project = await getProject(projectId);
     isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     isCustomAllocation = false;
   }
 
@@ -82,6 +85,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   if (messagesResult.status === "fulfilled") {
     initialRequests = messagesResult.value;
   } else {
+    redirectOnUnauthorized(messagesResult.reason);
     loadError = messagesResult.reason instanceof Error
       ? messagesResult.reason.message
       : "Failed to load existing team health messages.";
@@ -90,6 +94,7 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
   if (warningsResult.status === "fulfilled") {
     initialWarnings = warningsResult.value;
   } else {
+    redirectOnUnauthorized(warningsResult.reason);
     warningsLoadError = warningsResult.reason instanceof Error
       ? warningsResult.reason.message
       : "Failed to load team warnings.";

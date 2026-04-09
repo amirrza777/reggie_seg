@@ -3,6 +3,20 @@
   gap: 12px;
 }
 
+.staff-projects__team-overview-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(300px, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.staff-projects__team-overview-side {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+
 .staff-projects__team-list > :is(h1, h2, h3, h4, h5, h6) {
   margin: 0;
   padding-inline-start: 12px;
@@ -95,12 +109,13 @@
 
 .staff-projects__member {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) max-content;
+  grid-template-columns: 34px minmax(220px, 1fr) minmax(360px, 0.95fr);
   gap: 10px 14px;
   align-items: center;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
+  min-width: 0;
 }
 
 .staff-projects__team-overview-top {
@@ -277,6 +292,119 @@
   font-size: var(--fs-caption);
 }
 
+.staff-projects__member-stats {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.8fr) minmax(160px, 1fr) minmax(120px, 0.8fr);
+  gap: 0;
+  align-items: center;
+  border-left: 1px solid var(--border);
+  min-width: 0;
+}
+
+.staff-projects__member-stat-column {
+  display: grid;
+  gap: 4px;
+  padding-inline: 12px;
+  min-width: 0;
+}
+
+.staff-projects__member-stat-column + .staff-projects__member-stat-column {
+  border-left: 1px solid var(--border);
+}
+
+.staff-projects__member-metric-link {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: var(--fs-body-sm);
+  white-space: nowrap;
+}
+
+.staff-projects__member-metric-link strong {
+  font-weight: var(--fw-semibold);
+}
+
+.staff-projects__member-metric-link:hover,
+.staff-projects__member-metric-link:focus-visible {
+  color: var(--accent-strong);
+}
+
+.staff-projects__card--comparison {
+  gap: 0;
+  min-height: 0;
+  padding: 12px;
+}
+
+.staff-projects__comparison-head,
+.staff-projects__comparison-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 68px 68px;
+  align-items: center;
+  gap: 10px;
+}
+
+.staff-projects__comparison-head {
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--fs-fixed-0-72rem);
+  font-weight: var(--fw-semibold);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.staff-projects__comparison-row {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-body-sm);
+}
+
+.staff-projects__comparison-row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.staff-projects__comparison-row > strong {
+  justify-self: end;
+}
+
+.staff-projects__card--messages-preview {
+  min-height: 0;
+}
+
+.staff-projects__message-preview-list {
+  display: grid;
+  gap: 7px;
+}
+
+.staff-projects__message-preview-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: var(--fs-body-sm);
+}
+
+.staff-projects__message-preview-link:hover,
+.staff-projects__message-preview-link:focus-visible {
+  border-color: var(--accent-border);
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 5%, var(--surface));
+}
+
+.staff-projects__message-preview-link > span {
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
 .staff-projects__team-health-review-box {
   border-top: 1px solid var(--border);
   padding-top: 10px;
@@ -434,6 +562,26 @@
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, white 5%) 0%, var(--surface) 100%);
 }
 
+.staff-projects__signal-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px 12px;
+}
+
+.staff-projects__signal-lookback-select {
+  justify-self: end;
+  align-self: start;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 7px 10px;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+}
+
 .staff-projects__health-insights-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
@@ -577,6 +725,107 @@
   border-color: var(--status-danger-border);
   color: var(--status-danger-text);
   background: color-mix(in srgb, var(--status-danger-text) 14%, transparent);
+}
+
+.staff-projects__feedback-evidence-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  column-gap: 12px;
+}
+
+.staff-projects__feedback-evidence-badge {
+  display: grid;
+  gap: 2px;
+  min-width: 130px;
+}
+
+.staff-projects__feedback-evidence-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 300px) minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.staff-projects__feedback-evidence-sidebar {
+  align-self: start;
+  max-height: min(70vh, 760px);
+  overflow: auto;
+}
+
+.staff-projects__feedback-evidence-sidebar--compact {
+  max-height: none;
+}
+
+.staff-projects__feedback-evidence-list {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.staff-projects__feedback-evidence-item {
+  align-content: start;
+  min-height: 84px;
+}
+
+.staff-projects__feedback-evidence-content {
+  align-self: start;
+}
+
+@media (max-width: 1240px) {
+  .staff-projects__member {
+    grid-template-columns: 34px minmax(0, 1fr);
+  }
+
+  .staff-projects__member-stats {
+    grid-column: 1 / -1;
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+}
+
+@media (max-width: 980px) {
+  .staff-projects__team-overview-top {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__member-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .staff-projects__member-stat-column {
+    border-left: 0;
+    border-top: 1px solid var(--border);
+    padding: 8px 0 0;
+  }
+
+  .staff-projects__member-stat-column:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  .staff-projects__comparison-head,
+  .staff-projects__comparison-row {
+    grid-template-columns: minmax(0, 1fr) 64px 64px;
+  }
+
+  .staff-projects__feedback-evidence-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__feedback-evidence-sidebar {
+    max-height: none;
+  }
+
+  .staff-projects__signal-header {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__signal-lookback-select {
+    justify-self: start;
+  }
 }
 
 .staff-projects__signal-status--unknown {

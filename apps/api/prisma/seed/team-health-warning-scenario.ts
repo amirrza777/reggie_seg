@@ -8,6 +8,7 @@ const PROJECT_NAME = "Team Health Warning Demo Project";
 const TEAM_NAME = "Team Health Warning Demo Team";
 const SE_MODULE_NAME_FRAGMENT = "Software Engineering Group Project";
 const SEEDED_MESSAGE_SUBJECT_PREFIX = "[Seed Team Health]";
+const DEV_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 const WARNING_CONFIG = {
   version: 1 as const,
@@ -116,6 +117,7 @@ async function upsertScenarioTeam(context: SeedContext, projectId: number) {
         projectId,
         archivedAt: null,
         allocationLifecycle: "ACTIVE",
+        deadlineProfile: "STANDARD",
       },
       select: { id: true },
     });
@@ -127,6 +129,7 @@ async function upsertScenarioTeam(context: SeedContext, projectId: number) {
       projectId,
       teamName: TEAM_NAME,
       allocationLifecycle: "ACTIVE",
+      deadlineProfile: "STANDARD",
     },
     select: { id: true },
   });
@@ -174,26 +177,112 @@ async function clearTeamMeetings(teamId: number) {
 }
 
 async function upsertScenarioDeadline(projectId: number) {
+  const taskDueDate = toDateFromNow(-16);
+  const assessmentDueDate = toDateFromNow(-3);
+  const feedbackDueDate = toDateFromNow(4);
+
   await prisma.projectDeadline.upsert({
     where: { projectId },
     update: {
       taskOpenDate: toDateFromNow(-24),
-      taskDueDate: toDateFromNow(-16),
+      taskDueDate,
+      taskDueDateMcf: taskDueDate,
       assessmentOpenDate: toDateFromNow(-14),
-      assessmentDueDate: toDateFromNow(-3),
+      assessmentDueDate,
+      assessmentDueDateMcf: assessmentDueDate,
       feedbackOpenDate: toDateFromNow(-1),
-      feedbackDueDate: toDateFromNow(4),
+      feedbackDueDate,
+      feedbackDueDateMcf: feedbackDueDate,
     },
     create: {
       projectId,
       taskOpenDate: toDateFromNow(-24),
-      taskDueDate: toDateFromNow(-16),
+      taskDueDate,
+      taskDueDateMcf: taskDueDate,
       assessmentOpenDate: toDateFromNow(-14),
-      assessmentDueDate: toDateFromNow(-3),
+      assessmentDueDate,
+      assessmentDueDateMcf: assessmentDueDate,
       feedbackOpenDate: toDateFromNow(-1),
-      feedbackDueDate: toDateFromNow(4),
+      feedbackDueDate,
+      feedbackDueDateMcf: feedbackDueDate,
     },
   });
+}
+
+async function resetScenarioDeadlineOverrides(projectId: number, teamId: number, memberIds: number[]) {
+  await prisma.teamDeadlineOverride.deleteMany({
+    where: { teamId },
+  });
+
+  const deadline = await prisma.projectDeadline.findUnique({
+    where: { projectId },
+    select: { id: true },
+  });
+  if (!deadline) return;
+
+  await prisma.studentDeadlineOverride.deleteMany({
+    where: {
+      projectDeadlineId: deadline.id,
+      userId: { in: memberIds },
+    },
+  });
+}
+
+function buildAssessmentAnswer(label: string, reviewerId: number, revieweeId: number) {
+  const selector = (reviewerId + revieweeId + label.length) % 3;
+  if (selector === 0) return "Consistently contributed and communicated blockers early.";
+  if (selector === 1) return "Reliable ownership of tasks and steady delivery updates.";
+  return "Helpful collaborator with clear handovers and good meeting engagement.";
+}
+
+function buildAnswersJson(questionLabels: string[], reviewerId: number, revieweeId: number) {
+  return Object.fromEntries(
+    questionLabels.map((label) => [label, buildAssessmentAnswer(label, reviewerId, revieweeId)])
+  );
+}
+
+async function getTemplateQuestionLabels(templateId: number) {
+  const rows = await prisma.question.findMany({
+    where: { templateId },
+    orderBy: { order: "asc" },
+    select: { label: true },
+  });
+  if (rows.length > 0) return rows.map((row) => row.label);
+  return ["Overall contribution"];
+}
+
+async function seedPartialPeerAssessments(
+  projectId: number,
+  teamId: number,
+  templateId: number,
+  memberIds: number[],
+) {
+  await prisma.peerFeedback.deleteMany({ where: { teamId } });
+  await prisma.peerAssessment.deleteMany({ where: { projectId, teamId } });
+
+  const questionLabels = await getTemplateQuestionLabels(templateId);
+  let created = 0;
+
+  for (let index = 0; index < memberIds.length; index += 1) {
+    const reviewerUserId = memberIds[index];
+    const revieweeUserId = memberIds[(index + 1) % memberIds.length];
+    if (!reviewerUserId || !revieweeUserId || reviewerUserId === revieweeUserId) continue;
+
+    await prisma.peerAssessment.create({
+      data: {
+        projectId,
+        teamId,
+        reviewerUserId,
+        revieweeUserId,
+        templateId,
+        answersJson: buildAnswersJson(questionLabels, reviewerUserId, revieweeUserId),
+        submittedLate: false,
+      },
+    });
+    created += 1;
+  }
+
+  return created;
 }
 
 type TeamHealthMessageRow = {
@@ -388,24 +477,36 @@ async function seedExistingSeTeamHealthMessages(
 }
 
 async function resolveScenarioActors(context: SeedContext) {
+  const devAdmin = await prisma.user.findUnique({
+    where: {
+      enterpriseId_email: {
+        enterpriseId: context.enterprise.id,
+        email: DEV_ADMIN_EMAIL,
+      },
+    },
+    select: { id: true },
+  });
+
   const enterpriseAdmins = await prisma.user.findMany({
     where: { enterpriseId: context.enterprise.id, role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] } },
     select: { id: true },
     orderBy: { id: "asc" },
   });
-  const fallbackRequester = context.usersByRole.students[0]?.id ?? null;
+  const scenarioStudents = context.usersByRole.students.slice(-4);
+  const fallbackRequester = scenarioStudents[0]?.id ?? context.usersByRole.students[0]?.id ?? null;
   const fallbackReviewer = context.usersByRole.adminOrStaff[0]?.id ?? null;
   return {
     enterpriseAdmins,
-    requesterId: fallbackRequester ?? enterpriseAdmins[0]?.id ?? null,
-    reviewerId: enterpriseAdmins[0]?.id ?? fallbackReviewer ?? null,
+    requesterId: fallbackRequester ?? devAdmin?.id ?? enterpriseAdmins[0]?.id ?? null,
+    reviewerId: devAdmin?.id ?? enterpriseAdmins[0]?.id ?? fallbackReviewer ?? null,
   };
 }
 
-function buildScenarioMemberIds(context: SeedContext, enterpriseAdmins: { id: number }[], requesterId: number) {
+function buildScenarioMemberIds(context: SeedContext, requesterId: number, reviewerId: number | null) {
+  const scenarioStudents = context.usersByRole.students.slice(-4);
   return uniquePositiveUserIds([
-    ...enterpriseAdmins.slice(0, 1).map((user) => user.id),
-    ...context.usersByRole.students.slice(0, 4).map((user) => user.id),
+    ...(reviewerId ? [reviewerId] : []),
+    ...scenarioStudents.map((user) => user.id),
     requesterId,
   ]);
 }
@@ -422,7 +523,9 @@ async function preparePrimaryScenarioTeam(context: SeedContext, moduleId: number
   const team = await upsertScenarioTeam(context, project.id);
   await ensureTeamAllocations(team.id, memberIds);
   await upsertScenarioDeadline(project.id);
-  return { project, team };
+  await resetScenarioDeadlineOverrides(project.id, team.id, memberIds);
+  const seededAssessments = await seedPartialPeerAssessments(project.id, team.id, templateId, memberIds);
+  return { project, team, seededAssessments };
 }
 
 async function clearPrimaryScenarioWarningsAndMeetings(projectId: number, teamId: number) {
@@ -434,12 +537,13 @@ function buildTeamHealthScenarioDetails(
   projectId: number,
   teamId: number,
   memberCount: number,
+  seededAssessments: number,
   deletedMeetings: number,
   existingSeSeed: { seeded: true; projectId: number; teamId: number } | { seeded: false },
 ) {
   const base =
     `project=${projectId}, team=${teamId}, members=${memberCount}, ` +
-    `stage=feedback-open, deletedMeetings=${deletedMeetings}, warningsConfig=3-rules`;
+    `stage=feedback-open, seededAssessments=${seededAssessments}, deletedMeetings=${deletedMeetings}, warningsConfig=3-rules`;
   if (!existingSeSeed.seeded) return base;
   return `${base}, existingSeProject=${existingSeSeed.projectId}, existingSeTeam=${existingSeSeed.teamId}`;
 }
@@ -449,7 +553,7 @@ export async function seedTeamHealthWarningScenario(context: SeedContext) {
     const moduleId = await resolveScenarioModuleId(context);
     const templateId = context.templates[0]?.id ?? null;
     const actors = await resolveScenarioActors(context);
-    const memberIds = actors.requesterId ? buildScenarioMemberIds(context, actors.enterpriseAdmins, actors.requesterId) : [];
+    const memberIds = actors.requesterId ? buildScenarioMemberIds(context, actors.requesterId, actors.reviewerId) : [];
     const validation = validateScenarioPrerequisites(moduleId, templateId, actors.requesterId, memberIds);
     if (!validation.ok) return { value: undefined, rows: 0, details: validation.details };
     const requesterId = actors.requesterId as number;
@@ -465,7 +569,14 @@ export async function seedTeamHealthWarningScenario(context: SeedContext) {
         teamId: setup.team.id,
       },
       rows: 1,
-      details: buildTeamHealthScenarioDetails(setup.project.id, setup.team.id, memberIds.length, deletedMeetings, existingSeSeed),
+      details: buildTeamHealthScenarioDetails(
+        setup.project.id,
+        setup.team.id,
+        memberIds.length,
+        setup.seededAssessments,
+        deletedMeetings,
+        existingSeSeed,
+      ),
     };
   });
 }

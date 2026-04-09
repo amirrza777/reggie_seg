@@ -7,6 +7,7 @@ import { PeerAssessmentTitleWithInfo } from "@/features/peerAssessment/component
 import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { PageSection } from "@/shared/ui/PageSection";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,8 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   if (user && !Number.isNaN(numericProjectId)) {
     try {
       team = await getTeamByUserAndProject(user.id, numericProjectId);
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       team = null;
     }
   }
@@ -73,9 +75,18 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
   }
 
   const [deadline, peers, assessments] = await Promise.all([
-    getProjectDeadline(user.id, numericProjectId).catch(() => null),
-    getTeammates(user.id, team.id),
-    getPeerAssessmentsForUser(user.id, numericProjectId),
+    getProjectDeadline(user.id, numericProjectId).catch((error) => {
+      redirectOnUnauthorized(error);
+      return null;
+    }),
+    getTeammates(user.id, team.id).catch((error) => {
+      redirectOnUnauthorized(error);
+      throw error;
+    }),
+    getPeerAssessmentsForUser(user.id, numericProjectId).catch((error) => {
+      redirectOnUnauthorized(error);
+      throw error;
+    }),
   ]);
   const readOnly = (() => {
     if (!deadline?.assessmentDueDate) return false;

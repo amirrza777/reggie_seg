@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { prismaMock } = vi.hoisted(() => ({
   prismaMock: {
-    user: { findMany: vi.fn() },
+    user: { findMany: vi.fn(), findUnique: vi.fn() },
     question: { findMany: vi.fn() },
     project: { findFirst: vi.fn(), update: vi.fn(), create: vi.fn() },
     team: { findUnique: vi.fn(), update: vi.fn(), create: vi.fn() },
     teamAllocation: { findMany: vi.fn(), createMany: vi.fn() },
-    projectDeadline: { upsert: vi.fn() },
+    projectDeadline: { upsert: vi.fn(), findUnique: vi.fn() },
+    teamDeadlineOverride: { deleteMany: vi.fn() },
+    studentDeadlineOverride: { deleteMany: vi.fn() },
     peerFeedback: { deleteMany: vi.fn() },
     peerAssessment: { deleteMany: vi.fn(), upsert: vi.fn() },
   },
@@ -23,6 +25,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.user.findMany.mockResolvedValue([]);
+    prismaMock.user.findUnique.mockResolvedValue(null);
     prismaMock.question.findMany.mockResolvedValue([]);
     prismaMock.project.findFirst.mockResolvedValue(null);
     let projectId = 100;
@@ -41,6 +44,9 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     prismaMock.teamAllocation.findMany.mockResolvedValue([]);
     prismaMock.teamAllocation.createMany.mockResolvedValue({ count: 2 });
     prismaMock.projectDeadline.upsert.mockResolvedValue({});
+    prismaMock.projectDeadline.findUnique.mockResolvedValue({ id: 1 });
+    prismaMock.teamDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
+    prismaMock.studentDeadlineOverride.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerFeedback.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerAssessment.deleteMany.mockResolvedValue({ count: 0 });
     prismaMock.peerAssessment.upsert.mockResolvedValue({ id: 1 });
@@ -59,7 +65,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
     expect(prismaMock.project.create).not.toHaveBeenCalled();
   });
 
-  it("skips when no admin account is available", async () => {
+  it("seeds scenario with student-only members (no admin required)", async () => {
     const result = await seedPeerAssessmentProgressScenarios({
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
@@ -68,19 +74,20 @@ describe("seedPeerAssessmentProgressScenarios", () => {
       usersByRole: { students: [{ id: 21 }, { id: 22 }] },
     } as any);
 
-    expect(result).toBeUndefined();
-    expect(prismaMock.project.create).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      assessmentOpenProjectId: expect.any(Number),
+      feedbackPendingProjectId: expect.any(Number),
+    });
+    expect(prismaMock.project.create).toHaveBeenCalled();
   });
 
   it("skips when there are not enough unique scenario members", async () => {
-    prismaMock.user.findMany.mockResolvedValue([{ id: 5 }]);
-
     const result = await seedPeerAssessmentProgressScenarios({
       enterprise: { id: "ent-1" },
       modules: [{ id: 11 }],
       templates: [{ id: 500, questionLabels: ["Q1"] }],
       users: [],
-      usersByRole: { students: [] },
+      usersByRole: { students: [{ id: 22 }] },
     } as any);
 
     expect(result).toBeUndefined();
@@ -88,7 +95,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
   });
 
   it("creates/updates both scenario projects and seeds pending assessments", async () => {
-    prismaMock.user.findMany.mockResolvedValue([{ id: 5 }]);
+    prismaMock.user.findUnique.mockResolvedValue({ id: 5 });
     prismaMock.question.findMany.mockResolvedValue([]);
     prismaMock.project.findFirst
       .mockResolvedValueOnce({ id: 1000 })
@@ -123,7 +130,7 @@ describe("seedPeerAssessmentProgressScenarios", () => {
   });
 
   it("uses template fallback labels and skips falsy scenario member ids", async () => {
-    prismaMock.user.findMany.mockResolvedValue([{ id: 5 }]);
+    prismaMock.user.findUnique.mockResolvedValue({ id: 5 });
     prismaMock.question.findMany.mockResolvedValue([]);
     prismaMock.project.findFirst.mockResolvedValue(null);
     prismaMock.team.findUnique.mockResolvedValue(null);

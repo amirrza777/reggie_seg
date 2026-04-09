@@ -7,6 +7,7 @@ import { PeerFeedbackTitleWithInfo } from "@/features/peerFeedback/components/Pe
 import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { PageSection } from "@/shared/ui/PageSection";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 export const dynamic = "force-dynamic";
 
@@ -63,8 +64,14 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
   }
 
   const [deadline, feedbacksRaw] = await Promise.all([
-    getProjectDeadline(user.id, Number(projectId)).catch(() => null),
-    getPeerAssessmentsForUser(String(user.id), projectId),
+    getProjectDeadline(user.id, Number(projectId)).catch((error) => {
+      redirectOnUnauthorized(error);
+      return null;
+    }),
+    getPeerAssessmentsForUser(String(user.id), projectId).catch((error) => {
+      redirectOnUnauthorized(error);
+      throw error;
+    }),
   ]);
   const readOnly = (() => {
     if (!deadline?.feedbackDueDate) return false;
@@ -76,7 +83,12 @@ export default async function ProjectPeerFeedbackPage({ params }: ProjectPagePro
     deadline?.feedbackDueDate,
     deadline?.feedbackDueDateMcf ?? null,
   );
-  const reviewStatuses = await getFeedbackReviewStatuses(feedbacksRaw.map((feedback) => String(feedback.id)));
+  const reviewStatuses = await getFeedbackReviewStatuses(
+    feedbacksRaw.map((feedback) => String(feedback.id)),
+  ).catch((error) => {
+    redirectOnUnauthorized(error);
+    throw error;
+  });
   const feedbacks = feedbacksRaw.map((feedback) => ({
     ...feedback,
     reviewSubmitted: reviewStatuses[String(feedback.id)] === true,

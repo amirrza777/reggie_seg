@@ -8,7 +8,24 @@ import {
   getTeamByUserAndProject,
 } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
+import { ApiError } from "@/shared/api/errors";
 import ProjectPage from "./page";
+
+class RedirectSentinel extends Error {
+  path: string;
+  constructor(path: string) {
+    super(`redirect:${path}`);
+    this.path = path;
+  }
+}
+
+const redirectMock = vi.fn((path: string) => {
+  throw new RedirectSentinel(path);
+});
+
+vi.mock("next/navigation", () => ({
+  redirect: (path: string) => redirectMock(path),
+}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -60,6 +77,7 @@ const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 describe("ProjectPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    redirectMock.mockClear();
   });
 
   it("renders login prompt when user is unauthenticated", async () => {
@@ -131,5 +149,16 @@ describe("ProjectPage", () => {
     expect(dashboard).toHaveAttribute("data-marking", "A");
     expect(dashboard).toHaveAttribute("data-deadline", "2026-06-20T00:00:00.000Z");
     expect(dashboard).toHaveAttribute("data-overridden", "true");
+  });
+
+  it("redirects to login when project API returns unauthorized", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: 3 } as Awaited<ReturnType<typeof getCurrentUser>>);
+    getTeamByUserAndProjectMock.mockResolvedValue({ id: 101 } as Awaited<ReturnType<typeof getTeamByUserAndProject>>);
+    getProjectMock.mockRejectedValue(new ApiError("Missing access token", { status: 401 }));
+
+    await expect(ProjectPage({ params: Promise.resolve({ projectId: "22" }) })).rejects.toMatchObject({
+      path: "/login",
+    });
+    expect(redirectMock).toHaveBeenCalledWith("/login");
   });
 });

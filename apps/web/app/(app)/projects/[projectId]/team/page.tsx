@@ -12,6 +12,7 @@ import { apiFetch } from "@/shared/api/http";
 import type { TeamInvite } from "@/features/projects/api/teamAllocation";
 import { PageSection } from "@/shared/ui/PageSection";
 import type { TeamAllocationQuestionnaireStatus } from "@/features/projects/types";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -29,7 +30,8 @@ function resolveTeamFormationMode(
 async function getTeamInvites(teamId: number): Promise<TeamInvite[]> {
   try {
     return await apiFetch<TeamInvite[]>(`/team-allocation/teams/${teamId}/invites`);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     return [];
   }
 }
@@ -43,7 +45,8 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   if (user && !Number.isNaN(numericProjectId)) {
     try {
       team = await getTeamByUserAndProject(user.id, numericProjectId);
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       team = null;
     }
   }
@@ -63,7 +66,8 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
         ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
         : false;
       projectCompleted = Boolean(projectRecord.archivedAt) || feedbackDueDatePassed;
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       projectCompleted = false;
     }
   }
@@ -82,7 +86,8 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
   if (user && !team && teamFormationMode === "custom" && project?.teamAllocationQuestionnaireTemplateId) {
     try {
       teamAllocationQuestionnaireStatus = await getTeamAllocationQuestionnaireStatusForProject(numericProjectId);
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       teamAllocationQuestionnaireStatus = null;
     }
   }
