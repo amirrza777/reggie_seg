@@ -1,26 +1,28 @@
+"use client";
+
 import { SearchField } from "@/shared/ui/SearchField";
 import { SkeletonText } from "@/shared/ui/Skeleton";
 import type { CustomAllocationCoverage } from "@/features/projects/api/teamAllocation";
-import {
-  countEligibleQuestions,
-  type CustomAllocationQuestionnaire,
-  type NonRespondentStrategy,
+import { countEligibleQuestions } from "./customisedAllocation.utils";
+import type {
+  CustomAllocationQuestionnaire,
+  NonRespondentStrategy,
 } from "./customisedAllocation.utils";
 
-type StaffCustomisedAllocationQuestionnaireStepProps = {
+type Props = {
+  isLoadingQuestionnaires: boolean;
+  loadError: string;
+  eligibleQuestionnaires: CustomAllocationQuestionnaire[];
+  visibleQuestionnaires: CustomAllocationQuestionnaire[];
   questionnaireSearch: string;
   onQuestionnaireSearchChange: (value: string) => void;
   selectedTemplateId: string;
   onSelectTemplate: (templateId: string) => void;
-  isLoadingQuestionnaires: boolean;
-  eligibleQuestionnaires: CustomAllocationQuestionnaire[];
-  visibleQuestionnaires: CustomAllocationQuestionnaire[];
   selectedQuestionnaire: CustomAllocationQuestionnaire | null;
   activeCriteriaCount: number;
+  coverage: CustomAllocationCoverage | null;
   isLoadingCoverage: boolean;
   coverageError: string;
-  loadError: string;
-  coverage: CustomAllocationCoverage | null;
   hasLowCoverage: boolean;
   nonRespondentStrategy: NonRespondentStrategy;
   onNonRespondentStrategyChange: (strategy: NonRespondentStrategy) => void;
@@ -29,27 +31,27 @@ type StaffCustomisedAllocationQuestionnaireStepProps = {
   isApplyPending: boolean;
 };
 
-export function StaffCustomisedAllocationQuestionnaireStep({
+export function StaffCustomisedAllocationPanelStep1({
+  isLoadingQuestionnaires,
+  loadError,
+  eligibleQuestionnaires,
+  visibleQuestionnaires,
   questionnaireSearch,
   onQuestionnaireSearchChange,
   selectedTemplateId,
   onSelectTemplate,
-  isLoadingQuestionnaires,
-  eligibleQuestionnaires,
-  visibleQuestionnaires,
   selectedQuestionnaire,
   activeCriteriaCount,
+  coverage,
   isLoadingCoverage,
   coverageError,
-  loadError,
-  coverage,
   hasLowCoverage,
   nonRespondentStrategy,
   onNonRespondentStrategyChange,
   confirmApply,
   isPreviewPending,
   isApplyPending,
-}: StaffCustomisedAllocationQuestionnaireStepProps) {
+}: Props) {
   return (
     <div className="staff-projects__custom-step">
       <h4 className="staff-projects__custom-step-title">Step 1: Questionnaire</h4>
@@ -77,18 +79,15 @@ export function StaffCustomisedAllocationQuestionnaireStep({
             className="staff-projects__custom-select"
             value={selectedTemplateId}
             onChange={(event) => onSelectTemplate(event.target.value)}
-            disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
             aria-label="Select questionnaire"
+            disabled={isLoadingQuestionnaires || eligibleQuestionnaires.length === 0 || isApplyPending}
           >
             <option value="">Select questionnaire</option>
-            {visibleQuestionnaires.map((template) => {
-              const eligibleCount = countEligibleQuestions(template);
-              return (
-                <option key={template.id} value={template.id}>
-                  {template.templateName} ({eligibleCount} criteria)
-                </option>
-              );
-            })}
+            {visibleQuestionnaires.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.templateName} ({countEligibleQuestions(template)} criteria)
+              </option>
+            ))}
           </select>
         </label>
       </div>
@@ -104,10 +103,7 @@ export function StaffCustomisedAllocationQuestionnaireStep({
           No eligible questionnaire found yet. Create or copy one with non-text questions first.
         </p>
       ) : null}
-      {!isLoadingQuestionnaires &&
-      !loadError &&
-      eligibleQuestionnaires.length > 0 &&
-      visibleQuestionnaires.length === 0 ? (
+      {!isLoadingQuestionnaires && !loadError && eligibleQuestionnaires.length > 0 && visibleQuestionnaires.length === 0 ? (
         <p className="staff-projects__allocation-note">
           No questionnaire matches your search. Try a different keyword.
         </p>
@@ -124,10 +120,7 @@ export function StaffCustomisedAllocationQuestionnaireStep({
         </div>
       ) : null}
       {isLoadingCoverage ? (
-        <div role="status" aria-live="polite">
-          <SkeletonText lines={1} widths={["44%"]} />
-          <span className="ui-visually-hidden">Loading response coverage...</span>
-        </div>
+        <p className="staff-projects__allocation-note">Loading response coverage...</p>
       ) : null}
       {coverageError ? <p className="staff-projects__allocation-error">{coverageError}</p> : null}
       {coverage ? (

@@ -1,8 +1,11 @@
-import { WEIGHT_OPTIONS, type CriteriaStrategy, type CustomAllocationQuestion } from "./customisedAllocation.utils";
+"use client";
 
-type StaffCustomisedAllocationCriteriaStepProps = {
+import type { CriteriaConfig, CriteriaStrategy, CustomAllocationQuestion } from "./customisedAllocation.utils";
+import { WEIGHT_OPTIONS } from "./customisedAllocation.utils";
+
+type Props = {
   criteriaQuestions: CustomAllocationQuestion[];
-  criteriaConfigByQuestionId: Record<number, { strategy: CriteriaStrategy; weight: number }>;
+  criteriaConfigByQuestionId: Record<number, CriteriaConfig>;
   updateStrategy: (questionId: number, strategy: CriteriaStrategy) => void;
   updateWeight: (questionId: number, weight: number) => void;
   confirmApply: boolean;
@@ -10,7 +13,7 @@ type StaffCustomisedAllocationCriteriaStepProps = {
   isApplyPending: boolean;
 };
 
-export function StaffCustomisedAllocationCriteriaStep({
+export function StaffCustomisedAllocationPanelStep2({
   criteriaQuestions,
   criteriaConfigByQuestionId,
   updateStrategy,
@@ -18,25 +21,20 @@ export function StaffCustomisedAllocationCriteriaStep({
   confirmApply,
   isPreviewPending,
   isApplyPending,
-}: StaffCustomisedAllocationCriteriaStepProps) {
+}: Props) {
   return (
     <div className="staff-projects__custom-step">
       <h4 className="staff-projects__custom-step-title">Step 2: Criteria Configuration</h4>
       <p className="staff-projects__custom-step-sub">
-        Diversify spreads responses across teams, Group clusters similar responses, Ignore skips the
-        question.
+        Diversify spreads responses across teams, Group clusters similar responses, Ignore skips the question.
       </p>
       {criteriaQuestions.length === 0 ? (
         <p className="staff-projects__allocation-note">Select a questionnaire to configure criteria.</p>
       ) : (
         <div className="staff-projects__custom-criteria-list">
           {criteriaQuestions.map((question) => {
-            const config = criteriaConfigByQuestionId[question.id] ?? {
-              strategy: "diversify",
-              weight: 1,
-            };
+            const config = criteriaConfigByQuestionId[question.id] ?? { strategy: "diversify", weight: 1 };
             const isIgnored = config.strategy === "ignore";
-
             return (
               <article
                 key={question.id}
@@ -54,9 +52,7 @@ export function StaffCustomisedAllocationCriteriaStep({
                     <select
                       className="staff-projects__custom-select"
                       value={config.strategy}
-                      onChange={(event) =>
-                        updateStrategy(question.id, event.target.value as CriteriaStrategy)
-                      }
+                      onChange={(event) => updateStrategy(question.id, event.target.value as CriteriaStrategy)}
                       aria-label={`Strategy for ${question.label}`}
                       disabled={confirmApply || isPreviewPending || isApplyPending}
                     >

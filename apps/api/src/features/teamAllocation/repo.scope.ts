@@ -4,10 +4,9 @@ import type {
   ManualAllocationStudent,
   ModuleStudent,
   ProjectTeamSummary,
-  StaffScopedActorRole,
-  StaffScopedProject,
-  StaffScopedProjectAccess,
 } from "./repo.types.js";
+
+export type InviteEligibleStudent = ModuleStudent;
 
 async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserWhereInput> {
   const hasProjectStudents = await prisma.projectStudent.findFirst({
@@ -21,140 +20,6 @@ async function buildProjectStudentScope(projectId: number): Promise<Prisma.UserW
         projectId,
       },
     },
-  };
-}
-
-export async function findStaffScopedProject(
-  staffId: number,
-  projectId: number,
-): Promise<StaffScopedProject | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: staffId },
-    select: { enterpriseId: true, role: true, active: true },
-  });
-
-  if (!user || user.active === false) {
-    return null;
-  }
-
-  const role = user.role as StaffScopedActorRole;
-
-  const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      module: {
-        enterpriseId: user.enterpriseId,
-        ...(hasEnterpriseWideAccess
-          ? {}
-          : {
-              OR: [
-                { moduleLeads: { some: { userId: staffId } } },
-                { moduleTeachingAssistants: { some: { userId: staffId } } },
-              ],
-            }),
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      moduleId: true,
-      archivedAt: true,
-      module: {
-        select: { name: true, archivedAt: true },
-      },
-    },
-  });
-
-  if (!project) {
-    return null;
-  }
-
-  return {
-    id: project.id,
-    name: project.name,
-    moduleId: project.moduleId,
-    moduleName: project.module.name,
-    archivedAt: project.archivedAt,
-    moduleArchivedAt: project.module.archivedAt,
-    enterpriseId: user.enterpriseId,
-  };
-}
-
-export async function findStaffScopedProjectAccess(
-  staffId: number,
-  projectId: number,
-): Promise<StaffScopedProjectAccess | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: staffId },
-    select: { enterpriseId: true, role: true, active: true },
-  });
-
-  if (!user || user.active === false) {
-    return null;
-  }
-
-  const role = user.role as StaffScopedActorRole;
-
-  const hasEnterpriseWideAccess = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
-  const project = await prisma.project.findFirst({
-    where: {
-      id: projectId,
-      module: {
-        enterpriseId: user.enterpriseId,
-        ...(hasEnterpriseWideAccess
-          ? {}
-          : {
-              OR: [
-                { moduleLeads: { some: { userId: staffId } } },
-                { moduleTeachingAssistants: { some: { userId: staffId } } },
-              ],
-            }),
-      },
-    },
-    select: {
-      id: true,
-      name: true,
-      moduleId: true,
-      archivedAt: true,
-      module: {
-        select: {
-          name: true,
-          archivedAt: true,
-          moduleLeads: {
-            where: { userId: staffId },
-            select: { userId: true },
-            take: 1,
-          },
-          moduleTeachingAssistants: {
-            where: { userId: staffId },
-            select: { userId: true },
-            take: 1,
-          },
-        },
-      },
-    },
-  });
-
-  if (!project) {
-    return null;
-  }
-
-  const isModuleLead = project.module.moduleLeads.length > 0;
-  const isModuleTeachingAssistant = project.module.moduleTeachingAssistants.length > 0;
-
-  return {
-    id: project.id,
-    name: project.name,
-    moduleId: project.moduleId,
-    moduleName: project.module.name,
-    archivedAt: project.archivedAt,
-    moduleArchivedAt: project.module.archivedAt,
-    enterpriseId: user.enterpriseId,
-    actorRole: role === "STUDENT" ? "STAFF" : role,
-    isModuleLead,
-    isModuleTeachingAssistant,
-    canApproveAllocationDrafts: isModuleLead,
   };
 }
 
@@ -271,6 +136,131 @@ export async function findModuleStudentsForManualAllocation(
       currentTeamId: currentTeam?.id ?? null,
       currentTeamName: currentTeam?.teamName ?? null,
     };
+  });
+}
+
+export async function findInviteEligibleStudentsForTeam(
+  teamId: number,
+  requesterId: number,
+): Promise<InviteEligibleStudent[]> {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      id: true,
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    throw { code: "TEAM_NOT_FOUND_OR_INACTIVE" };
+  }
+
+  const requesterAllocation = await prisma.teamAllocation.findUnique({
+    where: {
+      teamId_userId: {
+        teamId,
+        userId: requesterId,
+      },
+    },
+    select: { teamId: true },
+  });
+  if (!requesterAllocation) {
+    throw { code: "TEAM_ACCESS_FORBIDDEN" };
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findMany({
+    where: {
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+  });
+}
+
+export async function findInviteEligibleStudentForTeamByEmail(teamId: number, email: string) {
+  const team = await prisma.team.findFirst({
+    where: {
+      id: teamId,
+      archivedAt: null,
+      allocationLifecycle: "ACTIVE",
+    },
+    select: {
+      enterpriseId: true,
+      projectId: true,
+      project: {
+        select: {
+          moduleId: true,
+        },
+      },
+    },
+  });
+  if (!team) {
+    return null;
+  }
+
+  const projectStudentScope = await buildProjectStudentScope(team.projectId);
+  return prisma.user.findFirst({
+    where: {
+      email: { equals: email },
+      enterpriseId: team.enterpriseId,
+      active: true,
+      role: "STUDENT",
+      userModules: {
+        some: {
+          enterpriseId: team.enterpriseId,
+          moduleId: team.project.moduleId,
+        },
+      },
+      teamAllocations: {
+        none: {
+          team: {
+            projectId: team.projectId,
+            archivedAt: null,
+            allocationLifecycle: "ACTIVE",
+          },
+        },
+      },
+      ...projectStudentScope,
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+    },
   });
 }
 
