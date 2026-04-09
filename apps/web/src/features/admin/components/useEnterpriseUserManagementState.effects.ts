@@ -1,11 +1,12 @@
 import { useEffect, type Dispatch, type SetStateAction } from "react";
 import type { EnterpriseRecord } from "../types";
-import type { EnterpriseUserLoaders } from "./useEnterpriseUserManagementState.shared";
+import type { EnterpriseUserLoaders, EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
 
 type EnterpriseUserEffectsOptions = {
   selectedEnterprise: EnterpriseRecord | null;
   enterpriseUserSearchQuery: string;
   enterpriseUserPage: number;
+  enterpriseUserSortValue: EnterpriseUserSortValue;
   normalizedEnterpriseUserSearch: string;
   setEnterpriseUserPage: Dispatch<SetStateAction<number>>;
   setEnterpriseUserPageInput: Dispatch<SetStateAction<string>>;
@@ -13,21 +14,32 @@ type EnterpriseUserEffectsOptions = {
 };
 
 function useEnterpriseUserFetchEffect(options: EnterpriseUserEffectsOptions) {
+  const selectedEnterpriseId = options.selectedEnterprise?.id;
+  const enterpriseUserSearchQuery = options.enterpriseUserSearchQuery;
+  const enterpriseUserPage = options.enterpriseUserPage;
+  const enterpriseUserSortValue = options.enterpriseUserSortValue;
+  const loadEnterpriseUsers = options.loadEnterpriseUsers;
   useEffect(() => {
-    if (!options.selectedEnterprise) {
+    if (!selectedEnterpriseId) {
       return;
     }
-    void options.loadEnterpriseUsers(options.selectedEnterprise.id, options.enterpriseUserSearchQuery, options.enterpriseUserPage);
-  }, [options]);
+    void loadEnterpriseUsers(
+      selectedEnterpriseId,
+      enterpriseUserSearchQuery,
+      enterpriseUserPage,
+      enterpriseUserSortValue,
+    );
+  }, [enterpriseUserPage, enterpriseUserSearchQuery, enterpriseUserSortValue, loadEnterpriseUsers, selectedEnterpriseId]);
 }
 
 function useEnterpriseUserSearchResetEffect(options: EnterpriseUserEffectsOptions) {
   const normalizedEnterpriseUserSearch = options.normalizedEnterpriseUserSearch;
   const selectedEnterpriseId = options.selectedEnterprise?.id;
+  const enterpriseUserSortValue = options.enterpriseUserSortValue;
   const setEnterpriseUserPage = options.setEnterpriseUserPage;
   useEffect(() => {
     setEnterpriseUserPage(1);
-  }, [normalizedEnterpriseUserSearch, selectedEnterpriseId, setEnterpriseUserPage]);
+  }, [normalizedEnterpriseUserSearch, selectedEnterpriseId, enterpriseUserSortValue, setEnterpriseUserPage]);
 }
 
 function useEnterpriseUserPageInputSyncEffect(options: EnterpriseUserEffectsOptions) {

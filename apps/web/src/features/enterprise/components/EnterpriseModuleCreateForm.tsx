@@ -115,7 +115,7 @@ function EnterpriseModuleCreateFormBody({
 
       {state.isEditMode && moduleId != null ? (
         <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
-          <ModuleArchiveSection state={state} />
+          <ModuleArchiveSection state={state} moduleArchived={state.moduleArchived} />
           <ModuleDeleteSection state={state} />
         </ModuleFormCollapsible>
       ) : null}
@@ -178,11 +178,6 @@ function ModuleEditBlockedNotice({ state }: { state: ModuleCreateFormState }) {
     <div className="ui-stack-sm">
       <div className="status-alert status-alert--error enterprise-module-create__error">
         <span>{state.errorMessage ?? "Only module owners/leaders can edit this module."}</span>
-      </div>
-      <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-        <Button type="button" variant="ghost" onClick={state.navigateHome}>
-          Back to modules
-        </Button>
       </div>
     </div>
   );

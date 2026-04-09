@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  DEFAULT_ENTERPRISE_USER_SORT_VALUE,
   ENTERPRISE_USERS_PER_PAGE,
   normalizeUser,
+  resolveEnterpriseUserSortParams,
   resolveUnknownError,
 } from "./useEnterpriseUserManagementState.shared";
 
@@ -47,5 +49,14 @@ describe("useEnterpriseUserManagementState.shared", () => {
   it("resolves unknown errors to fallback messages", () => {
     expect(resolveUnknownError(new Error("Boom"), "Fallback")).toBe("Boom");
     expect(resolveUnknownError("unexpected", "Fallback")).toBe("Fallback");
+  });
+
+  it("resolves enterprise user sort params", () => {
+    expect(DEFAULT_ENTERPRISE_USER_SORT_VALUE).toBe("default");
+    expect(resolveEnterpriseUserSortParams("default")).toEqual({});
+    expect(resolveEnterpriseUserSortParams("joinDateDesc")).toEqual({ sortBy: "joinDate", sortDirection: "desc" });
+    expect(resolveEnterpriseUserSortParams("joinDateAsc")).toEqual({ sortBy: "joinDate", sortDirection: "asc" });
+    expect(resolveEnterpriseUserSortParams("nameAsc")).toEqual({ sortBy: "name", sortDirection: "asc" });
+    expect(resolveEnterpriseUserSortParams("nameDesc")).toEqual({ sortBy: "name", sortDirection: "desc" });
   });
 });

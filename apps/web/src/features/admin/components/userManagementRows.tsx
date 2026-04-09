@@ -2,6 +2,7 @@ import { Button } from "@/shared/ui/Button";
 import type { AdminUser, UserRole } from "../types";
 
 const SUPER_ADMIN_EMAIL = "admin@kcl.ac.uk";
+const UNASSIGNED_ENTERPRISE_CODE = "UNASSIGNED";
 
 type BuildUserManagementRowsInput = {
   users: AdminUser[];
@@ -10,14 +11,19 @@ type BuildUserManagementRowsInput = {
   onStatusToggle: (userId: number, nextStatus: boolean) => void;
 };
 
-function resolveRoleLabel(role: UserRole): string {
-  if (role === "ADMIN") {
-    return "Admin";
+function resolveEnterpriseLabel(user: AdminUser): string {
+  const name = user.enterprise?.name?.trim();
+  const code = user.enterprise?.code?.trim();
+  if (code?.toUpperCase() === UNASSIGNED_ENTERPRISE_CODE) {
+    return "Unassigned";
   }
-  if (role === "ENTERPRISE_ADMIN") {
-    return "Enterprise admin";
+  if (name) {
+    return name;
   }
-  return role === "STAFF" ? "Staff" : "Student";
+  if (code) {
+    return code;
+  }
+  return "Unknown enterprise";
 }
 
 function renderUserRoleControl(props: {
@@ -70,7 +76,7 @@ function buildUserManagementRow(user: AdminUser, input: BuildUserManagementRowsI
   return [
     <div key={`${user.id}-email`} className="ui-stack-xs">
       <strong>{user.email}</strong>
-      <span className="muted">{resolveRoleLabel(user.role)}</span>
+      <span className="muted">{resolveEnterpriseLabel(user)}</span>
     </div>,
     <div key={`${user.id}-name`} className="ui-stack-xs">
       <span>{`${user.firstName} ${user.lastName}`}</span>

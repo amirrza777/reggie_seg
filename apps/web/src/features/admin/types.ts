@@ -8,12 +8,20 @@ export type AdminUser = {
   isStaff: boolean;
   role: UserRole;
   active: boolean;
+  enterprise?: {
+    id: string;
+    name: string;
+    code: string;
+  } | null;
 };
 
 export type AdminUserUpdate = {
   role?: UserRole;
   active?: boolean;
 };
+
+export type AdminUserSortBy = "name" | "joinDate";
+export type AdminUserSortDirection = "asc" | "desc";
 
 export type AdminUserRecord = Omit<AdminUser, "role" | "active"> &
   Partial<Pick<AdminUser, "role" | "active">>;
@@ -24,6 +32,8 @@ export type AdminUserSearchParams = {
   q?: string;
   role?: UserRole;
   active?: boolean;
+  sortBy?: AdminUserSortBy;
+  sortDirection?: AdminUserSortDirection;
   page?: number;
   pageSize?: number;
 };
@@ -106,6 +116,11 @@ export type EnterpriseRecord = {
 export type CreateEnterprisePayload = {
   name: string;
   code?: string;
+};
+
+export type EnterpriseAdminInviteResponse = {
+  email: string;
+  expiresAt: string;
 };
 
 export const __adminTypesCoverageMarker = true;
