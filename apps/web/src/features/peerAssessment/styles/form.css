@@ -15,12 +15,13 @@
 }
 
 .peerAssessmentForm__question {
+  display: grid;
+  gap: 6px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent-border);
   border-radius: 8px;
   padding: 10px 12px;
   background-color: var(--surface-elevated);
-  gap: 8px;
 }
 
 .peerAssessmentForm__questionTitle {
@@ -36,13 +37,73 @@
   max-width: 80ch;
 }
 
-.peerAssessmentForm input[type="text"] {
+.peerAssessmentForm__countdownBox {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--surface-elevated);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.peerAssessmentForm__optionLabel {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.peerAssessmentForm__optionLabel--rating {
+  gap: 6px;
+}
+
+.peerAssessmentForm__radioInput {
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  flex: 0 0 auto;
+}
+
+.peerAssessmentForm__ratingOptions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.peerAssessmentForm__sliderLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-fixed-12px);
+}
+
+.peerAssessmentForm__answerInput {
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
   background-color: var(--surface-elevated);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--fs-fixed-inherit);
+  line-height: 1.5;
+}
+
+.peerAssessmentForm__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.peerAssessmentForm__backButton {
+  margin-left: auto;
 }
 
 @media (prefers-color-scheme: dark) {
   .peerAssessmentForm__question,
-  .peerAssessmentForm input[type="text"] {
+  .peerAssessmentForm__answerInput {
     background-color: color-mix(in srgb, var(--surface) 80%, var(--color-fixed-111827) 20%);
   }
 
@@ -60,5 +121,9 @@
   .peerAssessmentForm__header {
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  .peerAssessmentForm__backButton {
+    margin-left: 0;
   }
 }
