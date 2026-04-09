@@ -4,7 +4,7 @@ import router from "./router.js";
 
 const mocks = vi.hoisted(() => ({
   prisma: {
-    user: { findUnique: vi.fn(), count: vi.fn(), findMany: vi.fn() },
+    user: { findUnique: vi.fn(), findFirst: vi.fn(), update: vi.fn(), count: vi.fn(), findMany: vi.fn(), create: vi.fn() },
     module: {
       count: vi.fn(),
       findMany: vi.fn(),
@@ -17,6 +17,8 @@ const mocks = vi.hoisted(() => ({
     moduleLead: { findFirst: vi.fn(), findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     moduleTeachingAssistant: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
     featureFlag: { findMany: vi.fn(), update: vi.fn(), createMany: vi.fn() },
+    refreshToken: { updateMany: vi.fn() },
+    enterprise: { upsert: vi.fn() },
     team: { count: vi.fn() },
     meeting: { count: vi.fn() },
     userModule: { findMany: vi.fn(), deleteMany: vi.fn(), createMany: vi.fn() },
@@ -67,6 +69,33 @@ export function setupEnterpriseAdminRouterTestDefaults() {
     role: "ENTERPRISE_ADMIN",
     active: true,
   });
+  (mocks.prisma.user.findFirst as any).mockResolvedValue({
+    id: 11,
+    enterpriseId: "ent-1",
+    email: "user@enterprise.com",
+    firstName: "User",
+    lastName: "One",
+    role: "STAFF",
+    active: true,
+  });
+  (mocks.prisma.user.update as any).mockResolvedValue({
+    id: 11,
+    enterpriseId: "ent-1",
+    email: "user@enterprise.com",
+    firstName: "User",
+    lastName: "One",
+    role: "STAFF",
+    active: true,
+  });
+  (mocks.prisma.user.create as any).mockResolvedValue({
+    id: 12,
+    enterpriseId: "ent-1",
+    email: "created@enterprise.com",
+    firstName: "Created",
+    lastName: "User",
+    role: "STUDENT",
+    active: true,
+  });
 
   (mocks.prisma.user.count as any).mockResolvedValue(5);
   (mocks.prisma.module.count as any).mockResolvedValue(2);
@@ -103,6 +132,8 @@ export function setupEnterpriseAdminRouterTestDefaults() {
   (mocks.prisma.featureFlag.createMany as any).mockResolvedValue({ count: 0 });
   (mocks.prisma.featureFlag.findMany as any).mockResolvedValue([]);
   (mocks.prisma.featureFlag.update as any).mockResolvedValue({ key: "peer_feedback", label: "Peer feedback", enabled: true });
+  (mocks.prisma.refreshToken.updateMany as any).mockResolvedValue({ count: 0 });
+  (mocks.prisma.enterprise.upsert as any).mockResolvedValue({ id: "ent-unassigned" });
 
   (mocks.prisma.$transaction as any).mockImplementation(async (arg: any) => {
     if (Array.isArray(arg)) return Promise.all(arg);

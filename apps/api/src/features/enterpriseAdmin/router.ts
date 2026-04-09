@@ -1,14 +1,17 @@
+/* eslint-disable max-lines-per-function, max-statements, complexity, @typescript-eslint/no-explicit-any */
 import { Router } from "express";
-import type { Prisma } from "@prisma/client";
 import { requireAuth } from "../../auth/middleware.js";
 import { prisma } from "../../shared/db.js";
 import { setSensitiveNoStore } from "../../shared/httpCache.js";
 import { resolveEnterpriseUser } from "./middleware.js";
-import { parseFeatureFlagUpdateBody, parseMeetingSettingsBody } from "./router.parsers.js";
+import {
+  parseEnterpriseUserCreateBody,
+  parseEnterpriseUserUpdateBody,
+  parseFeatureFlagUpdateBody,
+} from "./router.parsers.js";
 import {
   createModule,
   deleteModule,
-  ensureCreatorLeader,
   getModuleAccess,
   getModuleAccessSelection,
   getModuleJoinCode,
@@ -24,6 +27,11 @@ import {
   parsePositiveIntArray,
   searchAssignableUsers,
   searchModules,
+  parseEnterpriseUserSearchFilters,
+  searchEnterpriseUsers,
+  createEnterpriseUser,
+  updateEnterpriseUser,
+  removeEnterpriseUser,
   updateFeatureFlag,
   updateModule,
   updateModuleStudents,
@@ -40,30 +48,96 @@ router.use(resolveEnterpriseUser);
 
 router.get("/overview", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {return res.status(403).json({ error: "Forbidden" });}
 
   return res.json(await getOverview(enterpriseUser));
 });
 
+router.get("/users/search", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+
+  const parsedFilters = parseEnterpriseUserSearchFilters(req.query);
+  if (!parsedFilters.ok) {return res.status(400).json({ error: parsedFilters.error });}
+
+  const result = await searchEnterpriseUsers(enterpriseUser, parsedFilters.value);
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
+  return res.json(result.value);
+});
+
+router.post("/users", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+
+  const parsedBody = parseEnterpriseUserCreateBody(req.body);
+  if (!parsedBody.ok) {return res.status(400).json({ error: parsedBody.error });}
+
+  try {
+    const result = await createEnterpriseUser(enterpriseUser, parsedBody.value);
+    if (!result.ok) {return res.status(result.status).json({ error: result.error });}
+    return res.status(201).json(result.value);
+  } catch (err) {
+    console.error("create enterprise user error", err);
+    return res.status(500).json({ error: "Could not create enterprise user" });
+  }
+});
+
+router.patch("/users/:id", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+
+  const userId = parsePositiveInt(req.params.id);
+  if (!userId) {return res.status(400).json({ error: "Invalid user id" });}
+
+  const parsedBody = parseEnterpriseUserUpdateBody(req.body);
+  if (!parsedBody.ok) {return res.status(400).json({ error: parsedBody.error });}
+
+  try {
+    const result = await updateEnterpriseUser(enterpriseUser, userId, parsedBody.value);
+    if (!result.ok) {return res.status(result.status).json({ error: result.error });}
+    return res.json(result.value);
+  } catch (err) {
+    console.error("update enterprise user error", err);
+    return res.status(500).json({ error: "Could not update enterprise user" });
+  }
+});
+
+router.delete("/users/:id", async (req, res) => {
+  const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+
+  const userId = parsePositiveInt(req.params.id);
+  if (!userId) {return res.status(400).json({ error: "Invalid user id" });}
+
+  try {
+    const result = await removeEnterpriseUser(enterpriseUser, userId);
+    if (!result.ok) {return res.status(result.status).json({ error: result.error });}
+    return res.json(result.value);
+  } catch (err) {
+    console.error("remove enterprise user error", err);
+    return res.status(500).json({ error: "Could not remove enterprise user" });
+  }
+});
+
 router.get("/feature-flags", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
   const result = await listFeatureFlags(enterpriseUser);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.patch("/feature-flags/:key", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const parsedBody = parseFeatureFlagUpdateBody(req.body);
-  if (!parsedBody.ok) return res.status(400).json({ error: parsedBody.error });
+  if (!parsedBody.ok) {return res.status(400).json({ error: parsedBody.error });}
 
   try {
     const result = await updateFeatureFlag(enterpriseUser, String(req.params.key), parsedBody.value.enabled);
-    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    if (!result.ok) {return res.status(result.status).json({ error: result.error });}
     return res.json(result.value);
   } catch (err) {
     console.error("update feature flag error", err);
@@ -73,133 +147,133 @@ router.patch("/feature-flags/:key", async (req, res) => {
 
 router.get("/modules", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
   return res.json(await listModules(enterpriseUser));
 });
 
 router.get("/modules/search", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const parsedFilters = parseModuleSearchFilters(req.query);
-  if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
+  if (!parsedFilters.ok) {return res.status(400).json({ error: parsedFilters.error });}
   return res.json(await searchModules(enterpriseUser, parsedFilters.value));
 });
 
 router.get("/modules/access-users", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
   return res.json(await listAssignableUsers(enterpriseUser));
 });
 
 router.get("/modules/access-users/search", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const parsedFilters = parseAccessUserSearchFilters(req.query);
-  if (!parsedFilters.ok) return res.status(400).json({ error: parsedFilters.error });
+  if (!parsedFilters.ok) {return res.status(400).json({ error: parsedFilters.error });}
   return res.json(await searchAssignableUsers(enterpriseUser, parsedFilters.value));
 });
 
 router.post("/modules", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
   if (!isEnterpriseAdminRole(enterpriseUser.role)) {
     return res.status(403).json({ error: "Only enterprise admins can create modules" });
   }
 
   const payload = parseModulePayload(req.body);
-  if (!payload.ok) return res.status(400).json({ error: payload.error });
+  if (!payload.ok) {return res.status(400).json({ error: payload.error });}
 
   const leaderIds = payload.value.leaderIds;
   if (leaderIds.length === 0) {
     return res.status(400).json({ error: "At least one module leader is required" });
   }
   const result = await createModule(enterpriseUser, { ...payload.value, leaderIds });
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   setSensitiveNoStore(res);
   return res.status(201).json(result.value);
 });
 
 router.get("/modules/:moduleId/access", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await getModuleAccess(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.get("/modules/:moduleId/access-selection", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await getModuleAccessSelection(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.get("/modules/:moduleId/join-code", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await getModuleJoinCode(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   setSensitiveNoStore(res);
   return res.json(result.value);
 });
 
 router.put("/modules/:moduleId", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const payload = parseModulePayload(req.body);
-  if (!payload.ok) return res.status(400).json({ error: payload.error });
+  if (!payload.ok) {return res.status(400).json({ error: payload.error });}
   const result = await updateModule(enterpriseUser, moduleId, payload.value);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.delete("/modules/:moduleId", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await deleteModule(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.get("/modules/:moduleId/students", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await getModuleStudents(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.get("/forum-reports", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {return res.status(403).json({ error: "Forbidden" });}
 
   const reports = await prisma.forumReport.findMany({
     where: {
@@ -238,11 +312,11 @@ router.get("/forum-reports", async (req, res) => {
 
 router.get("/forum-reports/:id/conversation", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {return res.status(403).json({ error: "Forbidden" });}
 
   const id = parsePositiveInt(req.params.id);
-  if (!id) return res.status(400).json({ error: "Invalid report id" });
+  if (!id) {return res.status(400).json({ error: "Invalid report id" });}
 
   const report = await prisma.forumReport.findFirst({
     where: {
@@ -263,7 +337,7 @@ router.get("/forum-reports/:id/conversation", async (req, res) => {
     },
   });
 
-  if (!report) return res.status(404).json({ error: "Report not found" });
+  if (!report) {return res.status(404).json({ error: "Report not found" });}
 
   const posts = await prisma.discussionPost.findMany({
     where: { projectId: report.projectId },
@@ -335,11 +409,11 @@ router.get("/forum-reports/:id/conversation", async (req, res) => {
 
 router.delete("/forum-reports/:id", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {return res.status(403).json({ error: "Forbidden" });}
 
   const id = parsePositiveInt(req.params.id);
-  if (!id) return res.status(400).json({ error: "Invalid report id" });
+  if (!id) {return res.status(400).json({ error: "Invalid report id" });}
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -395,7 +469,7 @@ router.delete("/forum-reports/:id", async (req, res) => {
     });
     res.json({ ok: true });
   } catch (err: any) {
-    if (err?.code === "P2025") return res.status(404).json({ error: "Report not found" });
+    if (err?.code === "P2025") {return res.status(404).json({ error: "Report not found" });}
     console.error("delete forum report error", err);
     return res.status(500).json({ error: "Could not delete report" });
   }
@@ -403,11 +477,11 @@ router.delete("/forum-reports/:id", async (req, res) => {
 
 router.delete("/forum-reports/:id/remove", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
-  if (!isEnterpriseAdminRole(enterpriseUser.role)) return res.status(403).json({ error: "Forbidden" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
+  if (!isEnterpriseAdminRole(enterpriseUser.role)) {return res.status(403).json({ error: "Forbidden" });}
 
   const id = parsePositiveInt(req.params.id);
-  if (!id) return res.status(400).json({ error: "Invalid report id" });
+  if (!id) {return res.status(400).json({ error: "Invalid report id" });}
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -432,7 +506,7 @@ router.delete("/forum-reports/:id/remove", async (req, res) => {
 
     res.json({ ok: true });
   } catch (err: any) {
-    if (err?.code === "P2025") return res.status(404).json({ error: "Report not found" });
+    if (err?.code === "P2025") {return res.status(404).json({ error: "Report not found" });}
     console.error("remove forum report error", err);
     return res.status(500).json({ error: "Could not remove report" });
   }
@@ -440,36 +514,36 @@ router.delete("/forum-reports/:id/remove", async (req, res) => {
 
 router.put("/modules/:moduleId/students", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const parsedStudentIds = parsePositiveIntArray(req.body?.studentIds, "studentIds");
-  if (!parsedStudentIds.ok) return res.status(400).json({ error: parsedStudentIds.error });
+  if (!parsedStudentIds.ok) {return res.status(400).json({ error: parsedStudentIds.error });}
   const result = await updateModuleStudents(enterpriseUser, moduleId, parsedStudentIds.value);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.get("/modules/:moduleId/meeting-settings", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const result = await getModuleMeetingSettings(enterpriseUser, moduleId);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 
 router.put("/modules/:moduleId/meeting-settings", async (req, res) => {
   const enterpriseUser = (req as EnterpriseRequest).enterpriseUser;
-  if (!enterpriseUser) return res.status(500).json({ error: "Enterprise not resolved" });
+  if (!enterpriseUser) {return res.status(500).json({ error: "Enterprise not resolved" });}
 
   const moduleId = parsePositiveInt(req.params.moduleId);
-  if (!moduleId) return res.status(400).json({ error: "Invalid module id" });
+  if (!moduleId) {return res.status(400).json({ error: "Invalid module id" });}
 
   const absenceThreshold = Number(req.body?.absenceThreshold);
   const minutesEditWindowDays = Number(req.body?.minutesEditWindowDays);
@@ -496,7 +570,7 @@ router.put("/modules/:moduleId/meeting-settings", async (req, res) => {
     allowAnyoneToRecordAttendance,
     allowAnyoneToWriteMinutes,
   });
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
+  if (!result.ok) {return res.status(result.status).json({ error: result.error });}
   return res.json(result.value);
 });
 

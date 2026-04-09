@@ -30,3 +30,87 @@ export function parseMeetingSettingsBody(
     },
   };
 }
+
+export function parseEnterpriseUserUpdateBody(
+  body: unknown,
+): ParseResult<{ active?: boolean; role?: "STUDENT" | "STAFF" }> {
+  const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const updates: { active?: boolean; role?: "STUDENT" | "STAFF" } = {};
+
+  if (raw.active !== undefined) {
+    const active = parseBoolean(raw.active, "active");
+    if (!active.ok) {
+      return { ok: false, error: "active must be a boolean" };
+    }
+    updates.active = active.value;
+  }
+
+  if (raw.role !== undefined) {
+    if (typeof raw.role !== "string") {
+      return { ok: false, error: "role must be STUDENT or STAFF" };
+    }
+    const normalizedRole = raw.role.trim().toUpperCase();
+    if (normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+      return { ok: false, error: "role must be STUDENT or STAFF" };
+    }
+    updates.role = normalizedRole;
+  }
+
+  return { ok: true, value: updates };
+}
+
+// eslint-disable-next-line max-lines-per-function, max-statements, complexity
+export function parseEnterpriseUserCreateBody(
+  body: unknown,
+): ParseResult<{ email: string; firstName?: string; lastName?: string; role?: "STUDENT" | "STAFF" }> {
+  const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const email = typeof raw.email === "string" ? raw.email.trim().toLowerCase() : "";
+  if (!email) {
+    return { ok: false, error: "email is required" };
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { ok: false, error: "email must be a valid email address" };
+  }
+
+  const firstName =
+    raw.firstName === undefined || raw.firstName === null
+      ? undefined
+      : typeof raw.firstName === "string"
+        ? raw.firstName.trim()
+        : null;
+  if (firstName === null) {
+    return { ok: false, error: "firstName must be a string" };
+  }
+
+  const lastName =
+    raw.lastName === undefined || raw.lastName === null
+      ? undefined
+      : typeof raw.lastName === "string"
+        ? raw.lastName.trim()
+        : null;
+  if (lastName === null) {
+    return { ok: false, error: "lastName must be a string" };
+  }
+
+  let role: "STUDENT" | "STAFF" | undefined;
+  if (raw.role !== undefined) {
+    if (typeof raw.role !== "string") {
+      return { ok: false, error: "role must be STUDENT or STAFF" };
+    }
+    const normalizedRole = raw.role.trim().toUpperCase();
+    if (normalizedRole !== "STUDENT" && normalizedRole !== "STAFF") {
+      return { ok: false, error: "role must be STUDENT or STAFF" };
+    }
+    role = normalizedRole;
+  }
+
+  return {
+    ok: true,
+    value: {
+      email,
+      ...(firstName !== undefined ? { firstName } : {}),
+      ...(lastName !== undefined ? { lastName } : {}),
+      ...(role ? { role } : {}),
+    },
+  };
+}

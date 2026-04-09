@@ -70,6 +70,13 @@ export function parseCreateEnterpriseBody(body: unknown): ParseResult<{ name: st
   };
 }
 
+export function parseInviteEnterpriseAdminBody(body: unknown): ParseResult<{ email: string }> {
+  const raw = typeof body === "object" && body !== null ? (body as Record<string, unknown>) : {};
+  const email = parseTrimmedString(raw.email, "email");
+  if (!email.ok) return { ok: false, error: "email must be a string" };
+  return { ok: true, value: { email: email.value } };
+}
+
 export function parseAuditLogsQuery(query: unknown): ParseResult<{ from?: Date; to?: Date; limit?: number; cursor?: number }> {
   const raw = typeof query === "object" && query !== null ? (query as Record<string, unknown>) : {};
   const from = parseOptionalIsoDate(raw.from, "from");

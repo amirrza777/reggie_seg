@@ -4,7 +4,12 @@ import jwt from "jsonwebtoken";
 import router from "./router.js";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
-import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
+import {
+  buildAdminUserSearchOrderBy,
+  buildAdminUserSearchWhere,
+  matchesAdminUserSearchCandidate,
+  parseAdminUserSearchFilters,
+} from "./userSearch.js";
 
 const { generateFromNameMock } = vi.hoisted(() => ({ generateFromNameMock: vi.fn() }));
 
@@ -23,8 +28,9 @@ vi.mock("../../shared/db.js", () => ({
   },
 }));
 
-vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn() }));
+vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn(), recordAuditLog: vi.fn() }));
 vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchOrderBy: vi.fn(),
   buildAdminUserSearchWhere: vi.fn(),
   parseAdminUserSearchFilters: vi.fn(),
   matchesAdminUserSearchCandidate: vi.fn(),
@@ -89,6 +95,7 @@ beforeEach(() => {
     ok: true,
     value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
   });
+  (buildAdminUserSearchOrderBy as any).mockReturnValue([{ id: "asc" }]);
   (buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
   (matchesAdminUserSearchCandidate as any).mockReturnValue(false);
 
@@ -105,6 +112,7 @@ describe("admin router enterprise and audit routes", () => {
   const listEnterprises = getRouteHandler("get", "/enterprises");
   const searchEnterprises = getRouteHandler("get", "/enterprises/search");
   const createEnterprise = getRouteHandler("post", "/enterprises");
+  const inviteEnterpriseAdmin = getRouteHandler("post", "/enterprises/:enterpriseId/invites/enterprise-admin");
   const listEnterpriseUsers = getRouteHandler("get", "/enterprises/:enterpriseId/users");
   const patchEnterpriseUser = getRouteHandler("patch", "/enterprises/:enterpriseId/users/:id");
   const deleteEnterprise = getRouteHandler("delete", "/enterprises/:enterpriseId");
@@ -128,6 +136,13 @@ describe("admin router enterprise and audit routes", () => {
     expect((res.json as any)).toHaveBeenCalledWith([
       expect.objectContaining({ admins: 1, enterpriseAdmins: 1, staff: 1, students: 1 }),
     ]);
+    expect(prisma.enterprise.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ code: { not: "UNASSIGNED" } }]),
+        }),
+      }),
+    );
   });
 
   it("rejects invalid enterprise-search pagination", async () => {
@@ -159,6 +174,20 @@ describe("admin router enterprise and audit routes", () => {
         pageSize: 1,
         totalPages: 2,
         items: [expect.objectContaining({ id: "ent-3", staff: 1 })],
+      }),
+    );
+    expect(prisma.enterprise.count).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ code: { not: "UNASSIGNED" } }]),
+        }),
+      }),
+    );
+    expect(prisma.enterprise.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ code: { not: "UNASSIGNED" } }]),
+        }),
       }),
     );
   });
@@ -202,6 +231,22 @@ describe("admin router enterprise and audit routes", () => {
         items: [expect.objectContaining({ id: "ent-3" })],
       }),
     );
+    expect(prisma.enterprise.count).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ code: { not: "UNASSIGNED" } }]),
+        }),
+      }),
+    );
+    expect(prisma.enterprise.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([{ code: { not: "UNASSIGNED" } }]),
+        }),
+      }),
+    );
   });
 
   it.each([
@@ -224,7 +269,6 @@ describe("admin router enterprise and audit routes", () => {
   });
 
   it("creates enterprise with generated code when code is omitted", async () => {
-    (prisma.enterprise.findUnique as any).mockResolvedValueOnce(null);
     (prisma.enterprise.create as any).mockResolvedValueOnce({
       id: "new-ent",
       code: "AUTO123",
@@ -237,6 +281,29 @@ describe("admin router enterprise and audit routes", () => {
 
     expect(generateFromNameMock).toHaveBeenCalledWith("Auto Enterprise");
     expect((res.status as any)).toHaveBeenCalledWith(201);
+  });
+
+  it("retries generated enterprise codes when a concurrent code collision happens", async () => {
+    generateFromNameMock.mockResolvedValueOnce("AUTO123").mockResolvedValueOnce("AUTO124");
+    (prisma.$transaction as any)
+      .mockRejectedValueOnce({ code: "P2002", meta: { target: ["code"] } })
+      .mockImplementation(async (arg: any) => {
+        if (Array.isArray(arg)) return Promise.all(arg);
+        return arg(prisma);
+      });
+    (prisma.enterprise.create as any).mockResolvedValueOnce({
+      id: "new-ent-2",
+      code: "AUTO124",
+      name: "Auto Enterprise Retry",
+      createdAt: new Date("2026-01-03"),
+    });
+    const res = mockRes();
+
+    await createEnterprise({ body: { name: "Auto Enterprise Retry" } } as any, res);
+
+    expect(generateFromNameMock).toHaveBeenCalledTimes(2);
+    expect((res.status as any)).toHaveBeenCalledWith(201);
+    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ code: "AUTO124" }));
   });
 
   it("maps unique-constraint errors from create enterprise", async () => {
@@ -257,6 +324,19 @@ describe("admin router enterprise and audit routes", () => {
     await createEnterprise({ body: { name: "E", code: "EEE" } } as any, res);
 
     expect((res.status as any)).toHaveBeenCalledWith(500);
+  });
+
+  it("rejects invalid enterprise-admin invite emails before enterprise lookup", async () => {
+    const res = mockRes();
+
+    await inviteEnterpriseAdmin(
+      { params: { enterpriseId: "ent-2" }, body: { email: "not-an-email" }, adminUser: { id: 1 } } as any,
+      res,
+    );
+
+    expect((res.status as any)).toHaveBeenCalledWith(400);
+    expect((res.json as any)).toHaveBeenCalledWith({ error: "Email must be a valid email address" });
+    expect(prisma.enterprise.findUnique).not.toHaveBeenCalled();
   });
 
   it("returns 404 when listing users for missing enterprise", async () => {
@@ -312,6 +392,38 @@ describe("admin router enterprise and audit routes", () => {
     await patchEnterpriseUser({ params: { enterpriseId: "ent-2", id: "2" }, body: { active: false, role: "ADMIN" } } as any, res);
 
     expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ isStaff: true }));
+  });
+
+  it("allows assigning ENTERPRISE_ADMIN through enterprise user management", async () => {
+    (prisma.user.findFirst as any).mockResolvedValueOnce({
+      id: 2,
+      email: "u@x.com",
+      enterpriseId: "ent-2",
+      role: "STAFF",
+      active: true,
+    });
+    (prisma.user.update as any).mockResolvedValueOnce({
+      id: 2,
+      email: "u@x.com",
+      firstName: "U",
+      lastName: "X",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+    const res = mockRes();
+
+    await patchEnterpriseUser(
+      { params: { enterpriseId: "ent-2", id: "2" }, body: { role: "ENTERPRISE_ADMIN" }, adminUser: { id: 1 } } as any,
+      res,
+    );
+
+    expect(prisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 2 },
+        data: { role: "ENTERPRISE_ADMIN" },
+      }),
+    );
+    expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ role: "ENTERPRISE_ADMIN", isStaff: true }));
   });
 
   it("validates deleteEnterprise target id", async () => {
