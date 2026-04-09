@@ -17,12 +17,11 @@ describe("StaffTeamSectionNav", () => {
     expect(healthLink).toHaveAttribute("href", "/staff/projects/2/teams/3/teamhealth");
   });
 
-  it("renders marking tab and back-to-project link", () => {
+  it("renders marking tab", () => {
     usePathnameMock.mockReturnValue("/staff/projects/2/teams/3");
     render(<StaffTeamSectionNav projectId="2" teamId="3" />);
 
     expect(screen.getByRole("link", { name: "Marking" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Back to project/i })).toHaveAttribute("href", "/staff/projects/2");
   });
 
   it("renders marking tab link", () => {

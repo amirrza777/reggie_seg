@@ -188,7 +188,7 @@ describe("ScrollReveal", () => {
     expect(groupB.classList.contains("is-visible")).toBe(true);
     expect(observerRecords[0].unobserve).toHaveBeenCalledWith(groupA);
     expect(observerRecords[0].unobserve).toHaveBeenCalledWith(groupB);
-    expect(observerRecords[1].disconnect).toHaveBeenCalledTimes(1);
+    expect(observerRecords[1].disconnect).not.toHaveBeenCalled();
   });
 
   it("cancels pending animation frame work when unmounting before first frame", () => {

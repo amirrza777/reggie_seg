@@ -41,7 +41,6 @@ export default async function StaffModuleStudentAccessPage({ params }: PageProps
   return (
     <StaffModuleStudentAccessForm
       moduleId={parsed}
-      moduleRouteParam={moduleId}
       initialAccessSelection={initialAccessSelection}
       variant="page"
     />

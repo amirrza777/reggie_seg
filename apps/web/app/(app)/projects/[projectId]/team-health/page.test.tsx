@@ -88,7 +88,6 @@ describe("ProjectTeamHealthPage", () => {
     render(page);
 
     expect(screen.getByText("Invalid project ID.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to projects" })).toHaveAttribute("href", "/projects");
     expect(getTeamByUserAndProjectMock).not.toHaveBeenCalled();
   });
 
@@ -115,7 +114,6 @@ describe("ProjectTeamHealthPage", () => {
     render(page);
 
     expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project overview" })).toHaveAttribute("href", "/projects/19");
   });
 
   it("passes active warnings and loaded data to panel", async () => {

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { StaffModuleAccessForm } from "@/features/modules/components/moduleSetup/StaffModuleAccessForm";
 import { loadModuleSetupInitialSelection } from "@/features/modules/lib/moduleSetupInitialSelection";
@@ -40,9 +39,6 @@ export default async function StaffModuleStaffAccessPage({ params }: PageProps) 
 
   return (
     <div className="ui-page enterprise-module-create-page">
-      <Link href={`/staff/modules/${encodeURIComponent(modId)}/staff`} className="muted">
-          ← Back to current staff members
-        </Link>
       <Card>
         <StaffModuleAccessForm
           moduleId={parsed}

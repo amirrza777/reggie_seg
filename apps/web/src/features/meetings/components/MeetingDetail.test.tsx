@@ -8,6 +8,10 @@ vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
+vi.mock("next/link", () => ({
+  default: ({ href, children }: any) => <a href={href}>{children}</a>,
+}));
+
 type MockChildProps = { meetingId: number };
 
 vi.mock("./CommentSection", () => ({
@@ -77,19 +81,20 @@ describe("MeetingDetail", () => {
 
   it("renders meeting title and organiser", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Team Meeting" })).toBeInTheDocument();
     expect(screen.getByText(/Reggie King/)).toBeInTheDocument();
   });
 
-  it("renders back link to previous meetings for past meetings", () => {
+  it("renders meetings breadcrumb link", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to previous meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
+    expect(screen.getByRole("link", { name: "Meetings" })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
   });
 
-  it("renders back link to upcoming meetings for future meetings", () => {
+  it("renders current breadcrumb with meeting title", () => {
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to upcoming meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=upcoming");
+    const currentCrumb = screen.getAllByText("Team Meeting").find((node) => node.getAttribute("aria-current") === "page");
+    expect(currentCrumb).toBeDefined();
   });
 
   it("shows location when provided", () => {

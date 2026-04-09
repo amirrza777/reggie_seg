@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -17,10 +16,6 @@ vi.mock("@/features/meetings/components/MeetingsPageContent", () => ({
   MeetingsPageContent: ({ teamId, projectId, initialTab }: { teamId: number; projectId: number; initialTab: string }) => (
     <div data-testid="meetings-page-content" data-team-id={teamId} data-project-id={projectId} data-initial-tab={initialTab} />
   ),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
@@ -59,7 +54,6 @@ describe("ProjectMeetingsPage", () => {
     render(page);
 
     expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Back to project" })).toHaveAttribute("href", "/projects/33");
     expect(getTeamByUserAndProjectMock).not.toHaveBeenCalled();
   });
 

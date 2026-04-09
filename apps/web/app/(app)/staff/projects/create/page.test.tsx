@@ -87,7 +87,7 @@ describe("StaffCreateProjectPage", () => {
     expect(screen.getByTestId("create-panel")).toHaveAttribute("data-initial-module-id", "MOD-2");
     expect(screen.getByRole("link", { name: "Module Two" })).toHaveAttribute("href", "/staff/modules/MOD-2");
     expect(screen.getByRole("link", { name: "Projects" })).toHaveAttribute("href", "/staff/modules/MOD-2/projects");
-    expect(screen.getByRole("link", { name: "Back to module" })).toHaveAttribute("href", "/staff/modules/MOD-2");
+    expect(screen.getByText("Create project")).toHaveAttribute("aria-current", "page");
   });
 
   it("allows admin users and handles non-string moduleId values", async () => {
@@ -100,7 +100,7 @@ describe("StaffCreateProjectPage", () => {
     render(page);
 
     expect(screen.getByTestId("create-panel")).toHaveAttribute("data-initial-module-id", "");
-    expect(screen.getByRole("link", { name: "Back to my modules" })).toHaveAttribute("href", "/staff/modules");
+    expect(screen.getByRole("link", { name: "My Modules" })).toHaveAttribute("href", "/staff/modules");
   });
 
   it("shows session-expired error message when module API returns 401", async () => {

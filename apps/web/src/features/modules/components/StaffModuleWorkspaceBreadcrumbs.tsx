@@ -1,16 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { BreadcrumbItem } from "@/shared/layout/Breadcrumbs";
+import { StaffBreadcrumbs } from "@/shared/layout/StaffBreadcrumbs";
 
 type StaffModuleWorkspaceBreadcrumbsProps = {
   moduleId: string;
   moduleTitle: string;
-};
-
-type Crumb = {
-  label: string;
-  href?: string;
 };
 
 const SECTION_LABELS: Record<string, string> = {
@@ -42,12 +38,12 @@ function decodePathSegment(segment: string | undefined): string {
   }
 }
 
-function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): Crumb[] {
+function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): BreadcrumbItem[] {
   const encodedModuleId = encodeURIComponent(moduleId);
   const moduleRoot = `/staff/modules/${encodedModuleId}`;
   const segments = pathname.split("/").filter(Boolean);
 
-  const base: Crumb[] = [
+  const base: BreadcrumbItem[] = [
     { label: "Staff", href: "/staff" },
     { label: "My Modules", href: "/staff/modules" },
     { label: moduleTitle, href: moduleRoot },
@@ -67,7 +63,7 @@ function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): C
 
   const sectionHref = `${moduleRoot}/${section}`;
   const sectionLabel = SECTION_LABELS[section] ?? toTitleCase(section);
-  const sectionCrumb: Crumb = { label: sectionLabel, href: sectionHref };
+  const sectionCrumb: BreadcrumbItem = { label: sectionLabel, href: sectionHref };
 
   const child = segments[4];
   if (!child) {return [...base, { label: sectionLabel }];}
@@ -82,28 +78,5 @@ function buildCrumbs(pathname: string, moduleId: string, moduleTitle: string): C
 export function StaffModuleWorkspaceBreadcrumbs({ moduleId, moduleTitle }: StaffModuleWorkspaceBreadcrumbsProps) {
   const pathname = usePathname() ?? "";
   const crumbs = buildCrumbs(pathname, moduleId, moduleTitle);
-
-  return (
-    <nav className="staff-projects__breadcrumbs" aria-label="Breadcrumb">
-      <ol className="staff-projects__breadcrumb-list">
-        {crumbs.map((crumb, index) => {
-          const isCurrent = index === crumbs.length - 1;
-          return (
-            <li key={`${crumb.label}-${index}`} className="staff-projects__breadcrumb-item">
-              {!isCurrent && crumb.href ? (
-                <Link href={crumb.href} className="staff-projects__breadcrumb-link">
-                  {crumb.label}
-                </Link>
-              ) : (
-                <span className="staff-projects__breadcrumb-current" aria-current="page">
-                  {crumb.label}
-                </span>
-              )}
-              {!isCurrent ? <span className="staff-projects__breadcrumb-sep">/</span> : null}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
+  return <StaffBreadcrumbs items={crumbs} />;
 }

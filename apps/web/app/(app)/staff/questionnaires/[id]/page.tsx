@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Placeholder } from "@/shared/ui/Placeholder";
 import { SkeletonText } from "@/shared/ui/Skeleton";
+import { Breadcrumbs } from "@/shared/layout/Breadcrumbs";
 import { QuestionnaireView } from "@/features/questionnaires/components/QuestionnaireView";
 import { DeleteQuestionnaireButton, EditQuestionnaireButton } from "@/features/questionnaires/components/SharedQuestionnaireButtons";
 import { Questionnaire } from "@/features/questionnaires/types";
@@ -43,6 +43,13 @@ export default function QuestionnairePage() {
 
   return (
     <div className="stack ui-page" style={{ gap: 40 }}>
+      <Breadcrumbs
+        items={[
+          { label: "Staff", href: "/staff" },
+          { label: "Questionnaires", href: "/staff/questionnaires" },
+          { label: questionnaire.templateName },
+        ]}
+      />
       <Placeholder
         title={`Questionnaire: ${questionnaire.templateName}`}
         description="View the questions and details of this template."
@@ -75,21 +82,6 @@ export default function QuestionnairePage() {
             Copy Template
           </button>
         )}
-
-        <Link href="/staff/questionnaires" style={{ marginLeft: 100 }}>
-          <button
-            style={{
-              padding: "10px 20px",
-              border: "1px solid var(--btn-primary-border)",
-              background: "var(--btn-primary-bg)",
-              color: "var(--btn-primary-text)",
-              cursor: "pointer",
-            }}
-            className="btn"
-          >
-            Back to all questionnaires
-          </button>
-        </Link>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   useManualScrollRestoration();
   useBuildChangeCacheReset();
   useDevCacheReset(pathname);
+  useProfileRouteBodyClass(pathname);
 
   // Add things like QueryClientProvider/ThemeProvider here later.
   return <UserProvider>{children}</UserProvider>;
@@ -36,15 +37,15 @@ function useBuildChangeCacheReset() {
     if (typeof window === "undefined") return;
 
     const currentBuildId = getCurrentBuildId();
-    const previousBuildId = window.localStorage.getItem("tf_last_build_id");
-    window.localStorage.setItem("tf_last_build_id", currentBuildId);
+    const previousBuildId = safeStorageGet(window.localStorage, "tf_last_build_id");
+    safeStorageSet(window.localStorage, "tf_last_build_id", currentBuildId);
 
     if (!previousBuildId || previousBuildId === currentBuildId) return;
 
     const cacheResetKey = `tf_cache_reset_for_build_${currentBuildId}`;
-    if (window.sessionStorage.getItem(cacheResetKey) === "done") return;
+    if (safeStorageGet(window.sessionStorage, cacheResetKey) === "done") return;
 
-    window.sessionStorage.setItem(cacheResetKey, "done");
+    safeStorageSet(window.sessionStorage, cacheResetKey, "done");
     void clearCachesAndReload();
   }, []);
 }
@@ -57,15 +58,28 @@ function useDevCacheReset(pathname: string | null) {
   }, [pathname]);
 }
 
+function useProfileRouteBodyClass(pathname: string | null) {
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+    const isProfileRoute = pathname === "/profile" || pathname?.startsWith("/profile/") === true;
+    document.body.classList.toggle("profile-route", isProfileRoute);
+    return () => {
+      document.body.classList.remove("profile-route");
+    };
+  }, [pathname]);
+}
+
 function shouldRunDevCacheCheck() {
   const checkIntervalMs = 30_000;
   const checkKey = "tf_dev_cache_check_at";
   const now = Date.now();
-  const lastCheckAt = Number(window.sessionStorage.getItem(checkKey) ?? "0");
+  const lastCheckAt = Number(safeStorageGet(window.sessionStorage, checkKey) ?? "0");
   if (Number.isFinite(lastCheckAt) && now - lastCheckAt < checkIntervalMs) {
     return false;
   }
-  window.sessionStorage.setItem(checkKey, String(now));
+  safeStorageSet(window.sessionStorage, checkKey, String(now));
   return true;
 }
 
@@ -95,16 +109,40 @@ async function clearCachesAndReload() {
 
 async function clearServiceWorkers() {
   if (!("serviceWorker" in navigator)) return false;
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  if (registrations.length === 0) return false;
-  await Promise.all(registrations.map((registration) => registration.unregister()));
-  return true;
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    if (registrations.length === 0) return false;
+    const unregisterResults = await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+    return unregisterResults.some((result) => result.status === "fulfilled" && result.value);
+  } catch {
+    return false;
+  }
 }
 
 async function clearBrowserCaches() {
   if (!("caches" in window)) return false;
-  const keys = await caches.keys();
-  if (keys.length === 0) return false;
-  await Promise.all(keys.map((key) => caches.delete(key)));
-  return true;
+  try {
+    const keys = await caches.keys();
+    if (keys.length === 0) return false;
+    const deleteResults = await Promise.allSettled(keys.map((key) => caches.delete(key)));
+    return deleteResults.some((result) => result.status === "fulfilled" && result.value);
+  } catch {
+    return false;
+  }
+}
+
+function safeStorageGet(storage: Storage, key: string) {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(storage: Storage, key: string, value: string) {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // Ignore storage failures (private mode, disabled storage, quota).
+  }
 }

@@ -94,7 +94,7 @@ export default async function StaffMarksPage({ searchParams }: PageProps) {
       ) : (
         <section className="staff-projects__module-list" aria-label="Projects for marking">
           {moduleGroups.map((group) => (
-            <details key={group.moduleId} className="staff-projects__module-group" open>
+            <details key={group.moduleId} className="staff-projects__module-group">
               <summary className="staff-projects__module-summary">
                 <div className="staff-projects__module-heading">
                   <h2 className="staff-projects__module-title">{highlightSearchText(group.moduleName, rawQuery)}</h2>

@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/shared/auth/session";
 import { listModules } from "@/features/modules/api/client";
 import { getCalendarEvents } from "@/features/calendar/api/client";
 import type { Module } from "@/features/modules/types";
+import { EnterpriseAccessRecoveryPanel } from "@/features/auth/components/EnterpriseAccessRecoveryPanel";
 import { StudentModulesOverviewClient } from "@/features/modules/components/StudentModulesOverviewClient";
 import { Card } from "@/shared/ui/Card";
 import { ArrowRightIcon } from "@/shared/ui/ArrowRightIcon";
@@ -27,6 +28,18 @@ function formatDate(iso: string): string {
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
+  if (user?.isUnassigned === true) {
+    return (
+      <div className="dashboard-unassigned-view">
+        <div className="stack ui-page ui-page--narrow dashboard-unassigned-view__content">
+          <Card title="Enterprise access is required">
+            <EnterpriseAccessRecoveryPanel />
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   let modules: Module[] = [];
   let moduleError: string | null = null;
   let upcomingRows: (string | ReactNode)[][] = [];
@@ -66,19 +79,20 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="stack stack--tabbed">
-      <Card title={<span className="overview-title">Modules overview</span>}>
-        <p className="muted">
+    <div className="stack stack--tabbed ui-page projects-panel">
+      <header className="projects-panel__header">
+        <h1 className="projects-panel__title">Modules overview</h1>
+        <p className="projects-panel__subtitle">
           Quick view across modules, teams, meetings, and peer assessments.
         </p>
-      </Card>
+      </header>
 
       {user ? (
         <StudentModulesOverviewClient
           initialModules={modules}
           initialLoadError={moduleError}
           userId={user.id}
-          canJoin={user.role === "STUDENT"}
+          canJoin={user.role === "STUDENT" || user.role === "ENTERPRISE_ADMIN" || user.role === "ADMIN"}
         />
       ) : null}
 

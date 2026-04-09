@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
@@ -264,9 +263,6 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
     return (
       <div className="stack">
         <p className="muted">{projectError ?? "Team not found in this project."}</p>
-        <Link href={`/staff/projects/${projectId}`} className="pill-nav__link" style={{ width: "fit-content" }}>
-          Back to project teams
-        </Link>
       </div>
     );
   }

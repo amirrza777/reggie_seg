@@ -48,13 +48,6 @@ export function StaffTeamSectionNav({ projectId, teamId, moduleId }: StaffTeamSe
           </Link>
         );
       })}
-      <Link
-        href={`/staff/projects/${projectId}`}
-        className="pill-nav__link"
-        style={{ marginInlineStart: "auto" }}
-      >
-        {"<- Back to project"}
-      </Link>
     </nav>
   );
 }

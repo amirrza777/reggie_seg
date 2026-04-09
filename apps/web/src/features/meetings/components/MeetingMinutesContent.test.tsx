@@ -31,12 +31,8 @@ vi.mock("@/shared/ui/Card", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/AnchorLink", () => ({
-  AnchorLink: ({ children, href }: any) => <a href={href}>{children}</a>,
-}));
-
-vi.mock("lucide-react", () => ({
-  ChevronLeft: () => <span data-testid="chevron-left" />,
+vi.mock("next/link", () => ({
+  default: ({ href, children }: any) => <a href={href}>{children}</a>,
 }));
 
 import { useUser } from "@/features/auth/context";
@@ -198,11 +194,13 @@ describe("MeetingMinutesContent", () => {
     });
   });
 
-  it("shows back link", async () => {
+  it("shows meeting breadcrumbs", async () => {
     render(<MeetingMinutesContent meetingId={1} projectId={1} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Back to meeting")).toBeInTheDocument();
+      const currentCrumb = screen.getAllByText("Minutes").find((node) => node.getAttribute("aria-current") === "page");
+      expect(currentCrumb).toBeDefined();
     });
+    expect(screen.getByRole("link", { name: "Meeting" })).toHaveAttribute("href", "/projects/1/meetings/1");
   });
 });

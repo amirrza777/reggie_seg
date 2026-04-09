@@ -74,9 +74,11 @@ describe("CreateMeetingForm", () => {
       render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
     });
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
     expect(createMeetingMock).not.toHaveBeenCalled();
-    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText(/date/i)).toHaveAttribute("aria-invalid", "true");
   });
@@ -87,15 +89,21 @@ describe("CreateMeetingForm", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
-    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Team Meeting" } });
-    expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2026-03-01T10:00" } });
-    expect(screen.queryByText("Select a date and time.")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Select a date and time.")).not.toBeInTheDocument();
+    });
   });
 
   it("submits with required fields and calls onCreated", async () => {

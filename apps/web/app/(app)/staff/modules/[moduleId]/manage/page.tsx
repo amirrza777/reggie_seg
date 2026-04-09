@@ -50,22 +50,15 @@ export default async function StaffModuleManagePage({ params, searchParams }: St
       </header>
 
       <Card
-        title={<span className="overview-title">Module setup</span>}
-        action={
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            {!access.isArchived ? (
-              <Link
-                href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
-                className="btn btn--primary"
-              >
-                Create project
-              </Link>
-            ) : null}
-            <Link href="/staff/modules" className="btn btn--ghost">
-              Back to my modules
-            </Link>
-          </div>
-        }
+        title="Module setup"
+        action={!access.isArchived ? (
+          <Link
+            href={`/staff/projects/create?moduleId=${encodeURIComponent(String(parsedModuleId))}`}
+            className="btn btn--primary"
+          >
+            Create project
+          </Link>
+        ) : null}
         className="enterprise-module-create__card"
       >
         <EnterpriseModuleCreateForm
