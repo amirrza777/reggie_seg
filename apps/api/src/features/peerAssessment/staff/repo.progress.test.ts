@@ -5,25 +5,16 @@ import {
   countSubmittedPAsForModule,
   countSubmittedPAsForTeam,
   findAssessmentsForRevieweeInTeam,
-  findModulesForStaff,
   findStudentsInTeam,
   findTeamByIdAndModule,
   findTeamsInModule,
   findTemplateWithQuestions,
-  getModuleDetailsIfAuthorised,
   getTeamWithAssessments,
 } from "./repo.js";
 import { prisma } from "../../../shared/db.js";
 
 vi.mock("../../../shared/db.js", () => ({
   prisma: {
-    user: {
-      findUnique: vi.fn(),
-    },
-    module: {
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-    },
     userModule: {
       count: vi.fn(),
     },
@@ -45,84 +36,9 @@ vi.mock("../../../shared/db.js", () => ({
   },
 }));
 
-describe("peerAssessment/staff repo", () => {
+describe("peerAssessment/staff repo progress/read helpers", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (prisma.user.findUnique as any).mockResolvedValue({
-      id: 99,
-      enterpriseId: "ent-1",
-      role: "STAFF",
-      active: true,
-    });
-  });
-
-  it("getModuleDetailsIfAuthorised restricts staff users to lead/TA modules", async () => {
-    await getModuleDetailsIfAuthorised(4, 99);
-    expect(prisma.module.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 4,
-        enterpriseId: "ent-1",
-        OR: [
-          { moduleLeads: { some: { userId: 99 } } },
-          { moduleTeachingAssistants: { some: { userId: 99 } } },
-        ],
-      },
-      select: { id: true, name: true, archivedAt: true },
-    });
-  });
-
-  it("getModuleDetailsIfAuthorised lets admin access any enterprise module", async () => {
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 100,
-      enterpriseId: "ent-1",
-      role: "ADMIN",
-      active: true,
-    });
-
-    await getModuleDetailsIfAuthorised(7, 100);
-    expect(prisma.module.findFirst).toHaveBeenCalledWith({
-      where: {
-        id: 7,
-        enterpriseId: "ent-1",
-      },
-      select: { id: true, name: true, archivedAt: true },
-    });
-  });
-
-  it("findModulesForStaff queries modules by enterprise + membership", async () => {
-    await findModulesForStaff(1);
-    expect(prisma.module.findMany).toHaveBeenCalledWith({
-      where: {
-        enterpriseId: "ent-1",
-        OR: [
-          { moduleLeads: { some: { userId: 99 } } },
-          { moduleTeachingAssistants: { some: { userId: 99 } } },
-        ],
-      },
-      orderBy: { name: "asc" },
-    });
-  });
-
-  it("findModulesForStaff allows student teaching assistants with module-scoped access", async () => {
-    (prisma.user.findUnique as any).mockResolvedValueOnce({
-      id: 77,
-      enterpriseId: "ent-1",
-      role: "STUDENT",
-      active: true,
-    });
-
-    await findModulesForStaff(77);
-
-    expect(prisma.module.findMany).toHaveBeenCalledWith({
-      where: {
-        enterpriseId: "ent-1",
-        OR: [
-          { moduleLeads: { some: { userId: 77 } } },
-          { moduleTeachingAssistants: { some: { userId: 77 } } },
-        ],
-      },
-      orderBy: { name: "asc" },
-    });
   });
 
   it("find/count helpers query expected models", async () => {
@@ -219,3 +135,4 @@ describe("peerAssessment/staff repo", () => {
     });
   });
 });
+
