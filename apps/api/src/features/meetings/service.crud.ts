@@ -26,8 +26,7 @@ export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
-/** Adds a meeting. */
-export async function addMeeting(data: {
+type MeetingInput = {
   teamId: number;
   organiserId: number;
   title: string;
@@ -37,33 +36,40 @@ export async function addMeeting(data: {
   videoCallLink?: string;
   agenda?: string;
   participantIds?: number[];
-}) {
-  const { participantIds, ...meetingData } = data;
-  const team = await getTeamMeetingState(data.teamId);
-  if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
-  if (team?.project?.module?.archivedAt) throw { code: "MODULE_ARCHIVED" };
-  if (team && isProjectCompletedForMeetings(team)) {
-    throw { code: "PROJECT_COMPLETED" };
-  }
-  const meeting = await createMeeting(meetingData);
-  if (team?.inactivityFlag === "YELLOW") {
-    await clearTeamInactivityFlag(data.teamId);
-  }
-  const members = await getTeamMembers(data.teamId);
-  const recipients = participantIds ? members.filter((m) => participantIds.includes(m.id)) : members;
-  await createParticipants(meeting.id, recipients.map((m) => m.id));
-  await Promise.all(
+};
+
+type MeetingCreatedNotificationContext = {
+  organiserId: number;
+  title: string;
+  projectId: number | undefined;
+  meetingId: number;
+};
+
+type TeamMeetingState = Awaited<ReturnType<typeof getTeamMeetingState>>;
+type MeetingWithDetails = NonNullable<Awaited<ReturnType<typeof getMeetingById>>>;
+
+function notifyMeetingCreated(
+  recipients: { id: number }[],
+  context: MeetingCreatedNotificationContext,
+) {
+  return Promise.all(
     recipients
-      .filter((m) => m.id !== data.organiserId)
+      .filter((m) => m.id !== context.organiserId)
       .map((m) =>
         addNotification({
           userId: m.id,
           type: "MEETING_CREATED",
-          message: `A new meeting has been scheduled: ${data.title}`,
-          link: `/projects/${team?.projectId}/meetings/${meeting.id}`,
+          message: `A new meeting has been scheduled: ${context.title}`,
+          link: `/projects/${context.projectId}/meetings/${context.meetingId}`,
         })
       )
   );
+}
+
+function sendMeetingInviteEmails(
+  recipients: { email: string }[],
+  data: MeetingInput,
+) {
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
   const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   const meetingUrl = team?.projectId ? `${baseUrl}/projects/${team.projectId}/meetings/${meeting.id}` : null;
@@ -80,7 +86,7 @@ export async function addMeeting(data: {
     "You are receiving this email because you are listed as a participant.",
     "If any details look incorrect, contact your meeting organiser or module staff.",
   ].filter(Boolean).join("\n");
-  await Promise.all(
+  return Promise.all(
     recipients.map((member) =>
       sendEmail({
         to: member.email,
@@ -90,10 +96,85 @@ export async function addMeeting(data: {
       })
     )
   );
+}
+
+function assertTeamCanCreateMeeting(team: TeamMeetingState) {
+  if (team?.archivedAt) {
+    throw { code: "TEAM_ARCHIVED" };
+  }
+  if (team?.project?.module?.archivedAt) {
+    throw { code: "MODULE_ARCHIVED" };
+  }
+  if (team && isProjectCompletedForMeetings(team)) {
+    throw { code: "PROJECT_COMPLETED" };
+  }
+}
+
+async function clearInactivityFlagIfNeeded(team: TeamMeetingState, teamId: number) {
+  if (team?.inactivityFlag === "YELLOW") {
+    await clearTeamInactivityFlag(teamId);
+  }
+}
+
+function resolveMeetingRecipients(members: { id: number; email: string }[], participantIds?: number[]) {
+  if (!participantIds) {
+    return members;
+  }
+  return members.filter((member) => participantIds.includes(member.id));
+}
+
+async function assertUserCanEditMeeting(meeting: MeetingWithDetails, userId: number) {
+  if (new Date(meeting.date) < new Date()) {
+    throw { code: "MEETING_PASSED" };
+  }
+  if (meeting.organiserId === userId) {
+    return;
+  }
+
+  const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
+  const isMember = meeting.team.allocations.some((allocation) => allocation.userId === userId);
+  if (!settings.allowAnyoneToEditMeetings || !isMember) {
+    throw { code: "FORBIDDEN" };
+  }
+}
+
+function notifyMeetingUpdated(meeting: MeetingWithDetails, userId: number, meetingId: number, title: string) {
+  return Promise.all(
+    meeting.participants
+      .filter((participant) => participant.userId !== userId)
+      .map((participant) =>
+        addNotification({
+          userId: participant.userId,
+          type: "MEETING_UPDATED",
+          message: `The meeting "${title}" has been updated`,
+          link: `/projects/${meeting.team.projectId}/meetings/${meetingId}`,
+        })
+      )
+  );
+}
+
+export async function addMeeting(data: MeetingInput) {
+  const { participantIds, ...meetingData } = data;
+  const team = await getTeamMeetingState(data.teamId);
+  assertTeamCanCreateMeeting(team);
+
+  const meeting = await createMeeting(meetingData);
+  await clearInactivityFlagIfNeeded(team, data.teamId);
+
+  const members = await getTeamMembers(data.teamId);
+  const recipients = resolveMeetingRecipients(members, participantIds);
+  await createParticipants(meeting.id, recipients.map((m) => m.id));
+  await notifyMeetingCreated(recipients, {
+    organiserId: data.organiserId,
+    title: data.title,
+    projectId: team?.projectId,
+    meetingId: meeting.id,
+  });
+  await sendMeetingInviteEmails(recipients, data);
   return meeting;
 }
 
-export async function editMeeting(meetingId: number, userId: number, data: {
+type MeetingUpdateInput = {
   title?: string;
   date?: Date;
   subject?: string;
@@ -101,34 +182,22 @@ export async function editMeeting(meetingId: number, userId: number, data: {
   videoCallLink?: string;
   agenda?: string;
   participantIds?: number[];
-}) {
+};
+
+export async function editMeeting(meetingId: number, userId: number, data: MeetingUpdateInput) {
   const meeting = await getMeetingById(meetingId);
-  if (!meeting) throw { code: "NOT_FOUND" };
-  await assertProjectMutableForWritesByTeamId(meeting.teamId);
-  if (new Date(meeting.date) < new Date()) throw { code: "MEETING_PASSED" };
-  const isOrganiser = meeting.organiserId === userId;
-  if (!isOrganiser) {
-    const settings = await getModuleMeetingSettingsForTeam(meeting.teamId);
-    const isMember = meeting.team.allocations.some((a) => a.userId === userId);
-    if (!settings.allowAnyoneToEditMeetings || !isMember) throw { code: "FORBIDDEN" };
+  if (!meeting) {
+    throw { code: "NOT_FOUND" };
   }
+  await assertProjectMutableForWritesByTeamId(meeting.teamId);
+  await assertUserCanEditMeeting(meeting, userId);
+
   const { participantIds, ...meetingData } = data;
   const updated = await updateMeeting(meetingId, meetingData);
   if (participantIds !== undefined) {
     await replaceParticipants(meetingId, participantIds);
   }
-  await Promise.all(
-    meeting.participants
-      .filter((p) => p.userId !== userId)
-      .map((p) =>
-        addNotification({
-          userId: p.userId,
-          type: "MEETING_UPDATED",
-          message: `The meeting "${data.title ?? meeting.title}" has been updated`,
-          link: `/projects/${meeting.team.projectId}/meetings/${meetingId}`,
-        })
-      )
-  );
+  await notifyMeetingUpdated(meeting, userId, meetingId, data.title ?? meeting.title);
   return updated;
 }
 
@@ -161,10 +230,14 @@ function resolveTeamMeetingFeedbackDueDate(team: {
   } | null;
 }) {
   const teamOverrideDueDate = team.deadlineOverride?.feedbackDueDate ?? null;
-  if (teamOverrideDueDate) return teamOverrideDueDate;
+  if (teamOverrideDueDate) {
+    return teamOverrideDueDate;
+  }
 
   const projectDeadline = team.project?.deadline;
-  if (!projectDeadline) return null;
+  if (!projectDeadline) {
+    return null;
+  }
 
   if (team.deadlineProfile === "MCF") {
     return projectDeadline.feedbackDueDateMcf ?? projectDeadline.feedbackDueDate;
@@ -186,8 +259,12 @@ function isProjectCompletedForMeetings(
   },
   now: Date = new Date(),
 ) {
-  if (team.archivedAt || team.project?.archivedAt || team.project?.module?.archivedAt) return true;
+  if (team.archivedAt || team.project?.archivedAt || team.project?.module?.archivedAt) {
+    return true;
+  }
   const effectiveDueDate = resolveTeamMeetingFeedbackDueDate(team);
-  if (!effectiveDueDate) return false;
+  if (!effectiveDueDate) {
+    return false;
+  }
   return now.getTime() > effectiveDueDate.getTime();
 }

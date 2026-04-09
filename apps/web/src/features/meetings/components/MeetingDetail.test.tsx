@@ -231,4 +231,34 @@ describe("MeetingDetail", () => {
     expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
   });
+
+  it("shows participants table when participants exist and no attendances recorded", () => {
+    const withParticipants: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+        { user: { id: 2, firstName: "John", lastName: "Smith" } },
+      ],
+      attendances: [],
+    };
+    render(<MeetingDetail meeting={withParticipants as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.getByText("Participants")).toBeInTheDocument();
+    expect(screen.getByText("Reggie King")).toBeInTheDocument();
+    expect(screen.getByText("John Smith")).toBeInTheDocument();
+  });
+
+  it("hides participants table when attendances are recorded", () => {
+    const withBoth: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+      attendances: [
+        { id: 1, meetingId: 1, userId: 1, status: "on_time", user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+    };
+    render(<MeetingDetail meeting={withBoth as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.queryByText("Participants")).not.toBeInTheDocument();
+    expect(screen.getByText("Attendance")).toBeInTheDocument();
+  });
 });

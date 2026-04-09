@@ -42,6 +42,28 @@ describe("markAttendanceHandler", () => {
     expect(res.json).toHaveBeenCalledWith({ ok: true });
   });
 
+  it("returns 409 when project is archived", async () => {
+    (service.markAttendance as any).mockRejectedValue({ code: "PROJECT_ARCHIVED" });
+    const req: any = {
+      params: { meetingId: "1" },
+      body: { records: [{ userId: 1, status: "Present" }] },
+    };
+    const res = mockResponse();
+    await markAttendanceHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(409);
+  });
+
+  it("returns 404 when meeting not found", async () => {
+    (service.markAttendance as any).mockRejectedValue({ code: "NOT_FOUND" });
+    const req: any = {
+      params: { meetingId: "1" },
+      body: { records: [{ userId: 1, status: "Present" }] },
+    };
+    const res = mockResponse();
+    await markAttendanceHandler(req, res);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
+
   it("returns 500 on error", async () => {
     (service.markAttendance as any).mockRejectedValue(new Error("fail"));
     const req: any = {

@@ -1,11 +1,11 @@
 "use client";
 
-import type { StaffMeeting } from "./types";
-import { computeMeetingStats, getFlaggedMembers, getMemberAttendanceStats } from "./attendance";
-import { MeetingStatsPanel } from "./components/MeetingStatsPanel";
-import { LowAttendanceAlert } from "./components/LowAttendanceAlert";
-import { MeetingList } from "./components/MeetingList";
-import { AttendanceTable } from "./components/AttendanceTable";
+import type { StaffMeeting } from "../types";
+import { computeMeetingStats, getFlaggedMembers, getMemberAttendanceStats } from "../lib/attendance";
+import { MeetingStatsPanel } from "./MeetingStatsPanel";
+import { LowAttendanceAlert } from "./LowAttendanceAlert";
+import { MeetingList } from "./MeetingList";
+import { AttendanceTable } from "./AttendanceTable";
 
 type StaffMeetingsViewProps = {
   meetings: StaffMeeting[];
