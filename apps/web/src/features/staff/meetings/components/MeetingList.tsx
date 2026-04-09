@@ -9,6 +9,7 @@ import type { StaffMeeting } from "../types";
 type MeetingListProps = {
   meetings: StaffMeeting[];
 };
+type MeetingComparator = (a: StaffMeeting, b: StaffMeeting) => number;
 
 function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -18,22 +19,50 @@ function formatDate(dateStr: string) {
   });
 }
 
+const meetingComparators: MeetingComparator[] = [
+  (a, b) => a.title.localeCompare(b.title),
+  (a, b) => a.date.localeCompare(b.date),
+  (a, b) => `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(`${b.organiser.firstName} ${b.organiser.lastName}`),
+  (a, b) => getAttendanceRate(a.attendances) - getAttendanceRate(b.attendances),
+  (a, b) => (a.minutes ? 1 : 0) - (b.minutes ? 1 : 0),
+];
+
 function compareMeetings(a: StaffMeeting, b: StaffMeeting, column: number, dir: number): number {
-  switch (column) {
-    case 0: return dir * a.title.localeCompare(b.title);
-    case 1: return dir * a.date.localeCompare(b.date);
-    case 2: return dir * `${a.organiser.firstName} ${a.organiser.lastName}`.localeCompare(`${b.organiser.firstName} ${b.organiser.lastName}`);
-    case 3: return dir * (getAttendanceRate(a.attendances) - getAttendanceRate(b.attendances));
-    case 4: return dir * ((a.minutes ? 1 : 0) - (b.minutes ? 1 : 0));
-    default: return 0;
+  const comparator = meetingComparators[column];
+  if (!comparator) {
+    return 0;
   }
+  return dir * comparator(a, b);
+}
+
+function getSortDirection(direction: SortConfig["direction"]) {
+  return direction === "asc" ? 1 : -1;
+}
+
+function renderEmptyState() {
+  return (
+    <Card title="Meetings">
+      <p className="muted">No meetings recorded yet.</p>
+    </Card>
+  );
+}
+
+function mapMeetingRow(meeting: StaffMeeting) {
+  const present = meeting.attendances.filter((attendance) => isPresent(attendance.status)).length;
+  const total = meeting.attendances.length;
+  return [
+    meeting.title,
+    formatDate(meeting.date),
+    `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
+    total > 0 ? `${present} / ${total}` : <span className="muted">Not recorded</span>,
+    meeting.minutes ? `${meeting.minutes.writer.firstName} ${meeting.minutes.writer.lastName}` : <span className="muted">No</span>,
+  ];
 }
 
 export function MeetingList({ meetings }: MeetingListProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 1, direction: "desc" });
-
   const sorted = useMemo(() => {
-    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    const dir = getSortDirection(sortConfig.direction);
     return [...meetings].sort((a, b) => compareMeetings(a, b, sortConfig.column, dir));
   }, [meetings, sortConfig]);
 
@@ -46,25 +75,10 @@ export function MeetingList({ meetings }: MeetingListProps) {
   }
 
   if (meetings.length === 0) {
-    return (
-      <Card title="Meetings">
-        <p className="muted">No meetings recorded yet.</p>
-      </Card>
-    );
+    return renderEmptyState();
   }
 
-  const rows = sorted.map((meeting) => {
-    const present = meeting.attendances.filter((a) => isPresent(a.status)).length;
-    const total = meeting.attendances.length;
-    return [
-      meeting.title,
-      formatDate(meeting.date),
-      `${meeting.organiser.firstName} ${meeting.organiser.lastName}`,
-      total > 0 ? `${present} / ${total}` : <span className="muted">Not recorded</span>,
-      meeting.minutes ? `${meeting.minutes.writer.firstName} ${meeting.minutes.writer.lastName}` : <span className="muted">No</span>,
-    ];
-  });
-
+  const rows = sorted.map(mapMeetingRow);
   return (
     <Card title="Meetings">
       <Table

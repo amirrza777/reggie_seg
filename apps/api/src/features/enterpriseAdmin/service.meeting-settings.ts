@@ -29,7 +29,9 @@ export async function getModuleMeetingSettings(
     select: meetingSettingsSelect,
   });
 
-  if (!module) return { ok: false, status: 404, error: "Module not found" };
+  if (!module) {
+    return { ok: false, status: 404, error: "Module not found" };
+  }
 
   return { ok: true, value: module };
 }
@@ -47,13 +49,17 @@ export async function updateModuleMeetingSettings(
   }
 ): Promise<{ ok: true; value: ModuleMeetingSettings } | { ok: false; status: number; error: string }> {
   const canManage = await canManageModuleAccess(enterpriseUser, moduleId);
-  if (!canManage) return { ok: false, status: 403, error: "Forbidden" };
+  if (!canManage) {
+    return { ok: false, status: 403, error: "Forbidden" };
+  }
 
   const module = await prisma.module.findFirst({
     where: { id: moduleId, enterpriseId: enterpriseUser.enterpriseId },
     select: { id: true },
   });
-  if (!module) return { ok: false, status: 404, error: "Module not found" };
+  if (!module) {
+    return { ok: false, status: 404, error: "Module not found" };
+  }
 
   const updated = await prisma.module.update({
     where: { id: moduleId },

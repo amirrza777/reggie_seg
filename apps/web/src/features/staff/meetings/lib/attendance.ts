@@ -7,7 +7,9 @@ export function isPresent(status: string) {
 }
 
 export function getAttendanceRate(attendances: { status: string }[]): number {
-  if (attendances.length === 0) return 0;
+  if (attendances.length === 0) {
+    return 0;
+  }
   return attendances.filter((a) => isPresent(a.status)).length / attendances.length;
 }
 
@@ -15,9 +17,13 @@ function getConsecutiveAbsences(userId: number, meetings: StaffMeeting[]): numbe
   let count = 0;
   const now = new Date();
   for (const meeting of meetings) {
-    if (new Date(meeting.date) > now) continue;
+    if (new Date(meeting.date) > now) {
+      continue;
+    }
     const attendance = meeting.attendances.find((a) => a.userId === userId);
-    if (!attendance) break; // stop here, gaps in records should not carry the streak forward
+    if (!attendance) {
+      break; // stop here, gaps in records should not carry the streak forward
+    }
     if (attendance.status.toLowerCase() === "absent") {
       count++;
     } else {
@@ -30,7 +36,9 @@ function getConsecutiveAbsences(userId: number, meetings: StaffMeeting[]): numbe
 export function computeMeetingStats(meetings: StaffMeeting[]): MeetingStats {
   const totalMeetings = meetings.length;
 
-  if (totalMeetings === 0) return { totalMeetings: 0, avgAttendanceRate: 0, onTimeRate: 0 };
+  if (totalMeetings === 0) {
+    return { totalMeetings: 0, avgAttendanceRate: 0, onTimeRate: 0 };
+  }
 
   const totalPresent = meetings.reduce((sum, m) => sum + m.attendances.filter((a) => isPresent(a.status)).length, 0);
   const totalRecorded = meetings.reduce((sum, m) => sum + m.attendances.length, 0);
@@ -66,8 +74,12 @@ function processAttendanceRecord(memberMap: Map<number, MemberAttendance>, recor
   }
   const entry = memberMap.get(record.userId)!;
   entry.total += 1;
-  if (isPresent(record.status)) entry.attended += 1;
-  if (entry.lastStatus === null) entry.lastStatus = record.status;
+  if (isPresent(record.status)) {
+    entry.attended += 1;
+  }
+  if (entry.lastStatus === null) {
+    entry.lastStatus = record.status;
+  }
 }
 
 export function getMemberAttendanceStats(meetings: StaffMeeting[], threshold = DEFAULT_ABSENCE_THRESHOLD): MemberAttendance[] {
