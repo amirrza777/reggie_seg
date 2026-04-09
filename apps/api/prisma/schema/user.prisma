@@ -8,6 +8,7 @@ enum Role {
 model User {
   id                       Int                       @id @default(autoincrement())
   enterpriseId             String
+  blockedEnterpriseId      String?
   email                    String
   createdAt                DateTime                  @default(now())
   avatarData               Bytes?
@@ -33,6 +34,8 @@ model User {
   refreshTokens            RefreshToken[]
   passwordResetTokens      PasswordResetToken[]
   emailChangeTokens        EmailChangeToken[]
+  enterpriseAdminInvitesSent     EnterpriseAdminInviteToken[] @relation("EnterpriseAdminInviteSentBy")
+  enterpriseAdminInvitesAccepted EnterpriseAdminInviteToken[] @relation("EnterpriseAdminInviteAcceptedBy")
 
   trelloToken           String?
   trelloMemberId        String?
@@ -71,4 +74,5 @@ model User {
   @@unique([id, enterpriseId])
   @@unique([enterpriseId, email])
   @@index([enterpriseId])
+  @@index([blockedEnterpriseId])
 }
