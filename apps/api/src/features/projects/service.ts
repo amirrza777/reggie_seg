@@ -34,7 +34,6 @@ import {
 } from "./repo.js";
 import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
-import { joinModuleByCode as joinModuleByCodeInModuleJoin } from "../moduleJoin/service.js";
 import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
 
 export {
@@ -208,11 +207,6 @@ export async function fetchModulesForUser(
       ...(archivedAt !== undefined ? { archivedAt } : {}),
     };
   });
-}
-
-/** Compatibility wrapper for legacy /projects/modules/join route. */
-export async function joinModuleByCode(actorUserId: number, rawCode: string) {
-  return joinModuleByCodeInModuleJoin(actorUserId, rawCode);
 }
 
 /** Module leads + TAs for staff-accessible module detail pages. */

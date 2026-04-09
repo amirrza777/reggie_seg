@@ -17,7 +17,6 @@ vi.mock("./service.js", () => mockState.service);
 
 import {
   getModuleJoinCodeHandler,
-  joinModuleCompatibilityHandler,
   joinModuleHandler,
   rotateModuleJoinCodeHandler,
 } from "./controller.js";
@@ -164,33 +163,4 @@ describe("moduleJoin controller", () => {
     expect(rotateRes.json).toHaveBeenCalledWith({ moduleId: 3, joinCode: "WXYZ6789" });
   });
 
-  it("compatibility handler delegates join behavior for both success and errors", async () => {
-    (mockState.service.joinModuleByCode as any)
-      .mockResolvedValueOnce({
-        ok: true,
-        value: { moduleId: 9, moduleName: "SEGP", result: "already_joined" },
-      })
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        code: "INVALID_CODE",
-        error: "Invalid or unavailable module code",
-      });
-
-    const successRes = mockRes();
-    await joinModuleCompatibilityHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as any, successRes);
-    expect(successRes.json).toHaveBeenCalledWith({
-      moduleId: 9,
-      moduleName: "SEGP",
-      result: "already_joined",
-    });
-
-    const errorRes = mockRes();
-    await joinModuleCompatibilityHandler({ user: { sub: 7 }, body: { code: "ABCD2345" } } as any, errorRes);
-    expect(errorRes.status).toHaveBeenCalledWith(400);
-    expect(errorRes.json).toHaveBeenCalledWith({
-      code: "INVALID_CODE",
-      error: "Invalid or unavailable module code",
-    });
-  });
 });
