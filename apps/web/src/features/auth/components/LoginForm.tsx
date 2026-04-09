@@ -12,7 +12,7 @@ import { useUser } from "../useUser";
 import { getDefaultSpaceOverviewPath } from "@/shared/auth/default-space";
 
 const fields: Array<{ name: keyof LoginCredentials; label: string; type: "email" | "password" | "text" }> = [
-  { name: "email", label: "Email or username", type: "text" },
+  { name: "email", label: "Email", type: "text" },
   { name: "password", label: "Password", type: "password" },
 ];
 

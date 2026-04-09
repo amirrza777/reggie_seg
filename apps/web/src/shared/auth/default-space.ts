@@ -2,11 +2,12 @@ import type { UserProfile } from "@/features/auth/types";
 import type { SessionUser } from "./session";
 
 type SpaceAwareUser =
-  | Pick<UserProfile, "role" | "isAdmin" | "isEnterpriseAdmin" | "isStaff">
-  | Pick<SessionUser, "role" | "isAdmin" | "isEnterpriseAdmin" | "isStaff">;
+  | Pick<UserProfile, "role" | "isAdmin" | "isEnterpriseAdmin" | "isStaff" | "isUnassigned">
+  | Pick<SessionUser, "role" | "isAdmin" | "isEnterpriseAdmin" | "isStaff" | "isUnassigned">;
 
 export function getDefaultSpaceOverviewPath(user: SpaceAwareUser | null | undefined): string {
   if (!user) {return "/dashboard";}
+  if (user.isUnassigned === true) {return "/dashboard";}
 
   const role = user.role;
   const isAdmin = role === "ADMIN" || user.isAdmin === true;

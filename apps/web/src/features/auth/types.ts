@@ -9,7 +9,6 @@ export type SignupPayload = {
   password: string;
   firstName?: string;
   lastName?: string;
-  role?: "STUDENT" | "STAFF" | "ENTERPRISE_ADMIN" | "ADMIN";
 };
 
 export type AuthResponse = {
@@ -27,6 +26,7 @@ export type UserProfile = {
   isStaff?: boolean;
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
+  isUnassigned?: boolean;
   active?: boolean;
   suspended?: boolean;
   avatarBase64?: string | null;
