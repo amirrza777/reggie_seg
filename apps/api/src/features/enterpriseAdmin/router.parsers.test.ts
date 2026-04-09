@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { parseFeatureFlagUpdateBody, parseMeetingSettingsBody } from "./router.parsers.js";
 
+const validMeetingSettingsBody = {
+  absenceThreshold: 2,
+  minutesEditWindowDays: 5,
+  attendanceEditWindowDays: 7,
+  allowAnyoneToEditMeetings: true,
+  allowAnyoneToRecordAttendance: false,
+  allowAnyoneToWriteMinutes: true,
+};
+
 describe("enterpriseAdmin router parsers", () => {
   it("parses feature flag update body", () => {
     expect(parseFeatureFlagUpdateBody({ enabled: true })).toEqual({
@@ -18,125 +27,123 @@ describe("enterpriseAdmin router parsers", () => {
     expect(parseFeatureFlagUpdateBody(null)).toEqual({ ok: false, error: "enabled boolean required" });
   });
 
-  it("parses full meeting settings body", () => {
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: "2",
-        minutesEditWindowDays: 5,
-        attendanceEditWindowDays: 7,
-        allowAnyoneToEditMeetings: true,
-        allowAnyoneToRecordAttendance: false,
-        allowAnyoneToWriteMinutes: true,
-      }),
-    ).toEqual({
-      ok: true,
-      value: {
-        absenceThreshold: 2,
-        minutesEditWindowDays: 5,
-        attendanceEditWindowDays: 7,
-        allowAnyoneToEditMeetings: true,
-        allowAnyoneToRecordAttendance: false,
-        allowAnyoneToWriteMinutes: true,
-      },
+  describe("parseMeetingSettingsBody", () => {
+    it("parses full six-field meeting settings body", () => {
+      expect(
+        parseMeetingSettingsBody({
+          ...validMeetingSettingsBody,
+          absenceThreshold: "2",
+          attendanceEditWindowDays: "7",
+        }),
+      ).toEqual({
+        ok: true,
+        value: validMeetingSettingsBody,
+      });
     });
-  });
 
-  it("rejects invalid meeting absence threshold", () => {
-    expect(parseMeetingSettingsBody({ absenceThreshold: 0 })).toEqual({
-      ok: false,
-      error: "absenceThreshold must be a positive integer",
-    });
-    expect(parseMeetingSettingsBody({ minutesEditWindowDays: 3 })).toEqual({
-      ok: false,
-      error: "absenceThreshold must be a positive integer",
-    });
-    expect(parseMeetingSettingsBody("bad")).toEqual({
-      ok: false,
-      error: "absenceThreshold must be a positive integer",
-    });
-  });
+    it("rejects invalid numeric fields", () => {
+      const cases: Array<{ body: unknown; error: string }> = [
+        { body: { ...validMeetingSettingsBody, absenceThreshold: 0 }, error: "absenceThreshold must be a positive integer" },
+        {
+          body: { ...validMeetingSettingsBody, absenceThreshold: 2.5 },
+          error: "absenceThreshold must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, absenceThreshold: undefined },
+          error: "absenceThreshold must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, minutesEditWindowDays: 0 },
+          error: "minutesEditWindowDays must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, minutesEditWindowDays: 1.1 },
+          error: "minutesEditWindowDays must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, minutesEditWindowDays: undefined },
+          error: "minutesEditWindowDays must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, attendanceEditWindowDays: 0 },
+          error: "attendanceEditWindowDays must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, attendanceEditWindowDays: 3.2 },
+          error: "attendanceEditWindowDays must be a positive integer",
+        },
+        {
+          body: { ...validMeetingSettingsBody, attendanceEditWindowDays: undefined },
+          error: "attendanceEditWindowDays must be a positive integer",
+        },
+      ];
 
-  it("rejects invalid meeting edit window days", () => {
-    expect(parseMeetingSettingsBody({ absenceThreshold: 2, minutesEditWindowDays: 0 })).toEqual({
-      ok: false,
-      error: "minutesEditWindowDays must be a positive integer",
+      for (const testCase of cases) {
+        expect(parseMeetingSettingsBody(testCase.body)).toEqual({ ok: false, error: testCase.error });
+      }
     });
-    expect(parseMeetingSettingsBody({ absenceThreshold: 2 })).toEqual({
-      ok: false,
-      error: "minutesEditWindowDays must be a positive integer",
-    });
-    expect(parseMeetingSettingsBody({ absenceThreshold: 2, minutesEditWindowDays: 3, attendanceEditWindowDays: 0 })).toEqual({
-      ok: false,
-      error: "attendanceEditWindowDays must be a positive integer",
-    });
-  });
 
-  it("rejects missing meeting settings booleans", () => {
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: 2,
-        minutesEditWindowDays: 3,
-        attendanceEditWindowDays: 4,
-      }),
-    ).toEqual({
-      ok: false,
-      error: "allowAnyoneToEditMeetings must be a boolean",
-    });
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: 2,
-        minutesEditWindowDays: 3,
-        attendanceEditWindowDays: 4,
-        allowAnyoneToEditMeetings: true,
-      }),
-    ).toEqual({
-      ok: false,
-      error: "allowAnyoneToRecordAttendance must be a boolean",
-    });
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: 2,
-        minutesEditWindowDays: 3,
-        attendanceEditWindowDays: 4,
-        allowAnyoneToEditMeetings: true,
-        allowAnyoneToRecordAttendance: false,
-      }),
-    ).toEqual({
-      ok: false,
-      error: "allowAnyoneToWriteMinutes must be a boolean",
-    });
-  });
+    it("rejects missing or invalid boolean fields", () => {
+      const cases: Array<{ body: unknown; error: string }> = [
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToEditMeetings: undefined },
+          error: "allowAnyoneToEditMeetings must be a boolean",
+        },
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToEditMeetings: "true" },
+          error: "allowAnyoneToEditMeetings must be a boolean",
+        },
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToRecordAttendance: undefined },
+          error: "allowAnyoneToRecordAttendance must be a boolean",
+        },
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToRecordAttendance: 1 },
+          error: "allowAnyoneToRecordAttendance must be a boolean",
+        },
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToWriteMinutes: undefined },
+          error: "allowAnyoneToWriteMinutes must be a boolean",
+        },
+        {
+          body: { ...validMeetingSettingsBody, allowAnyoneToWriteMinutes: null },
+          error: "allowAnyoneToWriteMinutes must be a boolean",
+        },
+      ];
 
-  it("rejects non-boolean toggles and non-object body", () => {
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: 2,
-        minutesEditWindowDays: 3,
-        attendanceEditWindowDays: 4,
-        allowAnyoneToEditMeetings: "true",
-        allowAnyoneToRecordAttendance: false,
-        allowAnyoneToWriteMinutes: false,
-      }),
-    ).toEqual({
-      ok: false,
-      error: "allowAnyoneToEditMeetings must be a boolean",
+      for (const testCase of cases) {
+        expect(parseMeetingSettingsBody(testCase.body)).toEqual({ ok: false, error: testCase.error });
+      }
     });
-    expect(
-      parseMeetingSettingsBody({
-        absenceThreshold: 2,
-        minutesEditWindowDays: 3,
-        attendanceEditWindowDays: 4,
-        allowAnyoneToEditMeetings: true,
-        allowAnyoneToRecordAttendance: 1,
-        allowAnyoneToWriteMinutes: false,
-      }),
-    ).toEqual({
-      ok: false,
-      error: "allowAnyoneToRecordAttendance must be a boolean",
+
+    it("rejects invalid body shape", () => {
+      const cases = [null, "bad", 123, []];
+      for (const body of cases) {
+        expect(parseMeetingSettingsBody(body)).toEqual({
+          ok: false,
+          error: "absenceThreshold must be a positive integer",
+        });
+      }
     });
-    expect(parseMeetingSettingsBody(null)).toEqual({
-      ok: false,
-      error: "absenceThreshold must be a positive integer",
+
+    it("regression: rejects payload that omits booleans", () => {
+      expect(
+        parseMeetingSettingsBody({
+          absenceThreshold: 2,
+          minutesEditWindowDays: 5,
+          attendanceEditWindowDays: 7,
+        }),
+      ).toEqual({
+        ok: false,
+        error: "allowAnyoneToEditMeetings must be a boolean",
+      });
+    });
+
+    it("regression: accepts modern six-field payload", () => {
+      expect(parseMeetingSettingsBody(validMeetingSettingsBody)).toEqual({
+        ok: true,
+        value: validMeetingSettingsBody,
+      });
     });
   });
 });
