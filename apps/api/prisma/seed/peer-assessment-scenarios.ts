@@ -1,9 +1,9 @@
-import { Role } from "@prisma/client";
 import { withSeedLogging } from "./logging";
 import { prisma } from "./prismaClient";
 import type { SeedContext } from "./types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const DEV_ADMIN_EMAIL = "admin@kcl.ac.uk";
 
 const ASSESSMENT_OPEN_PROJECT_NAME = "Assessment Open Demo Project";
 const ASSESSMENT_OPEN_TEAM_NAME = "Assessment Open Demo Team";
@@ -52,6 +52,7 @@ async function ensureScenarioTeam(enterpriseId: string, projectId: number, teamN
         projectId,
         allocationLifecycle: "ACTIVE",
         archivedAt: null,
+        deadlineProfile: "STANDARD",
       },
       select: { id: true },
     });
@@ -63,6 +64,7 @@ async function ensureScenarioTeam(enterpriseId: string, projectId: number, teamN
       projectId,
       teamName,
       allocationLifecycle: "ACTIVE",
+      deadlineProfile: "STANDARD",
     },
     select: { id: true },
   });
@@ -104,10 +106,37 @@ async function upsertProjectDeadline(
 ) {
   await prisma.projectDeadline.upsert({
     where: { projectId },
-    update: dates,
+    update: {
+      ...dates,
+      taskDueDateMcf: dates.taskDueDate,
+      assessmentDueDateMcf: dates.assessmentDueDate,
+      feedbackDueDateMcf: dates.feedbackDueDate,
+    },
     create: {
       projectId,
       ...dates,
+      taskDueDateMcf: dates.taskDueDate,
+      assessmentDueDateMcf: dates.assessmentDueDate,
+      feedbackDueDateMcf: dates.feedbackDueDate,
+    },
+  });
+}
+
+async function resetScenarioDeadlineOverrides(projectId: number, teamId: number, memberIds: number[]) {
+  await prisma.teamDeadlineOverride.deleteMany({
+    where: { teamId },
+  });
+
+  const deadline = await prisma.projectDeadline.findUnique({
+    where: { projectId },
+    select: { id: true },
+  });
+  if (!deadline) return;
+
+  await prisma.studentDeadlineOverride.deleteMany({
+    where: {
+      projectDeadlineId: deadline.id,
+      userId: { in: memberIds },
     },
   });
 }
@@ -249,6 +278,7 @@ async function prepareScenarioTeam(input: {
   const team = await ensureScenarioTeam(input.enterpriseId, project.id, input.teamName);
   const createdAllocations = await ensureTeamAllocations(team.id, input.memberIds);
   await upsertProjectDeadline(project.id, buildScenarioDeadlines(input.deadlineOffsetDays));
+  await resetScenarioDeadlineOverrides(project.id, team.id, input.memberIds);
   return { project, team, createdAllocations };
 }
 
@@ -321,22 +351,23 @@ async function resolveScenarioSeedTarget(context: SeedContext) {
     return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (missing module/template)" } };
   }
 
-  const adminIds = await findScenarioAdminIds(context);
-  if (adminIds.length === 0) return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (no admin user found)" } };
+  const devAdmin = await prisma.user.findUnique({
+    where: {
+      enterpriseId_email: {
+        enterpriseId: context.enterprise.id,
+        email: DEV_ADMIN_EMAIL,
+      },
+    },
+    select: { id: true },
+  });
 
-  const memberIds = uniqueUserIds([...adminIds, ...context.usersByRole.students.slice(0, 3).map((user) => user.id)]);
+  // Use the tail of the student pool for demo teams so marker bootstrap users
+  // from the head of seed data are not pulled in by default.
+  const scenarioStudents = context.usersByRole.students.slice(-4).map((user) => user.id);
+  const memberIds = uniqueUserIds([...(devAdmin ? [devAdmin.id] : []), ...scenarioStudents]);
   if (memberIds.length < 2) {
     return { ready: false as const, result: { value: undefined, rows: 0, details: "skipped (not enough team members)" } };
   }
 
   return { ready: true as const, module, template, memberIds };
-}
-
-async function findScenarioAdminIds(context: SeedContext) {
-  const enterpriseAdmins = await prisma.user.findMany({
-    where: { enterpriseId: context.enterprise.id, role: { in: [Role.ADMIN, Role.ENTERPRISE_ADMIN] } },
-    select: { id: true },
-  });
-  const fallbackAdmin = context.users.find((user) => user.role === Role.ADMIN);
-  return uniqueUserIds([...enterpriseAdmins.map((user) => user.id), ...(fallbackAdmin ? [fallbackAdmin.id] : [])]);
 }
