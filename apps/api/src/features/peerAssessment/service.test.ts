@@ -59,7 +59,10 @@ import {
 describe("peerAssessment service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    prismaMocks.projectFindUnique.mockResolvedValue(null);
+    prismaMocks.projectFindUnique.mockResolvedValue({
+      archivedAt: null,
+      module: { archivedAt: null },
+    });
     projectServiceMocks.fetchProjectDeadline.mockResolvedValue({
       assessmentOpenDate: new Date("2026-03-01T09:00:00.000Z"),
       assessmentDueDate: new Date("3026-03-31T23:59:59.000Z"),
@@ -109,7 +112,10 @@ describe("peerAssessment service", () => {
       templateId: 10,
       answersJson: [{ questionId: 1, answer: "Great work" }],
     };
-    prismaMocks.projectFindUnique.mockResolvedValue({ archivedAt: new Date() });
+    prismaMocks.projectFindUnique.mockResolvedValue({
+      archivedAt: new Date(),
+      module: { archivedAt: null },
+    });
 
     await expect(saveAssessment(payload)).rejects.toMatchObject({ code: "PROJECT_ARCHIVED" });
     expect(repoMocks.createPeerAssessment).not.toHaveBeenCalled();

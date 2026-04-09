@@ -12,6 +12,7 @@
     "test:coverage": "vitest run --coverage --silent",
     "test:modulejoin": "vitest run --config vitest.modulejoin.config.ts --silent",
     "test:modulejoin:coverage": "vitest run --config vitest.modulejoin.config.ts --coverage --silent",
+    "loadtest:modulejoin": "node scripts/loadtest-module-join.js",
     "test:seed": "vitest run --config vitest.seed.config.ts --silent",
     "test:seed:coverage": "vitest run --config vitest.seed.config.ts --coverage --silent",
     "dev": "tsx --watch src/index.ts",

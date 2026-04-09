@@ -65,12 +65,20 @@ export async function addMeeting(data: {
       )
   );
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const meetingUrl = team?.projectId ? `${baseUrl}/projects/${team.projectId}/meetings/${meeting.id}` : null;
   const body = [
-    `A new meeting has been scheduled: ${data.title}`,
-    `Date: ${data.date.toUTCString()}`,
+    "A new meeting has been scheduled in Team Feedback.",
+    `Title: ${data.title}`,
+    `Date (UTC): ${data.date.toUTCString()}`,
     data.location ? `Location: ${data.location}` : null,
     data.videoCallLink ? `Video call: ${data.videoCallLink}` : null,
-    data.agenda ? `\nAgenda:\n${data.agenda}` : null,
+    data.agenda ? `Agenda:\n${data.agenda}` : null,
+    meetingUrl ? `Open meeting details: ${meetingUrl}` : null,
+    "Calendar attachment: meeting.ics",
+    "",
+    "You are receiving this email because you are listed as a participant.",
+    "If any details look incorrect, contact your meeting organiser or module staff.",
   ].filter(Boolean).join("\n");
   await Promise.all(
     recipients.map((member) =>
@@ -183,4 +191,3 @@ function isProjectCompletedForMeetings(
   if (!effectiveDueDate) return false;
   return now.getTime() > effectiveDueDate.getTime();
 }
-

@@ -43,8 +43,19 @@ export async function addNotification(data: {
   if (email) {
     const subject = NOTIFICATION_SUBJECTS[data.type];
     const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    const lines = [data.message];
-    if (data.link) lines.push(`\nView it here: ${baseUrl}${data.link}`);
+    const generatedAt = new Date().toUTCString();
+    const lines = [
+      "You have a new Team Feedback notification.",
+      `Type: ${subject}`,
+      `Details: ${data.message}`,
+      `Received at (UTC): ${generatedAt}`,
+    ];
+    if (data.link) {
+      lines.push(`Open in Team Feedback: ${baseUrl}${data.link}`);
+    } else {
+      lines.push(`Open notifications: ${baseUrl}/notifications`);
+    }
+    lines.push("", "You are receiving this because this activity is associated with your account.");
 
     await sendEmail({ to: email, subject, text: lines.join("\n") }).catch((err) =>
       console.error("Failed to send notification email:", err)

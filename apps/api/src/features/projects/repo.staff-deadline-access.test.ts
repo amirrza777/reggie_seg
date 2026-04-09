@@ -302,6 +302,11 @@ describe("projects repo staff and deadline access queries", () => {
     (prisma.project.findFirst as any)
       .mockResolvedValueOnce({ id: 9 })
       .mockResolvedValueOnce({ id: 9 });
+    (prisma.project.findUnique as any).mockResolvedValueOnce({
+      id: 9,
+      archivedAt: null,
+      module: { archivedAt: null },
+    });
     (prisma.project.update as any).mockResolvedValueOnce({
       id: 9,
       warningsConfig: { version: 1, rules: [{ key: "LOW_ATTENDANCE", enabled: true }] },
