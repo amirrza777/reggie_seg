@@ -27,6 +27,7 @@
           gnumake
           docker-client
           docker-compose
+          mariadb
           procps
         ];
 
@@ -74,6 +75,86 @@
                 }
 
                 ensure_db() {
+                  DB_URL_OVERRIDE=""
+
+                  wait_for_local_mysql() {
+                    local host="$1"
+                    local port="$2"
+                    local user="$3"
+                    local pass="$4"
+                    local attempts=0
+                    while [ "$attempts" -lt 45 ]; do
+                      if [ -n "$pass" ]; then
+                        if mysqladmin --protocol=tcp -h"$host" -P"$port" -u"$user" -p"$pass" ping >/dev/null 2>&1; then
+                          return 0
+                        fi
+                      else
+                        if mysqladmin --protocol=tcp -h"$host" -P"$port" -u"$user" ping >/dev/null 2>&1; then
+                          return 0
+                        fi
+                      fi
+                      attempts=$((attempts + 1))
+                      sleep 1
+                    done
+                    return 1
+                  }
+
+                  start_local_mysql_fallback() {
+                    local base_dir=".nix/mysql"
+                    local data_dir="$base_dir/data"
+                    local socket_path="$base_dir/mysql.sock"
+                    local pid_path="$base_dir/mysqld.pid"
+                    local log_path="$base_dir/mysqld.log"
+                    local port="3307"
+
+                    mkdir -p "$base_dir"
+
+                    if [ ! -d "$data_dir/mysql" ]; then
+                      echo "Initializing local MySQL fallback data directory..."
+                      rm -rf "$data_dir"
+                      mkdir -p "$data_dir"
+                      if ! mariadb-install-db --datadir="$data_dir" --auth-root-authentication-method=normal >/dev/null 2>&1; then
+                        echo "Warning: failed to initialize local MySQL fallback data directory." >&2
+                        return 1
+                      fi
+                    fi
+
+                    if [ -f "$pid_path" ] && kill -0 "$(cat "$pid_path" 2>/dev/null)" 2>/dev/null; then
+                      echo "Local MySQL fallback already running."
+                    else
+                      echo "Starting local MySQL fallback on 127.0.0.1:$port ..."
+                      mysqld \
+                        --datadir="$data_dir" \
+                        --socket="$socket_path" \
+                        --pid-file="$pid_path" \
+                        --port="$port" \
+                        --bind-address=127.0.0.1 \
+                        --skip-log-bin \
+                        --skip-networking=0 \
+                        --log-error="$log_path" \
+                        --user="$(id -un)" >/dev/null 2>&1 &
+                    fi
+
+                    if ! wait_for_local_mysql "127.0.0.1" "$port" "root" ""; then
+                      echo "Warning: local MySQL fallback failed to start." >&2
+                      echo "Check $log_path for details." >&2
+                      return 1
+                    fi
+
+                    mysql --protocol=tcp -h127.0.0.1 -P"$port" -uroot <<'SQL' >/dev/null 2>&1 || true
+CREATE DATABASE IF NOT EXISTS appdb;
+CREATE USER IF NOT EXISTS 'appuser'@'%' IDENTIFIED BY 'apppass';
+ALTER USER 'appuser'@'%' IDENTIFIED BY 'apppass';
+GRANT ALL PRIVILEGES ON appdb.* TO 'appuser'@'%';
+FLUSH PRIVILEGES;
+SQL
+
+                    DB_URL_OVERRIDE="mysql://appuser:apppass@127.0.0.1:$port/appdb"
+                    export DB_URL_OVERRIDE
+                    echo "Using local MySQL fallback database at 127.0.0.1:$port."
+                    return 0
+                  }
+
                   if [ "''${SKIP_DOCKER:-0}" = "1" ]; then
                     echo "Skipping docker compose startup (SKIP_DOCKER=1)."
                     return
@@ -84,11 +165,17 @@
                       echo "MySQL container started (or already running)."
                     else
                       echo "Warning: could not start MySQL via docker compose." >&2
-                      echo "Ensure MySQL is running and DATABASE_URL in apps/api/.env is reachable." >&2
+                      echo "Falling back to local MySQL process managed by Nix runtime..." >&2
+                      if ! start_local_mysql_fallback; then
+                        echo "Ensure MySQL is running and DATABASE_URL in apps/api/.env is reachable." >&2
+                      fi
                     fi
                   else
                     echo "Warning: docker compose not available." >&2
-                    echo "Ensure MySQL is already running and DATABASE_URL in apps/api/.env is reachable." >&2
+                    echo "Falling back to local MySQL process managed by Nix runtime..." >&2
+                    if ! start_local_mysql_fallback; then
+                      echo "Ensure MySQL is already running and DATABASE_URL in apps/api/.env is reachable." >&2
+                    fi
                   fi
                 }
 
@@ -115,8 +202,13 @@
                 migrate_db() {
                   (
                     cd apps/api
-                    npm exec prisma generate
-                    npm exec prisma migrate deploy
+                    if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                      DATABASE_URL="$DB_URL_OVERRIDE" npm exec prisma generate
+                      DATABASE_URL="$DB_URL_OVERRIDE" npm exec prisma migrate deploy
+                    else
+                      npm exec prisma generate
+                      npm exec prisma migrate deploy
+                    fi
                   )
                 }
 
@@ -148,7 +240,11 @@
             migrate_db
             (
               cd apps/api
-              npm run db:seed
+              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                DATABASE_URL="$DB_URL_OVERRIDE" npm run db:seed
+              else
+                npm run db:seed
+              fi
             )
             echo "✅ init complete"
           '';
@@ -185,7 +281,11 @@
 
             if ! (
               cd apps/api
-              run_non_interactive_tests
+              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                DATABASE_URL="$DB_URL_OVERRIDE" run_non_interactive_tests
+              else
+                run_non_interactive_tests
+              fi
             ); then
               echo "❌ API tests failed"
               test_status=1
@@ -201,12 +301,21 @@
 
             if ! (
               cd apps/api
-              npm run test:coverage -- \
-                --coverage.reportOnFailure=true \
-                --coverage.reporter=html \
-                --coverage.reporter=lcov \
-                --coverage.reporter=text \
-                --coverage.reportsDirectory=coverage
+              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                DATABASE_URL="$DB_URL_OVERRIDE" npm run test:coverage -- \
+                  --coverage.reportOnFailure=true \
+                  --coverage.reporter=html \
+                  --coverage.reporter=lcov \
+                  --coverage.reporter=text \
+                  --coverage.reportsDirectory=coverage
+              else
+                npm run test:coverage -- \
+                  --coverage.reportOnFailure=true \
+                  --coverage.reporter=html \
+                  --coverage.reporter=lcov \
+                  --coverage.reporter=text \
+                  --coverage.reportsDirectory=coverage
+              fi
             ); then
               echo "❌ API coverage run failed"
               coverage_status=1
@@ -257,7 +366,11 @@
             ensure_deps
             (
               cd apps/api
-              npm run db:unseed
+              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                DATABASE_URL="$DB_URL_OVERRIDE" npm run db:unseed
+              else
+                npm run db:unseed
+              fi
             )
             echo "✅ unseed complete"
           '';
@@ -270,7 +383,11 @@
             migrate_db
             (
               cd apps/api
-              npm run db:seed
+              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
+                DATABASE_URL="$DB_URL_OVERRIDE" npm run db:seed
+              else
+                npm run db:seed
+              fi
             )
             echo "✅ seed complete"
           '';
