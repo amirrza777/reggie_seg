@@ -69,10 +69,9 @@ function notifyMeetingCreated(
 function sendMeetingInviteEmails(
   recipients: { email: string }[],
   data: MeetingInput,
+  meetingUrl: string | null,
 ) {
   const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
-  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const meetingUrl = team?.projectId ? `${baseUrl}/projects/${team.projectId}/meetings/${meeting.id}` : null;
   const body = [
     "A new meeting has been scheduled in Team Feedback.",
     `Title: ${data.title}`,
@@ -123,6 +122,14 @@ function resolveMeetingRecipients(members: { id: number; email: string }[], part
   return members.filter((member) => participantIds.includes(member.id));
 }
 
+function buildMeetingUrl(projectId: number | undefined, meetingId: number): string | null {
+  if (!projectId) {
+    return null;
+  }
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  return `${baseUrl}/projects/${projectId}/meetings/${meetingId}`;
+}
+
 async function assertUserCanEditMeeting(meeting: MeetingWithDetails, userId: number) {
   if (new Date(meeting.date) < new Date()) {
     throw { code: "MEETING_PASSED" };
@@ -164,13 +171,14 @@ export async function addMeeting(data: MeetingInput) {
   const members = await getTeamMembers(data.teamId);
   const recipients = resolveMeetingRecipients(members, participantIds);
   await createParticipants(meeting.id, recipients.map((m) => m.id));
+  const meetingUrl = buildMeetingUrl(team?.projectId, meeting.id);
   await notifyMeetingCreated(recipients, {
     organiserId: data.organiserId,
     title: data.title,
     projectId: team?.projectId,
     meetingId: meeting.id,
   });
-  await sendMeetingInviteEmails(recipients, data);
+  await sendMeetingInviteEmails(recipients, data, meetingUrl);
   return meeting;
 }
 
