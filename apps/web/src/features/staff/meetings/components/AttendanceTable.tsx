@@ -10,6 +10,15 @@ type AttendanceTableProps = {
 };
 
 const STATUS_ORDER: Record<string, number> = { on_time: 0, late: 1, absent: 2 };
+type MemberComparator = (a: MemberAttendance, b: MemberAttendance) => number;
+const FALLBACK_STATUS_RANK = 3;
+
+const memberComparators: MemberComparator[] = [
+  (a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`),
+  (a, b) => a.attended - b.attended,
+  (a, b) => getAttendanceRatio(a) - getAttendanceRatio(b),
+  (a, b) => getStatusRank(a.lastStatus) - getStatusRank(b.lastStatus),
+];
 
 function formatStatus(status: string): string {
   switch (status.toLowerCase()) {
@@ -20,29 +29,54 @@ function formatStatus(status: string): string {
   }
 }
 
+function getAttendanceRatio(member: MemberAttendance): number {
+  return member.total > 0 ? member.attended / member.total : 0;
+}
+
+function getStatusRank(status: string | null): number {
+  return STATUS_ORDER[status?.toLowerCase() ?? ""] ?? FALLBACK_STATUS_RANK;
+}
+
 function compareMembers(a: MemberAttendance, b: MemberAttendance, column: number, dir: number): number {
-  switch (column) {
-    case 0: return dir * `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-    case 1: return dir * (a.attended - b.attended);
-    case 2: {
-      const rateA = a.total > 0 ? a.attended / a.total : 0;
-      const rateB = b.total > 0 ? b.attended / b.total : 0;
-      return dir * (rateA - rateB);
-    }
-    case 3: {
-      const rankA = STATUS_ORDER[a.lastStatus?.toLowerCase() ?? ""] ?? 3;
-      const rankB = STATUS_ORDER[b.lastStatus?.toLowerCase() ?? ""] ?? 3;
-      return dir * (rankA - rankB);
-    }
-    default: return 0;
+  const comparator = memberComparators[column];
+  if (!comparator) {
+    return 0;
   }
+  return dir * comparator(a, b);
+}
+
+function getSortDirection(direction: SortConfig["direction"]) {
+  return direction === "asc" ? 1 : -1;
+}
+
+function mapMemberRow(member: MemberAttendance) {
+  const ratePercent = Math.round(getAttendanceRatio(member) * 100);
+  const nameCell = (
+    <span className="attendance-table__name">
+      {member.firstName} {member.lastName}
+      {member.atRisk && <span className="attendance-table__badge">At risk</span>}
+    </span>
+  );
+  const statusCell = member.lastStatus ? (
+    <span className={`attendance-table__status attendance-table__status--${member.lastStatus.toLowerCase()}`}>
+      {formatStatus(member.lastStatus)}
+    </span>
+  ) : "—";
+  return [nameCell, `${member.attended} / ${member.total}`, `${ratePercent}%`, statusCell];
+}
+
+function renderEmptyState() {
+  return (
+    <Card title="Attendance">
+      <p className="muted">No attendance data recorded yet.</p>
+    </Card>
+  );
 }
 
 export function AttendanceTable({ members }: AttendanceTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 0, direction: "asc" });
-
   const sorted = useMemo(() => {
-    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    const dir = getSortDirection(sortConfig.direction);
     return [...members].sort((a, b) => compareMembers(a, b, sortConfig.column, dir));
   }, [members, sortConfig]);
 
@@ -55,31 +89,10 @@ export function AttendanceTable({ members }: AttendanceTableProps) {
   }
 
   if (members.length === 0) {
-    return (
-      <Card title="Attendance">
-        <p className="muted">No attendance data recorded yet.</p>
-      </Card>
-    );
+    return renderEmptyState();
   }
 
-  const rows = sorted.map((m) => {
-    const rate = m.total > 0 ? Math.round((m.attended / m.total) * 100) : 0;
-    const nameCell = (
-      <span className="attendance-table__name">
-        {m.firstName} {m.lastName}
-        {m.atRisk && (
-          <span className="attendance-table__badge">At risk</span>
-        )}
-      </span>
-    );
-    const statusCell = m.lastStatus ? (
-      <span className={`attendance-table__status attendance-table__status--${m.lastStatus.toLowerCase()}`}>
-        {formatStatus(m.lastStatus)}
-      </span>
-    ) : "—";
-    return [nameCell, `${m.attended} / ${m.total}`, `${rate}%`, statusCell];
-  });
-
+  const rows = sorted.map(mapMemberRow);
   return (
     <Card title="Attendance">
       <Table
