@@ -4,6 +4,7 @@ import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/featu
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
 import { PageSection } from "@/shared/ui/PageSection";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -20,7 +21,8 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
   if (user && !Number.isNaN(numericProjectId)) {
     try {
       team = await getTeamByUserAndProject(user.id, numericProjectId);
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       team = null;
     }
   }
@@ -40,7 +42,8 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
         ? !Number.isNaN(feedbackDueDate.getTime()) && feedbackDueDate.getTime() < now.getTime()
         : false;
       projectCompleted = Boolean(project.archivedAt) || feedbackDueDatePassed;
-    } catch {
+    } catch (error) {
+      redirectOnUnauthorized(error);
       projectCompleted = false;
     }
   }

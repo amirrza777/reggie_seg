@@ -7,6 +7,7 @@ import {
 import { getCurrentUser } from "@/shared/auth/session";
 import { ProjectOverviewDashboard } from "@/features/projects/components/ProjectOverviewDashboard";
 import Link from "next/link";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 import type { ProjectDeadline } from "@/features/projects/types";
 import type { ProjectMarkingSummary } from "@/features/projects/types";
 
@@ -31,7 +32,8 @@ export default async function DeadlinesPage({ params }: DeadlinesPageProps) {
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
   try {
     team = await getTeamByUserAndProject(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     team = null;
   }
 
@@ -44,7 +46,10 @@ export default async function DeadlinesPage({ params }: DeadlinesPageProps) {
     );
   }
 
-  const project = await getProject(projectId);
+  const project = await getProject(projectId).catch((error) => {
+    redirectOnUnauthorized(error);
+    throw error;
+  });
 
   let deadline: ProjectDeadline = {
     taskOpenDate: null,
@@ -57,14 +62,16 @@ export default async function DeadlinesPage({ params }: DeadlinesPageProps) {
   };
   try {
     deadline = await getProjectDeadline(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     // Keep default empty deadline object if API is unavailable.
   }
 
   let marking: ProjectMarkingSummary | null = null;
   try {
     marking = await getProjectMarking(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     marking = null;
   }
 

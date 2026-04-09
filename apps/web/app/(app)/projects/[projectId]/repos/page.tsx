@@ -4,6 +4,7 @@ import { CustomAllocationWaitingBoard } from "@/features/projects/components/Cus
 import { getCurrentUser } from "@/shared/auth/session";
 import Link from "next/link";
 import { PageSection } from "@/shared/ui/PageSection";
+import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
 type ProjectPageProps = {
   params: Promise<{ projectId: string }>;
@@ -26,7 +27,8 @@ export default async function ProjectReposPage({ params }: ProjectPageProps) {
   let team: Awaited<ReturnType<typeof getTeamByUserAndProject>> | null = null;
   try {
     team = await getTeamByUserAndProject(user.id, numericProjectId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     team = null;
   }
 
@@ -34,7 +36,8 @@ export default async function ProjectReposPage({ params }: ProjectPageProps) {
   try {
     const project = await getProject(projectId);
     isCustomAllocation = Boolean(project.teamAllocationQuestionnaireTemplateId);
-  } catch {
+  } catch (error) {
+    redirectOnUnauthorized(error);
     isCustomAllocation = false;
   }
 
