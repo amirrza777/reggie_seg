@@ -18,15 +18,31 @@ describe("enterpriseAdmin router parsers", () => {
     expect(parseFeatureFlagUpdateBody(null)).toEqual({ ok: false, error: "enabled boolean required" });
   });
 
-  it("parses meeting settings body", () => {
-    expect(parseMeetingSettingsBody({ absenceThreshold: "2", minutesEditWindowDays: 5 })).toEqual({
+  it("parses full meeting settings body", () => {
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: "2",
+        minutesEditWindowDays: 5,
+        attendanceEditWindowDays: 7,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: false,
+        allowAnyoneToWriteMinutes: true,
+      }),
+    ).toEqual({
       ok: true,
-      value: { absenceThreshold: 2, minutesEditWindowDays: 5 },
+      value: {
+        absenceThreshold: 2,
+        minutesEditWindowDays: 5,
+        attendanceEditWindowDays: 7,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: false,
+        allowAnyoneToWriteMinutes: true,
+      },
     });
   });
 
   it("rejects invalid meeting absence threshold", () => {
-    expect(parseMeetingSettingsBody({ absenceThreshold: 0, minutesEditWindowDays: 3 })).toEqual({
+    expect(parseMeetingSettingsBody({ absenceThreshold: 0 })).toEqual({
       ok: false,
       error: "absenceThreshold must be a positive integer",
     });
@@ -34,7 +50,7 @@ describe("enterpriseAdmin router parsers", () => {
       ok: false,
       error: "absenceThreshold must be a positive integer",
     });
-    expect(parseMeetingSettingsBody(null)).toEqual({
+    expect(parseMeetingSettingsBody("bad")).toEqual({
       ok: false,
       error: "absenceThreshold must be a positive integer",
     });
@@ -48,6 +64,79 @@ describe("enterpriseAdmin router parsers", () => {
     expect(parseMeetingSettingsBody({ absenceThreshold: 2 })).toEqual({
       ok: false,
       error: "minutesEditWindowDays must be a positive integer",
+    });
+    expect(parseMeetingSettingsBody({ absenceThreshold: 2, minutesEditWindowDays: 3, attendanceEditWindowDays: 0 })).toEqual({
+      ok: false,
+      error: "attendanceEditWindowDays must be a positive integer",
+    });
+  });
+
+  it("rejects missing meeting settings booleans", () => {
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: 2,
+        minutesEditWindowDays: 3,
+        attendanceEditWindowDays: 4,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "allowAnyoneToEditMeetings must be a boolean",
+    });
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: 2,
+        minutesEditWindowDays: 3,
+        attendanceEditWindowDays: 4,
+        allowAnyoneToEditMeetings: true,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "allowAnyoneToRecordAttendance must be a boolean",
+    });
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: 2,
+        minutesEditWindowDays: 3,
+        attendanceEditWindowDays: 4,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: false,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "allowAnyoneToWriteMinutes must be a boolean",
+    });
+  });
+
+  it("rejects non-boolean toggles and non-object body", () => {
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: 2,
+        minutesEditWindowDays: 3,
+        attendanceEditWindowDays: 4,
+        allowAnyoneToEditMeetings: "true",
+        allowAnyoneToRecordAttendance: false,
+        allowAnyoneToWriteMinutes: false,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "allowAnyoneToEditMeetings must be a boolean",
+    });
+    expect(
+      parseMeetingSettingsBody({
+        absenceThreshold: 2,
+        minutesEditWindowDays: 3,
+        attendanceEditWindowDays: 4,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: 1,
+        allowAnyoneToWriteMinutes: false,
+      }),
+    ).toEqual({
+      ok: false,
+      error: "allowAnyoneToRecordAttendance must be a boolean",
+    });
+    expect(parseMeetingSettingsBody(null)).toEqual({
+      ok: false,
+      error: "absenceThreshold must be a positive integer",
     });
   });
 });

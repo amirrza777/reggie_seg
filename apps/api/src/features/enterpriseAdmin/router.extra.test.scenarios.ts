@@ -201,7 +201,14 @@ describe("enterpriseAdmin router extra coverage", () => {
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 0, minutesEditWindowDays: 7, attendanceEditWindowDays: 7 },
+        body: {
+          absenceThreshold: 0,
+          minutesEditWindowDays: 7,
+          attendanceEditWindowDays: 7,
+          allowAnyoneToEditMeetings: false,
+          allowAnyoneToRecordAttendance: false,
+          allowAnyoneToWriteMinutes: false,
+        },
       } as any,
       invalidAbsenceRes,
     );
@@ -211,42 +218,67 @@ describe("enterpriseAdmin router extra coverage", () => {
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 0, attendanceEditWindowDays: 7 },
+        body: {
+          absenceThreshold: 2,
+          minutesEditWindowDays: 0,
+          attendanceEditWindowDays: 7,
+          allowAnyoneToEditMeetings: false,
+          allowAnyoneToRecordAttendance: false,
+          allowAnyoneToWriteMinutes: false,
+        },
       } as any,
       invalidWindowRes,
     );
     expect(invalidWindowRes.status).toHaveBeenCalledWith(400);
+    const missingBooleanRes = mockRes();
+    await putMeetingSettings(
+      {
+        enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
+        params: { moduleId: "7" },
+        body: {
+          absenceThreshold: 2,
+          minutesEditWindowDays: 14,
+          attendanceEditWindowDays: 21,
+        },
+      } as any,
+      missingBooleanRes,
+    );
+    expect(missingBooleanRes.status).toHaveBeenCalledWith(400);
     (prisma.module.findFirst as any).mockResolvedValueOnce(null);
     const notFoundPutRes = mockRes();
     await putMeetingSettings(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 14, attendanceEditWindowDays: 0 },
+        body: {
+          absenceThreshold: 2,
+          minutesEditWindowDays: 14,
+          attendanceEditWindowDays: 21,
+          allowAnyoneToEditMeetings: false,
+          allowAnyoneToRecordAttendance: false,
+          allowAnyoneToWriteMinutes: false,
+        },
       } as any,
       notFoundPutRes,
     );
-    expect(notFoundPutRes.status).toHaveBeenCalledWith(400);
-    (prisma.module.findFirst as any).mockResolvedValueOnce({ id: 7 });
-    (prisma.module.update as any).mockResolvedValueOnce({
-      absenceThreshold: 2,
-      minutesEditWindowDays: 14,
-      attendanceEditWindowDays: 21,
-      allowAnyoneToEditMeetings: false,
-      allowAnyoneToRecordAttendance: false,
-      allowAnyoneToWriteMinutes: false,
-    });
-    const okPutRes = mockRes();
+    expect(notFoundPutRes.status).toHaveBeenCalledWith(404);
+    const invalidBooleanRes = mockRes();
     await putMeetingSettings(
       {
         enterpriseUser: { id: 99, enterpriseId: "ent-1", role: "ENTERPRISE_ADMIN" },
         params: { moduleId: "7" },
-        body: { absenceThreshold: 2, minutesEditWindowDays: 14, attendanceEditWindowDays: 21 },
+        body: {
+          absenceThreshold: 2,
+          minutesEditWindowDays: 14,
+          attendanceEditWindowDays: 21,
+          allowAnyoneToEditMeetings: "true",
+          allowAnyoneToRecordAttendance: false,
+          allowAnyoneToWriteMinutes: false,
+        },
       } as any,
-      okPutRes,
+      invalidBooleanRes,
     );
-    expect(okPutRes.status).toHaveBeenCalledWith(404);
-    expect(okPutRes.json).toHaveBeenCalledWith({ error: "Module not found" });
+    expect(invalidBooleanRes.status).toHaveBeenCalledWith(400);
   });
   it("updates meeting-settings and returns the updated values", async () => {
     (prisma.module.findFirst as any).mockReset();
@@ -283,6 +315,25 @@ describe("enterpriseAdmin router extra coverage", () => {
       allowAnyoneToEditMeetings: true,
       allowAnyoneToRecordAttendance: true,
       allowAnyoneToWriteMinutes: false,
+    });
+    expect(prisma.module.update).toHaveBeenCalledWith({
+      where: { id: 7 },
+      data: {
+        absenceThreshold: 2,
+        minutesEditWindowDays: 14,
+        attendanceEditWindowDays: 21,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: true,
+        allowAnyoneToWriteMinutes: false,
+      },
+      select: {
+        absenceThreshold: true,
+        minutesEditWindowDays: true,
+        attendanceEditWindowDays: true,
+        allowAnyoneToEditMeetings: true,
+        allowAnyoneToRecordAttendance: true,
+        allowAnyoneToWriteMinutes: true,
+      },
     });
   });
   it("returns 500 when enterprise context is missing on protected routes", async () => {
