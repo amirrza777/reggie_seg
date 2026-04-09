@@ -74,9 +74,11 @@ describe("CreateMeetingForm", () => {
       render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
     });
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
+    await waitFor(() => {
+      expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
     expect(createMeetingMock).not.toHaveBeenCalled();
-    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
     expect(screen.getByLabelText(/title/i)).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByLabelText(/date/i)).toHaveAttribute("aria-invalid", "true");
   });
@@ -87,15 +89,21 @@ describe("CreateMeetingForm", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: /create meeting/i }));
-    expect(screen.getByText("Enter a title.")).toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText("Enter a title.")).toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByLabelText(/title/i), { target: { value: "Team Meeting" } });
-    expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
-    expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Enter a title.")).not.toBeInTheDocument();
+      expect(screen.getByText("Select a date and time.")).toBeInTheDocument();
+    });
 
     fireEvent.change(screen.getByLabelText(/date/i), { target: { value: "2026-03-01T10:00" } });
-    expect(screen.queryByText("Select a date and time.")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText("Select a date and time.")).not.toBeInTheDocument();
+    });
   });
 
   it("submits with required fields and calls onCreated", async () => {
@@ -176,5 +184,44 @@ describe("CreateMeetingForm", () => {
       render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
     });
     expect(screen.getByRole("button", { name: /create meeting/i })).toBeDisabled();
+  });
+
+  it("renders participant checkboxes when members are loaded", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+      { id: 11, firstName: "Bob", lastName: "Jones" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    expect(screen.getByText("Participants")).toBeInTheDocument();
+    expect(screen.getByLabelText(/invite all team members/i)).toBeChecked();
+  });
+
+  it("shows individual member checkboxes when invite-all is unchecked", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+      { id: 11, firstName: "Bob", lastName: "Jones" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    fireEvent.click(screen.getByLabelText(/invite all team members/i));
+    expect(screen.getByText("Alice Doe")).toBeInTheDocument();
+    expect(screen.getByText("Bob Jones")).toBeInTheDocument();
+  });
+
+  it("toggles individual participant selection", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    fireEvent.click(screen.getByLabelText(/invite all team members/i));
+    const aliceCheckbox = screen.getByLabelText("Alice Doe");
+    expect(aliceCheckbox).toBeChecked();
+    fireEvent.click(aliceCheckbox);
+    expect(aliceCheckbox).not.toBeChecked();
   });
 });

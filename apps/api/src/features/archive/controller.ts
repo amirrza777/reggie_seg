@@ -3,13 +3,10 @@ import type { AuthRequest } from "../../auth/middleware.js";
 import {
   getModules,
   getProjects,
-  getTeams,
   archiveModule,
   unarchiveModule,
   archiveProject,
   unarchiveProject,
-  archiveTeam,
-  unarchiveTeam,
   isStaffOrAdmin,
 } from "./service.js";
 import { parseArchiveEntityId } from "./controller.parsers.js";
@@ -26,13 +23,6 @@ export async function listProjectsHandler(req: AuthRequest, res: Response) {
   if (!(await isStaffOrAdmin(req.user?.sub))) return res.status(403).json({ error: "Forbidden" });
   const projects = await getProjects();
   res.json(projects);
-}
-
-/** Handles requests for list teams. */
-export async function listTeamsHandler(req: AuthRequest, res: Response) {
-  if (!(await isStaffOrAdmin(req.user?.sub))) return res.status(403).json({ error: "Forbidden" });
-  const teams = await getTeams();
-  res.json(teams);
 }
 
 /** Handles requests for archive module. */
@@ -68,23 +58,5 @@ export async function unarchiveProjectHandler(req: AuthRequest, res: Response) {
   const id = parseArchiveEntityId(req.params.id);
   if (!id.ok) return res.status(400).json({ error: id.error });
   const result = await unarchiveProject(id.value);
-  res.json(result);
-}
-
-/** Handles requests for archive team. */
-export async function archiveTeamHandler(req: AuthRequest, res: Response) {
-  if (!(await isStaffOrAdmin(req.user?.sub))) return res.status(403).json({ error: "Forbidden" });
-  const id = parseArchiveEntityId(req.params.id);
-  if (!id.ok) return res.status(400).json({ error: id.error });
-  const result = await archiveTeam(id.value);
-  res.json(result);
-}
-
-/** Handles requests for unarchive team. */
-export async function unarchiveTeamHandler(req: AuthRequest, res: Response) {
-  if (!(await isStaffOrAdmin(req.user?.sub))) return res.status(403).json({ error: "Forbidden" });
-  const id = parseArchiveEntityId(req.params.id);
-  if (!id.ok) return res.status(400).json({ error: id.error });
-  const result = await unarchiveTeam(id.value);
   res.json(result);
 }

@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
+const BRAND_MARK_SRC = "/team-feedback-mark-32.png";
+
 type TopbarProps = {
   leading?: ReactNode;
   title?: string;
@@ -16,7 +18,14 @@ function buildTopbarTitleContent(title: string, isBrandTitle: boolean): ReactNod
   }
   return (
     <span className="topbar__title-brand">
-      <img src="/favicon-32x32.png" alt="" aria-hidden="true" className="topbar__title-icon" />
+      <img
+        src={BRAND_MARK_SRC}
+        alt=""
+        aria-hidden="true"
+        className="topbar__title-icon"
+        width="18"
+        height="18"
+      />
       <span className="topbar__title-text">{title}</span>
     </span>
   );

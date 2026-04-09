@@ -50,7 +50,7 @@ function SnapshotCard({
   snapshotRoles: MetricGridItem[];
 }) {
   return (
-    <Card title={<span className="overview-title">Enterprise snapshot</span>} className="enterprise-overview__card enterprise-overview__snapshot-card">
+    <Card title="Enterprise snapshot" className="enterprise-overview__card enterprise-overview__snapshot-card">
       <OverviewErrorMessage message={summary.message} />
       <MetricGrid items={snapshotPrimary} status={summary.status} />
       <MetricGrid items={snapshotRoles} status={summary.status} />

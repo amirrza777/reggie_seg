@@ -3,10 +3,8 @@ import {
   findUserRoleById,
   listAllModules,
   listAllProjects,
-  listAllTeams,
   setModuleArchived,
   setProjectArchived,
-  setTeamArchived,
 } from "./repo.js";
 
 vi.mock("../../shared/db.js", () => ({
@@ -14,7 +12,6 @@ vi.mock("../../shared/db.js", () => ({
     user: { findUnique: vi.fn() },
     module: { findMany: vi.fn(), update: vi.fn() },
     project: { findMany: vi.fn(), update: vi.fn() },
-    team: { findMany: vi.fn(), update: vi.fn() },
   },
 }));
 
@@ -55,25 +52,10 @@ describe("archive repo", () => {
         id: true,
         name: true,
         archivedAt: true,
-        module: { select: { name: true } },
+        module: { select: { name: true, archivedAt: true } },
         _count: { select: { teams: true } },
       },
-      orderBy: { name: "asc" },
-    });
-  });
-
-  it("listAllTeams calls prisma.team.findMany with correct args", async () => {
-    (prisma.team.findMany as any).mockResolvedValue([]);
-    await listAllTeams();
-    expect(prisma.team.findMany).toHaveBeenCalledWith({
-      select: {
-        id: true,
-        teamName: true,
-        archivedAt: true,
-        project: { select: { name: true } },
-        _count: { select: { allocations: true } },
-      },
-      orderBy: { teamName: "asc" },
+      orderBy: [{ module: { name: "asc" } }, { name: "asc" }],
     });
   });
 
@@ -111,25 +93,6 @@ describe("archive repo", () => {
     await setProjectArchived(2, null);
     expect(prisma.project.update).toHaveBeenCalledWith({
       where: { id: 2 },
-      data: { archivedAt: null },
-    });
-  });
-
-  it("setTeamArchived calls prisma.team.update with a date", async () => {
-    const date = new Date("2026-01-01");
-    (prisma.team.update as any).mockResolvedValue({ id: 3 });
-    await setTeamArchived(3, date);
-    expect(prisma.team.update).toHaveBeenCalledWith({
-      where: { id: 3 },
-      data: { archivedAt: date },
-    });
-  });
-
-  it("setTeamArchived calls prisma.team.update with null", async () => {
-    (prisma.team.update as any).mockResolvedValue({ id: 3 });
-    await setTeamArchived(3, null);
-    expect(prisma.team.update).toHaveBeenCalledWith({
-      where: { id: 3 },
       data: { archivedAt: null },
     });
   });

@@ -79,14 +79,14 @@ describe("useTeamBoardState", () => {
     expect(getMyBoardsMock).toHaveBeenCalled();
   });
 
-  it("transitions to link-account when getTeamBoard throws No board assigned and getMyBoards throws User not connected", async () => {
+  it("transitions to no-team-board when getTeamBoard throws No board assigned and getMyBoards throws User not connected", async () => {
     getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
     getMyBoardsMock.mockRejectedValue(new Error("User not connected to Trello"));
 
     const { result } = renderHook(() => useTeamBoardState(10));
 
     await waitFor(() => {
-      expect(result.current.state.status).toBe("link-account");
+      expect(result.current.state.status).toBe("no-team-board");
     });
   });
 
@@ -100,8 +100,20 @@ describe("useTeamBoardState", () => {
     });
 
     if (result.current.state.status === "error") {
-      expect(result.current.state.message).toBe("You are not a member of this team.");
+      expect(result.current.state.message).toBe("Not a member of this team");
     }
+  });
+
+  it("staffView: no-team-board when no board assigned without getMyBoards", async () => {
+    getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
+
+    const { result } = renderHook(() => useTeamBoardState(10, { staffView: true }));
+
+    await waitFor(() => {
+      expect(result.current.state.status).toBe("no-team-board");
+    });
+
+    expect(getMyBoardsMock).not.toHaveBeenCalled();
   });
 
   it("loadTeamBoard can be called to refetch", async () => {

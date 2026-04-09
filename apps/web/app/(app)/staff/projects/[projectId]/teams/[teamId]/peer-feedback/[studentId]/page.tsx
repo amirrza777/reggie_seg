@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
@@ -79,11 +78,7 @@ async function toEvidenceRows(
 
 export default async function StaffPeerFeedbackStudentPage({ params }: PageProps) {
   const { projectId, teamId, studentId } = await params;
-
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  const userId = (await getCurrentUser())!.id;
 
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
@@ -98,7 +93,7 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
 
   let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    projectData = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load project team data.";
     return <p className="muted">{message}</p>;
@@ -129,16 +124,14 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
 
   const receivedRatingScores = getScores(givenRows);
   const averageRatingReceivedLabel = toAverageLabel(receivedRatingScores);
+  const evidenceTotal = givenRows.length + receivedRows.length;
 
   return (
-    <div className="staff-projects">
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Peer Feedback</p>
-        <h1 className="staff-projects__title">{studentTitle}</h1>
-        <p className="staff-projects__desc">
-          Inspect how teammates reviewed this student&apos;s assessments, and how this student reviewed assessments written about them.
-        </p>
-      </section>
+    <>
+      <p className="muted">
+        {studentTitle}: {evidenceTotal} evidence item{evidenceTotal === 1 ? "" : "s"}; average rating received:{" "}
+        {averageRatingReceivedLabel}
+      </p>
 
       {feedbackLoadError ? (
         <section className="staff-projects__team-card">
@@ -161,6 +154,6 @@ export default async function StaffPeerFeedbackStudentPage({ params }: PageProps
           />
         </div>
       )}
-    </div>
+    </>
   );
 }

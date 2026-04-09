@@ -8,6 +8,7 @@ function buildProject(overrides: Partial<StaffProject> = {}): StaffProject {
     name: "Alpha Project",
     moduleId: 1,
     moduleName: "SEGP",
+    archivedAt: null,
     teamCount: 2,
     hasGithubRepo: true,
     daysOld: 5,
@@ -56,6 +57,18 @@ describe("StaffProjectsModuleList", () => {
       "title",
       expect.stringContaining("No assessments expected yet"),
     );
+  });
+
+  it("marks archived projects with pill, tooltip date, and link accessible name", () => {
+    const { container } = render(
+      <ProjectCard project={buildProject({ archivedAt: "2026-01-15T12:00:00.000Z" })} rawQuery={undefined} />,
+    );
+    expect(container.querySelector(".staff-projects__module-project-card--archived")).toBeTruthy();
+    expect(container.querySelector(".staff-projects__project-archived-pill")).toBeTruthy();
+    expect(screen.getByText("Archived")).toBeInTheDocument();
+    const pill = screen.getByLabelText(/archived on/i);
+    expect(pill).toHaveAttribute("title", pill.getAttribute("aria-label"));
+    expect(screen.getByRole("link", { name: /Alpha Project \(archived project\)/i })).toBeInTheDocument();
   });
 
   it("renders single-day and multi-day deadline labels and non-zero tooltip counts", () => {

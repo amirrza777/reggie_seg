@@ -1,6 +1,7 @@
 import type { NextFunction, Response } from "express";
 import jwt from "jsonwebtoken";
 import type { AdminRequest } from "./types.js";
+import { validateRefreshTokenSession } from "../../auth/service.js";
 import { isSuperAdminEmail, resolveAdminUser } from "./service.js";
 
 const refreshSecret = process.env.JWT_REFRESH_SECRET || "";
@@ -27,6 +28,8 @@ export async function ensureAdmin(req: AdminRequest, res: Response, next: NextFu
     const verified = jwt.verify(token, refreshSecret);
     const payload = parseAdminTokenPayload(verified);
     if (!payload?.sub) {return res.status(401).json({ error: "Not authenticated" });}
+    const refreshValid = await validateRefreshTokenSession(payload.sub, token);
+    if (!refreshValid) {return res.status(401).json({ error: "Not authenticated" });}
     if (!payload.admin) {return res.status(403).json({ error: "Forbidden" });}
     const adminUser = await resolveAdminUser(payload);
     if (!adminUser) {return res.status(403).json({ error: "Forbidden" });}

@@ -68,13 +68,28 @@ describe("moduleJoin service", () => {
     });
   });
 
-  it("rejects non-students", async () => {
+  it("rejects staff join attempts", async () => {
     mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "STAFF" });
     await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
       ok: false,
       status: 403,
       code: "FORBIDDEN",
       error: "Forbidden",
+    });
+  });
+
+  it("allows admins to join by module code", async () => {
+    mockState.repo.findJoinActor.mockResolvedValue({ id: 7, enterpriseId: "ent-1", role: "ADMIN" });
+    mockState.repo.findJoinableModuleByCode.mockResolvedValue({ id: 9, name: "SEGP" });
+    mockState.repo.insertModuleEnrollment.mockResolvedValue(true);
+
+    await expect(joinModuleByCode(7, "ABCD2345")).resolves.toEqual({
+      ok: true,
+      value: {
+        moduleId: 9,
+        moduleName: "SEGP",
+        result: "joined",
+      },
     });
   });
 

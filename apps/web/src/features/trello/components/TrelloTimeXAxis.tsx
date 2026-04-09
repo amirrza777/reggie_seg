@@ -3,6 +3,8 @@
 import { XAxis } from "recharts";
 import { formatTrelloTimeTick } from "./trelloTimeTick";
 
+export { formatTrelloTimeTick };
+
 type TrelloTimeXAxisProps = {
   domain: [number, number] | undefined;
   scale?: "linear";

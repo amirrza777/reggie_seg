@@ -1,0 +1,18 @@
+model EnterpriseAdminInviteToken {
+  id               Int       @id @default(autoincrement())
+  enterpriseId     String
+  email            String
+  tokenHash        String    @unique
+  invitedByUserId  Int
+  acceptedByUserId Int?
+  revoked          Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  usedAt           DateTime?
+  expiresAt        DateTime
+  enterprise       Enterprise @relation(fields: [enterpriseId], references: [id], onDelete: Cascade)
+  invitedByUser    User      @relation("EnterpriseAdminInviteSentBy", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  acceptedByUser   User?     @relation("EnterpriseAdminInviteAcceptedBy", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([enterpriseId, email])
+  @@index([expiresAt])
+}

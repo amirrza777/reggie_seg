@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getEnterpriseModuleJoinCode } from "@/features/enterprise/api/client";
 import { EnterpriseModuleCreateForm } from "@/features/enterprise/components/EnterpriseModuleCreateForm";
@@ -40,15 +39,7 @@ export default async function EnterpriseModuleEditPage({ params, searchParams }:
         </p>
       </header>
 
-      <Card
-        title={<span className="overview-title">Module setup</span>}
-        action={
-          <Link href="/enterprise/modules" className="btn btn--ghost">
-            Back to modules
-          </Link>
-        }
-        className="enterprise-module-create__card"
-      >
+      <Card title="Module setup" className="enterprise-module-create__card">
         <EnterpriseModuleCreateForm
           mode="edit"
           moduleId={moduleId}

@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getPeerAssessmentsForUser, getTeammates } from "@/features/peerAssessment/api/client";
 import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
@@ -64,10 +63,6 @@ vi.mock("@/shared/ui/PageSection", () => ({
   ),
 }));
 
-vi.mock("next/link", () => ({
-  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
-}));
-
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getTeamByUserAndProjectMock = vi.mocked(getTeamByUserAndProject);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
@@ -88,7 +83,6 @@ describe("ProjectPeerAssessmentsPage", () => {
     render(page);
 
     expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Back to project" })).toHaveAttribute("href", "/projects/42");
   });
 
   it("skips team lookup for invalid project ids and falls back", async () => {

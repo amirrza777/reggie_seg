@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useRef, useState, type Dispatch, type FormEvent, type MutableRefObject, type SetStateAction } from "react";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart, parsePageInput } from "@/shared/lib/pagination";
 import { normalizeSearchQuery } from "@/shared/lib/search";
-import { createEnterprise, deleteEnterprise, searchEnterprises } from "../api/client";
+import { createEnterprise, deleteEnterprise, inviteEnterpriseAdmin, searchEnterprises } from "../api/client";
 import type { EnterpriseRecord } from "../types";
 import { useEnterpriseUserManagementState } from "./useEnterpriseUserManagementState";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
 const ENTERPRISES_PER_PAGE = 8;
+const ENTERPRISE_NAME_MAX_LENGTH = 120;
+const ENTERPRISE_CODE_REGEX = /^[A-Z0-9]{3,16}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type EnterpriseSearchResponse = Awaited<ReturnType<typeof searchEnterprises>>;
 
@@ -24,6 +27,7 @@ type EnterpriseSearchSetters = {
 type EnterpriseCreateSetters = {
   setNameInput: Dispatch<SetStateAction<string>>;
   setCodeInput: Dispatch<SetStateAction<string>>;
+  setInviteEmailInput: Dispatch<SetStateAction<string>>;
   setCreateModalOpen: Dispatch<SetStateAction<boolean>>;
 };
 
@@ -37,8 +41,10 @@ type EnterpriseDerivedState = {
 };
 
 type EnterpriseCreateActionOptions = {
+  isCreating: boolean;
   nameInput: string;
   codeInput: string;
+  inviteEmailInput: string;
   searchQuery: string;
   setStatus: Dispatch<SetStateAction<RequestState>>;
   setMessage: Dispatch<SetStateAction<string | null>>;
@@ -46,6 +52,7 @@ type EnterpriseCreateActionOptions = {
   setCurrentPage: Dispatch<SetStateAction<number>>;
   setNameInput: Dispatch<SetStateAction<string>>;
   setCodeInput: Dispatch<SetStateAction<string>>;
+  setInviteEmailInput: Dispatch<SetStateAction<string>>;
   setCreateModalOpen: Dispatch<SetStateAction<boolean>>;
   loadEnterprises: (query: string, page: number) => Promise<void>;
   showSuccessToast: (message: string) => void;
@@ -68,13 +75,29 @@ function resolveUnknownError(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
-function validateEnterpriseCreateInput(name: string): string | null {
-  return name ? null : "Enterprise name is required.";
+function validateEnterpriseCreateInput(name: string, code: string, inviteEmail: string): string | null {
+  if (!name) {
+    return "Enterprise name is required.";
+  }
+  if (name.length > ENTERPRISE_NAME_MAX_LENGTH) {
+    return `Enterprise name must be ${ENTERPRISE_NAME_MAX_LENGTH} characters or fewer.`;
+  }
+  if (code && !ENTERPRISE_CODE_REGEX.test(code)) {
+    return "Enterprise code must be 3-16 letters or numbers.";
+  }
+  if (!inviteEmail) {
+    return null;
+  }
+  if (!EMAIL_REGEX.test(inviteEmail)) {
+    return "Invite email must be a valid email address.";
+  }
+  return null;
 }
 
 function resetCreateModal(setters: EnterpriseCreateSetters) {
   setters.setNameInput("");
   setters.setCodeInput("");
+  setters.setInviteEmailInput("");
   setters.setCreateModalOpen(false);
 }
 
@@ -115,11 +138,12 @@ function useEnterpriseManagementStore() {
   const latestEnterpriseRequestIdRef = useRef(0);
   const [nameInput, setNameInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
+  const [inviteEmailInput, setInviteEmailInput] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteState, setDeleteState] = useState<Record<string, boolean>>({});
   const [pendingDeleteEnterprise, setPendingDeleteEnterprise] = useState<EnterpriseRecord | null>(null);
-  return { enterprises, status, enterpriseTableStatus, message, toastMessage, searchQuery, currentPage, pageInput, enterpriseTotal, enterpriseTotalPages, latestEnterpriseRequestIdRef, nameInput, codeInput, isCreating, createModalOpen, deleteState, pendingDeleteEnterprise, setEnterprises, setStatus, setEnterpriseTableStatus, setMessage, setToastMessage, setSearchQuery, setCurrentPage, setPageInput, setEnterpriseTotal, setEnterpriseTotalPages, setNameInput, setCodeInput, setIsCreating, setCreateModalOpen, setDeleteState, setPendingDeleteEnterprise };
+  return { enterprises, status, enterpriseTableStatus, message, toastMessage, searchQuery, currentPage, pageInput, enterpriseTotal, enterpriseTotalPages, latestEnterpriseRequestIdRef, nameInput, codeInput, inviteEmailInput, isCreating, createModalOpen, deleteState, pendingDeleteEnterprise, setEnterprises, setStatus, setEnterpriseTableStatus, setMessage, setToastMessage, setSearchQuery, setCurrentPage, setPageInput, setEnterpriseTotal, setEnterpriseTotalPages, setNameInput, setCodeInput, setInviteEmailInput, setIsCreating, setCreateModalOpen, setDeleteState, setPendingDeleteEnterprise };
 }
 
 function shouldIgnoreEnterpriseRequest(latestEnterpriseRequestIdRef: MutableRefObject<number>, requestId: number) {
@@ -183,9 +207,13 @@ function useLoadEnterprises(options: {
 function useEnterpriseCreateAction(options: EnterpriseCreateActionOptions) {
   return useCallback(async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (options.isCreating) {
+      return;
+    }
     const name = options.nameInput.trim();
     const code = options.codeInput.trim().toUpperCase();
-    const validationError = validateEnterpriseCreateInput(name);
+    const inviteEmail = options.inviteEmailInput.trim().toLowerCase();
+    const validationError = validateEnterpriseCreateInput(name, code, inviteEmail);
     if (validationError) {
       options.setStatus("error");
       options.setMessage(validationError);
@@ -195,9 +223,33 @@ function useEnterpriseCreateAction(options: EnterpriseCreateActionOptions) {
     options.setMessage(null);
     try {
       const created = await createEnterprise({ name, ...(code ? { code } : {}) });
-      options.setStatus("success");
-      options.showSuccessToast(`Enterprise "${created.name}" created with code ${created.code}.`);
-      resetCreateModal({ setNameInput: options.setNameInput, setCodeInput: options.setCodeInput, setCreateModalOpen: options.setCreateModalOpen });
+      let inviteErrorMessage: string | null = null;
+      if (inviteEmail) {
+        try {
+          await inviteEnterpriseAdmin(created.id, inviteEmail);
+        } catch (err) {
+          inviteErrorMessage = resolveUnknownError(err, "Could not send enterprise admin invite.");
+        }
+      }
+      if (inviteErrorMessage) {
+        options.setStatus("error");
+        options.setMessage(`Enterprise "${created.name}" was created, but invite could not be sent: ${inviteErrorMessage}`);
+        options.showSuccessToast(`Enterprise "${created.name}" created with code ${created.code}.`);
+      } else {
+        options.setStatus("success");
+        options.setMessage(null);
+        options.showSuccessToast(
+          inviteEmail
+            ? `Enterprise "${created.name}" created and invite sent to ${inviteEmail}.`
+            : `Enterprise "${created.name}" created with code ${created.code}.`,
+        );
+      }
+      resetCreateModal({
+        setNameInput: options.setNameInput,
+        setCodeInput: options.setCodeInput,
+        setInviteEmailInput: options.setInviteEmailInput,
+        setCreateModalOpen: options.setCreateModalOpen,
+      });
       options.setCurrentPage(1);
       void options.loadEnterprises(options.searchQuery, 1);
     } catch (err) {
@@ -317,10 +369,15 @@ function useEnterpriseDerivedState(store: EnterpriseStore): EnterpriseDerivedSta
   return { normalizedEnterpriseSearch, effectiveEnterpriseTotalPages, enterpriseStart, enterpriseEnd };
 }
 
-function useCloseCreateModal(setNameInput: Dispatch<SetStateAction<string>>, setCodeInput: Dispatch<SetStateAction<string>>, setCreateModalOpen: Dispatch<SetStateAction<boolean>>) {
+function useCloseCreateModal(
+  setNameInput: Dispatch<SetStateAction<string>>,
+  setCodeInput: Dispatch<SetStateAction<string>>,
+  setInviteEmailInput: Dispatch<SetStateAction<string>>,
+  setCreateModalOpen: Dispatch<SetStateAction<boolean>>,
+) {
   return useCallback(() => {
-    resetCreateModal({ setNameInput, setCodeInput, setCreateModalOpen });
-  }, [setCodeInput, setCreateModalOpen, setNameInput]);
+    resetCreateModal({ setNameInput, setCodeInput, setInviteEmailInput, setCreateModalOpen });
+  }, [setCodeInput, setCreateModalOpen, setInviteEmailInput, setNameInput]);
 }
 
 function buildEnterpriseManagementResult(params: {
@@ -333,7 +390,7 @@ function buildEnterpriseManagementResult(params: {
   applyPageInput: (value: string) => void;
   handlePageJump: (event: FormEvent<HTMLFormElement>) => void;
 }) {
-  return { status: params.store.status, enterpriseTableStatus: params.store.enterpriseTableStatus, message: params.store.message, toastMessage: params.store.toastMessage, searchQuery: params.store.searchQuery, setSearchQuery: params.store.setSearchQuery, enterprises: params.store.enterprises, currentPage: params.store.currentPage, setCurrentPage: params.store.setCurrentPage, pageInput: params.store.pageInput, setPageInput: params.store.setPageInput, enterpriseTotal: params.store.enterpriseTotal, enterpriseTotalPages: params.store.enterpriseTotalPages, effectiveEnterpriseTotalPages: params.derived.effectiveEnterpriseTotalPages, enterpriseStart: params.derived.enterpriseStart, enterpriseEnd: params.derived.enterpriseEnd, createModalOpen: params.store.createModalOpen, setCreateModalOpen: params.store.setCreateModalOpen, nameInput: params.store.nameInput, setNameInput: params.store.setNameInput, codeInput: params.store.codeInput, setCodeInput: params.store.setCodeInput, isCreating: params.store.isCreating, closeCreateModal: params.closeCreateModal, handleCreateEnterprise: params.handleCreateEnterprise, deleteState: params.store.deleteState, pendingDeleteEnterprise: params.store.pendingDeleteEnterprise, setPendingDeleteEnterprise: params.store.setPendingDeleteEnterprise, handleDeleteEnterprise: params.handleDeleteEnterprise, handlePageJump: params.handlePageJump, applyPageInput: params.applyPageInput, ...params.userState };
+  return { status: params.store.status, enterpriseTableStatus: params.store.enterpriseTableStatus, message: params.store.message, toastMessage: params.store.toastMessage, searchQuery: params.store.searchQuery, setSearchQuery: params.store.setSearchQuery, enterprises: params.store.enterprises, currentPage: params.store.currentPage, setCurrentPage: params.store.setCurrentPage, pageInput: params.store.pageInput, setPageInput: params.store.setPageInput, enterpriseTotal: params.store.enterpriseTotal, enterpriseTotalPages: params.store.enterpriseTotalPages, effectiveEnterpriseTotalPages: params.derived.effectiveEnterpriseTotalPages, enterpriseStart: params.derived.enterpriseStart, enterpriseEnd: params.derived.enterpriseEnd, createModalOpen: params.store.createModalOpen, setCreateModalOpen: params.store.setCreateModalOpen, nameInput: params.store.nameInput, setNameInput: params.store.setNameInput, codeInput: params.store.codeInput, setCodeInput: params.store.setCodeInput, inviteEmailInput: params.store.inviteEmailInput, setInviteEmailInput: params.store.setInviteEmailInput, isCreating: params.store.isCreating, closeCreateModal: params.closeCreateModal, handleCreateEnterprise: params.handleCreateEnterprise, deleteState: params.store.deleteState, pendingDeleteEnterprise: params.store.pendingDeleteEnterprise, setPendingDeleteEnterprise: params.store.setPendingDeleteEnterprise, handleDeleteEnterprise: params.handleDeleteEnterprise, handlePageJump: params.handlePageJump, applyPageInput: params.applyPageInput, ...params.userState };
 }
 
 export function useEnterpriseManagementState(isSuperAdmin: boolean) {
@@ -344,8 +401,8 @@ export function useEnterpriseManagementState(isSuperAdmin: boolean) {
   }, [setToastMessage]);
   const userState = useEnterpriseUserManagementState({ showSuccessToast });
   const loadEnterprises = useLoadEnterprises({ latestEnterpriseRequestIdRef: store.latestEnterpriseRequestIdRef, setCurrentPage: store.setCurrentPage, setEnterprises: store.setEnterprises, setEnterpriseTotal: store.setEnterpriseTotal, setEnterpriseTotalPages: store.setEnterpriseTotalPages, setEnterpriseTableStatus: store.setEnterpriseTableStatus, setStatus: store.setStatus, setMessage: store.setMessage });
-  const closeCreateModal = useCloseCreateModal(store.setNameInput, store.setCodeInput, store.setCreateModalOpen);
-  const handleCreateEnterprise = useEnterpriseCreateAction({ nameInput: store.nameInput, codeInput: store.codeInput, searchQuery: store.searchQuery, setStatus: store.setStatus, setMessage: store.setMessage, setIsCreating: store.setIsCreating, setCurrentPage: store.setCurrentPage, setNameInput: store.setNameInput, setCodeInput: store.setCodeInput, setCreateModalOpen: store.setCreateModalOpen, loadEnterprises, showSuccessToast });
+  const closeCreateModal = useCloseCreateModal(store.setNameInput, store.setCodeInput, store.setInviteEmailInput, store.setCreateModalOpen);
+  const handleCreateEnterprise = useEnterpriseCreateAction({ isCreating: store.isCreating, nameInput: store.nameInput, codeInput: store.codeInput, inviteEmailInput: store.inviteEmailInput, searchQuery: store.searchQuery, setStatus: store.setStatus, setMessage: store.setMessage, setIsCreating: store.setIsCreating, setCurrentPage: store.setCurrentPage, setNameInput: store.setNameInput, setCodeInput: store.setCodeInput, setInviteEmailInput: store.setInviteEmailInput, setCreateModalOpen: store.setCreateModalOpen, loadEnterprises, showSuccessToast });
   const handleDeleteEnterprise = useEnterpriseDeleteAction({ pendingDeleteEnterprise: store.pendingDeleteEnterprise, setPendingDeleteEnterprise: store.setPendingDeleteEnterprise, setDeleteState: store.setDeleteState, setMessage: store.setMessage, setStatus: store.setStatus, clearSelectedEnterpriseIfDeleted: userState.clearSelectedEnterpriseIfDeleted, searchQuery: store.searchQuery, currentPage: store.currentPage, loadEnterprises, showSuccessToast });
   const pageActions = useEnterprisePageActions({ currentPage: store.currentPage, enterpriseTotalPages: store.enterpriseTotalPages, pageInput: store.pageInput, setCurrentPage: store.setCurrentPage, setPageInput: store.setPageInput });
   const derived = useEnterpriseDerivedState(store);

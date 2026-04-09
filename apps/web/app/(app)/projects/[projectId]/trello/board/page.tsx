@@ -11,11 +11,12 @@ export default async function TrelloBoardPage({ params }: PageProps) {
   return (
     <div className="stack">
       <TrelloProjectGate projectId={projectId} signInMessage="Please sign in to view the board.">
-        {({ projectId, teamId, teamName }) => (
+        {({ projectId, teamId, teamName, teamHasLinkedTrelloBoard }) => (
           <ProjectTrelloContent
             projectId={projectId}
             teamId={teamId}
             teamName={teamName}
+            teamHasLinkedTrelloBoard={teamHasLinkedTrelloBoard}
             viewComponent={TrelloBoardView}
           />
         )}

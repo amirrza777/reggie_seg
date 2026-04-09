@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { StaffProjectTrelloContent } from "@/features/staff/trello/StaffProjectTrelloContent";
@@ -19,26 +18,26 @@ type TrelloPageContext = {
 };
 
 export default async function StaffTrelloSectionPage({ params }: PageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const context = await parseTrelloPageContext(params);
   if (!context) {
     return <p className="muted">Invalid project or team ID.</p>;
   }
 
-  const projectResult = await loadProjectTeamData(user.id, context.numericProjectId);
+  const userId = (await getCurrentUser())!.id;
+  const projectResult = await loadProjectTeamData(userId, context.numericProjectId);
   const team = projectResult.projectData?.teams.find((item) => item.id === context.numericTeamId) ?? null;
   if (!projectResult.projectData || !team) {
     return <MissingTeamView message={projectResult.projectError} projectId={context.projectId} />;
   }
 
-  const deadline = await loadProjectDeadline(user.id, context.numericProjectId);
+  const deadline = await loadProjectDeadline(userId, context.numericProjectId);
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.trelloBoardId ? "Board linked" : "No board linked"}
+      </p>
+
       <section className="staff-projects__team-card" aria-label="Team Trello activity">
         <StaffProjectTrelloContent
           projectId={context.projectId}

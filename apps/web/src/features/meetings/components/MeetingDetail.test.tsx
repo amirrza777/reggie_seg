@@ -1,11 +1,21 @@
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import { MeetingDetail } from "./MeetingDetail";
 import { useUser } from "@/features/auth/useUser";
 import type { Meeting } from "../types";
 
+const workspaceCapabilityMock = vi.hoisted(() => ({
+  useProjectWorkspaceCanEdit: vi.fn(() => ({ canEdit: true, workspaceArchived: false, hasTeam: true })),
+}));
+
 vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
+}));
+
+vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => workspaceCapabilityMock);
+vi.mock("next/link", () => ({
+  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
 type MockChildProps = { meetingId: number };
@@ -73,23 +83,30 @@ const otherUser = { id: 99, firstName: "Other", lastName: "User" };
 describe("MeetingDetail", () => {
   beforeEach(() => {
     useUserMock.mockReturnValue(makeUseUserValue(otherUser as UseUserValue["user"]));
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReset();
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReturnValue({
+      canEdit: true,
+      workspaceArchived: false,
+      hasTeam: true,
+    });
   });
 
   it("renders meeting title and organiser", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Team Meeting" })).toBeInTheDocument();
     expect(screen.getByText(/Reggie King/)).toBeInTheDocument();
   });
 
-  it("renders back link to previous meetings for past meetings", () => {
+  it("renders meetings breadcrumb link", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to previous meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
+    expect(screen.getByRole("link", { name: "Meetings" })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
   });
 
-  it("renders back link to upcoming meetings for future meetings", () => {
+  it("renders current breadcrumb with meeting title", () => {
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to upcoming meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=upcoming");
+    const currentCrumb = screen.getAllByText("Team Meeting").find((node) => node.getAttribute("aria-current") === "page");
+    expect(currentCrumb).toBeDefined();
   });
 
   it("shows location when provided", () => {
@@ -201,6 +218,18 @@ describe("MeetingDetail", () => {
     expect(screen.getByRole("link", { name: /edit meeting/i })).toHaveAttribute("href", "/projects/5/meetings/1/edit");
   });
 
+  it("hides edit link when workspace is read-only (archived)", () => {
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReturnValueOnce({
+      canEdit: false,
+      workspaceArchived: true,
+      hasTeam: true,
+    });
+    useUserMock.mockReturnValue(makeUseUserValue(organiserUser as UseUserValue["user"]));
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /edit meeting/i })).not.toBeInTheDocument();
+  });
+
   it("does not show edit link for non-organiser", () => {
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
@@ -225,5 +254,35 @@ describe("MeetingDetail", () => {
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
+  });
+
+  it("shows participants table when participants exist and no attendances recorded", () => {
+    const withParticipants: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+        { user: { id: 2, firstName: "John", lastName: "Smith" } },
+      ],
+      attendances: [],
+    };
+    render(<MeetingDetail meeting={withParticipants as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.getByText("Participants")).toBeInTheDocument();
+    expect(screen.getByText("Reggie King")).toBeInTheDocument();
+    expect(screen.getByText("John Smith")).toBeInTheDocument();
+  });
+
+  it("hides participants table when attendances are recorded", () => {
+    const withBoth: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+      attendances: [
+        { id: 1, meetingId: 1, userId: 1, status: "on_time", user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+    };
+    render(<MeetingDetail meeting={withBoth as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.queryByText("Participants")).not.toBeInTheDocument();
+    expect(screen.getByText("Attendance")).toBeInTheDocument();
   });
 });

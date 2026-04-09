@@ -1,3 +1,5 @@
+import type { UserRole } from "@/shared/auth/session";
+
 export type EnterpriseModuleRecord = {
   id: number;
   code?: string;
@@ -38,6 +40,54 @@ export type EnterpriseModuleSearchParams = {
 
 export type EnterpriseModuleSearchResponse = {
   items: EnterpriseModuleRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+  query: string | null;
+};
+
+export type EnterpriseManagedUser = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  isStaff: boolean;
+  role: UserRole;
+  active: boolean;
+  membershipStatus: "active" | "inactive" | "left";
+};
+
+export type EnterpriseManagedUserRecord = Omit<EnterpriseManagedUser, "role" | "active" | "membershipStatus"> &
+  Partial<Pick<EnterpriseManagedUser, "role" | "active" | "membershipStatus">>;
+
+export type EnterpriseManagedUserUpdate = {
+  role?: Extract<UserRole, "STUDENT" | "STAFF">;
+  active?: boolean;
+};
+
+export type EnterpriseManagedUserCreate = {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  role?: Extract<UserRole, "STUDENT" | "STAFF">;
+};
+
+export type EnterpriseUserSortBy = "name" | "joinDate";
+export type EnterpriseUserSortDirection = "asc" | "desc";
+
+export type EnterpriseUserSearchParams = {
+  q?: string;
+  sortBy?: EnterpriseUserSortBy;
+  sortDirection?: EnterpriseUserSortDirection;
+  page?: number;
+  pageSize?: number;
+};
+
+export type EnterpriseUserSearchResponse = {
+  items: EnterpriseManagedUserRecord[];
   total: number;
   page: number;
   pageSize: number;

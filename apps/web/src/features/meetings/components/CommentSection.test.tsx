@@ -107,6 +107,12 @@ describe("CommentSection", () => {
     expect(screen.queryByPlaceholderText(/add a comment/i)).not.toBeInTheDocument();
   });
 
+  it("hides composer and delete when allowComposer is false", () => {
+    render(<CommentSection meetingId={10} initialComments={comments} allowComposer={false} />);
+    expect(screen.queryByPlaceholderText(/add a comment/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+  });
+
   it("disables post button when textarea is empty", () => {
     render(<CommentSection meetingId={10} initialComments={[]} />);
     expect(screen.getByRole("button", { name: /post comment/i })).toBeDisabled();
@@ -121,6 +127,13 @@ describe("CommentSection", () => {
       expect(screen.getByText("Nice work")).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/add a comment/i)).toHaveValue("");
     });
+  });
+
+  it("passes teamId to addComment when provided", async () => {
+    render(<CommentSection meetingId={10} teamId={5} initialComments={[]} />);
+    fireEvent.change(screen.getByPlaceholderText(/add a comment/i), { target: { value: "Great" } });
+    fireEvent.click(screen.getByRole("button", { name: /post comment/i }));
+    await waitFor(() => expect(addCommentMock).toHaveBeenCalledWith(10, 1, "Great", 5));
   });
 
   it("does not post when textarea is only whitespace", () => {

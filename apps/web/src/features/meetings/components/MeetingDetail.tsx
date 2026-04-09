@@ -1,15 +1,17 @@
 "use client";
 
-import { ChevronLeft, Pencil, UserCheck, NotebookPen } from "lucide-react";
+import { Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { useUser } from "@/features/auth/useUser";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { CommentSection } from "./CommentSection";
 import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { isMeetingMember } from "../lib/meetingMember";
 import { isWithinEditWindow } from "../lib/meetingTime";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import "../styles/meeting-detail.css";
 import "../styles/meeting-list.css";
 import type { Meeting, MeetingPermissions } from "../types";
@@ -27,13 +29,18 @@ function formatStatus(status: string) {
 
 export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetailProps) {
   const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`;
   const isOrganiser = user?.id === meeting.organiserId;
   const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
-  const canEdit = isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember);
-  const canRecordAttendance = isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember);
-  const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember);
+  const canEdit = workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember));
+  const canRecordAttendance =
+    workspaceCanEdit && (isOrganiser || (permissions.allowAnyoneToRecordAttendance && isMember));
+  const canWriteMinutes =
+    workspaceCanEdit &&
+    (!meeting.minutes || meeting.minutes.writerId === user?.id || (permissions.allowAnyoneToWriteMinutes && isMember));
   const minutesWindowOpen = isWithinEditWindow(meeting.date, permissions.minutesEditWindowDays);
   const attendanceWindowOpen = isWithinEditWindow(meeting.date, permissions.attendanceEditWindowDays);
 
@@ -75,10 +82,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
 
   return (
     <div className="stack">
-      <AnchorLink href={`/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`} className="back-link">
-        <ChevronLeft size={14} />
-        {upcoming ? "Back to upcoming meetings" : "Back to previous meetings"}
-      </AnchorLink>
+      <MeetingBreadcrumbs projectId={projectId} meetingsHref={meetingsHref} currentLabel={meeting.title} />
 
       <Card title={meeting.title} action={cardAction}>
         <p>Date: {new Date(meeting.date).toLocaleString()}</p>
@@ -136,6 +140,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
         teamId={meeting.teamId}
         members={members}
         initialComments={meeting.comments ?? []}
+        allowComposer={workspaceCanEdit}
       />
     </div>
   );

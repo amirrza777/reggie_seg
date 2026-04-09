@@ -26,6 +26,19 @@
   gap: var(--space-panel-heading-gap);
 }
 
+.enterprise-module-create-page__header-toolbar {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.enterprise-module-create-page__header-back {
+  flex-shrink: 0;
+}
+
+.staff-project-manage__danger-zone--spaced {
+  margin-top: 16px;
+}
+
 .enterprise-module-create__card {
   max-width: none;
   width: 100%;
@@ -53,7 +66,8 @@
     display: block;
   }
 
-  .enterprise-module-create__form.enterprise-module-create__form--guidance-only {
+  .enterprise-module-create__form.enterprise-module-create__form--guidance-only,
+  .enterprise-module-create__form.enterprise-module-create__form--single-column {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -445,7 +459,10 @@
 
 .enterprise-module-create__danger-title {
   margin: 0;
-  font-size: var(--fs-body-lg);
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
   color: var(--status-danger-text);
 }
 

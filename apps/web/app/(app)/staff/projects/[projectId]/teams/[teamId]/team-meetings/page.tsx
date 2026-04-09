@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
-import { StaffMeetingsView } from "@/features/staff/meetings/StaffMeetingsView";
+import { StaffMeetingsView } from "@/features/staff/meetings/components/StaffMeetingsView";
 import "@/features/staff/meetings/styles/staff-meetings.css";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -10,53 +9,85 @@ type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
 
-export default async function StaffTeamMeetingsSectionPage({ params }: PageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+type ParsedRouteParams = {
+  projectId: number;
+  teamId: number;
+};
 
-  const { projectId, teamId } = await params;
+type TeamMeetingsState = {
+  meetings: Awaited<ReturnType<typeof listTeamMeetings>>;
+  absenceThreshold: number;
+  error: string | null;
+};
+
+function parseRouteParams(projectId: string, teamId: string): ParsedRouteParams | null {
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
-
   if (Number.isNaN(numericProjectId) || Number.isNaN(numericTeamId)) {
-    return <p className="muted">Invalid project or team ID.</p>;
+    return null;
   }
+  return { projectId: numericProjectId, teamId: numericTeamId };
+}
 
-  let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
-  let projectError: string | null = null;
+async function loadProjectTeam(userId: number, projectId: number, teamId: number) {
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    const projectData = await getStaffProjectTeams(userId, projectId);
+    const team = projectData.teams.find((item) => item.id === teamId) ?? null;
+    return { team, error: team ? null : "Team not found in this project." };
   } catch (error) {
-    projectError = error instanceof Error ? error.message : "Failed to load project team data.";
+    const message = error instanceof Error ? error.message : "Failed to load project team data.";
+    return { team: null, error: message };
   }
+}
 
-  const team = projectData?.teams.find((item) => item.id === numericTeamId) ?? null;
-  if (!projectData || !team) {
-    return (
-      <div className="stack">
-        <p className="muted">{projectError ?? "Team not found in this project."}</p>
-      </div>
-    );
-  }
-
-  let meetings: Awaited<ReturnType<typeof listTeamMeetings>> = [];
-  let meetingsError: string | null = null;
-  let absenceThreshold = 3;
-
+async function loadTeamMeetings(teamId: number): Promise<TeamMeetingsState> {
   try {
-    [meetings, { absenceThreshold }] = await Promise.all([
-      listTeamMeetings(numericTeamId),
-      getTeamMeetingSettings(numericTeamId),
+    const [meetings, settings] = await Promise.all([
+      listTeamMeetings(teamId),
+      getTeamMeetingSettings(teamId),
     ]);
+    return { meetings, absenceThreshold: settings.absenceThreshold, error: null };
   } catch (error) {
-    meetingsError = error instanceof Error ? error.message : "Failed to load meetings.";
+    const message = error instanceof Error ? error.message : "Failed to load meetings.";
+    return { meetings: [], absenceThreshold: 3, error: message };
+  }
+}
+
+function TeamMessage({ message }: { message: string }) {
+  return (
+    <div className="stack">
+      <p className="muted">{message}</p>
+    </div>
+  );
+}
+
+export default async function StaffTeamMeetingsSectionPage({ params }: PageProps) {
+  const userId = (await getCurrentUser())!.id;
+  const routeParams = await params;
+  const parsed = parseRouteParams(routeParams.projectId, routeParams.teamId);
+  if (!parsed) {
+    return <TeamMessage message="Invalid project or team ID." />;
   }
 
+  const project = await loadProjectTeam(userId, parsed.projectId, parsed.teamId);
+  if (!project.team) {
+    return <TeamMessage message={project.error ?? "Team not found in this project."} />;
+  }
+
+  const meetingsState = await loadTeamMeetings(parsed.teamId);
+  const count = meetingsState.meetings.length;
   return (
-    <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
-      {meetingsError ? <p className="muted">{meetingsError}</p> : <StaffMeetingsView meetings={meetings} absenceThreshold={absenceThreshold} />}
-    </section>
+    <>
+      <p className="muted">
+        Team: {project.team.teamName} · {count} meeting{count === 1 ? "" : "s"} logged
+      </p>
+      <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
+        {meetingsState.error ? (
+          <p className="muted">{meetingsState.error}</p>
+        ) : (
+          <StaffMeetingsView meetings={meetingsState.meetings} absenceThreshold={meetingsState.absenceThreshold} />
+        )}
+      </section>
+    </>
   );
 }

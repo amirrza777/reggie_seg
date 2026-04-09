@@ -20,7 +20,7 @@ export default async function EnterpriseModuleCreatePage() {
         </p>
       </header>
 
-      <Card title={<span className="overview-title">Module setup</span>} className="enterprise-module-create__card">
+      <Card title="Module setup" className="enterprise-module-create__card">
         <EnterpriseModuleCreateForm />
       </Card>
     </div>

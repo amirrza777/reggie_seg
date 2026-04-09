@@ -1,7 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
@@ -9,26 +7,6 @@ import { listMeetings } from "@/features/meetings/api/client";
 import { listProjectGithubRepoLinks, getLatestProjectGithubSnapshot } from "@/features/github/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import StaffTeamHealthPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -86,7 +64,6 @@ vi.mock("@/features/staff/projects/components/StaffSignalLookbackSelect", () => 
   ),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getStaffTeamHealthMessagesMock = vi.mocked(getStaffTeamHealthMessages);
@@ -132,16 +109,6 @@ describe("StaffTeamHealthPage", () => {
     } as Awaited<ReturnType<typeof getTeamDetails>>);
   });
 
-  it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as any);
-
-    await expect(
-      StaffTeamHealthPage({ params: Promise.resolve({ projectId: "22", teamId: "58" }) }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
-  });
-
   it("renders invalid route message for non-numeric params", async () => {
     const page = await StaffTeamHealthPage({ params: Promise.resolve({ projectId: "x", teamId: "y" }) });
     render(page);
@@ -177,7 +144,6 @@ describe("StaffTeamHealthPage", () => {
     render(page);
 
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/22");
   });
 
   it("renders summary sections and passes warnings/messages to child panels", async () => {

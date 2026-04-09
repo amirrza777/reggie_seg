@@ -24,6 +24,13 @@
   word-break: break-word;
 }
 
+.card__title .overview-title {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  letter-spacing: inherit;
+}
+
 .card__action {
   display: flex;
   align-items: center;
@@ -50,7 +57,7 @@
 
 .user-management-card.card--has-action .card__header {
   align-items: flex-start;
-  padding-bottom: 2px;
+  padding-bottom: 8px;
 }
 
 .card__body {

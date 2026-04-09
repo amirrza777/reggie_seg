@@ -148,7 +148,7 @@ export function EnterpriseModuleManager({
 
   return (
     <Card
-      title={<span className="overview-title">{cardHeading}</span>}
+      title={cardHeading}
       action={canCreateModule ? (
         <Link href="/enterprise/modules/create" className="btn btn--primary enterprise-modules__create-trigger">
           Create module

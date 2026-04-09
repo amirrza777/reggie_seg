@@ -12,6 +12,10 @@
   --sidebar-active-bg: var(--selection-gray-bg, color-mix(in srgb, var(--sidebar-text) 12%, transparent));
   /* Underline for the space switcher tabs */
   --space-switcher-underline: var(--color-fixed-22c55e);
+  /* Shared shell surface for top bar, sidebar, and workspace */
+  --app-shell-panel-bg: var(--glass-ui-bg-soft);
+  --app-shell-panel-border: var(--glass-ui-border);
+  --app-shell-panel-shadow: var(--glass-ui-shadow);
 }
 
 html,
@@ -63,13 +67,11 @@ body:has(.app-shell) {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background:
-    var(--marketing-glow-1),
-    var(--marketing-glow-2),
-    var(--marketing-glow-3);
-  opacity: 0.52;
-  filter: none;
-  mix-blend-mode: normal;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 70% 60% at 0% 0%, var(--color-fixed-rgba-32-173-120-0-52), var(--color-fixed-rgba-32-173-120-0-14) 40%, transparent 70%),
+    radial-gradient(ellipse 70% 60% at 100% 100%, var(--color-fixed-rgba-32-173-120-0-52), var(--color-fixed-rgba-32-173-120-0-14) 40%, transparent 70%);
+  mix-blend-mode: darken;
   z-index: 0;
 }
 
@@ -78,19 +80,18 @@ body:has(.app-shell) {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: var(--marketing-noise-gradient);
-  background-repeat: no-repeat;
-  background-size: 100% 100%;
-  background-position: center;
-  opacity: 0.18;
+  opacity: 0.7;
+  background-image: url("/marketing/tiimo-noise.avif");
+  background-position: 0 0;
+  background-size: auto;
+  background-attachment: scroll;
+  mix-blend-mode: soft-light;
   z-index: 0;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   .app-shell__content::before {
-    opacity: 0.58;
-    filter: none;
-    mix-blend-mode: normal;
+    mix-blend-mode: screen;
   }
 }
 

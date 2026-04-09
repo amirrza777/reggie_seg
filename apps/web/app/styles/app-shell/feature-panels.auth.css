@@ -26,3 +26,33 @@
 .full-width-btn {
   width: 100%;
 }
+
+.enterprise-access-recovery {
+  width: 100%;
+}
+
+.enterprise-access-recovery__copy {
+  display: grid;
+  gap: 10px;
+}
+
+.enterprise-access-recovery__copy p {
+  margin: 0;
+}
+
+.enterprise-access-recovery__form {
+  display: grid;
+  gap: 12px;
+}
+
+.enterprise-access-recovery .auth-field {
+  gap: 6px;
+  margin-bottom: 0;
+}
+
+.enterprise-access-recovery__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}

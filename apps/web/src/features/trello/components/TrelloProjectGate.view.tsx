@@ -7,6 +7,7 @@ export type TrelloProjectGateChildProps = {
   projectId: string;
   teamId: number;
   teamName?: string;
+  teamHasLinkedTrelloBoard: boolean;
   deadline?: Awaited<ReturnType<typeof getProjectDeadline>> | null;
 };
 
@@ -74,5 +75,19 @@ export async function TrelloProjectGate({
     );
   }
 
-  return <>{children({ projectId, teamId: team.id, teamName: team.teamName, deadline })}</>;
+  const teamHasLinkedTrelloBoard = Boolean(
+    team.trelloBoardId && String(team.trelloBoardId).trim().length > 0,
+  );
+
+  return (
+    <>
+      {children({
+        projectId,
+        teamId: team.id,
+        teamName: team.teamName,
+        teamHasLinkedTrelloBoard,
+        deadline,
+      })}
+    </>
+  );
 }

@@ -14,7 +14,6 @@ import {
   getTeamByIdHandler,
   getTeamByUserAndProjectHandler,
   getTeammatesForProjectHandler,
-  joinModuleHandler,
   getUserModulesHandler,
   getModuleStaffListHandler,
   getUserProjectsHandler,
@@ -31,7 +30,6 @@ import {
   updateProjectWarningsConfigHandler,
   evaluateProjectWarningsHandler,
 } from "./controller.js";
-import * as moduleJoinController from "../moduleJoin/controller.js";
 
 vi.mock("./service.js", () => ({
   createProject: vi.fn(),
@@ -41,7 +39,6 @@ vi.mock("./service.js", () => ({
   fetchProjectsForUser: vi.fn(),
   fetchProjectsForStaff: vi.fn(),
   fetchModulesForUser: vi.fn(),
-  joinModuleByCode: vi.fn(),
   fetchModuleStaffList: vi.fn(),
   fetchProjectDeadline: vi.fn(),
   fetchTeammatesForProject: vi.fn(),
@@ -66,10 +63,6 @@ vi.mock("./service.js", () => ({
   fetchStaffStudentDeadlineOverrides: vi.fn(),
   upsertStaffStudentDeadlineOverride: vi.fn(),
   clearStaffStudentDeadlineOverride: vi.fn(),
-}));
-
-vi.mock("../moduleJoin/controller.js", () => ({
-  joinModuleCompatibilityHandler: vi.fn(),
 }));
 
 function mockResponse() {
@@ -296,15 +289,6 @@ describe("projects controller core handlers", () => {
       compactRes,
     );
     expect(service.fetchModulesForUser).toHaveBeenCalledWith(7, { staffOnly: true, compact: true });
-  });
-
-  it("joinModuleHandler delegates to moduleJoin compatibility controller", async () => {
-    (moduleJoinController.joinModuleCompatibilityHandler as any).mockResolvedValueOnce(undefined);
-    const res = mockResponse();
-    const req: any = { user: { sub: 7 }, body: { code: "segp-1234" } };
-
-    await joinModuleHandler(req, res);
-    expect(moduleJoinController.joinModuleCompatibilityHandler).toHaveBeenCalledWith(req, res);
   });
 
   it("getModuleStaffListHandler returns members or 403", async () => {

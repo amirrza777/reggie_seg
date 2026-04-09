@@ -1,20 +1,14 @@
-import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
 import "@/features/staff/projects/styles/staff-projects.css";
 import { StaffProjectReposReadOnlyClient } from "@/features/github/components/StaffProjectReposReadOnlyClient";
-
 type PageProps = {
   params: Promise<{ projectId: string; teamId: string }>;
 };
 
 export default async function StaffRepositoriesSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
-
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  const userId = (await getCurrentUser())!.id;
 
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
@@ -26,7 +20,7 @@ export default async function StaffRepositoriesSectionPage({ params }: PageProps
   let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let errorMessage: string | null = null;
   try {
-    data = await getStaffProjectTeams(user.id, numericProjectId);
+    data = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "Failed to load repositories.";
   }
@@ -42,6 +36,10 @@ export default async function StaffRepositoriesSectionPage({ params }: PageProps
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team
+      </p>
+
       <StaffProjectReposReadOnlyClient
         projectId={projectId}
         projectName={data.project.name}

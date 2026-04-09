@@ -5,7 +5,6 @@ import {
   getProjectByIdHandler,
   getUserProjectsHandler,
   getUserModulesHandler,
-  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
   getProjectDeadlineHandler,
@@ -36,33 +35,26 @@ import {
   getStaffStudentDeadlineOverridesHandler,
   upsertStaffStudentDeadlineOverrideHandler,
   clearStaffStudentDeadlineOverrideHandler,
+  deleteStaffProjectManageHandler,
+  getStaffProjectManageHandler,
+  patchStaffProjectManageHandler,
 } from "./controller.js";
 import {
   getStaffTeamDeadlineHandler,
   reviewStaffTeamHealthMessageHandler,
   resolveStaffTeamHealthMessageHandler,
 } from "./team-health-review/controller.js";
-import { moduleJoinAttemptRateLimit } from "../moduleJoin/rateLimit.js";
 
 const router = Router();
 router.post("/", requireAuth, createProjectHandler);
 router.get("/modules", requireAuth, getUserModulesHandler);
-// Compatibility route for legacy clients. Remove in MJ-013 after migration to /module-join/join.
-router.post(
-  "/modules/join",
-  requireAuth,
-  moduleJoinAttemptRateLimit,
-  (_req, res, next) => {
-    res.setHeader("Deprecation", "true");
-    res.setHeader("Sunset", "Wed, 31 Dec 2026 23:59:59 GMT");
-    next();
-  },
-  joinModuleHandler,
-);
 router.get("/modules/:moduleId/staff", requireAuth, getModuleStaffListHandler);
 router.get("/modules/:moduleId/student-project-matrix", requireAuth, getModuleStudentProjectMatrixHandler);
 router.get("/staff/mine", requireAuth, getStaffProjectsHandler);
 router.get("/staff/marking", requireAuth, getStaffMarkingProjectsHandler);
+router.get("/staff/:projectId/manage", requireAuth, getStaffProjectManageHandler);
+router.patch("/staff/:projectId/manage", requireAuth, patchStaffProjectManageHandler);
+router.delete("/staff/:projectId/manage", requireAuth, deleteStaffProjectManageHandler);
 router.get("/staff/:projectId/teams", requireAuth, getStaffProjectTeamsHandler);
 router.get("/staff/:projectId/teams/:teamId/team-health-messages", requireAuth, getStaffTeamHealthMessagesHandler);
 router.post("/staff/:projectId/teams/:teamId/warnings", requireAuth, createStaffTeamWarningHandler);

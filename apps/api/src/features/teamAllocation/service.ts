@@ -56,6 +56,12 @@ type StudentTeamCreationScope = {
   projectId: number;
 };
 
+const defaultFrontendBaseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+function buildProjectTeamWorkspaceUrl(projectId: number, baseUrl = defaultFrontendBaseUrl) {
+  return `${baseUrl.replace(/\/$/, "")}/projects/${projectId}/team`;
+}
+
 export type RandomAllocationPreview = {
   project: {
     id: number;
@@ -1364,6 +1370,7 @@ export async function applyCustomAllocationForProject(
 }
 
 async function notifyStudentsAboutRandomAllocation(
+  projectId: number,
   projectName: string,
   plannedTeams: Array<{
     members: Array<{
@@ -1388,13 +1395,17 @@ async function notifyStudentsAboutRandomAllocation(
     assignments.map(({ member, teamName }) => {
       const firstName = member.firstName?.trim() || "there";
       const subject = `Team allocation updated - ${projectName}`;
+      const workspaceUrl = buildProjectTeamWorkspaceUrl(projectId);
       const text = [
         `Hi ${firstName},`,
         "",
         `Your team allocation for ${projectName} has been updated.`,
-        `You are now assigned to: ${teamName}.`,
+        `Assigned team: ${teamName}`,
         "",
-        "Log in to view your updated team workspace.",
+        `Open your team workspace: ${workspaceUrl}`,
+        "",
+        "You are receiving this because your account is enrolled on this project.",
+        "If this appears incorrect, please contact your module staff in Team Feedback.",
       ].join("\n");
 
       return sendEmail({
@@ -1412,6 +1423,7 @@ async function notifyStudentsAboutRandomAllocation(
 }
 
 async function notifyStudentsAboutManualAllocation(
+  projectId: number,
   projectName: string,
   teamName: string,
   students: Array<{ firstName: string; email: string }>,
@@ -1420,13 +1432,17 @@ async function notifyStudentsAboutManualAllocation(
     students.map((student) => {
       const firstName = student.firstName?.trim() || "there";
       const subject = `Team allocation updated - ${projectName}`;
+      const workspaceUrl = buildProjectTeamWorkspaceUrl(projectId);
       const text = [
         `Hi ${firstName},`,
         "",
         `Your team allocation for ${projectName} has been updated.`,
-        `You are now assigned to: ${teamName}.`,
+        `Assigned team: ${teamName}`,
         "",
-        "Log in to view your updated team workspace.",
+        `Open your team workspace: ${workspaceUrl}`,
+        "",
+        "You are receiving this because your account is enrolled on this project.",
+        "If this appears incorrect, please contact your module staff in Team Feedback.",
       ].join("\n");
 
       return sendEmail({
@@ -1444,11 +1460,12 @@ async function notifyStudentsAboutManualAllocation(
 }
 
 async function notifyStudentsAboutApprovedDraftTeam(
+  projectId: number,
   projectName: string,
   teamName: string,
   students: Array<{ firstName: string; email: string }>,
 ) {
-  await notifyStudentsAboutManualAllocation(projectName, teamName, students);
+  await notifyStudentsAboutManualAllocation(projectId, projectName, teamName, students);
 }
 
 function resolveRandomAllocationTeamNames(teamCount: number, teamNames?: string[]) {
@@ -1522,14 +1539,21 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   });
 
   const { team, inviter } = await findInviteContext(params.teamId, params.inviterId);
+  const resolvedBaseUrl = params.baseUrl.trim() || defaultFrontendBaseUrl;
+  const invitePageUrl = team?.projectId ? buildProjectTeamWorkspaceUrl(team.projectId, resolvedBaseUrl) : null;
+  const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}`.trim() : "A teammate";
+  const projectName = team?.project?.name?.trim() || null;
 
   const textLines = [
-    `You have been invited by ${inviter?.firstName ?? "a teammate"} ${
-      inviter?.lastName ?? ""
-    } (${inviter?.email ?? "unknown"}) to join the team "${
-      team?.teamName ?? "Unknown Team"
-    }".`,
-    "Please log in to your account and RSVP to this invite.",
+    `You have been invited to join "${team?.teamName ?? "a team"}" in Team Feedback.`,
+    projectName ? `Project: ${projectName}` : null,
+    `Invited by: ${inviterName}`,
+    invitePageUrl ? `Review this invite: ${invitePageUrl}` : null,
+    params.message?.trim() ? `Message from inviter: ${params.message.trim()}` : null,
+    `This invite expires on ${expiresAt.toUTCString()}.`,
+    "For privacy, this message does not include personal details about other team members.",
+    "You are receiving this because this email address is eligible for the project module.",
+    "If you do not recognize this invite, you can ignore this email.",
   ].filter(Boolean);
 
   try {
@@ -1547,7 +1571,6 @@ export async function createTeamInvite(params: CreateTeamInviteParams) {
   )?.id;
 
   if (inviteeUserId) {
-    const inviterName = inviter ? `${inviter.firstName} ${inviter.lastName}` : "A teammate";
     try {
       await addNotification({
         userId: inviteeUserId,
@@ -1946,6 +1969,7 @@ export async function approveAllocationDraftForProject(
   }
 
   await notifyStudentsAboutApprovedDraftTeam(
+    project.id,
     project.name,
     approvedTeam.teamName,
     approvedTeam.members.map((member) => ({

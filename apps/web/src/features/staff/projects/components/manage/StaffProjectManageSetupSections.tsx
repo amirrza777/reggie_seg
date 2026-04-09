@@ -1,0 +1,78 @@
+"use client";
+
+import Link from "next/link";
+import type { ProjectWarningsConfig, StaffProjectManageSummary } from "@/features/projects/types";
+import { Card } from "@/shared/ui/Card";
+import { StaffProjectManageSetupProvider } from "./StaffProjectManageSetupContext";
+import { StaffProjectManageArchiveOrDeleteSection } from "./sections/StaffProjectManageArchiveOrDeleteSection";
+import { StaffProjectManageFeatureFlagsSection } from "./sections/StaffProjectManageFeatureFlagsSection";
+import { StaffProjectManageForumSection } from "./sections/StaffProjectManageForumSection";
+import { StaffProjectManageProjectNameSection } from "./sections/StaffProjectManageProjectNameSection";
+import { StaffProjectManageWarningsSection } from "./sections/StaffProjectManageWarningsSection";
+
+const MANAGE_PROJECT_DESCRIPTION_EDITABLE =
+  "Update project details, forum privacy, student tabs, and automatic warning configuration from the staff workspace.";
+
+const MANAGE_PROJECT_DESCRIPTION_READ_ONLY =
+  "Settings are read-only while this project is archived. You can unarchive it, or its module, to restore editing.";
+
+export type StaffProjectManageSetupSectionsProps = {
+  projectId: number;
+  initial: StaffProjectManageSummary;
+  globalFeatureFlags: Record<string, boolean>;
+  warningsOk: boolean;
+  warningsConfig: ProjectWarningsConfig | null;
+  overviewHref: string;
+  discussionHref: string;
+  warningsTabHref: string;
+};
+
+export function StaffProjectManageSetupSections({
+  projectId,
+  initial,
+  globalFeatureFlags,
+  warningsOk,
+  warningsConfig,
+  overviewHref,
+  discussionHref,
+  warningsTabHref,
+}: StaffProjectManageSetupSectionsProps) {
+  const projectSettingsReadOnly =
+    Boolean(initial.archivedAt) || Boolean(initial.moduleArchivedAt);
+
+  return (
+    <div className="ui-page enterprise-module-create-page enterprise-module-create-page--embedded">
+      <header className="ui-page__header">
+        <div className="ui-toolbar ui-toolbar--between enterprise-module-create-page__header-toolbar">
+          <h1 className="overview-title ui-page__title">Manage project</h1>
+          <Link href={overviewHref} className="btn btn--ghost enterprise-module-create-page__header-back">
+            Back to project
+          </Link>
+        </div>
+        {projectSettingsReadOnly ? (
+          <p className="ui-note ui-note--muted" role="status">
+            {MANAGE_PROJECT_DESCRIPTION_READ_ONLY}
+          </p>
+        ) : (
+          <p className="ui-page__description">{MANAGE_PROJECT_DESCRIPTION_EDITABLE}</p>
+        )}
+      </header>
+
+      <Card title=" " className="enterprise-module-create__card">
+        <div className="stack">
+          <StaffProjectManageSetupProvider projectId={projectId} initial={initial}>
+            <StaffProjectManageProjectNameSection />
+            <StaffProjectManageForumSection discussionHref={discussionHref} />
+            <StaffProjectManageFeatureFlagsSection globalFeatureFlags={globalFeatureFlags} />
+            <StaffProjectManageWarningsSection
+              warningsOk={warningsOk}
+              warningsConfig={warningsConfig}
+              warningsTabHref={warningsTabHref}
+            />
+            <StaffProjectManageArchiveOrDeleteSection />
+          </StaffProjectManageSetupProvider>
+        </div>
+      </Card>
+    </div>
+  );
+}

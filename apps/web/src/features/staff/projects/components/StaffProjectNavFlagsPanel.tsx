@@ -12,12 +12,12 @@ import type {
   StaffProjectNavFlagsConfigResponse,
 } from "@/features/projects/types";
 import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 
 type StaffProjectNavFlagsPanelProps = {
   projectId: number;
   globalFeatureFlags?: Record<string, boolean>;
+  readOnly?: boolean;
 };
 
 type ProjectNavPhase = "active" | "completed";
@@ -96,7 +96,11 @@ function createStatusChip(enabled: boolean) {
   );
 }
 
-export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: StaffProjectNavFlagsPanelProps) {
+export function StaffProjectNavFlagsPanel({
+  projectId,
+  globalFeatureFlags,
+  readOnly = false,
+}: StaffProjectNavFlagsPanelProps) {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [error, setError] = useState<string | null>(null);
@@ -130,7 +134,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
   }, [projectId]);
 
   const handleToggle = async (phase: ProjectNavPhase, key: ProjectNavFlagKey, enabled: boolean) => {
-    if (!payload) return;
+    if (!payload || readOnly) return;
     const busyKey = getBusyKey(phase, key);
     const previousConfig = payload.projectNavFlags;
     const nextConfig = updateConfigState(previousConfig, phase, key, enabled);
@@ -168,7 +172,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
     key: "peer_assessment" | "peer_feedback",
     mode: ProjectNavPeerMode,
   ) => {
-    if (!payload) return;
+    if (!payload || readOnly) return;
     const busyKey = getModeBusyKey(key);
     const previousConfig = payload.projectNavFlags;
     const nextConfig = updatePeerModeState(previousConfig, key, mode);
@@ -232,7 +236,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
                 onChange={(event) =>
                   void handlePeerModeChange(key, event.currentTarget.checked ? "MANUAL" : "NATURAL")
                 }
-                disabled={modeBusy}
+                disabled={modeBusy || readOnly}
               />
               <span className="staff-projects__feature-flag-mode-text">
                 {peerMode === "MANUAL" ? "Manual mode" : "Natural mode"}
@@ -247,7 +251,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
             variant={activeEffectiveEnabled ? "ghost" : "primary"}
             size="sm"
             onClick={() => void handleToggle("active", key, !activeEnabled)}
-            disabled={activeBusy || !isActiveEditable}
+            disabled={activeBusy || !isActiveEditable || readOnly}
             className="feature-flag-action__btn"
           >
             {activeBusy ? "Saving..." : isActiveEditable ? activeEffectiveEnabled ? "Disable" : "Enable" : "Auto"}
@@ -260,7 +264,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
             variant={completedEnabled ? "ghost" : "primary"}
             size="sm"
             onClick={() => void handleToggle("completed", key, !completedEnabled)}
-            disabled={completedBusy}
+            disabled={completedBusy || readOnly}
             className="feature-flag-action__btn"
           >
             {completedBusy ? "Saving..." : completedEnabled ? "Disable" : "Enable"}
@@ -268,7 +272,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
         </div>,
       ];
     });
-  }, [busy, payload]);
+  }, [busy, payload, readOnly]);
 
   const globallyDisabledTabs = useMemo(() => {
     if (!globalFeatureFlags) return [];
@@ -276,6 +280,16 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
       Object.prototype.hasOwnProperty.call(globalFeatureFlags, key) && globalFeatureFlags[key] === false,
     ).map((tab) => tab.label);
   }, [globalFeatureFlags]);
+
+  const table = (
+    <Table
+      headers={["Tab", "Active project", "Completed project"]}
+      rows={rows}
+      className="feature-flags-table"
+      rowClassName="feature-flags-table__row"
+      columnTemplate="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
+    />
+  );
 
   return (
     <div className="stack">
@@ -291,15 +305,7 @@ export function StaffProjectNavFlagsPanel({ projectId, globalFeatureFlags }: Sta
         </div>
       ) : null}
 
-      <Card title="Project navigation access">
-        <Table
-          headers={["Tab", "Active project", "Completed project"]}
-          rows={rows}
-          className="feature-flags-table"
-          rowClassName="feature-flags-table__row"
-          columnTemplate="minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)"
-        />
-      </Card>
+      {table}
       {globallyDisabledTabs.length > 0 ? (
         <div className="status-alert status-alert--error staff-projects__enterprise-override-alert">
           <p>

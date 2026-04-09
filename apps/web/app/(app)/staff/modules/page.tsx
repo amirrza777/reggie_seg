@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
 import type { Module } from "@/features/modules/types";
 import { StaffModulesPageClient } from "@/features/modules/components/StaffModulesPageClient";
+import { partitionStaffModulesByArchive } from "@/features/modules/lib/staffModuleListFilters";
 import { getCurrentUser } from "@/shared/auth/session";
 
 export default async function StaffModulesPage() {
@@ -14,7 +15,8 @@ export default async function StaffModulesPage() {
   let errorMessage: string | null = null;
 
   try {
-    modules = await listModules(user.id, { scope: "staff" });
+    const loaded = await listModules(user.id, { scope: "staff" });
+    modules = partitionStaffModulesByArchive(loaded).unarchived;
   } catch {
     errorMessage = "Could not load your modules right now. Please try again.";
   }

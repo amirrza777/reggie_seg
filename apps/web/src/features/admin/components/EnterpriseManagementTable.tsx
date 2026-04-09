@@ -96,9 +96,11 @@ function EnterpriseCreateModalSection({ state }: { state: ManagementState }) {
       open={state.createModalOpen}
       nameInput={state.nameInput}
       codeInput={state.codeInput}
+      inviteEmailInput={state.inviteEmailInput}
       isCreating={state.isCreating}
       onNameInputChange={state.setNameInput}
       onCodeInputChange={state.setCodeInput}
+      onInviteEmailInputChange={state.setInviteEmailInput}
       onClose={state.closeCreateModal}
       onSubmit={state.handleCreateEnterprise}
     />
@@ -117,8 +119,17 @@ function EnterpriseAccountsModalSection({
       enterprise={state.selectedEnterprise}
       usersStatus={state.enterpriseUsersStatus}
       usersMessage={state.enterpriseUsersMessage}
+      inviteEmail={state.enterpriseAdminInviteEmail}
+      onInviteEmailChange={state.setEnterpriseAdminInviteEmail}
+      inviteStatus={state.enterpriseAdminInviteStatus}
+      inviteMessage={state.enterpriseAdminInviteMessage}
+      onInviteSubmit={(event) => {
+        void state.submitEnterpriseAdminInvite(event);
+      }}
       userSearchQuery={state.enterpriseUserSearchQuery}
       onUserSearchQueryChange={state.setEnterpriseUserSearchQuery}
+      userSortValue={state.enterpriseUserSortValue}
+      onUserSortValueChange={state.setEnterpriseUserSortValue}
       userRows={enterpriseUserRows}
       userTotal={state.enterpriseUserTotal}
       userStart={state.enterpriseUserStart}
@@ -127,7 +138,7 @@ function EnterpriseAccountsModalSection({
       userPageInput={state.enterpriseUserPageInput}
       userTotalPages={state.enterpriseUserTotalPages}
       effectiveUserTotalPages={state.effectiveEnterpriseUserTotalPages}
-      onClose={() => state.setSelectedEnterprise(null)}
+      onClose={state.resetSelectedEnterprise}
       onUserPageChange={state.setEnterpriseUserPage}
       onUserPageInputChange={state.setEnterpriseUserPageInput}
       onUserPageInputBlur={() => state.applyEnterpriseUserPageInput(state.enterpriseUserPageInput)}

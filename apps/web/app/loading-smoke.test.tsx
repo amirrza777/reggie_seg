@@ -12,7 +12,7 @@ import ProjectTrelloLoading from "./(app)/projects/[projectId]/trello/loading";
 import ProjectsLoading from "./(app)/projects/loading";
 import StaffDiscussionLoading from "./(app)/staff/projects/[projectId]/discussion/loading";
 import StaffTeamLoading from "./(app)/staff/projects/[projectId]/teams/[teamId]/loading";
-import StaffTrelloLoading from "./(app)/staff/projects/[projectId]/trello/loading";
+import StaffTeamTrelloLoading from "./(app)/staff/projects/[projectId]/teams/[teamId]/trello/loading";
 import StaffMarksLoading from "./(app)/staff/marks/loading";
 import StaffModuleWorkspaceLoading from "./(app)/staff/modules/[moduleId]/loading";
 import StaffModuleProjectsLoading from "./(app)/staff/modules/[moduleId]/projects/loading";
@@ -35,7 +35,7 @@ const loadingComponents = [
   ProjectsLoading,
   StaffDiscussionLoading,
   StaffTeamLoading,
-  StaffTrelloLoading,
+  StaffTeamTrelloLoading,
   StaffMarksLoading,
   StaffModuleWorkspaceLoading,
   StaffModuleProjectsLoading,

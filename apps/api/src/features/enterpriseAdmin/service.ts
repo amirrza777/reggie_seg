@@ -21,6 +21,14 @@ export {
 } from "./service.overview-search.js";
 
 export {
+  parseEnterpriseUserSearchFilters,
+  searchEnterpriseUsers,
+  createEnterpriseUser,
+  updateEnterpriseUser,
+  removeEnterpriseUser,
+} from "./service.user-management.js";
+
+export {
   createModule,
   getModuleAccess,
   getModuleAccessSelection,

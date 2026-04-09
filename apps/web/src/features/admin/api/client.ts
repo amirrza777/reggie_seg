@@ -10,6 +10,7 @@ import type {
   AdminUserUpdate,
   AuditLogEntry,
   CreateEnterprisePayload,
+  EnterpriseAdminInviteResponse,
   EnterpriseRecord,
   AdminSummary,
   UserRole,
@@ -24,6 +25,8 @@ export async function searchUsers(params: AdminUserSearchParams = {}): Promise<A
   if (params.q) {search.set("q", params.q);}
   if (params.role) {search.set("role", params.role);}
   if (typeof params.active === "boolean") {search.set("active", String(params.active));}
+  if (params.sortBy) {search.set("sortBy", params.sortBy);}
+  if (params.sortDirection) {search.set("sortDirection", params.sortDirection);}
   if (params.page) {search.set("page", String(params.page));}
   if (params.pageSize) {search.set("pageSize", String(params.pageSize));}
   const qs = search.toString();
@@ -105,6 +108,8 @@ export async function searchEnterpriseUsers(
   if (params.q) {search.set("q", params.q);}
   if (params.role) {search.set("role", params.role);}
   if (typeof params.active === "boolean") {search.set("active", String(params.active));}
+  if (params.sortBy) {search.set("sortBy", params.sortBy);}
+  if (params.sortDirection) {search.set("sortDirection", params.sortDirection);}
   if (params.page) {search.set("page", String(params.page));}
   if (params.pageSize) {search.set("pageSize", String(params.pageSize));}
   const qs = search.toString();
@@ -118,4 +123,14 @@ export async function updateEnterpriseUser(enterpriseId: string, userId: number,
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export async function inviteEnterpriseAdmin(enterpriseId: string, email: string) {
+  return apiFetch<EnterpriseAdminInviteResponse>(
+    `/admin/enterprises/${encodeURIComponent(enterpriseId)}/invites/enterprise-admin`,
+    {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    },
+  );
 }

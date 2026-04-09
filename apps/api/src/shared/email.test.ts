@@ -64,13 +64,20 @@ describe("shared email", () => {
       auth: { user: "u", pass: "p" },
       tls: { rejectUnauthorized: true },
     });
-    expect(mocked.sendMail).toHaveBeenCalledWith({
-      from: "noreply@example.com",
-      to: "u@test.com",
-      subject: "Reset",
-      text: "text",
-      html: "<b>text</b>",
-    });
+    expect(mocked.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        from: "noreply@example.com",
+        to: "u@test.com",
+        subject: "Reset",
+        text: "text",
+        html: expect.stringContaining("<b>text</b>"),
+      }),
+    );
+    expect(mocked.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("Team Feedback"),
+      }),
+    );
   });
 
   it("reuses cached transporter across multiple sends", async () => {
@@ -96,6 +103,34 @@ describe("shared email", () => {
     expect(mocked.createTransport).toHaveBeenCalledWith(
       expect.objectContaining({
         tls: { rejectUnauthorized: false },
+      }),
+    );
+  });
+
+  it("renders branded html when only text is provided", async () => {
+    process.env.SMTP_HOST = "smtp.example.com";
+
+    const { sendEmail } = await import("./email.js");
+
+    await sendEmail({
+      to: "u@test.com",
+      subject: "Alert",
+      text: "Hi there\n\n- First item\n- Second item",
+    });
+
+    expect(mocked.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("<h1"),
+      }),
+    );
+    expect(mocked.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("Team Feedback"),
+      }),
+    );
+    expect(mocked.sendMail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        html: expect.stringContaining("<li style=\"margin:0 0 8px 0;\">First item</li>"),
       }),
     );
   });

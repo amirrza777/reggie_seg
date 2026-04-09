@@ -38,8 +38,13 @@ export function WarningRuleCard({
   onLookbackDaysChange,
   disabled = false,
 }: WarningRuleCardProps) {
+  const cardClass = [
+    "staff-projects__warning-rule-card",
+    enabled ? "staff-projects__warning-rule-card--active" : "staff-projects__warning-rule-card--inactive",
+  ].join(" ");
+
   return (
-    <article className="staff-projects__warning-rule-card">
+    <article className={cardClass}>
       <div className="staff-projects__warning-rule-head">
         <h4 style={{ margin: 0 }}>{title}</h4>
         <label className="staff-projects__warning-toggle">

@@ -7,12 +7,14 @@ vi.mock("../api/client", () => ({
   createEnterprise: vi.fn(),
   deleteEnterprise: vi.fn(),
   searchEnterpriseUsers: vi.fn(),
+  inviteEnterpriseAdmin: vi.fn(),
   updateEnterpriseUser: vi.fn(),
 }));
 
 import {
   createEnterprise,
   deleteEnterprise,
+  inviteEnterpriseAdmin,
   searchEnterprises,
   searchEnterpriseUsers,
   updateEnterpriseUser,
@@ -22,6 +24,7 @@ import { EnterpriseManagementTable } from "./EnterpriseManagementTable";
 const searchEnterprisesMock = searchEnterprises as MockedFunction<typeof searchEnterprises>;
 const createEnterpriseMock = createEnterprise as MockedFunction<typeof createEnterprise>;
 const deleteEnterpriseMock = deleteEnterprise as MockedFunction<typeof deleteEnterprise>;
+const inviteEnterpriseAdminMock = inviteEnterpriseAdmin as MockedFunction<typeof inviteEnterpriseAdmin>;
 const searchEnterpriseUsersMock = searchEnterpriseUsers as MockedFunction<typeof searchEnterpriseUsers>;
 const updateEnterpriseUserMock = updateEnterpriseUser as MockedFunction<typeof updateEnterpriseUser>;
 type EnterpriseSearchItem = Awaited<ReturnType<typeof searchEnterprises>>["items"][number];
@@ -108,18 +111,24 @@ const installEnterpriseUserSearchMock = (dataset: EnterpriseUserSearchItem[]) =>
 const createEnterpriseFromModal = async (
   user: ReturnType<typeof userEvent.setup>,
   name: string,
-  code: string
+  code: string,
+  inviteEmail?: string,
 ) => {
   await user.click(screen.getByRole("button", { name: /^Create$/i }));
 
   const dialog = screen.getByRole("dialog", { name: /create enterprise/i });
   const nameInput = within(dialog).getByLabelText(/enterprise name/i);
   const codeInput = within(dialog).getByLabelText(/enterprise code/i);
+  const inviteEmailInput = within(dialog).getByLabelText(/invite enterprise admin email/i);
 
   await user.clear(nameInput);
   await user.type(nameInput, name);
   await user.clear(codeInput);
   await user.type(codeInput, code);
+  await user.clear(inviteEmailInput);
+  if (inviteEmail) {
+    await user.type(inviteEmailInput, inviteEmail);
+  }
   await user.click(within(dialog).getByRole("button", { name: /create enterprise/i }));
 };
 
@@ -130,6 +139,10 @@ describe("EnterpriseManagementTable", () => {
     createEnterpriseMock.mockResolvedValue(enterprise);
     deleteEnterpriseMock.mockResolvedValue({ success: true });
     installEnterpriseUserSearchMock([enterpriseUser]);
+    inviteEnterpriseAdminMock.mockResolvedValue({
+      email: "invite@example.com",
+      expiresAt: "2026-04-15T12:00:00.000Z",
+    } as any);
     updateEnterpriseUserMock.mockResolvedValue({ ...enterpriseUser, role: "STAFF", isStaff: true });
   });
 
@@ -164,6 +177,29 @@ describe("EnterpriseManagementTable", () => {
     expect(screen.getByText(/created with code KCL2/i)).toBeInTheDocument();
   });
 
+  it("creates an enterprise and sends optional invite from the create modal", async () => {
+    const user = userEvent.setup();
+    createEnterpriseMock.mockResolvedValue({
+      ...enterprise,
+      id: "ent_3",
+      code: "ACM",
+      name: "Acme",
+    });
+
+    render(<EnterpriseManagementTable isSuperAdmin />);
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+
+    await createEnterpriseFromModal(user, "Acme", "acm", "owner@acme.com");
+
+    await waitFor(() =>
+      expect(createEnterpriseMock).toHaveBeenCalledWith({ name: "Acme", code: "ACM" }),
+    );
+    await waitFor(() =>
+      expect(inviteEnterpriseAdminMock).toHaveBeenCalledWith("ent_3", "owner@acme.com"),
+    );
+    expect(screen.getByText(/created and invite sent to owner@acme.com/i)).toBeInTheDocument();
+  });
+
   it("opens enterprise accounts and updates role", async () => {
     const user = userEvent.setup();
     render(<EnterpriseManagementTable isSuperAdmin />);
@@ -178,6 +214,45 @@ describe("EnterpriseManagementTable", () => {
     await user.click(await screen.findByRole("button", { name: /staff/i }));
     await waitFor(() => expect(updateEnterpriseUserMock).toHaveBeenCalledWith("ent_1", 42, { role: "STAFF" }));
     expect(screen.getByText(/updated role to staff/i)).toBeInTheDocument();
+  });
+
+  it("sends enterprise admin invite without exposing role promotion button", async () => {
+    const user = userEvent.setup();
+    render(<EnterpriseManagementTable isSuperAdmin />);
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: /manage accounts/i }));
+    await waitFor(() =>
+      expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    const inviteInput = screen.getByLabelText(/enterprise admin invite email/i);
+    await user.type(inviteInput, "invite@example.com");
+    await user.click(screen.getByRole("button", { name: /send invite/i }));
+    await waitFor(() => expect(inviteEnterpriseAdminMock).toHaveBeenCalledWith("ent_1", "invite@example.com"));
+    expect(screen.getByText(/sent enterprise admin invite to invite@example.com/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /enterprise admin/i })).not.toBeInTheDocument();
+  });
+
+  it("requests sorted enterprise users when sort selection changes", async () => {
+    const user = userEvent.setup();
+    render(<EnterpriseManagementTable isSuperAdmin />);
+    await waitFor(() => expect(searchEnterprisesMock).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: /manage accounts/i }));
+
+    await waitFor(() =>
+      expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", { q: undefined, page: 1, pageSize: 10 }),
+    );
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /sort enterprise users/i }), "joinDateDesc");
+    await waitFor(() =>
+      expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("ent_1", {
+        q: undefined,
+        page: 1,
+        pageSize: 10,
+        sortBy: "joinDate",
+        sortDirection: "desc",
+      }),
+    );
   });
 
   it("dismisses success popup after 2.5 seconds", async () => {

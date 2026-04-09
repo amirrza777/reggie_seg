@@ -13,6 +13,7 @@ export type SessionUser = {
   isStaff: boolean;
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
+  isUnassigned?: boolean;
   role?: UserRole;
   active?: boolean;
   suspended?: boolean;
@@ -25,6 +26,7 @@ const normalizeUser = (user: SessionUser): SessionUser => {
     ...user,
     role,
     active: user.active ?? true,
+    isUnassigned: user.isUnassigned ?? false,
   };
 };
 
@@ -71,7 +73,7 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
     const sessionError = readSessionError(err);
     // If suspended, surface as inactive user so layouts can show a suspension notice.
     if (sessionError.status === 403 && String(sessionError.message || "").toLowerCase().includes("suspend")) {
-      return { id: -1, email: "", firstName: "", lastName: "", isStaff: false, role: "STUDENT", active: false, suspended: true };
+      return { id: -1, email: "", firstName: "", lastName: "", isStaff: false, isUnassigned: false, role: "STUDENT", active: false, suspended: true };
     }
     return null;
   }

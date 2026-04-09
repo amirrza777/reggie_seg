@@ -25,24 +25,10 @@ export function listAllProjects() {
       id: true,
       name: true,
       archivedAt: true,
-      module: { select: { name: true } },
+      module: { select: { name: true, archivedAt: true } },
       _count: { select: { teams: true } },
     },
-    orderBy: { name: "asc" },
-  });
-}
-
-/** Returns the all teams. */
-export function listAllTeams() {
-  return prisma.team.findMany({
-    select: {
-      id: true,
-      teamName: true,
-      archivedAt: true,
-      project: { select: { name: true } },
-      _count: { select: { allocations: true } },
-    },
-    orderBy: { teamName: "asc" },
+    orderBy: [{ module: { name: "asc" } }, { name: "asc" }],
   });
 }
 
@@ -54,9 +40,4 @@ export function setModuleArchived(id: number, archivedAt: Date | null) {
 /** Executes the set project archived. */
 export function setProjectArchived(id: number, archivedAt: Date | null) {
   return prisma.project.update({ where: { id }, data: { archivedAt } });
-}
-
-/** Executes the set team archived. */
-export function setTeamArchived(id: number, archivedAt: Date | null) {
-  return prisma.team.update({ where: { id }, data: { archivedAt } });
 }

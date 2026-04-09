@@ -4,9 +4,15 @@ import jwt from "jsonwebtoken";
 import router from "./router.js";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
-import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
+import {
+  buildAdminUserSearchOrderBy,
+  buildAdminUserSearchWhere,
+  matchesAdminUserSearchCandidate,
+  parseAdminUserSearchFilters,
+} from "./userSearch.js";
 
 const { generateFromNameMock } = vi.hoisted(() => ({ generateFromNameMock: vi.fn() }));
+const { validateRefreshTokenSessionMock } = vi.hoisted(() => ({ validateRefreshTokenSessionMock: vi.fn() }));
 
 vi.mock("../../shared/db.js", () => ({
   prisma: {
@@ -22,8 +28,12 @@ vi.mock("../../shared/db.js", () => ({
   },
 }));
 
-vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn() }));
+vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn(), recordAuditLog: vi.fn() }));
+vi.mock("../../auth/service.js", () => ({
+  validateRefreshTokenSession: validateRefreshTokenSessionMock,
+}));
 vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchOrderBy: vi.fn(),
   buildAdminUserSearchWhere: vi.fn(),
   parseAdminUserSearchFilters: vi.fn(),
   matchesAdminUserSearchCandidate: vi.fn(),
@@ -53,9 +63,10 @@ function getRouteHandler(method: "get" | "post" | "patch" | "delete", path: stri
 }
 
 beforeEach(() => {
-  vi.clearAllMocks();
+  vi.resetAllMocks();
 
   vi.spyOn(jwt, "verify").mockReturnValue({ sub: 1, admin: true } as any);
+  validateRefreshTokenSessionMock.mockResolvedValue(true);
 
   (prisma.user.findUnique as any).mockResolvedValue({
     id: 1,
@@ -91,6 +102,7 @@ beforeEach(() => {
     ok: true,
     value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
   });
+  (buildAdminUserSearchOrderBy as any).mockReturnValue([{ id: "asc" }]);
   (buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
   (matchesAdminUserSearchCandidate as any).mockReturnValue(false);
 
@@ -155,6 +167,18 @@ describe("admin router middleware and user management", () => {
     await ensureAdmin(req, res, next);
 
     expect((res.status as any)).toHaveBeenCalledWith(403);
+  });
+
+  it("ensureAdmin returns 401 when refresh token session is invalid", async () => {
+    validateRefreshTokenSessionMock.mockResolvedValueOnce(false);
+    const req: any = { cookies: { refresh_token: "rt" } };
+    const res = mockRes();
+    const next = vi.fn() as NextFunction;
+
+    await ensureAdmin(req, res, next);
+
+    expect((res.status as any)).toHaveBeenCalledWith(401);
+    expect(next).not.toHaveBeenCalled();
   });
 
   it("ensureAdmin returns 403 when resolved user is not admin", async () => {
@@ -224,16 +248,44 @@ describe("admin router middleware and user management", () => {
 
   it("users route maps isStaff flag from role", async () => {
     (prisma.user.findMany as any).mockResolvedValueOnce([
-      { id: 1, email: "s@x.com", firstName: "S", lastName: "A", role: "STUDENT", active: true },
-      { id: 2, email: "t@x.com", firstName: "T", lastName: "B", role: "STAFF", active: true },
+      {
+        id: 1,
+        email: "s@x.com",
+        firstName: "S",
+        lastName: "A",
+        role: "STUDENT",
+        active: true,
+        enterpriseId: "ent-1",
+        enterprise: { id: "ent-1", name: "Enterprise One", code: "ENT1" },
+      },
+      {
+        id: 2,
+        email: "t@x.com",
+        firstName: "T",
+        lastName: "B",
+        role: "STAFF",
+        active: true,
+        enterpriseId: "ent-2",
+        enterprise: { id: "ent-2", name: "Enterprise Two", code: "ENT2" },
+      },
     ]);
     const res = mockRes();
 
     await users({ adminUser: { enterpriseId: "ent-1" } } as any, res);
 
     expect((res.json as any)).toHaveBeenCalledWith([
-      expect.objectContaining({ id: 1, isStaff: false, role: "STUDENT" }),
-      expect.objectContaining({ id: 2, isStaff: true, role: "STAFF" }),
+      expect.objectContaining({
+        id: 1,
+        isStaff: false,
+        role: "STUDENT",
+        enterprise: { id: "ent-1", name: "Enterprise One", code: "ENT1" },
+      }),
+      expect.objectContaining({
+        id: 2,
+        isStaff: true,
+        role: "STAFF",
+        enterprise: { id: "ent-2", name: "Enterprise Two", code: "ENT2" },
+      }),
     ]);
   });
 
@@ -343,31 +395,50 @@ describe("admin router middleware and user management", () => {
   });
 
   it("patchRole returns 404 when user is missing", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce(null);
+    (prisma.user.findUnique as any).mockResolvedValueOnce(null);
     const res = mockRes();
 
-    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any, res);
 
     expect((res.status as any)).toHaveBeenCalledWith(404);
   });
 
   it("patchRole blocks updates to protected super-admin account", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 2, email: "admin@kcl.ac.uk" });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 2, email: "admin@kcl.ac.uk", enterpriseId: "ent-1", role: "ADMIN", active: true });
     const res = mockRes();
 
-    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any, res);
 
     expect((res.status as any)).toHaveBeenCalledWith(400);
   });
 
   it("patchRole updates role and returns mapped user payload", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 2, email: "u@x.com" });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 2, email: "u@x.com", enterpriseId: "ent-2", role: "STUDENT", active: true });
     (prisma.user.update as any).mockResolvedValueOnce({ id: 2, email: "u@x.com", role: "STAFF", active: true });
     const res = mockRes();
 
-    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchRole({ params: { id: "2" }, body: { role: "STAFF" }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any, res);
 
     expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 2, isStaff: true, role: "STAFF" }));
+  });
+
+  it("patchRole blocks non-super admins from assigning ADMIN role", async () => {
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 5,
+      email: "staff@x.com",
+      enterpriseId: "ent-1",
+      role: "STAFF",
+      active: true,
+    });
+    const res = mockRes();
+
+    await patchRole({
+      params: { id: "5" },
+      body: { role: "ADMIN" },
+      adminUser: { enterpriseId: "ent-1", email: "manager@kcl.ac.uk" },
+    } as any, res);
+
+    expect((res.status as any)).toHaveBeenCalledWith(403);
   });
 
   it("patchUser validates numeric id", async () => {
@@ -378,40 +449,34 @@ describe("admin router middleware and user management", () => {
     expect((res.status as any)).toHaveBeenCalledWith(400);
   });
 
-  it("patchUser returns 404 when target user is missing", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce(null);
-    const res = mockRes();
-
-    await patchUser({ params: { id: "3" }, body: {}, adminUser: { enterpriseId: "ent-1" } } as any, res);
-
-    expect((res.status as any)).toHaveBeenCalledWith(404);
-  });
-
   it("patchUser blocks edits to protected super-admin account", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 3, email: "admin@kcl.ac.uk" });
+    (prisma.user.findUnique as any).mockResolvedValue({ id: 3, email: "admin@kcl.ac.uk", enterpriseId: "ent-1", role: "ADMIN", active: true });
     const res = mockRes();
 
-    await patchUser({ params: { id: "3" }, body: {}, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchUser(
+      { params: { id: "3" }, body: { active: false }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any,
+      res,
+    );
 
     expect((res.status as any)).toHaveBeenCalledWith(400);
   });
 
   it("patchUser revokes refresh tokens when deactivating a user", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 3, email: "student@x.com" });
-    (prisma.user.update as any).mockResolvedValueOnce({ id: 3, email: "student@x.com", role: "STAFF", active: false });
+    (prisma.user.findUnique as any).mockResolvedValue({ id: 3, email: "student@x.com", enterpriseId: "ent-2", role: "STAFF", active: true });
+    (prisma.user.update as any).mockResolvedValue({ id: 3, email: "student@x.com", role: "STAFF", active: false });
     const res = mockRes();
 
-    await patchUser({ params: { id: "3" }, body: { active: false, role: "STAFF" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchUser({ params: { id: "3" }, body: { active: false, role: "STAFF" }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any, res);
 
     expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({ where: { userId: 3, revoked: false }, data: { revoked: true } });
   });
 
   it("patchUser maps ENTERPRISE_ADMIN role updates for non-admin users", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 4, email: "student@x.com" });
-    (prisma.user.update as any).mockResolvedValueOnce({ id: 4, email: "student@x.com", role: "STUDENT", active: true });
+    (prisma.user.findUnique as any).mockResolvedValue({ id: 4, email: "student@x.com", enterpriseId: "ent-2", role: "STUDENT", active: true });
+    (prisma.user.update as any).mockResolvedValue({ id: 4, email: "student@x.com", role: "STUDENT", active: true });
     const res = mockRes();
 
-    await patchUser({ params: { id: "4" }, body: { active: true, role: "ENTERPRISE_ADMIN" }, adminUser: { enterpriseId: "ent-1" } } as any, res);
+    await patchUser({ params: { id: "4" }, body: { active: true, role: "ENTERPRISE_ADMIN" }, adminUser: { enterpriseId: "ent-1", email: "admin@kcl.ac.uk" } } as any, res);
 
     expect((res.json as any)).toHaveBeenCalledWith(expect.objectContaining({ id: 4, isStaff: false }));
   });

@@ -74,7 +74,6 @@ describe("RegisterForm", () => {
         password: "supersecure",
         firstName: "Ada",
         lastName: "Lovelace",
-        role: "STUDENT",
       })
     );
 
@@ -83,20 +82,10 @@ describe("RegisterForm", () => {
     expect(screen.getByText(/account created/i)).toBeInTheDocument();
   });
 
-  it("redirects staff accounts to staff overview after signup", async () => {
-    refresh.mockResolvedValue({ role: "STAFF", isStaff: true });
+  it("does not render the developer role picker", () => {
     render(<RegisterForm />);
-
-    fireEvent.change(screen.getByLabelText(/enterprise code/i), { target: { value: "DEFAULT" } });
-    fireEvent.change(screen.getByLabelText(/first name/i), { target: { value: "Ada" } });
-    fireEvent.change(screen.getByLabelText(/last name/i), { target: { value: "Lovelace" } });
-    fireEvent.change(screen.getByLabelText(/email address/i), { target: { value: "ada@example.com" } });
-    fireEvent.change(screen.getByLabelText(/^password$/i), { target: { value: "supersecure" } });
-    fireEvent.change(screen.getByLabelText(/confirm password/i), { target: { value: "supersecure" } });
-    fireEvent.click(screen.getByRole("radio", { name: /staff/i }));
-    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
-
-    await waitFor(() => expect(push).toHaveBeenCalledWith("/staff/dashboard"));
+    expect(screen.queryByText(/developer shortcut/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("radiogroup", { name: /select role/i })).not.toBeInTheDocument();
   });
 
   it("starts Google OAuth flow", () => {

@@ -217,7 +217,8 @@
   --fw-medium: 500;
   --fw-semibold: 600;
   --fw-bold: 700;
-  --bg: #ffffff;
+  --bg-canvas: #fafafa;
+  --bg: var(--bg-canvas);
   --bg-strong: #0f0f0f;
   --surface: #ffffff;
   --surface-elevated: color-mix(in srgb, var(--surface) 88%, white 12%);
@@ -228,6 +229,9 @@
   --breadcrumb-contrast: var(--pure-black);
   --muted: #4f4f4f;
   --border: rgba(0, 0, 0, 0.08);
+  --avatar-fallback-border: color-mix(in srgb, var(--ink) 22%, transparent);
+  --avatar-fallback-bg: color-mix(in srgb, var(--surface) 88%, var(--ink) 12%);
+  --avatar-fallback-text: color-mix(in srgb, var(--ink) 86%, var(--surface) 14%);
   --accent: var(--ink);
   --accent-strong: var(--ink-strong);
   --accent-soft: color-mix(in srgb, var(--ink) 16%, transparent);
@@ -360,7 +364,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #030303;
+    --bg-canvas: #030303;
+    --bg: var(--bg-canvas);
     --bg-strong: #080808;
     --surface: #0a0a0a;
     --surface-elevated: color-mix(in srgb, var(--surface) 96%, black 4%);

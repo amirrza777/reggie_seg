@@ -99,17 +99,17 @@ describe("teamBoardState", () => {
       });
     });
 
-    it("sets link-account when No board assigned and getMyBoards throws user not connected", async () => {
+    it("sets no-team-board when No board assigned and getMyBoards throws user not connected", async () => {
       getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
       getMyBoardsMock.mockRejectedValue(new Error("User not connected to Trello"));
       const setState = vi.fn();
 
       await loadTeamBoardState(10, setState);
 
-      expect(setState).toHaveBeenLastCalledWith({ status: "link-account" });
+      expect(setState).toHaveBeenLastCalledWith({ status: "no-team-board" });
     });
 
-    it("sets error when getTeamBoard throws Not a member", async () => {
+    it("sets error with API message when getTeamBoard throws Not a member", async () => {
       getTeamBoardMock.mockRejectedValue(new Error("Not a member of this team"));
       const setState = vi.fn();
 
@@ -117,8 +117,18 @@ describe("teamBoardState", () => {
 
       expect(setState).toHaveBeenLastCalledWith({
         status: "error",
-        message: "You are not a member of this team.",
+        message: "Not a member of this team",
       });
+    });
+
+    it("staffView: sets no-team-board when no board assigned without calling getMyBoards", async () => {
+      getTeamBoardMock.mockRejectedValue(new Error("No board assigned"));
+      const setState = vi.fn();
+
+      await loadTeamBoardState(10, setState, { staffView: true });
+
+      expect(getMyBoardsMock).not.toHaveBeenCalled();
+      expect(setState).toHaveBeenLastCalledWith({ status: "no-team-board" });
     });
 
     it("sets error when getTeamBoard throws owner not connected", async () => {

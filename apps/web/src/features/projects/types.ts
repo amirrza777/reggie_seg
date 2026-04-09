@@ -175,6 +175,7 @@ export type StaffProject = {
   name: string;
   moduleId: number;
   moduleName: string;
+  archivedAt: string | null;
   teamCount: number;
   hasGithubRepo: boolean;
   daysOld: number;
@@ -197,8 +198,19 @@ export type StaffProjectTeamsResponse = {
     moduleId: number;
     moduleName: string;
     moduleArchivedAt?: string | null;
+    projectArchivedAt?: string | null;
+    viewerAccessLabel?: string;
+    canManageProjectSettings?: boolean;
   };
   teams: Team[];
+};
+
+export type StaffProjectManageSummary = {
+  id: number;
+  name: string;
+  archivedAt: string | null;
+  moduleId: number;
+  moduleArchivedAt: string | null;
 };
 
 export type StaffStudentDeadlineOverride = {

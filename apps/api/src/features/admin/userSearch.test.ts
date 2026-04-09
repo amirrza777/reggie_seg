@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
+import {
+  buildAdminUserSearchOrderBy,
+  buildAdminUserSearchWhere,
+  matchesAdminUserSearchCandidate,
+  parseAdminUserSearchFilters,
+} from "./userSearch.js";
 
 describe("parseAdminUserSearchFilters", () => {
   it("returns defaults when query params are not provided", () => {
@@ -10,6 +15,8 @@ describe("parseAdminUserSearchFilters", () => {
         query: null,
         role: null,
         active: null,
+        sortBy: null,
+        sortDirection: null,
         page: 1,
         pageSize: 25,
       },
@@ -30,6 +37,8 @@ describe("parseAdminUserSearchFilters", () => {
         query: "kcl",
         role: "STAFF",
         active: false,
+        sortBy: null,
+        sortDirection: null,
         page: 3,
         pageSize: 50,
       },
@@ -44,6 +53,8 @@ describe("parseAdminUserSearchFilters", () => {
         query: null,
         role: null,
         active: true,
+        sortBy: null,
+        sortDirection: null,
         page: 1,
         pageSize: 25,
       },
@@ -82,9 +93,60 @@ describe("parseAdminUserSearchFilters", () => {
       error: "q must be 120 characters or fewer",
     });
   });
+
+  it("parses sortBy and sortDirection filters", () => {
+    const parsed = parseAdminUserSearchFilters({ sortBy: "joinDate", sortDirection: "asc" });
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        query: null,
+        role: null,
+        active: null,
+        sortBy: "joinDate",
+        sortDirection: "asc",
+        page: 1,
+        pageSize: 25,
+      },
+    });
+  });
+
+  it("uses default sort direction when sortBy is provided without sortDirection", () => {
+    const parsed = parseAdminUserSearchFilters({ sortBy: "joinDate" });
+    expect(parsed).toEqual({
+      ok: true,
+      value: {
+        query: null,
+        role: null,
+        active: null,
+        sortBy: "joinDate",
+        sortDirection: "desc",
+        page: 1,
+        pageSize: 25,
+      },
+    });
+  });
+
+  it("rejects invalid sortBy and sortDirection combinations", () => {
+    expect(parseAdminUserSearchFilters({ sortBy: "createdAt" })).toEqual({
+      ok: false,
+      error: "Invalid sortBy filter",
+    });
+    expect(parseAdminUserSearchFilters({ sortBy: "name", sortDirection: "up" })).toEqual({
+      ok: false,
+      error: "Invalid sortDirection filter",
+    });
+    expect(parseAdminUserSearchFilters({ sortDirection: "desc" })).toEqual({
+      ok: false,
+      error: "sortDirection requires sortBy",
+    });
+  });
 });
 
 describe("buildAdminUserSearchWhere", () => {
+  it("returns empty where for global search with no filters", () => {
+    expect(buildAdminUserSearchWhere({ query: null, role: null, active: null })).toEqual({});
+  });
+
   it("returns enterprise-only filter when no search params are set", () => {
     expect(buildAdminUserSearchWhere("ent_1", { query: null, role: null, active: null })).toEqual({
       enterpriseId: "ent_1",
@@ -229,5 +291,26 @@ describe("matchesAdminUserSearchCandidate", () => {
 
   it("does not match unrelated query text", () => {
     expect(matchesAdminUserSearchCandidate(user, "quantum mechanics")).toBe(false);
+  });
+});
+
+describe("buildAdminUserSearchOrderBy", () => {
+  it("returns id sort by default", () => {
+    expect(buildAdminUserSearchOrderBy({ sortBy: null, sortDirection: null })).toEqual([{ id: "asc" }]);
+  });
+
+  it("returns join-date sort order", () => {
+    expect(buildAdminUserSearchOrderBy({ sortBy: "joinDate", sortDirection: "desc" })).toEqual([
+      { createdAt: "desc" },
+      { id: "asc" },
+    ]);
+  });
+
+  it("returns name sort order", () => {
+    expect(buildAdminUserSearchOrderBy({ sortBy: "name", sortDirection: "asc" })).toEqual([
+      { firstName: "asc" },
+      { lastName: "asc" },
+      { id: "asc" },
+    ]);
   });
 });

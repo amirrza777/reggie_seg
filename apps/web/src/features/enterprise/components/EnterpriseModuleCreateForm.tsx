@@ -87,6 +87,15 @@ function EnterpriseModuleCreateFormBody({
         {state.isEditMode && moduleId != null ? <ModuleJoinCodeField joinCode={joinCode ?? null} created={created} /> : null}
       </ModuleFormCollapsible>
 
+      <ModuleFormCollapsible
+        title={state.isEditMode ? "Module content" : "After you create"}
+        defaultOpen={!state.isEditMode && !readOnlyArchived}
+      >
+        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
+          <ModuleEditFieldsSection state={state} />
+        </fieldset>
+      </ModuleFormCollapsible>
+
       <ModuleFormCollapsible title="User access">
         <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
           <ModuleLeaderAccessSection state={state} currentUserId={currentUserId} />
@@ -104,18 +113,10 @@ function EnterpriseModuleCreateFormBody({
         </ModuleFormCollapsible>
       ) : null}
 
-      <ModuleFormCollapsible
-        title={state.isEditMode ? "Module content" : "After you create"}
-        defaultOpen={!state.isEditMode && !readOnlyArchived}
-      >
-        <fieldset disabled={readOnlyArchived} style={fieldsetResetStyle}>
-          <ModuleEditFieldsSection state={state} />
-        </fieldset>
-      </ModuleFormCollapsible>
-
       {state.isEditMode && moduleId != null ? (
         <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
-          <ModuleArchiveSection state={state} />
+          <ModuleArchiveActionNotice message={state.archiveActionNotice} />
+          <ModuleArchiveSection state={state} moduleArchived={state.moduleArchived} />
           <ModuleDeleteSection state={state} />
         </ModuleFormCollapsible>
       ) : null}
@@ -141,12 +142,10 @@ function EnterpriseModuleCreateFormBody({
 
 function ModuleFormCollapsible({
   title,
-  summaryHint,
   defaultOpen = false,
   children,
 }: {
   title: string;
-  summaryHint?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
@@ -163,9 +162,6 @@ function ModuleFormCollapsible({
       <summary className="enterprise-module-create__collapsible-summary">
         <span className="enterprise-module-create__collapsible-summary-text">
           <span className="enterprise-module-create__collapsible-title">{title}</span>
-          {summaryHint ? (
-            <span className="enterprise-module-create__collapsible-hint muted">{summaryHint}</span>
-          ) : null}
         </span>
       </summary>
       <div className="enterprise-module-create__collapsible-body">{children}</div>
@@ -178,11 +174,6 @@ function ModuleEditBlockedNotice({ state }: { state: ModuleCreateFormState }) {
     <div className="ui-stack-sm">
       <div className="status-alert status-alert--error enterprise-module-create__error">
         <span>{state.errorMessage ?? "Only module owners/leaders can edit this module."}</span>
-      </div>
-      <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
-        <Button type="button" variant="ghost" onClick={state.navigateHome}>
-          Back to modules
-        </Button>
       </div>
     </div>
   );
@@ -528,6 +519,15 @@ function ModuleDeleteSection({ state }: { state: ModuleCreateFormState }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ModuleArchiveActionNotice({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <div className="status-alert status-alert--success enterprise-module-create__archive-notice" role="status">
+      <span>{message}</span>
     </div>
   );
 }

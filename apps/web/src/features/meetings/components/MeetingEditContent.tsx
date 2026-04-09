@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import { MeetingEditForm } from "./MeetingEditForm";
 import "../styles/meeting-detail.css";
 
@@ -15,13 +16,10 @@ type MeetingEditContentProps = {
 
 export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentProps) {
   const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const { meeting, settings } = useMeetingWithSettings(meetingId);
 
   if (!meeting || !user || !settings) return null;
-
-  const isOrganiser = meeting.organiserId === user.id;
-  const isMember = isMeetingMember(meeting.team.allocations, user.id);
-  const canEdit = isOrganiser || (settings.allowAnyoneToEditMeetings && isMember);
 
   const backLink = (
     <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
@@ -30,19 +28,32 @@ export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentP
     </AnchorLink>
   );
 
-  if (!canEdit) {
+  if (!workspaceCanEdit) {
     return (
       <div className="stack">
         {backLink}
+        <p className="muted">This project is archived; meetings cannot be edited.</p>
+      </div>
+    );
+  }
+
+  const isOrganiser = meeting.organiserId === user.id;
+  const isMember = isMeetingMember(meeting.team.allocations, user.id);
+  const canEdit = isOrganiser || (settings.allowAnyoneToEditMeetings && isMember);
+
+  if (!canEdit) {
+    return (
+      <div className="stack">
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
         <p className="muted">You don't have permission to edit this meeting.</p>
       </div>
     );
   }
 
-  if (new Date(meeting.date) < new Date()) {
+  if (!isUpcomingMeeting) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
         <p className="muted">Meeting details cannot be edited once the meeting has started.</p>
       </div>
     );
@@ -50,7 +61,7 @@ export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentP
 
   return (
     <div className="stack">
-      {backLink}
+      <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
       <MeetingEditForm meeting={meeting} userId={user.id} projectId={projectId} />
     </div>
   );

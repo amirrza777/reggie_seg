@@ -12,6 +12,8 @@ const serviceMocks = {
   updateProfile: vi.fn(),
   requestEmailChange: vi.fn(),
   confirmEmailChange: vi.fn(),
+  deleteAccount: vi.fn(),
+  validateRefreshTokenSession: vi.fn(),
   verifyRefreshToken: vi.fn(),
 };
 

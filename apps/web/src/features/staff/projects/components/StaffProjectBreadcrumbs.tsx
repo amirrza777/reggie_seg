@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { BreadcrumbItem } from "@/shared/layout/Breadcrumbs";
+import { StaffBreadcrumbs } from "@/shared/layout/StaffBreadcrumbs";
 import { decodePathSegment, inferModuleIdFromStaffProjectPath, resolveStaffProjectBasePath } from "./navBasePath";
 
 type StaffProjectBreadcrumbsProps = {
@@ -10,11 +11,6 @@ type StaffProjectBreadcrumbsProps = {
   teamNamesById: Record<string, string>;
   moduleId?: string | number | null;
   moduleName?: string | null;
-};
-
-type BreadcrumbItem = {
-  label: string;
-  href?: string;
 };
 
 type BreadcrumbContext = {
@@ -46,7 +42,6 @@ const PROJECT_SECTION_LABELS: Record<string, string> = {
   discussion: "Discussion Forum",
   meetings: "Meetings",
   "team-allocation": "Team allocation",
-  trello: "Trello",
 };
 
 function toTitleCase(value: string): string {
@@ -78,17 +73,9 @@ function buildProjectSectionCrumbs(basePath: string, sectionSegments: string[]):
   if (sectionSegments.length === 0) {
     return [];
   }
-  const [section, child] = sectionSegments;
+  const [section] = sectionSegments;
   if (!section) {
     return [];
-  }
-  if (section === "trello") {
-    const trelloRoot = `${basePath}/trello`;
-    const items: BreadcrumbItem[] = [{ label: PROJECT_SECTION_LABELS.trello, href: trelloRoot }];
-    if (child) {
-      items.push({ label: toTitleCase(child) });
-    }
-    return items;
   }
   return [{ label: PROJECT_SECTION_LABELS[section] ?? toTitleCase(section) }];
 }
@@ -170,33 +157,9 @@ function buildBreadcrumbs(context: BreadcrumbContext): BreadcrumbItem[] {
   return [...baseItems, ...buildProjectSectionCrumbs(context.projectBasePath, routeSegments.afterProject)];
 }
 
-function BreadcrumbTrail({ crumbs }: { crumbs: BreadcrumbItem[] }) {
-  return (
-    <ol className="staff-projects__breadcrumb-list">
-      {crumbs.map((crumb, index) => {
-        const isCurrent = index === crumbs.length - 1;
-        return (
-          <li key={`${crumb.label}-${index}`} className="staff-projects__breadcrumb-item">
-            {!isCurrent && crumb.href ? (
-              <Link href={crumb.href} className="staff-projects__breadcrumb-link">{crumb.label}</Link>
-            ) : (
-              <span className="staff-projects__breadcrumb-current" aria-current="page">{crumb.label}</span>
-            )}
-            {!isCurrent ? <span className="staff-projects__breadcrumb-sep">/</span> : null}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
 export function StaffProjectBreadcrumbs(props: StaffProjectBreadcrumbsProps) {
   const pathname = usePathname() ?? "";
   const context = buildBreadcrumbContext(props, pathname);
   const crumbs = buildBreadcrumbs(context);
-  return (
-    <nav className="staff-projects__breadcrumbs" aria-label="Breadcrumb">
-      <BreadcrumbTrail crumbs={crumbs} />
-    </nav>
-  );
+  return <StaffBreadcrumbs items={crumbs} />;
 }

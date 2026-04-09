@@ -3,24 +3,19 @@ import * as repo from "./repo.js";
 import {
   getModules,
   getProjects,
-  getTeams,
   isStaffOrAdmin,
   archiveModule,
   unarchiveModule,
   archiveProject,
   unarchiveProject,
-  archiveTeam,
-  unarchiveTeam,
 } from "./service.js";
 
 vi.mock("./repo.js", () => ({
   findUserRoleById: vi.fn(),
   listAllModules: vi.fn(),
   listAllProjects: vi.fn(),
-  listAllTeams: vi.fn(),
   setModuleArchived: vi.fn(),
   setProjectArchived: vi.fn(),
-  setTeamArchived: vi.fn(),
 }));
 
 describe("archive service", () => {
@@ -38,13 +33,6 @@ describe("archive service", () => {
     const result = await getProjects();
     expect(repo.listAllProjects).toHaveBeenCalled();
     expect(result).toEqual([{ id: 2 }]);
-  });
-
-  it("getTeams delegates to listAllTeams", async () => {
-    (repo.listAllTeams as any).mockResolvedValue([{ id: 3 }]);
-    const result = await getTeams();
-    expect(repo.listAllTeams).toHaveBeenCalled();
-    expect(result).toEqual([{ id: 3 }]);
   });
 
   describe("isStaffOrAdmin", () => {
@@ -100,17 +88,5 @@ describe("archive service", () => {
     (repo.setProjectArchived as any).mockResolvedValue({ id: 2 });
     await unarchiveProject(2);
     expect(repo.setProjectArchived).toHaveBeenCalledWith(2, null);
-  });
-
-  it("archiveTeam calls setTeamArchived with a date", async () => {
-    (repo.setTeamArchived as any).mockResolvedValue({ id: 3 });
-    await archiveTeam(3);
-    expect(repo.setTeamArchived).toHaveBeenCalledWith(3, expect.any(Date));
-  });
-
-  it("unarchiveTeam calls setTeamArchived with null", async () => {
-    (repo.setTeamArchived as any).mockResolvedValue({ id: 3 });
-    await unarchiveTeam(3);
-    expect(repo.setTeamArchived).toHaveBeenCalledWith(3, null);
   });
 });

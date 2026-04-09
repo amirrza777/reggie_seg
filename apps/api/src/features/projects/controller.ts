@@ -18,7 +18,6 @@ export {
 
 export {
   getUserModulesHandler,
-  joinModuleHandler,
   getModuleStaffListHandler,
   getModuleStudentProjectMatrixHandler,
 } from "./controller.modules.js";
@@ -50,3 +49,9 @@ export {
   getProjectNavFlagsConfigHandler,
   updateProjectNavFlagsConfigHandler,
 } from "./nav-flags/controller.js";
+
+export {
+  deleteStaffProjectManageHandler,
+  getStaffProjectManageHandler,
+  patchStaffProjectManageHandler,
+} from "./project-manage/controller.js";

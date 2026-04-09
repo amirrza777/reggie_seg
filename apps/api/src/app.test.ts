@@ -48,6 +48,14 @@ describe("app module", () => {
     expect(mountedRouters.length).toBeGreaterThan(0);
   });
 
+  it("removes legacy module-join path and keeps canonical path", async () => {
+    const legacy = await request(app).post("/projects/modules/join").send({ code: "ABCD2345" });
+    expect(legacy.status).toBe(404);
+
+    const canonical = await request(app).post("/module-join/join").send({ code: "ABCD2345" });
+    expect(canonical.status).not.toBe(404);
+  });
+
   it("applies CORS origin allow/deny rules", async () => {
     const noOrigin = await request(app).get("/health");
     expect(noOrigin.status).toBe(200);

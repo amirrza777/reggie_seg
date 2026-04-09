@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { listMeetings, getTeamMeetingSettings } from "../api/client";
 import { MeetingList } from "./MeetingList";
 import { CreateMeetingForm } from "./CreateMeetingForm";
@@ -21,9 +22,18 @@ export function MeetingsPageContent({
   projectCompleted = false,
   initialTab = "upcoming",
 }: MeetingsPageContentProps) {
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [permissions, setPermissions] = useState<MeetingPermissions | null>(null);
   const [tab, setTab] = useState<Tab>(initialTab);
+
+  const meetingsAllowEdits = workspaceCanEdit && !projectCompleted;
+
+  useEffect(() => {
+    if (!meetingsAllowEdits && tab === "new") {
+      setTab("upcoming");
+    }
+  }, [meetingsAllowEdits, tab]);
 
   useEffect(() => {
     Promise.all([listMeetings(teamId), getTeamMeetingSettings(teamId)]).then(([m, s]) => {
@@ -63,7 +73,7 @@ export function MeetingsPageContent({
         >
           Previous meetings
         </button>
-        {!projectCompleted ? (
+        {meetingsAllowEdits ? (
           <button
             type="button"
             className={`pill-nav__link pill-nav__link--action${tab === "new" ? " pill-nav__link--active" : ""}`}
@@ -76,13 +86,15 @@ export function MeetingsPageContent({
         ) : null}
       </nav>
 
-      {projectCompleted ? (
+      {!meetingsAllowEdits ? (
         <p className="ui-note ui-note--muted">
-          Project is completed. Meeting creation is closed.
+          {projectCompleted
+            ? "Project is completed. Meeting creation is closed."
+            : "This project is archived; meetings are view-only."}
         </p>
       ) : null}
 
-      {tab === "new" ? (
+      {tab === "new" && meetingsAllowEdits ? (
         <CreateMeetingForm
           teamId={teamId}
           onCreated={() => {
@@ -98,6 +110,7 @@ export function MeetingsPageContent({
           title={tab === "upcoming" ? "Upcoming meetings" : "Previous meetings"}
           showMinutesWriter={tab === "previous"}
           permissions={permissions}
+          workspaceReadOnly={!meetingsAllowEdits}
           emptyMessage={
             tab === "upcoming"
               ? "There are no scheduled meetings to list at this time."

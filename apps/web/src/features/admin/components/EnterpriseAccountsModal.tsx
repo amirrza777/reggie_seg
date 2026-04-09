@@ -6,6 +6,7 @@ import { PaginationControls, PaginationPageJump } from "@/shared/ui/PaginationCo
 import { SearchField } from "@/shared/ui/SearchField";
 import { Table } from "@/shared/ui/Table";
 import type { EnterpriseRecord } from "../types";
+import type { EnterpriseUserSortValue } from "./useEnterpriseUserManagementState.shared";
 
 type RequestState = "idle" | "loading" | "success" | "error";
 
@@ -13,8 +14,15 @@ type EnterpriseAccountsModalProps = {
   enterprise: EnterpriseRecord | null;
   usersStatus: RequestState;
   usersMessage: string | null;
+  inviteEmail: string;
+  onInviteEmailChange: (value: string) => void;
+  inviteStatus: RequestState;
+  inviteMessage: string | null;
+  onInviteSubmit: (event: FormEvent<HTMLFormElement>) => void;
   userSearchQuery: string;
   onUserSearchQueryChange: (value: string) => void;
+  userSortValue: EnterpriseUserSortValue;
+  onUserSortValueChange: (value: EnterpriseUserSortValue) => void;
   userRows: Array<Array<ReactNode>>;
   userTotal: number;
   userStart: number;
@@ -83,8 +91,11 @@ function EnterpriseAccountsModalHeader({ enterprise, onClose }: { enterprise: En
   return (
     <div className="modal__header ui-modal-header">
       <div className="ui-stack-sm">
-        <h3 id="enterprise-users-title">{enterprise.name} accounts</h3>
-        <p className="muted">Enterprise code {enterprise.code}. Manage staff/student roles and account status for this enterprise.</p>
+        <h3 id="enterprise-users-title">Accounts in {enterprise.name}</h3>
+        <p className="muted">
+          Enterprise code: <code className="enterprise-management__code-value">{enterprise.code}</code>. Manage staff and student roles, plus
+          account status, for this enterprise.
+        </p>
       </div>
       <Button type="button" variant="ghost" className="modal__close-btn" aria-label="Close" onClick={onClose}>
         ×
@@ -100,6 +111,39 @@ function EnterpriseAccountsStatusMessage({ usersMessage, usersStatus }: { usersM
   return (
     <div className={usersStatus === "error" ? "status-alert status-alert--error" : "ui-note ui-note--muted"}>
       <span>{usersMessage}</span>
+    </div>
+  );
+}
+
+function EnterpriseAdminInviteSection(props: Pick<
+  EnterpriseAccountsModalProps,
+  "inviteEmail" | "onInviteEmailChange" | "inviteStatus" | "inviteMessage" | "onInviteSubmit"
+>) {
+  const isBusy = props.inviteStatus === "loading";
+  return (
+    <div className="enterprise-management__invite-section ui-stack-xs">
+      <p className="muted">Invite an email address to become an enterprise admin.</p>
+      <form className="enterprise-management__invite-form" onSubmit={props.onInviteSubmit}>
+        <input
+          type="email"
+          value={props.inviteEmail}
+          onChange={(event) => props.onInviteEmailChange(event.target.value)}
+          placeholder="name@enterprise.com"
+          aria-label="Enterprise admin invite email"
+          className="input enterprise-management__invite-input"
+          autoComplete="email"
+        />
+        <Button type="submit" disabled={isBusy}>
+          {isBusy ? "Sending..." : "Send invite"}
+        </Button>
+      </form>
+      {props.inviteMessage ? (
+        <div
+          className={`enterprise-management__invite-status ${props.inviteStatus === "error" ? "status-alert status-alert--error" : "status-alert status-alert--success"}`}
+        >
+          <span>{props.inviteMessage}</span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -138,18 +182,45 @@ function EnterpriseAccountsEmptyState({ userSearchQuery }: { userSearchQuery: st
 function EnterpriseAccountsModalBody(props: EnterpriseAccountsModalProps & { showSkeletonTable: boolean }) {
   const showTable = props.userRows.length > 0 || props.showSkeletonTable;
   return (
-    <div className="modal__body admin-modal__body">
-      <div className="ui-toolbar enterprise-management__modal-toolbar">
+    <div className="modal__body admin-modal__body enterprise-management__modal-body">
+      <EnterpriseAdminInviteSection
+        inviteEmail={props.inviteEmail}
+        onInviteEmailChange={props.onInviteEmailChange}
+        inviteStatus={props.inviteStatus}
+        inviteMessage={props.inviteMessage}
+        onInviteSubmit={props.onInviteSubmit}
+      />
+      <div className="enterprise-users__toolbar enterprise-management__modal-toolbar">
         <SearchField
           value={props.userSearchQuery}
           onChange={(event) => props.onUserSearchQueryChange(event.target.value)}
-          className="enterprise-management__modal-search"
+          className="enterprise-management__modal-search enterprise-users__search"
           placeholder="Search by name, email, role, or ID"
           aria-label="Search enterprise users"
         />
+        <div className="ui-toolbar enterprise-users__meta">
+          <label className="enterprise-users__sort-inline enterprise-management__modal-sort-wrap" htmlFor="enterprise-user-sort">
+            <span className="ui-note ui-note--muted">Sort</span>
+            <select
+              id="enterprise-user-sort"
+              className="enterprise-management__modal-sort"
+              value={props.userSortValue}
+              onChange={(event) => props.onUserSortValueChange(event.target.value as EnterpriseUserSortValue)}
+              aria-label="Sort enterprise users"
+            >
+              <option value="default">Default order</option>
+              <option value="joinDateDesc">Join date (newest first)</option>
+              <option value="joinDateAsc">Join date (oldest first)</option>
+              <option value="nameAsc">Name (A-Z)</option>
+              <option value="nameDesc">Name (Z-A)</option>
+            </select>
+          </label>
+          <span className="ui-note ui-note--muted enterprise-users__toolbar-summary">
+            <AccountsCountLabel usersStatus={props.usersStatus} userTotal={props.userTotal} userStart={props.userStart} userEnd={props.userEnd} />
+          </span>
+        </div>
       </div>
       <EnterpriseAccountsStatusMessage usersMessage={props.usersMessage} usersStatus={props.usersStatus} />
-      <span className="ui-note ui-note--muted"><AccountsCountLabel usersStatus={props.usersStatus} userTotal={props.userTotal} userStart={props.userStart} userEnd={props.userEnd} /></span>
       {showTable ? <EnterpriseAccountsTableSection {...props} /> : <EnterpriseAccountsEmptyState userSearchQuery={props.userSearchQuery} />}
     </div>
   );

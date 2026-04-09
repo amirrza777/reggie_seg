@@ -1,9 +1,9 @@
 .app-shell__sidebar {
-  background: var(--surface);
+  background: var(--app-shell-panel-bg);
   color: var(--sidebar-text);
-  border: 1px solid var(--border);
-  border-right: none;
+  border: 1px solid var(--app-shell-panel-border);
   border-radius: var(--radius-md);
+  box-shadow: var(--app-shell-panel-shadow);
   padding: 12px 10px;
   margin: 0;
   position: relative;
@@ -39,9 +39,10 @@
   align-items: start;
   height: 100%;
   min-height: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--app-shell-panel-bg);
+  border: 1px solid var(--app-shell-panel-border);
   border-radius: var(--workspace-radius);
+  box-shadow: var(--app-shell-panel-shadow);
   background-clip: padding-box;
   overflow-anchor: none;
   padding: 8px 10px 10px;

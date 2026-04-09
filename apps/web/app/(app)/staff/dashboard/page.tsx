@@ -7,6 +7,7 @@ import { getModulesSummary } from "@/features/staff/peerAssessments/api/client";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { redirect } from "next/navigation";
+import { partitionStaffModulesByArchive } from "@/features/modules/lib/staffModuleListFilters";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffActivityDonutChart } from "@/features/staff/dashboard/components/StaffActivityDonutChart";
 import { StaffStudentsBarChart } from "@/features/staff/dashboard/components/StaffStudentsBarChart";
@@ -255,7 +256,8 @@ export default async function StaffDashboardPage() {
 
 async function loadStaffModules(userId: number): Promise<{ modules: Module[]; moduleError: string | null }> {
   try {
-    const modules = await listModules(userId, { scope: "staff" });
+    const loaded = await listModules(userId, { scope: "staff" });
+    const modules = partitionStaffModulesByArchive(loaded).unarchived;
     return { modules, moduleError: null };
   } catch {
     return { modules: [], moduleError: "Could not load your modules right now. Please try again." };

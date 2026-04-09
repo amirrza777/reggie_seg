@@ -133,6 +133,7 @@ type GithubProjectReposTeamCodeActivitySectionProps = {
   linking: boolean;
   connection: GithubConnectionStatus | null;
   needsGithubAppInstall: boolean;
+  workspaceReadOnly?: boolean;
   onInstallGithubApp: () => void;
   onDisconnect: () => Promise<void>;
   onConnect: () => Promise<void>;
@@ -145,6 +146,7 @@ export function GithubProjectReposTeamCodeActivitySection({
   linking,
   connection,
   needsGithubAppInstall,
+  workspaceReadOnly = false,
   onInstallGithubApp,
   onDisconnect,
   onConnect,
@@ -160,7 +162,7 @@ export function GithubProjectReposTeamCodeActivitySection({
         </p>
       </section>
 
-      {!connection?.connected || needsGithubAppInstall ? (
+      {!workspaceReadOnly && (!connection?.connected || needsGithubAppInstall) ? (
         <GithubProjectReposConfigurationsTab
           loading={loading}
           busy={busy}

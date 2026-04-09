@@ -10,9 +10,11 @@ function readTokenFromHash(hash: string): string | null {
   return params.get("token");
 }
 
-export default function TrelloCallbackPage() {
+export default function ProjectTrelloCallbackPage() {
   const params = useParams();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const projectTrelloHref = projectId ? `/projects/${encodeURIComponent(projectId)}/trello` : "/dashboard";
+
   const [status, setStatus] = useState(() => {
     if (typeof window === "undefined") {
       return "Finishing Trello connection...";
@@ -34,20 +36,21 @@ export default function TrelloCallbackPage() {
         const linkToken = sessionStorage.getItem("trello.linkToken");
         sessionStorage.removeItem("trello.linkToken");
         if (!linkToken) {
-          setStatus("Link expired or missing. Start again from the project Trello page.");
+          setStatus("Link expired or missing. Start again from your project Trello page.");
           return;
         }
         await completeTrelloLinkWithToken(linkToken, token);
 
-        const fallback = projectId ? `/projects/${projectId}/trello` : "/dashboard";
         setStatus("Trello connected. Redirecting...");
         window.setTimeout(() => {
           try {
             const returnTo = sessionStorage.getItem("trello.returnTo");
             sessionStorage.removeItem("trello.returnTo");
-            window.location.href = returnTo && returnTo.startsWith("/") ? returnTo : fallback;
+            const safe =
+              returnTo && returnTo.startsWith("/") ? returnTo : projectTrelloHref;
+            window.location.href = safe;
           } catch {
-            window.location.href = fallback;
+            window.location.href = projectTrelloHref;
           }
         }, 800);
       } catch (err) {
@@ -56,11 +59,11 @@ export default function TrelloCallbackPage() {
     };
 
     void run();
-  }, [projectId]);
+  }, [projectTrelloHref]);
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Connecting to Trello...</h1>
+    <div>
+      <h1>Trello</h1>
       <p>{status}</p>
     </div>
   );

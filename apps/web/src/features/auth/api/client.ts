@@ -31,6 +31,22 @@ export async function signup(payload: SignupPayload) {
   return res;
 }
 
+export async function acceptEnterpriseAdminInvite(payload: {
+  token: string;
+  firstName?: string;
+  lastName?: string;
+}) {
+  const res = await apiFetch<AuthResponse>("/auth/enterprise-admin/accept", {
+    method: "POST",
+    auth: false,
+    body: JSON.stringify(payload),
+  });
+  if (res.accessToken) {
+    setAccessToken(res.accessToken);
+  }
+  return res;
+}
+
 export async function requestPasswordReset(email: string): Promise<void> {
   return apiFetch<void>("/auth/forgot-password", {
     method: "POST",
@@ -117,6 +133,79 @@ export async function confirmEmailChange(payload: { newEmail: string; code: stri
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export async function deleteAccount(payload: { password: string }): Promise<void> {
+  const executeDelete = () =>
+    apiFetch<void>("/auth/account/delete", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+  try {
+    await executeDelete();
+    clearAccessToken();
+    return;
+  } catch (err: unknown) {
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
+    }
+  }
+
+  const token = await refreshAccessToken();
+  if (!token) {
+    throw new ApiError("Unauthorized", { status: 401 });
+  }
+
+  await executeDelete();
+  clearAccessToken();
+}
+
+export async function joinEnterpriseByCode(payload: { enterpriseCode: string }): Promise<void> {
+  const executeJoin = () =>
+    apiFetch<void>("/auth/enterprise/join", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+  try {
+    await executeJoin();
+    return;
+  } catch (err: unknown) {
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
+    }
+  }
+
+  const token = await refreshAccessToken();
+  if (!token) {
+    throw new ApiError("Unauthorized", { status: 401 });
+  }
+
+  await executeJoin();
+}
+
+export async function leaveEnterprise(): Promise<void> {
+  const executeLeave = () =>
+    apiFetch<void>("/auth/enterprise/leave", {
+      method: "POST",
+    });
+
+  try {
+    await executeLeave();
+    return;
+  } catch (err: unknown) {
+    if (!isUnauthorizedApiError(err)) {
+      throw err;
+    }
+  }
+
+  const token = await refreshAccessToken();
+  if (!token) {
+    throw new ApiError("Unauthorized", { status: 401 });
+  }
+
+  await executeLeave();
 }
 
 export async function logout(): Promise<void> {

@@ -1,10 +1,27 @@
 import { prisma } from "../../shared/db.js";
 import type { Prisma } from "@prisma/client";
 
+const ADMIN_USER_SELECT = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  enterpriseId: true,
+  role: true,
+  active: true,
+  enterprise: {
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+  },
+} satisfies Prisma.UserSelect;
+
 export function findAdminUserById(id: number) {
   return prisma.user.findUnique({
     where: { id },
-    select: { id: true, email: true, enterpriseId: true, role: true },
+    select: { id: true, email: true, enterpriseId: true, role: true, active: true },
   });
 }
 
@@ -27,7 +44,14 @@ export function countEnterpriseMeetings(enterpriseId: string) {
 export function listUsersByEnterprise(enterpriseId: string) {
   return prisma.user.findMany({
     where: { enterpriseId },
-    select: { id: true, email: true, firstName: true, lastName: true, role: true, active: true },
+    select: ADMIN_USER_SELECT,
+    orderBy: { id: "asc" },
+  });
+}
+
+export function listUsers() {
+  return prisma.user.findMany({
+    select: ADMIN_USER_SELECT,
     orderBy: { id: "asc" },
   });
 }
@@ -36,12 +60,17 @@ export function countUsersByWhere(where: Prisma.UserWhereInput) {
   return prisma.user.count({ where });
 }
 
-export function listUsersByWhere(where: Prisma.UserWhereInput, page: number, pageSize: number) {
+export function listUsersByWhere(
+  where: Prisma.UserWhereInput,
+  page: number,
+  pageSize: number,
+  orderBy?: Prisma.UserOrderByWithRelationInput[],
+) {
   const offset = (page - 1) * pageSize;
   return prisma.user.findMany({
     where,
-    select: { id: true, email: true, firstName: true, lastName: true, role: true, active: true },
-    orderBy: [{ id: "asc" }],
+    select: ADMIN_USER_SELECT,
+    orderBy: orderBy ?? [{ id: "asc" }],
     skip: offset,
     take: pageSize,
   });
@@ -51,16 +80,83 @@ export function findUserInEnterprise(id: number, enterpriseId: string) {
   return prisma.user.findFirst({ where: { id, enterpriseId } });
 }
 
+export function findUserById(id: number) {
+  return prisma.user.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      email: true,
+      enterpriseId: true,
+      role: true,
+      active: true,
+    },
+  });
+}
+
+export function findUserByEnterpriseAndEmail(enterpriseId: string, email: string) {
+  return prisma.user.findUnique({
+    where: { enterpriseId_email: { enterpriseId, email } },
+    select: { id: true, role: true },
+  });
+}
+
+export function findUserByEmail(email: string) {
+  return prisma.user.findFirst({
+    where: { email },
+    select: { id: true, enterpriseId: true, role: true, enterprise: { select: { code: true } } },
+  });
+}
+
 export function updateUser(id: number, data: Prisma.UserUpdateInput) {
-  return prisma.user.update({ where: { id }, data });
+  return prisma.user.update({ where: { id }, data, select: ADMIN_USER_SELECT });
+}
+
+export function createEnterpriseAdminInviteToken(input: {
+  enterpriseId: string;
+  email: string;
+  tokenHash: string;
+  invitedByUserId: number;
+  expiresAt: Date;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const inviteTokenModel = (tx as any).enterpriseAdminInviteToken;
+    if (!inviteTokenModel) {
+      throw new Error(
+        "Prisma Client is out of date (missing `enterpriseAdminInviteToken` delegate). Run `npx prisma generate` in apps/api and restart the API."
+      );
+    }
+
+    await inviteTokenModel.updateMany({
+      where: {
+        enterpriseId: input.enterpriseId,
+        email: input.email,
+        revoked: false,
+        usedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { revoked: true },
+    });
+
+    return inviteTokenModel.create({
+      data: {
+        enterpriseId: input.enterpriseId,
+        email: input.email,
+        tokenHash: input.tokenHash,
+        invitedByUserId: input.invitedByUserId,
+        expiresAt: input.expiresAt,
+      },
+      select: { id: true, email: true, expiresAt: true },
+    });
+  });
 }
 
 export function revokeActiveRefreshTokens(userId: number) {
   return prisma.refreshToken.updateMany({ where: { userId, revoked: false }, data: { revoked: true } });
 }
 
-export function listEnterprises() {
+export function listEnterprises(where: Prisma.EnterpriseWhereInput = {}) {
   return prisma.enterprise.findMany({
+    where,
     select: {
       id: true,
       code: true,
@@ -129,7 +225,7 @@ export function findEnterpriseByCode(code: string) {
 }
 
 export function findEnterpriseById(id: string) {
-  return prisma.enterprise.findUnique({ where: { id }, select: { id: true } });
+  return prisma.enterprise.findUnique({ where: { id }, select: { id: true, name: true } });
 }
 
 export function createEnterpriseWithFlags(

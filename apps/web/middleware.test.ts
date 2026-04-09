@@ -67,6 +67,12 @@ describe("middleware", () => {
     expect(res.headers.get("location")).toBeNull();
   });
 
+  it("redirects unassigned users to dashboard from guarded non-dashboard routes", async () => {
+    mockFetch(new Response(JSON.stringify({ role: "STUDENT", isUnassigned: true }), { status: 200 }));
+    const res = await middleware(makeReq("/projects/12"));
+    expect(res.headers.get("location")).toContain("/dashboard");
+  });
+
   it("redirects to login when auth request throws", async () => {
     vi.spyOn(global, "fetch").mockRejectedValue(new Error("network down"));
     const res = await middleware(makeReq("/admin"));

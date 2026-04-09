@@ -19,12 +19,8 @@ vi.mock("./MeetingEditForm", () => ({
   ),
 }));
 
-vi.mock("@/shared/ui/AnchorLink", () => ({
-  AnchorLink: ({ children, href }: any) => <a href={href}>{children}</a>,
-}));
-
-vi.mock("lucide-react", () => ({
-  ChevronLeft: () => <span data-testid="chevron-left" />,
+vi.mock("next/link", () => ({
+  default: ({ href, children }: any) => <a href={href}>{children}</a>,
 }));
 
 import { useUser } from "@/features/auth/context";
@@ -132,11 +128,12 @@ describe("MeetingEditContent", () => {
     });
   });
 
-  it("shows back link", async () => {
+  it("shows meeting breadcrumbs", async () => {
     render(<MeetingEditContent meetingId={1} projectId={1} />);
 
     await waitFor(() => {
-      expect(screen.getByText("Back to meeting")).toBeInTheDocument();
+      expect(screen.getByText("Edit meeting")).toHaveAttribute("aria-current", "page");
     });
+    expect(screen.getByRole("link", { name: "Meeting" })).toHaveAttribute("href", "/projects/1/meetings/1");
   });
 });

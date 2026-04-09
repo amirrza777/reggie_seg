@@ -9,11 +9,19 @@ import { parseSearchQuery } from "../../shared/search.js";
 import { parsePaginationQueryParams, readSingleQueryString, type ParseResult } from "../../shared/searchParams.js";
 
 type UserRole = "STUDENT" | "STAFF" | "ADMIN" | "ENTERPRISE_ADMIN";
+type UserSortBy = "name" | "joinDate";
+type UserSortDirection = "asc" | "desc";
+
+type AdminUserSearchScopeFilters = Pick<AdminUserSearchFilters, "query" | "role" | "active"> & {
+  enterpriseId?: string | null;
+};
 
 export type AdminUserSearchFilters = {
   query: string | null;
   role: UserRole | null;
   active: boolean | null;
+  sortBy: UserSortBy | null;
+  sortDirection: UserSortDirection | null;
   page: number;
   pageSize: number;
 };
@@ -35,9 +43,19 @@ function buildAdminUserSearchFiltersValue(
   parsedQuery: string | null,
   role: UserRole | null,
   active: boolean | null,
+  sortBy: UserSortBy | null,
+  sortDirection: UserSortDirection | null,
   pagination: { page: number; pageSize: number },
 ): AdminUserSearchFilters {
-  return { query: parsedQuery, role, active, page: pagination.page, pageSize: pagination.pageSize };
+  return {
+    query: parsedQuery,
+    role,
+    active,
+    sortBy,
+    sortDirection,
+    page: pagination.page,
+    pageSize: pagination.pageSize,
+  };
 }
 
 function parseRoleFilter(rawRole: string | undefined): ParseResult<UserRole | null> {
@@ -65,6 +83,38 @@ function parseActiveFilter(rawActive: string | undefined): ParseResult<boolean |
   return { ok: false, error: "active must be true or false" };
 }
 
+function parseSortBy(rawSortBy: string | undefined): ParseResult<UserSortBy | null> {
+  const normalizedSortBy = rawSortBy?.trim().toLowerCase();
+  if (!normalizedSortBy) {
+    return { ok: true, value: null };
+  }
+  if (normalizedSortBy === "name" || normalizedSortBy === "joindate") {
+    return { ok: true, value: normalizedSortBy === "joindate" ? "joinDate" : "name" };
+  }
+  return { ok: false, error: "Invalid sortBy filter" };
+}
+
+function parseSortDirection(rawSortDirection: string | undefined): ParseResult<UserSortDirection | null> {
+  const normalizedSortDirection = rawSortDirection?.trim().toLowerCase();
+  if (!normalizedSortDirection) {
+    return { ok: true, value: null };
+  }
+  if (normalizedSortDirection === "asc" || normalizedSortDirection === "desc") {
+    return { ok: true, value: normalizedSortDirection };
+  }
+  return { ok: false, error: "Invalid sortDirection filter" };
+}
+
+function resolveSortDirection(sortBy: UserSortBy | null, sortDirection: UserSortDirection | null): UserSortDirection | null {
+  if (!sortBy) {
+    return null;
+  }
+  if (sortDirection) {
+    return sortDirection;
+  }
+  return sortBy === "joinDate" ? "desc" : "asc";
+}
+
 /** Parses the admin user search filters. */
 export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult<AdminUserSearchFilters> {
   const parsedQuery = parseSearchQuery(readSingleQueryString(query.q));
@@ -79,6 +129,17 @@ export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult<AdminU
   if (!active.ok) {
     return active;
   }
+  const sortBy = parseSortBy(readSingleQueryString(query.sortBy));
+  if (!sortBy.ok) {
+    return sortBy;
+  }
+  const sortDirection = parseSortDirection(readSingleQueryString(query.sortDirection));
+  if (!sortDirection.ok) {
+    return sortDirection;
+  }
+  if (!sortBy.value && sortDirection.value) {
+    return { ok: false, error: "sortDirection requires sortBy" };
+  }
   const parsedPagination = parsePaginationQueryParams(
     { page: query.page, pageSize: query.pageSize },
     { defaultPage: DEFAULT_PAGE, defaultPageSize: DEFAULT_PAGE_SIZE, maxPageSize: MAX_PAGE_SIZE },
@@ -86,7 +147,17 @@ export function parseAdminUserSearchFilters(query: ParsedQs): ParseResult<AdminU
   if (!parsedPagination.ok) {
     return parsedPagination;
   }
-  return { ok: true, value: buildAdminUserSearchFiltersValue(parsedQuery.value, role.value, active.value, parsedPagination.value) };
+  return {
+    ok: true,
+    value: buildAdminUserSearchFiltersValue(
+      parsedQuery.value,
+      role.value,
+      active.value,
+      sortBy.value,
+      resolveSortDirection(sortBy.value, sortDirection.value),
+      parsedPagination.value,
+    ),
+  };
 }
 
 function buildUserSearchQueryConditions(query: string): Prisma.UserWhereInput[] {
@@ -113,11 +184,11 @@ function buildUserSearchQueryConditions(query: string): Prisma.UserWhereInput[] 
   return queryConditions;
 }
 
-function buildUserSearchClauses(
-  enterpriseId: string,
-  filters: Pick<AdminUserSearchFilters, "query" | "role" | "active">,
-): Prisma.UserWhereInput[] {
-  const clauses: Prisma.UserWhereInput[] = [{ enterpriseId }];
+function buildUserSearchClauses(filters: AdminUserSearchScopeFilters): Prisma.UserWhereInput[] {
+  const clauses: Prisma.UserWhereInput[] = [];
+  if (filters.enterpriseId) {
+    clauses.push({ enterpriseId: filters.enterpriseId });
+  }
   if (filters.role) {
     clauses.push({ role: filters.role });
   }
@@ -125,6 +196,21 @@ function buildUserSearchClauses(
     clauses.push({ active: filters.active });
   }
   return clauses;
+}
+
+function resolveSearchScopeFilters(
+  enterpriseIdOrFilters: string | AdminUserSearchScopeFilters,
+  filters?: Pick<AdminUserSearchFilters, "query" | "role" | "active">,
+): AdminUserSearchScopeFilters {
+  if (typeof enterpriseIdOrFilters === "string") {
+    return {
+      enterpriseId: enterpriseIdOrFilters,
+      query: filters?.query ?? null,
+      role: filters?.role ?? null,
+      active: filters?.active ?? null,
+    };
+  }
+  return enterpriseIdOrFilters;
 }
 
 function buildAdminUserSearchCandidateSources(candidate: AdminUserSearchCandidate): string[] {
@@ -141,12 +227,16 @@ function buildAdminUserSearchCandidateSources(candidate: AdminUserSearchCandidat
 
 /** Builds the admin user search where. */
 export function buildAdminUserSearchWhere(
-  enterpriseId: string,
-  filters: Pick<AdminUserSearchFilters, "query" | "role" | "active">,
+  enterpriseIdOrFilters: string | AdminUserSearchScopeFilters,
+  filters?: Pick<AdminUserSearchFilters, "query" | "role" | "active">,
 ): Prisma.UserWhereInput {
-  const clauses = buildUserSearchClauses(enterpriseId, filters);
-  if (filters.query) {
-    clauses.push({ OR: buildUserSearchQueryConditions(filters.query) });
+  const scopeFilters = resolveSearchScopeFilters(enterpriseIdOrFilters, filters);
+  const clauses = buildUserSearchClauses(scopeFilters);
+  if (scopeFilters.query) {
+    clauses.push({ OR: buildUserSearchQueryConditions(scopeFilters.query) });
+  }
+  if (clauses.length === 0) {
+    return {};
   }
   return clauses.length === 1 ? clauses[0]! : { AND: clauses };
 }
@@ -173,6 +263,20 @@ export function matchesAdminUserSearchCandidate(candidate: AdminUserSearchCandid
     return true;
   }
   return matchesFuzzySearchCandidate({ query: trimmedQuery, sources: buildAdminUserSearchCandidateSources(candidate) });
+}
+
+export function buildAdminUserSearchOrderBy(
+  filters: Pick<AdminUserSearchFilters, "sortBy" | "sortDirection">,
+): Prisma.UserOrderByWithRelationInput[] {
+  if (filters.sortBy === "joinDate") {
+    const direction: UserSortDirection = filters.sortDirection ?? "desc";
+    return [{ createdAt: direction }, { id: "asc" }];
+  }
+  if (filters.sortBy === "name") {
+    const direction: UserSortDirection = filters.sortDirection ?? "asc";
+    return [{ firstName: direction }, { lastName: direction }, { id: "asc" }];
+  }
+  return [{ id: "asc" }];
 }
 
 function isUserRole(value: string): value is UserRole {

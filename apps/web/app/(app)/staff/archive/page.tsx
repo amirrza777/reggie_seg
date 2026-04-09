@@ -16,7 +16,7 @@ export default async function ArchivePage() {
       <section className="staff-projects__hero">
         <h1 className="staff-projects__title">Archive</h1>
         <p className="staff-projects__desc">
-          Archive modules, projects and teams at the end of a semester. Archived items are read-only for all users.
+          Archive modules or projects at the end of a semester. Archived items are read-only for all users.
         </p>
       </section>
       <Card className="archive-page__card" bodyClassName="archive-page__card-body">

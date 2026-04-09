@@ -6,12 +6,20 @@ import type { BoardView, OwnerBoard } from "@/features/trello/api/client";
 export type TeamBoardViewState =
   | { status: "loading" }
   | { status: "board"; view: BoardView; sectionConfig: Record<string, string> }
+  | { status: "no-team-board" }
   | { status: "link-account" }
   | { status: "link-board"; boards: OwnerBoard[] }
   | { status: "join-board"; boardUrl: string }
   | { status: "error"; message: string };
 
 export type SetTeamBoardState = (state: TeamBoardViewState) => void;
+
+export type LoadTeamBoardOptions = {
+  /**
+   * Staff read-only Trello views: no personal Trello account is required.
+   */
+  staffView?: boolean;
+};
 
 export function isNoBoardAssigned(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -36,8 +44,10 @@ export function isOwnerNotConnected(err: unknown): boolean {
 /** Load team board and update state via setState. Used by both context and hook. */
 export async function loadTeamBoardState(
   teamId: number,
-  setState: SetTeamBoardState
+  setState: SetTeamBoardState,
+  options?: LoadTeamBoardOptions
 ): Promise<void> {
+  const staffView = Boolean(options?.staffView);
   setState({ status: "loading" });
   try {
     const result = await getTeamBoard(teamId);
@@ -48,12 +58,16 @@ export async function loadTeamBoardState(
     }
   } catch (err) {
     if (isNoBoardAssigned(err)) {
+      if (staffView) {
+        setState({ status: "no-team-board" });
+        return;
+      }
       try {
         const boards = await getMyBoards();
         setState({ status: "link-board", boards });
       } catch (myErr) {
         if (isUserNotConnected(myErr)) {
-          setState({ status: "link-account" });
+          setState({ status: "no-team-board" });
         } else {
           setState({
             status: "error",
@@ -63,8 +77,6 @@ export async function loadTeamBoardState(
       }
     } else if (isUserNotConnected(err)) {
       setState({ status: "link-account" });
-    } else if (isNotMember(err)) {
-      setState({ status: "error", message: "You are not a member of this team." });
     } else if (isOwnerNotConnected(err)) {
       setState({
         status: "error",

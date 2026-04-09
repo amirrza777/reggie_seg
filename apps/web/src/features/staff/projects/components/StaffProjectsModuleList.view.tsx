@@ -53,12 +53,32 @@ export function ProjectCard({
   project: StaffProject;
   rawQuery: string | undefined;
 }) {
+  const isArchived = project.archivedAt != null;
+  const archivedDateLabel = project.archivedAt ? formatDate(project.archivedAt) : "";
+  const archivedTooltip = archivedDateLabel ? `Archived on ${archivedDateLabel}` : "Archived";
   return (
-    <article className="staff-projects__module-project-card">
-      <Link href={`/staff/projects/${project.id}`} className="staff-projects__module-project-link">
+    <article
+      className={`staff-projects__module-project-card${isArchived ? " staff-projects__module-project-card--archived" : ""}`}
+    >
+      <Link
+        href={`/staff/projects/${project.id}`}
+        className="staff-projects__module-project-link"
+        aria-label={isArchived ? `${project.name} (archived project)` : undefined}
+      >
         <div className="staff-projects__module-project-head staff-projects__module-project-head--rich">
           <div className="staff-projects__module-project-copy">
-            <h3 className="staff-projects__module-project-title">{highlightSearchText(project.name, rawQuery)}</h3>
+            <div className="staff-projects__module-project-title-row">
+              <h3 className="staff-projects__module-project-title">{highlightSearchText(project.name, rawQuery)}</h3>
+              {isArchived ? (
+                <span
+                  className="staff-projects__project-archived-pill"
+                  title={archivedTooltip}
+                  aria-label={archivedTooltip}
+                >
+                  Archived
+                </span>
+              ) : null}
+            </div>
             <p className="staff-projects__module-project-sub">
               {formatProjectDeadlineRange(project.dateRangeStart, project.dateRangeEnd)}
             </p>

@@ -66,6 +66,7 @@ export function useEnterpriseModuleCreateFormState({
   const [accessSearchPinTaIds, setAccessSearchPinTaIds] = useState<number[]>([]);
   const [accessSearchPinStudentIds, setAccessSearchPinStudentIds] = useState<number[]>([]);
   const [moduleArchived, setModuleArchived] = useState(false);
+  const [archiveActionNotice, setArchiveActionNotice] = useState<string | null>(null);
 
   const accessBuckets = useEnterpriseModuleAccessBuckets({
     mode,
@@ -84,6 +85,7 @@ export function useEnterpriseModuleCreateFormState({
     async function loadInitialSelection() {
       setIsLoadingAccess(true);
       setErrorMessage(null);
+      setArchiveActionNotice(null);
       setConfirmDeleteModule(false);
       setConfirmArchiveModule(false);
       setConfirmUnarchiveModule(false);
@@ -179,6 +181,7 @@ export function useEnterpriseModuleCreateFormState({
     setModuleNameError(null);
     setIsSubmitting(true);
     setErrorMessage(null);
+    setArchiveActionNotice(null);
 
     try {
       if (!moduleId) throw new Error("Module id is required for edit mode.");
@@ -274,10 +277,13 @@ export function useEnterpriseModuleCreateFormState({
 
     setIsArchiving(true);
     setErrorMessage(null);
+    setArchiveActionNotice(null);
 
     try {
       await archiveItem("modules", moduleId);
       setConfirmArchiveModule(false);
+      setModuleArchived(true);
+      setArchiveActionNotice("Module archived. The sections above are now read-only.");
       router.refresh();
     } catch (err) {
       setErrorMessage(resolveModuleActionError(err, "archive"));
@@ -297,10 +303,13 @@ export function useEnterpriseModuleCreateFormState({
 
     setIsArchiving(true);
     setErrorMessage(null);
+    setArchiveActionNotice(null);
 
     try {
       await unarchiveItem("modules", moduleId);
       setConfirmUnarchiveModule(false);
+      setModuleArchived(false);
+      setArchiveActionNotice("Module unarchived. You can edit the sections above again.");
       router.refresh();
     } catch (err) {
       setErrorMessage(resolveModuleActionError(err, "unarchive"));
@@ -329,6 +338,7 @@ export function useEnterpriseModuleCreateFormState({
     isEditMode,
     moduleId,
     moduleArchived,
+    archiveActionNotice,
     moduleName,
     moduleNameError,
     moduleCode,

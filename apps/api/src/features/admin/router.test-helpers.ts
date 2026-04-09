@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
     $transaction: vi.fn(),
   },
   listAuditLogs: vi.fn(),
+  buildAdminUserSearchOrderBy: vi.fn(),
   buildAdminUserSearchWhere: vi.fn(),
   parseAdminUserSearchFilters: vi.fn(),
   matchesAdminUserSearchCandidate: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock("../../shared/db.js", () => ({
 
 vi.mock("../audit/service.js", () => ({ listAuditLogs: mocks.listAuditLogs }));
 vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchOrderBy: mocks.buildAdminUserSearchOrderBy,
   buildAdminUserSearchWhere: mocks.buildAdminUserSearchWhere,
   parseAdminUserSearchFilters: mocks.parseAdminUserSearchFilters,
   matchesAdminUserSearchCandidate: mocks.matchesAdminUserSearchCandidate,
@@ -95,6 +97,7 @@ export function setupAdminRouterTestDefaults() {
     ok: true,
     value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
   });
+  (mocks.buildAdminUserSearchOrderBy as any).mockReturnValue([{ id: "asc" }]);
   (mocks.buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
   (mocks.matchesAdminUserSearchCandidate as any).mockReturnValue(false);
 
@@ -109,6 +112,7 @@ export function setupAdminRouterTestDefaults() {
 
 export const prisma = mocks.prisma as any;
 export const listAuditLogs = mocks.listAuditLogs;
+export const buildAdminUserSearchOrderBy = mocks.buildAdminUserSearchOrderBy;
 export const buildAdminUserSearchWhere = mocks.buildAdminUserSearchWhere;
 export const parseAdminUserSearchFilters = mocks.parseAdminUserSearchFilters;
 export const matchesAdminUserSearchCandidate = mocks.matchesAdminUserSearchCandidate;

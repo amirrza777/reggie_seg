@@ -20,6 +20,10 @@
   gap: 10px;
 }
 
+.enterprise-management__create-invite {
+  grid-column: 1 / -1;
+}
+
 .enterprise-management__create-actions {
   grid-column: 1 / -1;
   justify-content: flex-end;
@@ -47,14 +51,92 @@
 
 .enterprise-management__modal {
   width: min(1020px, 96vw);
+  display: flex;
+  flex-direction: column;
+}
+
+.enterprise-management__modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  scrollbar-gutter: stable both-edges;
 }
 
 .enterprise-management__modal-toolbar {
+  gap: 8px;
+}
+
+.enterprise-users__toolbar {
+  display: grid;
+  gap: 8px;
+}
+
+.enterprise-users__search {
+  width: 100%;
+  max-width: none;
+}
+
+.enterprise-management__code-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.94em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.enterprise-management__invite-section {
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.enterprise-management__invite-form {
+  display: flex;
+  align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.enterprise-management__invite-input {
+  flex: 1 1 280px;
+  min-width: min(280px, 100%);
+}
+
+.enterprise-management__invite-status {
+  margin-top: 8px;
 }
 
 .enterprise-management__modal-search {
-  width: min(660px, 84vw);
+  width: 100%;
+  max-width: none;
+}
+
+.enterprise-management__modal-sort {
+  min-width: 220px;
+}
+
+.enterprise-users__meta {
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.enterprise-users__sort-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enterprise-users__sort-inline .ui-note {
+  white-space: nowrap;
+}
+
+.enterprise-users__toolbar-summary {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .enterprise-management__modal-table {

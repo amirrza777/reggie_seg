@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
-import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 type StaffProjectAllocationPageProps = {
@@ -12,45 +10,17 @@ type StaffProjectAllocationPageProps = {
 };
 
 export default async function StaffProjectAllocationPage({ params }: StaffProjectAllocationPageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId } = await params;
-  const loadResult = await loadStaffProjectTeamsForPage(
-    user.id,
-    projectId,
-    "Failed to load project team allocation data."
-  );
-  if (loadResult.status === "invalid_project_id") {
-    return <p className="muted">Invalid project ID.</p>;
-  }
-  if (loadResult.status === "error") {
-    return (
-      <div className="stack">
-        <p className="muted">{loadResult.message}</p>
-      </div>
-    );
-  }
-  const { data } = loadResult;
-
-  const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
+  const userId = (await getCurrentUser())!.id;
+  const numericProjectId = Number(projectId);
+  const data = await getStaffProjectTeams(userId, numericProjectId);
   const emptyTeams = data.teams.filter((team) => team.allocations.length === 0).length;
 
   return (
-    <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
-
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Team allocation</p>
-        <h1 className="staff-projects__title">{data.project.name}</h1>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">{totalStudents} allocated student{totalStudents === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">{emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}</span>
-        </div>
-      </section>
+    <>
+      <p className="muted">
+        {emptyTeams} empty team{emptyTeams === 1 ? "" : "s"}
+      </p>
 
       <StaffAllocationModesPanel
         projectId={data.project.id}
@@ -83,6 +53,6 @@ export default async function StaffProjectAllocationPage({ params }: StaffProjec
           ))}
         </section>
       </section>
-    </div>
+    </>
   );
 }

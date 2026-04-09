@@ -7,9 +7,11 @@ type EnterpriseCreateModalProps = {
   open: boolean;
   nameInput: string;
   codeInput: string;
+  inviteEmailInput: string;
   isCreating: boolean;
   onNameInputChange: (value: string) => void;
   onCodeInputChange: (value: string) => void;
+  onInviteEmailInputChange: (value: string) => void;
   onClose: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
@@ -40,6 +42,14 @@ function EnterpriseCreateFields(props: EnterpriseCreateModalBodyProps) {
         placeholder="Code (optional)"
         aria-label="Enterprise code"
         maxLength={16}
+      />
+      <FormField
+        value={props.inviteEmailInput}
+        onChange={(event) => props.onInviteEmailInputChange(event.target.value)}
+        placeholder="Invite enterprise admin email (optional)"
+        aria-label="Invite enterprise admin email"
+        className="enterprise-management__create-invite"
+        type="email"
       />
     </>
   );

@@ -4,7 +4,12 @@ import jwt from "jsonwebtoken";
 import router from "./router.js";
 import { prisma } from "../../shared/db.js";
 import { listAuditLogs } from "../audit/service.js";
-import { buildAdminUserSearchWhere, matchesAdminUserSearchCandidate, parseAdminUserSearchFilters } from "./userSearch.js";
+import {
+  buildAdminUserSearchOrderBy,
+  buildAdminUserSearchWhere,
+  matchesAdminUserSearchCandidate,
+  parseAdminUserSearchFilters,
+} from "./userSearch.js";
 
 const { generateFromNameMock } = vi.hoisted(() => ({ generateFromNameMock: vi.fn() }));
 
@@ -25,6 +30,7 @@ vi.mock("../../shared/db.js", () => ({
 
 vi.mock("../audit/service.js", () => ({ listAuditLogs: vi.fn() }));
 vi.mock("./userSearch.js", () => ({
+  buildAdminUserSearchOrderBy: vi.fn(),
   buildAdminUserSearchWhere: vi.fn(),
   parseAdminUserSearchFilters: vi.fn(),
   matchesAdminUserSearchCandidate: vi.fn(),
@@ -89,6 +95,7 @@ beforeEach(() => {
     ok: true,
     value: { query: null, role: null, active: null, page: 1, pageSize: 10 },
   });
+  (buildAdminUserSearchOrderBy as any).mockReturnValue([{ id: "asc" }]);
   (buildAdminUserSearchWhere as any).mockReturnValue({ enterpriseId: "ent-1" });
   (matchesAdminUserSearchCandidate as any).mockReturnValue(false);
 
@@ -117,7 +124,7 @@ describe("admin router enterprise/audit edge cases", () => {
   });
 
   it("allows patchUser active updates when user exists", async () => {
-    (prisma.user.findFirst as any).mockResolvedValueOnce({ id: 5, email: "u@x.com" });
+    (prisma.user.findUnique as any).mockResolvedValueOnce({ id: 5, email: "u@x.com", enterpriseId: "ent-1", role: "STUDENT", active: true });
     (prisma.user.update as any).mockResolvedValueOnce({ id: 5, email: "u@x.com", role: "STUDENT", active: true });
     const res = mockRes();
 

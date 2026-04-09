@@ -4,26 +4,20 @@ import * as service from "./service.js";
 import {
   listModulesHandler,
   listProjectsHandler,
-  listTeamsHandler,
   archiveModuleHandler,
   unarchiveModuleHandler,
   archiveProjectHandler,
   unarchiveProjectHandler,
-  archiveTeamHandler,
-  unarchiveTeamHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
   isStaffOrAdmin: vi.fn(),
   getModules: vi.fn(),
   getProjects: vi.fn(),
-  getTeams: vi.fn(),
   archiveModule: vi.fn(),
   unarchiveModule: vi.fn(),
   archiveProject: vi.fn(),
   unarchiveProject: vi.fn(),
-  archiveTeam: vi.fn(),
-  unarchiveTeam: vi.fn(),
 }));
 
 function mockResponse() {
@@ -71,23 +65,6 @@ describe("archive controller", () => {
       const res = mockResponse();
       await listProjectsHandler(authedReq(), res);
       expect(res.json).toHaveBeenCalledWith([{ id: 2 }]);
-    });
-  });
-
-  describe("listTeamsHandler", () => {
-    it("returns 403 when not staff or admin", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(false);
-      const res = mockResponse();
-      await listTeamsHandler(authedReq(), res);
-      expect(res.status).toHaveBeenCalledWith(403);
-    });
-
-    it("returns teams when authorised", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(true);
-      (service.getTeams as any).mockResolvedValue([{ id: 3 }]);
-      const res = mockResponse();
-      await listTeamsHandler(authedReq(), res);
-      expect(res.json).toHaveBeenCalledWith([{ id: 3 }]);
     });
   });
 
@@ -188,56 +165,6 @@ describe("archive controller", () => {
       await unarchiveProjectHandler(authedReq({ id: "2" }), res);
       expect(service.unarchiveProject).toHaveBeenCalledWith(2);
       expect(res.json).toHaveBeenCalledWith({ id: 2 });
-    });
-  });
-
-  describe("archiveTeamHandler", () => {
-    it("returns 403 when not staff or admin", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(false);
-      const res = mockResponse();
-      await archiveTeamHandler(authedReq({ id: "3" }), res);
-      expect(res.status).toHaveBeenCalledWith(403);
-    });
-
-    it("returns 400 for invalid id", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(true);
-      const res = mockResponse();
-      await archiveTeamHandler(authedReq({ id: "xyz" }), res);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    it("returns result on success", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(true);
-      (service.archiveTeam as any).mockResolvedValue({ id: 3 });
-      const res = mockResponse();
-      await archiveTeamHandler(authedReq({ id: "3" }), res);
-      expect(service.archiveTeam).toHaveBeenCalledWith(3);
-      expect(res.json).toHaveBeenCalledWith({ id: 3 });
-    });
-  });
-
-  describe("unarchiveTeamHandler", () => {
-    it("returns 403 when not staff or admin", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(false);
-      const res = mockResponse();
-      await unarchiveTeamHandler(authedReq({ id: "3" }), res);
-      expect(res.status).toHaveBeenCalledWith(403);
-    });
-
-    it("returns 400 for invalid id", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(true);
-      const res = mockResponse();
-      await unarchiveTeamHandler(authedReq({ id: "xyz" }), res);
-      expect(res.status).toHaveBeenCalledWith(400);
-    });
-
-    it("returns result on success", async () => {
-      (service.isStaffOrAdmin as any).mockResolvedValue(true);
-      (service.unarchiveTeam as any).mockResolvedValue({ id: 3 });
-      const res = mockResponse();
-      await unarchiveTeamHandler(authedReq({ id: "3" }), res);
-      expect(service.unarchiveTeam).toHaveBeenCalledWith(3);
-      expect(res.json).toHaveBeenCalledWith({ id: 3 });
     });
   });
 });

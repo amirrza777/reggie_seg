@@ -31,22 +31,26 @@ function getResetPasswordValidationError(params: {
 
 function MissingResetTokenView() {
   return (
-    <div className="auth-reset-wrap auth-reset-wrap--center">
-      <div className="status-alert status-alert--error auth-reset-alert">Reset link is missing or invalid. Please request a new one.</div>
-      <Link href="/forgot-password" className="ui-link-reset">
-        <Button className="full-width-btn">Request New Link</Button>
-      </Link>
+    <div className="auth-form auth-center">
+      <div className="status-alert status-alert--error auth-alert auth-alert--spacious">Reset link is missing or invalid. Please request a new one.</div>
+      <div className="auth-actions">
+        <Link href="/forgot-password" className="auth-link-reset">
+          <Button className="auth-button">Request New Link</Button>
+        </Link>
+      </div>
     </div>
   );
 }
 
 function PasswordResetSuccessView({ message }: { message: string | null }) {
   return (
-    <div className="auth-reset-wrap auth-reset-wrap--center">
-      <div className="status-alert status-alert--success auth-reset-alert">{message}</div>
-      <Link href="/login" className="ui-link-reset">
-        <Button className="full-width-btn">Back to Log in</Button>
-      </Link>
+    <div className="auth-form auth-center">
+      <div className="status-alert status-alert--success auth-alert auth-alert--spacious">{message}</div>
+      <div className="auth-actions">
+        <Link href="/login" className="auth-link-reset">
+          <Button className="auth-button">Back to Log in</Button>
+        </Link>
+      </div>
     </div>
   );
 }
@@ -72,12 +76,12 @@ type ResetPasswordSubmitParams = {
 
 function ResetPasswordFields(props: ResetPasswordFieldsProps) {
   return (
-    <form className="auth-reset-wrap" onSubmit={props.onSubmit}>
-      {props.message ? <div className={`${props.alertClass} auth-reset-message`}>{props.message}</div> : null}
+    <form className="auth-form" onSubmit={props.onSubmit}>
+      {props.message ? <div className={`${props.alertClass} auth-alert`}><span>{props.message}</span></div> : null}
       <AuthField name="newPassword" label="New Password" type="password" value={props.newPassword} required minLength={8} placeholder="Enter a new password" onChange={(_, value) => props.onNewPasswordChange(value)} />
       <AuthField name="confirmPassword" label="Confirm Password" type="password" value={props.confirmPassword} required minLength={8} placeholder="Re-enter your new password" onChange={(_, value) => props.onConfirmPasswordChange(value)} />
-      <Button type="submit" disabled={props.status === "loading"} className="full-width-btn">{props.status === "loading" ? "Updating..." : "Reset Password"}</Button>
-      <div className="auth-reset-actions">
+      <Button type="submit" disabled={props.status === "loading"} className="auth-button auth-button--spaced">{props.status === "loading" ? "Updating..." : "Reset Password"}</Button>
+      <div className="auth-meta">
         <Link href="/login" className="auth-link auth-link--subtle">← Back to Log in</Link>
       </div>
     </form>

@@ -469,6 +469,10 @@
 
 .forum-settings-card__title {
   margin: 0 0 6px;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .forum-settings-card__desc {
@@ -479,82 +483,40 @@
   border-radius: 2px;
 }
 
-.forum-settings-card__toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
-  cursor: pointer;
-  position: relative;
+.forum-settings-card__embed-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.forum-settings-card__toggle.is-disabled {
-  cursor: not-allowed;
-  color: var(--muted);
+.forum-settings-card__embed-copy {
+  flex: 1;
+  min-width: min(100%, 220px);
+  display: grid;
+  gap: 6px;
 }
 
-.forum-settings-card__control {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+.forum-settings-card__embed-lead {
   margin: 0;
-  padding: 0;
-  border: 0;
-  opacity: 0;
-  pointer-events: none;
-  clip-path: inset(50%);
-  overflow: hidden;
-  white-space: nowrap;
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-body);
+  font-weight: var(--fw-medium);
 }
 
-.forum-settings-card__control-indicator {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid var(--ink-strong);
-  background: transparent;
-  display: inline-block;
-  position: relative;
+.forum-settings-card__embed-hint {
+  margin: 0;
+}
+
+.forum-settings-card__embed-action {
   flex-shrink: 0;
-  transition: border-color 140ms ease, box-shadow 140ms ease, opacity 140ms ease;
+  align-self: center;
 }
 
-.forum-settings-card__control-indicator::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--ink-strong);
-  box-shadow: 0 0 0 1.5px var(--surface-raised);
-  transform: translate(-50%, -50%) scale(0);
-  transition: transform 140ms ease;
-}
-
-.forum-settings-card__control:checked + .forum-settings-card__control-indicator {
-  border-color: var(--ink-strong);
-}
-
-.forum-settings-card__control:checked + .forum-settings-card__control-indicator::after {
-  transform: translate(-50%, -50%) scale(1);
-}
-
-.forum-settings-card__control:focus-visible + .forum-settings-card__control-indicator {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ink-strong) 55%, transparent);
-}
-
-.forum-settings-card__control:disabled + .forum-settings-card__control-indicator {
-  opacity: 1;
-}
-
-.forum-settings-card__toggle-text {
-  color: var(--ink-strong);
-}
-
-.forum-settings-card__toggle.is-disabled .forum-settings-card__toggle-text {
-  color: inherit;
+.forum-settings-card__embed-action-skeleton {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 @media (max-width: 860px) {

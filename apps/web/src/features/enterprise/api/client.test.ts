@@ -14,12 +14,15 @@ import {
   getEnterpriseModuleJoinCode,
   getModuleMeetingSettings,
   listEnterpriseFeatureFlags,
+  searchEnterpriseUsers,
   getEnterpriseOverview,
   listEnterpriseModules,
   listEnterpriseModuleAccessUsers,
   listEnterpriseModuleStudents,
+  removeEnterpriseUser,
   searchEnterpriseModuleAccessUsers,
   searchEnterpriseModules,
+  updateEnterpriseUser,
   updateModuleMeetingSettings,
   rotateEnterpriseModuleJoinCode,
   updateEnterpriseFeatureFlag,
@@ -55,6 +58,36 @@ describe("enterprise module api client", () => {
   it("lists enterprise feature flags", async () => {
     await listEnterpriseFeatureFlags();
     expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/feature-flags");
+  });
+
+  it("searches enterprise users with query and pagination", async () => {
+    await searchEnterpriseUsers({ q: "alice", page: 2, pageSize: 20 });
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/users/search?q=alice&page=2&pageSize=20");
+  });
+
+  it("searches enterprise users with sort params", async () => {
+    await searchEnterpriseUsers({ sortBy: "joinDate", sortDirection: "desc" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/users/search?sortBy=joinDate&sortDirection=desc");
+  });
+
+  it("searches enterprise users with bare path when filters are empty", async () => {
+    await searchEnterpriseUsers();
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/users/search");
+  });
+
+  it("updates an enterprise user", async () => {
+    await updateEnterpriseUser(9, { role: "STAFF", active: true });
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/users/9", {
+      method: "PATCH",
+      body: JSON.stringify({ role: "STAFF", active: true }),
+    });
+  });
+
+  it("removes an enterprise user", async () => {
+    await removeEnterpriseUser(9);
+    expect(apiFetchMock).toHaveBeenCalledWith("/enterprise-admin/users/9", {
+      method: "DELETE",
+    });
   });
 
   it("updates enterprise feature flag", async () => {

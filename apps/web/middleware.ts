@@ -8,6 +8,7 @@ type ApiUser = {
   isStaff?: boolean;
   isAdmin?: boolean;
   isEnterpriseAdmin?: boolean;
+  isUnassigned?: boolean;
 };
 
 const GUARDED_PREFIXES = ["/admin", "/staff", "/enterprise", "/dashboard/", "/modules", "/projects"] as const;
@@ -25,6 +26,7 @@ function matchesAnyPrefix(pathname: string, prefixes: readonly string[]): boolea
 }
 
 function getDefaultPath(user: ApiUser): string {
+  if (user.isUnassigned === true) return "/dashboard";
   if (user.role === "ADMIN" || user.isAdmin) return "/admin";
   if (user.role === "ENTERPRISE_ADMIN" || user.isEnterpriseAdmin) return "/enterprise";
   if (user.isStaff || user.role === "STAFF") return "/staff/dashboard";
@@ -52,6 +54,9 @@ export async function middleware(req: NextRequest) {
     }
 
     const user = (await meRes.json()) as ApiUser;
+    if (user.isUnassigned === true && pathname !== "/dashboard") {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
     const isAdmin = user.role === "ADMIN" || user.isAdmin === true;
     const isEnterpriseAdmin = user.role === "ENTERPRISE_ADMIN" || user.isEnterpriseAdmin === true;
     const isStaff = user.isStaff === true || user.role === "STAFF";

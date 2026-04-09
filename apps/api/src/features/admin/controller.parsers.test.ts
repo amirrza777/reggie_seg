@@ -4,6 +4,7 @@ import {
   parseAuditLogsQuery,
   parseAdminUserIdParam,
   parseCreateEnterpriseBody,
+  parseInviteEnterpriseAdminBody,
   parseUpdateUserBody,
   parseUpdateUserRoleBody,
 } from "./controller.parsers.js";
@@ -31,6 +32,14 @@ describe("admin controller parsers", () => {
       ok: true,
       value: { active: true, role: "ADMIN" },
     });
+  });
+
+  it("parses enterprise admin invite payload", () => {
+    expect(parseInviteEnterpriseAdminBody({ email: " invite@example.com " })).toEqual({
+      ok: true,
+      value: { email: "invite@example.com" },
+    });
+    expect(parseInviteEnterpriseAdminBody({})).toEqual({ ok: false, error: "email must be a string" });
   });
 
   it("parses audit log query filters", () => {

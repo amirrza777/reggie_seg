@@ -12,6 +12,10 @@ export default async function AdminEnterprisesPage() {
 
   return (
     <div className="ui-page">
+      <header className="ui-page__header">
+        <h1 className="overview-title ui-page__title">Enterprises</h1>
+        <p className="ui-page__description">Manage enterprise workspaces, account pools, and ownership.</p>
+      </header>
       <EnterpriseManagementTable isSuperAdmin />
     </div>
   );

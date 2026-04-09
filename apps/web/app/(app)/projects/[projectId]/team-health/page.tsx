@@ -35,7 +35,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>Invalid project ID.</p>
-        <Link href="/projects">Back to projects</Link>
       </div>
     );
   }
@@ -69,7 +68,6 @@ export default async function ProjectTeamHealthPage({ params }: ProjectTeamHealt
     return (
       <div style={{ padding: 24 }}>
         <p>You are not in a team for this project.</p>
-        <Link href={`/projects/${projectId}`}>Back to project overview</Link>
       </div>
     );
   }

@@ -2,7 +2,6 @@ import { MeetingsPageContent } from "@/features/meetings/components/MeetingsPage
 import { CustomAllocationWaitingBoard } from "@/features/projects/components/CustomAllocationWaitingBoard";
 import { getProject, getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import Link from "next/link";
 import { PageSection } from "@/shared/ui/PageSection";
 import { redirectOnUnauthorized } from "@/shared/auth/redirectOnUnauthorized";
 
@@ -76,7 +75,6 @@ export default async function ProjectMeetingsPage({ params, searchParams }: Proj
   return (
     <PageSection title="Meetings" className="ui-page--project">
       <p>You are not in a team for this project.</p>
-      <Link href={`/projects/${projectId}`}>← Back to project</Link>
     </PageSection>
   );
 }
