@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
@@ -14,6 +14,8 @@ type StaffTeamHealthMessageReviewPanelProps = {
   initialRequests: TeamHealthMessage[];
   initialError?: string | null;
 };
+
+const MESSAGE_PAGE_SIZE = 5;
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -42,6 +44,7 @@ export function StaffTeamHealthMessageReviewPanel({
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
+  const [messagePage, setMessagePage] = useState(1);
   const compactPanelStyle = { padding: 12, gap: 12, fontSize: "var(--fs-fixed-0-92rem)", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "12px 14px", gap: 9 } as const;
   const messageStackStyle = { display: "grid", gap: 14, padding: "2px 2px 4px" } as const;
@@ -57,12 +60,38 @@ export function StaffTeamHealthMessageReviewPanel({
   } as const;
   const compactButtonStyle = { padding: "4px 10px", minHeight: 28, fontSize: "var(--fs-fixed-0-84rem)", lineHeight: 1.1 } as const;
   const openMessageCount = requests.filter((request) => !request.resolved).length;
-  const sortedRequests = [...requests].sort((a, b) => {
-    if (a.resolved !== b.resolved) return Number(a.resolved) - Number(b.resolved);
-    const aTime = new Date(a.createdAt).getTime();
-    const bTime = new Date(b.createdAt).getTime();
-    return bTime - aTime;
-  });
+  const sortedRequests = useMemo(
+    () =>
+      [...requests].sort((a, b) => {
+        if (a.resolved !== b.resolved) return Number(a.resolved) - Number(b.resolved);
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      }),
+    [requests],
+  );
+  const messagePageCount = Math.max(1, Math.ceil(sortedRequests.length / MESSAGE_PAGE_SIZE));
+  const pagedRequests = useMemo(() => {
+    const start = (messagePage - 1) * MESSAGE_PAGE_SIZE;
+    return sortedRequests.slice(start, start + MESSAGE_PAGE_SIZE);
+  }, [messagePage, sortedRequests]);
+  const paginationStyle = {
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  } as const;
+  const paginationCountStyle = {
+    color: "var(--muted)",
+    fontSize: "var(--fs-caption)",
+    minWidth: 68,
+    textAlign: "center",
+  } as const;
+
+  useEffect(() => {
+    if (messagePage > messagePageCount) setMessagePage(messagePageCount);
+  }, [messagePage, messagePageCount]);
 
   const updateRequest = (updated: TeamHealthMessage) => {
     setRequests((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
@@ -151,7 +180,7 @@ export function StaffTeamHealthMessageReviewPanel({
             </p>
           ) : (
             <div style={messageStackStyle}>
-              {sortedRequests.map((request) => {
+              {pagedRequests.map((request) => {
               const isResolved = request.resolved;
               const isRespondOpen = activeRespondRequestId === request.id;
               const hasResponse = Boolean(request.responseText?.trim());
@@ -279,9 +308,29 @@ export function StaffTeamHealthMessageReviewPanel({
                       </div>
                     </div>
                   ) : null}
-                  </article>
-                );
+                </article>
+              );
               })}
+              {messagePageCount > 1 ? (
+                <div style={paginationStyle}>
+                  <Button type="button" variant="ghost" size="sm" style={compactButtonStyle} onClick={() => setMessagePage((page) => Math.max(1, page - 1))} disabled={messagePage === 1}>
+                    Previous
+                  </Button>
+                  <span style={paginationCountStyle}>
+                    Page {messagePage} / {messagePageCount}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    style={compactButtonStyle}
+                    onClick={() => setMessagePage((page) => Math.min(messagePageCount, page + 1))}
+                    disabled={messagePage === messagePageCount}
+                  >
+                    Next
+                  </Button>
+                </div>
+              ) : null}
             </div>
           )}
           {panelMessage ? <p className="muted" style={{ margin: 0 }}>{panelMessage}</p> : null}

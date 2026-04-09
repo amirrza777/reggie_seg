@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
 import { TeamHealthMessagePanel } from "./TeamHealthMessagePanel";
 import type { TeamHealthMessage, TeamWarning } from "../types";
@@ -35,11 +35,21 @@ export function ProjectTeamHealthPanels({
   warningsLoadError,
 }: ProjectTeamHealthPanelsProps) {
   const [tab, setTab] = useState<TeamHealthTab>("messages");
+  const [warningPage, setWarningPage] = useState(1);
+  const warningPageSize = 5;
 
   const warningCountLabel = useMemo(
     () => `Warnings${activeWarnings.length > 0 ? ` (${activeWarnings.length})` : ""}`,
     [activeWarnings.length],
   );
+  const warningPageCount = Math.max(1, Math.ceil(activeWarnings.length / warningPageSize));
+  const pagedWarnings = useMemo(() => {
+    const start = (warningPage - 1) * warningPageSize;
+    return activeWarnings.slice(start, start + warningPageSize);
+  }, [activeWarnings, warningPage]);
+  useEffect(() => {
+    if (warningPage > warningPageCount) setWarningPage(warningPageCount);
+  }, [warningPage, warningPageCount]);
 
   return (
     <div className="stack" style={{ gap: 16 }}>
@@ -69,7 +79,7 @@ export function ProjectTeamHealthPanels({
               </p>
             ) : (
               <div className="stack" style={{ gap: 8 }}>
-                {activeWarnings.map((warning) => (
+                {pagedWarnings.map((warning) => (
                   <article
                     key={warning.id}
                     style={{
@@ -83,6 +93,31 @@ export function ProjectTeamHealthPanels({
                     <p className="muted" style={{ margin: "4px 0 0" }}>{warning.details}</p>
                   </article>
                 ))}
+                {warningPageCount > 1 ? (
+                  <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setWarningPage((page) => Math.max(1, page - 1))}
+                      disabled={warningPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="muted" style={{ minWidth: 68, textAlign: "center", fontSize: "var(--fs-caption)" }}>
+                      Page {warningPage} / {warningPageCount}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setWarningPage((page) => Math.min(warningPageCount, page + 1))}
+                      disabled={warningPage === warningPageCount}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                ) : null}
               </div>
             )}
             {warningsLoadError ? <p className="error" style={{ margin: 0 }}>{warningsLoadError}</p> : null}

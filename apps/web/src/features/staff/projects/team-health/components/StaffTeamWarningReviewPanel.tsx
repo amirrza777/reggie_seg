@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/shared/ui/Button";
 import { resolveStaffTeamWarning } from "@/features/projects/api/client";
@@ -13,6 +13,8 @@ type StaffTeamWarningReviewPanelProps = {
   initialWarnings: TeamWarning[];
   initialError?: string | null;
 };
+
+const WARNING_PAGE_SIZE = 5;
 
 function toTimestamp(value: string) {
   const parsed = new Date(value).getTime();
@@ -43,6 +45,8 @@ export function StaffTeamWarningReviewPanel({
   const [panelError, setPanelError] = useState<string | null>(initialError);
   const [panelMessage, setPanelMessage] = useState<string | null>(null);
   const [resolvingWarningId, setResolvingWarningId] = useState<number | null>(null);
+  const [activePage, setActivePage] = useState(1);
+  const [resolvedPage, setResolvedPage] = useState(1);
 
   const activeWarnings = useMemo(
     () =>
@@ -58,6 +62,16 @@ export function StaffTeamWarningReviewPanel({
         .sort((a, b) => toTimestamp(b.resolvedAt ?? b.updatedAt) - toTimestamp(a.resolvedAt ?? a.updatedAt)),
     [warnings],
   );
+  const activePageCount = Math.max(1, Math.ceil(activeWarnings.length / WARNING_PAGE_SIZE));
+  const resolvedPageCount = Math.max(1, Math.ceil(resolvedWarnings.length / WARNING_PAGE_SIZE));
+  const pagedActiveWarnings = useMemo(() => {
+    const start = (activePage - 1) * WARNING_PAGE_SIZE;
+    return activeWarnings.slice(start, start + WARNING_PAGE_SIZE);
+  }, [activePage, activeWarnings]);
+  const pagedResolvedWarnings = useMemo(() => {
+    const start = (resolvedPage - 1) * WARNING_PAGE_SIZE;
+    return resolvedWarnings.slice(start, start + WARNING_PAGE_SIZE);
+  }, [resolvedPage, resolvedWarnings]);
 
   const compactPanelStyle = { padding: 12, gap: 10, fontSize: "var(--fs-fixed-0-92rem)", lineHeight: 1.35 } as const;
   const compactCardStyle = { padding: "8px 10px", gap: 6 } as const;
@@ -72,6 +86,27 @@ export function StaffTeamWarningReviewPanel({
     display: "grid",
     gap: 10,
   } as const;
+  const paginationStyle = {
+    display: "flex",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 2,
+  } as const;
+  const paginationCountStyle = {
+    color: "var(--muted)",
+    fontSize: "var(--fs-caption)",
+    minWidth: 68,
+    textAlign: "center",
+  } as const;
+
+  useEffect(() => {
+    if (activePage > activePageCount) setActivePage(activePageCount);
+  }, [activePage, activePageCount]);
+
+  useEffect(() => {
+    if (resolvedPage > resolvedPageCount) setResolvedPage(resolvedPageCount);
+  }, [resolvedPage, resolvedPageCount]);
 
   const handleResolve = async (warningId: number) => {
     setResolvingWarningId(warningId);
@@ -122,7 +157,7 @@ export function StaffTeamWarningReviewPanel({
           </p>
         ) : (
           <div style={warningStackStyle}>
-            {activeWarnings.map((warning) => (
+            {pagedActiveWarnings.map((warning) => (
               <article key={warning.id} className="staff-projects__team-card" style={compactCardStyle}>
                 <div className="staff-projects__team-top">
                   <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
@@ -148,6 +183,26 @@ export function StaffTeamWarningReviewPanel({
                 </div>
               </article>
             ))}
+            {activePageCount > 1 ? (
+              <div style={paginationStyle}>
+                <Button type="button" variant="ghost" size="sm" style={compactButtonStyle} onClick={() => setActivePage((page) => Math.max(1, page - 1))} disabled={activePage === 1}>
+                  Previous
+                </Button>
+                <span style={paginationCountStyle}>
+                  Page {activePage} / {activePageCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  style={compactButtonStyle}
+                  onClick={() => setActivePage((page) => Math.min(activePageCount, page + 1))}
+                  disabled={activePage === activePageCount}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -159,7 +214,7 @@ export function StaffTeamWarningReviewPanel({
             </p>
           ) : (
             <div style={warningStackStyle}>
-              {resolvedWarnings.map((warning) => (
+              {pagedResolvedWarnings.map((warning) => (
                 <article key={`resolved-${warning.id}`} className="staff-projects__team-card staff-projects__team-card--resolved" style={compactCardStyle}>
                   <div className="staff-projects__team-top">
                     <h3 className="staff-projects__team-title" style={compactTitleStyle}>{warning.title}</h3>
@@ -173,6 +228,26 @@ export function StaffTeamWarningReviewPanel({
                   </p>
                 </article>
               ))}
+              {resolvedPageCount > 1 ? (
+                <div style={paginationStyle}>
+                  <Button type="button" variant="ghost" size="sm" style={compactButtonStyle} onClick={() => setResolvedPage((page) => Math.max(1, page - 1))} disabled={resolvedPage === 1}>
+                    Previous
+                  </Button>
+                  <span style={paginationCountStyle}>
+                    Page {resolvedPage} / {resolvedPageCount}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    style={compactButtonStyle}
+                    onClick={() => setResolvedPage((page) => Math.min(resolvedPageCount, page + 1))}
+                    disabled={resolvedPage === resolvedPageCount}
+                  >
+                    Next
+                  </Button>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

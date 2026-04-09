@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/shared/ui/Button";
 import { RichTextEditor } from "@/shared/ui/RichTextEditor";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
@@ -55,11 +55,22 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [requests, setRequests] = useState<TeamHealthMessage[]>(initialRequests);
+  const [messagePage, setMessagePage] = useState(1);
+  const messagePageSize = 5;
 
   const canSubmit = useMemo(
     () => subject.trim().length > 0 && !detailsEmpty && status !== "loading",
     [detailsEmpty, status, subject]
   );
+  const messagePageCount = Math.max(1, Math.ceil(requests.length / messagePageSize));
+  const pagedRequests = useMemo(() => {
+    const start = (messagePage - 1) * messagePageSize;
+    return requests.slice(start, start + messagePageSize);
+  }, [messagePage, requests]);
+
+  useEffect(() => {
+    if (messagePage > messagePageCount) setMessagePage(messagePageCount);
+  }, [messagePage, messagePageCount]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -75,6 +86,7 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
     try {
       const created = await createTeamHealthMessage(projectId, userId, trimmedSubject, details);
       setRequests((prev) => [created, ...prev]);
+      setMessagePage(1);
       setSubject("");
       setDetails("");
       setDetailsEmpty(true);
@@ -136,7 +148,8 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
             No team health messages yet.
           </p>
         ) : (
-          requests.map((request) => {
+          <>
+            {pagedRequests.map((request) => {
             const hasResponse = Boolean(request.responseText);
             return (
               <article
@@ -192,7 +205,33 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
                 ) : null}
               </article>
             );
-          })
+          })}
+            {messagePageCount > 1 ? (
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 8 }}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMessagePage((page) => Math.max(1, page - 1))}
+                  disabled={messagePage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="muted" style={{ minWidth: 68, textAlign: "center", fontSize: "var(--fs-caption)" }}>
+                  Page {messagePage} / {messagePageCount}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMessagePage((page) => Math.min(messagePageCount, page + 1))}
+                  disabled={messagePage === messagePageCount}
+                >
+                  Next
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
     </div>
