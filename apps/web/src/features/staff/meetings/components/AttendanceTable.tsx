@@ -2,9 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { Card } from "@/shared/ui/Card";
-import { Table } from "@/shared/ui/Table";
-import type { SortConfig } from "@/shared/ui/Table";
-import type { MemberAttendance } from "../attendance";
+import { Table, type SortConfig } from "@/shared/ui/Table";
+import type { MemberAttendance } from "../lib/attendance";
 
 type AttendanceTableProps = {
   members: MemberAttendance[];
@@ -21,28 +20,30 @@ function formatStatus(status: string): string {
   }
 }
 
+function compareMembers(a: MemberAttendance, b: MemberAttendance, column: number, dir: number): number {
+  switch (column) {
+    case 0: return dir * `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    case 1: return dir * (a.attended - b.attended);
+    case 2: {
+      const rateA = a.total > 0 ? a.attended / a.total : 0;
+      const rateB = b.total > 0 ? b.attended / b.total : 0;
+      return dir * (rateA - rateB);
+    }
+    case 3: {
+      const rankA = STATUS_ORDER[a.lastStatus?.toLowerCase() ?? ""] ?? 3;
+      const rankB = STATUS_ORDER[b.lastStatus?.toLowerCase() ?? ""] ?? 3;
+      return dir * (rankA - rankB);
+    }
+    default: return 0;
+  }
+}
+
 export function AttendanceTable({ members }: AttendanceTableProps) {
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: 0, direction: "asc" });
 
   const sorted = useMemo(() => {
-    return [...members].sort((a, b) => {
-      const dir = sortConfig.direction === "asc" ? 1 : -1;
-      switch (sortConfig.column) {
-        case 0: return dir * `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
-        case 1: return dir * (a.attended - b.attended);
-        case 2: {
-          const rateA = a.total > 0 ? a.attended / a.total : 0;
-          const rateB = b.total > 0 ? b.attended / b.total : 0;
-          return dir * (rateA - rateB);
-        }
-        case 3: {
-          const rankA = STATUS_ORDER[a.lastStatus?.toLowerCase() ?? ""] ?? 3;
-          const rankB = STATUS_ORDER[b.lastStatus?.toLowerCase() ?? ""] ?? 3;
-          return dir * (rankA - rankB);
-        }
-        default: return 0;
-      }
-    });
+    const dir = sortConfig.direction === "asc" ? 1 : -1;
+    return [...members].sort((a, b) => compareMembers(a, b, sortConfig.column, dir));
   }, [members, sortConfig]);
 
   function handleSort(columnIndex: number) {

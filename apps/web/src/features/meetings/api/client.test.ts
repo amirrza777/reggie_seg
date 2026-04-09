@@ -12,6 +12,7 @@ import {
   addComment,
   deleteComment,
   getMeetingSettings,
+  getTeamMeetingSettings,
 } from "./client";
 
 vi.mock("@/shared/api/http", () => ({
@@ -143,5 +144,10 @@ describe("meetings api client", () => {
   it("gets meeting settings", async () => {
     await getMeetingSettings(55);
     expect(apiFetchMock).toHaveBeenCalledWith("/meetings/55/settings");
+  });
+
+  it("gets team meeting settings", async () => {
+    await getTeamMeetingSettings(8);
+    expect(apiFetchMock).toHaveBeenCalledWith("/meetings/team/8/settings");
   });
 });

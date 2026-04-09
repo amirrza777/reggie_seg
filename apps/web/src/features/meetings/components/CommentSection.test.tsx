@@ -123,6 +123,13 @@ describe("CommentSection", () => {
     });
   });
 
+  it("passes teamId to addComment when provided", async () => {
+    render(<CommentSection meetingId={10} teamId={5} initialComments={[]} />);
+    fireEvent.change(screen.getByPlaceholderText(/add a comment/i), { target: { value: "Great" } });
+    fireEvent.click(screen.getByRole("button", { name: /post comment/i }));
+    await waitFor(() => expect(addCommentMock).toHaveBeenCalledWith(10, 1, "Great", 5));
+  });
+
   it("does not post when textarea is only whitespace", () => {
     render(<CommentSection meetingId={10} initialComments={[]} />);
     fireEvent.change(screen.getByPlaceholderText(/add a comment/i), { target: { value: "   " } });

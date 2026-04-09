@@ -177,4 +177,43 @@ describe("CreateMeetingForm", () => {
     });
     expect(screen.getByRole("button", { name: /create meeting/i })).toBeDisabled();
   });
+
+  it("renders participant checkboxes when members are loaded", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+      { id: 11, firstName: "Bob", lastName: "Jones" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    expect(screen.getByText("Participants")).toBeInTheDocument();
+    expect(screen.getByLabelText(/invite all team members/i)).toBeChecked();
+  });
+
+  it("shows individual member checkboxes when invite-all is unchecked", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+      { id: 11, firstName: "Bob", lastName: "Jones" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    fireEvent.click(screen.getByLabelText(/invite all team members/i));
+    expect(screen.getByText("Alice Doe")).toBeInTheDocument();
+    expect(screen.getByText("Bob Jones")).toBeInTheDocument();
+  });
+
+  it("toggles individual participant selection", async () => {
+    listTeamMembersMock.mockResolvedValue([
+      { id: 10, firstName: "Alice", lastName: "Doe" },
+    ]);
+    await act(async () => {
+      render(<CreateMeetingForm teamId={1} onCreated={onCreated} onCancel={onCancel} />);
+    });
+    fireEvent.click(screen.getByLabelText(/invite all team members/i));
+    const aliceCheckbox = screen.getByLabelText("Alice Doe");
+    expect(aliceCheckbox).toBeChecked();
+    fireEvent.click(aliceCheckbox);
+    expect(aliceCheckbox).not.toBeChecked();
+  });
 });

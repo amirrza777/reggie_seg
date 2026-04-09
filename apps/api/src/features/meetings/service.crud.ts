@@ -26,8 +26,7 @@ export function fetchMeeting(meetingId: number) {
   return getMeetingById(meetingId);
 }
 
-/** Adds a meeting. */
-export async function addMeeting(data: {
+type MeetingInput = {
   teamId: number;
   organiserId: number;
   title: string;
@@ -37,7 +36,54 @@ export async function addMeeting(data: {
   videoCallLink?: string;
   agenda?: string;
   participantIds?: number[];
-}) {
+};
+
+function notifyMeetingCreated(
+  recipients: { id: number }[],
+  organiserId: number,
+  title: string,
+  projectId: number | undefined,
+  meetingId: number,
+) {
+  return Promise.all(
+    recipients
+      .filter((m) => m.id !== organiserId)
+      .map((m) =>
+        addNotification({
+          userId: m.id,
+          type: "MEETING_CREATED",
+          message: `A new meeting has been scheduled: ${title}`,
+          link: `/projects/${projectId}/meetings/${meetingId}`,
+        })
+      )
+  );
+}
+
+function sendMeetingInviteEmails(
+  recipients: { email: string }[],
+  data: MeetingInput,
+) {
+  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
+  const body = [
+    `A new meeting has been scheduled: ${data.title}`,
+    `Date: ${data.date.toUTCString()}`,
+    data.location ? `Location: ${data.location}` : null,
+    data.videoCallLink ? `Video call: ${data.videoCallLink}` : null,
+    data.agenda ? `\nAgenda:\n${data.agenda}` : null,
+  ].filter(Boolean).join("\n");
+  return Promise.all(
+    recipients.map((member) =>
+      sendEmail({
+        to: member.email,
+        subject: `New meeting: ${data.title}`,
+        text: body,
+        attachments: [{ filename: "meeting.ics", content: ics }],
+      })
+    )
+  );
+}
+
+export async function addMeeting(data: MeetingInput) {
   const { participantIds, ...meetingData } = data;
   const team = await getTeamMeetingState(data.teamId);
   if (team?.archivedAt) throw { code: "TEAM_ARCHIVED" };
@@ -52,40 +98,12 @@ export async function addMeeting(data: {
   const members = await getTeamMembers(data.teamId);
   const recipients = participantIds ? members.filter((m) => participantIds.includes(m.id)) : members;
   await createParticipants(meeting.id, recipients.map((m) => m.id));
-  await Promise.all(
-    recipients
-      .filter((m) => m.id !== data.organiserId)
-      .map((m) =>
-        addNotification({
-          userId: m.id,
-          type: "MEETING_CREATED",
-          message: `A new meeting has been scheduled: ${data.title}`,
-          link: `/projects/${team?.projectId}/meetings/${meeting.id}`,
-        })
-      )
-  );
-  const ics = buildIcs({ title: data.title, date: data.date, location: data.location, videoCallLink: data.videoCallLink, agenda: data.agenda });
-  const body = [
-    `A new meeting has been scheduled: ${data.title}`,
-    `Date: ${data.date.toUTCString()}`,
-    data.location ? `Location: ${data.location}` : null,
-    data.videoCallLink ? `Video call: ${data.videoCallLink}` : null,
-    data.agenda ? `\nAgenda:\n${data.agenda}` : null,
-  ].filter(Boolean).join("\n");
-  await Promise.all(
-    recipients.map((member) =>
-      sendEmail({
-        to: member.email,
-        subject: `New meeting: ${data.title}`,
-        text: body,
-        attachments: [{ filename: "meeting.ics", content: ics }],
-      })
-    )
-  );
+  await notifyMeetingCreated(recipients, data.organiserId, data.title, team?.projectId, meeting.id);
+  await sendMeetingInviteEmails(recipients, data);
   return meeting;
 }
 
-export async function editMeeting(meetingId: number, userId: number, data: {
+type MeetingUpdateInput = {
   title?: string;
   date?: Date;
   subject?: string;
@@ -93,7 +111,9 @@ export async function editMeeting(meetingId: number, userId: number, data: {
   videoCallLink?: string;
   agenda?: string;
   participantIds?: number[];
-}) {
+};
+
+export async function editMeeting(meetingId: number, userId: number, data: MeetingUpdateInput) {
   const meeting = await getMeetingById(meetingId);
   if (!meeting) throw { code: "NOT_FOUND" };
   await assertProjectMutableForWritesByTeamId(meeting.teamId);

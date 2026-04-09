@@ -1,9 +1,14 @@
-import type { StaffMeeting, MeetingStats, FlaggedMember } from "./types";
+import type { StaffMeeting, MeetingStats, FlaggedMember } from "../types";
 
 const DEFAULT_ABSENCE_THRESHOLD = 3;
 
 export function isPresent(status: string) {
   return ["on_time", "late"].includes(status.toLowerCase());
+}
+
+export function getAttendanceRate(attendances: { status: string }[]): number {
+  if (attendances.length === 0) return 0;
+  return attendances.filter((a) => isPresent(a.status)).length / attendances.length;
 }
 
 function getConsecutiveAbsences(userId: number, meetings: StaffMeeting[]): number {
@@ -47,26 +52,30 @@ export type MemberAttendance = {
   atRisk: boolean;
 };
 
+function processAttendanceRecord(memberMap: Map<number, MemberAttendance>, record: StaffMeeting["attendances"][number]) {
+  if (!memberMap.has(record.userId)) {
+    memberMap.set(record.userId, {
+      id: record.userId,
+      firstName: record.user.firstName,
+      lastName: record.user.lastName,
+      attended: 0,
+      total: 0,
+      lastStatus: null,
+      atRisk: false,
+    });
+  }
+  const entry = memberMap.get(record.userId)!;
+  entry.total += 1;
+  if (isPresent(record.status)) entry.attended += 1;
+  if (entry.lastStatus === null) entry.lastStatus = record.status;
+}
+
 export function getMemberAttendanceStats(meetings: StaffMeeting[], threshold = DEFAULT_ABSENCE_THRESHOLD): MemberAttendance[] {
   const memberMap = new Map<number, MemberAttendance>();
 
   for (const meeting of meetings) {
     for (const record of meeting.attendances) {
-      if (!memberMap.has(record.userId)) {
-        memberMap.set(record.userId, {
-          id: record.userId,
-          firstName: record.user.firstName,
-          lastName: record.user.lastName,
-          attended: 0,
-          total: 0,
-          lastStatus: null,
-          atRisk: false,
-        });
-      }
-      const entry = memberMap.get(record.userId)!;
-      entry.total += 1;
-      if (isPresent(record.status)) entry.attended += 1;
-      if (entry.lastStatus === null) entry.lastStatus = record.status;
+      processAttendanceRecord(memberMap, record);
     }
   }
 
@@ -77,11 +86,9 @@ export function getMemberAttendanceStats(meetings: StaffMeeting[], threshold = D
 
 export function getFlaggedMembers(meetings: StaffMeeting[], threshold = DEFAULT_ABSENCE_THRESHOLD): FlaggedMember[] {
   const memberMap = new Map<number, { id: number; firstName: string; lastName: string }>();
-  for (const meeting of meetings) {
-    for (const attendance of meeting.attendances) {
-      if (!memberMap.has(attendance.userId)) {
-        memberMap.set(attendance.userId, attendance.user);
-      }
+  for (const attendance of meetings.flatMap((m) => m.attendances)) {
+    if (!memberMap.has(attendance.userId)) {
+      memberMap.set(attendance.userId, attendance.user);
     }
   }
 

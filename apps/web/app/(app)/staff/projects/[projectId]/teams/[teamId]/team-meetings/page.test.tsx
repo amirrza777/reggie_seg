@@ -32,7 +32,7 @@ vi.mock("@/features/staff/meetings/api/client", () => ({
   getTeamMeetingSettings: vi.fn(),
 }));
 
-vi.mock("@/features/staff/meetings/StaffMeetingsView", () => ({
+vi.mock("@/features/staff/meetings/components/StaffMeetingsView", () => ({
   StaffMeetingsView: ({ meetings }: { meetings: unknown[] }) => <div data-testid="staff-meetings-view">{meetings.length}</div>,
 }));
 

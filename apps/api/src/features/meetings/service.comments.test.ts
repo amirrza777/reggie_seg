@@ -90,6 +90,16 @@ describe("meetings comments service", () => {
     expect(notificationsService.addNotification).not.toHaveBeenCalled();
   });
 
+  it("returns comment even when mention processing fails", async () => {
+    (repo.getMeetingById as any).mockResolvedValue({ id: 1, teamId: 1 });
+    (repo.createComment as any).mockResolvedValue({ id: 5 });
+    (teamAllocationService.getTeamMembers as any).mockRejectedValue(new Error("mention fail"));
+
+    const result = await addComment(1, 1, "@Bob Jones hello", 5);
+
+    expect(result).toEqual({ id: 5 });
+  });
+
   it("forwards removeComment to repo", async () => {
     (prisma.meetingComment.findUnique as any).mockResolvedValue({
       meeting: { teamId: 1 },
