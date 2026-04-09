@@ -2,12 +2,14 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { getConnectUrl } from "@/features/trello/api/client";
 import "@/features/trello/styles/link-account.css";
 
 export default function LinkTrelloPage() {
   const params = useParams();
   const projectId = typeof params?.projectId === "string" ? params.projectId : "";
+  const { canEdit } = useProjectWorkspaceCanEdit();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,16 +37,22 @@ export default function LinkTrelloPage() {
           Authorise this app to access your Trello boards so you can link one to your team.
         </p>
       </header>
-      <div className="trello-setup__actions">
-        <button
-          type="button"
-          className="btn btn--primary btn--sm"
-          onClick={connectTrello}
-          disabled={loading}
-        >
-          {loading ? "Connecting..." : "Connect Trello"}
-        </button>
-      </div>
+      {!canEdit ? (
+        <p className="muted">
+          This project is archived; you cannot connect or change Trello from here.
+        </p>
+      ) : (
+        <div className="trello-setup__actions">
+          <button
+            type="button"
+            className="btn btn--primary btn--sm"
+            onClick={connectTrello}
+            disabled={loading}
+          >
+            {loading ? "Connecting..." : "Connect Trello"}
+          </button>
+        </div>
+      )}
       {error ? <p role="alert" className="ui-note ui-note--error">{error}</p> : null}
     </section>
   );

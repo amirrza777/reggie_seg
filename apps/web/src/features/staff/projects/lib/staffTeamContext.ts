@@ -2,6 +2,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/projects/api/client";
+import { staffProjectWorkspaceAggregates } from "./staffProjectWorkspaceAggregates";
 
 export type StaffTeamContextSuccess = {
   ok: true;
@@ -12,6 +13,10 @@ export type StaffTeamContextSuccess = {
     moduleId: number;
     moduleName: string;
     moduleArchivedAt?: string | null;
+    projectArchivedAt?: string | null;
+    viewerAccessLabel?: string;
+    teamCount: number;
+    studentCount: number;
   };
   team: Awaited<ReturnType<typeof getStaffProjectTeams>>["teams"][number];
 };
@@ -52,10 +57,16 @@ export const getStaffTeamContext = cache(
       return { ok: false, error: errorMessage ?? "Team not found in this project." };
     }
 
+    const { teamCount, studentCount, accessRoleLabel } = staffProjectWorkspaceAggregates(data);
     return {
       ok: true,
       user: { id: user.id },
-      project: data.project,
+      project: {
+        ...data.project,
+        viewerAccessLabel: data.project.viewerAccessLabel ?? accessRoleLabel,
+        teamCount,
+        studentCount,
+      },
       team,
     };
   }

@@ -8,6 +8,7 @@ import {
   putTrelloSectionConfig,
   TRELLO_SECTION_STATUSES,
 } from "@/features/trello/api/client";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { SECTION_STATUS_LABELS } from "@/features/trello/lib/listStatus";
 import { useTrelloBoard } from "@/features/trello/context/TrelloBoardContext";
 import { SkeletonText } from "@/shared/ui/Skeleton";
@@ -231,7 +232,17 @@ function ConfigureTrelloCard({
 }
 
 export function ConfigureTrelloContent({ projectId, teamId }: Props) {
+  const { canEdit } = useProjectWorkspaceCanEdit();
   const state = useConfigureTrelloState(projectId, teamId);
+
+  if (!canEdit) {
+    return (
+      <section className="stack projects-panel trello-configure">
+        <p className="muted">Trello configuration is not available while this project is archived.</p>
+      </section>
+    );
+  }
+
   if (state.loading) {
     return <ConfigureTrelloLoadingView />;
   }

@@ -21,6 +21,7 @@ type MeetingListProps = {
   emptyMessage?: string;
   showMinutesWriter?: boolean;
   permissions?: MeetingPermissions | null;
+  workspaceReadOnly?: boolean;
 };
 
 function isUpcoming(meeting: Meeting) {
@@ -34,6 +35,7 @@ export function MeetingList({
   emptyMessage,
   showMinutesWriter = false,
   permissions = null,
+  workspaceReadOnly = false,
 }: MeetingListProps) {
   const { user } = useUser();
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -111,9 +113,13 @@ export function MeetingList({
     const upcoming = isUpcoming(meeting);
     const isOrganiser = user?.id === meeting.organiser.id;
     const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
-    const canEdit = isOrganiser || (!!permissions?.allowAnyoneToEditMeetings && isMember);
-    const canRecordAttendance = isOrganiser || (!!permissions?.allowAnyoneToRecordAttendance && isMember);
-    const canWriteMinutes = !meeting.minutes || meeting.minutes.writerId === user?.id || (!!permissions?.allowAnyoneToWriteMinutes && isMember);
+    const canEditMeeting =
+      !workspaceReadOnly && (isOrganiser || (!!permissions?.allowAnyoneToEditMeetings && isMember));
+    const canRecordAttendance =
+      !workspaceReadOnly && (isOrganiser || (!!permissions?.allowAnyoneToRecordAttendance && isMember));
+    const canWriteMinutes =
+      !workspaceReadOnly &&
+      (!meeting.minutes || meeting.minutes.writerId === user?.id || (!!permissions?.allowAnyoneToWriteMinutes && isMember));
     const minutesWindowOpen = (permissions?.minutesEditWindowDays ?? 0) > 0 && isWithinEditWindow(meeting.date, permissions!.minutesEditWindowDays);
     const attendanceWindowOpen = (permissions?.attendanceEditWindowDays ?? 0) > 0 && isWithinEditWindow(meeting.date, permissions!.attendanceEditWindowDays);
     const writer = meeting.minutes?.writer;
@@ -128,7 +134,7 @@ export function MeetingList({
         >
           <Eye size={16} />
         </AnchorLink>
-        {canEdit && upcoming && (
+        {canEditMeeting && upcoming && (
           <AnchorLink
             href={`/projects/${projectId}/meetings/${meeting.id}/edit`}
             className="meeting-list__action"

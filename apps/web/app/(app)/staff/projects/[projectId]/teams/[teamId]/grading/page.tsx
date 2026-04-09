@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
@@ -28,11 +27,7 @@ function formatStableDateTime(value: string) {
 
 export default async function StaffTeamGradingSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
-
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  const userId = (await getCurrentUser())!.id;
 
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
@@ -43,7 +38,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
   let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let projectError: string | null = null;
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    projectData = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     projectError = error instanceof Error ? error.message : "Failed to load project team data.";
   }
@@ -61,7 +56,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
   let students: Awaited<ReturnType<typeof getTeamDetails>>["students"] = [];
   let gradingError: string | null = null;
   try {
-    const teamDetails = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
+    const teamDetails = await getTeamDetails(userId, projectData.project.moduleId, numericTeamId);
     teamMarking = teamDetails.teamMarking;
     students = teamDetails.students;
   } catch (error) {
@@ -73,6 +68,11 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {team.allocations?.length ?? 0} on this team · {students.length} in marking list · Team
+        mark: {teamMarking?.mark == null ? "Not set" : String(teamMarking.mark)}
+      </p>
+
       {gradingError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{gradingError}</p>
@@ -97,7 +97,7 @@ export default async function StaffTeamGradingSectionPage({ params }: PageProps)
           <StaffMarkingCard
             title="Team marking and formative feedback"
             description="Set a shared team mark and formative guidance visible to all team members."
-            staffId={user.id}
+            staffId={userId}
             moduleId={projectData.project.moduleId}
             teamId={team.id}
             initialMarking={teamMarking}

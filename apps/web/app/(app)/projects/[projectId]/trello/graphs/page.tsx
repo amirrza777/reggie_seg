@@ -11,11 +11,12 @@ export default async function TrelloGraphsPage({ params }: PageProps) {
   return (
     <div className="stack">
       <TrelloProjectGate projectId={projectId} needDeadline signInMessage="Please sign in to view graphs.">
-        {({ projectId, teamId, teamName, deadline }) => (
+        {({ projectId, teamId, teamName, deadline, teamHasLinkedTrelloBoard }) => (
           <ProjectTrelloContent
             projectId={projectId}
             teamId={teamId}
             teamName={teamName}
+            teamHasLinkedTrelloBoard={teamHasLinkedTrelloBoard}
             deadline={deadline ?? undefined}
             viewComponent={TrelloGraphsView}
           />

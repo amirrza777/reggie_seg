@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
@@ -28,14 +27,6 @@ function parseRouteParams(projectId: string, teamId: string): ParsedRouteParams 
     return null;
   }
   return { projectId: numericProjectId, teamId: numericTeamId };
-}
-
-async function requireStaffOrAdminUser() {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-  return user;
 }
 
 async function loadProjectTeam(userId: number, projectId: number, teamId: number) {
@@ -71,26 +62,32 @@ function TeamMessage({ message }: { message: string }) {
 }
 
 export default async function StaffTeamMeetingsSectionPage({ params }: PageProps) {
-  const user = await requireStaffOrAdminUser();
+  const userId = (await getCurrentUser())!.id;
   const routeParams = await params;
   const parsed = parseRouteParams(routeParams.projectId, routeParams.teamId);
   if (!parsed) {
     return <TeamMessage message="Invalid project or team ID." />;
   }
 
-  const project = await loadProjectTeam(user.id, parsed.projectId, parsed.teamId);
+  const project = await loadProjectTeam(userId, parsed.projectId, parsed.teamId);
   if (!project.team) {
     return <TeamMessage message={project.error ?? "Team not found in this project."} />;
   }
 
   const meetingsState = await loadTeamMeetings(parsed.teamId);
+  const count = meetingsState.meetings.length;
   return (
-    <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
-      {meetingsState.error ? (
-        <p className="muted">{meetingsState.error}</p>
-      ) : (
-        <StaffMeetingsView meetings={meetingsState.meetings} absenceThreshold={meetingsState.absenceThreshold} />
-      )}
-    </section>
+    <>
+      <p className="muted">
+        Team: {project.team.teamName} · {count} meeting{count === 1 ? "" : "s"} logged
+      </p>
+      <section className="staff-projects__team-card" aria-label="Team meetings analytics and history">
+        {meetingsState.error ? (
+          <p className="muted">{meetingsState.error}</p>
+        ) : (
+          <StaffMeetingsView meetings={meetingsState.meetings} absenceThreshold={meetingsState.absenceThreshold} />
+        )}
+      </section>
+    </>
   );
 }

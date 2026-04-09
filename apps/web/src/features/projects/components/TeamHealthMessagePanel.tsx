@@ -11,6 +11,7 @@ type TeamHealthMessagePanelProps = {
   projectId: number;
   userId: number;
   initialRequests: TeamHealthMessage[];
+  allowNewMessages?: boolean;
 };
 
 const textInputStyle = {
@@ -47,7 +48,12 @@ function formatAuthorName(request: TeamHealthMessage) {
   return request.requester?.email ?? `User #${request.requesterUserId}`;
 }
 
-export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: TeamHealthMessagePanelProps) {
+export function TeamHealthMessagePanel({
+  projectId,
+  userId,
+  initialRequests,
+  allowNewMessages = true,
+}: TeamHealthMessagePanelProps) {
   const [subject, setSubject] = useState("");
   const [details, setDetails] = useState("");
   const [detailsEmpty, setDetailsEmpty] = useState(true);
@@ -89,43 +95,45 @@ export function TeamHealthMessagePanel({ projectId, userId, initialRequests }: T
 
   return (
     <div className="stack" style={{ gap: 16 }}>
-      <form className="stack" style={{ gap: 12 }} onSubmit={handleSubmit}>
-        <label className="stack" style={{ gap: 6 }}>
-          <span>Subject</span>
-          <input
-            type="text"
-            value={subject}
-            maxLength={160}
-            onChange={(event) => setSubject(event.target.value)}
-            placeholder="Short summary of the issue"
-            style={textInputStyle}
-          />
-        </label>
+      {allowNewMessages ? (
+        <form className="stack" style={{ gap: 12 }} onSubmit={handleSubmit}>
+          <label className="stack" style={{ gap: 6 }}>
+            <span>Subject</span>
+            <input
+              type="text"
+              value={subject}
+              maxLength={160}
+              onChange={(event) => setSubject(event.target.value)}
+              placeholder="Short summary of the issue"
+              style={textInputStyle}
+            />
+          </label>
 
-        <div className="stack" style={{ gap: 6 }}>
-          <span>Details</span>
-          <RichTextEditor
-            key={composerKey}
-            initialContent={details}
-            onChange={setDetails}
-            onEmptyChange={setDetailsEmpty}
-            placeholder="Describe what is happening and why support is needed"
-          />
-        </div>
+          <div className="stack" style={{ gap: 6 }}>
+            <span>Details</span>
+            <RichTextEditor
+              key={composerKey}
+              initialContent={details}
+              onChange={setDetails}
+              onEmptyChange={setDetailsEmpty}
+              placeholder="Describe what is happening and why support is needed"
+            />
+          </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginTop: 14,
-            marginBottom: 18,
-          }}
-        >
-          <Button type="submit" disabled={!canSubmit}>
-            {status === "loading" ? "Submitting..." : "Submit Team Health Message"}
-          </Button>
-        </div>
-      </form>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-end",
+              marginTop: 14,
+              marginBottom: 18,
+            }}
+          >
+            <Button type="submit" disabled={!canSubmit}>
+              {status === "loading" ? "Submitting..." : "Submit Team Health Message"}
+            </Button>
+          </div>
+        </form>
+      ) : null}
 
       {message ? <p className={status === "error" ? "error" : "muted"}>{message}</p> : null}
 

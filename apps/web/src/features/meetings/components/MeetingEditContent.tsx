@@ -1,6 +1,8 @@
 "use client";
 
 import { useUser } from "@/features/auth/context";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
+import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
 import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
@@ -14,15 +16,30 @@ type MeetingEditContentProps = {
 
 export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentProps) {
   const { user } = useUser();
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const { meeting, settings } = useMeetingWithSettings(meetingId);
 
   if (!meeting || !user || !settings) return null;
 
+  const backLink = (
+    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
+      <ChevronLeft size={14} />
+      Back to meeting
+    </AnchorLink>
+  );
+
+  if (!workspaceCanEdit) {
+    return (
+      <div className="stack">
+        {backLink}
+        <p className="muted">This project is archived; meetings cannot be edited.</p>
+      </div>
+    );
+  }
+
   const isOrganiser = meeting.organiserId === user.id;
   const isMember = isMeetingMember(meeting.team.allocations, user.id);
   const canEdit = isOrganiser || (settings.allowAnyoneToEditMeetings && isMember);
-  const isUpcomingMeeting = new Date(meeting.date) >= new Date();
-  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
   if (!canEdit) {
     return (

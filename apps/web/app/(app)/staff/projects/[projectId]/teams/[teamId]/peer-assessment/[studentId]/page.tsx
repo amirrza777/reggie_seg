@@ -154,18 +154,14 @@ export default async function StaffPeerAssessmentStudentPage({ params }: PagePro
   const receivedGroups = buildReceivedGroups(receivedAssessments, feedbackById);
   const expectedPeerReviews = Math.max(0, team.allocations.length - 1);
 
+  const recordCount = givenAssessments.length + receivedAssessments.length;
+
   return (
     <>
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Peer Assessment</p>
-        <h1 className="staff-projects__title">{studentTitle}</h1>
-        <p className="staff-projects__desc">
-          View assessments this student wrote about others, or assessments teammates wrote about them. Each card groups
-          entries by the other team member.
-        </p>
-      </section>
-
-
+      <p className="muted">
+        {studentTitle}: {recordCount} assessment record{recordCount === 1 ? "" : "s"}; up to {expectedPeerReviews}{" "}
+        peer review{expectedPeerReviews === 1 ? "" : "s"} per student
+      </p>
 
       {loadError ? (
         <section className="staff-projects__team-card">

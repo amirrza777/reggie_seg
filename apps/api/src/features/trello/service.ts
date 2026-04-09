@@ -1,5 +1,6 @@
 import { TrelloRepo } from "./repo.js"
 import { matchesFuzzySearchCandidate } from "../../shared/fuzzySearch.js"
+import { canStaffAccessTeamInProject } from "../projects/team-health-review/repo.js"
 
 type TrelloBoard = Record<string, unknown> & {
   id?: unknown
@@ -147,10 +148,17 @@ export const TrelloService = {
   },
 
   async fetchAssignedTeamBoard(teamId: number, userId: number) {
-    await TrelloService.assertTeamMember(teamId, userId)
-
     const team = await TrelloRepo.getTeamWithOwner(teamId)
-    if (!team?.trelloBoardId) throw new Error("No board assigned")
+    if (!team) throw new Error("Team not found")
+
+    const isMember = await TrelloRepo.isUserInTeam(userId, teamId)
+    const staffCanView =
+      !isMember && (await canStaffAccessTeamInProject(userId, team.projectId, teamId))
+    if (!isMember && !staffCanView) {
+      throw new Error("Not a member of this team")
+    }
+
+    if (!team.trelloBoardId) throw new Error("No board assigned")
     if (!team.trelloOwner?.trelloToken)
       throw new Error("Team owner not connected to Trello")
 
@@ -161,8 +169,12 @@ export const TrelloService = {
 
     const user = await TrelloRepo.getUserById(userId)
 
-    // only allow user to view trello board if they're a member of the board on trello
-    if (user?.trelloMemberId && Array.isArray(board.members)) {
+    // Team members must be on the Trello board (when they have a linked Trello identity). Staff viewers skip this.
+    if (
+      isMember &&
+      user?.trelloMemberId &&
+      Array.isArray(board.members)
+    ) {
       const isOnBoard = board.members.some((m: { id?: string }) => m?.id === user.trelloMemberId)
       if (!isOnBoard && board.url) {
         return { requireJoin: true, boardUrl: board.url }

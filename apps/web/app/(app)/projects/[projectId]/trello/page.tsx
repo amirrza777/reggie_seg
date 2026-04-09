@@ -14,11 +14,18 @@ export default async function ProjectTrelloPage({ params }: ProjectPageProps) {
   return (
     <div className="stack">
       <TrelloProjectGate projectId={projectId} needDeadline signInMessage="Please sign in to view Trello details for this project.">
-        {({ projectId, teamId, teamName, deadline }: TrelloProjectGateChildProps) => (
+        {({
+          projectId,
+          teamId,
+          teamName,
+          deadline,
+          teamHasLinkedTrelloBoard,
+        }: TrelloProjectGateChildProps) => (
           <ProjectTrelloContent
             projectId={projectId}
             teamId={teamId}
             teamName={teamName}
+            teamHasLinkedTrelloBoard={teamHasLinkedTrelloBoard}
             deadline={deadline ?? undefined}
             viewComponent={TrelloSummaryView}
           />

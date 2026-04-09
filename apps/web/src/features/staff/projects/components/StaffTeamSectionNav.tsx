@@ -16,9 +16,9 @@ const teamTabs = [
   { key: "deadlines", label: "Deadlines", hrefSuffix: "/deadlines" },
   { key: "teamhealth", label: "Health", hrefSuffix: "/teamhealth" },
   { key: "team-meetings", label: "Team meetings", hrefSuffix: "/team-meetings" },
-  { key: "peer-assessment", label: "Peer assessment", hrefSuffix: "/peer-assessment" },
   { key: "repositories", label: "Repositories", hrefSuffix: "/repositories" },
   { key: "trello", label: "Trello", hrefSuffix: "/trello" },
+  { key: "peer-assessment", label: "Peer assessment", hrefSuffix: "/peer-assessment" },
   { key: "grading", label: "Marking", hrefSuffix: "/grading" },
 ];
 

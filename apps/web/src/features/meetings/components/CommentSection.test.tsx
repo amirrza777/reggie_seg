@@ -107,6 +107,12 @@ describe("CommentSection", () => {
     expect(screen.queryByPlaceholderText(/add a comment/i)).not.toBeInTheDocument();
   });
 
+  it("hides composer and delete when allowComposer is false", () => {
+    render(<CommentSection meetingId={10} initialComments={comments} allowComposer={false} />);
+    expect(screen.queryByPlaceholderText(/add a comment/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /delete/i })).not.toBeInTheDocument();
+  });
+
   it("disables post button when textarea is empty", () => {
     render(<CommentSection meetingId={10} initialComments={[]} />);
     expect(screen.getByRole("button", { name: /post comment/i })).toBeDisabled();

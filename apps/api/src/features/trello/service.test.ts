@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { TrelloService } from "./service.js";
 import { TrelloRepo } from "./repo.js";
+import { canStaffAccessTeamInProject } from "../projects/team-health-review/repo.js";
+
+vi.mock("../projects/team-health-review/repo.js", () => ({
+  canStaffAccessTeamInProject: vi.fn(),
+}));
 
 vi.mock("./repo.js", () => ({
   TrelloRepo: {
@@ -13,11 +18,14 @@ vi.mock("./repo.js", () => ({
   },
 }));
 
+const canStaffAccessTeamInProjectMock = vi.mocked(canStaffAccessTeamInProject);
+
 describe("TrelloService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.TRELLO_KEY = "test-key";
     process.env.APP_BASE_URL = "http://localhost:3001";
+    canStaffAccessTeamInProjectMock.mockResolvedValue(false);
   });
 
   //Authorisation URL generation
@@ -276,6 +284,7 @@ describe("TrelloService", () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
 
     (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 9,
       trelloBoardId: "board1",
       trelloOwner: { trelloToken: "ownerToken" },
       trelloSectionConfig: null,
@@ -290,7 +299,13 @@ describe("TrelloService", () => {
     expect(result).toEqual({ board: { id: "board1" }, sectionConfig: {} });
   });
 
-  it("throws if not team member", async () => {
+  it("throws if not team member and not staff for project", async () => {
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 5,
+      trelloBoardId: "board1",
+      trelloOwner: { trelloToken: "ownerToken" },
+      trelloSectionConfig: null,
+    });
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(false);
 
     await expect(
@@ -301,6 +316,7 @@ describe("TrelloService", () => {
   it("throws if no board assigned", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
     (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 1,
       trelloBoardId: null,
     });
 
@@ -312,6 +328,7 @@ describe("TrelloService", () => {
   it("throws if owner not connected", async () => {
     (TrelloRepo.isUserInTeam as any).mockResolvedValue(true);
     (TrelloRepo.getTeamWithOwner as any).mockResolvedValue({
+      projectId: 1,
       trelloBoardId: "board1",
       trelloOwner: { trelloToken: null },
     });
@@ -319,6 +336,12 @@ describe("TrelloService", () => {
     await expect(
       TrelloService.fetchAssignedTeamBoard(1, 1)
     ).rejects.toThrow("Team owner not connected to Trello");
+  });
+
+  it("throws if team record is missing", async () => {
+    (TrelloRepo.getTeamWithOwner as any).mockResolvedValue(null);
+
+    await expect(TrelloService.fetchAssignedTeamBoard(2, 1)).rejects.toThrow("Team not found");
   });
 
   // Fetches personal boards

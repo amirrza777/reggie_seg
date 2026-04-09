@@ -18,5 +18,9 @@ export default async function StaffTeamTrelloLayout({ params, children }: Layout
     return <>{children}</>;
   }
 
-  return <TrelloBoardProvider teamId={ctx.team.id}>{children}</TrelloBoardProvider>;
+  return (
+    <TrelloBoardProvider teamId={ctx.team.id} staffView>
+      {children}
+    </TrelloBoardProvider>
+  );
 }

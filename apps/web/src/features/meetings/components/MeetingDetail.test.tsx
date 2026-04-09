@@ -1,15 +1,21 @@
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, type MockedFunction } from "vitest";
 import { MeetingDetail } from "./MeetingDetail";
 import { useUser } from "@/features/auth/useUser";
 import type { Meeting } from "../types";
 
+const workspaceCapabilityMock = vi.hoisted(() => ({
+  useProjectWorkspaceCanEdit: vi.fn(() => ({ canEdit: true, workspaceArchived: false, hasTeam: true })),
+}));
+
 vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
+vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => workspaceCapabilityMock);
 vi.mock("next/link", () => ({
-  default: ({ href, children }: any) => <a href={href}>{children}</a>,
+  default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
 type MockChildProps = { meetingId: number };
@@ -77,6 +83,12 @@ const otherUser = { id: 99, firstName: "Other", lastName: "User" };
 describe("MeetingDetail", () => {
   beforeEach(() => {
     useUserMock.mockReturnValue(makeUseUserValue(otherUser as UseUserValue["user"]));
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReset();
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReturnValue({
+      canEdit: true,
+      workspaceArchived: false,
+      hasTeam: true,
+    });
   });
 
   it("renders meeting title and organiser", () => {
@@ -204,6 +216,18 @@ describe("MeetingDetail", () => {
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.getByRole("link", { name: /edit meeting/i })).toHaveAttribute("href", "/projects/5/meetings/1/edit");
+  });
+
+  it("hides edit link when workspace is read-only (archived)", () => {
+    workspaceCapabilityMock.useProjectWorkspaceCanEdit.mockReturnValueOnce({
+      canEdit: false,
+      workspaceArchived: true,
+      hasTeam: true,
+    });
+    useUserMock.mockReturnValue(makeUseUserValue(organiserUser as UseUserValue["user"]));
+    const upcoming = { ...baseMeeting, date: futureDate };
+    render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.queryByRole("link", { name: /edit meeting/i })).not.toBeInTheDocument();
   });
 
   it("does not show edit link for non-organiser", () => {

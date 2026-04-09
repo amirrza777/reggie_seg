@@ -18,6 +18,7 @@ import {
   upsertTeamAllocationQuestionnaireResponse,
   getStaffProjects,
   getStaffProjectTeams,
+  getStaffViewerModuleAccessLabel,
   getStaffProjectsForMarking,
   getStaffStudentDeadlineOverrides,
   getUserProjectMarking,
@@ -32,6 +33,7 @@ import {
   type ProjectDeadlineInput,
   type StudentDeadlineOverrideInput,
 } from "./repo.js";
+import { prisma } from "../../shared/db.js";
 import { addNotification } from "../notifications/service.js";
 import { normalizeProjectNavFlagsConfig } from "./nav-flags/service.js";
 import { normalizeAndValidateAssessmentAnswers } from "../peerAssessment/answers.js";
@@ -430,6 +432,7 @@ export async function fetchProjectsForStaff(userId: number, options?: { query?: 
       name: project.name,
       moduleId: project.moduleId,
       moduleName: project.module?.name ?? "",
+      archivedAt: project.archivedAt ? new Date(project.archivedAt).toISOString() : null,
       teamCount: project.teams.length,
       hasGithubRepo: project._count.githubRepositories > 0,
       daysOld: Math.floor((now - new Date(project.createdAt).getTime()) / 86_400_000),
@@ -452,13 +455,35 @@ export async function fetchProjectTeamsForStaff(userId: number, projectId: numbe
   const project = await getStaffProjectTeams(userId, projectId);
   if (!project) return null;
 
+  const actor = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { role: true },
+  });
+  const viewerAccessLabel = await getStaffViewerModuleAccessLabel(userId, actor?.role ?? "STAFF", project.moduleId);
+
+  const role = actor?.role ?? "STAFF";
+  let canManageProjectSettings = role === "ADMIN" || role === "ENTERPRISE_ADMIN";
+  if (!canManageProjectSettings && role === "STAFF") {
+    const lead = await prisma.moduleLead.findUnique({
+      where: { moduleId_userId: { moduleId: project.moduleId, userId } },
+      select: { userId: true },
+    });
+    canManageProjectSettings = Boolean(lead);
+  }
+
+  const moduleArchivedAt = project.module?.archivedAt ?? null;
+  const projectArchivedAt = project.archivedAt ? new Date(project.archivedAt).toISOString() : null;
+
   return {
     project: {
       id: project.id,
       name: project.name,
       moduleId: project.moduleId,
       moduleName: project.module?.name ?? "",
-      moduleArchivedAt: project.module?.archivedAt ?? null,
+      moduleArchivedAt,
+      projectArchivedAt,
+      viewerAccessLabel,
+      canManageProjectSettings,
     },
     teams: project.teams.map((team) => ({
       id: team.id,

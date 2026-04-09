@@ -120,6 +120,7 @@ export default async function ProjectTeamPage({ params }: ProjectPageProps) {
             <TeamFormationPanel
               team={team}
               projectId={numericProjectId}
+              userId={user.id}
               initialInvites={initialInvites}
               projectCompleted={projectCompleted}
               teamFormationMode={teamFormationMode}

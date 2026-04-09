@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
@@ -9,18 +8,6 @@ import {
   getPeerAssessmentsReceivedForUser,
 } from "@/features/peerFeedback/api/client";
 import StaffPeerFeedbackStudentPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -36,7 +23,6 @@ vi.mock("@/features/peerFeedback/api/client", () => ({
   getFeedbackReview: vi.fn(),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
@@ -50,22 +36,6 @@ const staffUser = { id: 7, isStaff: true, role: "STAFF" } as Awaited<
 describe("StaffPeerFeedbackStudentPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({
-      id: 1,
-      isStaff: false,
-      role: "STUDENT",
-    } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffPeerFeedbackStudentPage({
-        params: Promise.resolve({ projectId: "1", teamId: "2", studentId: "3" }),
-      }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid parameter message", async () => {
@@ -136,7 +106,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Student 3" })).toBeInTheDocument();
+    expect(screen.getByText(/Student 3.*evidence item/)).toBeInTheDocument();
     expect(screen.getByText("Avg rating received")).toBeInTheDocument();
     expect(
       screen.getByText("No assessment reviews were found for assessments this student gave."),
@@ -194,7 +164,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Alice Roe" })).toBeInTheDocument();
+    expect(screen.getByText(/Alice Roe.*evidence item/)).toBeInTheDocument();
     expect(screen.getByText("4.00 / 5")).toBeInTheDocument();
     expect(screen.getByText("Reviews on this user’s assessments given to teammates")).toBeInTheDocument();
     expect(screen.getByText("How this user reviewed assessments made on them")).toBeInTheDocument();
@@ -243,7 +213,7 @@ describe("StaffPeerFeedbackStudentPage", () => {
     });
     render(page);
 
-    expect(screen.getByRole("heading", { level: 1, name: "Unknown student" })).toBeInTheDocument();
+    expect(screen.getByText(/Unknown student.*evidence item/)).toBeInTheDocument();
     expect(screen.getAllByText("Unknown teammate").length).toBeGreaterThan(0);
     expect(screen.getByText("No response")).toBeInTheDocument();
   });

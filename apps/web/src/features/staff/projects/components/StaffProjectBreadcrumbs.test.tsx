@@ -55,13 +55,13 @@ describe("StaffProjectBreadcrumbs", () => {
     expect(screen.getByText("Student 77")).toHaveAttribute("aria-current", "page");
   });
 
-  it("renders project trello child crumb with title-cased child label", () => {
-    usePathnameMock.mockReturnValue("/staff/modules/12/projects/9/trello/graphs");
+  it("renders team trello subsection crumbs (board, graphs, etc.)", () => {
+    usePathnameMock.mockReturnValue("/staff/modules/12/projects/9/teams/4/trello/graphs");
     render(
       <StaffProjectBreadcrumbs
         projectId="9"
         projectName="Alpha Project"
-        teamNamesById={{}}
+        teamNamesById={{ "4": "Team Delta" }}
         moduleId="12"
         moduleName="SEGP"
       />

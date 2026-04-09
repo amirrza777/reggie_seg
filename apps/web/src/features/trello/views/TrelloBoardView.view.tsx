@@ -23,6 +23,7 @@ type Props = {
   onRequestChangeBoard: () => void;
   /** When "staff", show dropdown of all board members (default: "project" = Whole team / My tasks toggle) */
   filterVariant?: "project" | "staff";
+  integrationsReadOnly?: boolean;
 };
 
 function isCardAssignedToMember(card: TrelloCard, memberId: string): boolean {

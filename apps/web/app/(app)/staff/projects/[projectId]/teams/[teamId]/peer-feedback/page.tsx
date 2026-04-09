@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
@@ -78,10 +77,8 @@ async function loadStudentFeedbackProgress(
 export default async function StaffPeerFeedbackSectionPage({ params }: PageProps) {
   const { projectId, teamId } = await params;
 
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  // `(app)/layout` and `staff/projects/[projectId]/layout` already redirect unauthenticated users.
+  const userId = (await getCurrentUser())!.id;
 
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
@@ -92,7 +89,7 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
   let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let projectError: string | null = null;
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    projectData = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     projectError = error instanceof Error ? error.message : "Failed to load project team data.";
   }
@@ -110,7 +107,7 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
   let feedbackRows: StudentFeedbackProgress[] = [];
   let feedbackError: string | null = null;
   try {
-    const teamDetails = await getTeamDetails(user.id, projectData.project.moduleId, numericTeamId);
+    const teamDetails = await getTeamDetails(userId, projectData.project.moduleId, numericTeamId);
     students = teamDetails.students;
     feedbackRows = await loadStudentFeedbackProgress(projectId, students);
   } catch (error) {
@@ -129,6 +126,11 @@ export default async function StaffPeerFeedbackSectionPage({ params }: PageProps
 
   return (
     <div className="staff-projects">
+      <p className="muted">
+        Team: {team.teamName} · {totals.assessments} feedback task{totals.assessments === 1 ? "" : "s"} ·{" "}
+        {totals.completed} review{totals.completed === 1 ? "" : "s"} done · {totals.pending} pending
+      </p>
+
       {feedbackError ? (
         <section className="staff-projects__team-card">
           <p className="muted" style={{ margin: 0 }}>{feedbackError}</p>

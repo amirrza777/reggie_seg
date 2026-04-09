@@ -1,21 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamMeetingSettings, listTeamMeetings } from "@/features/staff/meetings/api/client";
 import StaffTeamMeetingsSectionPage from "./page";
 
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
 vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
   usePathname: vi.fn(() => "/staff/projects/30/teams/40/team-meetings"),
 }));
 
@@ -36,7 +26,6 @@ vi.mock("@/features/staff/meetings/components/StaffMeetingsView", () => ({
   StaffMeetingsView: ({ meetings }: { meetings: unknown[] }) => <div data-testid="staff-meetings-view">{meetings.length}</div>,
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const listTeamMeetingsMock = vi.mocked(listTeamMeetings);
@@ -46,16 +35,6 @@ describe("StaffTeamMeetingsSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     getTeamMeetingSettingsMock.mockResolvedValue({ absenceThreshold: 3 });
-  });
-
-  it("redirects non-staff users to dashboard", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffTeamMeetingsSectionPage({ params: Promise.resolve({ projectId: "10", teamId: "11" }) })
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid id message when route params are not numeric", async () => {

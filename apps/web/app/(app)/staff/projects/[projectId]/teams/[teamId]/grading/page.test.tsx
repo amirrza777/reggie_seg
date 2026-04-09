@@ -1,25 +1,12 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
 import StaffTeamGradingSectionPage from "./page";
 
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
 const staffMarkingCardMock = vi.fn(() => <div data-testid="staff-marking-card" />);
 const markingStudentListMock = vi.fn(() => <div data-testid="marking-student-list" />);
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -41,7 +28,6 @@ vi.mock("./MarkingStudentList", () => ({
   MarkingStudentList: (props: unknown) => markingStudentListMock(props),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getTeamDetailsMock = vi.mocked(getTeamDetails);
@@ -51,16 +37,6 @@ const staffUser = { id: 3, isStaff: true, role: "STAFF" } as Awaited<ReturnType<
 describe("StaffTeamGradingSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffTeamGradingSectionPage({ params: Promise.resolve({ projectId: "1", teamId: "2" }) }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid route message", async () => {

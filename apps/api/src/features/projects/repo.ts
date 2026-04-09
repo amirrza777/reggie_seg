@@ -589,6 +589,25 @@ export async function getStaffProjects(userId: number, options?: { query?: strin
   });
 }
 
+export async function getStaffViewerModuleAccessLabel(userId: number, userRole: string, moduleId: number) {
+  if (userRole === "ADMIN" || userRole === "ENTERPRISE_ADMIN") {
+    return "Admin access";
+  }
+  const [lead, ta] = await Promise.all([
+    prisma.moduleLead.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+      select: { userId: true },
+    }),
+    prisma.moduleTeachingAssistant.findUnique({
+      where: { moduleId_userId: { moduleId, userId } },
+      select: { userId: true },
+    }),
+  ]);
+  if (lead) return "Module lead";
+  if (ta) return "Teaching assistant";
+  return "Staff access";
+}
+
 /** Returns the staff project teams. */
 export async function getStaffProjectTeams(userId: number, projectId: number) {
   const user = await getScopedStaffUser(userId);
@@ -615,6 +634,7 @@ export async function getStaffProjectTeams(userId: number, projectId: number) {
       id: true,
       name: true,
       moduleId: true,
+      archivedAt: true,
       module: {
         select: {
           name: true,
@@ -1130,6 +1150,7 @@ export async function getTeamByUserAndProject(userId: number, projectId: number)
       teamName: true,
       projectId: true,
       createdAt: true,
+      trelloBoardId: true,
       allocations: {
         select: {
           userId: true,

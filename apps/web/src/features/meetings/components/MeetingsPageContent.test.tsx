@@ -2,6 +2,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { MeetingsPageContent } from "./MeetingsPageContent";
 
+vi.mock("@/features/projects/workspace/ProjectWorkspaceCanEditContext", () => ({
+  useProjectWorkspaceCanEdit: () => ({ canEdit: true, workspaceArchived: false, hasTeam: true }),
+}));
+
 vi.mock("../api/client", () => ({
   listMeetings: vi.fn(),
   getTeamMeetingSettings: vi.fn().mockResolvedValue({ minutesEditWindowDays: 7, attendanceEditWindowDays: 7, allowAnyoneToEditMeetings: false, allowAnyoneToRecordAttendance: false, allowAnyoneToWriteMinutes: false }),

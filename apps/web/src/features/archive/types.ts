@@ -9,16 +9,8 @@ export type ArchivableProject = {
   id: number;
   name: string;
   archivedAt: string | null;
-  module: { name: string };
+  module: { name: string; archivedAt: string | null };
   _count: { teams: number };
 };
 
-export type ArchivableTeam = {
-  id: number;
-  teamName: string;
-  archivedAt: string | null;
-  project: { name: string };
-  _count: { allocations: number };
-};
-
-export type ArchiveTab = "modules" | "projects" | "teams";
+export type ArchiveTab = "modules" | "projects";

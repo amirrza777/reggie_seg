@@ -1,6 +1,4 @@
 import { getStaffTeamContext } from "@/features/staff/projects/lib/staffTeamContext";
-import { StaffTeamPageHeader } from "@/features/staff/projects/components/StaffTeamPageHeader";
-import { TeamSectionSubtitle } from "@/features/staff/projects/components/TeamSectionSubtitle";
 import { StaffTeamSectionNav } from "@/features/staff/projects/components/StaffTeamSectionNav";
 import "@/features/staff/projects/styles/staff-projects.css";
 
@@ -26,13 +24,9 @@ export default async function StaffTeamLayout({ params, children }: LayoutProps)
   const { team } = ctx;
 
   return (
-    <div className="staff-projects">
-      <StaffTeamPageHeader
-        team={team}
-        subtitle={<TeamSectionSubtitle />}
-      />
-      <StaffTeamSectionNav projectId={projectId} teamId={teamId} />
+    <>
+      <StaffTeamSectionNav projectId={projectId} teamId={teamId} moduleId={ctx.project.moduleId} />
       <div className="staff-team-layout-content">{children}</div>
-    </div>
+    </>
   );
 }

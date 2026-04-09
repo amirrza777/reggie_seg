@@ -24,6 +24,9 @@ import {
   getProjectMarking,
   getStaffProjectNavFlagsConfig,
   getStaffProjectTeams,
+  getStaffProjectManage,
+  patchStaffProjectManage,
+  deleteStaffProjectManage,
   getStaffProjectWarningsConfig,
   getTeamById,
   getTeamByUserAndProject,
@@ -115,6 +118,28 @@ describe("projects api client", () => {
     await getStaffProjectTeams(7, 42);
     expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/teams?userId=7", {
       cache: "no-store",
+    });
+  });
+
+  it("gets staff project manage summary without cache", async () => {
+    await getStaffProjectManage(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/manage", {
+      cache: "no-store",
+    });
+  });
+
+  it("patches staff project manage settings", async () => {
+    await patchStaffProjectManage(42, { name: "Renamed" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/manage", {
+      method: "PATCH",
+      body: JSON.stringify({ name: "Renamed" }),
+    });
+  });
+
+  it("deletes staff project via manage endpoint", async () => {
+    await deleteStaffProjectManage(42);
+    expect(apiFetchMock).toHaveBeenCalledWith("/projects/staff/42/manage", {
+      method: "DELETE",
     });
   });
 

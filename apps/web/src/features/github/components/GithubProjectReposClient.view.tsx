@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useProjectWorkspaceCanEdit } from "@/features/projects/workspace/ProjectWorkspaceCanEditContext";
 import { SEARCH_DEBOUNCE_MS } from "@/shared/lib/search";
+import { PageSection } from "@/shared/ui/PageSection";
 import { GithubProjectReposHero } from "./GithubProjectReposHero";
 import { GithubProjectReposMyCommitsTab } from "./GithubProjectReposMyCommitsTab";
 import {
@@ -38,6 +40,7 @@ type GithubProjectReposClientProps = {
 };
 
 export function GithubProjectReposClient({ projectId }: GithubProjectReposClientProps) {
+  const { canEdit: workspaceCanEdit } = useProjectWorkspaceCanEdit();
   const githubAppInstallUrl = process.env.NEXT_PUBLIC_GITHUB_APP_INSTALL_URL?.trim() || "";
   const [activeTab, setActiveTab] = useState<TabKey | null>(null);
   const [loading, setLoading] = useState(true);
@@ -351,7 +354,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
   }
 
   useGithubProjectReposAutoRefresh({
-    enabled: !loading && Boolean(connection?.connected) && links.length > 0,
+    enabled: workspaceCanEdit && !loading && Boolean(connection?.connected) && links.length > 0,
     links,
     latestSnapshotByLinkId,
     busy,
@@ -362,6 +365,16 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
     setError,
     setInfo,
   });
+
+  if (!loading && !workspaceCanEdit && activeLinkCount === 0) {
+    return (
+      <PageSection title="Repositories" className="ui-page--project github-project-repos-client">
+        <p className="muted">
+          No repository was connected to this team before the project was archived.
+        </p>
+      </PageSection>
+    );
+  }
 
   return (
     <div className="stack github-project-repos-client">
@@ -404,6 +417,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
           linking={linking}
           connection={connection}
           needsGithubAppInstall={needsGithubAppInstall}
+          workspaceReadOnly={!workspaceCanEdit}
           onInstallGithubApp={handleOpenGithubAppInstall}
           onDisconnect={handleDisconnect}
           onConnect={handleConnect}
@@ -437,6 +451,7 @@ export function GithubProjectReposClient({ projectId }: GithubProjectReposClient
             onFetchBranchCommits: fetchBranchCommits,
             onLinkSelected: handleLinkSelectedRepo,
             onRemoveLink: (linkId) => void handleRemoveLink(linkId),
+            readOnlyWorkspace: !workspaceCanEdit,
           }}
         />
       ) : null}

@@ -1,12 +1,10 @@
 /* eslint-disable react-refresh/only-export-components */
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { DiscussionForumClient } from "@/features/forum/components/DiscussionForumClient";
-import { ForumSettingsCard } from "@/features/forum/components/ForumSettingsCard";
 import { StudentForumReportsCard } from "@/features/forum/components/StudentForumReportsCard";
-import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
-import { StaffProjectSectionNav } from "@/features/staff/projects/components/StaffProjectSectionNav";
-import { getForumMembers } from "@/features/forum/api/client";
+import { getForumMembers, getForumSettings } from "@/features/forum/api/client";
 import "@/features/staff/projects/styles/staff-projects.css";
 
 export const metadata = { title: "Discussion Forum (Staff)" };
@@ -16,52 +14,38 @@ type StaffProjectDiscussionPageProps = {
 };
 
 export default async function StaffProjectDiscussionPage({ params }: StaffProjectDiscussionPageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId } = await params;
-  const loadResult = await loadStaffProjectTeamsForPage(user.id, projectId, "Failed to load project forum settings.");
-  if (loadResult.status === "invalid_project_id") {
-    return <p className="muted">Invalid project ID.</p>;
-  }
-  if (loadResult.status === "error") {
-    return (
-      <div className="stack">
-        <p className="muted">{loadResult.message}</p>
-      </div>
-    );
-  }
-  const { data, numericProjectId } = loadResult;
+  const numericProjectId = Number(projectId);
+  const userId = (await getCurrentUser())!.id;
+  await getStaffProjectTeams(userId, numericProjectId);
 
-  const members = await getForumMembers(user.id, numericProjectId).catch(() => []);
-  const totalStudents = data.teams.reduce((sum, team) => sum + team.allocations.length, 0);
+  const [members, forumSettings] = await Promise.all([
+    getForumMembers(userId, numericProjectId).catch(() => []),
+    getForumSettings(userId, numericProjectId).catch(() => null),
+  ]);
+
+  const manageForumPrivacyHref = `/staff/projects/${encodeURIComponent(projectId)}/manage`;
+  const forumPrivacyDescription =
+    forumSettings?.forumIsAnonymous === true
+      ? "Posts on the forum are anonymous and not linked to students."
+      : forumSettings?.forumIsAnonymous === false
+        ? "Student names are visible on posts."
+        : "Forum privacy could not be loaded. You can still change it in project settings.";
 
   return (
-    <div className="staff-projects">
-      <StaffProjectSectionNav projectId={projectId} moduleId={data.project.moduleId} />
-
-      <section className="staff-projects__hero">
-        <p className="staff-projects__eyebrow">Discussion Forum</p>
-        <h1 className="staff-projects__title">{data.project.name}</h1>
-        <p className="staff-projects__desc">
-          Module: {data.project.moduleName}. Review forum privacy settings for students in this project.
-        </p>
-        <div className="staff-projects__meta">
-          <span className="staff-projects__badge">{data.teams.length} team{data.teams.length === 1 ? "" : "s"}</span>
-          <span className="staff-projects__badge">
-            {totalStudents} student{totalStudents === 1 ? "" : "s"}
-          </span>
-        </div>
-      </section>
+    <>
+      <p className="muted">
+        {members.length} forum participant{members.length === 1 ? "" : "s"}
+      </p>
 
       <section className="staff-projects__team-card" aria-label="Forum privacy settings">
         <h2 className="staff-projects__card-title">Forum privacy</h2>
-        <p className="staff-projects__card-sub">
-          Choose whether student names should be visible in the forum.
-        </p>
-        <ForumSettingsCard projectId={numericProjectId} />
+        <div className="staff-projects__forum-privacy-row">
+          <p className="staff-projects__forum-privacy-text">{forumPrivacyDescription}</p>
+          <Link href={manageForumPrivacyHref} className="btn btn--ghost">
+            Change
+          </Link>
+        </div>
       </section>
 
       <section className="staff-projects__team-card" aria-label="Student forum reports">
@@ -79,6 +63,6 @@ export default async function StaffProjectDiscussionPage({ params }: StaffProjec
           members={members}
         />
       </section>
-    </div>
+    </>
   );
 }

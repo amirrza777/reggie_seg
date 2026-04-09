@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { listModules } from "@/features/modules/api/client";
+import { partitionStaffModulesByArchive } from "@/features/modules/lib/staffModuleListFilters";
 import { StaffProjectCreatePanel } from "@/features/staff/projects/components/StaffProjectCreatePanel";
 import { ApiError } from "@/shared/api/errors";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -29,7 +30,8 @@ export default async function StaffCreateProjectPage({ searchParams }: StaffCrea
   let modules: Awaited<ReturnType<typeof listModules>> = [];
   let modulesError: string | null = null;
   try {
-    modules = await listModules(user.id, { scope: "staff", compact: true });
+    const loaded = await listModules(user.id, { scope: "staff", compact: true });
+    modules = partitionStaffModulesByArchive(loaded).unarchived;
   } catch (error) {
     modulesError = toStaffModuleLoadError(error, "Failed to load staff modules.");
   }
