@@ -73,6 +73,7 @@ export function FeedbackEvidenceBrowser({
   };
 }) {
   const [selectedId, setSelectedId] = useState<string>(items[0]?.id ?? "");
+  const compactSelection = items.length <= 3;
 
   const selectedItem = useMemo(
     () => items.find((item) => item.id === selectedId) ?? items[0] ?? null,
@@ -81,14 +82,7 @@ export function FeedbackEvidenceBrowser({
 
   return (
     <section className="staff-projects__team-card">
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) auto",
-          alignItems: "start",
-          columnGap: 12,
-        }}
-      >
+      <div className="staff-projects__feedback-evidence-header">
         <div className="stack" style={{ gap: 4 }}>
           <h3 style={{ margin: 0 }}>{title}</h3>
           <p className="muted" style={{ margin: 0 }}>
@@ -96,7 +90,7 @@ export function FeedbackEvidenceBrowser({
           </p>
         </div>
         {headerAside ? (
-          <div className="staff-projects__badge" style={{ display: "grid", gap: 2, minWidth: 130 }}>
+          <div className="staff-projects__badge staff-projects__feedback-evidence-badge">
             <span className="muted" style={{ fontSize: "0.8rem" }}>
               {headerAside.label}
             </span>
@@ -110,15 +104,14 @@ export function FeedbackEvidenceBrowser({
           {emptyMessage}
         </p>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(190px, 260px) minmax(0, 1fr)",
-            gap: 12,
-          }}
-        >
-          <aside className="staff-projects__team-card" style={{ margin: 0, padding: 8 }}>
-            <div className="stack" style={{ gap: 6 }}>
+        <div className="staff-projects__feedback-evidence-layout">
+          <aside
+            className={`staff-projects__team-card staff-projects__feedback-evidence-sidebar${
+              compactSelection ? " staff-projects__feedback-evidence-sidebar--compact" : ""
+            }`}
+            style={{ margin: 0, padding: 8 }}
+          >
+            <div className="staff-projects__feedback-evidence-list">
               {items.map((item) => {
                 const isActive = item.id === selectedItem?.id;
                 return (
@@ -126,7 +119,7 @@ export function FeedbackEvidenceBrowser({
                     key={item.id}
                     type="button"
                     onClick={() => setSelectedId(item.id)}
-                    className="staff-projects__team-card"
+                    className="staff-projects__team-card staff-projects__feedback-evidence-item"
                     style={{
                       margin: 0,
                       textAlign: "left",
@@ -151,7 +144,7 @@ export function FeedbackEvidenceBrowser({
           </aside>
 
           {selectedItem ? (
-            <article className="staff-projects__team-card" style={{ margin: 0 }}>
+            <article className="staff-projects__team-card staff-projects__feedback-evidence-content" style={{ margin: 0 }}>
               <h4 style={{ margin: 0 }}>{selectedItem.counterpartName}</h4>
 
               {selectedItem.answers.length === 0 ? (
