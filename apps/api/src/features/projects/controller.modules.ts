@@ -5,9 +5,17 @@ import {
   fetchModuleStaffList,
   fetchModuleStudentProjectMatrix,
   fetchModulesForUser,
+  joinModuleByCode,
 } from "./service.js";
 import { parsePositiveInt, resolveAuthenticatedUserId } from "./controller.shared.js";
-import { joinModuleCompatibilityHandler } from "../moduleJoin/controller.js";
+import { parseModuleJoinCodeBody, parseNormalizedModuleJoinCode } from "../moduleJoin/controller.parsers.js";
+
+function sendJoinError(
+  res: Response,
+  error: { status: number; code: string; error: string },
+) {
+  return res.status(error.status).json({ code: error.code, error: error.error });
+}
 
 export async function getUserModulesHandler(req: AuthRequest, res: Response) {
   const userId = resolveAuthenticatedUserId(req, res);
@@ -34,7 +42,27 @@ export async function getUserModulesHandler(req: AuthRequest, res: Response) {
 }
 
 export async function joinModuleHandler(req: AuthRequest, res: Response) {
-  return joinModuleCompatibilityHandler(req, res);
+  const actorUserId = resolveAuthenticatedUserId(req, res);
+  if (actorUserId === null) {
+    return;
+  }
+
+  const parsedBody = parseModuleJoinCodeBody(req.body);
+  if (!parsedBody.ok) {
+    return res.status(400).json({ code: "INVALID_REQUEST", error: parsedBody.error });
+  }
+
+  const normalizedCode = parseNormalizedModuleJoinCode(parsedBody.value.code);
+  if (!normalizedCode.ok) {
+    return res.status(400).json({ code: "INVALID_CODE", error: normalizedCode.error });
+  }
+
+  const result = await joinModuleByCode(actorUserId, normalizedCode.value);
+  if (!result.ok) {
+    return sendJoinError(res, result);
+  }
+
+  return res.json(result.value);
 }
 
 export async function getModuleStaffListHandler(req: AuthRequest, res: Response) {
