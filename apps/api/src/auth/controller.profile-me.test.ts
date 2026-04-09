@@ -20,6 +20,8 @@ vi.mock("./service.js", () => ({
   updateProfile: vi.fn(),
   requestEmailChange: vi.fn(),
   confirmEmailChange: vi.fn(),
+  deleteAccount: vi.fn(),
+  validateRefreshTokenSession: vi.fn(),
   verifyRefreshToken: vi.fn(),
 }));
 
@@ -52,6 +54,7 @@ function mockResponse() {
 describe("auth controller profile/me", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (service.validateRefreshTokenSession as any).mockResolvedValue(true);
   });
 
   it("updateProfileHandler maps auth/success/error", async () => {
@@ -132,12 +135,25 @@ describe("auth controller profile/me", () => {
   it("meHandler falls back to refresh token and handles missing user", async () => {
     const res = mockResponse();
     (service.verifyRefreshToken as any).mockReturnValueOnce({ sub: 42 });
+    (service.validateRefreshTokenSession as any).mockResolvedValueOnce(true);
     (prisma.user.findUnique as any).mockResolvedValueOnce(null);
 
     await meHandler({ cookies: { refresh_token: "rt" } } as any, res as any);
 
     expect(service.verifyRefreshToken).toHaveBeenCalledWith("rt");
+    expect(service.validateRefreshTokenSession).toHaveBeenCalledWith(42, "rt");
     expect(res.status).toHaveBeenCalledWith(401);
+  });
+
+  it("meHandler rejects refresh-cookie fallback when token record is revoked", async () => {
+    const res = mockResponse();
+    (service.verifyRefreshToken as any).mockReturnValueOnce({ sub: 42 });
+    (service.validateRefreshTokenSession as any).mockResolvedValueOnce(false);
+
+    await meHandler({ cookies: { refresh_token: "rt" } } as any, res as any);
+
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({ error: "Not authenticated" });
   });
 
   it("meHandler revokes refresh tokens for suspended users", async () => {
@@ -161,7 +177,7 @@ describe("auth controller profile/me", () => {
       id: 7,
       role: "ENTERPRISE_ADMIN",
       active: undefined,
-      enterprise: { name: "KCL University" },
+      enterprise: { name: "KCL University", code: "KCL" },
       _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
     });
     (service.getProfile as any).mockResolvedValueOnce({ id: 7, email: "a@b.com", firstName: "A", lastName: "B" });
@@ -174,6 +190,7 @@ describe("auth controller profile/me", () => {
       firstName: "A",
       lastName: "B",
       enterpriseName: "KCL University",
+      isUnassigned: false,
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: true,
@@ -188,7 +205,7 @@ describe("auth controller profile/me", () => {
       id: 21,
       role: "STUDENT",
       active: true,
-      enterprise: { name: "KCL University" },
+      enterprise: { name: "KCL University", code: "KCL" },
       _count: { moduleLeads: 0, moduleTeachingAssistants: 1 },
     });
     (service.getProfile as any).mockResolvedValueOnce({ id: 21, email: "ta@student.com", firstName: "TA", lastName: "Student" });
@@ -201,12 +218,33 @@ describe("auth controller profile/me", () => {
       firstName: "TA",
       lastName: "Student",
       enterpriseName: "KCL University",
+      isUnassigned: false,
       isStaff: true,
       isAdmin: false,
       isEnterpriseAdmin: false,
       role: "STUDENT",
       active: true,
     });
+  });
+
+  it("meHandler marks users in holding enterprise as unassigned", async () => {
+    const res = mockResponse();
+    (prisma.user.findUnique as any).mockResolvedValueOnce({
+      id: 15,
+      role: "STUDENT",
+      active: true,
+      enterprise: { name: "Unassigned", code: "UNASSIGNED" },
+      _count: { moduleLeads: 0, moduleTeachingAssistants: 0 },
+    });
+    (service.getProfile as any).mockResolvedValueOnce({ id: 15, email: "u@x.com", firstName: "U", lastName: "X" });
+
+    await meHandler({ user: { sub: 15 } } as any, res as any);
+
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+      id: 15,
+      enterpriseName: "Unassigned",
+      isUnassigned: true,
+    }));
   });
 
   it("meHandler catches refresh verification errors", async () => {

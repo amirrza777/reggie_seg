@@ -4,6 +4,13 @@ type Window = { count: number; resetAt: number };
 
 type RateLimitHit = { count: number; resetAt: number };
 
+type RedisLikeClient = {
+  connect: () => Promise<void>;
+  incr: (key: string) => Promise<number | string>;
+  pExpire: (key: string, ms: number) => Promise<number>;
+  pTTL: (key: string) => Promise<number | string>;
+};
+
 export type RateLimitStore = {
   incrementAndGet(key: string, windowMs: number): Promise<RateLimitHit>;
 };
@@ -15,7 +22,7 @@ class InMemoryRateLimitStore implements RateLimitStore {
     const pruneInterval = setInterval(() => {
       const now = Date.now();
       for (const [key, win] of this.store) {
-        if (now > win.resetAt) this.store.delete(key);
+        if (now > win.resetAt) {this.store.delete(key);}
       }
     }, 60_000);
     pruneInterval.unref();
@@ -39,22 +46,27 @@ class InMemoryRateLimitStore implements RateLimitStore {
 const inMemoryStore = new InMemoryRateLimitStore();
 let warnedOnRedisFallback = false;
 
+function allowInMemoryRateLimitFallback() {
+  if (process.env.NODE_ENV !== "production") {return true;}
+  return process.env.RATE_LIMIT_ALLOW_IN_MEMORY === "true";
+}
+
 function warnRedisFallback(reason: string) {
-  if (warnedOnRedisFallback) return;
+  if (warnedOnRedisFallback) {return;}
   warnedOnRedisFallback = true;
-  if (process.env.NODE_ENV === "test") return;
+  if (process.env.NODE_ENV === "test") {return;}
   console.warn(`[rateLimit] Falling back to in-memory store: ${reason}`);
 }
 
 class RedisRateLimitStore implements RateLimitStore {
-  private readonly clientPromise: Promise<any>;
+  private readonly clientPromise: Promise<RedisLikeClient>;
 
   constructor(redisUrl: string) {
     this.clientPromise = this.connect(redisUrl);
   }
 
   private async connect(redisUrl: string) {
-    const redis = (await import("redis")) as { createClient: (opts: { url: string }) => any };
+    const redis = (await import("redis")) as { createClient: (opts: { url: string }) => RedisLikeClient };
     const client = redis.createClient({ url: redisUrl });
     await client.connect();
     return client;
@@ -72,6 +84,12 @@ class RedisRateLimitStore implements RateLimitStore {
       return { count, resetAt: Date.now() + resetInMs };
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
+      if (!allowInMemoryRateLimitFallback()) {
+        throw new Error(
+          `[rateLimit] Redis store unavailable and in-memory fallback is disabled: ${message}`,
+          { cause: error },
+        );
+      }
       warnRedisFallback(message);
       return inMemoryStore.incrementAndGet(key, windowMs);
     }
@@ -81,10 +99,15 @@ class RedisRateLimitStore implements RateLimitStore {
 let envSelectedStore: RateLimitStore | null = null;
 
 function resolveStoreFromEnv(): RateLimitStore {
-  if (envSelectedStore) return envSelectedStore;
+  if (envSelectedStore) {return envSelectedStore;}
 
   const redisUrl = process.env.RATE_LIMIT_REDIS_URL?.trim();
   if (!redisUrl) {
+    if (!allowInMemoryRateLimitFallback()) {
+      throw new Error(
+        "[rateLimit] RATE_LIMIT_REDIS_URL is required in production when RATE_LIMIT_ALLOW_IN_MEMORY is not true",
+      );
+    }
     envSelectedStore = inMemoryStore;
     return envSelectedStore;
   }
@@ -120,7 +143,13 @@ export function rateLimit(options: {
 
   return async (req: Request, res: Response, next: NextFunction) => {
     const bucketKey = key(req, prefix);
-    const hit = await store.incrementAndGet(bucketKey, windowMs);
+    let hit: RateLimitHit;
+    try {
+      hit = await store.incrementAndGet(bucketKey, windowMs);
+    } catch (error) {
+      console.error("[rateLimit] increment failure", error);
+      return res.status(503).json({ error: "Rate limit service unavailable." });
+    }
     const now = Date.now();
 
     if (hit.count > max) {

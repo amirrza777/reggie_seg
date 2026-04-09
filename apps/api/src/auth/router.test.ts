@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("./controller.js", () => ({
   signupHandler: vi.fn(),
+  acceptEnterpriseAdminInviteHandler: vi.fn(),
   loginHandler: vi.fn(),
   refreshHandler: vi.fn(),
   logoutHandler: vi.fn(),
@@ -11,6 +12,9 @@ vi.mock("./controller.js", () => ({
   updateProfileHandler: vi.fn(),
   requestEmailChangeHandler: vi.fn(),
   confirmEmailChangeHandler: vi.fn(),
+  deleteAccountHandler: vi.fn(),
+  joinEnterpriseByCodeHandler: vi.fn(),
+  leaveEnterpriseHandler: vi.fn(),
 }));
 
 vi.mock("./middleware.js", () => ({
@@ -64,10 +68,14 @@ describe("auth router", () => {
     expect(routes).toEqual(
       expect.arrayContaining([
         { path: "/signup", methods: { post: true } },
+        { path: "/enterprise-admin/accept", methods: { post: true } },
         { path: "/login", methods: { post: true } },
         { path: "/refresh", methods: { post: true } },
         { path: "/logout", methods: { post: true } },
         { path: "/me", methods: { get: true } },
+        { path: "/account/delete", methods: { post: true } },
+        { path: "/enterprise/join", methods: { post: true } },
+        { path: "/enterprise/leave", methods: { post: true } },
       ])
     );
 
@@ -107,9 +115,11 @@ describe("auth router", () => {
     const previousAppBaseUrl = process.env.APP_BASE_URL;
     const previousCookieDomain = process.env.COOKIE_DOMAIN;
     const previousCookieSecure = process.env.COOKIE_SECURE;
+    const previousRateLimitAllowInMemory = process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
     process.env.NODE_ENV = "production";
     process.env.APP_BASE_URL = "https://app.example.com/";
     process.env.COOKIE_DOMAIN = "example.com";
+    process.env.RATE_LIMIT_ALLOW_IN_MEMORY = "true";
     delete process.env.COOKIE_SECURE;
 
     try {
@@ -135,6 +145,8 @@ describe("auth router", () => {
       else process.env.COOKIE_DOMAIN = previousCookieDomain;
       if (previousCookieSecure === undefined) delete process.env.COOKIE_SECURE;
       else process.env.COOKIE_SECURE = previousCookieSecure;
+      if (previousRateLimitAllowInMemory === undefined) delete process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
+      else process.env.RATE_LIMIT_ALLOW_IN_MEMORY = previousRateLimitAllowInMemory;
     }
   });
 });
