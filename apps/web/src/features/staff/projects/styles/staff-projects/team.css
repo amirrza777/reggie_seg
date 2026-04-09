@@ -402,6 +402,26 @@
     linear-gradient(180deg, color-mix(in srgb, var(--surface) 95%, white 5%) 0%, var(--surface) 100%);
 }
 
+.staff-projects__signal-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px 12px;
+}
+
+.staff-projects__signal-lookback-select {
+  justify-self: end;
+  align-self: start;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 7px 10px;
+  font-size: var(--fs-caption);
+  font-weight: var(--fw-semibold);
+}
+
 .staff-projects__health-insights-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
@@ -637,6 +657,14 @@
 
   .staff-projects__feedback-evidence-sidebar {
     max-height: none;
+  }
+
+  .staff-projects__signal-header {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-projects__signal-lookback-select {
+    justify-self: start;
   }
 }
 
