@@ -6,7 +6,6 @@ import { PeerListView } from "@/features/peerAssessment/components/PeerListView"
 import { PeerAssessmentTitleWithInfo } from "@/features/peerAssessment/components/PeerAssessmentTitleWithInfo";
 import { getProjectDeadline, getTeamByUserAndProject } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
-import Link from "next/link";
 import { PageSection } from "@/shared/ui/PageSection";
 
 export const dynamic = "force-dynamic";
@@ -69,7 +68,6 @@ export default async function ProjectPeerAssessmentsPage(props : ProjectPageProp
         className="ui-page--project"
       >
         <p>You are not in a team for this project.</p>
-        <Link href={`/projects/${projectId}`}>← Back to project</Link>
       </PageSection>
     );
   }

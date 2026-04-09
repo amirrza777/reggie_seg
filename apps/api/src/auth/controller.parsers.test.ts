@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  parseAcceptEnterpriseAdminInviteBody,
   parseConfirmEmailChangeBody,
+  parseDeleteAccountBody,
   parseForgotPasswordBody,
+  parseJoinEnterpriseBody,
   parseLoginBody,
   parseRefreshTokenBody,
   parseRequestEmailChangeBody,
@@ -11,7 +14,7 @@ import {
 } from "./controller.parsers.js";
 
 describe("auth controller parsers", () => {
-  it("parses signup payloads with normalized role", () => {
+  it("parses signup payloads and ignores role input", () => {
     expect(
       parseSignupBody({
         enterpriseCode: " ENT ",
@@ -19,7 +22,7 @@ describe("auth controller parsers", () => {
         password: " secret ",
         firstName: " Ada ",
         lastName: " Lovelace ",
-        role: "staff",
+        role: "ADMIN",
       }),
     ).toEqual({
       ok: true,
@@ -29,17 +32,12 @@ describe("auth controller parsers", () => {
         password: "secret",
         firstName: "Ada",
         lastName: "Lovelace",
-        role: "STAFF",
       },
     });
   });
 
-  it("rejects invalid signup payloads", () => {
+  it("rejects invalid required signup fields", () => {
     expect(parseSignupBody({})).toEqual({ ok: false, error: "Enterprise code, email and password are required" });
-    expect(parseSignupBody({ enterpriseCode: "ENT", email: "a@b.com", password: "pw", role: "OWNER" })).toEqual({
-      ok: false,
-      error: "Invalid role",
-    });
   });
 
   it("parses login and token payloads", () => {
@@ -73,6 +71,17 @@ describe("auth controller parsers", () => {
     });
   });
 
+  it("parses enterprise-admin invite accept payload", () => {
+    expect(parseAcceptEnterpriseAdminInviteBody({ token: " abc ", firstName: " Ada ", lastName: " Lovelace " })).toEqual({
+      ok: true,
+      value: { token: "abc", firstName: "Ada", lastName: "Lovelace" },
+    });
+    expect(parseAcceptEnterpriseAdminInviteBody({})).toEqual({
+      ok: false,
+      error: "token required",
+    });
+  });
+
   it("parses update profile payloads and rejects malformed values", () => {
     expect(parseUpdateProfileBody(undefined)).toEqual({ ok: true, value: {} });
     expect(
@@ -92,5 +101,27 @@ describe("auth controller parsers", () => {
       },
     });
     expect(parseUpdateProfileBody({ avatarMime: 42 })).toEqual({ ok: false, error: "Invalid avatarMime" });
+  });
+
+  it("parses delete account payload and validates password", () => {
+    expect(parseDeleteAccountBody({ password: " secret " })).toEqual({
+      ok: true,
+      value: { password: "secret" },
+    });
+    expect(parseDeleteAccountBody({})).toEqual({
+      ok: false,
+      error: "password required",
+    });
+  });
+
+  it("parses enterprise join payload and validates enterpriseCode", () => {
+    expect(parseJoinEnterpriseBody({ enterpriseCode: " ent " })).toEqual({
+      ok: true,
+      value: { enterpriseCode: "ent" },
+    });
+    expect(parseJoinEnterpriseBody({})).toEqual({
+      ok: false,
+      error: "enterpriseCode required",
+    });
   });
 });

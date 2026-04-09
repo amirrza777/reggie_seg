@@ -10,6 +10,7 @@ import {
   createEnterprise,
   deleteEnterprise,
   getAdminSummary,
+  inviteEnterpriseAdmin,
   listEnterpriseUsers,
   listEnterprises,
   listAuditLogs,
@@ -36,6 +37,11 @@ describe("admin api client", () => {
   it("searches users with filters and pagination", async () => {
     await searchUsers({ q: "staff", role: "STAFF", active: true, page: 2, pageSize: 10 });
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/users/search?q=staff&role=STAFF&active=true&page=2&pageSize=10");
+  });
+
+  it("searches users with sort params", async () => {
+    await searchUsers({ sortBy: "joinDate", sortDirection: "desc" });
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/users/search?sortBy=joinDate&sortDirection=desc");
   });
 
   it("searches users with bare path when filters are empty", async () => {
@@ -119,6 +125,13 @@ describe("admin api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/search?role=STAFF&active=false");
   });
 
+  it("searches enterprise users with sort params", async () => {
+    await searchEnterpriseUsers("ent_123", { sortBy: "name", sortDirection: "asc" });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      "/admin/enterprises/ent_123/users/search?sortBy=name&sortDirection=asc",
+    );
+  });
+
   it("searches enterprise users with bare path when filters are empty", async () => {
     await searchEnterpriseUsers("ent_123");
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/search");
@@ -129,6 +142,14 @@ describe("admin api client", () => {
     expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/users/42", {
       method: "PATCH",
       body: JSON.stringify({ active: false }),
+    });
+  });
+
+  it("sends enterprise admin invites", async () => {
+    await inviteEnterpriseAdmin("ent_123", "invite@example.com");
+    expect(apiFetchMock).toHaveBeenCalledWith("/admin/enterprises/ent_123/invites/enterprise-admin", {
+      method: "POST",
+      body: JSON.stringify({ email: "invite@example.com" }),
     });
   });
 });

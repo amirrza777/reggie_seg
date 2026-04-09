@@ -15,8 +15,12 @@ vi.mock("./session", () => ({
 }));
 
 import {
+  acceptEnterpriseAdminInvite,
   confirmEmailChange,
+  deleteAccount,
   getCurrentUser,
+  joinEnterpriseByCode,
+  leaveEnterprise,
   login,
   logout,
   refreshAccessToken,
@@ -57,7 +61,6 @@ describe("auth api client", () => {
       password: "secret",
       firstName: "Ayan",
       lastName: "Mamun",
-      role: "STUDENT",
     });
 
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/signup", {
@@ -69,7 +72,6 @@ describe("auth api client", () => {
         password: "secret",
         firstName: "Ayan",
         lastName: "Mamun",
-        role: "STUDENT",
       }),
     });
     expect(setAccessTokenMock).toHaveBeenCalledWith("token-2");
@@ -83,6 +85,23 @@ describe("auth api client", () => {
       auth: false,
       body: JSON.stringify({ email: "user@kcl.ac.uk" }),
     });
+  });
+
+  it("accepts an enterprise admin invite and stores access token", async () => {
+    apiFetchMock.mockResolvedValue({ accessToken: "invite-token" });
+
+    await acceptEnterpriseAdminInvite({
+      token: "abc123",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/enterprise-admin/accept", {
+      method: "POST",
+      auth: false,
+      body: JSON.stringify({ token: "abc123", firstName: "Ada", lastName: "Lovelace" }),
+    });
+    expect(setAccessTokenMock).toHaveBeenCalledWith("invite-token");
   });
 
   it("submits reset password payload", async () => {
@@ -175,5 +194,94 @@ describe("auth api client", () => {
     await expect(logout()).rejects.toThrow("network error");
     expect(apiFetchMock).toHaveBeenCalledWith("/auth/logout", { method: "POST" });
     expect(clearAccessTokenMock).toHaveBeenCalled();
+  });
+
+  it("deletes account and clears access token", async () => {
+    apiFetchMock.mockResolvedValue(undefined);
+
+    await deleteAccount({ password: "secret" });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/account/delete", {
+      method: "POST",
+      body: JSON.stringify({ password: "secret" }),
+    });
+    expect(clearAccessTokenMock).toHaveBeenCalled();
+  });
+
+  it("retries deleteAccount after 401 when refresh succeeds", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({ accessToken: "token-5" })
+      .mockResolvedValueOnce(undefined);
+
+    await deleteAccount({ password: "secret" });
+
+    expect(apiFetchMock).toHaveBeenNthCalledWith(1, "/auth/account/delete", {
+      method: "POST",
+      body: JSON.stringify({ password: "secret" }),
+    });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(2, "/auth/refresh", { method: "POST" });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(3, "/auth/account/delete", {
+      method: "POST",
+      body: JSON.stringify({ password: "secret" }),
+    });
+    expect(clearAccessTokenMock).toHaveBeenCalled();
+  });
+
+  it("joins enterprise by code", async () => {
+    apiFetchMock.mockResolvedValue(undefined);
+
+    await joinEnterpriseByCode({ enterpriseCode: "ENT2" });
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/enterprise/join", {
+      method: "POST",
+      body: JSON.stringify({ enterpriseCode: "ENT2" }),
+    });
+  });
+
+  it("retries joinEnterpriseByCode after 401 when refresh succeeds", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({ accessToken: "token-6" })
+      .mockResolvedValueOnce(undefined);
+
+    await joinEnterpriseByCode({ enterpriseCode: "ENT2" });
+
+    expect(apiFetchMock).toHaveBeenNthCalledWith(1, "/auth/enterprise/join", {
+      method: "POST",
+      body: JSON.stringify({ enterpriseCode: "ENT2" }),
+    });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(2, "/auth/refresh", { method: "POST" });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(3, "/auth/enterprise/join", {
+      method: "POST",
+      body: JSON.stringify({ enterpriseCode: "ENT2" }),
+    });
+  });
+
+  it("leaves enterprise", async () => {
+    apiFetchMock.mockResolvedValue(undefined);
+
+    await leaveEnterprise();
+
+    expect(apiFetchMock).toHaveBeenCalledWith("/auth/enterprise/leave", {
+      method: "POST",
+    });
+  });
+
+  it("retries leaveEnterprise after 401 when refresh succeeds", async () => {
+    apiFetchMock
+      .mockRejectedValueOnce(new ApiError("Unauthorized", { status: 401 }))
+      .mockResolvedValueOnce({ accessToken: "token-7" })
+      .mockResolvedValueOnce(undefined);
+
+    await leaveEnterprise();
+
+    expect(apiFetchMock).toHaveBeenNthCalledWith(1, "/auth/enterprise/leave", {
+      method: "POST",
+    });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(2, "/auth/refresh", { method: "POST" });
+    expect(apiFetchMock).toHaveBeenNthCalledWith(3, "/auth/enterprise/leave", {
+      method: "POST",
+    });
   });
 });

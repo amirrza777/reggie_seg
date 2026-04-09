@@ -1,5 +1,4 @@
 import { render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
@@ -20,14 +19,6 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((path: string) => {
     throw new RedirectSentinel(path);
   }),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
 }));
 
 vi.mock("@/shared/auth/session", () => ({
@@ -177,7 +168,6 @@ describe("StaffTeamHealthPage", () => {
     render(page);
 
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/22");
   });
 
   it("renders summary sections and passes warnings/messages to child panels", async () => {

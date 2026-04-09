@@ -26,6 +26,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL;
   const adminNav = [
     { href: "/admin", label: "Admin dashboard", space: "admin" as const },
+    { href: "/enterprise/modules", label: "Module management", space: "admin" as const },
     ...(isSuperAdmin ? [{ href: "/admin/enterprises", label: "Enterprises", space: "admin" as const }] : []),
   ];
 

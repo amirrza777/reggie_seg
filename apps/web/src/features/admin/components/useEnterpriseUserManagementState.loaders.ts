@@ -2,10 +2,12 @@ import { useCallback, type Dispatch, type MutableRefObject, type SetStateAction 
 import { searchEnterpriseUsers } from "../api/client";
 import type { AdminUser } from "../types";
 import {
+  type EnterpriseUserSortValue,
   ENTERPRISE_USERS_PER_PAGE,
   type EnterpriseUserLoaders,
   normalizeUser,
   type RequestState,
+  resolveEnterpriseUserSortParams,
   resolveUnknownError,
 } from "./useEnterpriseUserManagementState.shared";
 
@@ -25,6 +27,7 @@ type EnterpriseUsersLoadPageOptions = EnterpriseUserLoadersOptions & {
   enterpriseId: string;
   query: string;
   page: number;
+  sortValue: EnterpriseUserSortValue;
   requestId: number;
 };
 
@@ -43,7 +46,6 @@ function isLatestEnterpriseUsersRequest(latestRequestRef: MutableRefObject<numbe
 function applyEnterpriseUsersLoadResponse(options: {
   response: EnterpriseUsersSearchResponse;
   setEnterpriseUsers: Dispatch<SetStateAction<AdminUser[]>>;
-  setEnterpriseUsersMessage: Dispatch<SetStateAction<string | null>>;
   setEnterpriseUsersStatus: Dispatch<SetStateAction<RequestState>>;
   setEnterpriseUserTotal: Dispatch<SetStateAction<number>>;
   setEnterpriseUserTotalPages: Dispatch<SetStateAction<number>>;
@@ -52,7 +54,6 @@ function applyEnterpriseUsersLoadResponse(options: {
   const {
     response,
     setEnterpriseUsers,
-    setEnterpriseUsersMessage,
     setEnterpriseUsersStatus,
     setEnterpriseUserTotal,
     setEnterpriseUserTotalPages,
@@ -66,9 +67,6 @@ function applyEnterpriseUsersLoadResponse(options: {
   setEnterpriseUserTotal(response.total);
   setEnterpriseUserTotalPages(response.totalPages);
   setEnterpriseUsersStatus("success");
-  if (response.total === 0) {
-    setEnterpriseUsersMessage("No user accounts found in this enterprise.");
-  }
 }
 
 function applyEnterpriseUsersLoadError(options: {
@@ -93,7 +91,6 @@ function runEnterpriseUsersLoadSuccess(options: EnterpriseUsersLoadPageOptions, 
   applyEnterpriseUsersLoadResponse({
     response,
     setEnterpriseUsers: options.setEnterpriseUsers,
-    setEnterpriseUsersMessage: options.setEnterpriseUsersMessage,
     setEnterpriseUsersStatus: options.setEnterpriseUsersStatus,
     setEnterpriseUserTotal: options.setEnterpriseUserTotal,
     setEnterpriseUserTotalPages: options.setEnterpriseUserTotalPages,
@@ -118,7 +115,12 @@ function runEnterpriseUsersLoadError(options: EnterpriseUsersLoadPageOptions, er
 async function loadEnterpriseUsersPage(options: EnterpriseUsersLoadPageOptions) {
   beginEnterpriseUsersLoad(options.setEnterpriseUsersStatus, options.setEnterpriseUsersMessage);
   try {
-    const response = await searchEnterpriseUsers(options.enterpriseId, { q: options.query.trim() || undefined, page: options.page, pageSize: ENTERPRISE_USERS_PER_PAGE });
+    const response = await searchEnterpriseUsers(options.enterpriseId, {
+      q: options.query.trim() || undefined,
+      page: options.page,
+      pageSize: ENTERPRISE_USERS_PER_PAGE,
+      ...resolveEnterpriseUserSortParams(options.sortValue),
+    });
     runEnterpriseUsersLoadSuccess(options, response);
   } catch (err) {
     runEnterpriseUsersLoadError(options, err);
@@ -133,10 +135,23 @@ function useLoadEnterpriseUsersCallback(options: EnterpriseUserLoadersOptions) {
   const setEnterpriseUserTotal = options.setEnterpriseUserTotal;
   const setEnterpriseUserTotalPages = options.setEnterpriseUserTotalPages;
   const setEnterpriseUserPage = options.setEnterpriseUserPage;
-  return useCallback(async (enterpriseId: string, query: string, page: number) => {
+  return useCallback(async (enterpriseId: string, query: string, page: number, sortValue: EnterpriseUserSortValue) => {
     const requestId = latestEnterpriseUsersRequestRef.current + 1;
     latestEnterpriseUsersRequestRef.current = requestId;
-    await loadEnterpriseUsersPage({ latestEnterpriseUsersRequestRef, setEnterpriseUsers, setEnterpriseUsersMessage, setEnterpriseUsersStatus, setEnterpriseUserTotal, setEnterpriseUserTotalPages, setEnterpriseUserPage, enterpriseId, query, page, requestId });
+    await loadEnterpriseUsersPage({
+      latestEnterpriseUsersRequestRef,
+      setEnterpriseUsers,
+      setEnterpriseUsersMessage,
+      setEnterpriseUsersStatus,
+      setEnterpriseUserTotal,
+      setEnterpriseUserTotalPages,
+      setEnterpriseUserPage,
+      enterpriseId,
+      query,
+      page,
+      sortValue,
+      requestId,
+    });
   }, [latestEnterpriseUsersRequestRef, setEnterpriseUserPage, setEnterpriseUserTotal, setEnterpriseUserTotalPages, setEnterpriseUsers, setEnterpriseUsersMessage, setEnterpriseUsersStatus]);
 }
 

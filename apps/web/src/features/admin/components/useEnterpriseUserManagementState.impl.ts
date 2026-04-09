@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import { getEffectiveTotalPages, getPaginationEnd, getPaginationStart } from "@/shared/lib/pagination";
 import type { AdminUser, EnterpriseRecord } from "../types";
 import {
+  DEFAULT_ENTERPRISE_USER_SORT_VALUE,
   ENTERPRISE_USERS_PER_PAGE,
   type EnterpriseUserActions,
   type RequestState,
@@ -34,7 +35,9 @@ export function useEnterpriseUserManagementState({ showSuccessToast }: UseEnterp
     enterpriseUserSearchQuery: state.enterpriseUserSearchQuery,
     enterpriseUserPage: state.enterpriseUserPage,
     enterpriseUserPageInput: state.enterpriseUserPageInput,
+    enterpriseUserSortValue: state.enterpriseUserSortValue,
     effectiveEnterpriseUserTotalPages: state.effectiveEnterpriseUserTotalPages,
+    enterpriseAdminInviteEmail: state.enterpriseAdminInviteEmail,
     setSelectedEnterprise: state.setSelectedEnterprise,
     setEnterpriseUsers: state.setEnterpriseUsers,
     setEnterpriseUsersStatus: state.setEnterpriseUsersStatus,
@@ -43,8 +46,12 @@ export function useEnterpriseUserManagementState({ showSuccessToast }: UseEnterp
     setEnterpriseUserSearchQuery: state.setEnterpriseUserSearchQuery,
     setEnterpriseUserPage: state.setEnterpriseUserPage,
     setEnterpriseUserPageInput: state.setEnterpriseUserPageInput,
+    setEnterpriseUserSortValue: state.setEnterpriseUserSortValue,
     setEnterpriseUserTotal: state.setEnterpriseUserTotal,
     setEnterpriseUserTotalPages: state.setEnterpriseUserTotalPages,
+    setEnterpriseAdminInviteEmail: state.setEnterpriseAdminInviteEmail,
+    setEnterpriseAdminInviteStatus: state.setEnterpriseAdminInviteStatus,
+    setEnterpriseAdminInviteMessage: state.setEnterpriseAdminInviteMessage,
     loadEnterpriseUsers: loaders.loadEnterpriseUsers,
     showSuccessToast,
   });
@@ -53,6 +60,7 @@ export function useEnterpriseUserManagementState({ showSuccessToast }: UseEnterp
     selectedEnterprise: state.selectedEnterprise,
     enterpriseUserSearchQuery: state.enterpriseUserSearchQuery,
     enterpriseUserPage: state.enterpriseUserPage,
+    enterpriseUserSortValue: state.enterpriseUserSortValue,
     normalizedEnterpriseUserSearch: state.normalizedEnterpriseUserSearch,
     setEnterpriseUserPage: state.setEnterpriseUserPage,
     setEnterpriseUserPageInput: state.setEnterpriseUserPageInput,
@@ -74,8 +82,12 @@ function useEnterpriseUserState() {
   const [enterpriseUserSearchQuery, setEnterpriseUserSearchQuery] = useState("");
   const [enterpriseUserPage, setEnterpriseUserPage] = useState(1);
   const [enterpriseUserPageInput, setEnterpriseUserPageInput] = useState("1");
+  const [enterpriseUserSortValue, setEnterpriseUserSortValue] = useState(DEFAULT_ENTERPRISE_USER_SORT_VALUE);
   const [enterpriseUserTotal, setEnterpriseUserTotal] = useState(0);
   const [enterpriseUserTotalPages, setEnterpriseUserTotalPages] = useState(0);
+  const [enterpriseAdminInviteEmail, setEnterpriseAdminInviteEmail] = useState("");
+  const [enterpriseAdminInviteStatus, setEnterpriseAdminInviteStatus] = useState<RequestState>("idle");
+  const [enterpriseAdminInviteMessage, setEnterpriseAdminInviteMessage] = useState<string | null>(null);
   const latestEnterpriseUsersRequestRef = useRef(0);
 
   return {
@@ -95,10 +107,18 @@ function useEnterpriseUserState() {
     setEnterpriseUserPage,
     enterpriseUserPageInput,
     setEnterpriseUserPageInput,
+    enterpriseUserSortValue,
+    setEnterpriseUserSortValue,
     enterpriseUserTotal,
     setEnterpriseUserTotal,
     enterpriseUserTotalPages,
     setEnterpriseUserTotalPages,
+    enterpriseAdminInviteEmail,
+    setEnterpriseAdminInviteEmail,
+    enterpriseAdminInviteStatus,
+    setEnterpriseAdminInviteStatus,
+    enterpriseAdminInviteMessage,
+    setEnterpriseAdminInviteMessage,
     normalizedEnterpriseUserSearch: normalizeSearchQuery(enterpriseUserSearchQuery),
     effectiveEnterpriseUserTotalPages: getEffectiveTotalPages(enterpriseUserTotalPages),
     enterpriseUserStart: getPaginationStart(enterpriseUserTotal, enterpriseUserPage, ENTERPRISE_USERS_PER_PAGE),
@@ -125,6 +145,12 @@ function buildEnterpriseUserManagementResult(options: {
     enterpriseUserActionState: options.state.enterpriseUserActionState,
     enterpriseUserSearchQuery: options.state.enterpriseUserSearchQuery,
     setEnterpriseUserSearchQuery: options.state.setEnterpriseUserSearchQuery,
+    enterpriseUserSortValue: options.state.enterpriseUserSortValue,
+    setEnterpriseUserSortValue: options.state.setEnterpriseUserSortValue,
+    enterpriseAdminInviteEmail: options.state.enterpriseAdminInviteEmail,
+    setEnterpriseAdminInviteEmail: options.state.setEnterpriseAdminInviteEmail,
+    enterpriseAdminInviteStatus: options.state.enterpriseAdminInviteStatus,
+    enterpriseAdminInviteMessage: options.state.enterpriseAdminInviteMessage,
   };
   const pagingFields = {
     enterpriseUserPage: options.state.enterpriseUserPage,

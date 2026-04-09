@@ -87,7 +87,10 @@
 
 .trello-link-board__preview-title {
   margin: 0;
-  font-size: var(--fs-fixed-1-1rem);
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .trello-link-board__preview-members {

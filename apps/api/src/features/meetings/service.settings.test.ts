@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { fetchMeetingSettings } from "./service.js";
+import { fetchMeetingSettings, fetchTeamMeetingSettings } from "./service.js";
 
 import * as repo from "./repo.js";
 
@@ -29,5 +29,14 @@ describe("meetings settings service", () => {
 
     expect(repo.getModuleMeetingSettingsForTeam).toHaveBeenCalledWith(5);
     expect(result).toEqual({ absenceThreshold: 3, minutesEditWindowDays: 7 });
+  });
+
+  it("returns team meeting settings by team id", async () => {
+    (repo.getModuleMeetingSettingsForTeam as any).mockResolvedValue({ allowAnyoneToEditMeetings: true });
+
+    const result = await fetchTeamMeetingSettings(10);
+
+    expect(repo.getModuleMeetingSettingsForTeam).toHaveBeenCalledWith(10);
+    expect(result).toEqual({ allowAnyoneToEditMeetings: true });
   });
 });

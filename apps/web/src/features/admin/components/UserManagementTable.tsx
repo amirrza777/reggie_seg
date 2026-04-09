@@ -12,6 +12,7 @@ import type { AdminUser, AdminUserRecord, UserRole } from "../types";
 import { buildUserManagementRows } from "./userManagementRows";
 
 type RequestState = "idle" | "loading" | "success" | "error";
+type UserSortValue = "default" | "joinDateDesc" | "joinDateAsc" | "nameAsc" | "nameDesc";
 
 type UserSearchResponse = Awaited<ReturnType<typeof searchUsers>>;
 
@@ -30,10 +31,11 @@ type UserMutationHandlers = {
   users: AdminUser[];
   searchQuery: string;
   currentPage: number;
+  sortValue: UserSortValue;
   setUsers: Dispatch<SetStateAction<AdminUser[]>>;
   setStatus: Dispatch<SetStateAction<RequestState>>;
   setMessage: Dispatch<SetStateAction<string | null>>;
-  loadUsers: (query: string, page: number) => Promise<void>;
+  loadUsers: (query: string, page: number, sortValue: UserSortValue) => Promise<void>;
 };
 
 type UserOptimisticUpdateOptions = UserMutationHandlers & {
@@ -45,6 +47,7 @@ type UserOptimisticUpdateOptions = UserMutationHandlers & {
 };
 
 const USERS_PER_PAGE = 10;
+const DEFAULT_USER_SORT_VALUE: UserSortValue = "default";
 
 const normalizeUser = (user: AdminUserRecord): AdminUser => ({
   ...user,
@@ -75,8 +78,29 @@ function applyUserSearchError(err: unknown, handlers: Pick<UserSearchHandlers, "
   handlers.setMessage(resolveUnknownError(err, "Could not load users."));
 }
 
-function buildUserSearchParams(query: string, page: number) {
-  return { q: query.trim() || undefined, page, pageSize: USERS_PER_PAGE };
+function resolveUserSortParams(sortValue: UserSortValue) {
+  if (sortValue === "joinDateDesc") {
+    return { sortBy: "joinDate" as const, sortDirection: "desc" as const };
+  }
+  if (sortValue === "joinDateAsc") {
+    return { sortBy: "joinDate" as const, sortDirection: "asc" as const };
+  }
+  if (sortValue === "nameAsc") {
+    return { sortBy: "name" as const, sortDirection: "asc" as const };
+  }
+  if (sortValue === "nameDesc") {
+    return { sortBy: "name" as const, sortDirection: "desc" as const };
+  }
+  return {};
+}
+
+function buildUserSearchParams(query: string, page: number, sortValue: UserSortValue) {
+  return {
+    q: query.trim() || undefined,
+    page,
+    pageSize: USERS_PER_PAGE,
+    ...resolveUserSortParams(sortValue),
+  };
 }
 
 function shouldIgnoreStaleUserRequest(latestRequestIdRef: MutableRefObject<number>, requestId: number) {
@@ -95,11 +119,14 @@ async function runUserLoadRequest(options: {
   requestId: number;
   query: string;
   page: number;
+  sortValue: UserSortValue;
   handlers: UserSearchHandlers;
 }) {
   options.handlers.setTableStatus("loading");
   try {
-    const response = await searchUsers(buildUserSearchParams(options.query, options.page));
+    const response = await searchUsers(
+      buildUserSearchParams(options.query, options.page, options.sortValue),
+    );
     if (shouldIgnoreStaleUserRequest(options.latestRequestIdRef, options.requestId)) {
       return;
     }
@@ -123,12 +150,35 @@ function useUserManagementState() {
   const [tableStatus, setTableStatus] = useState<RequestState>("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortValue, setSortValue] = useState<UserSortValue>(DEFAULT_USER_SORT_VALUE);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageInput, setPageInput] = useState("1");
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const latestRequestIdRef = useRef(0);
-  return { users, status, tableStatus, message, searchQuery, currentPage, pageInput, totalUsers, totalPages, latestRequestIdRef, setUsers, setStatus, setTableStatus, setMessage, setSearchQuery, setCurrentPage, setPageInput, setTotalUsers, setTotalPages };
+  return {
+    users,
+    status,
+    tableStatus,
+    message,
+    searchQuery,
+    sortValue,
+    currentPage,
+    pageInput,
+    totalUsers,
+    totalPages,
+    latestRequestIdRef,
+    setUsers,
+    setStatus,
+    setTableStatus,
+    setMessage,
+    setSearchQuery,
+    setSortValue,
+    setCurrentPage,
+    setPageInput,
+    setTotalUsers,
+    setTotalPages,
+  };
 }
 
 function useLoadUsers(state: UserManagementState) {
@@ -139,11 +189,11 @@ function useLoadUsers(state: UserManagementState) {
   const setTotalUsers = state.setTotalUsers;
   const setTotalPages = state.setTotalPages;
   const setCurrentPage = state.setCurrentPage;
-  return useCallback(async (query: string, page: number) => {
+  return useCallback(async (query: string, page: number, sortValue: UserSortValue) => {
     const handlers = { setUsers, setTableStatus, setMessage, setTotalUsers, setTotalPages, setCurrentPage };
     const requestId = latestRequestIdRef.current + 1;
     latestRequestIdRef.current = requestId;
-    await runUserLoadRequest({ latestRequestIdRef, requestId, query, page, handlers });
+    await runUserLoadRequest({ latestRequestIdRef, requestId, query, page, sortValue, handlers });
   }, [latestRequestIdRef, setCurrentPage, setMessage, setTableStatus, setTotalPages, setTotalUsers, setUsers]);
 }
 
@@ -151,6 +201,12 @@ function useCurrentPageSync(normalizedSearch: string, setCurrentPage: Dispatch<S
   useEffect(() => {
     setCurrentPage(1);
   }, [normalizedSearch, setCurrentPage]);
+}
+
+function useSortPageSync(sortValue: UserSortValue, setCurrentPage: Dispatch<SetStateAction<number>>) {
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortValue, setCurrentPage]);
 }
 
 function usePageInputSync(currentPage: number, setPageInput: Dispatch<SetStateAction<string>>) {
@@ -173,7 +229,7 @@ async function runOptimisticUserUpdate(options: UserOptimisticUpdateOptions) {
     setUserRow(options.setUsers, options.userId, () => normalizeUser(updated));
     options.setStatus("success");
     options.setMessage(options.successMessage(previousUsers));
-    void options.loadUsers(options.searchQuery, options.currentPage);
+    void options.loadUsers(options.searchQuery, options.currentPage, options.sortValue);
   } catch (err) {
     options.setUsers(previousUsers);
     options.setStatus("error");
@@ -244,10 +300,40 @@ function usePageJumpHandlers(state: UserManagementState) {
   return { applyPageInput, handlePageJump };
 }
 
-function UserManagementAction({ searchQuery, onSearchChange }: { searchQuery: string; onSearchChange: (value: string) => void }) {
+function UserManagementToolbar(props: {
+  searchQuery: string;
+  sortValue: UserSortValue;
+  tableStatus: RequestState;
+  totalUsers: number;
+  pageStart: number;
+  pageEnd: number;
+  onSearchChange: (value: string) => void;
+  onSortChange: (value: UserSortValue) => void;
+}) {
   return (
-    <div className="ui-row user-management__actions">
-      <SearchField value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} className="user-management__search" placeholder="Search by name, email, role, status, or ID" aria-label="Search user accounts" />
+    <div className="user-management__toolbar">
+      <SearchField value={props.searchQuery} onChange={(event) => props.onSearchChange(event.target.value)} className="user-management__search" placeholder="Search by name, email, role, status, or ID" aria-label="Search user accounts" />
+      <div className="ui-toolbar user-management__meta">
+        <label className="user-management__sort-inline" htmlFor="user-management-sort">
+          <span className="ui-note ui-note--muted">Sort</span>
+          <select
+            id="user-management-sort"
+            className="user-management__sort"
+            value={props.sortValue}
+            onChange={(event) => props.onSortChange(event.target.value as UserSortValue)}
+            aria-label="Sort user accounts"
+          >
+            <option value="default">Default order</option>
+            <option value="joinDateDesc">Join date (newest first)</option>
+            <option value="joinDateAsc">Join date (oldest first)</option>
+            <option value="nameAsc">Name (A-Z)</option>
+            <option value="nameDesc">Name (Z-A)</option>
+          </select>
+        </label>
+        <span className="ui-note ui-note--muted user-management__toolbar-summary">
+          <UserManagementCountLabel tableStatus={props.tableStatus} totalUsers={props.totalUsers} pageStart={props.pageStart} pageEnd={props.pageEnd} />
+        </span>
+      </div>
     </div>
   );
 }
@@ -331,9 +417,6 @@ function UserManagementTableBody(props: {
   message: string | null;
   status: RequestState;
   tableStatus: RequestState;
-  pageStart: number;
-  pageEnd: number;
-  totalUsers: number;
   rows: ReturnType<typeof buildUserManagementRows>;
   shouldShowLoadingSkeleton: boolean;
   totalPages: number;
@@ -350,7 +433,6 @@ function UserManagementTableBody(props: {
   return (
     <>
       <UserManagementMessage message={props.message} status={props.status} tableStatus={props.tableStatus} />
-      <div className="user-management__toolbar"><span className="ui-note ui-note--muted"><UserManagementCountLabel tableStatus={props.tableStatus} totalUsers={props.totalUsers} pageStart={props.pageStart} pageEnd={props.pageEnd} /></span></div>
       <UserManagementTableContent rows={props.rows} shouldShowLoadingSkeleton={props.shouldShowLoadingSkeleton} totalPages={props.totalPages} currentPage={props.currentPage} effectiveTotalPages={props.effectiveTotalPages} pageInput={props.pageInput} setCurrentPage={props.setCurrentPage} setPageInput={props.setPageInput} applyPageInput={props.applyPageInput} handlePageJump={props.handlePageJump} normalizedSearch={props.normalizedSearch} searchQuery={props.searchQuery} />
     </>
   );
@@ -364,17 +446,19 @@ export function UserManagementTable() {
   const pageEnd = getPaginationEnd(state.totalUsers, state.currentPage, USERS_PER_PAGE, state.users.length);
   const loadUsers = useLoadUsers(state);
   useCurrentPageSync(normalizedSearch, state.setCurrentPage);
+  useSortPageSync(state.sortValue, state.setCurrentPage);
   usePageInputSync(state.currentPage, state.setPageInput);
   useEffect(() => {
-    void loadUsers(state.searchQuery, state.currentPage);
-  }, [loadUsers, state.currentPage, state.searchQuery]);
+    void loadUsers(state.searchQuery, state.currentPage, state.sortValue);
+  }, [loadUsers, state.currentPage, state.searchQuery, state.sortValue]);
   const pageJumpHandlers = usePageJumpHandlers(state);
-  const actions = useUserActions({ users: state.users, searchQuery: state.searchQuery, currentPage: state.currentPage, setUsers: state.setUsers, setStatus: state.setStatus, setMessage: state.setMessage, loadUsers });
+  const actions = useUserActions({ users: state.users, searchQuery: state.searchQuery, currentPage: state.currentPage, sortValue: state.sortValue, setUsers: state.setUsers, setStatus: state.setStatus, setMessage: state.setMessage, loadUsers });
   const rows = buildUserManagementRows({ users: state.users, busy: state.status === "loading", onRoleChange: (userId, role) => { void actions.handleRoleChange(userId, role); }, onStatusToggle: (userId, nextStatus) => { void actions.handleStatusToggle(userId, nextStatus); } });
   const shouldShowLoadingSkeleton = state.tableStatus === "loading" && rows.length === 0;
   return (
-    <Card title="User accounts" className="user-management-card" action={<UserManagementAction searchQuery={state.searchQuery} onSearchChange={state.setSearchQuery} />}>
-      <UserManagementTableBody message={state.message} status={state.status} tableStatus={state.tableStatus} pageStart={pageStart} pageEnd={pageEnd} totalUsers={state.totalUsers} rows={rows} shouldShowLoadingSkeleton={shouldShowLoadingSkeleton} totalPages={state.totalPages} currentPage={state.currentPage} effectiveTotalPages={effectiveTotalPages} pageInput={state.pageInput} setCurrentPage={state.setCurrentPage} setPageInput={state.setPageInput} applyPageInput={pageJumpHandlers.applyPageInput} handlePageJump={pageJumpHandlers.handlePageJump} normalizedSearch={normalizedSearch} searchQuery={state.searchQuery} />
+    <Card title="User accounts" className="user-management-card">
+      <UserManagementToolbar searchQuery={state.searchQuery} sortValue={state.sortValue} tableStatus={state.tableStatus} totalUsers={state.totalUsers} pageStart={pageStart} pageEnd={pageEnd} onSearchChange={state.setSearchQuery} onSortChange={state.setSortValue} />
+      <UserManagementTableBody message={state.message} status={state.status} tableStatus={state.tableStatus} rows={rows} shouldShowLoadingSkeleton={shouldShowLoadingSkeleton} totalPages={state.totalPages} currentPage={state.currentPage} effectiveTotalPages={effectiveTotalPages} pageInput={state.pageInput} setCurrentPage={state.setCurrentPage} setPageInput={state.setPageInput} applyPageInput={pageJumpHandlers.applyPageInput} handlePageJump={pageJumpHandlers.handlePageJump} normalizedSearch={normalizedSearch} searchQuery={state.searchQuery} />
     </Card>
   );
 }

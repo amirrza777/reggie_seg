@@ -27,9 +27,10 @@
 
 .github-chart-section__block-title {
   margin: 0;
-  font-size: var(--fs-fixed-clamp-1-2rem-1-7vw-1-55rem);
-  line-height: 1.2;
-  letter-spacing: -0.02em;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .github-chart-section__block-subtitle {
@@ -155,8 +156,10 @@
 
 .github-chart-section__tab-title {
   margin: 0;
-  font-size: var(--fs-fixed-1-05rem);
-  line-height: 1.25;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
 }
 
 .github-chart-section__tab-description {

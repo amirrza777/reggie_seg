@@ -9,8 +9,10 @@
 
 .peer-assessment-list-intro__title {
   margin: 0;
-  font-size: var(--fs-fixed-18px);
-  font-weight: 700;
+  font-size: var(--fs-panel-section-title);
+  line-height: var(--lh-heading);
+  letter-spacing: -0.015em;
+  font-weight: var(--fw-semibold);
   color: var(--ink-strong);
 }
 

@@ -1,11 +1,10 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { daysToMs } from "../lib/meetingTime";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import { MeetingMinutes } from "./MeetingMinutes";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { Card } from "@/shared/ui/Card";
@@ -29,20 +28,15 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
     || (settings.allowAnyoneToWriteMinutes && isMember);
   const editWindowMs = daysToMs(settings.minutesEditWindowDays);
 
-  const backLink = (
-    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
-      <ChevronLeft size={14} />
-      Back to meeting
-    </AnchorLink>
-  );
-
   const meetingDate = new Date(meeting.date);
   const now = new Date();
+  const isUpcomingMeeting = meetingDate > now;
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
-  if (meetingDate > now) {
+  if (isUpcomingMeeting) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Minutes" />
         <p className="muted">Minutes cannot be written until the meeting has started.</p>
       </div>
     );
@@ -51,7 +45,7 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
   if (now.getTime() - meetingDate.getTime() > editWindowMs) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Minutes" />
         <Card title="Minutes">
           <p className="muted">The edit window for these minutes has closed.</p>
           {meeting.minutes && <RichTextViewer content={meeting.minutes.content} />}
@@ -63,7 +57,7 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
   if (!canWriteMinutes) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Minutes" />
         <Card title="Minutes">
           <p className="muted">Only the original writer can edit these minutes.</p>
           {meeting.minutes && <RichTextViewer content={meeting.minutes.content} />}
@@ -74,7 +68,7 @@ export function MeetingMinutesContent({ meetingId, projectId }: MeetingMinutesCo
 
   return (
     <div className="stack">
-      {backLink}
+      <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Minutes" />
       <Card title="Minutes">
         <MeetingMinutes
           meetingId={meeting.id}

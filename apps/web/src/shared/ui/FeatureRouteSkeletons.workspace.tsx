@@ -70,7 +70,7 @@ function ModuleDetailTablesSkeleton() {
 export function DashboardRouteSkeleton() {
   return (
     <div className="stack stack--tabbed" role="status" aria-live="polite">
-      <Card title={<span className="overview-title">Modules overview</span>}>
+      <Card title="Modules overview">
         <SkeletonText lines={1} widths={["56%"]} />
       </Card>
 
@@ -207,7 +207,7 @@ export function GenericAppRouteSkeleton() {
 export function AdminRouteSkeleton() {
   return (
     <div className="stack stack--tabbed" role="status" aria-live="polite">
-      <Card title={<span className="overview-title">Admin workspace</span>}>
+      <Card title="Admin workspace">
         <SkeletonText lines={1} widths={["54%"]} />
       </Card>
 

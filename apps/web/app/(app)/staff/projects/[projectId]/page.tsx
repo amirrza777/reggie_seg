@@ -48,17 +48,17 @@ export default async function StaffProjectTeamsPage({ params }: StaffProjectTeam
           <span className="staff-projects__badge">{totalStudents} student{totalStudents === 1 ? "" : "s"}</span>
         </div>
         <div className="staff-projects__hero-actions">
-          <div className="staff-projects__hero-actions-links">
-            <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="staff-projects__quick-link">
+          <div className="staff-projects__hero-actions-links pill-nav" aria-label="Project quick links">
+            <Link href={`/staff/projects/${data.project.id}/team-allocation`} className="pill-nav__link">
               Team allocation
             </Link>
-            <Link href={`/staff/projects/${data.project.id}/discussion`} className="staff-projects__quick-link">
+            <Link href={`/staff/projects/${data.project.id}/discussion`} className="pill-nav__link">
               Forum
             </Link>
-            <Link href={`/staff/projects/${data.project.id}/feature-flags`} className="staff-projects__quick-link">
+            <Link href={`/staff/projects/${data.project.id}/feature-flags`} className="pill-nav__link">
               Feature flags
             </Link>
-            <Link href={`/staff/projects/${data.project.id}/warnings`} className="staff-projects__quick-link">
+            <Link href={`/staff/projects/${data.project.id}/warnings`} className="pill-nav__link">
               Warnings
             </Link>
           </div>

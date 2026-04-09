@@ -12,28 +12,6 @@ import {
   setupBootstrapCreateLoginContext,
 } from "./service.test-helpers.js";
 
-const ADMIN_BOOTSTRAP_ENV = {
-  ADMIN_BOOTSTRAP_EMAIL: "admin@kcl.ac.uk",
-  ADMIN_BOOTSTRAP_PASSWORD: "bootstrap-secret",
-} as const;
-
-const createdBootstrapAdmin = {
-  id: 3,
-  email: "admin@kcl.ac.uk",
-  role: "ADMIN",
-  passwordHash: "bootstrap-password-hash",
-  active: true,
-};
-
-async function setupBootstrapCreateLoginContext() {
-  const svc = await loadService(ADMIN_BOOTSTRAP_ENV);
-  prismaMock.user.findFirst.mockResolvedValueOnce(null);
-  prismaMock.enterprise.upsert.mockResolvedValueOnce({ id: "default-enterprise" });
-  argon2Mock.hash.mockResolvedValueOnce("bootstrap-password-hash").mockResolvedValueOnce("refresh-hash");
-  prismaMock.user.create.mockResolvedValueOnce(createdBootstrapAdmin);
-  return svc;
-}
-
 beforeEach(() => {
   setupAuthServiceTestDefaults();
 });
@@ -43,12 +21,12 @@ afterAll(() => {
 });
 
 describe("auth service", () => {
-  it("signUp creates an admin user when admin role is requested", async () => {
+  it("signUp always creates a student account even when a privileged role is requested", async () => {
     const svc = await loadService();
 
     argon2Mock.hash.mockResolvedValueOnce("password-hash").mockResolvedValueOnce("refresh-hash");
     prismaMock.enterprise.findUnique.mockResolvedValueOnce({ id: "ent-99" });
-    prismaMock.user.create.mockResolvedValueOnce({ id: 4, email: "user@example.com", role: "ADMIN" });
+    prismaMock.user.create.mockResolvedValueOnce({ id: 4, email: "user@example.com", role: "STUDENT" });
 
     const tokens = await svc.signUp({
       enterpriseCode: " ent-99 ",
@@ -63,7 +41,7 @@ describe("auth service", () => {
         passwordHash: "password-hash",
         firstName: "",
         lastName: "",
-        role: "ADMIN",
+        role: "STUDENT",
         enterpriseId: "ent-99",
       },
     });
@@ -78,7 +56,7 @@ describe("auth service", () => {
 
     argon2Mock.hash.mockResolvedValueOnce("password-hash").mockResolvedValueOnce("refresh-hash");
     prismaMock.enterprise.findUnique.mockResolvedValueOnce({ id: "ent-2" });
-    prismaMock.user.create.mockResolvedValueOnce({ id: 7, email: "staff@example.com", role: "STAFF" });
+    prismaMock.user.create.mockResolvedValueOnce({ id: 7, email: "staff@example.com", role: "STUDENT" });
 
     await svc.signUp({
       enterpriseCode: "ENT2",
@@ -89,7 +67,7 @@ describe("auth service", () => {
 
     expect(prismaMock.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ role: "STAFF" }),
+        data: expect.objectContaining({ role: "STUDENT" }),
       }),
     );
   });
@@ -111,6 +89,201 @@ describe("auth service", () => {
     await expect(
       svc.signUp({ enterpriseCode: "ENT", email: "a@b.com", password: "pw" }),
     ).rejects.toMatchObject({ code: "EMAIL_TAKEN" });
+  });
+
+  it("acceptEnterpriseAdminInvite rejects invalid, used, and expired tokens", async () => {
+    const svc = await loadService();
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce(null);
+    await expect(
+      svc.acceptEnterpriseAdminInvite({ token: "token-1" }),
+    ).rejects.toMatchObject({ code: "INVALID_ENTERPRISE_ADMIN_INVITE" });
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 11,
+      enterpriseId: "ent-1",
+      email: "invitee@example.com",
+      revoked: true,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    await expect(
+      svc.acceptEnterpriseAdminInvite({ token: "token-2" }),
+    ).rejects.toMatchObject({ code: "USED_ENTERPRISE_ADMIN_INVITE" });
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 12,
+      enterpriseId: "ent-1",
+      email: "invitee@example.com",
+      revoked: false,
+      usedAt: null,
+      expiresAt: new Date(Date.now() - 60_000),
+    });
+    await expect(
+      svc.acceptEnterpriseAdminInvite({ token: "token-3" }),
+    ).rejects.toMatchObject({ code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" });
+  });
+
+  it("acceptEnterpriseAdminInvite upgrades an existing enterprise user and issues tokens", async () => {
+    const svc = await loadService();
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 21,
+      enterpriseId: "ent-2",
+      email: "existing@example.com",
+      revoked: false,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: 8,
+      enterpriseId: "ent-2",
+      email: "existing@example.com",
+      role: "STUDENT",
+      active: false,
+    });
+    prismaMock.user.update.mockResolvedValueOnce({
+      id: 8,
+      enterpriseId: "ent-2",
+      email: "existing@example.com",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+    argon2Mock.hash.mockResolvedValueOnce("refresh-hash");
+
+    const tokens = await svc.acceptEnterpriseAdminInvite({
+      token: "token-4",
+      firstName: "Ada",
+      lastName: "Lovelace",
+    });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 8 },
+      data: {
+        role: "ENTERPRISE_ADMIN",
+        active: true,
+        firstName: "Ada",
+        lastName: "Lovelace",
+      },
+    });
+    expect(prismaMock.enterpriseAdminInviteToken.update).toHaveBeenCalledWith({
+      where: { id: 21 },
+      data: expect.objectContaining({
+        revoked: true,
+        acceptedByUserId: 8,
+      }),
+    });
+    expect(tokens).toEqual({ accessToken: "signed-1", refreshToken: "signed-2" });
+  });
+
+  it("acceptEnterpriseAdminInvite creates a new enterprise admin user when no account exists", async () => {
+    const svc = await loadService();
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 31,
+      enterpriseId: "ent-3",
+      email: "new-admin@example.com",
+      revoked: false,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    argon2Mock.hash.mockResolvedValueOnce("invite-password-hash").mockResolvedValueOnce("refresh-hash");
+    prismaMock.user.create.mockResolvedValueOnce({
+      id: 44,
+      enterpriseId: "ent-3",
+      email: "new-admin@example.com",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+
+    const tokens = await svc.acceptEnterpriseAdminInvite({ token: "token-5", firstName: "New", lastName: "Admin" });
+
+    expect(prismaMock.user.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        enterpriseId: "ent-3",
+        email: "new-admin@example.com",
+        firstName: "New",
+        lastName: "Admin",
+        role: "ENTERPRISE_ADMIN",
+      }),
+    });
+    expect(tokens).toEqual({ accessToken: "signed-1", refreshToken: "signed-2" });
+  });
+
+  it("acceptEnterpriseAdminInvite rehomes a removed holding-account user into invited enterprise", async () => {
+    const svc = await loadService();
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 32,
+      enterpriseId: "ent-3",
+      email: "rehome@example.com",
+      revoked: false,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.findFirst.mockResolvedValueOnce({
+      id: 66,
+      enterpriseId: "ent-unassigned",
+      email: "rehome@example.com",
+      role: "STUDENT",
+      enterprise: { code: "UNASSIGNED" },
+    });
+    prismaMock.user.update.mockResolvedValueOnce({
+      id: 66,
+      enterpriseId: "ent-3",
+      email: "rehome@example.com",
+      role: "ENTERPRISE_ADMIN",
+      active: true,
+    });
+
+    const tokens = await svc.acceptEnterpriseAdminInvite({
+      token: "token-rehome",
+      firstName: "Re",
+      lastName: "Home",
+    });
+
+    expect(prismaMock.user.update).toHaveBeenCalledWith({
+      where: { id: 66 },
+      data: {
+        enterpriseId: "ent-3",
+        blockedEnterpriseId: null,
+        role: "ENTERPRISE_ADMIN",
+        active: true,
+        firstName: "Re",
+        lastName: "Home",
+      },
+    });
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+    expect(tokens).toEqual({ accessToken: "signed-1", refreshToken: "signed-2" });
+  });
+
+  it("acceptEnterpriseAdminInvite rejects when email already belongs to another enterprise", async () => {
+    const svc = await loadService();
+
+    prismaMock.enterpriseAdminInviteToken.findUnique.mockResolvedValueOnce({
+      id: 33,
+      enterpriseId: "ent-3",
+      email: "shared@example.com",
+      revoked: false,
+      usedAt: null,
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+    prismaMock.user.findUnique.mockResolvedValueOnce(null);
+    prismaMock.user.findFirst.mockResolvedValueOnce({
+      id: 55,
+      enterpriseId: "ent-9",
+      email: "shared@example.com",
+      role: "STUDENT",
+    });
+
+    await expect(
+      svc.acceptEnterpriseAdminInvite({ token: "token-dup" }),
+    ).rejects.toMatchObject({ code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" });
+
+    expect(prismaMock.user.create).not.toHaveBeenCalled();
+    expect(prismaMock.enterpriseAdminInviteToken.update).not.toHaveBeenCalled();
   });
 
   it("login handles invalid, suspended, and verify-failure credential paths", async () => {
@@ -142,6 +315,17 @@ describe("auth service", () => {
     });
     argon2Mock.verify.mockRejectedValueOnce(new Error("bad-hash"));
     await expect(svc.login({ email: "u@x.com", password: "pw" })).rejects.toMatchObject({ code: "INVALID_CREDENTIALS" });
+  });
+
+  it("login rejects ambiguous emails found in multiple enterprises", async () => {
+    const svc = await loadService();
+
+    prismaMock.user.count.mockResolvedValueOnce(2);
+
+    await expect(svc.login({ email: "shared@x.com", password: "pw" })).rejects.toMatchObject({
+      code: "AMBIGUOUS_EMAIL_ACCOUNT",
+    });
+    expect(prismaMock.user.findFirst).not.toHaveBeenCalled();
   });
 
   it("login issues tokens and writes audit for a regular active user", async () => {

@@ -23,6 +23,7 @@ function formatDate(date: Date): string {
 }
 
 export async function sendDeadlineReminders() {
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
   for (const window of WINDOWS) {
     const bounds = dayBounds(window.offsetDays);
 
@@ -100,8 +101,8 @@ export async function sendDeadlineReminders() {
     for (const { email, firstName, items } of userEvents.values()) {
       const count = items.length;
       const subject = `Deadline reminder – ${count} item${count === 1 ? "" : "s"} due ${window.label}`;
-      const text = `Hi ${firstName},\n\nYou have ${count} deadline${count === 1 ? "" : "s"} ${window.label}:\n\n${items.map((i) => `• ${i}`).join("\n")}\n\nLog in to view your calendar.\n`;
-      const html = `<p>Hi ${firstName},</p><p>You have <strong>${count} deadline${count === 1 ? "" : "s"}</strong> ${window.label}:</p><ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul><p>Log in to view your calendar.</p>`;
+      const text = `Hi ${firstName},\n\nYou have ${count} deadline${count === 1 ? "" : "s"} ${window.label}:\n\n${items.map((i) => `• ${i}`).join("\n")}\n\nAction: log in to review your calendar and plan your next steps.\nOpen Team Feedback: ${baseUrl}\nYou are receiving this reminder because these deadlines are associated with your project teams.\n`;
+      const html = `<p>Hi ${firstName},</p><p>You have <strong>${count} deadline${count === 1 ? "" : "s"}</strong> ${window.label}:</p><ul>${items.map((i) => `<li>${i}</li>`).join("")}</ul><p><strong>Action:</strong> log in to review your calendar and plan your next steps.</p><p><a href="${baseUrl}">Open Team Feedback</a></p><p>You are receiving this reminder because these deadlines are associated with your project teams.</p>`;
       await sendEmail({ to: email, subject, text, html });
     }
   }
@@ -112,6 +113,7 @@ const RED_THRESHOLD_DAYS = 14;
 
 export async function sendInactivityAlerts() {
   const now = new Date();
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
   const teams = await prisma.team.findMany({
     where: { archivedAt: null },
@@ -163,6 +165,7 @@ export async function sendInactivityAlerts() {
     where: { role: "STAFF" },
     select: { email: true, firstName: true },
   });
+  const generatedAt = now.toUTCString();
 
   for (const { email, firstName } of staffUsers) {
     const subject = `Team inactivity alert – ${totalFlagged} team${totalFlagged === 1 ? "" : "s"} require attention`;
@@ -180,8 +183,8 @@ export async function sendInactivityAlerts() {
       html += `<p><strong>⚠️ YELLOW FLAG – 7+ days inactive</strong></p><ul>${yellowTeams.map((t) => `<li>${t.teamName} (${t.projectName}) – ${t.daysInactive} days</li>`).join("")}</ul>`;
     }
 
-    text += `\nLog in to review and dismiss flags where appropriate.\n`;
-    html += `<p>Log in to review and dismiss flags where appropriate.</p>`;
+    text += `\nGenerated at (UTC): ${generatedAt}\nAction: log in to review these teams and dismiss flags where appropriate.\nOpen Team Feedback: ${baseUrl}\nThis report contains team-level activity data for staff oversight.\n`;
+    html += `<p><strong>Generated at (UTC):</strong> ${generatedAt}</p><p><strong>Action:</strong> log in to review these teams and dismiss flags where appropriate.</p><p><a href="${baseUrl}">Open Team Feedback</a></p><p>This report contains team-level activity data for staff oversight.</p>`;
 
     await sendEmail({ to: email, subject, text, html });
   }
@@ -189,6 +192,7 @@ export async function sendInactivityAlerts() {
 
 export async function sendMissingPeerAssessmentAlerts() {
   const now = new Date();
+  const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
   const teams = await prisma.team.findMany({
     where: {
@@ -254,11 +258,11 @@ export async function sendMissingPeerAssessmentAlerts() {
     const rows = nonSubmitters.map(
       (s) => `• ${s.studentName} (${s.teamName}, ${s.projectName}) – ${s.submitted}/${s.expected} submitted`
     );
-    const text = `Hi ${firstName},\n\nThe following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:\n\n${rows.join("\n")}\n\nLog in to review their progress.\n`;
+    const text = `Hi ${firstName},\n\nThe following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:\n\n${rows.join("\n")}\n\nAction: log in to review progress and follow up where needed.\nOpen Team Feedback: ${baseUrl}\nThis report is limited to teams whose assessment due date has passed.\n`;
     const htmlRows = nonSubmitters
       .map((s) => `<li>${s.studentName} (${s.teamName}, ${s.projectName}) – ${s.submitted}/${s.expected} submitted</li>`)
       .join("");
-    const html = `<p>Hi ${firstName},</p><p>The following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:</p><ul>${htmlRows}</ul><p>Log in to review their progress.</p>`;
+    const html = `<p>Hi ${firstName},</p><p>The following student${count === 1 ? "" : "s"} have not completed their peer assessments after the deadline:</p><ul>${htmlRows}</ul><p><strong>Action:</strong> log in to review progress and follow up where needed.</p><p><a href="${baseUrl}">Open Team Feedback</a></p><p>This report is limited to teams whose assessment due date has passed.</p>`;
     await sendEmail({ to: email, subject, text, html });
   }
 }

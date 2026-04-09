@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Response } from "express";
 import * as service from "./service.js";
 import {
+  acceptEnterpriseAdminInviteHandler,
   signupHandler,
   loginHandler,
   refreshHandler,
@@ -11,10 +12,14 @@ import {
   updateProfileHandler,
   requestEmailChangeHandler,
   confirmEmailChangeHandler,
+  deleteAccountHandler,
+  joinEnterpriseByCodeHandler,
+  leaveEnterpriseHandler,
 } from "./controller.js";
 
 vi.mock("./service.js", () => ({
   signUp: vi.fn(),
+  acceptEnterpriseAdminInvite: vi.fn(),
   login: vi.fn(),
   refreshTokens: vi.fn(),
   logout: vi.fn(),
@@ -24,6 +29,10 @@ vi.mock("./service.js", () => ({
   updateProfile: vi.fn(),
   requestEmailChange: vi.fn(),
   confirmEmailChange: vi.fn(),
+  deleteAccount: vi.fn(),
+  joinEnterpriseByCode: vi.fn(),
+  leaveEnterprise: vi.fn(),
+  validateRefreshTokenSession: vi.fn(),
   verifyRefreshToken: vi.fn(),
 }));
 
@@ -53,23 +62,53 @@ describe("auth controller auth flows", () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
-  it("signupHandler validates role", async () => {
+  it("acceptEnterpriseAdminInviteHandler validates input, sets cookie, and maps token errors", async () => {
     const res = mockResponse();
-    await signupHandler({ body: { enterpriseCode: "E1", email: "a@b.com", password: "x", role: "OWNER" } } as any, res as any);
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({ error: "Invalid role" });
+
+    await acceptEnterpriseAdminInviteHandler({ body: {} } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(400);
+
+    (service.acceptEnterpriseAdminInvite as any).mockResolvedValueOnce({
+      accessToken: "invite-access",
+      refreshToken: "invite-refresh",
+    });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(service.acceptEnterpriseAdminInvite).toHaveBeenCalledWith({ token: "abc123" });
+    expect(res.cookie).toHaveBeenCalledWith("refresh_token", "invite-refresh", expect.any(Object));
+    expect(res.json).toHaveBeenLastCalledWith({ accessToken: "invite-access" });
+
+    (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "INVALID_ENTERPRISE_ADMIN_INVITE" });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(400);
+
+    (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "USED_ENTERPRISE_ADMIN_INVITE" });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(400);
+
+    (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "EXPIRED_ENTERPRISE_ADMIN_INVITE" });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(400);
+
+    (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce({ code: "EMAIL_ALREADY_USED_IN_OTHER_ENTERPRISE" });
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(409);
+
+    (service.acceptEnterpriseAdminInvite as any).mockRejectedValueOnce(new Error("invite-fail"));
+    await acceptEnterpriseAdminInviteHandler({ body: { token: "abc123" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(500);
   });
 
   it("signupHandler signs up and sets cookie", async () => {
     (service.signUp as any).mockResolvedValue({ accessToken: "access", refreshToken: "refresh" });
     const res = mockResponse();
     await signupHandler(
-      { body: { enterpriseCode: "ENT", email: "User@Example.com", password: "x", role: "staff" } } as any,
+      { body: { enterpriseCode: "ENT", email: "User@Example.com", password: "x", role: "ADMIN" } } as any,
       res as any,
     );
     expect(service.signUp).toHaveBeenCalledWith(
-      expect.objectContaining({ enterpriseCode: "ENT", role: "STAFF", email: "User@Example.com" }),
+      expect.objectContaining({ enterpriseCode: "ENT", email: "User@Example.com" }),
     );
+    expect((service.signUp as any).mock.calls[0][0]).not.toHaveProperty("role");
     expect(res.cookie).toHaveBeenCalledWith("refresh_token", "refresh", expect.any(Object));
     expect(res.json).toHaveBeenCalledWith({ accessToken: "access" });
   });
@@ -115,6 +154,10 @@ describe("auth controller auth flows", () => {
     (service.login as any).mockRejectedValueOnce({ code: "ACCOUNT_SUSPENDED" });
     await loginHandler({ body: { email: "a@b.com", password: "pw" }, get: vi.fn() } as any, res as any);
     expect(res.status).toHaveBeenLastCalledWith(403);
+
+    (service.login as any).mockRejectedValueOnce({ code: "AMBIGUOUS_EMAIL_ACCOUNT" });
+    await loginHandler({ body: { email: "a@b.com", password: "pw" }, get: vi.fn() } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(409);
 
     (service.login as any).mockRejectedValueOnce(new Error("boom"));
     await loginHandler({ body: { email: "a@b.com", password: "pw" }, get: vi.fn() } as any, res as any);
@@ -245,6 +288,97 @@ describe("auth controller auth flows", () => {
     const res = mockResponse();
     await confirmEmailChangeHandler({ user: { sub: 1 } } as any, res as any);
     expect(res.status).toHaveBeenCalledWith(400);
+  });
+
+  it("deleteAccountHandler validates payload and maps account deletion errors", async () => {
+    const res = mockResponse();
+
+    await deleteAccountHandler({ user: { sub: 1 } } as any, res as any);
+    expect(res.status).toHaveBeenCalledWith(400);
+
+    (service.deleteAccount as any).mockResolvedValueOnce(undefined);
+    await deleteAccountHandler({ user: { sub: 1 }, body: { password: "pw" } } as any, res as any);
+    expect(service.deleteAccount).toHaveBeenCalledWith({ userId: 1, password: "pw" });
+    expect(res.clearCookie).toHaveBeenCalled();
+    expect(res.json).toHaveBeenLastCalledWith({ success: true });
+
+    (service.deleteAccount as any).mockRejectedValueOnce({ code: "INVALID_PASSWORD" });
+    await deleteAccountHandler({ user: { sub: 1 }, body: { password: "pw" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(401);
+
+    (service.deleteAccount as any).mockRejectedValueOnce({ code: "USER_NOT_FOUND" });
+    await deleteAccountHandler({ user: { sub: 1 }, body: { password: "pw" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(404);
+
+    (service.deleteAccount as any).mockRejectedValueOnce({ code: "ACCOUNT_DELETE_FORBIDDEN" });
+    await deleteAccountHandler({ user: { sub: 1 }, body: { password: "pw" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(403);
+
+    (service.deleteAccount as any).mockRejectedValueOnce({});
+    await deleteAccountHandler({ user: { sub: 1 }, body: { password: "pw" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(500);
+  });
+
+  it("joinEnterpriseByCodeHandler validates payload and maps domain errors", async () => {
+    const res = mockResponse();
+
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 } } as any, res as any);
+    expect(res.status).toHaveBeenCalledWith(400);
+
+    (service.joinEnterpriseByCode as any).mockResolvedValueOnce({
+      enterpriseId: "ent-2",
+      enterpriseName: "Enterprise Two",
+    });
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "ENT2" } } as any, res as any);
+    expect(service.joinEnterpriseByCode).toHaveBeenCalledWith({ userId: 1, enterpriseCode: "ENT2" });
+    expect(res.json).toHaveBeenLastCalledWith({
+      success: true,
+      enterpriseId: "ent-2",
+      enterpriseName: "Enterprise Two",
+    });
+
+    (service.joinEnterpriseByCode as any).mockRejectedValueOnce({ code: "ENTERPRISE_NOT_FOUND" });
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "MISS" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(404);
+
+    (service.joinEnterpriseByCode as any).mockRejectedValueOnce({ code: "ENTERPRISE_ACCESS_BLOCKED" });
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "ENT2" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(403);
+
+    (service.joinEnterpriseByCode as any).mockRejectedValueOnce({ code: "ENTERPRISE_JOIN_NOT_ALLOWED" });
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "ENT2" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(403);
+
+    (service.joinEnterpriseByCode as any).mockRejectedValueOnce({ code: "EMAIL_TAKEN" });
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "ENT2" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(409);
+
+    (service.joinEnterpriseByCode as any).mockRejectedValueOnce({});
+    await joinEnterpriseByCodeHandler({ user: { sub: 1 }, body: { enterpriseCode: "ENT2" } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(500);
+  });
+
+  it("leaveEnterpriseHandler maps success and domain errors", async () => {
+    const res = mockResponse();
+
+    (service.leaveEnterprise as any).mockResolvedValueOnce({
+      enterpriseId: "ent-unassigned",
+    });
+    await leaveEnterpriseHandler({ user: { sub: 1 } } as any, res as any);
+    expect(service.leaveEnterprise).toHaveBeenCalledWith({ userId: 1 });
+    expect(res.json).toHaveBeenLastCalledWith({ success: true, enterpriseId: "ent-unassigned" });
+
+    (service.leaveEnterprise as any).mockRejectedValueOnce({ code: "ALREADY_UNASSIGNED" });
+    await leaveEnterpriseHandler({ user: { sub: 1 } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(400);
+
+    (service.leaveEnterprise as any).mockRejectedValueOnce({ code: "ACCOUNT_LEAVE_FORBIDDEN" });
+    await leaveEnterpriseHandler({ user: { sub: 1 } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(403);
+
+    (service.leaveEnterprise as any).mockRejectedValueOnce({});
+    await leaveEnterpriseHandler({ user: { sub: 1 } } as any, res as any);
+    expect(res.status).toHaveBeenLastCalledWith(500);
   });
 
   it("signupHandler uses error.code in fallback details", async () => {

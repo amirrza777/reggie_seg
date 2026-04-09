@@ -9,6 +9,7 @@ model Enterprise {
   teams        Team[]
   auditLogs    AuditLog[]
   featureFlags FeatureFlag[]
+  enterpriseAdminInvites EnterpriseAdminInviteToken[]
 
   @@index([code])
 }

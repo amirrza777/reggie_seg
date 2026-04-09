@@ -1,11 +1,10 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { daysToMs } from "../lib/meetingTime";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import { AttendanceTable } from "./AttendanceTable";
 import "../styles/meeting-detail.css";
 
@@ -24,27 +23,23 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
   const isMember = isMeetingMember(meeting.team.allocations, user.id);
   const canRecord = isOrganiser || (settings.allowAnyoneToRecordAttendance && isMember);
   const attendanceEditWindowMs = daysToMs(settings.attendanceEditWindowDays);
+  const isUpcomingMeeting = new Date(meeting.date) >= new Date();
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
+  const now = new Date();
 
-  const backLink = (
-    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
-      <ChevronLeft size={14} />
-      Back to meeting
-    </AnchorLink>
-  );
-
-  if (new Date(meeting.date) >= new Date()) {
+  if (isUpcomingMeeting) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
         <p className="muted">Attendance can only be recorded during or after the meeting.</p>
       </div>
     );
   }
 
-  if (Date.now() - new Date(meeting.date).getTime() > attendanceEditWindowMs) {
+  if (now.getTime() - new Date(meeting.date).getTime() > attendanceEditWindowMs) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
         <p className="muted">The attendance recording window for this meeting has closed.</p>
       </div>
     );
@@ -53,7 +48,7 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
   if (!canRecord) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
         <p className="muted">You don't have permission to record attendance for this meeting.</p>
       </div>
     );
@@ -65,7 +60,7 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
 
   return (
     <div className="stack">
-      {backLink}
+      <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Attendance" />
       <AttendanceTable
         meetingId={meeting.id}
         members={members}

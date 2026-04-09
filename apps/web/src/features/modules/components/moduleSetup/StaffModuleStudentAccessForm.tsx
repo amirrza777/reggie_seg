@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { useEnterpriseModuleCreateFormState } from "@/features/enterprise/components/useEnterpriseModuleCreateFormState";
@@ -11,10 +10,8 @@ import { ModuleAccessSearchSection } from "../ModuleAccessSearchSection";
 
 export type StaffModuleStudentAccessFormProps = {
   moduleId: number;
-  /** Raw `[moduleId]` route param (for links). Required when `variant` is `"page"`. */
-  moduleRouteParam?: string;
   initialAccessSelection: EnterpriseModuleAccessSelectionResponse;
-  /** `"page"` includes back link, title, description, and Card (staff students/access route). */
+  /** `"page"` includes title, description, and Card (staff students/access route). */
   variant?: "embedded" | "page";
 };
 
@@ -34,7 +31,6 @@ function diffIds(baseline: number[], current: number[]) {
  */
 export function StaffModuleStudentAccessForm({
   moduleId,
-  moduleRouteParam,
   initialAccessSelection,
   variant = "embedded",
 }: StaffModuleStudentAccessFormProps) {
@@ -76,15 +72,10 @@ export function StaffModuleStudentAccessForm({
 
   const labelFor = (id: number) => userLabelById.get(id) ?? `User ID ${id}`;
 
-  const modSlug = moduleRouteParam ?? String(moduleId);
-
   if (state.isLoadingAccess) {
     const loading = <p className="muted">Loading student enrollment…</p>;
     return variant === "page" ? (
       <div className="ui-page enterprise-module-create-page">
-        <Link href={`/staff/modules/${encodeURIComponent(modSlug)}/students`} className="muted">
-          ← Back to current students
-        </Link>
         <header className="ui-page__header">
           <h2 className="overview-title ui-page__title">Student enrollment</h2>
         </header>
@@ -103,9 +94,6 @@ export function StaffModuleStudentAccessForm({
     );
     return variant === "page" ? (
       <div className="ui-page enterprise-module-create-page">
-        <Link href={`/staff/modules/${encodeURIComponent(modSlug)}/students`} className="muted">
-          ← Back to current students
-        </Link>
         <header className="ui-page__header">
           <h2 className="overview-title ui-page__title">Student enrollment</h2>
         </header>
@@ -249,9 +237,6 @@ export function StaffModuleStudentAccessForm({
   if (variant === "page") {
     return (
       <div className="ui-page enterprise-module-create-page">
-        <Link href={`/staff/modules/${encodeURIComponent(modSlug)}/students`} className="muted">
-          ← Back to current students
-        </Link>
         <header className="ui-page__header">
           <h2 className="overview-title ui-page__title">Student enrollment</h2>
           <p className="ui-page__description">

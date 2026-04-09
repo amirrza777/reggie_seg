@@ -28,8 +28,15 @@ function createProps(overrides: Partial<ComponentProps<typeof EnterpriseAccounts
     enterprise,
     usersStatus: "success" as const,
     usersMessage: null,
+    inviteEmail: "",
+    onInviteEmailChange: vi.fn(),
+    inviteStatus: "idle" as const,
+    inviteMessage: null,
+    onInviteSubmit: vi.fn((event: FormEvent<HTMLFormElement>) => event.preventDefault()),
     userSearchQuery: "",
     onUserSearchQueryChange: vi.fn(),
+    userSortValue: "default" as const,
+    onUserSortValueChange: vi.fn(),
     userRows: [[<span key="email">student@example.com</span>, <span key="name">Student One</span>, <span key="role">Student</span>, <span key="status">Active</span>]],
     userTotal: 10,
     userStart: 1,
@@ -60,8 +67,17 @@ describe("EnterpriseAccountsModal", () => {
 
     render(<EnterpriseAccountsModal {...props} />);
 
+    const inviteEmailInput = screen.getByLabelText(/enterprise admin invite email/i);
+    await user.type(inviteEmailInput, "invite@example.com");
+    expect(props.onInviteEmailChange).toHaveBeenCalled();
+    await user.click(screen.getByRole("button", { name: /send invite/i }));
+    expect(props.onInviteSubmit).toHaveBeenCalledTimes(1);
+
     await user.type(screen.getByRole("searchbox", { name: /search enterprise users/i }), "alice");
     expect(props.onUserSearchQueryChange).toHaveBeenCalled();
+
+    await user.selectOptions(screen.getByRole("combobox", { name: /sort enterprise users/i }), "joinDateDesc");
+    expect(props.onUserSortValueChange).toHaveBeenCalledWith("joinDateDesc");
 
     await user.click(screen.getByRole("button", { name: "Previous" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
@@ -101,12 +117,15 @@ describe("EnterpriseAccountsModal", () => {
     rerender(
       <EnterpriseAccountsModal
         {...createProps({
+          inviteMessage: "Invite failed",
+          inviteStatus: "error",
           usersStatus: "error",
           usersMessage: "Failed to load users",
         })}
       />,
     );
     expect(screen.getByText("Failed to load users").closest(".status-alert--error")).toBeInTheDocument();
+    expect(screen.getByText("Invite failed").closest(".status-alert--error")).toBeInTheDocument();
 
     rerender(
       <EnterpriseAccountsModal

@@ -54,17 +54,26 @@ export function EnterpriseManagementListCard(props: EnterpriseManagementListCard
   const showSkeletonTable = props.enterpriseTableStatus === "loading" && !hasRows;
 
   return (
-    <Card title="Enterprises" className="user-management-card" action={<EnterpriseCardActions searchQuery={props.searchQuery} setSearchQuery={props.setSearchQuery} onOpenCreateModal={props.onOpenCreateModal} />}>
+    <Card title="Enterprise directory" className="user-management-card" action={<EnterpriseCreateAction onOpenCreateModal={props.onOpenCreateModal} />}>
       <EnterpriseErrorMessage message={props.message} status={props.status} />
       <div className="user-management__toolbar">
-        <span className="ui-note ui-note--muted">
-          <EnterpriseTableSummary
-            enterpriseTableStatus={props.enterpriseTableStatus}
-            enterpriseTotal={props.enterpriseTotal}
-            enterpriseStart={props.enterpriseStart}
-            enterpriseEnd={props.enterpriseEnd}
-          />
-        </span>
+        <SearchField
+          value={props.searchQuery}
+          onChange={(event) => props.setSearchQuery(event.target.value)}
+          className="user-management__search"
+          placeholder="Search by enterprise name, code, or account breakdown"
+          aria-label="Search enterprises"
+        />
+        <div className="ui-toolbar user-management__meta">
+          <span className="ui-note ui-note--muted user-management__toolbar-summary">
+            <EnterpriseTableSummary
+              enterpriseTableStatus={props.enterpriseTableStatus}
+              enterpriseTotal={props.enterpriseTotal}
+              enterpriseStart={props.enterpriseStart}
+              enterpriseEnd={props.enterpriseEnd}
+            />
+          </span>
+        </div>
       </div>
       {hasRows || showSkeletonTable ? (
         <EnterpriseRowsTable {...props} />
@@ -75,28 +84,15 @@ export function EnterpriseManagementListCard(props: EnterpriseManagementListCard
   );
 }
 
-function EnterpriseCardActions({
-  searchQuery,
-  setSearchQuery,
+function EnterpriseCreateAction({
   onOpenCreateModal,
 }: {
-  searchQuery: string;
-  setSearchQuery: (value: string) => void;
   onOpenCreateModal: () => void;
 }) {
   return (
-    <div className="ui-row enterprise-management__actions">
-      <SearchField
-        value={searchQuery}
-        onChange={(event) => setSearchQuery(event.target.value)}
-        className="enterprise-management__search"
-        placeholder="Search by enterprise name, code, or account breakdown"
-        aria-label="Search enterprises"
-      />
-      <Button type="button" className="enterprise-management__create-trigger" onClick={onOpenCreateModal}>
-        Create
-      </Button>
-    </div>
+    <Button type="button" className="enterprise-management__create-trigger" onClick={onOpenCreateModal}>
+      Create
+    </Button>
   );
 }
 

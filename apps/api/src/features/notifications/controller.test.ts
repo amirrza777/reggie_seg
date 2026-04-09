@@ -97,4 +97,39 @@ describe("notifications controller", () => {
     await deleteNotificationHandler({ params: { id: "7" }, body: {} } as any, res);
     expect(res.status).toHaveBeenCalledWith(400);
   });
+
+  it("returns 500 when listing notifications fails", async () => {
+    (service.listNotifications as any).mockRejectedValue(new Error("db error"));
+    const res = mockResponse();
+    await listNotificationsHandler({ query: { userId: "3" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 500 when counting unread fails", async () => {
+    (service.countUnread as any).mockRejectedValue(new Error("db error"));
+    const res = mockResponse();
+    await countUnreadHandler({ query: { userId: "3" } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 500 when marking as read fails", async () => {
+    (service.readNotification as any).mockRejectedValue(new Error("db error"));
+    const res = mockResponse();
+    await markAsReadHandler({ params: { id: "7" }, body: { userId: 3 } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 500 when marking all as read fails", async () => {
+    (service.readAllNotifications as any).mockRejectedValue(new Error("db error"));
+    const res = mockResponse();
+    await markAllAsReadHandler({ body: { userId: 3 } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
+
+  it("returns 500 when deleting a notification fails", async () => {
+    (service.removeNotification as any).mockRejectedValue(new Error("db error"));
+    const res = mockResponse();
+    await deleteNotificationHandler({ params: { id: "7" }, body: { userId: 3 } } as any, res);
+    expect(res.status).toHaveBeenCalledWith(500);
+  });
 });

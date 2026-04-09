@@ -51,7 +51,8 @@
   margin-bottom: 8px;
 }
 
-.enterprise-overview__risk-list {
+.enterprise-overview__risk-list,
+.enterprise-overview__risk-list.ui-bullet-list {
   margin: 0;
   padding-left: 0;
   list-style: none;

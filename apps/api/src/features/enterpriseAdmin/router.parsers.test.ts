@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseFeatureFlagUpdateBody, parseMeetingSettingsBody } from "./router.parsers.js";
+import {
+  parseEnterpriseUserCreateBody,
+  parseEnterpriseUserUpdateBody,
+  parseFeatureFlagUpdateBody,
+  parseMeetingSettingsBody,
+} from "./router.parsers.js";
 
 const validMeetingSettingsBody = {
   absenceThreshold: 2,
@@ -144,6 +149,67 @@ describe("enterpriseAdmin router parsers", () => {
         ok: true,
         value: validMeetingSettingsBody,
       });
+    });
+  });
+
+  it("parses enterprise user update body", () => {
+    expect(parseEnterpriseUserUpdateBody({ role: "staff", active: false })).toEqual({
+      ok: true,
+      value: { role: "STAFF", active: false },
+    });
+  });
+
+  it("rejects invalid enterprise user update body", () => {
+    expect(parseEnterpriseUserUpdateBody({ role: "ENTERPRISE_ADMIN" })).toEqual({
+      ok: false,
+      error: "role must be STUDENT or STAFF",
+    });
+    expect(parseEnterpriseUserUpdateBody({ active: "false" })).toEqual({
+      ok: false,
+      error: "active must be a boolean",
+    });
+  });
+
+  it("parses enterprise user create body with normalized values", () => {
+    expect(
+      parseEnterpriseUserCreateBody({
+        email: "  USER@Example.com ",
+        firstName: "  First ",
+        lastName: " Last  ",
+        role: "staff",
+      }),
+    ).toEqual({
+      ok: true,
+      value: {
+        email: "user@example.com",
+        firstName: "First",
+        lastName: "Last",
+        role: "STAFF",
+      },
+    });
+  });
+
+  it("rejects invalid enterprise user create payload values", () => {
+    expect(parseEnterpriseUserCreateBody({})).toEqual({ ok: false, error: "email is required" });
+    expect(parseEnterpriseUserCreateBody({ email: "bad-email" })).toEqual({
+      ok: false,
+      error: "email must be a valid email address",
+    });
+    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", firstName: 10 })).toEqual({
+      ok: false,
+      error: "firstName must be a string",
+    });
+    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", lastName: 10 })).toEqual({
+      ok: false,
+      error: "lastName must be a string",
+    });
+    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", role: "ENTERPRISE_ADMIN" })).toEqual({
+      ok: false,
+      error: "role must be STUDENT or STAFF",
+    });
+    expect(parseEnterpriseUserCreateBody({ email: "ok@example.com", role: 99 })).toEqual({
+      ok: false,
+      error: "role must be STUDENT or STAFF",
     });
   });
 });

@@ -242,4 +242,52 @@ describe("NotificationBell", () => {
     fireEvent.click(bell);
     expect(screen.queryByText("You were mentioned")).not.toBeInTheDocument();
   });
+
+  it("does not close dropdown when clicking inside it", () => {
+    setupNotifications([UNREAD_NOTIFICATION], 1);
+
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+
+    fireEvent.mouseDown(screen.getByText("You were mentioned"));
+
+    expect(screen.getByText("You were mentioned")).toBeInTheDocument();
+  });
+
+  it("sorts a notification with an invalid timestamp after valid ones", () => {
+    const invalidDate = { ...UNREAD_NOTIFICATION, id: 10, createdAt: "not-a-date" };
+    const validDate = { ...READ_NOTIFICATION, id: 5 };
+    setupNotifications([invalidDate, validDate], 1);
+
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+
+    expect(screen.getByText("You were mentioned")).toBeInTheDocument();
+    expect(screen.getByText("New meeting scheduled")).toBeInTheDocument();
+  });
+
+  it("sorts a valid notification before an invalid one in a mixed list", () => {
+    const invalidDate = { ...UNREAD_NOTIFICATION, id: 10, createdAt: "not-a-date" };
+    const validDate = { ...READ_NOTIFICATION, id: 5 };
+    const anotherValidDate = { ...READ_NOTIFICATION, id: 3, message: "Meeting updated", createdAt: "2026-01-01T10:00:00Z" };
+    setupNotifications([validDate, invalidDate, anotherValidDate], 1);
+
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+
+    expect(screen.getByText("You were mentioned")).toBeInTheDocument();
+    expect(screen.getByText("Meeting updated")).toBeInTheDocument();
+  });
+
+  it("sorts notifications when both have invalid timestamps", () => {
+    const first = { ...UNREAD_NOTIFICATION, id: 10, createdAt: "not-a-date" };
+    const second = { ...READ_NOTIFICATION, id: 5, createdAt: "not-a-date" };
+    setupNotifications([first, second], 1);
+
+    render(<NotificationBell />);
+    fireEvent.click(screen.getByRole("button", { name: "Notifications" }));
+
+    expect(screen.getByText("You were mentioned")).toBeInTheDocument();
+    expect(screen.getByText("New meeting scheduled")).toBeInTheDocument();
+  });
 });

@@ -47,6 +47,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const [user, flagMap] = await Promise.all([getCurrentUser(), getFeatureFlagMap()]);
   if (!user) redirect("/login");
   if (user.suspended === true || user.active === false) return renderSuspendedAccountView();
+  if (user.isUnassigned === true) return renderUnassignedAccountView(children);
 
   const navChildren = await loadNavChildrenData(user.id);
 
@@ -94,6 +95,24 @@ function renderSuspendedAccountView() {
         </div>
       </div>
     </main>
+  );
+}
+
+function renderUnassignedAccountView(children: ReactNode) {
+  return (
+    <AppShell
+      topbar={
+        <Topbar
+          title="Team Feedback"
+          titleHref="/dashboard"
+          actions={<UserMenu />}
+        />
+      }
+    >
+      <div className="workspace-shell workspace-shell--unassigned">
+        {children}
+      </div>
+    </AppShell>
   );
 }
 
@@ -230,19 +249,43 @@ function filterAccessibleNavLinks(navLinks: NavLink[], user: AuthenticatedUser, 
 function buildSpaceLinks(user: AuthenticatedUser): SpaceLink[] {
   const links: SpaceLink[] = [];
   const isStaffOnlyAccount = user.isStaff && !isAdmin(user) && !isEnterpriseAdmin(user);
+  const profileSpaceHref = getDefaultSpaceOverviewPath(user);
 
   if (!isStaffOnlyAccount) {
-    links.push({ href: "/dashboard", label: "Workspace", activePaths: workspaceAliases });
+    links.push({
+      href: "/dashboard",
+      label: "Workspace",
+      activePaths: appendProfileAlias(workspaceAliases, profileSpaceHref === "/dashboard"),
+    });
   }
   if (user.isStaff || isAdmin(user)) {
-    links.push({ href: "/staff/dashboard", label: "Staff", activePaths: ["/staff"] });
+    links.push({
+      href: "/staff/dashboard",
+      label: "Staff",
+      activePaths: appendProfileAlias(["/staff"], profileSpaceHref === "/staff/dashboard"),
+    });
   }
   if (isEnterpriseAdmin(user) || isAdmin(user)) {
-    links.push({ href: "/enterprise", label: "Enterprise", activePaths: ["/enterprise"] });
+    links.push({
+      href: "/enterprise",
+      label: "Enterprise",
+      activePaths: appendProfileAlias(["/enterprise"], profileSpaceHref === "/enterprise"),
+    });
   }
   if (isAdmin(user)) {
-    links.push({ href: "/admin", label: "Admin", activePaths: ["/admin"] });
+    links.push({
+      href: "/admin",
+      label: "Admin",
+      activePaths: appendProfileAlias(["/admin"], profileSpaceHref === "/admin"),
+    });
   }
 
   return links;
+}
+
+function appendProfileAlias(activePaths: string[], includeProfileAlias: boolean) {
+  if (!includeProfileAlias) {
+    return activePaths;
+  }
+  return [...activePaths, "/profile"];
 }

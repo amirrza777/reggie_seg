@@ -1,5 +1,7 @@
 export {
+  DEFAULT_ENTERPRISE_USER_SORT_VALUE,
   ENTERPRISE_USERS_PER_PAGE,
+  type EnterpriseUserSortValue,
   type EnterpriseUserActions,
   type EnterpriseUserLoaders,
   type RequestState,

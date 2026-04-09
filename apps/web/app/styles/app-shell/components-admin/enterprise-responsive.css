@@ -68,6 +68,26 @@
     width: 100%;
   }
 
+  .enterprise-management__invite-form {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .enterprise-management__invite-input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .enterprise-users__meta {
+    justify-content: flex-start;
+  }
+
+  .enterprise-users__toolbar-summary {
+    margin-left: 0;
+    width: 100%;
+    white-space: normal;
+  }
+
   .enterprise-management__table {
     --enterprise-management-columns: 1fr;
   }
@@ -173,5 +193,14 @@
   .enterprise-management__row-actions .btn {
     width: 100%;
     min-width: 0;
+  }
+
+  .enterprise-management__invite-form .btn {
+    width: 100%;
+  }
+
+  .enterprise-management__modal-sort {
+    min-width: 0;
+    width: 100%;
   }
 }

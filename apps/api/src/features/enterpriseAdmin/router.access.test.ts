@@ -212,8 +212,11 @@ describe("enterpriseAdmin router access control", () => {
   });
 
   it("allows module update for module lead", async () => {
-    (prisma.moduleLead.findFirst as any).mockResolvedValueOnce({ moduleId: 2 });
+    (prisma.moduleLead.findFirst as any)
+      .mockResolvedValueOnce({ moduleId: 2 })
+      .mockResolvedValueOnce({ moduleId: 2 });
     (prisma.module.findFirst as any)
+      .mockResolvedValueOnce({ id: 2, archivedAt: null })
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 2 })
       .mockResolvedValueOnce({

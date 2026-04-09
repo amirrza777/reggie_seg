@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function, max-statements, complexity, @typescript-eslint/no-explicit-any */
 import { Router } from "express";
 import { requireAuth } from "../../auth/middleware.js";
 import { resolveEnterpriseUser } from "./middleware.js";

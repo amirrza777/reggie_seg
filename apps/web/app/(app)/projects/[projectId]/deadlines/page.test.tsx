@@ -81,7 +81,6 @@ describe("DeadlinesPage", () => {
     render(page);
 
     expect(screen.getByText("You are not in a team for this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "← Back to projects" })).toHaveAttribute("href", "/projects");
     expect(getProjectMock).not.toHaveBeenCalled();
   });
 

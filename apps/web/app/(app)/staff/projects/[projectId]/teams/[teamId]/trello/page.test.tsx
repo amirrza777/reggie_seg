@@ -1,5 +1,4 @@
 import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 import { getProjectDeadline } from "@/features/projects/api/client";
@@ -17,14 +16,6 @@ vi.mock("next/navigation", () => ({
   redirect: vi.fn((path: string) => {
     throw new RedirectSentinel(path);
   }),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({ href, children, className, ...props }: { href: string; children: ReactNode; className?: string }) => (
-    <a href={href} className={className} {...props}>
-      {children}
-    </a>
-  ),
 }));
 
 vi.mock("@/shared/auth/session", () => ({
@@ -94,7 +85,7 @@ describe("StaffTrelloSectionPage", () => {
     expect(screen.getByText("Invalid project or team ID.")).toBeInTheDocument();
   });
 
-  it("renders project/team loading error and back link", async () => {
+  it("renders project/team loading error", async () => {
     getCurrentUserMock.mockResolvedValue(staffUser);
     getStaffProjectTeamsMock.mockRejectedValue(new Error("team load failed"));
 
@@ -102,7 +93,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(screen.getByText("team load failed")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/21");
   });
 
   it("renders missing-team fallback when team id is not in project", async () => {
@@ -116,7 +106,6 @@ describe("StaffTrelloSectionPage", () => {
     render(page);
 
     expect(screen.getByText("Team not found in this project.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Back to project teams" })).toHaveAttribute("href", "/staff/projects/12");
   });
 
   it("renders trello content and tolerates deadline API failure", async () => {

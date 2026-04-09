@@ -49,6 +49,12 @@ Create local env file:
 cp .env.example .env
 ```
 
+Rate limiting (important for production):
+
+- In production, set `RATE_LIMIT_REDIS_URL` so join/auth/admin rate limits are shared across instances.
+- The API now disables in-memory fallback in production by default.  
+  Only set `RATE_LIMIT_ALLOW_IN_MEMORY=true` as an emergency override.
+
 Run migrations (creates tables):
 
 ```bash
@@ -115,6 +121,7 @@ Run tests per package:
   npm test            # run once  
   npm run test:watch  # watch mode  
   npm run test:coverage
+  npm run test:modulejoin
   ```
 
 - Web (Next.js):  
@@ -134,6 +141,22 @@ Run tests per package:
   ```
 
 Coverage thresholds are set to 100% lines/functions/branches/statements in each package to keep quality high. If you add new code, add or update tests accordingly.
+
+Load test module self-enrollment (API):
+
+```bash
+cd apps/api
+API_BASE_URL=http://localhost:3000 \
+JOIN_CODE=ABCD2345 \
+AUTH_TOKENS="token_for_user_1,token_for_user_2,token_for_user_3" \
+REQUESTS=300 \
+CONCURRENCY=50 \
+npm run loadtest:modulejoin
+```
+
+Notes:
+- Provide many student/admin tokens in `AUTH_TOKENS` to simulate cohort traffic.
+- `ROTATE_X_FORWARDED_FOR=true` can be used in local proxy setups to vary client IP.
 
 Run everything at once from repo root:
 

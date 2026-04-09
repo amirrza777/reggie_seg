@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronLeft } from "lucide-react";
 import { useUser } from "@/features/auth/context";
-import { AnchorLink } from "@/shared/ui/AnchorLink";
 import { isMeetingMember } from "../lib/meetingMember";
 import { useMeetingWithSettings } from "../hooks/useMeetingWithSettings";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import { MeetingEditForm } from "./MeetingEditForm";
 import "../styles/meeting-detail.css";
 
@@ -22,27 +21,22 @@ export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentP
   const isOrganiser = meeting.organiserId === user.id;
   const isMember = isMeetingMember(meeting.team.allocations, user.id);
   const canEdit = isOrganiser || (settings.allowAnyoneToEditMeetings && isMember);
-
-  const backLink = (
-    <AnchorLink href={`/projects/${projectId}/meetings/${meetingId}`} className="back-link">
-      <ChevronLeft size={14} />
-      Back to meeting
-    </AnchorLink>
-  );
+  const isUpcomingMeeting = new Date(meeting.date) >= new Date();
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${isUpcomingMeeting ? "upcoming" : "previous"}`;
 
   if (!canEdit) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
         <p className="muted">You don't have permission to edit this meeting.</p>
       </div>
     );
   }
 
-  if (new Date(meeting.date) < new Date()) {
+  if (!isUpcomingMeeting) {
     return (
       <div className="stack">
-        {backLink}
+        <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
         <p className="muted">Meeting details cannot be edited once the meeting has started.</p>
       </div>
     );
@@ -50,7 +44,7 @@ export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentP
 
   return (
     <div className="stack">
-      {backLink}
+      <MeetingBreadcrumbs projectId={projectId} meetingId={meetingId} meetingsHref={meetingsHref} currentLabel="Edit meeting" />
       <MeetingEditForm meeting={meeting} userId={user.id} projectId={projectId} />
     </div>
   );

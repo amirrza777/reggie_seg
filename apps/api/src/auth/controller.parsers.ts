@@ -6,22 +6,29 @@ import {
   type ParseResult,
 } from "../shared/parse.js";
 
-const signupRoles = ["STUDENT", "STAFF", "ENTERPRISE_ADMIN", "ADMIN"] as const;
-
-type SignupRole = (typeof signupRoles)[number];
 type SignupBody = {
   enterpriseCode: string;
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
-  role?: SignupRole;
 };
 type UpdateProfileBody = {
   firstName?: string;
   lastName?: string;
   avatarBase64?: string;
   avatarMime?: string;
+};
+type AcceptEnterpriseAdminInviteBody = {
+  token: string;
+  firstName?: string;
+  lastName?: string;
+};
+type DeleteAccountBody = {
+  password: string;
+};
+type JoinEnterpriseBody = {
+  enterpriseCode: string;
 };
 type OptionalFieldSpec<TKey extends string> = { key: TKey; error: string };
 
@@ -52,20 +59,6 @@ function parseRequiredSignupFields(body: Record<string, unknown>): ParseResult<P
     return fail("Enterprise code, email and password are required");
   }
   return ok({ enterpriseCode: enterpriseCode.value, email: email.value, password: password.value });
-}
-
-function parseSignupRole(rawRole: unknown): ParseResult<SignupRole | undefined> {
-  if (rawRole === undefined) {
-    return ok(undefined);
-  }
-  if (typeof rawRole !== "string") {
-    return fail("Invalid role");
-  }
-  const normalizedRole = rawRole.trim().toUpperCase();
-  if (!signupRoles.includes(normalizedRole as SignupRole)) {
-    return fail("Invalid role");
-  }
-  return ok(normalizedRole as SignupRole);
 }
 
 function parseOptionalFields<TKey extends string>(
@@ -99,15 +92,10 @@ export function parseSignupBody(body: unknown): ParseResult<SignupBody> {
   if (!optionalFields.ok) {
     return optionalFields;
   }
-  const role = parseSignupRole(parsedBody.value.role);
-  if (!role.ok) {
-    return role;
-  }
 
   return ok({
     ...required.value,
     ...optionalFields.value,
-    ...(role.value ? { role: role.value } : {}),
   });
 }
 
@@ -214,4 +202,59 @@ export function parseConfirmEmailChangeBody(body: unknown): ParseResult<{ newEma
   }
 
   return ok({ newEmail: newEmail.value, code: code.value });
+}
+
+export function parseDeleteAccountBody(body: unknown): ParseResult<DeleteAccountBody> {
+  const parsedBody = parseBodyRecord(body, "password required");
+  if (!parsedBody.ok) {
+    return parsedBody;
+  }
+
+  const password = parseTrimmedString(parsedBody.value.password, "password");
+  if (!password.ok) {
+    return fail("password required");
+  }
+
+  return ok({ password: password.value });
+}
+
+export function parseJoinEnterpriseBody(body: unknown): ParseResult<JoinEnterpriseBody> {
+  const parsedBody = parseBodyRecord(body, "enterpriseCode required");
+  if (!parsedBody.ok) {
+    return parsedBody;
+  }
+
+  const enterpriseCode = parseTrimmedString(parsedBody.value.enterpriseCode, "enterpriseCode");
+  if (!enterpriseCode.ok) {
+    return fail("enterpriseCode required");
+  }
+
+  return ok({ enterpriseCode: enterpriseCode.value });
+}
+
+export function parseAcceptEnterpriseAdminInviteBody(body: unknown): ParseResult<AcceptEnterpriseAdminInviteBody> {
+  const parsedBody = parseBodyRecord(body, "token required");
+  if (!parsedBody.ok) {
+    return parsedBody;
+  }
+
+  const token = parseTrimmedString(parsedBody.value.token, "token");
+  if (!token.ok) {
+    return fail("token required");
+  }
+
+  const firstName = parseOptionalTrimmedString(parsedBody.value.firstName, "firstName");
+  if (!firstName.ok) {
+    return fail("Invalid firstName");
+  }
+  const lastName = parseOptionalTrimmedString(parsedBody.value.lastName, "lastName");
+  if (!lastName.ok) {
+    return fail("Invalid lastName");
+  }
+
+  return ok({
+    token: token.value,
+    ...(firstName.value !== undefined ? { firstName: firstName.value } : {}),
+    ...(lastName.value !== undefined ? { lastName: lastName.value } : {}),
+  });
 }

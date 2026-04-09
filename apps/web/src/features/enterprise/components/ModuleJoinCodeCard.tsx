@@ -66,7 +66,7 @@ export function ModuleJoinCodeCard({
   return (
     <div className="enterprise-module-create__field enterprise-module-create__field--join-code">
       <Card
-        title={<span className="overview-title">Join code</span>}
+        title="Join code"
         action={
           status === "success" && joinCode ? (
             <Button type="button" variant="ghost" size="sm" onClick={handleCopy}>

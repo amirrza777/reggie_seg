@@ -117,6 +117,7 @@ describe("AppLayout", () => {
     getCurrentUserMock.mockResolvedValue({
       id: 101,
       isStaff: false,
+      isUnassigned: false,
       suspended: false,
       active: true,
       email: "student@example.com",
@@ -144,6 +145,7 @@ describe("AppLayout", () => {
     getCurrentUserMock.mockResolvedValue({
       id: 101,
       isStaff: false,
+      isUnassigned: false,
       suspended: true,
       active: true,
       email: "student@example.com",
@@ -154,6 +156,27 @@ describe("AppLayout", () => {
 
     expect(screen.getByText("Account suspended")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Return to login" })).toHaveAttribute("href", "/login");
+    expect(listModulesMock).not.toHaveBeenCalled();
+    expect(getUserProjectsMock).not.toHaveBeenCalled();
+  });
+
+  it("renders unassigned shell and skips navigation loading", async () => {
+    getCurrentUserMock.mockResolvedValue({
+      id: 101,
+      isStaff: false,
+      isUnassigned: true,
+      suspended: false,
+      active: true,
+      email: "student@example.com",
+    } as Awaited<ReturnType<typeof getCurrentUser>>);
+
+    const page = await AppLayout({ children: <div data-testid="child">child</div> });
+    render(page);
+
+    expect(screen.getByTestId("app-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("topbar")).toHaveTextContent("Team Feedback");
+    expect(screen.queryByTestId("space-switcher")).not.toBeInTheDocument();
+    expect(screen.getByTestId("child")).toBeInTheDocument();
     expect(listModulesMock).not.toHaveBeenCalled();
     expect(getUserProjectsMock).not.toHaveBeenCalled();
   });
@@ -178,6 +201,7 @@ describe("AppLayout", () => {
     getCurrentUserMock.mockResolvedValue({
       id: 400,
       isStaff: true,
+      isUnassigned: false,
       suspended: false,
       active: true,
       email: "staff@example.com",
@@ -203,6 +227,7 @@ describe("AppLayout", () => {
     getCurrentUserMock.mockResolvedValue({
       id: 999,
       isStaff: true,
+      isUnassigned: false,
       suspended: false,
       active: true,
       email: "admin@kcl.ac.uk",

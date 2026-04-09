@@ -231,6 +231,20 @@
   max-height: min(72vh, 640px);
 }
 
+.confirmation-modal .modal__header,
+.confirmation-modal .modal__footer {
+  border: none;
+}
+
+.confirmation-modal .modal__header {
+  display: flex;
+  align-items: center;
+}
+
+.confirmation-modal .modal__header h3 {
+  margin: 0;
+}
+
 .confirmation-modal__body {
   display: grid;
   gap: 10px;

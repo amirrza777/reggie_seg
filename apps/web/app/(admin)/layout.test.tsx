@@ -95,6 +95,7 @@ describe("AdminLayout", () => {
     const desktopSidebar = sidebarCalls.find((entry) => entry.mode === "desktop");
     expect(desktopSidebar?.links).toEqual([
       { href: "/admin", label: "Admin dashboard", space: "admin" },
+      { href: "/enterprise/modules", label: "Module management", space: "admin" },
       { href: "/admin/enterprises", label: "Enterprises", space: "admin" },
     ]);
   });

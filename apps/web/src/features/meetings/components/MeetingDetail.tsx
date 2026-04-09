@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, Pencil, UserCheck, NotebookPen } from "lucide-react";
+import { Pencil, UserCheck, NotebookPen } from "lucide-react";
 import { Card } from "@/shared/ui/Card";
 import { Table } from "@/shared/ui/Table";
 import { AnchorLink } from "@/shared/ui/AnchorLink";
@@ -10,6 +10,7 @@ import { AddToCalendarDropdown } from "./AddToCalendarDropdown";
 import { RichTextViewer } from "@/shared/ui/RichTextViewer";
 import { isMeetingMember } from "../lib/meetingMember";
 import { isWithinEditWindow } from "../lib/meetingTime";
+import { MeetingBreadcrumbs } from "./MeetingBreadcrumbs";
 import "../styles/meeting-detail.css";
 import "../styles/meeting-list.css";
 import type { Meeting, MeetingPermissions } from "../types";
@@ -29,6 +30,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
   const { user } = useUser();
   const members = meeting.team?.allocations?.map((a) => a.user) ?? [];
   const upcoming = new Date(meeting.date) >= new Date();
+  const meetingsHref = `/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`;
   const isOrganiser = user?.id === meeting.organiserId;
   const isMember = user ? isMeetingMember(meeting.team?.allocations ?? [], user.id) : false;
   const canEdit = isOrganiser || (permissions.allowAnyoneToEditMeetings && isMember);
@@ -75,10 +77,7 @@ export function MeetingDetail({ meeting, projectId, permissions }: MeetingDetail
 
   return (
     <div className="stack">
-      <AnchorLink href={`/projects/${projectId}/meetings?tab=${upcoming ? "upcoming" : "previous"}`} className="back-link">
-        <ChevronLeft size={14} />
-        {upcoming ? "Back to upcoming meetings" : "Back to previous meetings"}
-      </AnchorLink>
+      <MeetingBreadcrumbs projectId={projectId} meetingsHref={meetingsHref} currentLabel={meeting.title} />
 
       <Card title={meeting.title} action={cardAction}>
         <p>Date: {new Date(meeting.date).toLocaleString()}</p>

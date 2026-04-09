@@ -8,6 +8,10 @@ vi.mock("@/features/auth/useUser", () => ({
   useUser: vi.fn(),
 }));
 
+vi.mock("next/link", () => ({
+  default: ({ href, children }: any) => <a href={href}>{children}</a>,
+}));
+
 type MockChildProps = { meetingId: number };
 
 vi.mock("./CommentSection", () => ({
@@ -77,19 +81,20 @@ describe("MeetingDetail", () => {
 
   it("renders meeting title and organiser", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByText("Team Meeting")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Team Meeting" })).toBeInTheDocument();
     expect(screen.getByText(/Reggie King/)).toBeInTheDocument();
   });
 
-  it("renders back link to previous meetings for past meetings", () => {
+  it("renders meetings breadcrumb link", () => {
     render(<MeetingDetail meeting={baseMeeting as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to previous meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
+    expect(screen.getByRole("link", { name: "Meetings" })).toHaveAttribute("href", "/projects/5/meetings?tab=previous");
   });
 
-  it("renders back link to upcoming meetings for future meetings", () => {
+  it("renders current breadcrumb with meeting title", () => {
     const upcoming = { ...baseMeeting, date: futureDate };
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
-    expect(screen.getByRole("link", { name: /back to upcoming meetings/i })).toHaveAttribute("href", "/projects/5/meetings?tab=upcoming");
+    const currentCrumb = screen.getAllByText("Team Meeting").find((node) => node.getAttribute("aria-current") === "page");
+    expect(currentCrumb).toBeDefined();
   });
 
   it("shows location when provided", () => {
@@ -225,5 +230,35 @@ describe("MeetingDetail", () => {
     render(<MeetingDetail meeting={upcoming as any} projectId={5} permissions={defaultPermissions} />);
     expect(screen.queryByRole("link", { name: /record attendance/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /meeting minutes/i })).not.toBeInTheDocument();
+  });
+
+  it("shows participants table when participants exist and no attendances recorded", () => {
+    const withParticipants: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+        { user: { id: 2, firstName: "John", lastName: "Smith" } },
+      ],
+      attendances: [],
+    };
+    render(<MeetingDetail meeting={withParticipants as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.getByText("Participants")).toBeInTheDocument();
+    expect(screen.getByText("Reggie King")).toBeInTheDocument();
+    expect(screen.getByText("John Smith")).toBeInTheDocument();
+  });
+
+  it("hides participants table when attendances are recorded", () => {
+    const withBoth: Meeting = {
+      ...baseMeeting,
+      participants: [
+        { user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+      attendances: [
+        { id: 1, meetingId: 1, userId: 1, status: "on_time", user: { id: 1, firstName: "Reggie", lastName: "King" } },
+      ],
+    };
+    render(<MeetingDetail meeting={withBoth as any} projectId={5} permissions={defaultPermissions} />);
+    expect(screen.queryByText("Participants")).not.toBeInTheDocument();
+    expect(screen.getByText("Attendance")).toBeInTheDocument();
   });
 });

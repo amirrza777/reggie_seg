@@ -54,7 +54,7 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     await act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-1", " learner ", 1);
+      await result.current.loadEnterpriseUsers("enterprise-1", " learner ", 1, "default");
     });
 
     expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("enterprise-1", {
@@ -78,6 +78,36 @@ describe("useEnterpriseUserLoaders", () => {
     expect(options.setEnterpriseUsersMessage).not.toHaveBeenCalledWith("No user accounts found in this enterprise.");
   });
 
+  it("passes sort params when a non-default sort is selected", async () => {
+    const options = createOptions();
+    searchEnterpriseUsersMock.mockResolvedValue({
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      totalPages: 0,
+      hasPreviousPage: false,
+      hasNextPage: false,
+      query: null,
+      role: null,
+      active: null,
+    });
+
+    const { result } = renderHook(() => useEnterpriseUserLoaders(options));
+
+    await act(async () => {
+      await result.current.loadEnterpriseUsers("enterprise-sort", "", 1, "joinDateDesc");
+    });
+
+    expect(searchEnterpriseUsersMock).toHaveBeenCalledWith("enterprise-sort", {
+      q: undefined,
+      page: 1,
+      pageSize: 10,
+      sortBy: "joinDate",
+      sortDirection: "desc",
+    });
+  });
+
   it("adjusts page when response page is out of range", async () => {
     const options = createOptions();
     searchEnterpriseUsersMock.mockResolvedValue({
@@ -96,14 +126,14 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     await act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-2", "", 5);
+      await result.current.loadEnterpriseUsers("enterprise-2", "", 5, "default");
     });
 
     expect(options.setEnterpriseUserPage).toHaveBeenCalledWith(2);
     expect(options.setEnterpriseUsers).not.toHaveBeenCalled();
   });
 
-  it("sets an empty-state message for empty results", async () => {
+  it("does not set a separate empty-state message for empty results", async () => {
     const options = createOptions();
     searchEnterpriseUsersMock.mockResolvedValue({
       items: [],
@@ -121,10 +151,10 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     await act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-3", "", 1);
+      await result.current.loadEnterpriseUsers("enterprise-3", "", 1, "default");
     });
 
-    expect(options.setEnterpriseUsersMessage).toHaveBeenCalledWith("No user accounts found in this enterprise.");
+    expect(options.setEnterpriseUsersMessage).not.toHaveBeenCalledWith("No user accounts found in this enterprise.");
   });
 
   it("applies error state when loading fails", async () => {
@@ -134,7 +164,7 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     await act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-4", "abc", 2);
+      await result.current.loadEnterpriseUsers("enterprise-4", "abc", 2, "default");
     });
 
     expect(options.setEnterpriseUsers).toHaveBeenCalledWith([]);
@@ -155,7 +185,7 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     const loadPromise = act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-stale-success", "", 1);
+      await result.current.loadEnterpriseUsers("enterprise-stale-success", "", 1, "default");
     });
 
     options.latestEnterpriseUsersRequestRef.current = 999;
@@ -191,7 +221,7 @@ describe("useEnterpriseUserLoaders", () => {
     const { result } = renderHook(() => useEnterpriseUserLoaders(options));
 
     const loadPromise = act(async () => {
-      await result.current.loadEnterpriseUsers("enterprise-stale-error", "abc", 2);
+      await result.current.loadEnterpriseUsers("enterprise-stale-error", "abc", 2, "default");
     });
 
     options.latestEnterpriseUsersRequestRef.current = 999;
