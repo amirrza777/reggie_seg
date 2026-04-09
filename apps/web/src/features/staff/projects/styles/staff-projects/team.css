@@ -17,6 +17,22 @@
   gap: 10px;
 }
 
+.staff-projects__forum-privacy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.staff-projects__forum-privacy-text {
+  margin: 0;
+  flex: 1;
+  min-width: min(100%, 200px);
+  font-size: var(--fs-body-sm);
+  line-height: var(--lh-body);
+}
+
 .staff-projects__team-card--clickable {
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;

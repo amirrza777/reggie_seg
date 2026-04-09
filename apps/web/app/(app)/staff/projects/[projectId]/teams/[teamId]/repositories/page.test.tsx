@@ -1,21 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffRepositoriesSectionPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -39,23 +26,12 @@ vi.mock("@/features/github/components/StaffProjectReposReadOnlyClient", () => ({
   ),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 
 describe("StaffRepositoriesSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("redirects non-staff users to dashboard", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffRepositoriesSectionPage({ params: Promise.resolve({ projectId: "10", teamId: "22" }) })
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("shows invalid id message for non-numeric route params", async () => {

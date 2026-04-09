@@ -115,12 +115,12 @@ function EnterpriseModuleCreateFormBody({
 
       {state.isEditMode && moduleId != null ? (
         <ModuleFormCollapsible title="Archive or delete module" defaultOpen={readOnlyArchived}>
+          <ModuleArchiveActionNotice message={state.archiveActionNotice} />
           <ModuleArchiveSection state={state} moduleArchived={state.moduleArchived} />
           <ModuleDeleteSection state={state} />
         </ModuleFormCollapsible>
       ) : null}
 
-      <ModuleArchiveActionNotice message={state.archiveActionNotice} />
       <ModuleErrorMessage errorMessage={state.errorMessage} />
       {readOnlyArchived ? (
         <div className="ui-row ui-row--end enterprise-modules__create-actions enterprise-module-create__actions">
@@ -142,12 +142,10 @@ function EnterpriseModuleCreateFormBody({
 
 function ModuleFormCollapsible({
   title,
-  summaryHint,
   defaultOpen = false,
   children,
 }: {
   title: string;
-  summaryHint?: string;
   defaultOpen?: boolean;
   children: ReactNode;
 }) {
@@ -164,9 +162,6 @@ function ModuleFormCollapsible({
       <summary className="enterprise-module-create__collapsible-summary">
         <span className="enterprise-module-create__collapsible-summary-text">
           <span className="enterprise-module-create__collapsible-title">{title}</span>
-          {summaryHint ? (
-            <span className="enterprise-module-create__collapsible-hint muted">{summaryHint}</span>
-          ) : null}
         </span>
       </summary>
       <div className="enterprise-module-create__collapsible-body">{children}</div>

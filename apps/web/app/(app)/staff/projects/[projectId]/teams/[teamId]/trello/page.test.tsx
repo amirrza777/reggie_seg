@@ -1,23 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getProjectDeadline } from "@/features/projects/api/client";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffTrelloSectionPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, className, ...props }: { href: string; children: ReactNode; className?: string }) => (
@@ -63,7 +50,6 @@ vi.mock("@/features/staff/trello/StaffTrelloSummaryView", () => ({
   StaffTrelloSummaryView: () => <div>summary-view</div>,
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getProjectDeadlineMock = vi.mocked(getProjectDeadline);
@@ -73,16 +59,6 @@ const staffUser = { id: 88, isStaff: true, role: "STAFF" } as Awaited<ReturnType
 describe("StaffTrelloSectionPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("redirects users without staff/admin access", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 2, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffTrelloSectionPage({ params: Promise.resolve({ projectId: "10", teamId: "11" }) }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid-id message for non-numeric params", async () => {

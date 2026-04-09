@@ -3,10 +3,13 @@
 import { useEffect, useRef, useState, type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import { useUser } from "@/features/auth/useUser";
 import { getForumSettings, updateForumSettings } from "@/features/forum/api/client";
+import { Button } from "@/shared/ui/Button";
 import { Skeleton, SkeletonText } from "@/shared/ui/Skeleton";
+import "../styles/discussion-forum.css";
 
 type ForumSettingsCardProps = {
   projectId: number;
+  readOnly?: boolean;
 };
 
 type ForumSettingsState = {
@@ -98,7 +101,7 @@ async function saveForumSettings(params: ForumSettingsSaveParams) {
   }
 }
 
-function useForumSettingsState(projectId: number, userId: number | null): ForumSettingsState {
+function useForumSettingsState(projectId: number, userId: number | null, readOnly: boolean): ForumSettingsState {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +121,7 @@ function useForumSettingsState(projectId: number, userId: number | null): ForumS
   }, [projectId, userId]);
 
   const handleToggle = async (value: boolean) => {
+    if (readOnly) return;
     await saveForumSettings({
       userId,
       projectId,
@@ -129,58 +133,75 @@ function useForumSettingsState(projectId: number, userId: number | null): ForumS
     });
   };
 
-  return { loading, saving, error, anonymousStudents, isControlDisabled: loading || saving || userId == null, handleToggle };
+  return {
+    loading,
+    saving,
+    error,
+    anonymousStudents,
+    isControlDisabled: loading || saving || userId == null || readOnly,
+    handleToggle,
+  };
 }
 
-function ForumSettingsHeader() {
-  return (
-    <div>
-      <h3 className="forum-settings-card__title">Forum anonymity</h3>
-      <p className="muted forum-settings-card__desc">
-        Control whether student names are visible in the project forum. Staff names are always visible.
-      </p>
-    </div>
-  );
-}
-
-function ForumSettingsToggle({
+function ForumSettingsActionButton({
   anonymousStudents,
-  isControlDisabled,
+  disabled,
+  saving,
   onToggle,
 }: {
   anonymousStudents: boolean;
-  isControlDisabled: boolean;
+  disabled: boolean;
+  saving: boolean;
   onToggle: (value: boolean) => Promise<void>;
 }) {
+  const label = saving ? "Saving…" : anonymousStudents ? "Show student names" : "Make anonymous";
+
   return (
-    <label className={`forum-settings-card__toggle${isControlDisabled ? " is-disabled" : ""}`}>
-      <input className="forum-settings-card__control" type="checkbox" checked={anonymousStudents} onChange={(event) => void onToggle(event.target.checked)} disabled={isControlDisabled} />
-      <span className="forum-settings-card__control-indicator" aria-hidden="true" />
-      <span className="forum-settings-card__toggle-text">Hide student names</span>
-    </label>
+    <Button type="button" variant="secondary" disabled={disabled} onClick={() => void onToggle(!anonymousStudents)}>
+      {label}
+    </Button>
   );
 }
 
-function ForumSettingsLoadingState() {
-  return (
-    <div className="ui-stack-sm" role="status" aria-live="polite">
-      <Skeleton inline width={18} height={18} radius={999} />
-      <SkeletonText className="forum-settings-card__skeleton-text" lines={1} widths={["40%"]} />
-      <span className="ui-visually-hidden">Loading settings…</span>
-    </div>
-  );
-}
-
-export function ForumSettingsCard({ projectId }: ForumSettingsCardProps) {
+export function ForumSettingsCard({ projectId, readOnly = false }: ForumSettingsCardProps) {
   const { user } = useUser();
-  const state = useForumSettingsState(projectId, user?.id ?? null);
+  const state = useForumSettingsState(projectId, user?.id ?? null, readOnly);
 
   return (
-    <div className="card stack forum-settings-card">
-      <ForumSettingsHeader />
+    <div className="stack forum-settings-card">
       {state.error ? <p className="muted">{state.error}</p> : null}
-      <ForumSettingsToggle anonymousStudents={state.anonymousStudents} isControlDisabled={state.isControlDisabled} onToggle={state.handleToggle} />
-      {state.loading ? <ForumSettingsLoadingState /> : null}
+      <div className="forum-settings-card__embed-row">
+        <div className="forum-settings-card__embed-copy">
+          {state.loading ? (
+            <SkeletonText className="forum-settings-card__skeleton-text" lines={2} widths={["92%", "70%"]} />
+          ) : (
+            <>
+              <p className="forum-settings-card__embed-lead">
+                {state.anonymousStudents
+                  ? "Posts on the forum are anonymous and not linked to students."
+                  : "Student names are visible on posts."}
+              </p>
+              <p className="ui-note ui-note--muted forum-settings-card__embed-hint">
+                Staff names stay visible. Use the button to switch how student posts appear.
+              </p>
+            </>
+          )}
+        </div>
+        {!state.loading ? (
+          <div className="forum-settings-card__embed-action">
+            <ForumSettingsActionButton
+              anonymousStudents={state.anonymousStudents}
+              disabled={state.isControlDisabled}
+              saving={state.saving}
+              onToggle={state.handleToggle}
+            />
+          </div>
+        ) : (
+          <div className="forum-settings-card__embed-action-skeleton" aria-hidden="true">
+            <Skeleton inline width={168} height={36} radius={8} />
+          </div>
+        )}
+      </div>
       {!user ? <p className="muted">Sign in as staff to update these settings.</p> : null}
     </div>
   );

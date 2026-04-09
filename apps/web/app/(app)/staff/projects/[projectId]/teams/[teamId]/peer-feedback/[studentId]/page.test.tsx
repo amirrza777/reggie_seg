@@ -1,6 +1,5 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import {
@@ -9,18 +8,6 @@ import {
   getPeerAssessmentsReceivedForUser,
 } from "@/features/peerFeedback/api/client";
 import StaffPeerFeedbackStudentPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
@@ -36,7 +23,6 @@ vi.mock("@/features/peerFeedback/api/client", () => ({
   getFeedbackReview: vi.fn(),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getPeerAssessmentsForUserMock = vi.mocked(getPeerAssessmentsForUser);
@@ -50,22 +36,6 @@ const staffUser = { id: 7, isStaff: true, role: "STAFF" } as Awaited<
 describe("StaffPeerFeedbackStudentPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-  });
-
-  it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({
-      id: 1,
-      isStaff: false,
-      role: "STUDENT",
-    } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffPeerFeedbackStudentPage({
-        params: Promise.resolve({ projectId: "1", teamId: "2", studentId: "3" }),
-      }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid parameter message", async () => {

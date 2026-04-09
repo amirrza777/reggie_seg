@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { getCurrentUser } from "@/shared/auth/session";
 import { StaffAllocationModesPanel } from "@/features/staff/projects/components/StaffAllocationModesPanel";
 import { StaffAllocationDraftsPanel } from "@/features/staff/projects/components/StaffAllocationDraftsPanel";
@@ -11,28 +10,10 @@ type StaffProjectAllocationPageProps = {
 };
 
 export default async function StaffProjectAllocationPage({ params }: StaffProjectAllocationPageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId } = await params;
-  const loadResult = await loadStaffProjectTeamsForPage(
-    user.id,
-    projectId,
-    "Failed to load project team allocation data."
-  );
-  if (loadResult.status === "invalid_project_id") {
-    return <p className="muted">Invalid project ID.</p>;
-  }
-  if (loadResult.status === "error") {
-    return (
-      <div className="stack">
-        <p className="muted">{loadResult.message}</p>
-      </div>
-    );
-  }
-  const { data } = loadResult;
+  const userId = (await getCurrentUser())!.id;
+  const numericProjectId = Number(projectId);
+  const data = await getStaffProjectTeams(userId, numericProjectId);
   const emptyTeams = data.teams.filter((team) => team.allocations.length === 0).length;
 
   return (

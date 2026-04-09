@@ -1,90 +1,39 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
-import { loadStaffProjectTeamsForPage } from "@/features/staff/projects/server/loadStaffProjectTeams";
+import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffProjectMeetingsPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("@/shared/auth/session", () => ({
   getCurrentUser: vi.fn(),
 }));
 
-vi.mock("@/features/staff/projects/server/loadStaffProjectTeams", () => ({
-  loadStaffProjectTeamsForPage: vi.fn(),
+vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
+  getStaffProjectTeams: vi.fn(),
 }));
 
 vi.mock("next/link", () => ({
   default: ({ href, children }: { href: string; children: ReactNode }) => <a href={href}>{children}</a>,
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
-const loadStaffProjectTeamsForPageMock = vi.mocked(loadStaffProjectTeamsForPage);
+const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 
 describe("StaffProjectMeetingsPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("redirects non-staff users to dashboard", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, role: "STUDENT", isStaff: false } as any);
-
-    await expect(
-      StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "9" }) }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
-  });
-
-  it("renders invalid-project message", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 2, role: "ADMIN", isStaff: false } as any);
-    loadStaffProjectTeamsForPageMock.mockResolvedValue({ status: "invalid_project_id" });
-
-    const page = await StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "abc" }) });
-    render(page);
-
-    expect(screen.getByText("Invalid project ID.")).toBeInTheDocument();
-  });
-
-  it("renders loader error messages", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 2, role: "ADMIN", isStaff: false } as any);
-    loadStaffProjectTeamsForPageMock.mockResolvedValue({
-      status: "error",
-      message: "Failed to load project meetings.",
-    } as any);
-
-    const page = await StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "12" }) });
-    render(page);
-
-    expect(screen.getByText("Failed to load project meetings.")).toBeInTheDocument();
-  });
-
   it("renders team meeting links when project data loads", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 7, role: "STAFF", isStaff: true } as any);
-    loadStaffProjectTeamsForPageMock.mockResolvedValue({
-      status: "ok",
-      numericProjectId: 15,
-      data: {
-        project: { id: 15, name: "Capstone", moduleId: 5, moduleName: "Internet Systems" },
-        teams: [
-          { id: 31, teamName: "Team Alpha", allocations: [{ userId: 1 }, { userId: 2 }] },
-          { id: 32, teamName: "Team Beta", allocations: [{ userId: 3 }] },
-        ],
-      },
-    } as any);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 15, name: "Capstone", moduleId: 5, moduleName: "Internet Systems" },
+      teams: [
+        { id: 31, teamName: "Team Alpha", allocations: [{ userId: 1 }, { userId: 2 }] },
+        { id: 32, teamName: "Team Beta", allocations: [{ userId: 3 }] },
+      ],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
 
     const page = await StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "15" }) });
     render(page);
@@ -100,14 +49,10 @@ describe("StaffProjectMeetingsPage", () => {
 
   it("renders empty-state when no teams exist", async () => {
     getCurrentUserMock.mockResolvedValue({ id: 7, role: "STAFF", isStaff: true } as any);
-    loadStaffProjectTeamsForPageMock.mockResolvedValue({
-      status: "ok",
-      numericProjectId: 15,
-      data: {
-        project: { id: 15, name: "Capstone", moduleId: 5, moduleName: "Internet Systems" },
-        teams: [],
-      },
-    } as any);
+    getStaffProjectTeamsMock.mockResolvedValue({
+      project: { id: 15, name: "Capstone", moduleId: 5, moduleName: "Internet Systems" },
+      teams: [],
+    } as Awaited<ReturnType<typeof getStaffProjectTeams>>);
 
     const page = await StaffProjectMeetingsPage({ params: Promise.resolve({ projectId: "15" }) });
     render(page);

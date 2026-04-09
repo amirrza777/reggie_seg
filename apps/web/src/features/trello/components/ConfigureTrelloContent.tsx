@@ -238,7 +238,7 @@ export function ConfigureTrelloContent({ projectId, teamId }: Props) {
   if (!canEdit) {
     return (
       <section className="stack projects-panel trello-configure">
-        <p className="muted">Trello configuration is not available while this module or project is archived.</p>
+        <p className="muted">Trello configuration is not available while this project is archived.</p>
       </section>
     );
   }

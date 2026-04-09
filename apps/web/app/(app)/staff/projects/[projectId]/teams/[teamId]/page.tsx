@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getStudentDetails, getTeamDetails } from "@/features/staff/peerAssessments/api/client";
@@ -207,12 +206,8 @@ function formatMessageDate(value: string) {
 }
 
 export default async function StaffProjectTeamTabsPage({ params }: StaffProjectTeamTabsPageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId, teamId } = await params;
+  const userId = (await getCurrentUser())!.id;
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
   if (Number.isNaN(numericProjectId) || Number.isNaN(numericTeamId)) {
@@ -222,7 +217,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let errorMessage: string | null = null;
   try {
-    data = await getStaffProjectTeams(user.id, numericProjectId);
+    data = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "Failed to load team data.";
   }
@@ -245,7 +240,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   let newMessages: TeamHealthMessage[] = [];
 
   try {
-    const teamDetails = await getTeamDetails(user.id, data.project.moduleId, numericTeamId);
+    const teamDetails = await getTeamDetails(userId, data.project.moduleId, numericTeamId);
     assessmentByUserId = new Map(
       teamDetails.students
         .filter((student): student is typeof student & { id: number } => student.id != null)
@@ -280,7 +275,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   try {
     const markResults = await Promise.allSettled(
       team.allocations.map((allocation) =>
-        getStudentDetails(user.id, data.project.moduleId, numericTeamId, allocation.userId),
+        getStudentDetails(userId, data.project.moduleId, numericTeamId, allocation.userId),
       ),
     );
 
@@ -298,7 +293,7 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
   }
 
   try {
-    const messages = await getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId);
+    const messages = await getStaffTeamHealthMessages(userId, numericProjectId, numericTeamId);
     newMessages = messages
       .filter((message) => !message.resolved)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -327,9 +322,9 @@ export default async function StaffProjectTeamTabsPage({ params }: StaffProjectT
     const perTeamMetrics = await Promise.all(
       data.teams.map(async (projectTeam) => {
         const [teamWarningsResult, teamMeetingsResult, teamAssessmentResult, teamTrelloResult] = await Promise.allSettled([
-          getStaffTeamWarnings(user.id, numericProjectId, projectTeam.id),
+          getStaffTeamWarnings(userId, numericProjectId, projectTeam.id),
           listTeamMeetings(projectTeam.id),
-          getTeamDetails(user.id, data.project.moduleId, projectTeam.id),
+          getTeamDetails(userId, data.project.moduleId, projectTeam.id),
           getTeamBoard(projectTeam.id),
         ]);
 

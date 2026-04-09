@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { listTeamMeetings, getTeamMeetingSettings } from "@/features/staff/meetings/api/client";
@@ -11,12 +10,8 @@ type PageProps = {
 };
 
 export default async function StaffTeamMeetingsSectionPage({ params }: PageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId, teamId } = await params;
+  const userId = (await getCurrentUser())!.id;
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
 
@@ -27,7 +22,7 @@ export default async function StaffTeamMeetingsSectionPage({ params }: PageProps
   let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let projectError: string | null = null;
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    projectData = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     projectError = error instanceof Error ? error.message : "Failed to load project team data.";
   }

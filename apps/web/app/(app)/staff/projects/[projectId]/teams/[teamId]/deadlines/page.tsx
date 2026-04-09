@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import { StaffStudentDeadlineOverridesPanel } from "@/features/staff/projects/components/StaffStudentDeadlineOverridesPanel";
 import { StaffTeamDeadlineProfileControl } from "@/features/staff/projects/components/StaffTeamDeadlineProfileControl";
@@ -11,12 +10,8 @@ type StaffProjectTeamDeadlinesPageProps = {
 };
 
 export default async function StaffProjectTeamDeadlinesPage({ params, searchParams }: StaffProjectTeamDeadlinesPageProps) {
-  const user = await getCurrentUser();
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
-
   const { projectId, teamId } = await params;
+  const userId = (await getCurrentUser())!.id;
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
   if (Number.isNaN(numericProjectId) || Number.isNaN(numericTeamId)) {
@@ -26,7 +21,7 @@ export default async function StaffProjectTeamDeadlinesPage({ params, searchPara
   let data: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let errorMessage: string | null = null;
   try {
-    data = await getStaffProjectTeams(user.id, numericProjectId);
+    data = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : "Failed to load team data.";
   }

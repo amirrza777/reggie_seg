@@ -33,7 +33,7 @@ export function MeetingAttendanceContent({ meetingId, projectId }: MeetingAttend
     return (
       <div className="stack">
         {backLink}
-        <p className="muted">This module or project is archived; attendance cannot be edited.</p>
+        <p className="muted">This project is archived; attendance cannot be edited.</p>
       </div>
     );
   }

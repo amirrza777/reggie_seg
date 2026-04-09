@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { StaffTeamHealthMessageReviewPanel } from "@/features/staff/projects/components/StaffTeamHealthMessageReviewPanel";
@@ -239,11 +238,7 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
   const selectedLookback = parseSignalLookback(lookbackParam);
   const lookbackSelectValue: "7" | "14" | "30" | "all" =
     selectedLookback === "all" ? "all" : String(selectedLookback) as "7" | "14" | "30";
-  const user = await getCurrentUser();
-
-  if (!user?.isStaff && user?.role !== "ADMIN") {
-    redirect("/dashboard");
-  }
+  const userId = (await getCurrentUser())!.id;
 
   const numericProjectId = Number(projectId);
   const numericTeamId = Number(teamId);
@@ -254,7 +249,7 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
   let projectData: Awaited<ReturnType<typeof getStaffProjectTeams>> | null = null;
   let projectError: string | null = null;
   try {
-    projectData = await getStaffProjectTeams(user.id, numericProjectId);
+    projectData = await getStaffProjectTeams(userId, numericProjectId);
   } catch (error) {
     projectError = error instanceof Error ? error.message : "Failed to load project team data.";
   }
@@ -272,11 +267,11 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
   }
 
   const [requestsResult, warningsResult, meetingsResult, repoHealthResult, peerAssessmentResult] = await Promise.allSettled([
-    getStaffTeamHealthMessages(user.id, numericProjectId, numericTeamId),
-    getStaffTeamWarnings(user.id, numericProjectId, numericTeamId),
+    getStaffTeamHealthMessages(userId, numericProjectId, numericTeamId),
+    getStaffTeamWarnings(userId, numericProjectId, numericTeamId),
     listMeetings(numericTeamId),
     loadRepoHealthSummary(numericProjectId, team.allocations.map((allocation) => allocation.userId)),
-    getTeamDetails(user.id, projectData.project.moduleId, numericTeamId),
+    getTeamDetails(userId, projectData.project.moduleId, numericTeamId),
   ]);
 
   const requests: TeamHealthMessage[] = requestsResult.status === "fulfilled" ? requestsResult.value : [];
@@ -503,7 +498,7 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
       </section>
 
       <StaffTeamWarningReviewPanel
-        userId={user.id}
+        userId={userId}
         projectId={numericProjectId}
         teamId={numericTeamId}
         initialWarnings={warnings}
@@ -511,7 +506,7 @@ export default async function StaffTeamHealthPage({ params, searchParams }: Page
       />
 
       <StaffTeamHealthMessageReviewPanel
-        userId={user.id}
+        userId={userId}
         projectId={numericProjectId}
         teamId={numericTeamId}
         initialRequests={requests}

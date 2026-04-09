@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "next/navigation";
 import { getStaffTeamHealthMessages, getStaffTeamWarnings } from "@/features/projects/api/client";
 import { listTeamMeetings } from "@/features/staff/meetings/api/client";
 import { getTeamDetails } from "@/features/staff/peerAssessments/api/client";
@@ -10,18 +9,6 @@ import { getFeedbackReviewStatuses, getPeerAssessmentsForUser } from "@/features
 import { getCurrentUser } from "@/shared/auth/session";
 import { getStaffProjectTeams } from "@/features/staff/projects/server/getStaffProjectTeamsCached";
 import StaffProjectTeamTabsPage from "./page";
-
-class RedirectSentinel extends Error {
-  constructor(readonly path: string) {
-    super(path);
-  }
-}
-
-vi.mock("next/navigation", () => ({
-  redirect: vi.fn((path: string) => {
-    throw new RedirectSentinel(path);
-  }),
-}));
 
 vi.mock("next/link", () => ({
   default: ({ href, children, className }: { href: string; children: ReactNode; className?: string }) => (
@@ -62,7 +49,6 @@ vi.mock("@/features/staff/projects/server/getStaffProjectTeamsCached", () => ({
   getStaffProjectTeams: vi.fn(),
 }));
 
-const redirectMock = vi.mocked(redirect);
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getStaffProjectTeamsMock = vi.mocked(getStaffProjectTeams);
 const getStaffTeamHealthMessagesMock = vi.mocked(getStaffTeamHealthMessages);
@@ -98,16 +84,6 @@ describe("StaffProjectTeamTabsPage", () => {
     });
     getPeerAssessmentsForUserMock.mockResolvedValue([]);
     getFeedbackReviewStatusesMock.mockResolvedValue({});
-  });
-
-  it("redirects non-staff users", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: 1, isStaff: false, role: "STUDENT" } as Awaited<ReturnType<typeof getCurrentUser>>);
-
-    await expect(
-      StaffProjectTeamTabsPage({ params: Promise.resolve({ projectId: "1", teamId: "2" }) }),
-    ).rejects.toBeInstanceOf(RedirectSentinel);
-
-    expect(redirectMock).toHaveBeenCalledWith("/dashboard");
   });
 
   it("renders invalid route message", async () => {

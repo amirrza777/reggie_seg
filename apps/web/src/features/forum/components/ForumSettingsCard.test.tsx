@@ -44,7 +44,7 @@ describe("ForumSettingsCard", () => {
     } as ReturnType<typeof useUser>);
   });
 
-  it("renders anonymity checkbox and updates setting when toggled on", async () => {
+  it("updates anonymity when Make anonymous is used", async () => {
     getForumSettingsMock.mockResolvedValue({ forumIsAnonymous: false });
     updateForumSettingsMock.mockResolvedValue({ forumIsAnonymous: true });
 
@@ -54,17 +54,16 @@ describe("ForumSettingsCard", () => {
       expect(getForumSettingsMock).toHaveBeenCalledWith(1, 9);
     });
 
-    const hideNamesCheckbox = screen.getByRole("checkbox", { name: "Hide student names" });
+    expect(await screen.findByRole("button", { name: "Make anonymous" })).toBeInTheDocument();
 
-    expect(hideNamesCheckbox).not.toBeChecked();
-
-    fireEvent.click(hideNamesCheckbox);
+    fireEvent.click(screen.getByRole("button", { name: "Make anonymous" }));
 
     await waitFor(() => {
       expect(updateForumSettingsMock).toHaveBeenCalledWith(1, 9, true);
     });
 
-    expect(hideNamesCheckbox).toBeChecked();
+    expect(await screen.findByRole("button", { name: "Show student names" })).toBeInTheDocument();
+    expect(screen.getByText("Posts on the forum are anonymous and not linked to students.")).toBeInTheDocument();
   });
 
   it("shows staff sign-in hint and skips loading settings when user is missing", async () => {
@@ -80,7 +79,7 @@ describe("ForumSettingsCard", () => {
     });
 
     expect(getForumSettingsMock).not.toHaveBeenCalled();
-    expect(screen.getByRole("checkbox", { name: "Hide student names" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Make anonymous" })).toBeDisabled();
   });
 
   it("shows an error when loading settings fails", async () => {
@@ -105,11 +104,11 @@ describe("ForumSettingsCard", () => {
     rerender(<ForumSettingsCard projectId={10} />);
 
     second.resolve({ forumIsAnonymous: false });
-    await waitFor(() => expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make anonymous" })).toBeInTheDocument());
 
     first.resolve({ forumIsAnonymous: true });
     await waitFor(() => expect(getForumSettingsMock).toHaveBeenCalledWith(1, 9));
-    expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Make anonymous" })).toBeInTheDocument();
   });
 
   it("ignores stale load errors after a newer successful refresh", async () => {
@@ -122,14 +121,23 @@ describe("ForumSettingsCard", () => {
     const { rerender } = render(<ForumSettingsCard projectId={3} />);
     rerender(<ForumSettingsCard projectId={4} />);
 
-    await waitFor(() =>
-      expect(screen.getByRole("checkbox", { name: "Hide student names" })).not.toBeChecked(),
-    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Make anonymous" })).toBeInTheDocument());
 
     first.reject(new Error("stale-load"));
     await first.promise.catch(() => undefined);
 
     expect(screen.queryByText("Unable to load forum settings.")).not.toBeInTheDocument();
+  });
+
+  it("disables the action button when readOnly", async () => {
+    getForumSettingsMock.mockResolvedValue({ forumIsAnonymous: false });
+
+    render(<ForumSettingsCard projectId={9} readOnly />);
+
+    expect(await screen.findByText("Student names are visible on posts.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Make anonymous" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Make anonymous" }));
+    expect(updateForumSettingsMock).not.toHaveBeenCalled();
   });
 
   it("shows an error when updating settings fails", async () => {
@@ -138,8 +146,7 @@ describe("ForumSettingsCard", () => {
 
     render(<ForumSettingsCard projectId={11} />);
 
-    const checkbox = await screen.findByRole("checkbox", { name: "Hide student names" });
-    fireEvent.click(checkbox);
+    fireEvent.click(await screen.findByRole("button", { name: "Make anonymous" }));
 
     await waitFor(() => {
       expect(screen.getByText("Unable to update forum settings.")).toBeInTheDocument();

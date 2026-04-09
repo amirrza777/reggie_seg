@@ -8,18 +8,13 @@ vi.mock("../api/client", () => ({
   updateProjectWarningsConfig: vi.fn(),
 }));
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
+
 vi.mock("@/shared/ui/Button", () => ({
   Button: ({ children, ...props }: { children: ReactNode } & Record<string, unknown>) => (
     <button {...props}>{children}</button>
-  ),
-}));
-
-vi.mock("@/shared/ui/Card", () => ({
-  Card: ({ title, children }: { title: ReactNode; children: ReactNode }) => (
-    <section>
-      <h2>{title}</h2>
-      {children}
-    </section>
   ),
 }));
 
@@ -62,20 +57,25 @@ describe("ConfigureWarningPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders in read-only mode initially and enables editing", () => {
+  it("disables editors and actions when readOnly", () => {
+    render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} readOnly />);
+
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard changes" })).toBeDisabled();
+    const spinners = screen.getAllByRole("spinbutton");
+    expect(spinners.length).toBeGreaterThan(0);
+    for (const input of spinners) {
+      expect(input).toBeDisabled();
+    }
+  });
+
+  it("shows rule editors and disabled Save / Discard until the draft is dirty", () => {
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
 
-    expect(screen.getByRole("heading", { name: "Project Warning Configuration" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit configuration" })).toBeInTheDocument();
-
-    const firstCheckbox = screen.getAllByRole("checkbox")[0];
-    expect(firstCheckbox).toBeDisabled();
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
-
-    expect(firstCheckbox).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit configuration" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("spinbutton").length).toBeGreaterThan(0);
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Discard changes" })).toBeDisabled();
   });
 
   it("falls back to default warning config when incoming config is missing", () => {
@@ -87,10 +87,8 @@ describe("ConfigureWarningPanel", () => {
     expect(thresholdInputs[2]).toHaveValue(4);
   });
 
-  it("cancels edits and restores previous config values", () => {
+  it("discards edits and restores previous config values", () => {
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
 
     const thresholdInputs = screen.getAllByRole("spinbutton");
     expect(thresholdInputs[0]).toHaveValue(30);
@@ -98,18 +96,16 @@ describe("ConfigureWarningPanel", () => {
     fireEvent.change(thresholdInputs[0], { target: { value: "75" } });
     expect(thresholdInputs[0]).toHaveValue(75);
 
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    fireEvent.click(screen.getByRole("button", { name: "Discard changes" }));
 
-    expect(screen.getByRole("button", { name: "Edit configuration" })).toBeInTheDocument();
     expect(screen.getAllByRole("spinbutton")[0]).toHaveValue(30);
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
   });
 
   it("saves updated config and shows success state", async () => {
     updateProjectWarningsConfigMock.mockResolvedValue({ warningsConfig: buildConfig() } as any);
 
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
 
     const thresholdInputs = screen.getAllByRole("spinbutton");
     const checkboxes = screen.getAllByRole("checkbox");
@@ -157,7 +153,6 @@ describe("ConfigureWarningPanel", () => {
     });
 
     expect(await screen.findByText("Configuration updated successfully.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Edit configuration" })).toBeInTheDocument();
   });
 
   it("shows save error message when update fails", async () => {
@@ -165,7 +160,7 @@ describe("ConfigureWarningPanel", () => {
 
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
+    fireEvent.change(screen.getAllByRole("spinbutton")[0], { target: { value: "40" } });
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
     expect(await screen.findByText("Failed to save configuration. Please try again.")).toBeInTheDocument();
@@ -176,8 +171,6 @@ describe("ConfigureWarningPanel", () => {
     updateProjectWarningsConfigMock.mockResolvedValue({ warningsConfig: buildConfig() } as any);
 
     render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
-
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
 
     const checkboxes = screen.getAllByRole("checkbox");
     const selects = screen.getAllByRole("combobox");
@@ -208,7 +201,6 @@ describe("ConfigureWarningPanel", () => {
   it("updates draft when incoming warningsConfig prop changes", () => {
     const { rerender } = render(<ConfigureWarningPanel projectId={21} warningsConfig={buildConfig()} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Edit configuration" }));
     expect(screen.getAllByRole("spinbutton")[0]).toHaveValue(30);
 
     const nextConfig = buildConfig();

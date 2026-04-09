@@ -16,9 +16,8 @@ const projectTabsBase = [
   { key: "team-allocation", label: "Team allocation", hrefSuffix: "/team-allocation" },
   { key: "meetings", label: "Meetings", hrefSuffix: "/meetings" },
   { key: "discussion", label: "Discussion Forum", hrefSuffix: "/discussion" },
-  { key: "feature-flags", label: "Feature flags", hrefSuffix: "/feature-flags" },
-  { key: "manage", label: "Manage", hrefSuffix: "/manage" },
   { key: "warnings", label: "Warnings", hrefSuffix: "/warnings" },
+  { key: "manage", label: "Manage", hrefSuffix: "/manage" },
 ] as const;
 
 export function StaffProjectSectionNav({

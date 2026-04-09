@@ -32,7 +32,7 @@ export function MeetingEditContent({ meetingId, projectId }: MeetingEditContentP
     return (
       <div className="stack">
         {backLink}
-        <p className="muted">This module or project is archived; meetings cannot be edited.</p>
+        <p className="muted">This project is archived; meetings cannot be edited.</p>
       </div>
     );
   }
