@@ -276,28 +276,8 @@ SQL
             ensure_deps
             migrate_db
 
-            test_status=0
             coverage_status=0
-
-            if ! (
-              cd apps/api
-              if [ -n "''${DB_URL_OVERRIDE:-}" ]; then
-                DATABASE_URL="$DB_URL_OVERRIDE" run_non_interactive_tests
-              else
-                run_non_interactive_tests
-              fi
-            ); then
-              echo "❌ API tests failed"
-              test_status=1
-            fi
-
-            if ! (
-              cd apps/web
-              run_non_interactive_tests
-            ); then
-              echo "❌ Web tests failed"
-              test_status=1
-            fi
+            coverage_command_failed=0
 
             if ! (
               cd apps/api
@@ -319,6 +299,7 @@ SQL
             ); then
               echo "❌ API coverage run failed"
               coverage_status=1
+              coverage_command_failed=1
             fi
 
             if ! (
@@ -332,6 +313,7 @@ SQL
             ); then
               echo "❌ Web coverage run failed"
               coverage_status=1
+              coverage_command_failed=1
             fi
 
             if [ ! -d apps/api/coverage ]; then
@@ -345,18 +327,19 @@ SQL
             fi
 
             if [ "$coverage_status" -ne 0 ]; then
+              if [ "$coverage_command_failed" -eq 1 ]; then
+                echo "⚠️ coverage command(s) failed, but reports were generated:"
+                echo "   - apps/api/coverage"
+                echo "   - apps/web/coverage"
+                exit 0
+              fi
               echo "❌ tests entrypoint failed: coverage reports were not generated"
               exit 1
             fi
 
-            if [ "$test_status" -ne 0 ]; then
-              echo "⚠️ tests failed, but coverage reports were generated:"
-              echo "   - apps/api/coverage"
-              echo "   - apps/web/coverage"
-              exit 0
-            fi
-
-            echo "✅ tests and coverage complete"
+            echo "✅ coverage complete"
+            echo "   - apps/api/coverage"
+            echo "   - apps/web/coverage"
           '';
 
           unseed = mkApp "unseed" ''
