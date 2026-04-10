@@ -9,7 +9,7 @@ import {
   rejectTeamInviteHandler,
 } from "./controller.invites.js";
 
-vi.mock("./service.js", () => ({
+vi.mock("../service/service.js", () => ({
   createTeamInvite: vi.fn(),
   listTeamInvites: vi.fn(),
   listInviteEligibleStudents: vi.fn(),

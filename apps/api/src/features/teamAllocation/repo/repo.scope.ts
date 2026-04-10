@@ -5,6 +5,7 @@ import type {
   ModuleStudent,
   ProjectTeamSummary,
 } from "./repo.types.js";
+export { findStaffScopedProject, findStaffScopedProjectAccess } from "./repo.project-access.js";
 
 export type InviteEligibleStudent = ModuleStudent;
 

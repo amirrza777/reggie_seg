@@ -8,7 +8,7 @@ import {
   previewCustomAllocationHandler,
 } from "./controller.custom-allocation.js";
 
-vi.mock("./service.js", () => ({
+vi.mock("../service/service.js", () => ({
   applyCustomAllocationForProject: vi.fn(),
   getCustomAllocationCoverageForProject: vi.fn(),
   listCustomAllocationQuestionnairesForProject: vi.fn(),

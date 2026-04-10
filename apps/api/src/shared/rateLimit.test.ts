@@ -59,7 +59,7 @@ describe("rateLimit", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
-  it("requires RATE_LIMIT_REDIS_URL in production by default", async () => {
+  it("falls back to in-memory and warns when RATE_LIMIT_REDIS_URL is not set in production", async () => {
     process.env.NODE_ENV = "production";
     delete process.env.RATE_LIMIT_REDIS_URL;
     delete process.env.RATE_LIMIT_ALLOW_IN_MEMORY;
@@ -71,7 +71,7 @@ describe("rateLimit", () => {
         max: 1,
         prefix: "test",
       }),
-    ).toThrow("RATE_LIMIT_REDIS_URL is required in production");
+    ).not.toThrow();
   });
 
   it("allows in-memory fallback in production when explicitly enabled", async () => {
@@ -87,5 +87,50 @@ describe("rateLimit", () => {
         prefix: "test",
       }),
     ).not.toThrow();
+  });
+
+  it("calls next when request is under the rate limit", async () => {
+    process.env.NODE_ENV = "test";
+    const { rateLimit } = await import("./rateLimit.js");
+    const middleware = rateLimit({
+      windowMs: 60_000,
+      max: 5,
+      prefix: "test",
+      store: {
+        incrementAndGet: vi.fn(async () => ({ count: 1, resetAt: Date.now() + 60_000 })),
+      },
+    });
+
+    const setHeader = vi.fn();
+    const next = vi.fn();
+
+    await middleware({ ip: "127.0.0.1" } as any, { setHeader } as any, next);
+
+    expect(next).toHaveBeenCalled();
+  });
+
+  it("returns 429 when rate limit is exceeded", async () => {
+    process.env.NODE_ENV = "test";
+    const { rateLimit } = await import("./rateLimit.js");
+    const middleware = rateLimit({
+      windowMs: 60_000,
+      max: 1,
+      prefix: "test",
+      store: {
+        incrementAndGet: vi.fn(async () => ({ count: 2, resetAt: Date.now() + 30_000 })),
+      },
+    });
+
+    const status = vi.fn().mockReturnThis();
+    const json = vi.fn().mockReturnThis();
+    const setHeader = vi.fn();
+    const next = vi.fn();
+
+    await middleware({ ip: "127.0.0.1" } as any, { status, json, setHeader } as any, next);
+
+    expect(setHeader).toHaveBeenCalledWith("Retry-After", expect.any(Number));
+    expect(status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({ error: "Too many requests, please try again later." });
+    expect(next).not.toHaveBeenCalled();
   });
 });

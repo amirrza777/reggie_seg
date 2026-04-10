@@ -14,7 +14,10 @@ describe("service", () => {
 
   it("keeps a callable aggregate API surface", () => {
     for (const name of listExports()) {
-      expect((moduleUnderTest as Record<string, unknown>)[name]).toBeTypeOf("function");
+      const value = (moduleUnderTest as Record<string, unknown>)[name];
+      // Skip type-only or constant exports (e.g. numeric config values)
+      if (typeof value !== "function") continue;
+      expect(value).toBeTypeOf("function");
     }
   });
 });

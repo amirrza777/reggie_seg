@@ -134,4 +134,50 @@ describe("shared email", () => {
       }),
     );
   });
+
+  it("preserves existing styles on links while appending brand colours", async () => {
+    process.env.SMTP_HOST = "smtp.example.com";
+
+    const { sendEmail } = await import("./email.js");
+
+    await sendEmail({
+      to: "u@test.com",
+      subject: "Styled link test",
+      text: "ignored",
+      html: '<a href="https://example.com" style="font-size:14px;">Click</a>',
+    });
+
+    const sentHtml: string = mocked.sendMail.mock.calls[0][0].html;
+    expect(sentHtml).toContain("font-size:14px;");
+    expect(sentHtml).toContain("color:#20ad78");
+  });
+
+  it("passes through a full html document without wrapping it in the brand shell", async () => {
+    process.env.SMTP_HOST = "smtp.example.com";
+
+    const { sendEmail } = await import("./email.js");
+
+    const fullHtml = "<!doctype html><html><body>custom</body></html>";
+    await sendEmail({
+      to: "u@test.com",
+      subject: "Raw HTML",
+      text: "ignored",
+      html: fullHtml,
+    });
+
+    const sentHtml: string = mocked.sendMail.mock.calls[0][0].html;
+    expect(sentHtml).toBe(fullHtml);
+  });
+
+  it("sends email without auth credentials when SMTP_USER and SMTP_PASS are absent", async () => {
+    process.env.SMTP_HOST = "smtp.example.com";
+
+    const { sendEmail } = await import("./email.js");
+
+    await sendEmail({ to: "u@test.com", subject: "S", text: "hello" });
+
+    expect(mocked.createTransport).toHaveBeenCalledWith(
+      expect.objectContaining({ auth: undefined }),
+    );
+  });
 });
