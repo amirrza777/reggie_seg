@@ -247,6 +247,10 @@ function buildUserStats(snapshotId: number, studentUserId: number, staffUserId: 
   ];
 }
 
+export const __githubDemoInternals = {
+  getSeedGithubTokenEncryptionKey,
+};
+
 function buildStudentUserStat(snapshotId: number, studentUserId: number) {
   return {
     snapshotId,

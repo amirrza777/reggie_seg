@@ -50,6 +50,20 @@ describe("forum planners", () => {
     expect(rows.some((row) => row.type === "DISLIKE") || rows.some((row) => row.type === "LIKE")).toBe(true);
   });
 
+  it("drops duplicate post-reactor pairs when rotation revisits the same key", () => {
+    const rows = planForumReactionSeedData(
+      [
+        { id: 1, projectId: 10, authorId: 100 },
+        { id: 2, projectId: 10, authorId: 101 },
+      ],
+      [{ id: 900 } as any],
+      [],
+    );
+
+    const keys = rows.map((row) => `${row.postId}:${row.userId}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
   it("generates DISLIKE for odd-index projects on final reaction slot", () => {
     const rows = planForumReactionSeedData(
       [
@@ -154,6 +168,34 @@ describe("seedForumPosts", () => {
     expect(prismaMock.$transaction).toHaveBeenCalledTimes(2);
     expect(prismaMock.forumReaction.createMany).toHaveBeenCalled();
     expect(prismaMock.forumStudentReport.createMany).toHaveBeenCalled();
+  });
+
+  it("joins array paragraphs into body text for roots and replies", async () => {
+    falsoMock.randParagraph.mockReturnValue(["alpha", "beta"] as any);
+    falsoMock.randSentence.mockReturnValue("Scenario sentence");
+
+    await seedForumPosts(
+      [{ id: 1, moduleId: 1, templateId: 1 }],
+      [{ id: 11 } as any],
+      [{ id: 22 } as any, { id: 23 } as any],
+    );
+
+    const bodies = prismaMock.discussionPost.create.mock.calls.map((call) => String(call[0]?.data?.body ?? ""));
+    expect(bodies.some((body) => body.includes("alpha\n\nbeta"))).toBe(true);
+  });
+
+  it("supports non-array paragraph values for roots and replies", async () => {
+    falsoMock.randParagraph.mockReturnValue("single paragraph");
+    falsoMock.randSentence.mockReturnValue("Single sentence");
+
+    await seedForumPosts(
+      [{ id: 1, moduleId: 1, templateId: 1 }],
+      [{ id: 11 } as any],
+      [{ id: 22 } as any, { id: 23 } as any],
+    );
+
+    const bodies = prismaMock.discussionPost.create.mock.calls.map((call) => String(call[0]?.data?.body ?? ""));
+    expect(bodies.some((body) => body.includes("single paragraph"))).toBe(true);
   });
 
   it("uses fallback reply titles/author ids when transaction returns extra roots", async () => {

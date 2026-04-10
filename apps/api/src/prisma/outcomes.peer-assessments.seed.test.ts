@@ -88,4 +88,27 @@ describe("outcomes seeder peer assessments", () => {
     expect(prismaMock.peerAssessment.create).not.toHaveBeenCalled();
     expect(prismaMock.peerAssessment.update).not.toHaveBeenCalled();
   });
+
+  it("falls back to default agreement keys when template labels are empty", async () => {
+    prismaMock.teamAllocation.findMany.mockResolvedValue([
+      { user: { id: 1 } },
+      { user: { id: 2 } },
+    ]);
+    prismaMock.peerAssessment.findMany.mockResolvedValue([]);
+    prismaMock.peerFeedback.findMany.mockResolvedValue([]);
+
+    await seedPeerAssessments(
+      [{ id: 100, moduleId: 1, templateId: 1 }],
+      [{ id: 10, projectId: 100 }],
+      [{ id: 1, questionLabels: [] }] as any,
+    );
+
+    const payload = prismaMock.peerFeedback.upsert.mock.calls[0]?.[0];
+    expect(Object.keys(payload.create.agreementsJson)).toEqual([
+      "communication",
+      "contributionVisible",
+      "wouldWorkAgain",
+      "followUpNeeded",
+    ]);
+  });
 });
