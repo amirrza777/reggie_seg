@@ -33,11 +33,14 @@ describe("AcceptEnterpriseAdminInviteForm", () => {
 
     fireEvent.change(screen.getByLabelText("First Name (Optional)"), { target: { value: "  Alex  " } });
     fireEvent.change(screen.getByLabelText("Last Name (Optional)"), { target: { value: "   " } });
+    fireEvent.change(screen.getByLabelText("Create Password"), { target: { value: "Pass1234" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Pass1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Accept invite" }));
 
     await waitFor(() =>
       expect(acceptEnterpriseAdminInviteMock).toHaveBeenCalledWith({
         token: "tok_123",
+        newPassword: "Pass1234",
         firstName: "Alex",
         lastName: undefined,
       }),
@@ -52,6 +55,8 @@ describe("AcceptEnterpriseAdminInviteForm", () => {
 
     render(<AcceptEnterpriseAdminInviteForm token="tok_123" />);
 
+    fireEvent.change(screen.getByLabelText("Create Password"), { target: { value: "Pass1234" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Pass1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Accept invite" }));
 
     expect(await screen.findByText("Invite expired")).toBeInTheDocument();
@@ -62,8 +67,21 @@ describe("AcceptEnterpriseAdminInviteForm", () => {
 
     render(<AcceptEnterpriseAdminInviteForm token="tok_123" />);
 
+    fireEvent.change(screen.getByLabelText("Create Password"), { target: { value: "Pass1234" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Pass1234" } });
     fireEvent.click(screen.getByRole("button", { name: "Accept invite" }));
 
     expect(await screen.findByText("Could not accept invite.")).toBeInTheDocument();
+  });
+
+  it("validates password confirmation before submit", async () => {
+    render(<AcceptEnterpriseAdminInviteForm token="tok_123" />);
+
+    fireEvent.change(screen.getByLabelText("Create Password"), { target: { value: "Pass1234" } });
+    fireEvent.change(screen.getByLabelText("Confirm Password"), { target: { value: "Pass12345" } });
+    fireEvent.click(screen.getByRole("button", { name: "Accept invite" }));
+
+    expect(await screen.findByText("Passwords do not match.")).toBeInTheDocument();
+    expect(acceptEnterpriseAdminInviteMock).not.toHaveBeenCalled();
   });
 });

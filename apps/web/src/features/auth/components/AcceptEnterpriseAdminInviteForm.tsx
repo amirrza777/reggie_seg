@@ -42,10 +42,14 @@ function InviteAcceptSuccessView({ message }: { message: string }) {
 type InviteAcceptFieldsProps = {
   firstName: string;
   lastName: string;
+  newPassword: string;
+  confirmPassword: string;
   message: string | null;
   status: InviteAcceptStatus;
   onFirstNameChange: (value: string) => void;
   onLastNameChange: (value: string) => void;
+  onNewPasswordChange: (value: string) => void;
+  onConfirmPasswordChange: (value: string) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => Promise<void>;
 };
 
@@ -68,6 +72,24 @@ function InviteAcceptFields(props: InviteAcceptFieldsProps) {
         placeholder="Last name"
         onChange={(_, value) => props.onLastNameChange(value)}
       />
+      <AuthField
+        name="newPassword"
+        label="Create Password"
+        type="password"
+        value={props.newPassword}
+        placeholder="Create a password"
+        required
+        onChange={(_, value) => props.onNewPasswordChange(value)}
+      />
+      <AuthField
+        name="confirmPassword"
+        label="Confirm Password"
+        type="password"
+        value={props.confirmPassword}
+        placeholder="Re-enter password"
+        required
+        onChange={(_, value) => props.onConfirmPasswordChange(value)}
+      />
       <Button type="submit" disabled={props.status === "loading"} className="auth-button auth-button--spaced">
         {props.status === "loading" ? "Accepting..." : "Accept invite"}
       </Button>
@@ -81,6 +103,8 @@ function InviteAcceptFields(props: InviteAcceptFieldsProps) {
 export function AcceptEnterpriseAdminInviteForm({ token }: { token: string | null }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [status, setStatus] = useState<InviteAcceptStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
@@ -94,11 +118,24 @@ export function AcceptEnterpriseAdminInviteForm({ token }: { token: string | nul
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const trimmedPassword = newPassword.trim();
+    const trimmedConfirmPassword = confirmPassword.trim();
+    if (!trimmedPassword) {
+      setStatus("error");
+      setMessage("Password is required.");
+      return;
+    }
+    if (trimmedPassword !== trimmedConfirmPassword) {
+      setStatus("error");
+      setMessage("Passwords do not match.");
+      return;
+    }
     setStatus("loading");
     setMessage(null);
     try {
       await acceptEnterpriseAdminInvite({
         token,
+        newPassword: trimmedPassword,
         firstName: normalizeOptionalName(firstName),
         lastName: normalizeOptionalName(lastName),
       });
@@ -114,10 +151,14 @@ export function AcceptEnterpriseAdminInviteForm({ token }: { token: string | nul
     <InviteAcceptFields
       firstName={firstName}
       lastName={lastName}
+      newPassword={newPassword}
+      confirmPassword={confirmPassword}
       message={message}
       status={status}
       onFirstNameChange={setFirstName}
       onLastNameChange={setLastName}
+      onNewPasswordChange={setNewPassword}
+      onConfirmPasswordChange={setConfirmPassword}
       onSubmit={handleSubmit}
     />
   );

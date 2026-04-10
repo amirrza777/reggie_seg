@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { logout } from "../api/client";
+import { AUTH_STATE_EVENT } from "../api/session";
 import type { UserProfile } from "../types";
 import { useUser } from "../useUser";
 import { MinimalLoader } from "@/shared/ui/MinimalLoader";
@@ -73,6 +74,26 @@ function UserMenuAnonymous() {
       <span className="user-menu__avatar user-menu__avatar--fallback">?</span>
       <span className="user-menu__name">Sign in</span>
     </Link>
+  );
+}
+
+function SessionTimeoutToast({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="ui-toast-layer user-menu__session-toast-layer" aria-live="assertive" aria-atomic="true">
+      <div className="ui-toast ui-toast--warning user-menu__session-toast" role="alert">
+        <p className="user-menu__session-toast-message">
+          Your session has timed out or you were signed out. Please log in again.
+        </p>
+        <div className="user-menu__session-toast-actions">
+          <Link className="user-menu__session-toast-link" href="/login">
+            Log in
+          </Link>
+          <button type="button" className="user-menu__session-toast-dismiss" onClick={onClose}>
+            Dismiss
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -151,16 +172,56 @@ function UserMenuSignedIn({ user, onLogout }: { user: UserProfile; onLogout: () 
 export function UserMenu() {
   const { user, setUser, loading } = useUser();
   const router = useRouter();
+  const [showSessionTimeoutToast, setShowSessionTimeoutToast] = useState(false);
+  const suppressNextSignOutNoticeRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const handleAuthState = (event: Event) => {
+      const authEvent = event as CustomEvent<{ authenticated?: boolean }>;
+      if (authEvent.detail?.authenticated !== false || !user) {
+        return;
+      }
+      if (suppressNextSignOutNoticeRef.current) {
+        suppressNextSignOutNoticeRef.current = false;
+        return;
+      }
+      setShowSessionTimeoutToast(true);
+    };
+    window.addEventListener(AUTH_STATE_EVENT, handleAuthState as EventListener);
+    return () => window.removeEventListener(AUTH_STATE_EVENT, handleAuthState as EventListener);
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      setShowSessionTimeoutToast(false);
+    }
+  }, [user]);
+
   const handleLogout = async () => {
+    suppressNextSignOutNoticeRef.current = true;
+    setShowSessionTimeoutToast(false);
     await logout();
     setUser(null);
     router.push("/login");
   };
-  if (loading) {
-    return <UserMenuLoading />;
-  }
-  if (!user) {
-    return <UserMenuAnonymous />;
-  }
-  return <UserMenuSignedIn user={user} onLogout={handleLogout} />;
+
+  const menuContent = (() => {
+    if (loading) {
+      return <UserMenuLoading />;
+    }
+    if (!user) {
+      return <UserMenuAnonymous />;
+    }
+    return <UserMenuSignedIn user={user} onLogout={handleLogout} />;
+  })();
+
+  return (
+    <>
+      {showSessionTimeoutToast ? <SessionTimeoutToast onClose={() => setShowSessionTimeoutToast(false)} /> : null}
+      {menuContent}
+    </>
+  );
 }
